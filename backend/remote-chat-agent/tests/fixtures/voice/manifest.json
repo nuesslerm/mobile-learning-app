@@ -1,0 +1,56 @@
+{
+  "generatedBy": "wf harness voice-fixtures generate",
+  "note": "Committed on purpose. Regenerate only when adding a phrase — the audio itself is an input to the transcription tests, so churning it churns their expectations.",
+  "fixtures": [
+    {
+      "id": "rename-loop-variable",
+      "text": "rename the loop variable to index",
+      "intent": "renameSymbol — the command with a position and a new name",
+      "file": "rename-loop-variable.wav",
+      "sampleRateHz": 22050,
+      "channels": 1,
+      "durationMs": 2113,
+      "bytes": 93228
+    },
+    {
+      "id": "wrap-in-try-catch",
+      "text": "wrap the function body in a try catch",
+      "intent": "wrapWith — a range plus before/after text",
+      "file": "wrap-in-try-catch.wav",
+      "sampleRateHz": 22050,
+      "channels": 1,
+      "durationMs": 2276,
+      "bytes": 100396
+    },
+    {
+      "id": "delete-the-print",
+      "text": "delete the print statement",
+      "intent": "deleteRange — the destructive one, worth transcribing accurately",
+      "file": "delete-the-print.wav",
+      "sampleRateHz": 22050,
+      "channels": 1,
+      "durationMs": 1416,
+      "bytes": 62508
+    },
+    {
+      "id": "add-a-docstring",
+      "text": "add a docstring above the function",
+      "intent": "insertAt — a position and inserted text",
+      "file": "add-a-docstring.wav",
+      "sampleRateHz": 22050,
+      "channels": 1,
+      "durationMs": 1916,
+      "bytes": 84524
+    },
+    {
+      "id": "change-loop-condition",
+      "text": "change the loop condition to less than n",
+      "intent": "replaceRange — and the phrase the old mocked useVoiceCommand hardcoded",
+      "file": "change-loop-condition.wav",
+      "sampleRateHz": 22050,
+      "channels": 1,
+      "durationMs": 2287,
+      "bytes": 100908
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+Usage: wf vm ops runner-check [options]
+
+Read-only. Run inside a CI job on the self-hosted runner, it checks that the job
+has the builder sidecar and none of the host: (a) DOCKER_HOST is set and
+`docker info` through it answers with a server name; (b) the host docker socket
+does not exist; (c) PID 1's environment (names only, read from /proc/1/environ)
+holds no ACCESS_TOKEN, no VM_PROVISION_GITHUB_TOKEN and no BWS_ variable other
+than the two job tokens BWS_CI_OPEN_ACCESS_TOKEN and BWS_CI_DEPLOY_ACCESS_TOKEN;
+(d) a TCP connect to the agent-shell dind address (AGENT_SHELL_DIND_ADDR,
+host:port) is refused or times out. No such address is configured today, so
+the probe is skipped and the output says so.
+
+Options:
+  --proc-root <dir>          Read <dir>/1/environ instead of /proc/1/environ
+                             (tests)
+  --docker-sock-path <path>  Check this path instead of /var/run/docker.sock
+                             (tests)
+  --json                     Accepted; the output is always JSON
+  -h, --help                 display help for command
+
+Output: one JSON line on stdout {ok, docker_host_answers, docker_server,
+host_docker_sock_absent, pid1_env_readable, pid1_env_clean,
+pid1_offending_names?, agent_shell_dind_unreachable, agent_shell_dind_probe?,
+must_not_reach?};
+names and booleans, never a value. Exit 0 when every required check holds
+(an unreadable PID 1 environment fails), else 1.
+
+Environment: DOCKER_HOST, AGENT_SHELL_DIND_ADDR (optional), RUNNER_CHECK_MUST_NOT_REACH (optional: comma-separated host:port a job must not reach, e.g. the admin port of vm-ops-api; each answers unreachable, reachable or unresolved in `must_not_reach`, and anything but unreachable fails, because a name that does not resolve proves nothing).
+
+Example:
+  wf vm ops runner-check --json

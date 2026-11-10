@@ -1,0 +1,130 @@
+{
+	// Declare static groups of users. Use autogroups for all users or users with a specific role.
+	// "groups": {
+	//   "group:example": ["alice@example.com", "bob@example.com"],
+	// },
+
+	// Define the tags which can be applied to devices and by which users.
+	// "tagOwners": {
+	//   "tag:example": ["autogroup:admin"],
+	// },
+
+	// Define grants that govern access for users, groups, autogroups, tags,
+	// Tailscale IP addresses, and subnet ranges.
+	"grants": [
+		// Everything that exists today keeps the access it has: members (the sandbox, phones), the VM nodes and the
+		// vnc spike reach every node on every port, as the old `*` to `*` grant let them. The two CI tags are left out of
+		// `src` on purpose: a grant only allows, so a node can be kept out of an allow-all only by not naming its tag.
+		// Admin port 8080 of vm-ops-api and agent-shell (ssh, exec-script) are therefore open to these sources and
+		// closed to the CI tags. Narrowing 8080 to agent-shell alone needs agent-shell to get a tag of its own (every
+		// VM node shares the one tagged TS_VM_AUTH_KEY): see docs/plans/ci-scoped-vault-access/plan.md, Phase 3.
+		{
+			"src": ["autogroup:member", "tag:mobile-learning", "tag:vnc-spike"],
+			"dst": ["*"],
+			"ip":  ["*"],
+		},
+
+		// The VM runner (`tag:ci-self-hosted`, its own tailnet node once it joins with its own auth key) and a GitHub-hosted
+		// runner (`tag:ci-gh-hosted`) reach the VM services only on the ports a CI job calls: vm-ops-api's CI port and its
+		// smoke twin, the health ports of the apps a deploy leg verifies, reporting-service and libs-proxy. Not 8080
+		// (vm-ops-api admin: the generic exec-script), not 22 (agent-shell), nothing else. Anything not granted is denied.
+		{
+			"src": ["tag:ci-self-hosted", "tag:ci-gh-hosted"],
+			"dst": ["tag:mobile-learning"],
+			"ip": [
+				"tcp:8081",  // vm-ops-api CI port
+				"tcp:18998", // vm-ops-api smoke container, CI port
+				"tcp:18999", // an app's smoke container, its own health
+				"tcp:8787",  // remote-chat-agent
+				"tcp:8789",  // leetcode-backend
+				"tcp:8791",  // reporting-service
+				"tcp:8792",  // leetcode-capture listener
+				"tcp:8793",  // libs-proxy
+				"tcp:8797",  // t3-serve
+				"tcp:6768",  // orca-serve
+			],
+		},
+	],
+
+	// Define postures that will be applied to all rules without any specific
+	// srcPosture definition.
+	// "defaultSrcPosture": [
+	//      "posture:anyMac",
+	// ],
+
+	// Define device posture rules requiring devices to meet
+	// certain criteria to access parts of your system.
+	// "postures": {
+	//      // Require devices running macOS, a stable Tailscale
+	//      // version and auto update enabled for Tailscale.
+	//  "posture:autoUpdateMac": [
+	//      "node:os == 'macos'",
+	//      "node:tsReleaseTrack == 'stable'",
+	//      "node:tsAutoUpdate",
+	//  ],
+	//      // Require devices running macOS and a stable
+	//      // Tailscale version.
+	//  "posture:anyMac": [
+	//      "node:os == 'macos'",
+	//      "node:tsReleaseTrack == 'stable'",
+	//  ],
+	// },
+
+	// Define users and devices that can use Tailscale SSH.
+	"ssh": [
+		// Allow all users to SSH into their own devices in check mode.
+		// Comment this section out if you want to define specific restrictions.
+		{
+			"action": "check",
+			"src":    ["autogroup:member"],
+			"dst":    ["autogroup:self"],
+			"users":  ["autogroup:nonroot", "root"],
+		},
+	],
+
+	"nodeAttrs": [
+		{
+			"target": ["tag:mobile-learning"],
+			"attr":   ["funnel"],
+		},
+		{
+			// Funnel policy, which lets tailnet members control Funnel
+			// for their own devices.
+			// Learn more at https://tailscale.com/kb/1223/tailscale-funnel/
+			"target": ["autogroup:member"],
+
+			"attr": ["funnel"],
+		},
+		// Five per-IP funnel grants used to live here. They were dead weight
+		// pretending to be policy: a tailnet IP changes on every VM recreate, so
+		// each entry stopped matching anything the first time its instance was
+		// replaced. The `tag:mobile-learning` grant above already covers every VM
+		// node, by tag, permanently.
+	],
+
+	// A tag is owned by its listed owners; the OAuth client that mints keys carries `tag:mobile-learning` and can only hand out tags that tag owns.
+	"tagOwners": {
+		"tag:vnc-spike":       ["owner@example.com"],
+		"tag:mobile-learning": ["owner@example.com", "tag:mobile-learning"],
+		"tag:ci-self-hosted":       ["owner@example.com", "tag:mobile-learning"],
+		"tag:ci-gh-hosted":       ["owner@example.com", "tag:mobile-learning"],
+	},
+
+	// Tailscale checks these on every `test` and `apply` of tailscale-acl.yml and refuses a policy that breaks one.
+	"tests": [
+		{
+			"src":    "tag:ci-self-hosted",
+			"accept": ["tag:mobile-learning:8081"],
+			"deny":   ["tag:mobile-learning:8080", "tag:mobile-learning:22"],
+		},
+		{
+			"src":    "tag:ci-gh-hosted",
+			"accept": ["tag:mobile-learning:8081"],
+			"deny":   ["tag:mobile-learning:8080", "tag:mobile-learning:22"],
+		},
+		{
+			"src":    "tag:mobile-learning",
+			"accept": ["tag:mobile-learning:8080", "tag:mobile-learning:8081", "tag:mobile-learning:22"],
+		},
+	],
+}

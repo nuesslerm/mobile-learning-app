@@ -1,0 +1,1 @@
+pgid=$(cat "$1/pid" 2>/dev/null) || exit 0; [ -n "$pgid" ] || exit 0; kill -TERM "-$pgid" 2>/dev/null || exit 0; waited=0; while [ "$waited" -lt "$2" ] && kill -0 "-$pgid" 2>/dev/null; do sleep 1; waited=$((waited + 1)); done; if kill -0 "-$pgid" 2>/dev/null; then kill -KILL "-$pgid" 2>/dev/null; fi; exit 0

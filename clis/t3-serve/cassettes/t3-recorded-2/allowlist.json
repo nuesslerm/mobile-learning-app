@@ -1,0 +1,110 @@
+{
+  "ignored": [
+    {
+      "path": "label",
+      "reason": "the host name of the machine",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "platform.os",
+      "reason": "the machine",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "platform.arch",
+      "reason": "the machine",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "serverVersion",
+      "reason": "this server's own version",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "cwd",
+      "reason": "the server's working directory",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "projectName",
+      "reason": "the basename of the working directory",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "keybindingsConfigPath",
+      "reason": "the server's home",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "scratchWorkspaceRoot",
+      "reason": "the server's home",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "newProjectsRoot",
+      "reason": "the server's home",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "logsDirectoryPath",
+      "reason": "the server's home",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "auth.policy",
+      "reason": "this server is reachable beyond loopback",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "localTracingEnabled",
+      "reason": "this server does not trace locally",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    }
+  ],
+  "omitted": [
+    {
+      "path": "headers.content-encoding",
+      "reason": "the pinned server compresses a response for a client that accepts it; t3-serve sends it plain. A transport encoding, the decoded body is what is compared",
+      "phase": "R1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "capabilities.fileAttachments",
+      "reason": "the feature is not built, and an absent flag is how a client hides it",
+      "phase": "5",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    }
+  ],
+  "shapeOnly": [
+    {
+      "path": "providers",
+      "reason": "the provider list is this server's own",
+      "phase": "3",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "sessionCookieName",
+      "reason": "embeds a port and a hash",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    },
+    {
+      "path": "sessionMethods",
+      "reason": "compared by presence only",
+      "phase": "1",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0"
+    }
+  ]
+}

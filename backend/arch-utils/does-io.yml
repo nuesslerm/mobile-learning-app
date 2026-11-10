@@ -1,0 +1,33 @@
+id: does-io
+language: rust
+# A path or a `use` that reaches the file system, a socket, a child process, the environment, a signal, an HTTP crate or the OS directories:
+# `std`/`tokio` `fs net process env signal`, and `reqwest`, `axum`, `dirs`. A `use` list is checked one level in, so `use std::{fs, io}`,
+# `use tokio::{fs::File as F}` and `use reqwest::{Client}` are caught like their one-line spellings.
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: '^(std|tokio)::(fs|net|process|env|signal)\b'
+    - kind: scoped_identifier
+      regex: '^(reqwest|axum|dirs)::'
+    - kind: scoped_use_list
+      regex: '^(reqwest|axum|dirs)::\{'
+    - kind: identifier
+      regex: '^(reqwest|axum|dirs)$'
+      inside:
+        any:
+          - kind: use_declaration
+          - kind: use_list
+    - kind: scoped_use_list
+      regex: '^(std|tokio)::\{'
+      has:
+        kind: use_list
+        has:
+          any:
+            - kind: identifier
+              regex: '^(fs|net|process|env|signal)$'
+            - kind: scoped_identifier
+              regex: '^(fs|net|process|env|signal)::'
+            - kind: scoped_use_list
+              regex: '^(fs|net|process|env|signal)::'
+            - kind: use_as_clause
+              regex: '^(fs|net|process|env|signal)\b'

@@ -1,0 +1,13 @@
+Usage: wf bench cli [options]
+
+Measure CLI cold start, wall time and peak RSS per command (python3 rusage,
+fresh process per run) plus bundle and node_modules footprint. Set WF_BIN to
+bench another binary.
+
+Options:
+  --runs <n>      runs per target (default: "5")
+  --no-footprint  skip the bundle and node_modules footprint (counting
+                  node_modules takes about a minute on a full install)
+  --live          also run commands that touch the network or the VM
+  --out <file>    also write the JSON report to this file
+  -h, --help      display help for command

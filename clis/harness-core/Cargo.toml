@@ -1,0 +1,33 @@
+[package]
+name = "harness-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "What every device harness shares: the command table and Lua script API over a Device, the run engine and its Platform trait, goldens, run reports, traces, spans, recordings, and the local servers a run stands up"
+
+[lib]
+doctest = false
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+wf-vmops = { path = "../wf-vmops" }
+wf-bucket = { path = "../wf-bucket" }
+cdp = { path = "../cdp" }
+rca-core = { version = "0.1", registry = "mla" }
+cli-http = { path = "../http" }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+# the harness reads selector patterns as an AST to keep them to the grammar Java, JavaScript and Rust share (part of the regex project)
+regex-syntax = { version = "0.8", default-features = false, features = ["std"] }
+base64 = "0.22"
+png = { version = "0.17", default-features = false }
+tiny_http = "0.12"
+mime_guess = "2"
+nix = { version = "0.31", default-features = false, features = ["signal", "process"] }
+signal-hook = "0.4"
+sourcemap = { version = "9.3.2", default-features = false }
+mlua = { version = "0.12.2", features = ["lua54", "vendored", "serialize"] }
+tempfile = "3"
+
+[dev-dependencies]
+wf-vmops = { path = "../wf-vmops", features = ["testing"] }

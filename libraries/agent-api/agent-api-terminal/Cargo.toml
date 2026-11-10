@@ -1,0 +1,17 @@
+[package]
+name = "agent-api-terminal"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's terminal group (`terminal.open`, `terminal.attach`, ...): the methods, how their params are read, and the events of a terminal's stream, whose output is numbered by byte offset"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }

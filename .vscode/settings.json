@@ -1,0 +1,9 @@
+{
+  "editor.codeActionsOnSave": {
+    "source.fixAll": "explicit",
+    "source.organizeImports": "explicit",
+    "source.sortMembers": "explicit"
+  },
+  // tsc is TypeScript 7 (no language server until 7.1); the editor runs the 6.0 server the `typescript` alias pulls in
+  "js/ts.tsdk.path": "node_modules/@typescript/old/lib"
+}

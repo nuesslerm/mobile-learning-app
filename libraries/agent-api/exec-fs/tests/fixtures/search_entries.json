@@ -1,0 +1,213 @@
+{
+  "action": "search_entries",
+  "exchanges": [
+    {
+      "name": "finds files whose name starts with the query before those that only contain it, shorter paths first",
+      "setup": {
+        "files": {
+          "src/main.rs": "x",
+          "src/lib.rs": "x",
+          "README.md": "x",
+          "docs/main-guide.md": "x",
+          "docs/domain.md": "x"
+        }
+      },
+      "request": {
+        "id": "e1",
+        "tool": "search_entries",
+        "args": {
+          "query": "main"
+        }
+      },
+      "response": {
+        "id": "e1",
+        "ok": true,
+        "result": {
+          "entries": [
+            {
+              "path": "src/main.rs",
+              "kind": "file"
+            },
+            {
+              "path": "docs/main-guide.md",
+              "kind": "file"
+            },
+            {
+              "path": "docs/domain.md",
+              "kind": "file"
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "finds directories too, and ignores case, ranking the exact name first",
+      "setup": {
+        "files": {
+          "src/main.rs": "x",
+          "src/lib.rs": "x"
+        }
+      },
+      "request": {
+        "id": "e2",
+        "tool": "search_entries",
+        "args": {
+          "query": "SRC"
+        }
+      },
+      "response": {
+        "id": "e2",
+        "ok": true,
+        "result": {
+          "entries": [
+            {
+              "path": "src",
+              "kind": "dir"
+            },
+            {
+              "path": "src/lib.rs",
+              "kind": "file"
+            },
+            {
+              "path": "src/main.rs",
+              "kind": "file"
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "stops at the limit and says the answer is cut",
+      "setup": {
+        "files": {
+          "src/main.rs": "x",
+          "src/lib.rs": "x"
+        }
+      },
+      "request": {
+        "id": "e3",
+        "tool": "search_entries",
+        "args": {
+          "query": "src",
+          "limit": 2
+        }
+      },
+      "response": {
+        "id": "e3",
+        "ok": true,
+        "result": {
+          "entries": [
+            {
+              "path": "src",
+              "kind": "dir"
+            },
+            {
+              "path": "src/lib.rs",
+              "kind": "file"
+            }
+          ],
+          "truncated": true
+        }
+      }
+    },
+    {
+      "name": "does not look inside .git or node_modules",
+      "setup": {
+        "files": {
+          "node_modules/pkg/index.js": "x",
+          ".git/config": "x",
+          "app/index.js": "x"
+        }
+      },
+      "request": {
+        "id": "e4",
+        "tool": "search_entries",
+        "args": {
+          "query": "index"
+        }
+      },
+      "response": {
+        "id": "e4",
+        "ok": true,
+        "result": {
+          "entries": [
+            {
+              "path": "app/index.js",
+              "kind": "file"
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "refuses an empty query",
+      "request": {
+        "id": "e5",
+        "tool": "search_entries",
+        "args": {
+          "query": ""
+        }
+      },
+      "response": {
+        "id": "e5",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`query` must not be empty"
+        }
+      }
+    },
+    {
+      "name": "searches inside the directory it is given and names paths relative to it",
+      "setup": {
+        "files": {
+          "src/main.rs": "x",
+          "docs/main.md": "x"
+        }
+      },
+      "request": {
+        "id": "e6",
+        "tool": "search_entries",
+        "args": {
+          "query": "main",
+          "path": "src"
+        }
+      },
+      "response": {
+        "id": "e6",
+        "ok": true,
+        "result": {
+          "entries": [
+            {
+              "path": "main.rs",
+              "kind": "file"
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "refuses a directory that leaves the root",
+      "request": {
+        "id": "e7",
+        "tool": "search_entries",
+        "args": {
+          "query": "x",
+          "path": "../"
+        }
+      },
+      "response": {
+        "id": "e7",
+        "ok": false,
+        "error": {
+          "code": "PATH_OUTSIDE_ROOT",
+          "message": "../ is outside the root"
+        }
+      }
+    }
+  ]
+}

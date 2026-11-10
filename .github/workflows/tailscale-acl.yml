@@ -1,0 +1,60 @@
+name: Sync Tailscale ACL
+
+# GitOps for the tailnet policy file (infra/tailscale/policy.hujson): a PR
+# touching it gets validated against Tailscale's own policy tests
+# (action: test) before merge; a push to main pushes the validated file live
+# (action: apply). Manual admin-console edits to the policy are overwritten
+# by the next run of this workflow once it's in place -- lock the console
+# editor (admin console -> Access Controls) to avoid drift.
+#
+# Credentials come from the Bitwarden project the CI deploy token reads: TS_TAILNET_ID/TS_CI_OAUTH_CLIENT_ID/TS_CI_OAUTH_CLIENT_SECRET live there,
+# not as plain GitHub secrets. The only GitHub repo secret this needs is BWS_CI_DEPLOY_ACCESS_TOKEN (read-only; today the stand-in read token, #367).
+# Manual only since 2026-09-03 (decision log 33): no workflow runs on push or
+# pull_request. `action: test` validates the policy file, `action: apply`
+# pushes it live; both are explicit choices in the Actions UI or `wf ci`.
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'test = validate only, apply = push the policy live'
+        type: choice
+        options: [test, apply]
+        default: test
+
+jobs:
+  acl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Resolve Tailscale credentials from Bitwarden
+        uses: bitwarden/sm-action@f1de238fc00c738c56140796018be9084c2b5d21 # v2
+        with:
+          access_token: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+          base_url: https://vault.bitwarden.eu
+          api_url: https://vault.bitwarden.eu/api
+          identity_url: https://vault.bitwarden.eu/identity
+          secrets: |
+            8869f954-47e1-4759-b101-b4fd00af9640 > TS_TAILNET_ID
+            58f92d7b-87c0-444e-be2f-b4fd00af96ec > TS_CI_OAUTH_CLIENT_ID
+            e4633ebc-26a1-4879-b471-b4fd00af9792 > TS_CI_OAUTH_CLIENT_SECRET
+
+      - name: Test ACL
+        if: inputs.action == 'test'
+        uses: tailscale/gitops-acl-action@5a4a17f5708e9bf96f4ee915a95e9f83c2eebe1a # v1
+        with:
+          oauth-client-id: ${{ env.TS_CI_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ env.TS_CI_OAUTH_CLIENT_SECRET }}
+          tailnet: ${{ env.TS_TAILNET_ID }}
+          policy-file: infra/tailscale/policy.hujson
+          action: test
+
+      - name: Deploy ACL
+        if: inputs.action == 'apply'
+        uses: tailscale/gitops-acl-action@5a4a17f5708e9bf96f4ee915a95e9f83c2eebe1a # v1
+        with:
+          oauth-client-id: ${{ env.TS_CI_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ env.TS_CI_OAUTH_CLIENT_SECRET }}
+          tailnet: ${{ env.TS_TAILNET_ID }}
+          policy-file: infra/tailscale/policy.hujson
+          action: apply

@@ -1,0 +1,36 @@
+{
+  "content_hash": "sha256:e9a486dc4e53e31484e974a7573d076b4b36844a18a1eef0567067dcba966f1c",
+  "corpus": {
+    "hash": "sha256:91b959156ea7d84fbe0e1ed20e8a43605744a771eab1efca7bbd837f8c995794",
+    "path": "corpus.json"
+  },
+  "interactions": 5,
+  "provenance": {
+    "corpus_hash": "sha256:91b959156ea7d84fbe0e1ed20e8a43605744a771eab1efca7bbd837f8c995794",
+    "driver": {
+      "name": "mimic-drivers/orca-lib",
+      "protocol": "mimic-driver/1",
+      "toolchain_lock_hash": "sha256:4c806ef5145e3de231789ae3728af4e4ad5050bc4150cbb8f01c57c5addc382a",
+      "version": "1"
+    },
+    "kind": "recorded",
+    "recorded_at": "2026-11-05T22:06:55.719Z",
+    "rules_hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
+    "seed": 0,
+    "target": {
+      "commit": "dc7cd7bebbf9eb45d79edc89f3f836c75be78dea",
+      "name": "orca",
+      "pin_file": "../../../../../tooling/orca-conformance/orca-pin.json",
+      "pin_hash": "sha256:16dbdfb1c529c0e72d5bb33c44208fdec3291ccfab309514c843b8e03c974875",
+      "version": "1.4.214"
+    },
+    "tool": {
+      "mimic": "0.1.0"
+    }
+  },
+  "rules": {
+    "hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
+    "path": "rules.json"
+  },
+  "schema": "mimic-cassette/1"
+}

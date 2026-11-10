@@ -1,0 +1,5 @@
+{
+  "README.md": "# hello\nworld\n",
+  "src/main.rs": "fn main() {}\n",
+  "src/lib.rs": "pub fn f() {}\n"
+}

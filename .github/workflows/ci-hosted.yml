@@ -1,0 +1,62 @@
+name: CI (GitHub-hosted)
+
+# The GitHub-hosted flavor of the CI: pipeline.yml with hosted runners, running next to the VM run so the two can be compared
+# (docs/solutions/ci/hosted-minutes.md). It ships nothing (no latest image, no EAS update: production comes only from the VM CI, whose images are
+# arm64) and runs no device suite; its pull request comment is its own (WF_CI_LABEL). Every push spends free minutes (2000 a month for the account):
+# the repo variable HOSTED_CI=off switches it off at once, HOSTED_DEPLOY=off stops the deploy legs, HOSTED_SHARDS sets the machines per test stage.
+on:
+  push:
+    branches: [dev]
+
+# One run at a time, as in the CI: a newer push waits and replaces a run still waiting (never one that is going), so every run that starts is measured to its end.
+concurrency:
+  group: ci-hosted-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  # The push event's file lists are null, so the commits API says whether the commit changed a file: one that changed none starts the pipeline
+  # only with a [services:...] or [cache:...] tag (the other empty commits are triggers of other workflows, see scheduled-triggers.yml).
+  trigger:
+    name: Does this commit start the pipeline
+    if: ${{ vars.HOSTED_CI != 'off' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions:
+      contents: read
+    outputs:
+      go: ${{ steps.go.outputs.go }}
+    steps:
+      - name: Count the files the commit changed
+        id: go
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          files=$(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA" | jq '.files | length')
+          if [ "$files" != 0 ] || printf '%s' "$MESSAGE" | grep -qE '\[(services|cache):'; then go=true; else go=false; fi
+          echo "the commit changes $files file(s): go=$go"
+          echo "go=$go" >> "$GITHUB_OUTPUT"
+  run:
+    needs: trigger
+    if: ${{ needs.trigger.outputs.go == 'true' }}
+    uses: ./.github/workflows/pipeline.yml
+    with:
+      flavor: hosted
+      runner: '"ubuntu-latest"'
+      deploy_runner: '"ubuntu-24.04-arm"'
+      shards: ${{ fromJSON(vars.HOSTED_SHARDS || '6') }}
+      ship: false
+      deploy: ${{ vars.HOSTED_DEPLOY != 'off' }}
+      e2e: false
+      label: GitHub-hosted
+    secrets:
+      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+      TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+      TS_HOSTED_OAUTH_CLIENT_SECRET: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}

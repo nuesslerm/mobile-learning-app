@@ -1,0 +1,13 @@
+[package]
+name = "orca-map-settings"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Orca mapping crate for the host's own status: status.get, host.platform, the connection's client capabilities and the client-events stream"
+
+[lib]
+doctest = false
+
+[dependencies]
+orca-core = { path = "../core" }
+serde_json = { version = "1", features = ["preserve_order"] }

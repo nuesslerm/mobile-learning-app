@@ -1,0 +1,17 @@
+[package]
+name = "exec-hosted"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The executor's hosted source control actions (hosted_pr_*, hosted_run_*, hosted_auth_*, hosted_repo_*): a closed set of verbs over the executor machine's own gh and glab, their arguments validated here and never a free-form argv"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["exec-proto/testing", "dep:serde"]
+
+[dependencies]
+exec-proto = { path = "../exec-proto" }
+serde_json = { version = "1", features = ["preserve_order"] }
+serde = { version = "1", features = ["derive"], optional = true }

@@ -1,0 +1,93 @@
+{
+  "runbook": "device-lab-tamil-writing.md",
+  "gate": "G2 Tamil writing",
+  "sha": "18e8db0197a4c12cbf3451de78904e4bcfcb0c3b",
+  "platform": "android",
+  "ranAt": "2026-10-19T23:30:28.966Z",
+  "ranOn": "ci",
+  "verdict": "pass",
+  "recordingsReadBack": true,
+  "criteria": {
+    "all_units_pass": "pass (8 of 8 units)",
+    "zero_warnings": "pass (0 warnings)",
+    "recorded_and_read_back": "pass (one recording per unit, read back after upload and decoded again for the report)",
+    "unit_under_60s": "pass (longest 47.2 s, median 26.9 s)",
+    "vm_sampled": "pass (15 samples every 20 s over 8 units; load peaked at 6.82, MemAvailable fell to 3117 MB)"
+  },
+  "notes": "CI on the VM, e2e/tamil-writing.lua, one unit per job step, screen 127.0.0.1:5555 480x1040@213. Replaces the hand-run record of mid-October; the units, timings and recordings are in the report page.",
+  "evidence": {
+    "page": "https://claude.ai/artifact/A949abTVxxhtbsRf3Qg6hx",
+    "recordingsReadBack": true,
+    "runs": [
+      "run-32cf20d8fb90bb8b",
+      "run-ce894a7eec5d5e11",
+      "run-be37517cf62ca352",
+      "run-b8b3f4233fb2b6c8",
+      "run-33723d23ecffac78",
+      "run-dc532d37491041ae",
+      "run-a2a5af69e99a2136",
+      "run-39394de5350abb69"
+    ],
+    "units": {
+      "letters=1-2 part=vowels": {
+        "runId": "run-32cf20d8fb90bb8b",
+        "durationS": 39.4,
+        "verdict": "pass"
+      },
+      "letters=3-4 part=vowels": {
+        "runId": "run-ce894a7eec5d5e11",
+        "durationS": 47.2,
+        "verdict": "pass"
+      },
+      "letters=5-6 part=vowels": {
+        "runId": "run-be37517cf62ca352",
+        "durationS": 38.1,
+        "verdict": "pass"
+      },
+      "part=consonant": {
+        "runId": "run-b8b3f4233fb2b6c8",
+        "durationS": 21.5,
+        "verdict": "pass"
+      },
+      "part=words word=word-uyir-a": {
+        "runId": "run-33723d23ecffac78",
+        "durationS": 26.6,
+        "verdict": "pass"
+      },
+      "part=words word=word-uyir-aa": {
+        "runId": "run-dc532d37491041ae",
+        "durationS": 24.6,
+        "verdict": "pass"
+      },
+      "part=words word=word-uyir-i": {
+        "runId": "run-a2a5af69e99a2136",
+        "durationS": 26.9,
+        "verdict": "pass"
+      },
+      "part=write": {
+        "runId": "run-39394de5350abb69",
+        "durationS": 21.7,
+        "verdict": "pass"
+      }
+    },
+    "recordings": [
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-32cf20d8fb90bb8b/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-ce894a7eec5d5e11/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-be37517cf62ca352/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-b8b3f4233fb2b6c8/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-33723d23ecffac78/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-dc532d37491041ae/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-a2a5af69e99a2136/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-39394de5350abb69/run.mp4"
+    ],
+    "vm": {
+      "everyS": 20,
+      "units": 8,
+      "samples": 15,
+      "failedSamples": 8,
+      "load1Max": 6.82,
+      "memAvailableMinMb": 3117,
+      "device": "not captured in this run: the sampler looked for the rdl container, which lives inside agent-shell-dind; fixed for the next runs"
+    }
+  }
+}

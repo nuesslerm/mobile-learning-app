@@ -1,0 +1,84 @@
+{
+  "runbook": "device-lab-voice-edit.md",
+  "gate": "G1 voice edit",
+  "sha": "dbea00703b8dc15b52083c3ffe544c0919aded00",
+  "platform": "browser",
+  "ranAt": "2026-10-19T20:29:12.064Z",
+  "ranOn": "ci",
+  "verdict": "pass",
+  "recordingsReadBack": true,
+  "criteria": {
+    "all_units_pass": "pass (8 of 8 units)",
+    "zero_warnings": "pass (0 warnings)",
+    "recorded_and_read_back": "pass (one recording per unit, read back after upload and decoded again for the report)",
+    "unit_under_60s": "pass (longest 30.5 s, median 27.0 s)"
+  },
+  "notes": "CI on the VM, e2e/voice-edit.lua, one unit per job step, screen iphone-15-pro 1254x2748. Replaces the hand-run record of mid-October; the units, timings and recordings are in the report page.",
+  "evidence": {
+    "page": "https://claude.ai/artifact/Gs665MsAYg5xfUMEWfnM2L",
+    "recordingsReadBack": true,
+    "runs": [
+      "run-00377544bafb57e4",
+      "run-fc73491afb6b2b34",
+      "run-74d5fd3bef534e94",
+      "run-ae82f90542041179",
+      "run-d0a153437fe5479e",
+      "run-8e1aae21b58afaa0",
+      "run-89d80cab356a54d5",
+      "run-1458a1f237bc961c"
+    ],
+    "units": {
+      "chunk=1": {
+        "runId": "run-00377544bafb57e4",
+        "durationS": 27.0,
+        "verdict": "pass"
+      },
+      "chunk=2": {
+        "runId": "run-fc73491afb6b2b34",
+        "durationS": 20.8,
+        "verdict": "pass"
+      },
+      "chunk=3": {
+        "runId": "run-74d5fd3bef534e94",
+        "durationS": 28.3,
+        "verdict": "pass"
+      },
+      "chunk=4": {
+        "runId": "run-ae82f90542041179",
+        "durationS": 30.5,
+        "verdict": "pass"
+      },
+      "chunk=5": {
+        "runId": "run-d0a153437fe5479e",
+        "durationS": 16.6,
+        "verdict": "pass"
+      },
+      "chunk=6": {
+        "runId": "run-8e1aae21b58afaa0",
+        "durationS": 27.0,
+        "verdict": "pass"
+      },
+      "chunk=7": {
+        "runId": "run-89d80cab356a54d5",
+        "durationS": 21.5,
+        "verdict": "pass"
+      },
+      "chunk=8": {
+        "runId": "run-1458a1f237bc961c",
+        "durationS": 21.5,
+        "verdict": "pass"
+      }
+    },
+    "recordings": [
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-00377544bafb57e4/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-fc73491afb6b2b34/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-74d5fd3bef534e94/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-ae82f90542041179/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-d0a153437fe5479e/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-8e1aae21b58afaa0/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-89d80cab356a54d5/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-1458a1f237bc961c/run.mp4"
+    ],
+    "agent": "the remote-chat-agent the dev Metro build points at (the deployed service), as CI runs it; no checkout agent"
+  }
+}

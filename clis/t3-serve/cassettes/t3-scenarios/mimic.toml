@@ -1,0 +1,26 @@
+# R2 scenarios: stateful sequences of the T3 API (a turn answered by the scripted CLI on T3_CLI_DIR, thread and project lifecycles, every entity-naming method asked about its entity). Inputs: `node tooling/mimic-drivers/src/cli.ts scenarios t3` from the committed crawl (t3-api). One fresh server and home per scenario.
+rules = "rules.json"
+corpus = "corpus.json"
+allowlist = "allowlist.json"
+
+[diff]
+ignore_dirs = ["c2s"]
+breaking_paths = ["steps.http:ret:_.payload.status", "steps.ws:open:s2c:_.payload.status"]
+advertised_prefixes = ["capabilities."]
+
+[diff.fold]
+channel = "ws"
+tag = "/_tag"
+chunk = "Chunk"
+values = "/values"
+once = [["/kind", "snapshot"]]
+squash = ["/exit/cause"]
+
+[reference]
+name = "t3"
+command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "t3"]
+pin = "../../../../tooling/t3-conformance/t3-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"
+timeout_ms = 900000
+live_when_named = "downloads and runs the pinned release: `wf mimic verify <set> --live`, on the VM"

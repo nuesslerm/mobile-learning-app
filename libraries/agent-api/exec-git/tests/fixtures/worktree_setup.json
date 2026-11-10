@@ -1,0 +1,50 @@
+{
+  "action": "worktree_setup",
+  "exchanges": [
+    {
+      "name": "runs the commands in the worktree and streams each step's progress",
+      "setup": {"files": {"a.txt": "x"}, "commit": true, "worktrees": {"wt": "feature/setup"}},
+      "request": {"id": "u1", "tool": "worktree_setup", "args": {"name": "wt", "commands": ["echo hi", "basename \"$PWD\""]}},
+      "events": [
+        {"kind": "setup.started", "steps": 2},
+        {"kind": "step.started", "step": 0, "command": "echo hi"},
+        {"kind": "step.output", "step": 0, "stream": "stdout", "data": "hi\n"},
+        {"kind": "step.finished", "step": 0, "exit_code": 0},
+        {"kind": "step.started", "step": 1, "command": "basename \"$PWD\""},
+        {"kind": "step.output", "step": 1, "stream": "stdout", "data": "wt\n"},
+        {"kind": "step.finished", "step": 1, "exit_code": 0},
+        {"kind": "setup.finished", "ok": true}
+      ],
+      "response": {"id": "u1", "ok": true, "result": {"ok": true, "steps": [{"command": "echo hi", "exit_code": 0}, {"command": "basename \"$PWD\"", "exit_code": 0}], "timed_out": false, "cancelled": false}}
+    },
+    {
+      "name": "stops at the first command that fails and reports it",
+      "setup": {"files": {"a.txt": "x"}, "commit": true, "worktrees": {"wt": "feature/setup"}},
+      "request": {"id": "u2", "tool": "worktree_setup", "args": {"name": "wt", "commands": ["true", "exit 3", "echo never"]}},
+      "events": [
+        {"kind": "setup.started", "steps": 3},
+        {"kind": "step.started", "step": 0, "command": "true"},
+        {"kind": "step.finished", "step": 0, "exit_code": 0},
+        {"kind": "step.started", "step": 1, "command": "exit 3"},
+        {"kind": "step.finished", "step": 1, "exit_code": 3},
+        {"kind": "setup.finished", "ok": false}
+      ],
+      "response": {"id": "u2", "ok": true, "result": {"ok": false, "steps": [{"command": "true", "exit_code": 0}, {"command": "exit 3", "exit_code": 3}], "timed_out": false, "cancelled": false}}
+    },
+    {
+      "name": "refuses a worktree that does not exist before running anything",
+      "request": {"id": "u3", "tool": "worktree_setup", "args": {"name": "nope", "commands": ["echo x"]}},
+      "response": {"id": "u3", "ok": false, "error": {"code": "NOT_FOUND", "message": "worktree nope does not exist"}}
+    },
+    {
+      "name": "refuses commands that are not strings",
+      "request": {"id": "u4", "tool": "worktree_setup", "args": {"name": "wt", "commands": [1]}},
+      "response": {"id": "u4", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`commands` must be an array of non-empty strings"}}
+    },
+    {
+      "name": "refuses a name that is a path",
+      "request": {"id": "u5", "tool": "worktree_setup", "args": {"name": "../x", "commands": []}},
+      "response": {"id": "u5", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`name` must be one plain directory name"}}
+    }
+  ]
+}

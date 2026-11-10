@@ -1,0 +1,28 @@
+{
+  "method": "pr.comment",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "pr.comment",
+        "params": {
+          "number": 1,
+          "body": "",
+          "provider": "github",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`body` must not be empty"
+        }
+      },
+      "actions": [
+        "hosted_pr_comment"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+Usage: wf browser tunnel [services...]
+
+Publishes the deployed VM services (vm-ops-api, remote-chat-agent, leetcode-backend, leetcode-capture; all by default)
+on localhost ports (remote port + 10000) through tailscaled's userspace SOCKS5 listener, then prints the env for a
+deployed-service suite and stays in the foreground until Ctrl-C (a backgrounded tunnel serves a stale mapping after the
+VM is recreated). A port already in use is reported as already forwarding.

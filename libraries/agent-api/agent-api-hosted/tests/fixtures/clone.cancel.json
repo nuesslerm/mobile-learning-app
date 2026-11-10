@@ -1,0 +1,24 @@
+{
+  "method": "clone.cancel",
+  "exchanges": [
+    {
+      "name": "a clone that was never started is not found",
+      "request": {
+        "id": 1,
+        "method": "clone.cancel",
+        "params": {
+          "workspace": "w1",
+          "clone": "clone-404"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "CLONE_NOT_FOUND",
+          "message": "no clone clone-404"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

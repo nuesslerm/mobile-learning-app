@@ -1,0 +1,64 @@
+{
+  "label": "post-std",
+  "date": "2026-10-09T03:14:49.449Z",
+  "command": "/home/user/expo-hello-world-app-2/backend/target/release/rca-service",
+  "runs": 5,
+  "artifactBytes": 21613008,
+  "coldStartMs": 33.75961400000051,
+  "idleRssMb": 10.26171875,
+  "rssAfterHealthMb": 10.3515625,
+  "healthP50Ms": 0.3946329999998852,
+  "scenarios": {
+    "chat turn": {
+      "p50Ms": 104.96797650000008,
+      "rssAfterMb": 12.29296875
+    },
+    "run once": {
+      "p50Ms": 107.44745599999987,
+      "rssAfterMb": 12.58984375
+    },
+    "convert pdf": {
+      "p50Ms": 11.329037499999686,
+      "rssAfterMb": 12.6015625
+    },
+    "convert pdf (chromium)": {
+      "p50Ms": 10.483365999999478,
+      "rssAfterMb": 12.87109375
+    },
+    "convert docx": {
+      "p50Ms": 1.1387340000019321,
+      "rssAfterMb": 12.98046875
+    },
+    "diff register and page": {
+      "p50Ms": 7.995269499999722,
+      "rssAfterMb": 18.05859375
+    },
+    "file preview (markdown)": {
+      "p50Ms": 0.6816339999995762,
+      "rssAfterMb": 18.05859375
+    },
+    "file preview (typescript)": {
+      "p50Ms": 0.8516344999998182,
+      "rssAfterMb": 18.05859375
+    },
+    "tamil check": {
+      "p50Ms": 149.4139305000008,
+      "rssAfterMb": 31.83203125
+    },
+    "voice transcribe": {
+      "p50Ms": 2.0034919999961858,
+      "rssAfterMb": 32.25
+    },
+    "ws request": {
+      "p50Ms": 0.08793899999727728,
+      "rssAfterMb": 32.3359375
+    },
+    "ws 100 connections": {
+      "p50Ms": 0.811375000001135,
+      "rssAfterMb": 42.546875
+    }
+  },
+  "finalRssMb": 42.546875,
+  "peakRssMb": 42.546875,
+  "peakRssMaxMb": 54.078125
+}

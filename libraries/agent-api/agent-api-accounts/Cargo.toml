@@ -1,0 +1,17 @@
+[package]
+name = "agent-api-accounts"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's accounts group (`provider.list`, `provider.auth.*`, `provider.logout`, `usage.summary`, `provider.resetCredit`): which provider CLIs hold a login, how one is signed in, and what each has used. A reply never carries a token"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }

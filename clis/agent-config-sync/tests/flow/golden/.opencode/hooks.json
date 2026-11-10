@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "session.created": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "pnpm install"
+          }
+        ]
+      }
+    ]
+  }
+}

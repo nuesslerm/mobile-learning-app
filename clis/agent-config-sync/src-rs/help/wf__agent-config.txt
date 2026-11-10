@@ -1,0 +1,10 @@
+Usage: wf agent-config [options] [command]
+
+The .agents/ contract rendered into every tool's config
+
+Options:
+  -h, --help       display help for command
+
+Commands:
+  sync [options]   Render the .agents/ contract into every tool config; --check
+                   only reports whether the generated files are current

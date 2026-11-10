@@ -1,0 +1,13 @@
+id: infrastructure-does-not-use-api
+valid:
+  - use crate::infrastructure::env::ProcessEnv;
+  - use crate::application::ports::Ports;
+  - use crate::{infrastructure, domain::util};
+invalid:
+  - use crate::api::app::App;
+  - use crate::api;
+  - use super::super::api::routes::Req;
+  - use crate::{infrastructure, api::app::App};
+  - use crate::{api};
+  - use super::{api as front};
+  - 'fn f() { crate::api::auth::unauthorized(); }'

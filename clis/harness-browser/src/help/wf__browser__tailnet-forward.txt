@@ -1,0 +1,6 @@
+Usage: wf browser tailnet-forward --host H --port P [--local-port L]
+
+Forwards one tailnet host:port to a local port through the daemon's tailnet access, so a page in the device frame can
+reach it; a second forward to the same target reuses the first. The daemon starts when none runs.
+
+Result: {url, localPort, reused}

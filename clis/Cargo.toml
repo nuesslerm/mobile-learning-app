@@ -1,0 +1,54 @@
+[workspace]
+resolver = "2"
+members = ["wf", "wf-kit", "wf-testkit", "secrets", "wf-bucket", "pipeline", "wf-vmops", "deploy", "offload", "wf-harness", "harness-core", "harness-browser", "harness-android", "harness-flow", "wf-bench", "knowledge", "wf-login", "agent-config-sync", "cdp", "http", "blob-cache", "lib", "t3-serve", "t3-serve/contracts", "t3-serve/core", "t3-serve/store", "t3-serve/http", "orca-serve", "orca-serve/core", "orca-serve/map-settings", "orca-serve/map-mobile", "orca-serve/map-workspace", "orca-serve/map-agent", "orca-serve/map-terminal", "orca-serve/map-git", "orca-serve/map-accounts", "orca-serve/map-state", "orca-serve/map-schedules", "orca-serve/map-hosted", "orca-serve/crypto", "rca-exec", "parity", "parity/core", "mimic", "mimic/core"]
+
+# Line tables keep panics and backtraces readable; full debuginfo made the flow test binary 114 MB, and each wf crate adds one.
+[profile.dev]
+debug = "line-tables-only"
+
+# No debug information for dependencies: they are most of what a build writes and links (the VM's disk, not its CPU, is the bottleneck of a
+# test run), and a backtrace needs this workspace's line tables only.
+[profile.dev.package."*"]
+debug = false
+
+# The recorded Orca replay is JSON canonicalising, masking and diffing at 4000 interactions: unoptimised these crates spend most of its CPU.
+[profile.dev.package.mimic-core]
+opt-level = 2
+
+[profile.dev.package.wf-mimic]
+opt-level = 2
+
+[profile.dev.package.serde_json]
+opt-level = 2
+
+[profile.dev.package.indexmap]
+opt-level = 2
+
+[profile.dev.package.hashbrown]
+opt-level = 2
+
+[profile.dev.package.sha2]
+opt-level = 2
+
+[profile.dev.package.regex-automata]
+opt-level = 2
+
+[profile.dev.package.regex-syntax]
+opt-level = 2
+
+[profile.dev.package.memchr]
+opt-level = 2
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# What the deploy pipeline builds (the runner's own wf and the images that carry wf): the release settings without whole-program
+# optimisation, which re-optimises every dependency on each change.
+[profile.deploy]
+inherits = "release"
+lto = false
+codegen-units = 16

@@ -1,0 +1,64 @@
+{
+  "content_hash": "sha256:817a6f7b74ea58913998089868a82596ff073b2677546730bbea257569704a47",
+  "interactions": 10,
+  "provenance": {
+    "imported_from": [
+      {
+        "hash": "sha256:4ad06ebc391f4a12d44467fd539a936ac1a37d7fab0c90fe75152a592dca5587",
+        "path": "recordings.json"
+      },
+      {
+        "hash": "sha256:5d499de1e6978471789fb7ccc2dff030345da7c7572f18a73b5eea78410f9e9e",
+        "path": "recordings/claude-text.jsonl"
+      },
+      {
+        "hash": "sha256:99db70b40cb8163ef1e5325a9dba8faf2951afb3228595755c91e0c96171daeb",
+        "path": "recordings/claude-write-file.jsonl"
+      },
+      {
+        "hash": "sha256:5ec9f8c9e11f1df5c1917632b4bae2f40192e8e5133767adfe8fe4ad5f40cf14",
+        "path": "recordings/claude-command-fails.jsonl"
+      },
+      {
+        "hash": "sha256:98c2b6e78a4bea737744122ef4e1e9e77c8fd39da8993c3e3ae6d799bc467e9a",
+        "path": "recordings/claude-usage-limit.jsonl"
+      },
+      {
+        "hash": "sha256:e43022d9f8ad5f5aef975c4aeceec1c3fdb3c466b66d5a4960b33f2117baf3f9",
+        "path": "recordings/codex-text.jsonl"
+      },
+      {
+        "hash": "sha256:caa79df194bced86d5f7fddfee2f7495fa89b08e82575b47655e8626225558d5",
+        "path": "recordings/codex-command.jsonl"
+      },
+      {
+        "hash": "sha256:ee38642e00a46e9c7bcc072b857bec509a527cad218f5efbacd079827bf54c53",
+        "path": "recordings/codex-failed.jsonl"
+      },
+      {
+        "hash": "sha256:24a16afc171b58208102ca5e39ed44d4ae7d74ca06d9ce282d62f7650392a5ba",
+        "path": "recordings/opencode-text.jsonl"
+      },
+      {
+        "hash": "sha256:551ff73cd72968fad788d9f3659f594847904d9c5ec673822b008e32fe59ddd5",
+        "path": "recordings/opencode-tool.jsonl"
+      },
+      {
+        "hash": "sha256:ea428c70f00414ce355871bd2b31ac083151137a7a30669b34cace3d6bc8235f",
+        "path": "recordings/opencode-error.jsonl"
+      }
+    ],
+    "kind": "imported",
+    "note": "Every recording below is written from the CLI's documented stream-json and from the lines `rca-cli-driver` translates, not recorded from a run of the CLI: a run would use the host's own sign-in. Real recordings are pending (docs/gaps/exec-testkit-recordings-not-from-real-clis.md). Provenance `documented-format` is that; a recording from a real run says `recorded` and names the CLI version.",
+    "rules_hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
+    "source": "recordings.json: stream-json written from each CLI's documented format, not recorded from a run of claude, codex or opencode (docs/gaps/exec-testkit-recordings-not-from-real-clis.md)",
+    "tool": {
+      "mimic": "0.1.0"
+    }
+  },
+  "rules": {
+    "hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
+    "path": "rules.json"
+  },
+  "schema": "mimic-cassette/1"
+}

@@ -1,0 +1,26 @@
+[
+  [
+    "run",
+    "--rm",
+    "-v",
+    "<world>/vm:<world>/vm:ro",
+    "-w",
+    "<world>/vm",
+    "<image>",
+    "sh",
+    "-c",
+    "cat last-redeploy.log 2>/dev/null || echo 'no redeploy has run yet'"
+  ],
+  [
+    "run",
+    "--rm",
+    "-v",
+    "<world>/vm:<world>/vm:ro",
+    "-w",
+    "<world>/vm",
+    "<image>",
+    "sh",
+    "-c",
+    "cat redeploy-history.jsonl 2>/dev/null || true"
+  ]
+]

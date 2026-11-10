@@ -1,0 +1,25 @@
+[package]
+name = "agent-api-attachments"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's attachments group (upload.put, attachment.get, attachment.delete, attachment.stage): files a person sends with a message, kept by the service and placed into a workspace through the executor that owns it"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+agent-api-attachments = { path = ".", features = ["testing"] }
+agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }
+
+# The integration test runs the wf-mimic binary of the clis workspace (from WF_MIMIC_BIN, or built from clis): a change to that crate reruns it.
+[package.metadata.integration]
+uses = ["wf-mimic"]

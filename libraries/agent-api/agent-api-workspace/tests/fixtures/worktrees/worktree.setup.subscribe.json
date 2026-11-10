@@ -1,0 +1,93 @@
+{
+  "method": "worktree.setup.subscribe",
+  "exchanges": [
+    {
+      "name": "opens the stream of the setup events, replayed from the start",
+      "before": [
+        {
+          "method": "worktree.create",
+          "params": {
+            "workspace": "w1",
+            "worktree": "wt",
+            "branch": "feature/setup",
+            "base": "HEAD",
+            "setup": [
+              "echo hi",
+              "basename \"$PWD\""
+            ]
+          },
+          "id": "b10"
+        }
+      ],
+      "request": {
+        "params": {
+          "workspace": "wt"
+        },
+        "id": 1,
+        "method": "worktree.setup.subscribe"
+      },
+      "response": {
+        "result": {
+          "workspace": "wt",
+          "after_seq": 0,
+          "last_seq": 8,
+          "running": false
+        },
+        "id": 1
+      },
+      "actions": [],
+      "volatile": [
+        "/result/last_seq",
+        "/result/running"
+      ]
+    },
+    {
+      "name": "refuses a workspace that is not a worktree",
+      "request": {
+        "params": {
+          "workspace": "w1"
+        },
+        "id": 2,
+        "method": "worktree.setup.subscribe"
+      },
+      "response": {
+        "error": {
+          "code": "NOT_A_WORKTREE",
+          "message": "w1 is not a worktree"
+        },
+        "id": 2
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a worktree in which no setup ran",
+      "before": [
+        {
+          "method": "worktree.create",
+          "params": {
+            "workspace": "w1",
+            "worktree": "wt1",
+            "branch": "feature/x",
+            "base": "HEAD"
+          },
+          "id": "b30"
+        }
+      ],
+      "request": {
+        "params": {
+          "workspace": "wt1"
+        },
+        "id": 3,
+        "method": "worktree.setup.subscribe"
+      },
+      "response": {
+        "error": {
+          "code": "NO_SETUP",
+          "message": "no setup ran in worktree wt1"
+        },
+        "id": 3
+      },
+      "actions": []
+    }
+  ]
+}

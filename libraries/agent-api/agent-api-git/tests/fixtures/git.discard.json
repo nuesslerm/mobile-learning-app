@@ -1,0 +1,30 @@
+{
+  "method": "git.discard",
+  "exchanges": [
+    {
+      "name": "restores a tracked file and removes an untracked one",
+      "request": {
+        "id": 1,
+        "method": "git.discard",
+        "params": {
+          "workspace": "w1",
+          "paths": [
+            "README.md",
+            "new.txt"
+          ],
+          "untracked": true
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "restored": 1,
+          "cleaned": 1
+        }
+      },
+      "actions": [
+        "git_discard"
+      ]
+    }
+  ]
+}

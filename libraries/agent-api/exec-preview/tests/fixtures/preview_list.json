@@ -1,0 +1,10 @@
+{
+  "action": "preview_list",
+  "exchanges": [
+    {
+      "name": "lists nothing for an executor that started no server",
+      "request": {"id": "p1", "tool": "preview_list", "args": {}},
+      "response": {"id": "p1", "ok": true, "result": {"previews": []}}
+    }
+  ]
+}

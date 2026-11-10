@@ -1,0 +1,4 @@
+Usage: wf browser status
+
+The running daemon's URL and sessions, or exit 1 when none runs. Frozen as start: with --json one pino line carrying
+result: {url, activeBrowserName, browserCount, browsers}.

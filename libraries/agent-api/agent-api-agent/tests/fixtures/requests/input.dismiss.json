@@ -1,0 +1,70 @@
+{
+  "method": "input.dismiss",
+  "exchanges": [
+    {
+      "name": "refuses a question that is not open",
+      "before": [
+        {
+          "id": "setup-create-t-di",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-di",
+            "title": "Thread t-di",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "input.dismiss",
+        "params": {
+          "thread": "t-di",
+          "request": "rq-none"
+        }
+      },
+      "response": {
+        "id": "1",
+        "error": {
+          "code": "REQUEST_NOT_OPEN",
+          "message": "request rq-none is not open on thread t-di"
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "input.dismiss",
+        "params": {
+          "thread": "nope",
+          "request": "rq1"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    },
+    {
+      "name": "refuses a dismiss that names no request",
+      "request": {
+        "id": "3",
+        "method": "input.dismiss",
+        "params": {
+          "thread": "t-di"
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "request is required"
+        }
+      }
+    }
+  ]
+}

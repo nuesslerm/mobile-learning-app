@@ -1,0 +1,31 @@
+[package]
+name = "remote-chat-agent-opencode"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The opencode adapters of the remote chat agent: the HTTP transport of the `Opencode` port and the `Backend` over opencode's API. The `testing` feature adds a loopback opencode server."
+
+[lib]
+name = "remote_chat_agent_opencode"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+testing = ["dep:axum", "dep:tokio"]
+
+[dependencies]
+async-trait.workspace = true
+axum = { workspace = true, optional = true }
+eventsource-stream.workspace = true
+futures-util.workspace = true
+rca-service-core = { path = "../service-core" }
+remote-chat-agent-core = { path = "../core" }
+reqwest.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, optional = true, features = ["net"] }
+
+[dev-dependencies]
+rca-service-core = { path = "../service-core", features = ["testing"] }
+remote-chat-agent-core = { path = "../core", features = ["testing"] }
+axum.workspace = true
+tokio = { workspace = true, features = ["net", "rt-multi-thread"] }

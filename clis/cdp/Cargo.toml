@@ -1,0 +1,16 @@
+[package]
+name = "cdp"
+version = "0.1.0"
+edition = "2021"
+description = "Chrome DevTools Protocol client (tungstenite WebSocket, JSON-RPC) for the Playwright-free browser daemon"
+
+[dependencies]
+base64 = "0.22"
+cli-http = { path = "../http" }
+jpeg-decoder = { version = "0.3", default-features = false }
+png = { version = "0.17", default-features = false }
+serde_json = "1"
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+
+[dev-dependencies]
+tiny_http = "0.12"

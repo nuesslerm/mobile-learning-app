@@ -1,0 +1,27 @@
+{
+  "method": "mr.react",
+  "exchanges": [
+    {
+      "name": "the mr spelling reaches the same action and defaults to gitlab",
+      "request": {
+        "id": 1,
+        "method": "mr.react",
+        "params": {
+          "number": 1,
+          "content": "thumbsup",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`content` must be one of +1, -1, laugh, confused, heart, hooray, rocket, eyes"
+        }
+      },
+      "actions": [
+        "hosted_pr_react"
+      ]
+    }
+  ]
+}

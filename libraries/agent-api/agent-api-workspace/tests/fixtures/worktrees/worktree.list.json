@@ -1,0 +1,53 @@
+{
+  "method": "worktree.list",
+  "exchanges": [
+    {
+      "name": "lists the repository's own working tree first, then each worktree",
+      "request": {
+        "params": {
+          "workspace": "w1"
+        },
+        "id": 1,
+        "method": "worktree.list"
+      },
+      "response": {
+        "result": {
+          "worktrees": [
+            {
+              "path": "/root",
+              "head": "0000000",
+              "branch": "main",
+              "is_main": true
+            },
+            {
+              "path": "/base/wt1",
+              "head": "0000000",
+              "branch": "feature/one",
+              "is_main": false
+            }
+          ]
+        },
+        "id": 1
+      },
+      "actions": [
+        "git_worktree_list"
+      ]
+    },
+    {
+      "name": "needs a workspace",
+      "request": {
+        "params": {},
+        "id": 2,
+        "method": "worktree.list"
+      },
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "workspace is required"
+        },
+        "id": 2
+      },
+      "actions": []
+    }
+  ]
+}

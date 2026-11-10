@@ -1,0 +1,31 @@
+[package]
+name = "orca-map-mobile"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Orca mapping crate for what a phone fetches from its host beyond agent work: the mobile web bundle (manifest, chunks, ranges) and the relay host list, behind a BundleSource port"
+
+[lib]
+doctest = false
+
+# The recorded set (fixtures/orca-mobile-bundle, a wf mimic cassette of the pinned Orca contract) holds the replies the pinned strict schemas accepted;
+# `wf-mimic` replays it against examples/mimic_orca_bundle.rs, the host's chunk window behind a mimic-driver/1 process.
+[package.metadata.flow]
+uses = ["wf-mimic"]
+inputs = ["fixtures/**", "examples/**"]
+
+[features]
+# The recorded set as test data, and the bundle files generated from it.
+testing = ["dep:tempfile"]
+
+[dependencies]
+orca-core = { path = "../core" }
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.10"
+base64 = "0.22"
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+tempfile = { version = "3", optional = true }
+
+[dev-dependencies]
+orca-map-mobile = { path = ".", features = ["testing"] }
+orca-core = { path = "../core", features = ["testing"] }

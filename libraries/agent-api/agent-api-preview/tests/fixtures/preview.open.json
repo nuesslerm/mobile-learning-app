@@ -1,0 +1,110 @@
+{
+  "method": "preview.open",
+  "exchanges": [
+    {
+      "name": "opens a tab that loads the address, on a full viewport, and names it",
+      "request": {
+        "id": 1,
+        "method": "preview.open",
+        "params": {
+          "thread": "t1",
+          "url": "http://127.0.0.1:3000/"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "session": {
+            "thread": "t1",
+            "tab": "tab-2",
+            "nav": {
+              "state": "loading",
+              "url": "http://127.0.0.1:3000/",
+              "title": ""
+            },
+            "can_go_back": false,
+            "can_go_forward": false,
+            "viewport": {
+              "mode": "fill"
+            },
+            "updated_ms": 1
+          }
+        }
+      },
+      "volatile": [
+        "/result/session/updated_ms"
+      ]
+    },
+    {
+      "name": "opens an idle tab when no address is given and keeps the profile and reveal it was given",
+      "request": {
+        "id": 1,
+        "method": "preview.open",
+        "params": {
+          "thread": "t1",
+          "profile": "p1",
+          "reveal": true
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "session": {
+            "thread": "t1",
+            "tab": "tab-2",
+            "nav": {
+              "state": "idle"
+            },
+            "can_go_back": false,
+            "can_go_forward": false,
+            "viewport": {
+              "mode": "fill"
+            },
+            "profile": "p1",
+            "reveal": true,
+            "updated_ms": 1
+          }
+        }
+      },
+      "volatile": [
+        "/result/session/updated_ms"
+      ]
+    },
+    {
+      "name": "refuses an address that is not http or https",
+      "request": {
+        "id": 1,
+        "method": "preview.open",
+        "params": {
+          "thread": "t1",
+          "url": "file:///etc/passwd"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "url must be an http or https address of at most 2048 bytes"
+        }
+      }
+    },
+    {
+      "name": "refuses a field it does not know, such as the runtime of another app",
+      "request": {
+        "id": 1,
+        "method": "preview.open",
+        "params": {
+          "thread": "t1",
+          "runtime": "server"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "unknown field `runtime`, expected one of `thread`, `url`, `viewport`, `profile`, `reveal`"
+        }
+      }
+    }
+  ]
+}

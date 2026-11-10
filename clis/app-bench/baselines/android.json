@@ -1,0 +1,227 @@
+{
+  "suite": "android",
+  "initial": {
+    "recordedAt": "2026-10-13T19:44:51.615Z",
+    "commit": "03f3f3fc3c97d6bd413906303114f5850f147a7b",
+    "runs": 3,
+    "env": {
+      "container": "rdl",
+      "package": "com.nuesslerm.mla_tamagui",
+      "apkUrl": "https://expo.dev/artifacts/eas/InOOrANdxiYkYnjxcYhrBnEdd8ad_WiIGbxkvisodAE.apk",
+      "screen": "540x960@240",
+      "device": "redroid 14, 1.5 CPU, no GPU, slim",
+      "coldStartMarker": "launch to first ReactNativeJS Running \"main\""
+    },
+    "metrics": {
+      "apkBytes": {
+        "unit": "bytes",
+        "median": 67169659,
+        "min": 67169659,
+        "max": 67169659,
+        "values": [
+          67169659
+        ]
+      },
+      "coldStartMs": {
+        "unit": "ms",
+        "median": 4971,
+        "min": 3980,
+        "max": 5649,
+        "values": [
+          5649,
+          3980,
+          4971
+        ]
+      },
+      "pssBytes": {
+        "unit": "bytes",
+        "median": 216088576,
+        "min": 178365440,
+        "max": 220449792,
+        "values": [
+          178365440,
+          216088576,
+          220449792
+        ]
+      },
+      "rssBytes": {
+        "unit": "bytes",
+        "median": 327573504,
+        "min": 283119616,
+        "max": 331960320,
+        "values": [
+          283119616,
+          327573504,
+          331960320
+        ]
+      },
+      "javaHeapBytes": {
+        "unit": "bytes",
+        "median": 13172736,
+        "min": 12206080,
+        "max": 15958016,
+        "values": [
+          13172736,
+          12206080,
+          15958016
+        ]
+      },
+      "nativeHeapBytes": {
+        "unit": "bytes",
+        "median": 79822848,
+        "min": 45228032,
+        "max": 80801792,
+        "values": [
+          45228032,
+          79822848,
+          80801792
+        ]
+      },
+      "codeBytes": {
+        "unit": "bytes",
+        "median": 66342912,
+        "min": 66224128,
+        "max": 70148096,
+        "values": [
+          70148096,
+          66342912,
+          66224128
+        ]
+      },
+      "deviceUsedBytes": {
+        "unit": "bytes",
+        "median": 1439668224,
+        "min": 1416570880,
+        "max": 1452443648,
+        "values": [
+          1416570880,
+          1439668224,
+          1452443648
+        ]
+      },
+      "crashes": {
+        "unit": "count",
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  },
+  "current": {
+    "recordedAt": "2026-10-13T19:44:51.615Z",
+    "commit": "03f3f3fc3c97d6bd413906303114f5850f147a7b",
+    "runs": 3,
+    "env": {
+      "container": "rdl",
+      "package": "com.nuesslerm.mla_tamagui",
+      "apkUrl": "https://expo.dev/artifacts/eas/InOOrANdxiYkYnjxcYhrBnEdd8ad_WiIGbxkvisodAE.apk",
+      "screen": "540x960@240",
+      "device": "redroid 14, 1.5 CPU, no GPU, slim",
+      "coldStartMarker": "launch to first ReactNativeJS Running \"main\""
+    },
+    "metrics": {
+      "apkBytes": {
+        "unit": "bytes",
+        "median": 67169659,
+        "min": 67169659,
+        "max": 67169659,
+        "values": [
+          67169659
+        ]
+      },
+      "coldStartMs": {
+        "unit": "ms",
+        "median": 4971,
+        "min": 3980,
+        "max": 5649,
+        "values": [
+          5649,
+          3980,
+          4971
+        ]
+      },
+      "pssBytes": {
+        "unit": "bytes",
+        "median": 216088576,
+        "min": 178365440,
+        "max": 220449792,
+        "values": [
+          178365440,
+          216088576,
+          220449792
+        ]
+      },
+      "rssBytes": {
+        "unit": "bytes",
+        "median": 327573504,
+        "min": 283119616,
+        "max": 331960320,
+        "values": [
+          283119616,
+          327573504,
+          331960320
+        ]
+      },
+      "javaHeapBytes": {
+        "unit": "bytes",
+        "median": 13172736,
+        "min": 12206080,
+        "max": 15958016,
+        "values": [
+          13172736,
+          12206080,
+          15958016
+        ]
+      },
+      "nativeHeapBytes": {
+        "unit": "bytes",
+        "median": 79822848,
+        "min": 45228032,
+        "max": 80801792,
+        "values": [
+          45228032,
+          79822848,
+          80801792
+        ]
+      },
+      "codeBytes": {
+        "unit": "bytes",
+        "median": 66342912,
+        "min": 66224128,
+        "max": 70148096,
+        "values": [
+          70148096,
+          66342912,
+          66224128
+        ]
+      },
+      "deviceUsedBytes": {
+        "unit": "bytes",
+        "median": 1439668224,
+        "min": 1416570880,
+        "max": 1452443648,
+        "values": [
+          1416570880,
+          1439668224,
+          1452443648
+        ]
+      },
+      "crashes": {
+        "unit": "count",
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "suite": "build",
+  "description": "Static web export of frontend/mla-tamagui: wall time with cold and warm caches, the Tamagui plugin's share, and the size of the JS it emits. Wall times move up to 14% between sessions on this shared VM for identical code, so their tolerance is 20%; decide a build change with same-session interleaved A/B runs (`wf bench ab`), and read module count and bytes, which are deterministic, first.",
+  "runs": 3,
+  "params": {
+    "cwd": "frontend/mla-tamagui",
+    "platform": "web",
+    "env": {
+      "EXPO_PUBLIC_DEVICE_LAB": "1",
+      "EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL": "http://127.0.0.1:8789",
+      "EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN": "local-e2e-token",
+      "EXPO_PUBLIC_AGENT_BASE_URL": "http://127.0.0.1:8787",
+      "EXPO_PUBLIC_VM_OPS_API_BASE_URL": "http://127.0.0.1:8091"
+    },
+    "platforms": [
+      "web",
+      "ios"
+    ]
+  },
+  "metrics": {
+    "coldExportMs": {
+      "better": "lower",
+      "tolerance": 0.2,
+      "scope": "build"
+    },
+    "warmExportMs": {
+      "better": "lower",
+      "tolerance": 0.2,
+      "scope": "build"
+    },
+    "tamaguiPluginMs": {
+      "better": "lower",
+      "tolerance": 0.5,
+      "scope": "build"
+    },
+    "jsBytesRaw": {
+      "better": "lower",
+      "tolerance": 0.02,
+      "scope": "build"
+    },
+    "jsBytesGzip": {
+      "better": "lower",
+      "tolerance": 0.02,
+      "scope": "build"
+    },
+    "metroBundleMs": {
+      "better": "lower",
+      "tolerance": 0.2,
+      "scope": "build"
+    },
+    "webModuleCount": {
+      "better": "lower",
+      "tolerance": 0.02,
+      "scope": "build"
+    },
+    "iosColdExportMs": {
+      "better": "lower",
+      "tolerance": 0.2,
+      "scope": "build"
+    },
+    "iosWarmExportMs": {
+      "better": "lower",
+      "tolerance": 0.2,
+      "scope": "build"
+    },
+    "iosBundleMs": {
+      "better": "lower",
+      "tolerance": 0.2,
+      "scope": "build"
+    },
+    "iosModuleCount": {
+      "better": "lower",
+      "tolerance": 0.02,
+      "scope": "build"
+    },
+    "iosBundleBytes": {
+      "better": "lower",
+      "tolerance": 0.02,
+      "scope": "build"
+    }
+  }
+}

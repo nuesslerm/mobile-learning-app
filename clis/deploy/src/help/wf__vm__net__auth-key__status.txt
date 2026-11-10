@@ -1,0 +1,8 @@
+Usage: wf vm net auth-key status [options]
+
+Report how long TS_VM_AUTH_KEY has left; exits non-zero when rotation is due
+(read-only)
+
+Options:
+  --warn-days <n>  days-remaining threshold (default 14)
+  -h, --help       display help for command

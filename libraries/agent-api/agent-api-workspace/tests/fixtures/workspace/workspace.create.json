@@ -1,0 +1,83 @@
+{
+  "method": "workspace.create",
+  "exchanges": [
+    {
+      "name": "makes a workspace of a directory below the root of the executor",
+      "request": {
+        "params": {
+          "workspace": "proj",
+          "path": "apps/web"
+        },
+        "id": 1,
+        "method": "workspace.create"
+      },
+      "response": {
+        "result": {
+          "workspace": "proj",
+          "executor": "w1",
+          "path": "apps/web"
+        },
+        "id": 1
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a name that is taken, the root workspace included",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "x"
+        },
+        "id": 2,
+        "method": "workspace.create"
+      },
+      "response": {
+        "error": {
+          "code": "WORKSPACE_EXISTS",
+          "message": "workspace w1 exists"
+        },
+        "id": 2
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a directory that leaves the root",
+      "request": {
+        "params": {
+          "workspace": "q",
+          "path": "../x"
+        },
+        "id": 3,
+        "method": "workspace.create"
+      },
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "../x must be a path inside the workspace"
+        },
+        "id": 3
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses an executor that is not attached",
+      "request": {
+        "params": {
+          "workspace": "q",
+          "path": "x",
+          "executor": "nope"
+        },
+        "id": 4,
+        "method": "workspace.create"
+      },
+      "response": {
+        "error": {
+          "code": "NO_EXECUTOR",
+          "message": "no executor nope is attached"
+        },
+        "id": 4
+      },
+      "actions": []
+    }
+  ]
+}

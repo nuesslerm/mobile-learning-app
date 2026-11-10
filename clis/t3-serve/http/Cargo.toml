@@ -1,0 +1,16 @@
+[package]
+name = "t3-http"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Driving adapter of the T3-compatible server: HTTP routes and the /ws upgrade with the protocol gate, over std sockets and tungstenite framing"
+
+[lib]
+test = false
+doctest = false
+
+[dependencies]
+t3-core = { path = "../core" }
+t3-contracts = { path = "../contracts" }
+serde_json = { version = "1", features = ["preserve_order"] }
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }

@@ -1,0 +1,179 @@
+{
+  "method": "turn.start",
+  "exchanges": [
+    {
+      "name": "starts a turn on an idle thread whose workspace has an executor attached",
+      "before": [
+        {
+          "id": "setup-t-turn",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-turn",
+            "workspace": "w1"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "turn.start",
+        "params": {
+          "thread": "t-turn",
+          "workspace": "w1",
+          "driver": "claudeAgent",
+          "prompt": "Say hi",
+          "model": "sonnet"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": "t-turn",
+          "turn": "turn-1"
+        }
+      },
+      "volatile": [
+        "/result/turn"
+      ],
+      "actions": [
+        "git_checkpoint"
+      ]
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "turn.start",
+        "params": {
+          "thread": "nope",
+          "workspace": "w1",
+          "driver": "claudeAgent",
+          "prompt": "Say hi"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    },
+    {
+      "name": "answers UNKNOWN_DRIVER for a driver the service does not run",
+      "before": [
+        {
+          "id": "setup-t-drv",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-drv"
+          }
+        }
+      ],
+      "request": {
+        "id": "3",
+        "method": "turn.start",
+        "params": {
+          "thread": "t-drv",
+          "workspace": "w1",
+          "driver": "nobody",
+          "prompt": "hi"
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "UNKNOWN_DRIVER",
+          "message": "no driver named nobody"
+        }
+      }
+    },
+    {
+      "name": "answers NO_EXECUTOR for a workspace no executor is attached for",
+      "before": [
+        {
+          "id": "setup-t-away",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-away"
+          }
+        }
+      ],
+      "request": {
+        "id": "4",
+        "method": "turn.start",
+        "params": {
+          "thread": "t-away",
+          "workspace": "w9",
+          "driver": "claudeAgent",
+          "prompt": "hi"
+        }
+      },
+      "response": {
+        "id": "4",
+        "error": {
+          "code": "NO_EXECUTOR",
+          "message": "no executor is attached for workspace w9"
+        }
+      }
+    },
+    {
+      "name": "answers TURN_RUNNING for a thread whose turn has not finished",
+      "before": [
+        {
+          "id": "setup-t-busy",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-busy",
+            "workspace": "w1"
+          }
+        },
+        {
+          "id": "setup-turn",
+          "method": "turn.start",
+          "params": {
+            "thread": "t-busy",
+            "workspace": "w1",
+            "driver": "claudeAgent",
+            "prompt": "Say hi"
+          }
+        }
+      ],
+      "request": {
+        "id": "5",
+        "method": "turn.start",
+        "params": {
+          "thread": "t-busy",
+          "workspace": "w1",
+          "driver": "claudeAgent",
+          "prompt": "Say hi"
+        }
+      },
+      "response": {
+        "id": "5",
+        "error": {
+          "code": "TURN_RUNNING",
+          "message": "thread t-busy already has a running turn"
+        }
+      }
+    },
+    {
+      "name": "refuses a turn with no prompt",
+      "request": {
+        "id": "6",
+        "method": "turn.start",
+        "params": {
+          "thread": "t-turn",
+          "workspace": "w1",
+          "driver": "claudeAgent"
+        }
+      },
+      "response": {
+        "id": "6",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "prompt is required"
+        }
+      }
+    }
+  ]
+}

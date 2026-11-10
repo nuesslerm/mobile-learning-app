@@ -1,0 +1,39 @@
+Usage: wf vm state backup [options]
+
+Snapshots each state volume of vm-apps.json with restic: the volume is read in
+place (its `excludes` are never read), its SQLite databases are copied with
+`sqlite3 .backup` into a private scratch directory that is removed on every way
+out and snapshotted as a second snapshot of the same run, and only the chunks
+the repository does not hold are uploaded. Nothing is written to disk in
+plaintext but that scratch copy.
+
+Before reading a volume the verb measures it from the file sizes and refuses it
+when it holds more than its `maxBytes` of vm-apps.json (nothing is read), and
+restic refuses any file over that cap during the read; a volume that grew past
+it while being read has its snapshots dropped and fails. The bucket is counted
+with its previous object versions (a prune's deleted packs stay billed for a
+day): a run that could take it past four times the sum of the maxBytes
+(vmStateBytes of clis/blob-cache/data/budget.json) never starts, and the live
+repository is held to twice the sum (vmStateRepositoryBytes), both checked
+after the run too. Every file that starts with the SQLite magic bytes is copied
+with `.backup`. Afterwards `restic forget --group-by host
+--keep-last 14 --prune` keeps the newest 14 snapshots of every volume. The
+first run creates the repository. It runs on agent-shell, which holds the OCI
+key and mounts the volumes, through vm-ops-api's exec route; nothing is
+prompted.
+
+Answer (one JSON line on stdout, exit 0 only when "ok" is true):
+  {"event":"vm-state","verb":"<verb>","ok":bool,"bucket":"mobile-learning-vm-state",
+   "apps":[{"app":"orca-serve","ok":bool,"stamp":"20261107033000Z","ageSeconds":n,
+            "volumes":[{"ok":bool,"volume":"orca-state","snapshot":"<restic id>","measuredBytes":n,
+                        "maxBytes":n,"databases":n,"error":"..."}],
+            "error":"...","next":"..."}],
+   "repository":{"ok":bool,"bytes":n,"budgetBytes":n,"error":"..."},
+   "error":"...","next":"..."}
+A failed row carries the tool's own error and the next step; the restic
+password is never printed.
+
+Options:
+  --app <name>  only this app
+  --local       the agent-shell side: run here (needs restic, rclone, sqlite3, the OCI
+                key, the volumes mounted); --plan <hex> carries the volumes

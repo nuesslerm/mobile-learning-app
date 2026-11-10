@@ -1,0 +1,11 @@
+{
+  "schema": "mimic-fixture-rules/1",
+  "include": ["*/tests/fixtures/**"],
+  "rules": [
+    {
+      "match": "*/tests/fixtures/**",
+      "kind": "authored",
+      "reason": "hand-written with the contract crate that owns them: the contract is our own design (decision D4), not a copy of T3, Orca or a CLI; the exchanges format is their authored encoding"
+    }
+  ]
+}

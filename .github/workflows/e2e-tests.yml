@@ -1,0 +1,310 @@
+name: e2e tests
+
+# One harness's focused e2e tests (`e2e/*.lua` with `focus: true` and that `platform:`): CI passes the plan its plan job
+# job wrote and this runs its `<platform>-e2e-tests` stage (`wf test run --stage`). Each unit runs through its harness
+# (`wf browser test` / `wf android test`) under the test's timeout, and every run is published as a bundle. CI calls it
+# twice, browser then android, after the deploy. The browser tests run against a web export of this commit, built on the runner
+# with the backends baked in (`wf test prepare --web`) and served on loopback by the run. The android
+# tests load the EAS Update the eas-update job published on branch dev, and error naming the next step when this
+# push's publish failed or the update is not this commit's app. The device boots cold at the start, every test runs on it warm
+# (the app starts cold once per target, and again after a failed unit), and it is taken down at the end. A dispatch runs named
+# focused tests (or all focused ones) of one harness at a commit and passes test flags through (`--update-goldens`; the browser
+# also `--logpoint file:line`, which an Android update has no inspector for); assert_screenshot compares with its golden on
+# every run. A browser dispatch needs a commit whose wf has `wf test prepare --web` and whose scripts say `against: export`: an
+# older one ran against a Metro that no longer exists.
+on:
+  # pipeline.yml calls this as its last jobs, so a push to dev runs dev's own copy (a workflow_run trigger would run main's).
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        required: true
+      sha:
+        type: string
+        required: false
+      base:
+        type: string
+        required: false
+      tests:
+        type: string
+        required: false
+      all:
+        type: boolean
+        default: false
+      flags:
+        type: string
+        required: false
+      # `wf test plan --json` from the CI plan job: when given, this job runs its <platform>-e2e-tests stage
+      plan:
+        type: string
+        required: false
+      # how the same run's eas-update job ended (success, failure, cancelled, skipped; empty on a dispatch): which update the
+      # android update units may load
+      eas_update:
+        type: string
+        required: false
+    secrets:
+      BWS_CI_OPEN_ACCESS_TOKEN:
+        required: false
+      BWS_CI_DEPLOY_ACCESS_TOKEN:
+        required: false
+  workflow_dispatch:
+    inputs:
+      platform:
+        description: The harness whose tests run
+        type: choice
+        options: [android, browser]
+        default: android
+      sha:
+        description: 'Commit to test (default: the head of dev; a browser run needs one that has `wf test prepare --web`)'
+        required: false
+      base:
+        description: 'With no tests named: run the focused ones changed since this commit (default: sha~1)'
+        required: false
+      tests:
+        description: 'Focused e2e test names, space-separated (default: those the commit changed)'
+        required: false
+      all:
+        description: Run every focused test, changed or not
+        type: boolean
+        default: false
+      flags:
+        description: 'Test flags passed to each harness test, e.g. "--update-goldens", or for the browser "--logpoint features/x.tsx:12"'
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  npm_config_store_dir: /root/.pnpm-store-tier3
+  # the flow-tests job of the CI run saves the pnpm store; these jobs never repeat the pack
+  WF_PNPM_SAVE_JOB: flow-tests
+  # vm-ops-api's CI port; the android lease (`wf android start-device`) is an exec-script and stays on the admin port, as in deploy.yml
+  WF_VM_CI_PORT: "8081"
+
+jobs:
+  e2e-tests:
+    name: ${{ inputs.platform }}-e2e-tests
+    runs-on: [self-hosted, vm]
+    # the browser job also builds the export (about 4 min)
+    timeout-minutes: ${{ inputs.platform == 'browser' && 40 || 30 }}
+    concurrency:
+      group: e2e-tests-${{ inputs.platform }}
+      cancel-in-progress: false
+    env:
+      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+      PLATFORM: ${{ inputs.platform }}
+      SHA: ${{ inputs.sha || github.sha }}
+      BASE: ${{ inputs.base }}
+      ALL: ${{ inputs.all }}
+      TESTS: ${{ inputs.tests }}
+      FLAGS: ${{ inputs.flags }}
+      PLAN: ${{ inputs.plan }}
+      WF_EAS_UPDATE_RESULT: ${{ inputs.eas_update }}
+      WF_TEST_PUBLISH: '1'
+      # the browser at twice a user's pace (wf browser test --help); Android stays at 1 until a published editor-typing run
+      # at 2 shows no toolbar key typed on the keyboard (its swipes lift while moving, so a faster one flings further)
+      WF_TEST_SPEED: ${{ inputs.platform == 'browser' && '2' || '1' }}
+      WF_SITE: ci
+      # the device's adb port is published on the agent-shell node (start-device runs there); the runner has its own tailnet node, so it is reached by name
+      WF_ANDROID_SERIAL: agent-shell-main:5555
+      # the stub server the Android tests start runs on the runner's own tailnet node: the device's DNAT rules point at its address, not at the device's gateway
+      WF_ANDROID_STUB_HOST: ci-runner-main
+    steps:
+      # the plan job fetched this commit into the runner's checkout: a fetch of every ref (316 of them) to learn nothing new costs 12 s
+      - name: The commit is already here
+        id: tree
+        run: |
+          if git cat-file -e "$SHA^{commit}" 2>/dev/null; then git checkout -q --detach -f "$SHA" && echo "here=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.tree.outputs.here != 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # the runner's own checkout keeps node_modules between runs: pnpm install then links in seconds, not 10 minutes
+          clean: false
+          ref: ${{ env.SHA }}
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+      - uses: ./.github/actions/install-bws
+      - uses: ./.github/actions/install-wf
+      # the browser harness drives Playwright's Chromium (cached under ~/.cache/ms-playwright on the runner)
+      # the stage runs through the workspace's Nx (its cache decides which tests run)
+      # an empty pnpm store (a recreated VM) is filled from the bucket first, and the store is saved after the install
+      - name: Restore the pnpm store
+        continue-on-error: true
+        timeout-minutes: 10
+        run: wf cache restore pnpm
+      - name: Install the workspace
+        run: pnpm install --frozen-lockfile
+      - name: Save the pnpm store
+        continue-on-error: true
+        timeout-minutes: 15
+        run: wf cache save pnpm
+      - name: Chromium for the browser harness
+        if: inputs.platform == 'browser'
+        run: |
+          # `install --with-deps` re-checks the browser and the system packages on every call (5-8 s): only a new Playwright version needs it
+          version=$(pnpm --filter @lib/browser-client exec playwright --version | tr -c '0-9a-z.\n' '_')
+          marker="$HOME/.cache/ms-playwright/.installed-$version"
+          [ -f "$marker" ] || { pnpm --filter @lib/browser-client exec playwright install --with-deps chromium && mkdir -p "$(dirname "$marker")" && touch "$marker"; }
+          # the device-frame page every browser run opens; a fresh runner has none
+          pnpm --filter @tooling/browser-harness run build
+          # a daemon left by an earlier job runs that job's wf; this job's runs start one from this commit's
+          wf browser stop || echo "no browser daemon was running"
+      - name: Which e2e tests
+        id: pick
+        shell: bash
+        run: |
+          if [ -n "$PLAN" ]; then
+            printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+            select="--stage $PLATFORM-e2e-tests --plan $RUNNER_TEMP/plan.json"
+            # Nx replays every focused test whose feature code, test case and app shell are unchanged; the rest run
+            # shellcheck disable=SC2086
+            wf test run $select --probe | tee "$RUNNER_TEMP/probe.json"
+            n=$(jq '.ran | length' "$RUNNER_TEMP/probe.json")
+            echo "replay=$(jq '.cached | length' "$RUNNER_TEMP/probe.json")" >> "$GITHUB_OUTPUT"
+          else
+            if [ -n "$TESTS" ]; then select="$TESTS"; elif [ "$ALL" = "true" ]; then select=--all; else select="--changed --base ${BASE:-$SHA~1}"; fi
+            # shellcheck disable=SC2086
+            n=$(wf test plan $select --platform "$PLATFORM" --sha "$SHA" --json | jq '[.tests[] | select(.selected)] | length')
+            select="$select --platform $PLATFORM"
+          fi
+          echo "select=$select" >> "$GITHUB_OUTPUT"
+          echo "any=$([ "$n" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+          echo "$n $PLATFORM e2e test(s) to run, selected by: $select"
+      # 23 Oct: a created remote-chat-agent stack made every unit that calls it wait out its own timeout (21 minutes); a service the
+      # tests call that is down now fails here in under a minute, naming it, before the export is built or the device boots.
+      - name: The services the tests call answer
+        if: steps.pick.outputs.any == 'true'
+        timeout-minutes: 3
+        run: wf vm ops probe --wait 45 remote-chat-agent leetcode-backend
+      # The device's adb port is published in the network namespace the runner shares with agent-shell (tailscale sidecar).
+      - name: Install adb
+        if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
+        run: command -v adb >/dev/null || { apt-get update -qq && apt-get install -y -qq adb; }
+      # every run publishes its recording, and a fresh runner has no ffmpeg
+      - name: Install ffmpeg
+        if: steps.pick.outputs.any == 'true'
+        run: command -v ffmpeg >/dev/null || { dpkg --configure -a; apt-get update -qq && apt-get install -y -qq ffmpeg; }
+      # 18 Oct: the device started with 1.3 GB free, the VM thrashed, the watchdog recreated the dind and the job lost its runner
+      - name: The VM has room for the device
+        if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
+        shell: bash
+        run: |
+          wf vm ops stats > "$RUNNER_TEMP/vm-stats.json"
+          # a container docker cannot sample (one stranded in a dead network) counts 0, so its memory shows up as unread
+          jq -c '{host, containersMb, unreadMb: (.host.memTotalMb - .host.memAvailableMb - .containersMb), top: [.containers[:6][] | {name, memMb}]}' "$RUNNER_TEMP/vm-stats.json"
+          jq -e '.host.memAvailableMb >= 2000' "$RUNNER_TEMP/vm-stats.json" >/dev/null \
+            || { echo "::error::the device needs about 2000 MB and the VM has $(jq .host.memAvailableMb "$RUNNER_TEMP/vm-stats.json") MB available; the line above says what holds the rest"; exit 1; }
+      # The export is one Metro process bundling the web graph beside a deploy's un-awaited cache export
+      # (docs/gaps/vm-memory-saturation.md); a short wait lets that finish
+      - name: The VM has room for the export
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
+        timeout-minutes: 6
+        shell: bash
+        run: |
+          for _ in $(seq 20); do
+            wf vm ops stats > "$RUNNER_TEMP/vm-stats.json"
+            jq -e '.host.memAvailableMb >= 3000' "$RUNNER_TEMP/vm-stats.json" >/dev/null && exit 0
+            sleep 15
+          done
+          jq -c '{host, containersMb, top: [.containers[:6][] | {name, memMb}]}' "$RUNNER_TEMP/vm-stats.json"
+          echo "::error::the export needs about 3000 MB and the VM has $(jq .host.memAvailableMb "$RUNNER_TEMP/vm-stats.json") MB available after 5 min; the line above says what holds the rest"
+          exit 1
+      # Only when a test will run (the Nx probe above): a replayed pass needs no export. The backends' hosts and token are baked
+      # in, and the BetterStack ingest pair (nothing else), since the tests call the real ones.
+      - name: Restore the app build state
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
+        continue-on-error: true
+        timeout-minutes: 5
+        run: wf cache restore metro
+      - name: Export the web app
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
+        timeout-minutes: 15
+        shell: bash
+        env:
+          WF_VM_SAMPLE_SECS: '5'
+          EXPO_PUBLIC_BETTERSTACK_TOKEN: ${{ vars.EXPO_PUBLIC_BETTERSTACK_TOKEN }}
+          EXPO_PUBLIC_BETTERSTACK_HOST: ${{ vars.EXPO_PUBLIC_BETTERSTACK_HOST }}
+        run: |
+          set -o pipefail
+          hosts=$(wf vm net resolve leetcode-backend-prod remote-chat-agent-prod vm-ops-api-main)
+          host() { jq -er --arg n "$1" '.[$n]' <<<"$hosts" || { echo "::error::no tailnet name answers for $1" >&2; return 1; }; }
+          EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL="http://$(host leetcode-backend-prod):8789"
+          EXPO_PUBLIC_AGENT_BASE_URL="http://$(host remote-chat-agent-prod):8787"
+          EXPO_PUBLIC_VM_OPS_API_BASE_URL="http://$(host vm-ops-api-main):8080"
+          export EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL EXPO_PUBLIC_AGENT_BASE_URL EXPO_PUBLIC_VM_OPS_API_BASE_URL
+          # from the vault at step time (the runner's container env no longer holds it), never the step's env:, which the log header prints
+          EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN=$(wf secret get VM_GATEWAY_AUTH_SEED --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no VM_GATEWAY_AUTH_SEED to bake in as the backend token"; exit 1; }
+          echo "::add-mask::$EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN"
+          export EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN
+          # the app's BetterStack forwarder, as the EAS Update bakes it (deploy.yml): the browser runs log through the same Logger
+          # path; half a pair bakes in neither
+          [ -n "${EXPO_PUBLIC_BETTERSTACK_TOKEN:-}" ] || EXPO_PUBLIC_BETTERSTACK_TOKEN=$(wf secret get EXPO_PUBLIC_BETTERSTACK_TOKEN --backend bitwarden 2>/dev/null) || EXPO_PUBLIC_BETTERSTACK_TOKEN=""
+          [ -n "${EXPO_PUBLIC_BETTERSTACK_HOST:-}" ] || EXPO_PUBLIC_BETTERSTACK_HOST=$(wf secret get BETTERSTACK_INGEST_HOST --backend bitwarden 2>/dev/null) || EXPO_PUBLIC_BETTERSTACK_HOST=""
+          if [ -n "$EXPO_PUBLIC_BETTERSTACK_TOKEN" ]; then echo "::add-mask::$EXPO_PUBLIC_BETTERSTACK_TOKEN"; fi
+          if [ -n "$EXPO_PUBLIC_BETTERSTACK_TOKEN" ] && [ -n "$EXPO_PUBLIC_BETTERSTACK_HOST" ]; then
+            export EXPO_PUBLIC_BETTERSTACK_TOKEN EXPO_PUBLIC_BETTERSTACK_HOST
+          else
+            echo "::warning::the vault gave no BetterStack pair, so this export has no forwarder"
+            unset EXPO_PUBLIC_BETTERSTACK_TOKEN EXPO_PUBLIC_BETTERSTACK_HOST
+          fi
+          wf test prepare --web | tee "$RUNNER_TEMP/export.json"
+          {
+            echo "### Web export"
+            jq -r '"\(if .reused then "Kept" else "Built" end) the export of inputs `\(.inputs)` (commit `\(.sha[:9])`), build \(.buildS) s, flags `\(.flags)`; baked: \(.baked | keys | join(", "))"' "$RUNNER_TEMP/export.json"
+            jq -r '"Memory of the build: largest process \(.memory.peakRssMb // "-") MB, VM MemAvailable low \(.memory.vmMemAvailableMinMb // "-") MB"' "$RUNNER_TEMP/export.json"
+            echo "Metro transform cache on this runner: $(du -sm frontend/mla-tamagui/node_modules/.cache/metro 2>/dev/null | cut -f1) MB"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Save the app build state
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
+        continue-on-error: true
+        timeout-minutes: 5
+        run: wf cache save metro
+      - name: Bring the device up
+        # The device holds about 1.3 GB under test; it runs only for this job, and only when an Android test runs
+        # (docs/gaps/vm-memory-saturation.md).
+        if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
+        run: wf android start-device --expo-go
+      # goal p0: the one device boots healthy; no test runs on a device that is not (the app's cold start follows this)
+      - name: The device is healthy
+        if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
+        shell: bash
+        run: |
+          wf android list-devices | tee "$RUNNER_TEMP/list-devices.json" | jq '.result.devices[0]' > "$RUNNER_TEMP/device-features.json"
+          jq -e '.boot.completed == true and .boot.activityService == true and .restartProven == true and .disabledTotal >= 40' "$RUNNER_TEMP/device-features.json"
+      # runs the misses and replays the cached passes, whose earlier runs (bundles included) go in the summary
+      - name: Run the e2e tests
+        if: steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0
+        # bash with pipefail: the step fails when wf test run does, not when tee does
+        shell: bash
+        env:
+          SELECT: ${{ steps.pick.outputs.select }}
+          # each Android unit's report carries the VM's load and memory and the device's memory and CPU every 20 s
+          WF_VM_SAMPLE_SECS: ${{ inputs.platform == 'android' && '20' || '' }}
+        run: |
+          # shellcheck disable=SC2086
+          wf test run $SELECT --sha "$SHA" --out "$RUNNER_TEMP/e2e-runs" -- $FLAGS | tee "$RUNNER_TEMP/e2e-tests.jsonl"
+      - name: Take the device down
+        if: always() && inputs.platform == 'android' && steps.pick.outputs.any == 'true'
+        run: wf android stop-device
+      # its Chromium would otherwise hold memory through the Android job that runs next
+      - name: Stop the browser daemon
+        if: always() && inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
+        run: wf browser stop || echo "no browser daemon was running"
+      # Only reports: the verdict is the run step's. A replayed pass is a record an earlier run (or a seed) left, and lacks what a fresh unit has.
+      - name: Summary
+        if: ${{ always() }}
+        continue-on-error: true
+        run: |
+          {
+            echo "### $PLATFORM e2e tests for ${SHA:0:9}"
+            if [ -s "$RUNNER_TEMP/e2e-runs/summary.json" ]; then
+              jq -r '(.units // [])[] | "- \([.test] + (.args // []) | join(" ")): \(.verdict)\(if .cached then " (replayed)" else "" end) in \(.durationS // 0) s\(if .bundle then " · [bundle](\(.bundle))" else "" end)\(if (.note // "") != "" then " · \(.note)" else "" end)\(if .next then " · next: \(.next)" else "" end)"' "$RUNNER_TEMP/e2e-runs/summary.json"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

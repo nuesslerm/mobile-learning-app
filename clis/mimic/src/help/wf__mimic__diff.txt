@@ -1,0 +1,25 @@
+Usage: wf mimic diff [options] <a> <b>
+
+Diff two cassette sets by interaction id: the reference before and after a pin
+bump, or the reference and a candidate-recorded set. An id only <a> has is
+breaking, an id only <b> has is drift. The rules, diff options and allowlist are
+those of <a>/mimic.toml when it exists; a mimic.toml that exists but does not
+load fails the diff (exit 2) instead of being ignored.
+
+The diff options of mimic.toml [diff] shape what is compared (replay uses them
+too): breaking_paths (a changed scalar there is breaking, not drift),
+advertised_prefixes (a changed boolean under one is reported, never failing),
+ignore_dirs (steps of those directions, e.g. "c2s", are what the driver was
+given and are not compared) and [diff.fold] for a stream whose reference splits
+values into chunks as it likes: the chunks of one address (channel, direction,
+request id) count as one list of their `values`, a value whose `once` pointer
+holds the given string counts the first time only, and each `squash` pointer's
+array counts a run of equal elements once. Both sides are folded the same way.
+
+Options:
+  --allowlist <file>          replace the allowlist
+  -h, --help                  display help for command
+
+Output (schema mimic-diff/1):
+  {schema, ok, a, b, severity, summary, results (as in replay), unused_allowlist,
+  warnings, next}

@@ -1,0 +1,163 @@
+{
+  "method": "schedule.upsert",
+  "exchanges": [
+    {
+      "name": "saves an interval schedule and answers it with its next run",
+      "request": {
+        "id": 1,
+        "method": "schedule.upsert",
+        "params": {
+          "id": "s-up",
+          "title": "Nightly",
+          "prompt": "run the checks",
+          "enabled": true,
+          "schedule": {
+            "type": "interval",
+            "every_ms": 60000
+          },
+          "workspace": "w1",
+          "driver": "claudeAgent"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "task": {
+            "id": "s-up",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "interval",
+              "every_ms": 60000
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent",
+            "model": null,
+            "thread": null,
+            "runtime_mode": null,
+            "interaction_mode": null,
+            "created_at_ms": 1700000000000,
+            "updated_at_ms": 1700000000000,
+            "next_run_ms": 1700000060000,
+            "last_run_ms": null,
+            "last_run_status": "never",
+            "last_run_error": null,
+            "run_count": 0,
+            "webhook": null
+          }
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "saves a webhook schedule and shows its token once",
+      "request": {
+        "id": 2,
+        "method": "schedule.upsert",
+        "params": {
+          "id": "s-hook",
+          "title": "Nightly",
+          "prompt": "run the checks",
+          "enabled": true,
+          "schedule": {
+            "type": "webhook"
+          },
+          "workspace": "w1",
+          "driver": "claudeAgent"
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "task": {
+            "id": "s-hook",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "webhook"
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent",
+            "model": null,
+            "thread": null,
+            "runtime_mode": null,
+            "interaction_mode": null,
+            "created_at_ms": 1700000000000,
+            "updated_at_ms": 1700000000000,
+            "next_run_ms": null,
+            "last_run_ms": null,
+            "last_run_status": "never",
+            "last_run_error": null,
+            "run_count": 0,
+            "webhook": {
+              "path": "/hooks/v1/schedules/s-hook",
+              "has_token": true
+            }
+          },
+          "webhook_token": "<volatile>"
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/webhook_token"
+      ]
+    },
+    {
+      "name": "answers SCHEDULE_NOT_FOUND for a save that requires an id that is gone",
+      "request": {
+        "id": 3,
+        "method": "schedule.upsert",
+        "params": {
+          "id": "s-gone",
+          "title": "Nightly",
+          "prompt": "run the checks",
+          "enabled": true,
+          "schedule": {
+            "type": "interval",
+            "every_ms": 60000
+          },
+          "workspace": "w1",
+          "driver": "claudeAgent",
+          "require_existing": true
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "SCHEDULE_NOT_FOUND",
+          "message": "no schedule has the id s-gone"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses an interval under a minute",
+      "request": {
+        "id": 4,
+        "method": "schedule.upsert",
+        "params": {
+          "id": "s-fast",
+          "title": "Nightly",
+          "prompt": "run the checks",
+          "enabled": true,
+          "schedule": {
+            "type": "interval",
+            "every_ms": 1000
+          },
+          "workspace": "w1",
+          "driver": "claudeAgent"
+        }
+      },
+      "response": {
+        "id": 4,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "schedule.every_ms must be at least 60000"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

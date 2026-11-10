@@ -1,0 +1,15 @@
+{
+  "action": "cancel",
+  "exchanges": [
+    {
+      "name": "finds nothing to cancel under an id that is not running",
+      "request": {"id": "c1", "tool": "cancel", "args": {"id": "long"}},
+      "response": {"id": "c1", "ok": true, "result": {"cancelled": false}}
+    },
+    {
+      "name": "answers a cancel that names no id as one that found nothing",
+      "request": {"id": "c2", "tool": "cancel", "args": {}},
+      "response": {"id": "c2", "ok": true, "result": {"cancelled": false}}
+    }
+  ]
+}

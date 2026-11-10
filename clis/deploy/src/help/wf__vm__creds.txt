@@ -1,0 +1,11 @@
+Usage: wf vm creds [options] [command]
+
+OCI credentials for Terraform
+
+Options:
+  -h, --help  display help for command
+
+Commands:
+  sync        Pull the OCI_* secrets from the vault and write ~/.oci/oci_api_key.pem
+              and the matching terraform.tfvars block
+  help [command]  display help for command

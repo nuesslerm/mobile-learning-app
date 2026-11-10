@@ -1,0 +1,68 @@
+{
+  "suite": "plantab",
+  "step": "final-given-two-plan-steps-when-delete-is-pressed-on-6aac28",
+  "scheme": "dark",
+  "snapshot": "plantab/final-given-two-plan-steps-when-delete-is-pressed-on-6aac28.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-plan",
+      "ProblemWorkspaceTab-code",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTextEditStartButton",
+      "ProblemEditorVoiceStartButton",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInput",
+      "ProblemPlanTab",
+      "ProblemPlanSteps",
+      "ProblemPlanStep-0",
+      "ProblemPlanStep-0-Text",
+      "ProblemPlanStep-0-Status",
+      "ProblemPlanStep-0-Realize",
+      "ProblemPlanStep-0-Split",
+      "ProblemPlanStep-0-Merge",
+      "ProblemPlanStep-0-Up",
+      "ProblemPlanStep-0-Down",
+      "ProblemPlanStep-0-Delete",
+      "ProblemPlanComposer",
+      "ProblemPlanMicButton",
+      "ProblemPlanTextInput",
+      "ProblemPlanAddButton"
+    ],
+    "text": "Plan\nCode\n1\nAlpha first\npending\nAdd"
+  },
+  "timings": {
+    "render_ms": 278
+  },
+  "name": "plantab/final-given-two-plan-steps-when-delete-is-pressed-on-6aac28.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

@@ -1,0 +1,72 @@
+{
+  "method": "provider.auth.cancel",
+  "exchanges": [
+    {
+      "name": "cancels a running login",
+      "before": [
+        {
+          "id": 1,
+          "method": "provider.auth.start",
+          "params": {
+            "provider": "claudeAgent",
+            "method": "paste"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "provider.auth.cancel",
+        "params": {
+          "auth": "auth-1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "auth": {
+            "auth": "auth-1",
+            "provider": "claudeAgent",
+            "method": "paste",
+            "status": "cancelled",
+            "url": "https://login.example.test/device",
+            "code": null,
+            "error": null
+          }
+        }
+      }
+    },
+    {
+      "name": "a session that has ended cannot be cancelled",
+      "before": [
+        {
+          "id": 1,
+          "method": "provider.auth.start",
+          "params": {
+            "provider": "codex"
+          }
+        },
+        {
+          "id": 2,
+          "method": "provider.auth.complete",
+          "params": {
+            "auth": "auth-2"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "provider.auth.cancel",
+        "params": {
+          "auth": "auth-2"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "AUTH_ENDED",
+          "message": "auth-2 has ended"
+        }
+      }
+    }
+  ]
+}

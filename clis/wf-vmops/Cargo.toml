@@ -1,0 +1,46 @@
+[package]
+name = "wf-vmops"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The VM as `wf` reaches it: the signed vm-ops-api client, `wf vm exec`, the tailnet name resolver, the VM sampler, what runs on the VM, and the fake vm-ops-api of the flow tests"
+
+# The test kit hides every secret the registry names from the binary it runs; the route table of vm-ops-api is what the lanes mirror.
+[package.metadata.flow]
+inputs = ["../secrets/src/data/registry.json", "../../backend/vm-ops-api/core/src/domain/exposure.rs"]
+
+# The tests are one flow binary (tests/flow.rs) driving the thin binary below; the lib has no unit tests (plan D3).
+[lib]
+doctest = false
+
+# Serves only `wf vm exec` and `wf vm net resolve`, which is all this crate's flow tests spawn.
+[[bin]]
+name = "wf-vmops"
+path = "src/bin/wf-vmops.rs"
+test = false
+
+[features]
+# The fake vm-ops-api (`FakeVm`), for the flow tests of every crate that talks to the VM: the crates that use it dev-depend on this
+# one with the feature, so no production build compiles the test kit.
+testing = ["dep:wf-testkit"]
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+secrets = { path = "../secrets" }
+rca-core = { version = "0.1", registry = "mla" }
+cli-http = { path = "../http" }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+ed25519-dalek = { version = "2", default-features = false, features = ["std", "pkcs8", "pem"] }
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+hex = "0.4"
+nix = { version = "0.31", default-features = false, features = ["signal"] }
+wf-testkit = { path = "../wf-testkit", optional = true }
+
+[dev-dependencies]
+wf-testkit = { path = "../wf-testkit" }
+tempfile = "3"
+# This crate's own flow tests use the fake it ships.
+wf-vmops = { path = ".", features = ["testing"] }

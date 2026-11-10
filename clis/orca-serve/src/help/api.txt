@@ -1,0 +1,5 @@
+Usage: orca-serve api
+
+Print the method table the server is built with as one JSON object on stdout:
+  {schema: 1, methods: [{method, state, area, streaming} | {method, state, reason, decidedBy}], capabilities}
+state is "served" or "not-offered". It needs no rca and no state directory.

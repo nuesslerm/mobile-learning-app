@@ -1,0 +1,70 @@
+{
+  "method": "5 rounds x 10 runs of `wf log emit --service bench --message bench.event --attr a=b --attr k=v` against a local HTTPS OTLP ingest; binaries interleaved per round; value = median of the round medians",
+  "server": {
+    "requests": 102,
+    "malformed": 0
+  },
+  "host": "x86_64",
+  "binaries": {
+    "before-release": {
+      "size_bytes": 8381240,
+      "emit_ms_median": 7.85,
+      "emit_ms_min": 7.21,
+      "emit_ms_max": 8.46,
+      "peak_rss_kb_median": 22296,
+      "failures": 0,
+      "rounds": [
+        {
+          "median_ms": 8.46,
+          "median_peak_rss_kb": 22120
+        },
+        {
+          "median_ms": 8.02,
+          "median_peak_rss_kb": 22296
+        },
+        {
+          "median_ms": 7.43,
+          "median_peak_rss_kb": 22296
+        },
+        {
+          "median_ms": 7.85,
+          "median_peak_rss_kb": 22296
+        },
+        {
+          "median_ms": 7.21,
+          "median_peak_rss_kb": 22296
+        }
+      ]
+    },
+    "before-deploy": {
+      "size_bytes": 10957440,
+      "emit_ms_median": 8.5,
+      "emit_ms_min": 8.16,
+      "emit_ms_max": 10.05,
+      "peak_rss_kb_median": 22296,
+      "failures": 0,
+      "rounds": [
+        {
+          "median_ms": 8.58,
+          "median_peak_rss_kb": 22296
+        },
+        {
+          "median_ms": 8.5,
+          "median_peak_rss_kb": 22296
+        },
+        {
+          "median_ms": 8.16,
+          "median_peak_rss_kb": 22296
+        },
+        {
+          "median_ms": 8.24,
+          "median_peak_rss_kb": 22296
+        },
+        {
+          "median_ms": 10.05,
+          "median_peak_rss_kb": 22296
+        }
+      ]
+    }
+  }
+}

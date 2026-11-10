@@ -1,0 +1,24 @@
+{
+  "label": "rust-slice6",
+  "date": "2026-10-08T21:42:45.923Z",
+  "command": "../target/release/rca-service",
+  "runs": 5,
+  "artifactBytes": 17346032,
+  "coldStartMs": 32.06096499999967,
+  "idleRssMb": 5.83984375,
+  "rssAfterHealthMb": 5.94140625,
+  "healthP50Ms": 0.43952600000011444,
+  "scenarios": {
+    "ws request": {
+      "p50Ms": 0.07222449999994751,
+      "rssAfterMb": 6.16796875
+    },
+    "ws 100 connections": {
+      "p50Ms": 1.0069929999999658,
+      "rssAfterMb": 11.421875
+    }
+  },
+  "finalRssMb": 11.37109375,
+  "peakRssMb": 11.37109375,
+  "peakRssMaxMb": 11.5546875
+}

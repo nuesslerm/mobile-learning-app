@@ -1,0 +1,10 @@
+[workspace]
+resolver = "2"
+members = ["agent-api-proto", "agent-api-service", "agent-api-state", "agent-api-workspace", "agent-api-agent", "agent-api-client", "exec-testkit", "exec-proto", "exec-fs", "exec-proc", "exec-git", "exec-pty", "exec-hosted", "agent-api-hosted", "agent-api-terminal", "agent-api-git", "agent-api-accounts", "agent-api-schedules", "agent-api-attachments", "agent-api-catalog", "exec-preview", "agent-api-preview"]
+
+# Line tables for this workspace only: the contract crates are small, and no dependency needs debug information.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false

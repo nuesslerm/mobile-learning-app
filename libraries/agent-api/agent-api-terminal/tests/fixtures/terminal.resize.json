@@ -1,0 +1,59 @@
+{
+  "method": "terminal.resize",
+  "exchanges": [
+    {
+      "name": "sets the size",
+      "before": [
+        {
+          "id": 1,
+          "method": "terminal.open",
+          "params": {
+            "workspace": "w1",
+            "terminal": "t1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "terminal.resize",
+        "params": {
+          "workspace": "w1",
+          "terminal": "t1",
+          "cols": 120,
+          "rows": 40
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "cols": 120,
+          "rows": 40
+        }
+      },
+      "actions": [
+        "pty_resize"
+      ]
+    },
+    {
+      "name": "a size of zero is refused",
+      "request": {
+        "id": 1,
+        "method": "terminal.resize",
+        "params": {
+          "workspace": "w1",
+          "terminal": "t1",
+          "cols": 0,
+          "rows": 40
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "cols must be an integer from 1 to 1000"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

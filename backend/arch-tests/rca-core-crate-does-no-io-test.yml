@@ -1,0 +1,13 @@
+id: rca-core-crate-does-no-io
+valid:
+  - use std::sync::{Arc, Mutex};
+  - use tokio::sync::{mpsc, watch};
+  - use std::path::{Path, PathBuf};
+  - use std::time::{Duration, Instant};
+invalid:
+  - use std::{env, io};
+  - use std::{fs::File, sync::Arc};
+  - use tokio::{process::Command, sync::mpsc};
+  - use std::env;
+  - 'fn f() -> PathBuf { std::env::current_dir().unwrap() }'
+  - 'fn f() { let _ = dirs::home_dir(); }'

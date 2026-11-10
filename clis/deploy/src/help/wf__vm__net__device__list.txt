@@ -1,0 +1,8 @@
+Usage: wf vm net device list [options]
+
+Show every tailnet device with its staleness verdict, flagging
+collision-suffixed names
+
+Options:
+  --stale-minutes <n>  offline longer than this counts as stale (default 10)
+  -h, --help           display help for command

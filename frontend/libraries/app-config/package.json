@@ -1,0 +1,40 @@
+{
+  "name": "@lib/app-config",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./dev-runtime-config.json": "./dev-runtime-config.json"
+  },
+  "dependencies": {
+    "@lib/logging": "workspace:*",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@typescript/native": "catalog:",
+    "expo-router": "~57.0.19"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "vite-plugin-babel": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    },
+    "vite-plugin-babel": {
+      "optional": true
+    }
+  }
+}

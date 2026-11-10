@@ -1,0 +1,36 @@
+{
+  "content_hash": "sha256:af69b50d4201ee54ed32c3c6b22cfbc0076555c1d17322c80a5b70de3467220c",
+  "corpus": {
+    "hash": "sha256:52741f98bec6e939db2e341bb14cb59fce8c7c0b432d79c1156e42afb6a35437",
+    "path": "corpus.json"
+  },
+  "interactions": 1505,
+  "provenance": {
+    "corpus_hash": "sha256:52741f98bec6e939db2e341bb14cb59fce8c7c0b432d79c1156e42afb6a35437",
+    "driver": {
+      "name": "mimic-drivers/voice-edit-dsl",
+      "protocol": "mimic-driver/1",
+      "toolchain_lock_hash": "sha256:8ca6ba8b17af605d52967774d3997c82d63122785bc29760cc0f33cd6d933833",
+      "version": "1"
+    },
+    "kind": "recorded",
+    "recorded_at": "2026-11-06T02:21:54.545Z",
+    "recorded_on": "sandbox",
+    "rules_hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
+    "seed": 0,
+    "target": {
+      "name": "voice-edit-dsl",
+      "pin_file": "../../../../../../frontend/libraries/voice-edit-dsl/src",
+      "pin_hash": "git-tree:3f16fc0297ad2ccbe4481d65fef63e77768905e2",
+      "version": "1.0.0"
+    },
+    "tool": {
+      "mimic": "0.1.0"
+    }
+  },
+  "rules": {
+    "hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
+    "path": "rules.json"
+  },
+  "schema": "mimic-cassette/1"
+}

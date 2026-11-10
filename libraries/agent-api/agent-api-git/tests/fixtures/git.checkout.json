@@ -1,0 +1,61 @@
+{
+  "method": "git.checkout",
+  "exchanges": [
+    {
+      "name": "switches to another branch",
+      "before": [
+        {
+          "id": 1,
+          "method": "git.createRef",
+          "params": {
+            "workspace": "w1",
+            "name": "topic"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.checkout",
+        "params": {
+          "workspace": "w1",
+          "ref": "topic"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "branch": "topic",
+          "head": "ec8af9cbb2cc8765b5f7ff0b1cfb4fd4be865f02",
+          "detached": false
+        }
+      },
+      "actions": [
+        "git_checkout"
+      ],
+      "volatile": [
+        "/result/head"
+      ]
+    },
+    {
+      "name": "a ref that is an option is refused",
+      "request": {
+        "id": 1,
+        "method": "git.checkout",
+        "params": {
+          "workspace": "w1",
+          "ref": "--orphan=x"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`ref` must be a revision"
+        }
+      },
+      "actions": [
+        "git_checkout"
+      ]
+    }
+  ]
+}

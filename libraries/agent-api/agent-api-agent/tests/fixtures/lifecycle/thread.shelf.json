@@ -1,0 +1,98 @@
+{
+  "method": "thread.shelf",
+  "exchanges": [
+    {
+      "name": "pages the archived shelf",
+      "before": [
+        {
+          "id": "setup-create-t-sh",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-sh",
+            "title": "On the shelf",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        },
+        {
+          "id": "setup-arch",
+          "method": "thread.archive",
+          "params": {
+            "thread": "t-sh"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.shelf",
+        "params": {
+          "shelf": "archived"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "shelf": "archived",
+          "threads": [
+            {
+              "thread": {
+                "id": "t-sh",
+                "title": "On the shelf",
+                "workspace": "w1",
+                "driver": "claudeAgent",
+                "status": "idle",
+                "last_seq": 1,
+                "created_at": "2026-11-04T10:00:00Z",
+                "updated_at": "2026-11-04T10:00:00Z"
+              },
+              "archived_at_ms": 1700000000000
+            }
+          ],
+          "total": 1
+        }
+      },
+      "volatile": [
+        "/result/threads/0/thread/created_at",
+        "/result/threads/0/thread/updated_at",
+        "/result/threads/0/thread/last_seq",
+        "/result/threads/0/archived_at_ms"
+      ]
+    },
+    {
+      "name": "answers an empty settled shelf",
+      "request": {
+        "id": "2",
+        "method": "thread.shelf",
+        "params": {
+          "shelf": "settled"
+        }
+      },
+      "response": {
+        "id": "2",
+        "result": {
+          "shelf": "settled",
+          "threads": [],
+          "total": 0
+        }
+      }
+    },
+    {
+      "name": "refuses a page larger than the shelf allows",
+      "request": {
+        "id": "3",
+        "method": "thread.shelf",
+        "params": {
+          "shelf": "settled",
+          "limit": 51
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "limit must be at most 50"
+        }
+      }
+    }
+  ]
+}

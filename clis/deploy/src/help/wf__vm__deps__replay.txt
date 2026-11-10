@@ -1,0 +1,10 @@
+Usage: wf vm deps replay [options]
+
+Install every manifest entry not already present. A failing entry is reported,
+not fatal.
+
+Options:
+  --managers <managers>  comma-separated subset of apt,npm,mise (run apt as
+                         root, npm/mise as the non-root user) (default:
+                         "apt,npm,mise")
+  -h, --help             display help for command

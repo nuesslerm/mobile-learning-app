@@ -1,0 +1,80 @@
+{
+  "action": "git_checkout",
+  "exchanges": [
+    {
+      "name": "detaches at a revision",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "chec33",
+        "tool": "git_checkout",
+        "args": {
+          "ref": "HEAD",
+          "detach": true
+        }
+      },
+      "response": {
+        "id": "chec33",
+        "ok": true,
+        "result": {
+          "head": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+          "detached": true
+        }
+      }
+    },
+    {
+      "name": "refuses a revision that does not exist",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "chec34",
+        "tool": "git_checkout",
+        "args": {
+          "ref": "nope"
+        }
+      },
+      "response": {
+        "id": "chec34",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "git switch: fatal: invalid reference: nope"
+        }
+      }
+    },
+    {
+      "name": "refuses detach together with track",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "chec35",
+        "tool": "git_checkout",
+        "args": {
+          "ref": "origin/x",
+          "detach": true,
+          "track": true
+        }
+      },
+      "response": {
+        "id": "chec35",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`detach` and `track` exclude each other"
+        }
+      }
+    }
+  ]
+}

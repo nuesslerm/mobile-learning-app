@@ -1,0 +1,20 @@
+Usage: wf vm recover [options]
+
+Health-sweep every app via vm-ops-api and redeploy unhealthy ones with
+recreate=all; if vm-ops-api stays unreachable, OCI soft reboot, then hard reset,
+then re-verify
+
+Options:
+  --dry-run             Print the recovery plan only; make no calls
+  --instance-id <ocid>  OCID of the VM to reboot when vm-ops-api is unreachable
+                        (default: $OCI_INSTANCE_ID)
+  --max-wait <seconds>  How long vm-ops-api may stay unreachable before a
+                        reboot, and the re-verify budget (default: "600")
+  --ref <ref>           Git ref each recreate redeploy provisions from (default:
+                        "dev")
+  --only <apps...>      Sweep just these apps (default: leetcode-backend,
+                        remote-chat-agent, leetcode-auth-cookie-capture,
+                        agent-shell, vnc-auth-session, reporting-service); an
+                        app never brought up on the VM has no containers and
+                        would be redeployed forever
+  -h, --help            display help for command

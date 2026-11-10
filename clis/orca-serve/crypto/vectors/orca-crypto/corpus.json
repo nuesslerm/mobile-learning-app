@@ -1,0 +1,167 @@
+{
+  "schema": "mimic-corpus/1",
+  "seed": 0,
+  "generators": [
+    {
+      "kind": "corpus",
+      "name": "keypair",
+      "op": "crypto.keypair",
+      "cases": [
+        {
+          "id": "keypair-client",
+          "input": {
+            "secretFill": "11"
+          }
+        },
+        {
+          "id": "keypair-server",
+          "input": {
+            "secretFill": "22"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "nonce",
+      "op": "crypto.fixed-bytes",
+      "cases": [
+        {
+          "id": "nonce-client",
+          "input": {
+            "fill": "33",
+            "length": 32
+          }
+        },
+        {
+          "id": "nonce-desktop",
+          "input": {
+            "fill": "44",
+            "length": 32
+          }
+        }
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "box-shared-key",
+      "op": "crypto.box-shared-key",
+      "cases": [
+        {
+          "id": "box-shared-key",
+          "input": {
+            "clientSecretFill": "11",
+            "serverSecretFill": "22"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "pinned-v2-vector",
+      "op": "crypto.pinned-v2-vector",
+      "cases": [
+        {
+          "id": "pinned-v2-vector",
+          "input": {}
+        }
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "handshake",
+      "op": "crypto.handshake",
+      "cases": [
+        {
+          "id": "handshake-direct",
+          "input": {
+            "clientSecretFill": "11",
+            "serverSecretFill": "22",
+            "transport": "direct",
+            "clientNonceFill": "33",
+            "desktopNonceFill": "44",
+            "deviceToken": "device-token-1",
+            "clientBinary": [
+              1,
+              2,
+              3,
+              250,
+              251,
+              252
+            ],
+            "serverBinary": [
+              9,
+              8,
+              7,
+              0,
+              255
+            ]
+          }
+        },
+        {
+          "id": "handshake-relay",
+          "input": {
+            "clientSecretFill": "11",
+            "serverSecretFill": "22",
+            "transport": "relay",
+            "clientNonceFill": "33",
+            "desktopNonceFill": "44",
+            "deviceToken": "device-token-1",
+            "clientBinary": [
+              1,
+              2,
+              3,
+              250,
+              251,
+              252
+            ],
+            "serverBinary": [
+              9,
+              8,
+              7,
+              0,
+              255
+            ],
+            "relayHostId": "AbCdEf0123_-xyZ9"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "legacy",
+      "op": "crypto.legacy",
+      "cases": [
+        {
+          "id": "legacy",
+          "input": {
+            "clientSecretFill": "11",
+            "serverSecretFill": "22",
+            "nonceFill": "55",
+            "plaintext": "{\"type\":\"e2ee_auth\",\"deviceToken\":\"legacy-token\"}"
+          }
+        }
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "offer",
+      "op": "crypto.offer",
+      "cases": [
+        {
+          "id": "offer",
+          "input": {
+            "serverSecretFill": "22",
+            "offer": {
+              "v": 2,
+              "endpoint": "ws://100.64.0.7:6768",
+              "deviceToken": "device-token-1",
+              "pairedDeviceId": "phone-1",
+              "scope": "mobile"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

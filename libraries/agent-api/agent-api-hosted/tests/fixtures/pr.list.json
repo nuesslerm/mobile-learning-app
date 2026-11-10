@@ -1,0 +1,27 @@
+{
+  "method": "pr.list",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "pr.list",
+        "params": {
+          "limit": 0,
+          "provider": "github",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`limit` must be 1-200"
+        }
+      },
+      "actions": [
+        "hosted_pr_list"
+      ]
+    }
+  ]
+}

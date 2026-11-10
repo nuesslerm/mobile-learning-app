@@ -1,0 +1,16 @@
+id: contract-crate-does-no-io
+language: rust
+severity: error
+message: "A wire-contract crate (libraries/agent-api) is pure; it parses and encodes, and does no file, socket, process or environment access. Its loader of recorded exchanges lives in src/testing.rs."
+note: "`wf check --budget` reads the globs below to check these crates' manifests too (core_purity, `backend-core-io-violations`), so keep one glob per line."
+files:
+  - "**/libraries/agent-api/*/src/**/*.rs"
+ignores:
+  - "**/libraries/agent-api/*/src/testing.rs"
+  - "**/libraries/agent-api/*/src/testing/**"
+  # Two crates of the directory are no wire contract: the client is the adapter library for the socket, and the kit starts the processes
+  # and writes the files its tests need. A crate whose whole `src` is ignored here is not in the purity registry either (core_purity).
+  - "**/libraries/agent-api/agent-api-client/src/**"
+  - "**/libraries/agent-api/exec-testkit/src/**"
+rule:
+  matches: does-io

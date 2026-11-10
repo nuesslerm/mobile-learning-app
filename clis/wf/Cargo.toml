@@ -1,0 +1,46 @@
+[package]
+name = "wf"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# The test kit hides every registry secret; the surface test compares each help text with wf-cli.md, mcp-guard reads
+# agent-config-sync's golden, and the dispatch test reads the binaries install-wf puts beside wf.
+[package.metadata.flow]
+inputs = ["../secrets/src/data/registry.json", "../../docs/reference/wf-cli.md", "../agent-config-sync/tests/flow/golden-guard-deny.json", "../../.github/actions/install-wf/action.yml"]
+
+# The integration tests are one flow binary (tests/flow.rs) driving the built `wf`; the binary's own unit tests run with `--bins`.
+[[bin]]
+name = "wf"
+path = "src/main.rs"
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+offload = { path = "../offload" }
+wf-bench = { path = "../wf-bench" }
+knowledge = { path = "../knowledge" }
+wf-bucket = { path = "../wf-bucket" }
+wf-lib = { path = "../lib" }
+parity = { path = "../parity" }
+wf-harness = { path = "../wf-harness" }
+harness-flow = { path = "../harness-flow" }
+wf-login = { path = "../wf-login" }
+pipeline = { path = "../pipeline" }
+secrets = { path = "../secrets" }
+deploy = { path = "../deploy" }
+wf-vmops = { path = "../wf-vmops" }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+agent-config-sync = { path = "../agent-config-sync" }
+rca-core = { version = "0.1", registry = "mla" }
+cli-http = { path = "../http" }
+telemetry = { version = "0.1", registry = "mla", features = ["cli"] }
+nix = { version = "0.31", default-features = false, features = ["signal"] }
+
+[dev-dependencies]
+wf-testkit = { path = "../wf-testkit", features = ["tls"] }
+wf-vmops = { path = "../wf-vmops", features = ["testing"] }
+wf-harness = { path = "../wf-harness", features = ["testing"] }
+base64 = "0.22"
+tempfile = "3"
+

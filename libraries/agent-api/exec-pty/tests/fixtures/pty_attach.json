@@ -1,0 +1,10 @@
+{
+  "action": "pty_attach",
+  "exchanges": [
+    {
+      "name": "refuses a pty that does not exist",
+      "request": {"id": "a1", "tool": "pty_attach", "args": {"pty": "never-opened", "after_offset": 0}},
+      "response": {"id": "a1", "ok": false, "error": {"code": "NOT_FOUND", "message": "pty never-opened does not exist"}}
+    }
+  ]
+}

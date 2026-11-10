@@ -1,0 +1,50 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@feature/coding-agent": [
+        "./src/index.tsx"
+      ],
+      "@feature/coding-agent/*": [
+        "./src/*"
+      ],
+      "@lib/tamagui-design-system": [
+        "../../../libraries/tamagui-design-system/index.ts"
+      ],
+      "@lib/tamagui-design-system/*": [
+        "../../../libraries/tamagui-design-system/*"
+      ],
+      "@lib/logging": [
+        "../../../libraries/logging/src/index.ts"
+      ],
+      "@lib/logging/*": [
+        "../../../libraries/logging/src/*"
+      ],
+      "@lib/app-config": [
+        "../../../libraries/app-config/src/index.ts"
+      ],
+      "@lib/app-config/*": [
+        "../../../libraries/app-config/src/*"
+      ],
+      "@app/remote-chat-agent-contracts": [
+        "../../../../backend/remote-chat-agent-contracts/src/index.ts"
+      ],
+      "@app/remote-chat-agent-contracts/orchestration": [
+        "../../../../backend/remote-chat-agent-contracts/src/orchestration/index.ts"
+      ],
+      "@lib/tamagui-design-system/theme/tamagui.config": [
+        "../../../libraries/tamagui-design-system/theme/tamagui.config.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "tamagui-env.d.ts",
+    "../../../feature-kit/vitest.setup.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

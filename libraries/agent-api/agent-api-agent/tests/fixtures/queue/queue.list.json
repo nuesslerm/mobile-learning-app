@@ -1,0 +1,85 @@
+{
+  "method": "queue.list",
+  "exchanges": [
+    {
+      "name": "lists the queue in the order the items start",
+      "before": [
+        {
+          "id": "setup-create-t-ql",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-ql",
+            "title": "Thread t-ql",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        },
+        {
+          "id": "setup-a1",
+          "method": "queue.add",
+          "params": {
+            "thread": "t-ql",
+            "item": "q1",
+            "prompt": "one"
+          }
+        },
+        {
+          "id": "setup-a2",
+          "method": "queue.add",
+          "params": {
+            "thread": "t-ql",
+            "item": "q2",
+            "prompt": "two"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "queue.list",
+        "params": {
+          "thread": "t-ql"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": "t-ql",
+          "held": false,
+          "items": [
+            {
+              "item": "q1",
+              "prompt": "one",
+              "created_at_ms": 1700000000000
+            },
+            {
+              "item": "q2",
+              "prompt": "two",
+              "created_at_ms": 1700000000000
+            }
+          ]
+        }
+      },
+      "volatile": [
+        "/result/items/0/created_at_ms",
+        "/result/items/1/created_at_ms"
+      ]
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "queue.list",
+        "params": {
+          "thread": "nope"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

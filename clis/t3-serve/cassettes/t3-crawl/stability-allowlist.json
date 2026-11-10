@@ -1,0 +1,45 @@
+{
+  "schema": "mimic-stability-allowlist/1",
+  "entries": [
+    {
+      "id": "t3-command-delegated-task.completion-delivery.acknowledge-invalid-wrong-type-commandId",
+      "cause": "text-change",
+      "reason": "the answer depends on the commands the same server was asked before: a rejected command id is remembered, so the error is 'previously rejected' or 'failed to load the projection' by order of the write sequence"
+    },
+    {
+      "id": "t3-command-thread.auto-settle.set-valid-min",
+      "cause": "text-change",
+      "reason": "the answer depends on the commands the same server was asked before: a rejected command id is remembered, so the error is 'previously rejected' or 'failed to load the projection' by order of the write sequence"
+    },
+    {
+      "id": "t3-command-thread.settle-valid-min",
+      "cause": "text-change",
+      "reason": "the answer depends on the commands the same server was asked before: a rejected command id is remembered, so the error is 'previously rejected' or 'failed to load the projection' by order of the write sequence"
+    },
+    {
+      "id": "t3-rpc-cloud.installRelayClient-valid-min",
+      "cause": "array-length",
+      "reason": "the install pushes progress frames on the socket whose number (17 or 19) is a race with the settle window"
+    },
+    {
+      "id": "t3-rpc-server.getProcessResourceHistory-valid-min",
+      "cause": "short-value",
+      "reason": "the server's process telemetry (sample count, peak process count) follows how long it has been up and what ran on it"
+    },
+    {
+      "id": "t3-rpc-server.getProcessResourceHistory-boundary-limit-windowMs",
+      "cause": "short-value",
+      "reason": "the server's process telemetry (sample count, peak process count) follows how long it has been up and what ran on it"
+    },
+    {
+      "id": "t3-rpc-server.getTraceDiagnostics-invalid-no-payload",
+      "cause": "short-value",
+      "reason": "the diagnostics list the server's own recent failures, which are the failures of whatever ran before on that server, and a push frame may or may not arrive in the settle window"
+    },
+    {
+      "id": "t3-rpc-server.refreshUsageRates-invalid-no-payload",
+      "cause": "array-length",
+      "reason": "the refresh pushes a usage frame whose arrival inside the settle window is a race"
+    }
+  ]
+}

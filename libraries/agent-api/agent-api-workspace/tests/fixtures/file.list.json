@@ -1,0 +1,74 @@
+{
+  "method": "file.list",
+  "exchanges": [
+    {
+      "name": "lists a directory of an attached workspace",
+      "request": {
+        "id": 7,
+        "method": "file.list",
+        "params": {
+          "workspace": "w1",
+          "path": "src"
+        }
+      },
+      "response": {
+        "id": 7,
+        "result": {
+          "entries": [
+            {
+              "name": "a.txt",
+              "kind": "file",
+              "size": 8
+            },
+            {
+              "name": "b.rs",
+              "kind": "file",
+              "size": 13
+            }
+          ]
+        }
+      },
+      "actions": [
+        "list_dir"
+      ]
+    },
+    {
+      "name": "relays the executor's refusal of a directory that does not exist",
+      "request": {
+        "id": 8,
+        "method": "file.list",
+        "params": {
+          "workspace": "w1",
+          "path": "nope"
+        }
+      },
+      "response": {
+        "id": 8,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "nope does not exist"
+        }
+      },
+      "actions": [
+        "list_dir"
+      ]
+    },
+    {
+      "name": "refuses a request that names no path",
+      "request": {
+        "id": 9,
+        "method": "file.list",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 9,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "path is required"
+        }
+      }
+    }
+  ]
+}

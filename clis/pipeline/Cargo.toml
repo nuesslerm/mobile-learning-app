@@ -1,0 +1,49 @@
+[package]
+name = "pipeline"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The pipeline: which tests, deploy legs and gates a change needs (`wf test plan`, `wf test run --stage`, `wf test drift`, `wf check --staged` and `--budget`, the legs of `wf ship --changed`), and what a run leaves for people to read (`wf ci comment`, `wf test publish`, the run bundles and metrics rows), and `pnpm --filter mla-tamagui run build:editor-bundle` until it is dissolved"
+
+# The flow tests hold the Nx cache's contract, so what shapes the graph or a task's hash is their input (keep in step with
+# shapes_the_nx_graph in src/test_plan.rs); the static scans read the workflows and mise.toml.
+[package.metadata.flow]
+inputs = ["../secrets/src/data/registry.json", "../../nx.json", "../../.nxignore", "../../.gitignore", "../../tooling/nx/**/*", "../../e2e/*.lua", "../../**/package.json", "../../**/project.json", "../../**/Cargo.toml", "../../.github/**/*", "../../mise.toml"]
+
+# The tests are one flow binary (tests/flow.rs) driving the thin binary below; the lib has no unit tests (plan D3).
+[lib]
+doctest = false
+
+# Serves only `wf check --staged|--budget`, `wf test plan|run --stage|drift` and `pnpm --filter mla-tamagui run build:editor-bundle`, which is all this crate's flow tests
+# spawn and what `check --staged` runs through the executable.
+[[bin]]
+name = "pipeline"
+path = "src/bin/pipeline.rs"
+test = false
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+wf-bucket = { path = "../wf-bucket" }
+blob-cache = { path = "../blob-cache" }
+wf-vmops = { path = "../wf-vmops" }
+libc = "0.2"
+harness-core = { path = "../harness-core" }
+harness-flow = { path = "../harness-flow" }
+wf-harness = { path = "../wf-harness" }
+sha2 = "0.10"
+hex = "0.4"
+png = { version = "0.17", default-features = false }
+nix = { version = "0.31", default-features = false, features = ["signal"] }
+secrets = { path = "../secrets" }
+rca-core = { version = "0.1", registry = "mla" }
+cli-http = { path = "../http" }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+yaml-rust2 = { version = "0.10", default-features = false }
+toml = { version = "0.8", default-features = false, features = ["parse"] }
+
+[dev-dependencies]
+wf-testkit = { path = "../wf-testkit" }
+# The tests of `wf test run --stage` double vm-ops-api with the fake this crate ships.
+wf-vmops = { path = "../wf-vmops", features = ["testing"] }
+tempfile = "3"

@@ -1,0 +1,77 @@
+{
+  "suite": "plantab",
+  "step": "final-given-a-typed-two-sentence-block-when-add-is-pr-259820",
+  "scheme": "dark",
+  "snapshot": "plantab/final-given-a-typed-two-sentence-block-when-add-is-pr-259820.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-plan",
+      "ProblemWorkspaceTab-code",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTextEditStartButton",
+      "ProblemEditorVoiceStartButton",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInput",
+      "ProblemPlanTab",
+      "ProblemPlanSteps",
+      "ProblemPlanStep-0",
+      "ProblemPlanStep-0-Text",
+      "ProblemPlanStep-0-Status",
+      "ProblemPlanStep-0-Realize",
+      "ProblemPlanStep-0-Split",
+      "ProblemPlanStep-0-Merge",
+      "ProblemPlanStep-0-Up",
+      "ProblemPlanStep-0-Down",
+      "ProblemPlanStep-0-Delete",
+      "ProblemPlanStep-1",
+      "ProblemPlanStep-1-Text",
+      "ProblemPlanStep-1-Status",
+      "ProblemPlanStep-1-Realize",
+      "ProblemPlanStep-1-Split",
+      "ProblemPlanStep-1-Merge",
+      "ProblemPlanStep-1-Up",
+      "ProblemPlanStep-1-Down",
+      "ProblemPlanStep-1-Delete",
+      "ProblemPlanComposer",
+      "ProblemPlanMicButton",
+      "ProblemPlanTextInput",
+      "ProblemPlanAddButton"
+    ],
+    "text": "Plan\nCode\n1\nKeep only alphanumeric characters\npending\n2\nCompare the cleaned string with its reverse\npending\nAdd"
+  },
+  "timings": {
+    "render_ms": 272
+  },
+  "name": "plantab/final-given-a-typed-two-sentence-block-when-add-is-pr-259820.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

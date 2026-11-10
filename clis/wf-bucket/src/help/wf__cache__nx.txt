@@ -1,0 +1,30 @@
+Usage: wf cache nx [options] <command...>
+
+Run a command with the Nx task cache served from the bucket: a loopback server
+starts, NX_SELF_HOSTED_REMOTE_CACHE_SERVER and a per-run token go into the
+command's environment (and 127.0.0.1,localhost into NO_PROXY), and the server
+stops when the command exits. The command's exit code is this verb's. Needs
+BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL (the environment, then the
+vault); without them the command runs on Nx's local cache alone. A run writes only
+from a clean tree on origin/dev with pinned tools (see `wf cache --help`).
+
+With --why (first, before the command), every task Nx ran in the command is
+explained against the bucket's history of that task (verification/nx-inputs/):
+the nearest earlier run and the inputs that differ (a file, an env var by name and
+never by value, a runtime tool), `expired` (an earlier run stored this very hash),
+or `never-stored` (no earlier run, or the run that computed the hash failed and
+stored nothing); this run's own inputs are recorded for the next miss. A task that
+failed says it stored nothing. Writing needs VERIFICATION_ARTIFACTS_PAR_URL.
+
+Output: the command's own, then one stderr line `wf: build cache {...}` and, with
+--why, one `wf: nx why {schema, ok, run, source, misses: [{task, hash, verdict,
+because, against: {run, sha, ts, source, hash, outcome, passed}, changed: [{input,
+kind, change, name|files|was|now}], changedCount, stored, thisRun?}], recorded,
+problems}`.
+
+Arguments:
+  command     the command to run, after an optional --
+
+Options:
+  --why       explain each task the command ran against its earlier runs
+  -h, --help  display help for command

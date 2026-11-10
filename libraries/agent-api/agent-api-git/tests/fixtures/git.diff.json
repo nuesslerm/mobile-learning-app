@@ -1,0 +1,46 @@
+{
+  "method": "git.diff",
+  "exchanges": [
+    {
+      "name": "diffs one path of the working tree",
+      "request": {
+        "id": 1,
+        "method": "git.diff",
+        "params": {
+          "workspace": "w1",
+          "path": "README.md"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "diff": "diff --git a/README.md b/README.md\nindex 19ddc88..4f1b76e 100644\n--- a/README.md\n+++ b/README.md\n@@ -1 +1,2 @@\n temp repo\n+edited\n"
+        }
+      },
+      "actions": [
+        "git_diff"
+      ]
+    },
+    {
+      "name": "a revision that is an option is refused",
+      "request": {
+        "id": 1,
+        "method": "git.diff",
+        "params": {
+          "workspace": "w1",
+          "base": "--output=x"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`base` must be a revision"
+        }
+      },
+      "actions": [
+        "git_diff"
+      ]
+    }
+  ]
+}

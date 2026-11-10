@@ -1,0 +1,26 @@
+{
+  "method": "mr.list",
+  "exchanges": [
+    {
+      "name": "the mr spelling reaches the same action and defaults to gitlab",
+      "request": {
+        "id": 1,
+        "method": "mr.list",
+        "params": {
+          "limit": 0,
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`limit` must be 1-200"
+        }
+      },
+      "actions": [
+        "hosted_pr_list"
+      ]
+    }
+  ]
+}

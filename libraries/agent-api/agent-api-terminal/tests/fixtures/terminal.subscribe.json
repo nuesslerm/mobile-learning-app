@@ -1,0 +1,58 @@
+{
+  "method": "terminal.subscribe",
+  "exchanges": [
+    {
+      "name": "follows the metadata of a workspace",
+      "before": [
+        {
+          "id": 1,
+          "method": "terminal.open",
+          "params": {
+            "workspace": "w1",
+            "terminal": "t1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "terminal.subscribe",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "workspace": "w1",
+          "terminals": [
+            {
+              "workspace": "w1",
+              "terminal": "t1",
+              "title": "t1",
+              "cwd": "<volatile>",
+              "cols": 80,
+              "rows": 24,
+              "status": "running",
+              "exit_code": null,
+              "pid": "<volatile>",
+              "offset": "<volatile>",
+              "base_offset": 0,
+              "updated_at": "<volatile>"
+            }
+          ],
+          "seq": 1,
+          "reset": false
+        }
+      },
+      "actions": [
+        "pty_list"
+      ],
+      "volatile": [
+        "/result/terminals/0/cwd",
+        "/result/terminals/0/pid",
+        "/result/terminals/0/offset",
+        "/result/terminals/0/updated_at"
+      ]
+    }
+  ]
+}

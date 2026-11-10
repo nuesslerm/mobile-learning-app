@@ -1,0 +1,6 @@
+Usage: wf offload ladder sync-pricing [options]
+
+Refresh model-pricing.json from the OpenRouter model list
+
+Options:
+  -h, --help  display help for command

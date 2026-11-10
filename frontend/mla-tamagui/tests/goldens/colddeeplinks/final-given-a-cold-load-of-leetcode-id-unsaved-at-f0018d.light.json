@@ -1,0 +1,38 @@
+{
+  "suite": "colddeeplinks",
+  "step": "final-given-a-cold-load-of-leetcode-id-unsaved-at-f0018d",
+  "scheme": "light",
+  "snapshot": "colddeeplinks/final-given-a-cold-load-of-leetcode-id-unsaved-at-f0018d.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "UnsavedChangesDialog",
+      "UnsavedChangesDialog-Title",
+      "UnsavedChangesDialog-Description",
+      "UnsavedChangesDialog-Cancel",
+      "UnsavedChangesDialog-Confirm"
+    ],
+    "text": "Leave without saving?\nYour edits to this problem are not saved anywhere. Leaving discards them from the editor — a version is kept, so you can restore it from Version history.\nKeep editing\nDiscard"
+  },
+  "timings": {
+    "render_ms": 467
+  },
+  "name": "colddeeplinks/final-given-a-cold-load-of-leetcode-id-unsaved-at-f0018d.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

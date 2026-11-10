@@ -1,0 +1,46 @@
+[package]
+name = "wf-login"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "`wf secret login`: a tool's own login, the capture verbs that drive the shared desktop's listener, and the listener itself that runs in the login-browser image"
+
+# The test kit hides every secret the registry names from the binary it runs.
+[package.metadata.flow]
+inputs = ["../secrets/src/data/registry.json"]
+
+# The tests are one flow binary (tests/flow.rs) driving the thin binary below; the lib has no unit tests (plan D3).
+[lib]
+test = false
+doctest = false
+
+# Serves only `wf secret login`, which is all this crate's flow tests spawn.
+[[bin]]
+name = "wf-login"
+path = "src/bin/wf-login.rs"
+test = false
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+secrets = { path = "../secrets" }
+wf-vmops = { path = "../wf-vmops" }
+cdp = { path = "../cdp" }
+cli-http = { path = "../http" }
+telemetry = { version = "0.1", registry = "mla", features = ["oneshot"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+base64 = "0.22"
+form_urlencoded = "1"
+getrandom = "0.4"
+uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "net", "io-util", "macros", "time"] }
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
+tower-http = { version = "0.6", default-features = false, features = ["cors", "limit"] }
+
+[dev-dependencies]
+wf-testkit = { path = "../wf-testkit" }
+# The tests double vm-ops-api with the fake wf-vmops ships.
+wf-vmops = { path = "../wf-vmops", features = ["testing"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+tempfile = "3"
+tiny_http = "0.12"
+ureq = { version = "3", default-features = false }

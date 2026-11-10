@@ -1,0 +1,15 @@
+usage:
+  wf offload worker --plan <slug> [--max N] [--site sandbox|vm] [--land-ref <ref>] [--once] [--worktree-dir <dir>]
+  wf offload worker status --plan <slug> [--land-ref <ref>]
+  wf offload worker check --plan <slug>
+  wf knowledge rank <files…> [--limit N]
+  wf knowledge index [--write]
+  wf knowledge stale [--days N]
+  wf check --visual --files <a,b,…> [--export-dir <dir>] [--out-dir <dir>] [--base-path <p>]
+                   [--baseline-store fs|oci] [--baseline-dir <dir>] [--sha <sha>] [--base-sha <sha>]
+                   [--acceptance <file>] [--update-baselines]
+  fs:  baselines in --baseline-dir/<route>.png (default)
+  oci: baselines/<route>/<sha>.png in the bucket at $GOLDEN_SCREENSHOTS_BUCKET_URL_PREFIX
+       via the oci CLI; compares against --base-sha (else newest), saves under --sha, keeps 20;
+       with --sha also records the result at verify/<sha>.tier2.json for `wf check --deployed <sha>`
+  --acceptance: a changed route over the diff threshold fails only if both vision judges agree

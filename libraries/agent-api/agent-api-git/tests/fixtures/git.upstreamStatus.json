@@ -1,0 +1,28 @@
+{
+  "method": "git.upstreamStatus",
+  "exchanges": [
+    {
+      "name": "reports no upstream and no remotes",
+      "request": {
+        "id": 1,
+        "method": "git.upstreamStatus",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "branch": "main",
+          "has_upstream": false,
+          "ahead": 0,
+          "behind": 0,
+          "remotes": []
+        }
+      },
+      "actions": [
+        "git_upstream"
+      ]
+    }
+  ]
+}

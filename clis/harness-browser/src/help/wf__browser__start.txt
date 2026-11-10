@@ -1,0 +1,5 @@
+Usage: wf browser start [--headless] [--screenshot-dir D]
+
+Starts the browser daemon for this checkout, or reuses the running one. Frozen for @lib/browser-client and the
+cookie-capture service: it prints the URL as text, or with --json one pino line {level, time, pid, hostname,
+result: {url, mode}, msg}.

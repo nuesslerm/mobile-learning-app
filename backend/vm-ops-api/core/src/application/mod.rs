@@ -1,0 +1,17 @@
+pub mod access;
+pub mod agent_shell;
+pub mod cooldown_writes;
+pub mod drill;
+pub mod health;
+pub mod heartbeat;
+pub mod logs;
+pub mod opencode_log;
+pub mod opencode_log_writes;
+pub mod ports;
+pub mod ps;
+pub mod redeploy;
+pub mod redeploy_status;
+pub mod scripts;
+pub mod self_redeploy;
+pub mod startup;
+pub mod stats;

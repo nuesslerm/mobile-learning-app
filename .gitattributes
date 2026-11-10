@@ -1,0 +1,5 @@
+# CLI bootstrap bundles (clis/*/bootstrap/*.js) are esbuild/bun-built,
+# committed single-file bundles — not hand-written, and the diff is just
+# noise. `linguist-generated=true` makes GitHub collapse them by default
+# in PR diffs and exclude them from language stats.
+clis/*/bootstrap/**/*.js linguist-generated=true

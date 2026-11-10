@@ -1,0 +1,115 @@
+{
+  "method": "attachment.get",
+  "exchanges": [
+    {
+      "name": "reads the whole attachment by default",
+      "before": [
+        {
+          "id": "setup-1",
+          "method": "upload.put",
+          "params": {
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "data": "aGk=",
+            "id": "att-1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "attachment.get",
+        "params": {
+          "id": "att-1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "attachment": {
+            "id": "att-1",
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "size_bytes": 2,
+            "sha256": "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4",
+            "created_at_ms": "<volatile>"
+          },
+          "data": "aGk=",
+          "offset": 0,
+          "bytes": 2,
+          "eof": true
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/attachment/created_at_ms"
+      ]
+    },
+    {
+      "name": "reads a range and says whether it reached the end",
+      "before": [
+        {
+          "id": "setup-2",
+          "method": "upload.put",
+          "params": {
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "data": "aGk=",
+            "id": "att-1"
+          }
+        }
+      ],
+      "request": {
+        "id": 2,
+        "method": "attachment.get",
+        "params": {
+          "id": "att-1",
+          "offset": 0,
+          "length": 1
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "attachment": {
+            "id": "att-1",
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "size_bytes": 2,
+            "sha256": "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4",
+            "created_at_ms": "<volatile>"
+          },
+          "data": "aA==",
+          "offset": 0,
+          "bytes": 1,
+          "eof": false
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/attachment/created_at_ms"
+      ]
+    },
+    {
+      "name": "answers ATTACHMENT_NOT_FOUND for an id nothing holds",
+      "request": {
+        "id": 3,
+        "method": "attachment.get",
+        "params": {
+          "id": "nope"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "ATTACHMENT_NOT_FOUND",
+          "message": "no attachment has the id nope"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

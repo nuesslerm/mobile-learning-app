@@ -1,0 +1,36 @@
+Usage: wf bench agent-proof --arm <name> --base <url> [options]
+
+Agent proof: an agent gets a fixed four-step task (open <base>/leetcode/two-sum,
+wait for the Run Local button, tap it, wait for the outcome totals and assert
+they say "passed"; the autofocused editor's keyboard is lowered with Done
+first) plus the full `wf <harness> test --api` text, answers with one Lua
+script, and the script runs recorded: `wf <p> test <lua> --env base=<url>`.
+Pass = the script exits 0. Exit 0 when it passed, 1 otherwise.
+
+Arms:
+  sonnet     claude -p --model sonnet --output-format json (no tools, no MCP,
+             outside the repo); cost and tokens from its JSON
+  opencode   the cheap-model ladder (`wf offload ask`'s rotation, read-only, caller
+             agent-proof); the first rung that answers
+  scripted   no agent: runs --script (default
+             e2e/agent-proof.lua), the floor
+
+Options:
+  --arm <name>       sonnet, opencode or scripted
+  --base <url>       the app's web root, e.g. http://127.0.0.1:8810/mla-tamagui
+  --out <dir>        where <arm>-answer.txt, <arm>.lua, <arm>-run.log,
+                     <arm>-waits.jsonl and the <arm>-rec/ recording go
+                     (default: .agents/tmp/agent-proof/<ms>)
+  --platform <name>  browser (default) or android
+  --script <file>    the scripted arm's script
+  --timeout <s>      the agent's time limit (default: 600)
+  -h, --help         display help for command
+
+Prints one JSON object:
+  {"arm": string, "model": string, "agentS": number, "runS": number,
+   "wallS": number, "passed": boolean, "costUsd"?: number, "tokens"?: number,
+   "script": string, "recording": string|null, "error"?: string}
+agentS is the agent's answer time (0 for scripted), runS the harness run's time,
+wallS their sum. Every budgeted device wait (assert_visible, extended_wait_until) of the run is one line
+{"call","sel","ms","ok","budgetMs","platform"} in <out>/<arm>-waits.jsonl
+(WF_WAIT_LOG=<file> does the same for any `wf android test` or `wf browser test`).

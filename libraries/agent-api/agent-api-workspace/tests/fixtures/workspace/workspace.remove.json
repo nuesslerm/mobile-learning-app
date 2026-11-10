@@ -1,0 +1,69 @@
+{
+  "method": "workspace.remove",
+  "exchanges": [
+    {
+      "name": "forgets a workspace that is a directory",
+      "before": [
+        {
+          "method": "workspace.create",
+          "params": {
+            "workspace": "proj",
+            "path": "apps/web"
+          },
+          "id": "b10"
+        }
+      ],
+      "request": {
+        "params": {
+          "workspace": "proj"
+        },
+        "id": 1,
+        "method": "workspace.remove"
+      },
+      "response": {
+        "result": {
+          "workspace": "proj",
+          "removed": true
+        },
+        "id": 1
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses the executor's root workspace",
+      "request": {
+        "params": {
+          "workspace": "w1"
+        },
+        "id": 2,
+        "method": "workspace.remove"
+      },
+      "response": {
+        "error": {
+          "code": "NOT_REMOVABLE",
+          "message": "w1 is an executor's root workspace"
+        },
+        "id": 2
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a workspace nobody knows",
+      "request": {
+        "params": {
+          "workspace": "zz"
+        },
+        "id": 3,
+        "method": "workspace.remove"
+      },
+      "response": {
+        "error": {
+          "code": "UNKNOWN_WORKSPACE",
+          "message": "no workspace zz"
+        },
+        "id": 3
+      },
+      "actions": []
+    }
+  ]
+}

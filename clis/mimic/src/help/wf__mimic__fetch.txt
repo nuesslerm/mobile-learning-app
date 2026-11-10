@@ -1,0 +1,15 @@
+Usage: wf mimic fetch [options] <run-id|latest>
+
+Download a published run (wf mimic publish) into this checkout: every file of
+every set is read from the bucket's public URL, its sha256 is checked against the
+manifest, and it is written to the set's directory (paths from the checkout root,
+never outside it). A file that does not match writes nothing more. `latest` takes
+the newest run of --set. Then verify the set and commit it.
+
+Options:
+  --set <name>                only this set (needed for latest)
+  --root <dir>                the checkout to write into (default: this one)
+  -h, --help                  display help for command
+
+Output (schema mimic-fetch/1):
+  {schema, ok, run, sets: [{name, dir, files}], warnings, next}

@@ -1,0 +1,3011 @@
+{
+  "schema": 1,
+  "app": "t3",
+  "generatedBy": "wf parity coverage --app t3",
+  "pin": {
+    "file": "tooling/t3-conformance/t3-pin.json",
+    "version": "0.1.6",
+    "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e"
+  },
+  "summary": {
+    "rows": 205,
+    "served": 169,
+    "pending": 0,
+    "notOffered": 36,
+    "excluded": 0,
+    "flagged": 0,
+    "answeredByMapper": 0,
+    "byKind": {
+      "command": 40,
+      "http": 13,
+      "mutation": 3,
+      "rpc": 149
+    },
+    "pendingByMilestone": {}
+  },
+  "rows": [
+    {
+      "id": "command:checkpoint.rollback",
+      "kind": "command",
+      "name": "checkpoint.rollback",
+      "state": "served",
+      "milestone": "M9",
+      "target": "agent:thread.rollback",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "rollback_m12::a_rollback_puts_the_files_back_to_how_the_first_dropped_turn_found_them_and_a_rollback_that_drops_nothing_touches_none",
+        "agent": [
+          "thread.create",
+          "thread.rollback"
+        ],
+        "executor": [
+          "git_discard"
+        ]
+      }
+    },
+    {
+      "id": "command:message.dispatch",
+      "kind": "command",
+      "name": "message.dispatch",
+      "state": "served",
+      "milestone": "M3",
+      "target": "agent:turn.start",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+        "agent": [
+          "thread.create",
+          "thread.subscribe",
+          "turn.start"
+        ],
+        "executor": [
+          "git_checkpoint",
+          "put_blob"
+        ]
+      }
+    },
+    {
+      "id": "command:prepared-run.retry",
+      "kind": "command",
+      "name": "prepared-run.retry",
+      "state": "not-offered",
+      "milestone": "M4",
+      "target": "t3-local",
+      "reason": "rca prepares no workspace for a run, so there is no failed preparation to retry; the call could only get the refusal. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "command:provider-session.detach",
+      "kind": "command",
+      "name": "provider-session.detach",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:thread.detach",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+        "agent": [
+          "thread.create",
+          "thread.detach"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:queue.resume",
+      "kind": "command",
+      "name": "queue.resume",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:queue.resume",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_the_executor_writing_for_each",
+        "agent": [
+          "queue.resume",
+          "thread.create"
+        ],
+        "executor": [
+          "git_checkpoint",
+          "write_file"
+        ]
+      }
+    },
+    {
+      "id": "command:queued-message.promote-to-steer",
+      "kind": "command",
+      "name": "queued-message.promote-to-steer",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:turn.steer",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_steers_the_running_turn_before_the_rest_start_by_themselves",
+        "agent": [
+          "thread.create",
+          "turn.steer"
+        ],
+        "executor": [
+          "git_checkpoint",
+          "write_file"
+        ]
+      }
+    },
+    {
+      "id": "command:queued-run.cancel",
+      "kind": "command",
+      "name": "queued-run.cancel",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:queue.delete",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_steers_the_running_turn_before_the_rest_start_by_themselves",
+        "agent": [
+          "queue.delete",
+          "thread.create"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:queued-run.edit",
+      "kind": "command",
+      "name": "queued-run.edit",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:queue.edit",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_steers_the_running_turn_before_the_rest_start_by_themselves",
+        "agent": [
+          "queue.edit",
+          "thread.create"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:queued-run.start",
+      "kind": "command",
+      "name": "queued-run.start",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:queue.resume",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_starts_it_or_resumes_the_queue_and_rca_refuses_it_on_an_archived_thread",
+        "agent": [
+          "queue.resume",
+          "thread.create"
+        ],
+        "executor": [
+          "git_checkpoint",
+          "write_file"
+        ]
+      }
+    },
+    {
+      "id": "command:run.interrupt",
+      "kind": "command",
+      "name": "run.interrupt",
+      "state": "served",
+      "milestone": "M3",
+      "target": "agent:turn.interrupt",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "chain::an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_to_interrupt_it",
+        "agent": [
+          "turn.interrupt"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:runtime-request.respond",
+      "kind": "command",
+      "name": "runtime-request.respond",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:approval.answer",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_one_and_a_dismissal_ends_the_wait",
+        "agent": [
+          "approval.answer",
+          "thread.create"
+        ],
+        "executor": [
+          "write_file"
+        ]
+      }
+    },
+    {
+      "id": "command:subagent.stop",
+      "kind": "command",
+      "name": "subagent.stop",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:workflow.stop",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_workflow_stop_and_a_subagent_stop_each_end_the_running_turn_through_rca_and_a_stop_with_nothing_running_is_not_asked_of_rca",
+        "agent": [
+          "thread.create",
+          "workflow.stop"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.active.reorder",
+      "kind": "command",
+      "name": "thread.active.reorder",
+      "state": "served",
+      "milestone": "M4",
+      "target": "state:thread.activeOrder",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+        "agent": [
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.archive",
+      "kind": "command",
+      "name": "thread.archive",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:thread.archive",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_starts_it_or_resumes_the_queue_and_rca_refuses_it_on_an_archived_thread",
+        "agent": [
+          "thread.archive",
+          "thread.create"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.auto-settle.set",
+      "kind": "command",
+      "name": "thread.auto-settle.set",
+      "state": "served",
+      "milestone": "M4",
+      "target": "state:thread.autoSettle",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+        "agent": [
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.create",
+      "kind": "command",
+      "name": "thread.create",
+      "state": "served",
+      "milestone": "M3",
+      "target": "agent:thread.create",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+        "agent": [
+          "thread.create"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.delete",
+      "kind": "command",
+      "name": "thread.delete",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:thread.delete",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+        "agent": [
+          "thread.create",
+          "thread.delete"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.fork",
+      "kind": "command",
+      "name": "thread.fork",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:thread.fork",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+        "agent": [
+          "thread.create",
+          "thread.fork"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.guest-message.dismiss",
+      "kind": "command",
+      "name": "thread.guest-message.dismiss",
+      "state": "not-offered",
+      "milestone": "M5",
+      "target": "t3-local",
+      "reason": "guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "command:thread.guest-share.close",
+      "kind": "command",
+      "name": "thread.guest-share.close",
+      "state": "not-offered",
+      "milestone": "M5",
+      "target": "t3-local",
+      "reason": "guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "command:thread.interaction-mode.set",
+      "kind": "command",
+      "name": "thread.interaction-mode.set",
+      "state": "served",
+      "milestone": "M4",
+      "target": "state:thread.settings",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+        "agent": [
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.mark-unread",
+      "kind": "command",
+      "name": "thread.mark-unread",
+      "state": "served",
+      "milestone": "M4",
+      "target": "state:thread.visits",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+        "agent": [
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.merge_back",
+      "kind": "command",
+      "name": "thread.merge_back",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:thread.mergeBack",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+        "agent": [
+          "thread.create",
+          "thread.mergeBack"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.metadata.update",
+      "kind": "command",
+      "name": "thread.metadata.update",
+      "state": "served",
+      "milestone": "M4",
+      "target": "state:thread.settings",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+        "agent": [
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.model-selection.set",
+      "kind": "command",
+      "name": "thread.model-selection.set",
+      "state": "served",
+      "milestone": "M4",
+      "target": "state:thread.settings",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+        "agent": [
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.pin",
+      "kind": "command",
+      "name": "thread.pin",
+      "state": "served",
+      "milestone": "M4",
+      "target": "state:thread.pins",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-command-thread.pin",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "command:thread.pin.reorder",
+      "kind": "command",
+      "name": "thread.pin.reorder",
+      "state": "served",
+      "milestone": "M4",
+      "target": "state:thread.pins",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+        "agent": [
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.pull-request.link",
+      "kind": "command",
+      "name": "thread.pull-request.link",
+      "state": "served",
+      "milestone": "M11",
+      "target": "state:thread.pullRequests",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
+        "agent": [
+          "state.get",
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.pull-request.unlink",
+      "kind": "command",
+      "name": "thread.pull-request.unlink",
+      "state": "served",
+      "milestone": "M11",
+      "target": "state:thread.pullRequests",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
+        "agent": [
+          "state.get",
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.pull-request.watch",
+      "kind": "command",
+      "name": "thread.pull-request.watch",
+      "state": "served",
+      "milestone": "M11",
+      "target": "state:thread.pullRequests",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
+        "agent": [
+          "state.get",
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.runtime-mode.set",
+      "kind": "command",
+      "name": "thread.runtime-mode.set",
+      "state": "served",
+      "milestone": "M4",
+      "target": "state:thread.settings",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+        "agent": [
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.settle",
+      "kind": "command",
+      "name": "thread.settle",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:thread.settle",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+        "agent": [
+          "thread.create",
+          "thread.settle"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.snooze",
+      "kind": "command",
+      "name": "thread.snooze",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:thread.settle",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+        "agent": [
+          "thread.create",
+          "thread.settle"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.stop",
+      "kind": "command",
+      "name": "thread.stop",
+      "state": "served",
+      "milestone": "M3",
+      "target": "agent:turn.interrupt",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "chain::an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_to_interrupt_it",
+        "agent": [
+          "thread.subscribe",
+          "turn.interrupt",
+          "turn.start"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.unarchive",
+      "kind": "command",
+      "name": "thread.unarchive",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:thread.archive",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_starts_it_or_resumes_the_queue_and_rca_refuses_it_on_an_archived_thread",
+        "agent": [
+          "thread.archive",
+          "thread.create"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.unpin",
+      "kind": "command",
+      "name": "thread.unpin",
+      "state": "served",
+      "milestone": "M4",
+      "target": "state:thread.pins",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+        "agent": [
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.unsettle",
+      "kind": "command",
+      "name": "thread.unsettle",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:thread.settle",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+        "agent": [
+          "thread.create",
+          "thread.settle"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.unsnooze",
+      "kind": "command",
+      "name": "thread.unsnooze",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:thread.settle",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+        "agent": [
+          "thread.create",
+          "thread.settle"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "command:thread.user-input.dismiss",
+      "kind": "command",
+      "name": "thread.user-input.dismiss",
+      "state": "served",
+      "milestone": "M4",
+      "target": "agent:input.dismiss",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_one_and_a_dismissal_ends_the_wait",
+        "agent": [
+          "input.dismiss",
+          "thread.create"
+        ],
+        "executor": [
+          "write_file"
+        ]
+      }
+    },
+    {
+      "id": "command:thread.visit",
+      "kind": "command",
+      "name": "thread.visit",
+      "state": "served",
+      "milestone": "M4",
+      "target": "state:thread.visits",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+        "agent": [
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "http:auth.pairingCredential",
+      "kind": "http",
+      "name": "auth.pairingCredential",
+      "state": "served",
+      "milestone": "M5",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "local_m5::a_pairing_code_minted_over_http_pairs_a_second_device_with_only_the_delegated_scopes_and_a_device_without_access_write_is_refused",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "http:auth.session",
+      "kind": "http",
+      "name": "auth.session",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-http-auth.session",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "http:auth.token",
+      "kind": "http",
+      "name": "auth.token",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-http-auth.token",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "http:auth.webSocketTicket",
+      "kind": "http",
+      "name": "auth.webSocketTicket",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-http-auth.webSocketTicket",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "http:auth.webSocketTicketFor",
+      "kind": "http",
+      "name": "auth.webSocketTicketFor",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "http:connect.linkProof",
+      "kind": "http",
+      "name": "connect.linkProof",
+      "state": "not-offered",
+      "milestone": "M5",
+      "reason": "T3 Connect and relay need an environment signing key and a hosted relay account (a person's credential); the service holds none and the mapper never mints one. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "http:connect.relayConfig",
+      "kind": "http",
+      "name": "connect.relayConfig",
+      "state": "not-offered",
+      "milestone": "M5",
+      "reason": "T3 Connect and relay need an environment signing key and a hosted relay account (a person's credential); the service holds none and the mapper never mints one. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "http:metadata.descriptor",
+      "kind": "http",
+      "name": "metadata.descriptor",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "http:orchestration.shellSnapshot",
+      "kind": "http",
+      "name": "orchestration.shellSnapshot",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "http:orchestration.threadBoundedSnapshot",
+      "kind": "http",
+      "name": "orchestration.threadBoundedSnapshot",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+        "agent": [
+          "thread.history"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "http:orchestration.threadHistoryPage",
+      "kind": "http",
+      "name": "orchestration.threadHistoryPage",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
+        "agent": [
+          "thread.history"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "http:orchestration.threadTranscript",
+      "kind": "http",
+      "name": "orchestration.threadTranscript",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
+        "agent": [
+          "thread.history"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "http:pullRequests.diff",
+      "kind": "http",
+      "name": "pullRequests.diff",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::a_pull_request_is_read_from_gh_through_rca_and_the_phone_gets_its_summary_preview_detail_checks_and_diff",
+        "agent": [
+          "pr.diff",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_diff"
+        ]
+      }
+    },
+    {
+      "id": "mutation:project.create",
+      "kind": "mutation",
+      "name": "project.create",
+      "state": "served",
+      "milestone": "M12",
+      "target": "agent:workspace.create",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "projects_m12::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+        "agent": [
+          "file.browse",
+          "state.set",
+          "workspace.create"
+        ],
+        "executor": [
+          "browse"
+        ]
+      }
+    },
+    {
+      "id": "mutation:project.delete",
+      "kind": "mutation",
+      "name": "project.delete",
+      "state": "served",
+      "milestone": "M12",
+      "target": "agent:workspace.remove",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "projects_m12::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+        "agent": [
+          "file.browse",
+          "state.set",
+          "workspace.remove"
+        ],
+        "executor": [
+          "browse"
+        ]
+      }
+    },
+    {
+      "id": "mutation:project.update",
+      "kind": "mutation",
+      "name": "project.update",
+      "state": "served",
+      "milestone": "M12",
+      "target": "state:project.settings",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "chain::a_project_is_renamed_and_deleted_and_the_shell_the_phone_reads_afterwards_no_longer_lists_it",
+        "agent": [
+          "state.set"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:assets.createUrl",
+      "kind": "rpc",
+      "name": "assets.createUrl",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
+        "agent": [
+          "attachment.get"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:assets.persistChatAttachments",
+      "kind": "rpc",
+      "name": "assets.persistChatAttachments",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
+        "agent": [
+          "upload.put"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:attachments.createUploadUrl",
+      "kind": "rpc",
+      "name": "attachments.createUploadUrl",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:attachments.delete",
+      "kind": "rpc",
+      "name": "attachments.delete",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
+        "agent": [
+          "attachment.delete"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:device.action",
+      "kind": "rpc",
+      "name": "device.action",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:device.close",
+      "kind": "rpc",
+      "name": "device.close",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:device.configure",
+      "kind": "rpc",
+      "name": "device.configure",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:device.detail",
+      "kind": "rpc",
+      "name": "device.detail",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:device.list",
+      "kind": "rpc",
+      "name": "device.list",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:device.open",
+      "kind": "rpc",
+      "name": "device.open",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:device.shutdown",
+      "kind": "rpc",
+      "name": "device.shutdown",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:filesystem.browse",
+      "kind": "rpc",
+      "name": "filesystem.browse",
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-filesystem.browse",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:filesystem.getMetadata",
+      "kind": "rpc",
+      "name": "filesystem.getMetadata",
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "workspace_m6::a_file_is_written_searched_and_measured_in_the_repository_and_a_directory_outside_it_is_browsed_only_inside_the_allowlist",
+        "agent": [
+          "file.stat"
+        ],
+        "executor": [
+          "stat"
+        ]
+      }
+    },
+    {
+      "id": "rpc:git.preparePullRequestThread",
+      "kind": "rpc",
+      "name": "git.preparePullRequestThread",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "prs_m12::a_pull_request_is_prepared_in_a_worktree_at_its_fetched_head_and_the_same_worktree_is_found_again",
+        "agent": [
+          "git.fetch",
+          "pr.view",
+          "worktree.create",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_fetch",
+          "git_worktree_add",
+          "git_worktree_list",
+          "hosted_pr_view"
+        ]
+      }
+    },
+    {
+      "id": "rpc:git.runStackedAction",
+      "kind": "rpc",
+      "name": "git.runStackedAction",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "vcs_m9::a_commit_and_push_are_stacked_with_progress_a_pull_brings_what_another_clone_pushed_and_the_status_stream_follows_the_repository",
+        "agent": [
+          "git.commit",
+          "git.diff",
+          "git.push",
+          "git.stage",
+          "git.status",
+          "git.subscribe",
+          "git.upstreamStatus",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_commit",
+          "git_diff",
+          "git_push",
+          "git_stage",
+          "git_status",
+          "git_upstream",
+          "git_worktree_list"
+        ]
+      }
+    },
+    {
+      "id": "rpc:mcpApps.callTool",
+      "kind": "rpc",
+      "name": "mcpApps.callTool",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:mcpApps.readResource",
+      "kind": "rpc",
+      "name": "mcpApps.readResource",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:mcpApps.toolInfo",
+      "kind": "rpc",
+      "name": "mcpApps.toolInfo",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:mcpApps.updateModelContext",
+      "kind": "rpc",
+      "name": "mcpApps.updateModelContext",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:orchestration.dispatchCommand",
+      "kind": "rpc",
+      "name": "orchestration.dispatchCommand",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-orchestration.dispatchCommand",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:orchestration.forceStopThread",
+      "kind": "rpc",
+      "name": "orchestration.forceStopThread",
+      "state": "served",
+      "milestone": "M4",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-orchestration.forceStopThread",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:orchestration.getArchivedShellSnapshot",
+      "kind": "rpc",
+      "name": "orchestration.getArchivedShellSnapshot",
+      "state": "served",
+      "milestone": "M4",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-orchestration.getArchivedShellSnapshot",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:orchestration.getFullThreadDiff",
+      "kind": "rpc",
+      "name": "orchestration.getFullThreadDiff",
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "workspace_m6::a_worktree_made_for_a_new_branch_is_a_checkout_under_the_base_whose_files_and_diff_are_the_worktrees_and_not_the_repositorys",
+        "agent": [
+          "thread.diff",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_diff",
+          "git_worktree_list"
+        ]
+      }
+    },
+    {
+      "id": "rpc:orchestration.getOlderSettledThreads",
+      "kind": "rpc",
+      "name": "orchestration.getOlderSettledThreads",
+      "state": "served",
+      "milestone": "M4",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-orchestration.getOlderSettledThreads",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:orchestration.getThreadFamily",
+      "kind": "rpc",
+      "name": "orchestration.getThreadFamily",
+      "state": "served",
+      "milestone": "M4",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-orchestration.getThreadFamily",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:orchestration.getThreadProjection",
+      "kind": "rpc",
+      "name": "orchestration.getThreadProjection",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "chain::a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_the_run_on_its_streams",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:orchestration.getTurnDiff",
+      "kind": "rpc",
+      "name": "orchestration.getTurnDiff",
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "workspace_m6::the_diff_of_a_thread_is_what_git_shows_in_its_directory_for_the_whole_thread_and_for_its_turns",
+        "agent": [
+          "turn.diff",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_diff",
+          "git_worktree_list"
+        ]
+      }
+    },
+    {
+      "id": "rpc:orchestration.getTurnItem",
+      "kind": "rpc",
+      "name": "orchestration.getTurnItem",
+      "state": "served",
+      "milestone": "M4",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+        "agent": [
+          "thread.history"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:orchestration.getWorkflowScript",
+      "kind": "rpc",
+      "name": "orchestration.getWorkflowScript",
+      "state": "not-offered",
+      "milestone": "M4",
+      "reason": "rca starts no Claude workflow scripts of its own, so a thread has none to show; an owner who wants it gets an executor action that reads one file by absolute path under the Claude projects root, with .. and links refused and 1 MiB truncation, outside the workspace confinement. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:orchestration.launchThread",
+      "kind": "rpc",
+      "name": "orchestration.launchThread",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-orchestration.launchThread",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:orchestration.searchThreads",
+      "kind": "rpc",
+      "name": "orchestration.searchThreads",
+      "state": "served",
+      "milestone": "M4",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+        "agent": [
+          "thread.search"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:orchestration.stopWorkflow",
+      "kind": "rpc",
+      "name": "orchestration.stopWorkflow",
+      "state": "served",
+      "milestone": "M4",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-orchestration.stopWorkflow",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:orchestration.subscribeCommandOutput",
+      "kind": "rpc",
+      "name": "orchestration.subscribeCommandOutput",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M4",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-orchestration.subscribeCommandOutput",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:orchestration.subscribeShell",
+      "kind": "rpc",
+      "name": "orchestration.subscribeShell",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "chain::a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_the_run_on_its_streams",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:orchestration.subscribeThread",
+      "kind": "rpc",
+      "name": "orchestration.subscribeThread",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-orchestration.subscribeThread",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:peerLinks.answerRequest",
+      "kind": "rpc",
+      "name": "peerLinks.answerRequest",
+      "state": "not-offered",
+      "milestone": "M5",
+      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:peerLinks.link",
+      "kind": "rpc",
+      "name": "peerLinks.link",
+      "state": "not-offered",
+      "milestone": "M5",
+      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:peerLinks.list",
+      "kind": "rpc",
+      "name": "peerLinks.list",
+      "state": "not-offered",
+      "milestone": "M5",
+      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:preview.adjust",
+      "kind": "rpc",
+      "name": "preview.adjust",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "preview_m12::tabs_are_opened_listed_resized_adjusted_reported_and_closed_and_a_second_phone_following_the_stream_sees_each_change_in_order",
+        "agent": [
+          "preview.adjust"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:preview.close",
+      "kind": "rpc",
+      "name": "preview.close",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-preview.close",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:preview.list",
+      "kind": "rpc",
+      "name": "preview.list",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "preview_m12::tabs_are_opened_listed_resized_adjusted_reported_and_closed_and_a_second_phone_following_the_stream_sees_each_change_in_order",
+        "agent": [
+          "preview.list"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:preview.open",
+      "kind": "rpc",
+      "name": "preview.open",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-preview.open",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:preview.resize",
+      "kind": "rpc",
+      "name": "preview.resize",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-preview.resize",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:projectClone.cancel",
+      "kind": "rpc",
+      "name": "projectClone.cancel",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::a_clone_makes_the_project_runs_gh_in_the_executor_streams_its_end_is_cancelled_when_it_hangs_and_retries",
+        "agent": [
+          "clone.cancel"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:projectClone.retry",
+      "kind": "rpc",
+      "name": "projectClone.retry",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-projectClone.retry",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:projectClone.start",
+      "kind": "rpc",
+      "name": "projectClone.start",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-projectClone.start",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:projects.createFromThread",
+      "kind": "rpc",
+      "name": "projects.createFromThread",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-projects.createFromThread",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:projects.createNew",
+      "kind": "rpc",
+      "name": "projects.createNew",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-projects.createNew",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:projects.ensureScratch",
+      "kind": "rpc",
+      "name": "projects.ensureScratch",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-projects.ensureScratch",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:projects.listEntries",
+      "kind": "rpc",
+      "name": "projects.listEntries",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
+        "agent": [
+          "file.list",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "list_dir"
+        ]
+      }
+    },
+    {
+      "id": "rpc:projects.mutate",
+      "kind": "rpc",
+      "name": "projects.mutate",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+        "agent": [
+          "file.browse",
+          "state.set"
+        ],
+        "executor": [
+          "browse"
+        ]
+      }
+    },
+    {
+      "id": "rpc:projects.readFile",
+      "kind": "rpc",
+      "name": "projects.readFile",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
+        "agent": [
+          "file.read",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "read_file"
+        ]
+      }
+    },
+    {
+      "id": "rpc:projects.searchEntries",
+      "kind": "rpc",
+      "name": "projects.searchEntries",
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-projects.searchEntries",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:projects.writeFile",
+      "kind": "rpc",
+      "name": "projects.writeFile",
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-projects.writeFile",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:provider.auth.cancel",
+      "kind": "rpc",
+      "name": "provider.auth.cancel",
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-provider.auth.cancel",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:provider.auth.complete",
+      "kind": "rpc",
+      "name": "provider.auth.complete",
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-provider.auth.complete",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:provider.auth.logout",
+      "kind": "rpc",
+      "name": "provider.auth.logout",
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-provider.auth.logout",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:provider.auth.respond",
+      "kind": "rpc",
+      "name": "provider.auth.respond",
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-provider.auth.respond",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:provider.auth.start",
+      "kind": "rpc",
+      "name": "provider.auth.start",
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-provider.auth.start",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:provider.auth.subscribe",
+      "kind": "rpc",
+      "name": "provider.auth.subscribe",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-provider.auth.subscribe",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:provider.chatgpt.import-profile",
+      "kind": "rpc",
+      "name": "provider.chatgpt.import-profile",
+      "state": "not-offered",
+      "milestone": "M10",
+      "reason": "a ChatGPT profile is a credential: importing or reconnecting one would pass tokens through the mapper, which never holds one, and the Codex CLI behind rca keeps its own login. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:provider.chatgpt.reconnect-profile",
+      "kind": "rpc",
+      "name": "provider.chatgpt.reconnect-profile",
+      "state": "not-offered",
+      "milestone": "M10",
+      "reason": "a ChatGPT profile is a credential: importing or reconnecting one would pass tokens through the mapper, which never holds one, and the Codex CLI behind rca keeps its own login. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:provider.consumeResetCredit",
+      "kind": "rpc",
+      "name": "provider.consumeResetCredit",
+      "state": "not-offered",
+      "milestone": "M10",
+      "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:provider.uploadFeedback",
+      "kind": "rpc",
+      "name": "provider.uploadFeedback",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "uploading provider feedback sends a transcript to the T3 vendor's endpoint; the owner has not approved sending any thread data off the service. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:pullRequests.activity",
+      "kind": "rpc",
+      "name": "pullRequests.activity",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-pullRequests.activity",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.changeBreakdown",
+      "kind": "rpc",
+      "name": "pullRequests.changeBreakdown",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-pullRequests.changeBreakdown",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.checks",
+      "kind": "rpc",
+      "name": "pullRequests.checks",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-pullRequests.checks",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.comment",
+      "kind": "rpc",
+      "name": "pullRequests.comment",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+        "agent": [
+          "pr.comment",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_comment"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.detail",
+      "kind": "rpc",
+      "name": "pullRequests.detail",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-pullRequests.detail",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.diffFileContents",
+      "kind": "rpc",
+      "name": "pullRequests.diffFileContents",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-pullRequests.diffFileContents",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.filesViewed",
+      "kind": "rpc",
+      "name": "pullRequests.filesViewed",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-pullRequests.filesViewed",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.filterOptions",
+      "kind": "rpc",
+      "name": "pullRequests.filterOptions",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
+        "agent": [
+          "pr.labelCandidates",
+          "sourceControl.lookupRepository",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_repo_labels",
+          "hosted_repo_view"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.generateReviewGuide",
+      "kind": "rpc",
+      "name": "pullRequests.generateReviewGuide",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "prs_m12::a_review_guide_is_written_by_a_model_turn_of_the_real_service_over_gh_s_diff_checked_against_it_and_kept_in_rcas_state",
+        "agent": [
+          "pr.view",
+          "state.get",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_view"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.invalidate",
+      "kind": "rpc",
+      "name": "pullRequests.invalidate",
+      "state": "not-offered",
+      "milestone": "M11",
+      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:pullRequests.labelCandidates",
+      "kind": "rpc",
+      "name": "pullRequests.labelCandidates",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-pullRequests.labelCandidates",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.linkedThreads",
+      "kind": "rpc",
+      "name": "pullRequests.linkedThreads",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
+        "agent": [
+          "state.get"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.list",
+      "kind": "rpc",
+      "name": "pullRequests.list",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
+        "agent": [
+          "pr.list",
+          "sourceControl.discover",
+          "sourceControl.lookupRepository",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_auth_status",
+          "hosted_pr_list",
+          "hosted_repo_view"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.listStats",
+      "kind": "rpc",
+      "name": "pullRequests.listStats",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
+        "agent": [
+          "pr.files",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_files"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.preview",
+      "kind": "rpc",
+      "name": "pullRequests.preview",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-pullRequests.preview",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.replyToThread",
+      "kind": "rpc",
+      "name": "pullRequests.replyToThread",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+        "agent": [
+          "pr.reply",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_reply"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.reportState",
+      "kind": "rpc",
+      "name": "pullRequests.reportState",
+      "state": "not-offered",
+      "milestone": "M11",
+      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:pullRequests.requestReviewers",
+      "kind": "rpc",
+      "name": "pullRequests.requestReviewers",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-pullRequests.requestReviewers",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.reviewGuide",
+      "kind": "rpc",
+      "name": "pullRequests.reviewGuide",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-pullRequests.reviewGuide",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.reviewerCandidates",
+      "kind": "rpc",
+      "name": "pullRequests.reviewerCandidates",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-pullRequests.reviewerCandidates",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.routing",
+      "kind": "rpc",
+      "name": "pullRequests.routing",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-pullRequests.routing",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.routingIdentity",
+      "kind": "rpc",
+      "name": "pullRequests.routingIdentity",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-pullRequests.routingIdentity",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.runAction",
+      "kind": "rpc",
+      "name": "pullRequests.runAction",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+        "agent": [
+          "pr.merge",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_merge"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.setFilesViewed",
+      "kind": "rpc",
+      "name": "pullRequests.setFilesViewed",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-pullRequests.setFilesViewed",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.setLabels",
+      "kind": "rpc",
+      "name": "pullRequests.setLabels",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-pullRequests.setLabels",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.setReaction",
+      "kind": "rpc",
+      "name": "pullRequests.setReaction",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "prs_m12::a_reaction_is_added_then_taken_back_by_deleting_the_accounts_own_reaction_and_a_comment_is_edited_with_its_text_on_stdin",
+        "agent": [
+          "pr.react",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_react"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.setThreadResolution",
+      "kind": "rpc",
+      "name": "pullRequests.setThreadResolution",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+        "agent": [
+          "pr.resolveThread",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_resolve_thread"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.stack",
+      "kind": "rpc",
+      "name": "pullRequests.stack",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-pullRequests.stack",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.submitReview",
+      "kind": "rpc",
+      "name": "pullRequests.submitReview",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+        "agent": [
+          "pr.review",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_review"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.subscribeRefreshes",
+      "kind": "rpc",
+      "name": "pullRequests.subscribeRefreshes",
+      "subscription": true,
+      "state": "not-offered",
+      "milestone": "M11",
+      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:pullRequests.summary",
+      "kind": "rpc",
+      "name": "pullRequests.summary",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-pullRequests.summary",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:pullRequests.threadComments",
+      "kind": "rpc",
+      "name": "pullRequests.threadComments",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::the_activity_a_thread_the_breakdown_and_the_candidates_are_read_from_gh_and_know_what_the_pull_request_already_has",
+        "agent": [
+          "pr.threads",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_threads"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.update",
+      "kind": "rpc",
+      "name": "pullRequests.update",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+        "agent": [
+          "pr.edit",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_edit"
+        ]
+      }
+    },
+    {
+      "id": "rpc:pullRequests.updateComment",
+      "kind": "rpc",
+      "name": "pullRequests.updateComment",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "prs_m12::a_reaction_is_added_then_taken_back_by_deleting_the_accounts_own_reaction_and_a_comment_is_edited_with_its_text_on_stdin",
+        "agent": [
+          "pr.editComment",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "hosted_pr_comment_edit"
+        ]
+      }
+    },
+    {
+      "id": "rpc:review.getDiffFileContents",
+      "kind": "rpc",
+      "name": "review.getDiffFileContents",
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-review.getDiffFileContents",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:review.getDiffPreview",
+      "kind": "rpc",
+      "name": "review.getDiffPreview",
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-review.getDiffPreview",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.delete",
+      "kind": "rpc",
+      "name": "scheduledTasks.delete",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-scheduledTasks.delete",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.rotateWebhookToken",
+      "kind": "rpc",
+      "name": "scheduledTasks.rotateWebhookToken",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-scheduledTasks.rotateWebhookToken",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.runNow",
+      "kind": "rpc",
+      "name": "scheduledTasks.runNow",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-scheduledTasks.runNow",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.setEnabled",
+      "kind": "rpc",
+      "name": "scheduledTasks.setEnabled",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-scheduledTasks.setEnabled",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.subscribe",
+      "kind": "rpc",
+      "name": "scheduledTasks.subscribe",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-scheduledTasks.subscribe",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.upsert",
+      "kind": "rpc",
+      "name": "scheduledTasks.upsert",
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "schedules_m12::a_scheduled_task_is_saved_followed_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
+        "agent": [
+          "schedule.subscribe",
+          "schedule.upsert",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list"
+        ]
+      }
+    },
+    {
+      "id": "rpc:secrets.answerRequest",
+      "kind": "rpc",
+      "name": "secrets.answerRequest",
+      "state": "not-offered",
+      "milestone": "M4",
+      "reason": "rca never asks for a secret, so there is no request to answer; the call could only get not_found. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:server.commitDesktopUpdate",
+      "kind": "rpc",
+      "name": "server.commitDesktopUpdate",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:server.discoverSourceControl",
+      "kind": "rpc",
+      "name": "server.discoverSourceControl",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::the_sign_in_shows_the_cli_code_and_address_waits_for_the_account_cancels_another_and_discovery_says_who_is_signed_in_with_no_token_in_any_answer",
+        "agent": [
+          "sourceControl.discover"
+        ],
+        "executor": [
+          "hosted_auth_status"
+        ]
+      }
+    },
+    {
+      "id": "rpc:server.getDatabaseStorage",
+      "kind": "rpc",
+      "name": "server.getDatabaseStorage",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "settings_m10::the_database_storage_stream_measures_the_state_database_serve_keeps_in_its_state_directory",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:server.getUsageSummary",
+      "kind": "rpc",
+      "name": "server.getUsageSummary",
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-server.getUsageSummary",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:server.prepareTriage",
+      "kind": "rpc",
+      "name": "server.prepareTriage",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "it starts an in-app triage of the T3 Code install itself: the server writes the session files `t3 triage` writes (its own logs, config and version under T3 home) and clones the T3 Code source from github.com/pingdotgg/t3code into its cache, then hands the phone a prompt for a scratch thread. t3-serve is not that server (it has no T3 home, logs or release to diagnose) and rca-exec has nothing of it to read; the feature would be a network clone of a third party's repository with no state of ours to triage, so there is nothing to build and prove on the executor. The phone's own fallback is the `npx t3 triage` command it offers to copy. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:server.probe",
+      "kind": "rpc",
+      "name": "server.probe",
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-server.probe",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:server.refreshProviders",
+      "kind": "rpc",
+      "name": "server.refreshProviders",
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "settings_m10::two_providers_sign_in_by_a_device_code_and_a_pasted_code_each_in_its_own_directory_and_a_turn_then_runs_in_the_signed_in_ones_alone",
+        "agent": [
+          "provider.list",
+          "provider.refresh"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:server.refreshUsageRates",
+      "kind": "rpc",
+      "name": "server.refreshUsageRates",
+      "state": "not-offered",
+      "milestone": "M10",
+      "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:server.reportClientActivity",
+      "kind": "rpc",
+      "name": "server.reportClientActivity",
+      "state": "served",
+      "milestone": "M5",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "local_m5::a_clients_activity_is_kept_by_the_real_service_and_a_client_without_the_diagnostics_scope_never_reaches_it",
+        "agent": [
+          "service.clientActivity"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:server.updateProvider",
+      "kind": "rpc",
+      "name": "server.updateProvider",
+      "state": "not-offered",
+      "milestone": "M10",
+      "reason": "the provider CLIs ship inside the service's image, so a version is updated by shipping an image, not by an RPC; the row could only pass by refusing. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:server.updateServer",
+      "kind": "rpc",
+      "name": "server.updateServer",
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:server.updateServerWithProgress",
+      "kind": "rpc",
+      "name": "server.updateServerWithProgress",
+      "subscription": true,
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:server.updateSettings",
+      "kind": "rpc",
+      "name": "server.updateSettings",
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-server.updateSettings",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:sourceControl.appAccess",
+      "kind": "rpc",
+      "name": "sourceControl.appAccess",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-sourceControl.appAccess",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:sourceControl.lookupRepository",
+      "kind": "rpc",
+      "name": "sourceControl.lookupRepository",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-sourceControl.lookupRepository",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:sourceControl.publishRepository",
+      "kind": "rpc",
+      "name": "sourceControl.publishRepository",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-sourceControl.publishRepository",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:sourceControl.signInCancel",
+      "kind": "rpc",
+      "name": "sourceControl.signInCancel",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-sourceControl.signInCancel",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:sourceControl.signInStart",
+      "kind": "rpc",
+      "name": "sourceControl.signInStart",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-sourceControl.signInStart",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:sourceControl.signInWait",
+      "kind": "rpc",
+      "name": "sourceControl.signInWait",
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-sourceControl.signInWait",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:subscribeDeviceState",
+      "kind": "rpc",
+      "name": "subscribeDeviceState",
+      "subscription": true,
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:subscribePreviewEvents",
+      "kind": "rpc",
+      "name": "subscribePreviewEvents",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M12",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-subscribePreviewEvents",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:subscribeProjectClones",
+      "kind": "rpc",
+      "name": "subscribeProjectClones",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "hosted_m11::a_clone_makes_the_project_runs_gh_in_the_executor_streams_its_end_is_cancelled_when_it_hangs_and_retries",
+        "agent": [
+          "clone.status"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:subscribeResourceTelemetry",
+      "kind": "rpc",
+      "name": "subscribeResourceTelemetry",
+      "subscription": true,
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "the stream is a process monitor of the T3 install itself: samples of the T3 server, its provider and terminal roots and the Electron processes (categories `server`, `provider-root`, `electron-main`, ...) taken by a protocol-3 resource-monitor sidecar, plus update state and host power. t3-serve has no such process tree and rca-exec has no process-sampling action; the one honest part, the executor host's CPU and memory, would ship with an empty process list that the phone's resource view would present as a healthy idle server. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:subscribeServerConfig",
+      "kind": "rpc",
+      "name": "subscribeServerConfig",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "chain::a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_the_run_on_its_streams",
+        "agent": [
+          "state.get"
+        ],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:subscribeServerLifecycle",
+      "kind": "rpc",
+      "name": "subscribeServerLifecycle",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M3",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "chain::a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_the_run_on_its_streams",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:subscribeTerminalMetadata",
+      "kind": "rpc",
+      "name": "subscribeTerminalMetadata",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-subscribeTerminalMetadata",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
+    },
+    {
+      "id": "rpc:subscribeVcsStatus",
+      "kind": "rpc",
+      "name": "subscribeVcsStatus",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-subscribeVcsStatus",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:subscribeWorktreeSetup",
+      "kind": "rpc",
+      "name": "subscribeWorktreeSetup",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "workspace_m6::the_setup_of_a_worktree_rca_started_is_followed_by_the_phone_to_done_and_a_long_one_is_cancelled_by_it",
+        "agent": [
+          "worktree.list",
+          "worktree.setup.subscribe"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "worktree_setup"
+        ]
+      }
+    },
+    {
+      "id": "rpc:terminal.attach",
+      "kind": "rpc",
+      "name": "terminal.attach",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "terminal_m8::a_terminal_cannot_start_outside_the_executors_root_and_the_executors_environment_does_not_reach_the_shell",
+        "agent": [
+          "terminal.attach",
+          "terminal.list",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "pty_list"
+        ]
+      }
+    },
+    {
+      "id": "rpc:terminal.clear",
+      "kind": "rpc",
+      "name": "terminal.clear",
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "terminal_m8::a_terminal_is_attached_typed_into_resized_observed_cleared_listed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
+        "agent": [
+          "terminal.clear",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "pty_write"
+        ]
+      }
+    },
+    {
+      "id": "rpc:terminal.close",
+      "kind": "rpc",
+      "name": "terminal.close",
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-terminal.close",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:terminal.observe",
+      "kind": "rpc",
+      "name": "terminal.observe",
+      "subscription": true,
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-terminal.observe",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:terminal.open",
+      "kind": "rpc",
+      "name": "terminal.open",
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "terminal_m8::a_terminal_cannot_start_outside_the_executors_root_and_the_executors_environment_does_not_reach_the_shell",
+        "agent": [
+          "terminal.open",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "pty_list",
+          "pty_open"
+        ]
+      }
+    },
+    {
+      "id": "rpc:terminal.resize",
+      "kind": "rpc",
+      "name": "terminal.resize",
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-terminal.resize",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:terminal.write",
+      "kind": "rpc",
+      "name": "terminal.write",
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-3::t3-rpc-terminal.write",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:vcs.createRef",
+      "kind": "rpc",
+      "name": "vcs.createRef",
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-vcs.createRef",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:vcs.createWorktree",
+      "kind": "rpc",
+      "name": "vcs.createWorktree",
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-vcs.createWorktree",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:vcs.listRefs",
+      "kind": "rpc",
+      "name": "vcs.listRefs",
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "vcs_m9::the_status_refs_and_diffs_of_the_repository_are_read_and_a_branch_is_made_and_switched_to_through_the_executors_git",
+        "agent": [
+          "git.refs",
+          "git.upstreamStatus",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_refs",
+          "git_upstream",
+          "git_worktree_list"
+        ]
+      }
+    },
+    {
+      "id": "rpc:vcs.pull",
+      "kind": "rpc",
+      "name": "vcs.pull",
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-vcs.pull",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:vcs.refreshStatus",
+      "kind": "rpc",
+      "name": "vcs.refreshStatus",
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-2::t3-rpc-vcs.refreshStatus",
+        "agent": [],
+        "executor": []
+      }
+    },
+    {
+      "id": "rpc:vcs.switchRef",
+      "kind": "rpc",
+      "name": "vcs.switchRef",
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "t3-serve-integration",
+        "test": "vcs_m9::the_status_refs_and_diffs_of_the_repository_are_read_and_a_branch_is_made_and_switched_to_through_the_executors_git",
+        "agent": [
+          "git.checkout",
+          "git.refs",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_checkout",
+          "git_refs",
+          "git_worktree_list"
+        ]
+      }
+    },
+    {
+      "id": "rpc:worktreeSetup.cancel",
+      "kind": "rpc",
+      "name": "worktreeSetup.cancel",
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-recorded-1::t3-rpc-worktreeSetup.cancel",
+        "agent": [],
+        "executor": []
+      }
+    }
+  ]
+}

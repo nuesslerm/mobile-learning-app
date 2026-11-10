@@ -1,0 +1,26 @@
+{
+  "method": "git.subscribe",
+  "exchanges": [
+    {
+      "name": "opens the status stream",
+      "request": {
+        "id": 1,
+        "method": "git.subscribe",
+        "params": {
+          "workspace": "w1",
+          "interval_ms": 100
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "workspace": "w1",
+          "seq": 0
+        }
+      },
+      "actions": [
+        "git_watch"
+      ]
+    }
+  ]
+}

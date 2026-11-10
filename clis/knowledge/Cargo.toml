@@ -1,0 +1,37 @@
+[package]
+name = "knowledge"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "`wf knowledge`: the docs/gaps and docs/solutions ledger (`rank`, `index`, `stale`) and the Gemini repack of the docs (`index --gemini`)"
+
+# The test kit hides every secret the registry names from the binary it runs.
+[package.metadata.flow]
+inputs = ["../secrets/src/data/registry.json"]
+
+# The flow tests (tests/flow.rs) and the integration tests (tests/integration.rs) drive the thin binary below; the lib has unit tests for the
+# pure decisions only (the read-back verdict and the time parsing in knowledge_gemini.rs).
+[lib]
+test = true
+doctest = false
+
+[[bin]]
+name = "knowledge"
+path = "src/bin/knowledge.rs"
+test = false
+
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+rca-core = { version = "0.1", registry = "mla" }
+cli-http = { path = "../http" }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+yaml-rust2 = { version = "0.10", default-features = false }
+
+[dev-dependencies]
+wf-testkit = { path = "../wf-testkit", features = ["tls"] }
+base64 = "0.22"
+tempfile = "3"
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }

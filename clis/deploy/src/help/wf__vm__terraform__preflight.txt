@@ -1,0 +1,18 @@
+Usage: wf vm terraform preflight [options] [workingDir]
+
+Everything that must hold before `wf vm terraform apply --recreate`, as one JSON
+verdict on stdout (exit 0 only when every check passed): the remote state is
+pulled and backed up locally (WF_TFSTATE_BACKUP_DIR, default
+~/.local/state/wf/tfstate-backups) and holds the VM; every secret group of
+vm-apps.json plus the Terraform inputs and the state backup's restic password is present
+and usable; every app with stateVolumes has a backup under 24 hours old that
+verifies (wf vm state verify); the tailnet admin API answers with the credentials
+the recreate deletes old node records with (a read-only device list: "tailnet"); no workflow run is
+queued or in progress; the plan of the recreate (-replace on the VM) destroys
+only the VM and the libs_read PAR, passes the free-tier guard, and lists the
+actions per resource. `plan.afterApply` names the vault updates a replaced PAR
+needs. Changes nothing but the local backup.
+
+Options:
+  --expect <address>  Also accept this resource being destroyed (repeatable)
+  -h, --help          display help for command

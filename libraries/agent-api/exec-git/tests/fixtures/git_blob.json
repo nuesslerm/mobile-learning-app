@@ -1,0 +1,171 @@
+{
+  "action": "git_blob",
+  "exchanges": [
+    {
+      "name": "reads a file at a revision",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "blob67",
+        "tool": "git_blob",
+        "args": {
+          "rev": "HEAD",
+          "path": "a.txt"
+        }
+      },
+      "response": {
+        "id": "blob67",
+        "ok": true,
+        "result": {
+          "rev": "HEAD",
+          "path": "a.txt",
+          "size": 4,
+          "data": "b25lCg==",
+          "truncated": false,
+          "binary": false
+        }
+      }
+    },
+    {
+      "name": "reads the file as committed, not as edited",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "changed\n"
+        }
+      },
+      "request": {
+        "id": "blob68",
+        "tool": "git_blob",
+        "args": {
+          "rev": "HEAD",
+          "path": "a.txt"
+        }
+      },
+      "response": {
+        "id": "blob68",
+        "ok": true,
+        "result": {
+          "rev": "HEAD",
+          "path": "a.txt",
+          "size": 4,
+          "data": "b25lCg==",
+          "truncated": false,
+          "binary": false
+        }
+      }
+    },
+    {
+      "name": "cuts at max_bytes and says so",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "blob69",
+        "tool": "git_blob",
+        "args": {
+          "rev": "HEAD",
+          "path": "a.txt",
+          "max_bytes": 2
+        }
+      },
+      "response": {
+        "id": "blob69",
+        "ok": true,
+        "result": {
+          "rev": "HEAD",
+          "path": "a.txt",
+          "size": 4,
+          "data": "b24=",
+          "truncated": true,
+          "binary": false
+        }
+      }
+    },
+    {
+      "name": "refuses a path the revision does not have",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "blob70",
+        "tool": "git_blob",
+        "args": {
+          "rev": "HEAD",
+          "path": "missing.txt"
+        }
+      },
+      "response": {
+        "id": "blob70",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "missing.txt does not exist at HEAD"
+        }
+      }
+    },
+    {
+      "name": "refuses a directory",
+      "setup": {
+        "files": {
+          "d/x.txt": "x\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "blob71",
+        "tool": "git_blob",
+        "args": {
+          "rev": "HEAD",
+          "path": "d"
+        }
+      },
+      "response": {
+        "id": "blob71",
+        "ok": false,
+        "error": {
+          "code": "NOT_A_FILE",
+          "message": "d is not a file at HEAD"
+        }
+      }
+    },
+    {
+      "name": "refuses an option given as the revision",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "blob72",
+        "tool": "git_blob",
+        "args": {
+          "rev": "--output=x",
+          "path": "a.txt"
+        }
+      },
+      "response": {
+        "id": "blob72",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`rev` must be a revision"
+        }
+      }
+    }
+  ]
+}

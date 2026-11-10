@@ -1,0 +1,73 @@
+{
+  "suite": "tamilwriting",
+  "step": "final-given-the-review-deck-when-a-card-is-answered-49f8d8",
+  "scheme": "light",
+  "snapshot": "tamilwriting/final-given-the-review-deck-when-a-card-is-answered-49f8d8.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "TamilReviewScreen",
+      "TamilReviewHeader",
+      "TamilReviewHeaderBack",
+      "TamilReviewHeaderTitle",
+      "TamilReviewHeaderSubtitle",
+      "TamilReviewScroll",
+      "TamilReviewKnownCount",
+      "TamilReviewLearningCount",
+      "TamilReviewRemainingCount",
+      "TamilReviewBar",
+      "TamilReviewBarFill",
+      "TamilReviewBarTrack",
+      "TamilReviewPromptCard",
+      "TamilReviewPrompt",
+      "TamilReviewSound",
+      "TamilReviewExample",
+      "TamilReviewCanvas",
+      "TamilReviewCanvasSurface",
+      "TamilReviewFeedback",
+      "TamilReviewReveal",
+      "TamilReviewClear",
+      "TamilReviewUndo",
+      "TamilReviewAgain",
+      "TamilReviewGotIt",
+      "TamilReviewAnsweredCount"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nWrite from memory\nThis lesson\n1 GOT IT\n0 AGAIN\n5 TO GO\nWrite this letter\nā\nlong \"aa\", as in father\nas in āṭu — goat\nWrite it with your finger.\nNot yet\nGot it\n1 answered · missed letters come back sooner"
+  },
+  "timings": {
+    "render_ms": 574
+  },
+  "name": "tamilwriting/final-given-the-review-deck-when-a-card-is-answered-49f8d8.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

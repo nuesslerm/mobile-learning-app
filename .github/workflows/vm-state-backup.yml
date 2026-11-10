@@ -1,0 +1,111 @@
+name: VM state backup
+
+# Started by scheduled-triggers.yml (dispatch) on an empty commit tagged [vm-state-backup], never by `push` itself.
+# The VM's sensitive state (orca-state, leetcode-backend-data, vnc-auth-credentials, the agent workspace: the stateVolumes of
+# infra/oracle-cloud/vm-apps.json) is snapshotted every night with restic into the versioned bucket mobile-learning-vm-state (incremental:
+# only what changed is uploaded; encrypted, deduplicated, the newest 14 snapshots of each volume kept), so a recreate of the VM loses none
+# of it (docs/runbooks/vm-recreate.md, "State backup"). The job runs `wf vm state backup`, then `wf vm state verify` (a real restore of the
+# newest snapshot of EVERY declared volume into a scratch directory, PRAGMA integrity_check on its databases, then the `verified` tag that
+# cloud-init restores from). A volume that is missing, damaged or over its measured cap, or a repository over its budget, fails the job. It
+# runs on the VM's runner: every verb asks agent-shell through vm-ops-api's exec route, so the runner holds no OCI key and no restic password.
+#
+# WHEN. 03:30 Europe/Berlin. GitHub's `schedule` is UTC only and Berlin moves between UTC+1 (CET, end of October to end of March) and UTC+2
+# (CEST), so the workflow has two cron entries, 01:30 and 02:30 UTC, and the first step lets through only the one that falls in the 03:xx hour
+# in Berlin: 02:30 UTC in winter, 01:30 UTC in summer. Caveat: GitHub starts scheduled runs late in this private repo (the other workflows
+# say hours), and a run that starts after 03:59 Berlin time is skipped by that step, never run twice. So the same job also runs for an EMPTY
+# commit to dev whose message carries [vm-state-backup], which a Claude scheduled task ("VM state backup clock", CRON_TZ=Europe/Berlin
+# 30 3 * * *) pushes; scheduled-triggers.yml dispatches this workflow for it (this file never listens to `push` itself), and by hand
+# (Actions, Run workflow). Either path is enough; two in one night are harmless (the verb keeps the newest 14 snapshots of each volume).
+#
+# FAILING LOUDLY. A failed backup or verify fails the job, writes the verdict to the job summary, and reports to the CI cache-health path
+# (event `vm.state.<verb>`, gauges `ci.vmstate.ok` and `ci.vmstate.age_seconds` on the source vm-health-metrics; the alert rule 7 of
+# docs/runbooks/cache-health-alerts.md fires on a stale or failed backup). `wf vm terraform preflight` refuses a recreate when the latest
+# backup of any app is over 24 hours old or does not verify.
+on:
+  schedule:
+    - cron: '30 1,2 * * *'
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Commit message of the tagged empty commit (set by scheduled-triggers.yml)
+        type: string
+        required: false
+        default: ''
+      sha:
+        description: Commit sha of the tagged empty commit (set by scheduled-triggers.yml)
+        type: string
+        required: false
+        default: ''
+
+concurrency:
+  group: vm-state-backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    name: backup and verify
+    if: ${{ github.event_name == 'schedule' || github.ref == 'refs/heads/dev' }}
+    runs-on: [self-hosted, vm]
+    timeout-minutes: 90
+    steps:
+      - name: Is it the 03:xx hour in Berlin (scheduled runs only)
+        id: hour
+        run: |
+          berlin=$(TZ=Europe/Berlin date +%H)
+          if [ "${{ github.event_name }}" = schedule ] && [ "$berlin" != 03 ]; then
+            echo "::notice::scheduled at hour $berlin Berlin time, not 03: the other cron entry (or the clock commit) runs tonight's backup"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        with:
+          ref: dev
+          clean: false
+      - uses: ./.github/actions/install-wf
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        with:
+          current: "true"
+      - name: Back up every state volume
+        id: backup
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/vm-state"
+          set +e
+          wf vm state backup > "$RUNNER_TEMP/vm-state/backup.json" 2> "$RUNNER_TEMP/vm-state/backup.err"
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/vm-state/backup.json" "$RUNNER_TEMP/vm-state/backup.err"
+      # Verify even when the backup failed: the previous night's backup is what a recreate would restore, and the verdict says whether it still is one.
+      - name: Verify the latest backup of every app
+        id: verify
+        if: ${{ !cancelled() && steps.hour.outputs.run == 'true' }}
+        run: |
+          set +e
+          wf vm state verify > "$RUNNER_TEMP/vm-state/verify.json" 2> "$RUNNER_TEMP/vm-state/verify.err"
+          echo "code=$?" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/vm-state/verify.json" "$RUNNER_TEMP/vm-state/verify.err"
+      - name: Summary
+        if: ${{ !cancelled() && steps.hour.outputs.run == 'true' }}
+        run: |
+          {
+            echo "### VM state backup"
+            echo
+            for verb in backup verify; do
+              f="$RUNNER_TEMP/vm-state/$verb.json"
+              line="$(grep -E '^\{"event":"vm-state"' "$f" 2> /dev/null | tail -n 1 || true)"
+              if [ -z "$line" ]; then echo "- $verb: no result (see the step log)"; continue; fi
+              echo "- $verb: **$(echo "$line" | jq -r 'if .ok then "ok" else "FAILED" end')**"
+              echo "$line" | jq -r '.apps[]? | "  - \(.app): \(if .ok then "ok" else "failed" end) \(.stamp // "") age \(.ageSeconds // "n/a") s \(.error // "")"'
+              echo "$line" | jq -r '.repository? // empty | "  - repository: \(if .ok then "ok" else "FAILED" end) \(.bytes // "?") of \(.budgetBytes // "?") budget bytes \(.error // "")"'
+              echo "$line" | jq -r 'select(.ok | not) | .next // empty | "  - next: \(.)"'
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail when a backup or its verification failed
+        if: ${{ !cancelled() && steps.hour.outputs.run == 'true' && (steps.backup.outputs.code != '0' || steps.verify.outputs.code != '0') }}
+        run: |
+          echo "::error::the VM state backup failed (backup exit ${{ steps.backup.outputs.code }}, verify exit ${{ steps.verify.outputs.code }}): see the job summary. A recreate is refused until a backup verifies."
+          exit 1

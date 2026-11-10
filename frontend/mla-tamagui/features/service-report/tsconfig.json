@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "jsx": "react-native",
+    "lib": ["DOM", "ESNext"],
+    "module": "preserve",
+    "moduleDetection": "force",
+    "moduleResolution": "bundler",
+    "customConditions": ["react-native"],
+    "noEmit": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "target": "ESNext",
+    "strict": true,
+    "paths": {
+      "@feature/service-report": ["./src/index.ts"],
+      "@feature/service-report/*": ["./src/*"],
+      "@lib/logging": ["../../../libraries/logging/src/index.ts"],
+      "@lib/logging/*": ["../../../libraries/logging/src/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "nativewind-env.d.ts", "../../../feature-kit/vitest.setup.ts"],
+  "exclude": ["node_modules"]
+}

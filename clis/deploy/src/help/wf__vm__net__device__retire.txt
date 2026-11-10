@@ -1,0 +1,15 @@
+Usage: wf vm net device retire [options]
+
+Delete stale device records so the next node can claim the bare hostname
+vm-gateway expects. DRY RUN unless --apply
+
+Options:
+  --apply              actually delete (default is a dry run that changes
+                       nothing)
+  --stale-minutes <n>  offline longer than this counts as stale (default 10)
+  --name <name...>     restrict to these device short-names
+  --force              also delete ONLINE devices holding a collision-suffixed
+                       name (evicts a live node)
+  --replaced-vm        delete every tagged VM node record whatever its age (the
+                       selection the recreate uses; sandbox-agent is spared)
+  -h, --help           display help for command

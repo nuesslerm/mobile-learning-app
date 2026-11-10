@@ -1,0 +1,25 @@
+{
+  "method": "preview.stop",
+  "exchanges": [
+    {
+      "name": "finds nothing to stop under an id that was never started",
+      "request": {
+        "id": 1,
+        "method": "preview.stop",
+        "params": {
+          "workspace": "w1",
+          "id": "preview-9"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "stopped": false
+        }
+      },
+      "actions": [
+        "preview_stop"
+      ]
+    }
+  ]
+}

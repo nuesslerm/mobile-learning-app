@@ -1,0 +1,8 @@
+id: infrastructure-does-not-use-api
+language: rust
+severity: error
+message: An infrastructure module may not use the api layer; the api calls infrastructure, never the reverse.
+files:
+  - "**/infrastructure/**/*.rs"
+rule:
+  matches: names-api

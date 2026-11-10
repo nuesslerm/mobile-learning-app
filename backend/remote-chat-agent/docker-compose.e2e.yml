@@ -1,0 +1,66 @@
+services:
+  # `opencode serve` — the REAL far end of these tests.
+  #
+  # Was absent entirely, and the suite papered over it with OPENCODE_MOCK=true,
+  # so "end-to-end" meant the HTTP shell talking to a canned reply. Two defects
+  # that reached production are impossible to reproduce that way: a contentless
+  # turn (the mock always returns content) and a working directory opencode
+  # cannot resolve (the mock has no filesystem). Both are now expressible here.
+  opencode:
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/opencode-server:${OPENCODE_IMAGE_TAG:-latest}
+    container_name: remote-chat-agent-e2e-opencode
+    environment:
+      OPENCODE_API_KEY: ${OPENCODE_GO_API_KEY:-}
+    volumes:
+      # THE WORKING DIRECTORY MUST BE THE SAME PATH IN BOTH CONTAINERS.
+      # The agent sends `directory: <cwd>` and opencode resolves it against its
+      # OWN filesystem; a shared network namespace shares no files. Mirrors
+      # docker-compose.prod.yml, so this suite exercises the production topology
+      # rather than a convenient one.
+      - e2e-worktrees:/app/.worktrees
+    healthcheck:
+      # /app is opencode's own endpoint; a 200 means it is serving, which is what
+      # the agent's gateway needs before any turn is attempted.
+      test: ["CMD", "sh", "-c", "wget -qO- http://localhost:4096/app >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    restart: "no"
+
+  agent:
+    # Context is the REPO ROOT, for the same reason docker-compose.integration.yml
+    # spells out: the Dockerfile does `COPY . .` then a filtered `pnpm install`,
+    # which needs pnpm-workspace.yaml, pnpm-lock.yaml and the workspace:*
+    # siblings — none of which exist under backend/remote-chat-agent/. `build: .`
+    # failed with `"/pnpm-workspace.yaml": not found`.
+    build:
+      context: ../..
+      dockerfile: backend/remote-chat-agent/Dockerfile
+    container_name: remote-chat-agent-e2e
+    depends_on:
+      opencode:
+        condition: service_healthy
+    ports:
+      - "8789:8787"
+    environment:
+      NODE_ENV: test
+      PORT: 8787
+      OPENCODE_API_KEY: ${OPENCODE_GO_API_KEY}
+      # Explicitly NOT OPENCODE_MOCK. If this suite cannot reach a real opencode
+      # it must fail, not quietly swap in a gateway that always succeeds.
+      OPENCODE_SERVER_URL: http://opencode:4096
+      # The default cwd for a turn that names no worktree. `process.cwd()` is
+      # /app, which exists only in the AGENT container — sending it produced the
+      # `cwd_not_visible` failure this compose now makes reproducible.
+      OPENCODE_CWD: /app/.worktrees
+      WORKTREE_BASE_DIR: /app/.worktrees
+    volumes:
+      - e2e-worktrees:/app/.worktrees
+    restart: "no"
+
+volumes:
+  e2e-worktrees:
+
+networks:
+  default:
+    name: remote-chat-agent-e2e

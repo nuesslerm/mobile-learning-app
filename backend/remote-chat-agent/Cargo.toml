@@ -1,0 +1,56 @@
+[workspace]
+resolver = "2"
+members = ["core", "cli-driver", "exec-channel", "agent-core", "group-agent", "group-workspace", "group-state", "group-accounts", "group-terminal", "group-git", "group-hosted", "group-schedules", "group-attachments", "group-catalog", "group-preview", "service-core", "render", "opencode", "speech", "host", "rs"]
+
+[workspace.dependencies]
+async-trait = "0.1"
+base64 = "0.22"
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "multipart", "query", "tokio", "ws"] }
+dirs = "6"
+eventsource-stream = "0.2"
+futures-util = "0.3"
+html-escape = "0.2"
+http-body-util = "0.1"
+path-clean = "1"
+percent-encoding = "2"
+pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "json", "multipart", "stream"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
+tempfile = "3"
+time = { version = "0.3", features = ["formatting", "parsing"] }
+tokio = { version = "1", features = ["macros", "rt", "sync", "time"] }
+tokio-stream = "0.1"
+tokio-util = "0.7"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["catch-panic", "cors", "limit", "trace"] }
+tower_governor = "0.7"
+tracing = "0.1"
+url = "2"
+uuid = { version = "1", features = ["v4"] }
+
+# Line tables for this workspace only, none for dependencies: they are most of what a build writes and links, and the VM's disk, not its CPU,
+# is the bottleneck of a test run (a backtrace needs this workspace's lines only).
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.release]
+opt-level = "s"
+lto = true
+codegen-units = 1
+strip = true
+
+# What the deploy pipeline builds: the release settings without whole-program optimisation, because fat LTO with one codegen unit
+# re-optimises every dependency on each change (minutes on the VM) for a size and speed margin a deployed service does not need.
+[profile.deploy]
+inherits = "release"
+lto = false
+codegen-units = 16
+
+# vm-ops-api hashes its own executable at start: unoptimised SHA-256 over a 150 MB debug binary is ~11 s of CPU per start,
+# and every integration case starts one.
+[profile.dev.package.sha2]
+opt-level = 3

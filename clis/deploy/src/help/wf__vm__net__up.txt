@@ -1,0 +1,10 @@
+Usage: wf vm net up [options]
+
+Join this machine to the tailnet (starts tailscaled if stopped). Idempotent —
+safe to re-run
+
+Options:
+  --hostname <name>  tailnet hostname to claim (default: sandbox-agent)
+  --backend <name>   secrets backend for TS_VM_AUTH_KEY (default: bitwarden off
+                     macOS)
+  -h, --help         display help for command

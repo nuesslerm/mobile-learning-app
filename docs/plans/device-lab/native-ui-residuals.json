@@ -1,0 +1,80 @@
+{
+  "_doc": "Every source file that imports react-native-gesture-handler, react-native-reanimated or @shopify/react-native-skia, with what differs between the browser render and a phone and what stays residual (device-lab spec U2-U4). A new importer fails lib/device-lab/__tests__/nativeUiResiduals.test.ts until it is listed. The worklet lint rule (mobile-learn/js-function-in-worklet) guards the part a browser cannot show.",
+  "files": {
+    "frontend/mla-tamagui/components/charts-spike/ChartSpike.tsx": {
+      "libraries": [
+        "skia",
+        "reanimated"
+      ],
+      "differs": "victory-native draws on CanvasKit on web and native Skia on a phone",
+      "residual": "spike route, web only: native charts are not claimed"
+    },
+    "frontend/mla-tamagui/app/_layout.tsx": {
+      "libraries": [
+        "gesture-handler"
+      ],
+      "differs": "GestureHandlerRootView is the root of every gesture; web runs pointer events",
+      "residual": "root wrapper; every screen below inherits the residuals of its own gestures"
+    },
+    "frontend/mla-tamagui/features/leetcode/ui/AnimatedWaveform.tsx": {
+      "libraries": [
+        "reanimated"
+      ],
+      "differs": "shared values animate on the UI thread on a phone, in a JS loop on web",
+      "residual": "visual only; the recording level it draws comes from the recorder"
+    },
+    "frontend/mla-tamagui/features/leetcode/ui/ToolbarConfigScreen.tsx": {
+      "libraries": [
+        "gesture-handler",
+        "reanimated"
+      ],
+      "differs": "drag to reorder: arbitration with the scroll view differs, no UI-thread worklets on web",
+      "residual": "drag-reorder feel and scroll arbitration are device-only"
+    },
+    "frontend/mla-tamagui/features/leetcode/ui/ReorderableList.tsx": {
+      "libraries": [
+        "gesture-handler",
+        "reanimated"
+      ],
+      "differs": "drag to reorder: arbitration with the scroll view differs, no UI-thread worklets on web",
+      "residual": "drag-reorder feel and scroll arbitration are device-only"
+    },
+    "frontend/mla-tamagui/features/tamil-writing/ui/TracingCanvasSkia.tsx": {
+      "libraries": [
+        "skia",
+        "gesture-handler"
+      ],
+      "differs": "CanvasKit on web, native Skia rasterisation on a phone; pan on JS thread (runOnJS)",
+      "residual": "stroke smoothing and antialiasing on Skia differ in pixels; the marking reads points, not pixels"
+    },
+    "frontend/mla-tamagui/features/tamil-writing/ui/TracingCanvasSvg.tsx": {
+      "libraries": [
+        "gesture-handler"
+      ],
+      "differs": "pan on the JS thread (runOnJS); touch slop and multi-touch rejection differ",
+      "residual": "palm and second-finger rejection are device-only"
+    },
+    "frontend/mla-tamagui/app-shell/DebugFab.tsx": {
+      "libraries": [
+        "gesture-handler",
+        "reanimated"
+      ],
+      "differs": "drag and tap race; the FAB position is a UI-thread shared value on a phone",
+      "residual": "dev-only overlay"
+    },
+    "frontend/libraries/tamagui-design-system/composites/collapsing-header.tsx": {
+      "libraries": [
+        "reanimated"
+      ],
+      "differs": "scroll-linked values: JS events on web, UI-thread worklets on a phone",
+      "residual": "scroll-linked collapse is smoother on a device; web follows each scroll event"
+    },
+    "frontend/libraries/tamagui-design-system/theme/index.ts": {
+      "libraries": [
+        "reanimated"
+      ],
+      "differs": "only reads the library for its config",
+      "residual": "none"
+    }
+  }
+}

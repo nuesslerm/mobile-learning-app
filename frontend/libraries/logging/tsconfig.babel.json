@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "Bundler",
+    "types": ["node"],
+    "outDir": "./dist/babel",
+    "rootDir": "./src/babel",
+    "noEmit": false,
+    "declaration": false,
+    "declarationMap": false,
+    "esModuleInterop": true
+  },
+  "include": ["src/babel/**/*"],
+  "exclude": ["node_modules", "dist", "tests"]
+}

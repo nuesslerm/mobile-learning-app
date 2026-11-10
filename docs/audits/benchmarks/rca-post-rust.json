@@ -1,0 +1,64 @@
+{
+  "label": "post",
+  "date": "2026-10-08T22:19:04.839Z",
+  "command": "../target/release/rca-service",
+  "runs": 5,
+  "artifactBytes": 17671312,
+  "coldStartMs": 32.420882000002166,
+  "idleRssMb": 6.4765625,
+  "rssAfterHealthMb": 6.5546875,
+  "healthP50Ms": 0.31228050000026997,
+  "scenarios": {
+    "chat turn": {
+      "p50Ms": 105.82669800000076,
+      "rssAfterMb": 8.59765625
+    },
+    "run once": {
+      "p50Ms": 106.77223400000184,
+      "rssAfterMb": 8.96484375
+    },
+    "convert pdf": {
+      "p50Ms": 12.827653999996983,
+      "rssAfterMb": 8.96484375
+    },
+    "convert pdf (chromium)": {
+      "p50Ms": 12.784579499999836,
+      "rssAfterMb": 9.06640625
+    },
+    "convert docx": {
+      "p50Ms": 1.1183595000002242,
+      "rssAfterMb": 9.2890625
+    },
+    "diff register and page": {
+      "p50Ms": 8.665144500002498,
+      "rssAfterMb": 14.66796875
+    },
+    "file preview (markdown)": {
+      "p50Ms": 0.9480100000000675,
+      "rssAfterMb": 15.15234375
+    },
+    "file preview (typescript)": {
+      "p50Ms": 0.6152139999994688,
+      "rssAfterMb": 15.15234375
+    },
+    "tamil check": {
+      "p50Ms": 156.8065784999999,
+      "rssAfterMb": 38.26953125
+    },
+    "voice transcribe": {
+      "p50Ms": 9.666070499999478,
+      "rssAfterMb": 38.3203125
+    },
+    "ws request": {
+      "p50Ms": 0.06555650000154856,
+      "rssAfterMb": 38.328125
+    },
+    "ws 100 connections": {
+      "p50Ms": 0.9676584999997431,
+      "rssAfterMb": 43.37109375
+    }
+  },
+  "finalRssMb": 43.37109375,
+  "peakRssMb": 43.37109375,
+  "peakRssMaxMb": 54.796875
+}

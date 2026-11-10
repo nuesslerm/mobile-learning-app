@@ -1,0 +1,54 @@
+Usage: wf [options] [command]
+
+Dev workflow CLI
+
+Options:
+  -V, --version               output the version number
+  --json                      output machine-readable JSON lines
+  --frontend <name>           frontend app to target (mla-tamagui) (default:
+                              "mla-tamagui")
+  -h, --help                  display help for command
+
+Commands:
+  check [options] [sha]       Verify a change: --staged, --budget, --deployed
+                              <sha>, --health, --visual, --drift
+  ship [options] [service...] Build, push and redeploy a service on the VM;
+                              --changed, --status; `ship eas`, `ship retire`,
+                              `ship build`
+  offload                     Work on the cheap-model ladder: ask, stats, plan,
+                              worker, ladder
+  flow run [<test file>]      The flow harness: vitest over *.flow.test.tsx,
+                              report in .flow-report; --publish
+  test [options] <action>     e2e tests (e2e/*.lua): plan, run (the focused ones
+                              a change reaches), publish a run's bundle
+  ci                          What a CI run says about itself: `ci comment`
+                              posts what failed on the pushed commit
+  android                     The Android harness, the redroid on the VM:
+                              Maestro's device verbs, start-device, lease,
+                              hierarchy, adb
+  browser                     The browser harness, Chromium framed as a phone:
+                              Maestro's device verbs, start-device, hierarchy,
+                              the debugger, tunnel, tailnet-forward
+  vm                          The VM: exec, logs, ledger, recover, deps, creds,
+                              terraform, net, ops
+  secret                      Secrets and tool logins: list, get, set, env,
+                              sync-env, doctor, login
+  agent-config                The .agents/ contract rendered into every tool's
+                              config: sync
+  bench                       App benchmarks, CLI cold start and the agent-proof
+  knowledge                   The docs knowledge index: rank, index, stale,
+                              locate; the Gemini repack
+  cache                       The build cache in blob storage, shared by the
+                              sandbox and CI: status, gc, purge, restore, save
+  lib                         Versioned shared libraries and their registries:
+                              release, status, prune, retarget
+  t3                          The T3-compatible server and its pairing codes:
+                              serve, pair (the separate binary t3-serve)
+  exec                        The executor of an rca workspace: serve (the
+                              separate binary rca-exec)
+  mimic                       Characterization against a pinned reference:
+                              record, replay, diff, verify (the separate
+                              binary wf-mimic)
+  parity                      Parity coverage of the phone apps over the agent
+                              API: coverage
+  help [command]              display help for command

@@ -1,0 +1,16 @@
+Usage: wf flow run [<test file>] [--file <test file>] [--app mla-tamagui] [--goldens | --update-goldens]
+                   [--theme light|dark|both] [--publish] [--json]
+
+Runs the flow tests of frontend/<app> (vitest, vitest.flow.config.ts, --configLoader runner), all of them or one file,
+with FLOW_DEBUG_OUT pointed at .flow-report/debug.jsonl so the tests' logAt/breakAt stops are recorded. Flow tests are
+TypeScript: there is no --script here; a logpoint or breakpoint is a line in the test (`logAt(file, line, [exprs])`,
+`breakAt(...)` from @lib/flow-test-harness). Ends with "report: <.flow-report/index.html>"; --publish uploads the report
+dir as a run bundle (`wf test publish`) and posts its test_runs row. Exit code is vitest's.
+
+Screenshots and goldens, as in Flutter's golden tests: every test's last screen, and every screenshot(name) /
+session.screenshot(name) it takes, is frozen as HTML and painted by Chromium after vitest (`wf flow goldens`, phone
+size), so the report shows each one. Without a flag nothing is compared and only the light theme is painted. --goldens
+compares every screenshot with tests/goldens/<suite>/<name>.<theme>.png and exits 1 on a difference or a missing golden;
+--update-goldens writes them. --theme light|dark|both (default: light, or both with a goldens flag). With one test file
+only that file's goldens are touched; a full --update-goldens run also removes goldens no test produces any more. Each
+theme ends with "goldens (<theme>): <.flow-goldens/<theme>/report.html>".

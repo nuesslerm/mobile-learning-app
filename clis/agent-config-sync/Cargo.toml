@@ -1,0 +1,21 @@
+[package]
+name = "agent-config-sync"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "agent_config_sync"
+path = "src-rs/lib.rs"
+
+[[bin]]
+name = "agent-config-sync"
+path = "src-rs/main.rs"
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
+toml = { version = "0.8", default-features = false, features = ["parse"] }
+nix = { version = "0.31", default-features = false, features = ["user"] }
+clap = { version = "4", default-features = false, features = ["std", "error-context", "usage"] }

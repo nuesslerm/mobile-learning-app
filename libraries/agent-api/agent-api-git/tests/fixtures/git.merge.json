@@ -1,0 +1,158 @@
+{
+  "method": "git.merge",
+  "exchanges": [
+    {
+      "name": "stops on a conflict and lists it",
+      "before": [
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "c.txt",
+            "content": "base\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "c.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "base"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.createRef",
+          "params": {
+            "workspace": "w1",
+            "name": "topic",
+            "checkout": true
+          }
+        },
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "c.txt",
+            "content": "topic\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "c.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "topic"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.checkout",
+          "params": {
+            "workspace": "w1",
+            "ref": "main"
+          }
+        },
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "c.txt",
+            "content": "main\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "c.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "main"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.merge",
+        "params": {
+          "workspace": "w1",
+          "op": "start",
+          "ref": "topic"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "ok": false,
+          "head": "07b28294ccd05658a49c8377fcd4859114ec5056",
+          "updated": false,
+          "conflicted": true,
+          "conflicts": [
+            "c.txt"
+          ],
+          "operation": "merge",
+          "output": "Auto-merging c.txt\nCONFLICT (content): Merge conflict in c.txt\nAutomatic merge failed; fix conflicts and then commit the result."
+        }
+      },
+      "actions": [
+        "git_merge"
+      ],
+      "volatile": [
+        "/result/head"
+      ]
+    },
+    {
+      "name": "there is nothing to abort",
+      "request": {
+        "id": 1,
+        "method": "git.merge",
+        "params": {
+          "workspace": "w1",
+          "op": "abort"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "IO_ERROR",
+          "message": "git merge: fatal: There is no merge to abort (MERGE_HEAD missing)."
+        }
+      },
+      "actions": [
+        "git_merge"
+      ]
+    }
+  ]
+}

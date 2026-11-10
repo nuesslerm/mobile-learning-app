@@ -1,0 +1,17 @@
+id: api-does-not-use-infrastructure
+valid:
+  - use crate::api::auth::authorised;
+  - use crate::application::ports::Ports;
+  - use rca_service_core::application::ports::Ports;
+  - use crate::{api, domain::util};
+  - use infrastructure_kit::Thing;
+invalid:
+  - use crate::infrastructure::ws_channel::ExecutorSockets;
+  - use crate::infrastructure;
+  - use super::infrastructure::env::ProcessEnv;
+  - use super::super::infrastructure::env::ProcessEnv;
+  - use crate::{api, infrastructure::log};
+  - use crate::{infrastructure};
+  - use super::{infrastructure as infra, api};
+  - use crate::{infrastructure::{docs::Documents, stt::Speech}};
+  - 'fn f() { crate::infrastructure::system::SystemClock; }'

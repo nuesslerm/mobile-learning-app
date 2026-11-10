@@ -1,0 +1,56 @@
+[
+ {
+  "id": "repair-00",
+  "input": {
+   "text": "{\"a\":\"line1\nline2\"}"
+  }
+ },
+ {
+  "id": "repair-01",
+  "input": {
+   "text": "{\"a\":\"tab\there\",\"b\":\"cr\rend\"}"
+  }
+ },
+ {
+  "id": "repair-02",
+  "input": {
+   "text": "{\"a\":\"ok\"}"
+  }
+ },
+ {
+  "id": "repair-03",
+  "input": {
+   "text": "{\"a\":\"esc \\\" quote\nnext\"}"
+  }
+ },
+ {
+  "id": "repair-04",
+  "input": {
+   "text": "{\"a\":\"back\\\\slash\nnext\"}"
+  }
+ },
+ {
+  "id": "repair-05",
+  "input": {
+   "text": "text before {\"a\":\"x\ny\"} text after"
+  }
+ },
+ {
+  "id": "repair-06",
+  "input": {
+   "text": "\"\u0001\u001f\""
+  }
+ },
+ {
+  "id": "repair-07",
+  "input": {
+   "text": "{\"a\":\"é😀\nz\"}"
+  }
+ },
+ {
+  "id": "repair-08",
+  "input": {
+   "text": "\n{\"a\":1}\n"
+  }
+ }
+]

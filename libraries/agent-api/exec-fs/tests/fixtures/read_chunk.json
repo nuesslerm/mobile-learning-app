@@ -1,0 +1,44 @@
+{
+  "action": "read_chunk",
+  "exchanges": [
+    {
+      "name": "reads a byte range and encodes it in base64",
+      "setup": {"files": {"data.bin": "abcdef"}},
+      "request": {"id": "c1", "tool": "read_chunk", "args": {"path": "data.bin", "offset": 2, "length": 3}},
+      "response": {"id": "c1", "ok": true, "result": {"data": "Y2Rl", "offset": 2, "bytes": 3, "total_bytes": 6, "eof": false}}
+    },
+    {
+      "name": "reads to the end of the file when no length is asked and says so",
+      "setup": {"files": {"data.bin": "abcdef"}},
+      "request": {"id": "c2", "tool": "read_chunk", "args": {"path": "data.bin", "offset": 4}},
+      "response": {"id": "c2", "ok": true, "result": {"data": "ZWY=", "offset": 4, "bytes": 2, "total_bytes": 6, "eof": true}}
+    },
+    {
+      "name": "answers an empty chunk at the end for an offset past it",
+      "setup": {"files": {"data.bin": "abcdef"}},
+      "request": {"id": "c3", "tool": "read_chunk", "args": {"path": "data.bin", "offset": 100}},
+      "response": {"id": "c3", "ok": true, "result": {"data": "", "offset": 100, "bytes": 0, "total_bytes": 6, "eof": true}}
+    },
+    {
+      "name": "refuses a directory",
+      "setup": {"files": {"src/a.txt": "x"}},
+      "request": {"id": "c4", "tool": "read_chunk", "args": {"path": "src"}},
+      "response": {"id": "c4", "ok": false, "error": {"code": "NOT_A_FILE", "message": "src is a directory"}}
+    },
+    {
+      "name": "refuses a file that does not exist",
+      "request": {"id": "c5", "tool": "read_chunk", "args": {"path": "missing.bin"}},
+      "response": {"id": "c5", "ok": false, "error": {"code": "NOT_FOUND", "message": "missing.bin does not exist"}}
+    },
+    {
+      "name": "refuses a path outside the root",
+      "request": {"id": "c6", "tool": "read_chunk", "args": {"path": "../etc/passwd"}},
+      "response": {"id": "c6", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../etc/passwd is outside the root"}}
+    },
+    {
+      "name": "refuses an offset that is not a number",
+      "request": {"id": "c7", "tool": "read_chunk", "args": {"path": "data.bin", "offset": "two"}},
+      "response": {"id": "c7", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`offset` must be a non-negative integer"}}
+    }
+  ]
+}

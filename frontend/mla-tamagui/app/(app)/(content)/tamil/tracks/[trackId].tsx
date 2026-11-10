@@ -1,0 +1,1 @@
+export { default, generateStaticParams } from '@/features/tamil-writing/routes/tracks/[trackId]';

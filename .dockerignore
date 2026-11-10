@@ -1,0 +1,76 @@
+# Root .dockerignore — backend images build from the REPO ROOT context (so pnpm
+# can resolve workspace:* deps). Keep that context lean: exclude installed deps,
+# build output, VCS, secrets, and heavy unrelated trees. package.json files,
+# pnpm-lock.yaml, and pnpm-workspace.yaml are intentionally NOT excluded — the
+# pnpm install graph needs them.
+**/node_modules
+**/dist
+**/dist-*
+# Cargo build output: a local build leaves gigabytes here, and every image builds its own.
+/clis/target
+/backend/target
+.git
+# The contract crates' recorded exchanges, the loaders of them and the examples the integration tests run are test inputs: no image builds them, so an edit to one must neither
+# rebuild an image nor change its content hash (`wf` drops what this file excludes from the hash)
+/libraries/agent-api/*/tests
+/libraries/agent-api/*/examples
+/libraries/agent-api/*/src/testing.rs
+/libraries/agent-api/*/src/testing
+# The agent service's replayed cassettes, its integration test and the Rust port's driver (an example of its service core) are read by tests only
+/backend/remote-chat-agent/rs/tests/cassettes
+/backend/remote-chat-agent/rs/tests/integration.rs
+/backend/remote-chat-agent/service-core/examples
+# The Orca crates' mimic drivers (examples) and the integration test that replays them are read by tests only
+/clis/orca-serve/*/examples
+/clis/orca-serve/tests/integration/mimic_x2.rs
+/clis/orca-serve/tests/integration/mimic_x6.rs
+/clis/orca-serve/cassettes
+
+# The T3 server's imported cassettes are replayed by its tests only
+/clis/t3-serve/cassettes
+**/.expo
+**/*.log
+
+# Secrets never enter an image. The generated `.env` and all `.env.*` (incl.
+# `.env.defaults`) are excluded — deploy injects env at runtime via compose, so
+# the image never needs them.
+**/.env
+**/.env.*
+
+# Credential-bearing files that are gitignored (so absent in CI) but WILL exist
+# in a developer's working tree — `COPY . .` would otherwise bake them into a
+# locally-built image. Matters more now that images may be pushed to a registry.
+**/terraform.tfvars
+**/*.tfstate
+**/*.tfstate.*
+**/*.pem
+**/*.key
+**/.oci
+# Any NESTED .npmrc — those are untracked, per-developer, and are where a
+# registry auth token would live.
+**/.npmrc
+# ...but NOT the repo-root one, which is COMMITTED, holds no credential (only
+# hoist patterns + strict-ssl), and IS REQUIRED by the build: this repo sets
+# shamefully-hoist=true, so installing without it produces a different
+# node_modules layout than the app expects. `.npmrc` unprefixed matches only the
+# context root, so nested ones stay excluded. Excluding this file was a mistake
+# introduced while hardening this list — it is a build input, not a secret.
+!.npmrc
+
+# Heavy trees no backend image needs. Every `COPY . .` layer is keyed on the whole context, so a
+# change under any of these would otherwise invalidate the install and build layers of every image.
+# NOT frontend/ or features/: pnpm-workspace.yaml's patchedDependencies target packages only those
+# use, and `pnpm deploy` fails with ERR_PNPM_UNUSED_PATCH when they are missing.
+references/
+docs/
+.agents/
+.claude/
+.codex/
+.opencode/
+.github/
+.conventions-reports/
+.screenshots/
+.superpowers/
+frontend/mobile-learning-app/.expo
+**/.turbo
+**/coverage

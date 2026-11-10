@@ -1,0 +1,46 @@
+{
+  "method": "git.push",
+  "exchanges": [
+    {
+      "name": "a repository with no remote cannot push",
+      "request": {
+        "id": 1,
+        "method": "git.push",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "this repository has no remote configured"
+        }
+      },
+      "actions": [
+        "git_push"
+      ]
+    },
+    {
+      "name": "a remote that is a url is refused",
+      "request": {
+        "id": 1,
+        "method": "git.push",
+        "params": {
+          "workspace": "w1",
+          "remote": "https://example.test/x.git"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`remote` must be the name of a configured remote"
+        }
+      },
+      "actions": [
+        "git_push"
+      ]
+    }
+  ]
+}

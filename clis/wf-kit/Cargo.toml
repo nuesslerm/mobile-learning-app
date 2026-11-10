@@ -1,0 +1,18 @@
+[package]
+name = "wf-kit"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "What every wf crate and binary shares: option parsing, the help engine, the one dispatcher, the error macro, the repo root, the clock"
+
+[lib]
+doctest = false
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+clap = { version = "4", default-features = false, features = ["std", "error-context", "usage"] }
+signal-hook = "0.4"
+tempfile = "3"
+libc = "0.2"
+nix = { version = "0.31", default-features = false, features = ["hostname"] }

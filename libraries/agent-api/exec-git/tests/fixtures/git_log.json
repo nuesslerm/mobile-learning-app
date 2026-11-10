@@ -1,0 +1,128 @@
+{
+  "action": "git_log",
+  "exchanges": [
+    {
+      "name": "lists the commits newest first with their parents and author",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "log9",
+        "tool": "git_log",
+        "args": {}
+      },
+      "response": {
+        "id": "log9",
+        "ok": true,
+        "result": {
+          "commits": [
+            {
+              "sha": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+              "short": "5009730",
+              "parents": [],
+              "author_name": "t",
+              "author_email": "t@t",
+              "authored_ms": 1577836800000,
+              "subject": "first",
+              "body": ""
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "pages with limit and skip",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "log10",
+        "tool": "git_log",
+        "args": {
+          "limit": 1,
+          "skip": 1
+        }
+      },
+      "response": {
+        "id": "log10",
+        "ok": true,
+        "result": {
+          "commits": [],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "answers an empty history for a repository without commits",
+      "setup": {},
+      "request": {
+        "id": "log11",
+        "tool": "git_log",
+        "args": {}
+      },
+      "response": {
+        "id": "log11",
+        "ok": true,
+        "result": {
+          "commits": [],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "refuses a revision that does not exist",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "log12",
+        "tool": "git_log",
+        "args": {
+          "rev": "nope"
+        }
+      },
+      "response": {
+        "id": "log12",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "git log: fatal: bad revision 'nope'"
+        }
+      }
+    },
+    {
+      "name": "refuses an option given as the revision",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "log13",
+        "tool": "git_log",
+        "args": {
+          "rev": "--output=x"
+        }
+      },
+      "response": {
+        "id": "log13",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`rev` must be a revision"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "method": "thread.detach",
+  "exchanges": [
+    {
+      "name": "refuses a session the thread does not have",
+      "before": [
+        {
+          "id": "setup-create-t-dt",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-dt",
+            "title": "Thread t-dt",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.detach",
+        "params": {
+          "thread": "t-dt",
+          "session": "s9"
+        }
+      },
+      "response": {
+        "id": "1",
+        "error": {
+          "code": "SESSION_NOT_OWNED",
+          "message": "Provider session s9 does not belong to thread t-dt."
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "thread.detach",
+        "params": {
+          "thread": "nope",
+          "session": "s1"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

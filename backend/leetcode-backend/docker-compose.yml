@@ -1,0 +1,42 @@
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.2
+    container_name: leetcode-backend-tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_VM_AUTH_KEY}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_HOSTNAME: leetcode-backend-local
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    restart: unless-stopped
+
+  app:
+    build:
+      context: ../..
+      dockerfile: backend/leetcode-backend/Dockerfile
+    container_name: leetcode-backend
+    network_mode: service:tailscale
+    ports:
+      - "8789:8789"
+    volumes:
+      - leetcode-backend-data:/app/.data
+    environment:
+      PORT: 8789
+      LEETCODE_BACKEND_ADMIN_SECRET: ${LEETCODE_BACKEND_ADMIN_SECRET}
+      VM_GATEWAY_AUTH_SEED: ${VM_GATEWAY_AUTH_SEED}
+      LEETCODE_BACKEND_SESSION_FILE: /app/.data/session.json
+      LEETCODE_CAPTURE_TOOL_BASE_URL: ${LEETCODE_CAPTURE_TOOL_BASE_URL}
+      LEETCODE_CAPTURE_TRIGGER_SECRET: ${LEETCODE_CAPTURE_TRIGGER_SECRET}
+    depends_on:
+      - tailscale
+    restart: unless-stopped
+
+volumes:
+  tailscale-state:
+  leetcode-backend-data:

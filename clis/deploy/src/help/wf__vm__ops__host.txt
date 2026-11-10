@@ -1,0 +1,15 @@
+Usage: wf vm ops host [options]
+
+What the VM's host was doing over a window, from reporting-service's stored
+samples over the tailnet. JSON: window, samples (sweeps), firstMs, newestMs,
+ageSeconds (how old the newest sweep is), gapSecondsOver, gaps [{fromMs, toMs,
+seconds}] (sweeps further apart than the threshold: a stall), signals {cpu,
+psi_io, psi_memory, psi_cpu, load1, memory_used, swap_used, list_ms} each {avg,
+peak, atMs}, memoryTotal, diskWriters [{container, writtenBytes}] (the five that
+wrote the most to disk)
+
+Options:
+  --window <window>  1h, 24h, 7d or 30d (default: "24h")
+  --gap-secs <n>     the longest silence between sweeps that is not a gap
+                     (default: "180")
+  -h, --help         display help for command

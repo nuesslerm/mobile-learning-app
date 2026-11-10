@@ -1,0 +1,92 @@
+Usage: wf t3 serve [options]
+
+Run the T3-compatible server until it is stopped. HTTP and the WebSocket share
+one port (default 3774) on --bind (default 127.0.0.1; the deployment binds the
+tailnet address, never a LAN or public one).
+
+HTTP: GET /.well-known/t3/environment (descriptor, orchestrationProtocolVersion 2),
+GET /api/auth/session, POST /oauth/token (RFC 8693 token exchange, form-encoded:
+grant_type=urn:ietf:params:oauth:grant-type:token-exchange, subject_token=<code>;
+answers a 30-day bearer token with permissions, legacy scopes and scope),
+POST /api/auth/websocket-ticket[/rpc|media] (Bearer; a 5-minute single-use ticket),
+GET /ws?orchestrationProtocol=2&wsTicket=<ticket>. A missing or other protocol
+answers 426 before any authentication; a bad, spent or expired ticket answers 401;
+a bad pairing code answers 401 {code: "auth_invalid"} whatever the reason (the
+reason is in the log).
+GET /api/orchestration/threads/<threadId>/transcript ({threadId, title, updatedAt,
+items}) and GET /api/orchestration/threads/<threadId>/history?cursor=<cursor>
+[&view=conversation] ({snapshotSequence, items, nextCursor, hasMoreHistory}; at most
+75 rows older than the cursor, then follow nextCursor until it is null). Items are
+projected rows {position, visibility, sourceThreadId, sourceItemId, item}. Both need
+the header x-t3-orchestration-protocol: 2 (426 without it) and a bearer with
+orchestration:read; refusals are {_tag, code, reason, traceId}, the trace id also in
+the log: 401 EnvironmentAuthInvalidError (missing_credential|invalid_credential),
+403 EnvironmentScopeRequiredError, 404 EnvironmentResourceNotFoundError
+(thread_not_found), 400 EnvironmentRequestInvalidError (invalid_history_cursor,
+thread_transcript_too_large over 50 MiB). view=work, deferWork, compactIds and
+throughEntryId are ignored.
+
+RPCs (Effect RPC JSON framing, ack-paced streams): subscribeServerConfig,
+server.getConfig, server.probe, subscribeServerLifecycle,
+orchestration.subscribeShell, orchestration.subscribeThread,
+orchestration.getThreadProjection, orchestration.dispatchCommand (thread.create,
+thread.archive, thread.unarchive, thread.delete, thread.metadata.update; idempotent
+by commandId), orchestration.launchThread and projects.mutate
+(project.create|update|archive|delete). Each RPC needs the scopes of its group; a
+session without them gets EnvironmentAuthorizationError. A tag in no group is the
+defect "Unknown request tag: <tag>"; a known tag this server does not build fails
+with UnsupportedOperationError {method}.
+
+orchestration.launchThread creates the thread (or, with reuseExistingThread, takes
+over an empty one) and dispatches initialMessage under <commandId>:initial-message;
+it answers {threadId, projection, resumed, sequence}. A retry with the same
+commandId writes nothing and answers resumed: true on the same thread, also when
+the first launch named no threadId. workspaceStrategy root and existing_worktree
+run the turn in the project root or that worktree. Not built, refused with
+OrchestrationV2ThreadLaunchError {commandId, projectId, message}: worktree (a new
+worktree from baseRef) and initialMessage.attachments. generateTitle and the
+message's context are ignored; the title is used as given.
+
+projects.mutate project.delete refuses a project that still has threads, active
+or archived, with ProjectMutationError "Project <id> is not empty."; with force:
+true it deletes them first. Every other refusal of projects.mutate is
+ProjectMutationError "Failed to mutate project." (the reason is in the log).
+A subscription with afterSequence replays when the client is at most 1000 events
+behind, else sends a fresh snapshot.
+
+The provider list is one provider, rca, with models from --catalog (a JSON array
+of {slug, name}), else the T3_MODELS variable (slug=Name,slug=Name), else one
+default.
+
+With --rca-url (http://host:port) turns and project files go through the rca
+service's agent API (/agent/v1/socket), opened with the device bearer in
+T3_RCA_BEARER (wf offload bearers mint --label t3); the service secret is not
+used. A message starts a turn (thread.create, turn.start, thread.subscribe on
+agent.threads) and the thread's events become its messages, tool calls and run;
+history and transcript reads first catch the thread up from thread.history, and
+a run a restart left running is followed again at startup (one that never
+reached rca fails). The turn runs in --rca-workspace, whose executor (wf exec
+serve) is where the files are: projects.listEntries and projects.readFile are
+file.list and file.read there, so a project's root is a path under that
+executor's root, and a worktree is recorded but does not move the turn.
+projects.writeFile and filesystem.browse answer an error (plan milestone M6)
+until rca serves file.write and file.browse (the files.edit group); rca is not
+asked. Thread metadata, pins, modes and projects stay in this server's own
+store. serve checks service.status first and exits 1 when rca speaks another
+protocol or lacks a group serve uses (agent.threads, files, service).
+Without --rca-url nothing executes.
+
+Output: one JSON line when it listens:
+  {ok, event: "listening", address, port, environmentId, stateDir,
+   orchestrationProtocolVersion}
+then it runs. ok is false, with exit 1, when it cannot listen or open the store.
+
+Options:
+  --bind <address>     interface to listen on (T3_BIND; default 127.0.0.1)
+  --port <n>           port (T3_PORT; default 3774; 0 picks a free one)
+  --state-dir <dir>    store directory (T3_STATE_DIR; default ~/.local/share/t3-compat)
+  --label <text>       environment label shown by the app (T3_LABEL; default rca)
+  --catalog <file>     model catalog JSON (T3_CATALOG_FILE)
+  --rca-url <url>      the rca service, http://host:port (T3_RCA_URL)
+  --rca-workspace <id> the rca workspace turns and files act in (T3_RCA_WORKSPACE)
+  -h, --help           display help for command

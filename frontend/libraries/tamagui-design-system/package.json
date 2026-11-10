@@ -1,0 +1,60 @@
+{
+  "name": "@lib/tamagui-design-system",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "types": "index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./icons": "./icons.ts",
+    "./ui/*": "./ui/*.tsx",
+    "./composites/*": "./composites/*.tsx",
+    "./theme": "./theme/index.ts",
+    "./theme/*": "./theme/*.ts",
+    "./primitives": "./primitives.tsx"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
+    "test": "vitest run --root ../../.. frontend/libraries/tamagui-design-system/tests",
+    "test:unit": "vitest run --root ../../.. frontend/libraries/tamagui-design-system/tests"
+  },
+  "dependencies": {
+    "@gluestack-ui/core": "^5.0.15",
+    "@gluestack-ui/utils": "^5.0.6",
+    "@gorhom/bottom-sheet": "^5.2.14",
+    "@lib/logging": "workspace:*",
+    "@tamagui/alert-dialog": "^2.7.7",
+    "@tamagui/button": "^2.7.7",
+    "@tamagui/config": "^2.7.7",
+    "@tamagui/core": "^2.7.7",
+    "@tamagui/input": "^2.7.7",
+    "@tamagui/label": "^2.7.7",
+    "@tamagui/popover": "^2.7.7",
+    "@tamagui/portal": "^2.7.7",
+    "@tamagui/scroll-view": "^2.7.7",
+    "@tamagui/separator": "^2.7.7",
+    "@tamagui/shapes": "^2.7.7",
+    "@tamagui/stacks": "^2.7.7",
+    "@tamagui/tabs": "^2.7.7",
+    "@tamagui/text": "^2.7.7",
+    "@tamagui/toggle-group": "^2.7.7",
+    "@tamagui/z-index-stack": "^2.7.7",
+    "lucide-react-native": "^1.17.0",
+    "react-native-markdown-display": "7.0.2",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@typescript/native": "catalog:",
+    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "oxlint": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-native": "catalog:",
+    "react-native-reanimated": "4.5.1",
+    "react-native-safe-area-context": "~5.7.0",
+    "typescript": "catalog:"
+  }
+}

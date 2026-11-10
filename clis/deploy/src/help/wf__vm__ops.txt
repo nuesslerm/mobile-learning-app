@@ -1,0 +1,39 @@
+Usage: wf vm ops [options] [command]
+
+Operate vm-ops-api itself (health, self-redeploy) -- not one of the apps it
+manages
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  health                      GET /health -- confirms vm-ops-api is reachable
+                              and which image/commit it is running
+  stats                       GET /stats -- host memory and load plus every
+                              running container's memory and CPU, biggest first
+  host [options]              The host's history from reporting-service: gaps in
+                              its sweeps (stalls) and the peak of each stall
+                              signal
+  logs [options] <app>        docker logs for one of vm-ops-api's managed
+                              containers -- the only way to see why something
+                              failed INSIDE a container on the VM, since
+                              exec-script is scoped to agent-shell alone
+  probe [options] <app...>    GET /health of each app on the tailnet; exit 1
+                              naming the ones that do not answer, with their
+                              container states
+  pair [options] <app>        Mint an orca:// pairing link in the deployed
+                              orca-serve container and print it (a credential:
+                              pipe it)
+  ci-port [options]           Check that the CI port answers /health with the
+                              CI seed and 404s an admin-only route
+  runner-check [options]      Check, inside a CI job on the self-hosted runner,
+                              that the job has the builder sidecar and nothing
+                              of the host (booleans only)
+  token-permissions [options]  Read-only GitHub probes of what
+                              VM_PROVISION_GITHUB_TOKEN may do (run on
+                              agent-shell); prints yes/no per probe
+  cancel-run [options]        Cancel one CI run or every run still waiting for
+                              a runner (run on agent-shell, with the PAT)
+  drill <action>              Second-door drill: stop or freeze the primary on
+                              purpose and measure who brings it back
+  help [command]              display help for command

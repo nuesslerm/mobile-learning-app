@@ -1,0 +1,4 @@
+# One compiled-artifact directory for every backend service workspace, so a dependency built for one service is reused by the next
+# (cargo names the output by version and features: two versions of a crate sit side by side).
+[build]
+target-dir = "../target"

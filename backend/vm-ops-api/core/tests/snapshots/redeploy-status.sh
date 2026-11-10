@@ -1,0 +1,1 @@
+cat last-redeploy.log 2>/dev/null || echo 'no redeploy has run yet'

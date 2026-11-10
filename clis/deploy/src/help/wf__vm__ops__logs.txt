@@ -1,0 +1,12 @@
+Usage: wf vm ops logs [options] <app>
+
+docker logs for one of vm-ops-api's managed containers -- the only way to see
+why something failed INSIDE a container on the VM, since exec-script is scoped
+to agent-shell alone
+
+Arguments:
+  app         vm-ops-api service name, e.g. vnc-auth-session
+
+Options:
+  --tail <n>  lines to fetch (default: "200")
+  -h, --help  display help for command

@@ -1,0 +1,141 @@
+{
+  "method": "thread.archive",
+  "exchanges": [
+    {
+      "name": "archives a thread",
+      "before": [
+        {
+          "id": "setup-create-t-ar",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-ar",
+            "title": "t-ar title",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.archive",
+        "params": {
+          "thread": "t-ar"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": {
+            "thread": {
+              "id": "t-ar",
+              "title": "t-ar title",
+              "workspace": "w1",
+              "driver": "claudeAgent",
+              "status": "idle",
+              "last_seq": 1,
+              "created_at": "2026-11-04T10:00:00Z",
+              "updated_at": "2026-11-04T10:00:00Z"
+            },
+            "archived_at_ms": 1700000000000
+          },
+          "seq": 1
+        }
+      },
+      "volatile": [
+        "/result/thread/thread/created_at",
+        "/result/thread/thread/updated_at",
+        "/result/thread/thread/last_seq",
+        "/result/thread/archived_at_ms",
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "refuses a thread that is archived already",
+      "request": {
+        "id": "2",
+        "method": "thread.archive",
+        "params": {
+          "thread": "t-ar"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "ALREADY_ARCHIVED",
+          "message": "thread t-ar is already archived"
+        }
+      }
+    },
+    {
+      "name": "brings an archived thread back",
+      "request": {
+        "id": "3",
+        "method": "thread.archive",
+        "params": {
+          "thread": "t-ar",
+          "archived": false
+        }
+      },
+      "response": {
+        "id": "3",
+        "result": {
+          "thread": {
+            "thread": {
+              "id": "t-ar",
+              "title": "t-ar title",
+              "workspace": "w1",
+              "driver": "claudeAgent",
+              "status": "idle",
+              "last_seq": 1,
+              "created_at": "2026-11-04T10:00:00Z",
+              "updated_at": "2026-11-04T10:00:00Z"
+            }
+          },
+          "seq": 1
+        }
+      },
+      "volatile": [
+        "/result/thread/thread/created_at",
+        "/result/thread/thread/updated_at",
+        "/result/thread/thread/last_seq",
+        "/result/thread/archived_at_ms",
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "refuses to bring back a thread that is not archived",
+      "request": {
+        "id": "4",
+        "method": "thread.archive",
+        "params": {
+          "thread": "t-ar",
+          "archived": false
+        }
+      },
+      "response": {
+        "id": "4",
+        "error": {
+          "code": "NOT_ARCHIVED",
+          "message": "thread t-ar is not archived"
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "5",
+        "method": "thread.archive",
+        "params": {
+          "thread": "nope"
+        }
+      },
+      "response": {
+        "id": "5",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

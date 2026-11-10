@@ -1,0 +1,40 @@
+{
+  "name": "@lib/browser-client",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A client for the browser daemon of the Rust wf (`wf browser`): a createContainer() surface with every command forwarded to the daemon's POST /call. Plain JavaScript so node scripts can import it without a loader.",
+  "type": "module",
+  "main": "./src/index.mjs",
+  "types": "./src/index.d.mts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.mts",
+      "default": "./src/index.mjs"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "devDependencies": {
+    "@typescript/native": "catalog:",
+    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@types/node": "^22.0.0",
+    "oxlint": "catalog:",
+    "playwright": "catalog:"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    }
+  }
+}

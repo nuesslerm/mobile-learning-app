@@ -1,0 +1,35 @@
+{
+  "action": "git_worktree_remove",
+  "exchanges": [
+    {
+      "name": "removes a worktree",
+      "setup": {"files": {"a.txt": "x"}, "commit": true, "worktrees": {"wt1": "feature/one"}},
+      "request": {"id": "r1", "tool": "git_worktree_remove", "args": {"name": "wt1"}},
+      "response": {"id": "r1", "ok": true, "result": {"removed": true}}
+    },
+    {
+      "name": "refuses a worktree with changes unless forced",
+      "setup": {"files": {"a.txt": "x"}, "commit": true, "worktrees": {"wt1": "feature/one"}, "worktree_edit": {"wt1/new.txt": "dirty"}},
+      "request": {"id": "r2", "tool": "git_worktree_remove", "args": {"name": "wt1"}},
+      "response": {"id": "r2", "ok": false, "error": {"code": "IO_ERROR", "message": "git worktree remove: fatal"}},
+      "volatile": ["/error/message"]
+    },
+    {
+      "name": "removes a worktree with changes when forced",
+      "setup": {"files": {"a.txt": "x"}, "commit": true, "worktrees": {"wt1": "feature/one"}, "worktree_edit": {"wt1/new.txt": "dirty"}},
+      "request": {"id": "r3", "tool": "git_worktree_remove", "args": {"name": "wt1", "force": true}},
+      "response": {"id": "r3", "ok": true, "result": {"removed": true}}
+    },
+    {
+      "name": "refuses a worktree that does not exist",
+      "setup": {"files": {"a.txt": "x"}, "commit": true},
+      "request": {"id": "r4", "tool": "git_worktree_remove", "args": {"name": "gone"}},
+      "response": {"id": "r4", "ok": false, "error": {"code": "NOT_FOUND", "message": "worktree gone does not exist"}}
+    },
+    {
+      "name": "refuses a name that is a path",
+      "request": {"id": "r5", "tool": "git_worktree_remove", "args": {"name": "../root"}},
+      "response": {"id": "r5", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`name` must be one plain directory name"}}
+    }
+  ]
+}

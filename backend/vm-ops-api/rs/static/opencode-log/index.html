@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>wf offload ask — runs</title>
+<style>
+/* Palette + radius scale lifted from references/t3code's apps/web/src/index.css
+   (--background/--card/--border/--primary/--radius tokens) -- zinc/neutral
+   base with an indigo accent, not invented from scratch. */
+:root {
+  --bg:#fafafa; --card:#ffffff; --fg:#18181b; --muted:#71717a; --border:#e4e4e7;
+  --hover:#f4f4f5; --selected:#eef2ff; --code-bg:#f4f4f5;
+  --primary:#4f46e5; --primary-fg:#ffffff; --primary-tint:#eef2ff;
+  --running:#a1a1aa; --ok:#16a34a; --ok-tint:#f0fdf4; --err:#dc2626; --err-tint:#fef2f2;
+  --radius:14px; --radius-sm:10px; --radius-lg:20px;
+  --shadow-card: 0 1px 2px rgba(24,24,27,0.04), 0 1px 1px rgba(24,24,27,0.03);
+  --shadow-sheet: 0 -8px 30px rgba(24,24,27,0.12);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:#0a0a0a; --card:#141416; --fg:#f4f4f5; --muted:#a1a1aa; --border:rgba(255,255,255,0.08);
+    --hover:#1c1c1f; --selected:#1e1e3f; --code-bg:#19191c;
+    --primary:#818cf8; --primary-fg:#0a0a0a; --primary-tint:#1e1e3f;
+    --running:#71717a; --ok:#4ade80; --ok-tint:#0f2417; --err:#f87171; --err-tint:#2c1416;
+    --shadow-card: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-sheet: 0 -8px 30px rgba(0,0,0,0.5);
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; }
+body {
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: var(--fg); background: var(--bg); -webkit-font-smoothing: antialiased;
+}
+.layout { display: grid; grid-template-columns: 340px 1fr; height: 100vh; }
+.left { border-right: 1px solid var(--border); display: flex; flex-direction: column; min-height: 0; background: var(--bg); }
+.filters { padding: 12px; display: flex; gap: 8px; flex-shrink: 0; }
+.filters input, .filters select {
+  background: var(--card); color: var(--fg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 9px 12px; font: inherit; font-size: 13px;
+}
+.filters input { flex: 1; min-width: 0; }
+.filters input:focus, .filters select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-tint); }
+#runs { list-style: none; margin: 0; padding: 6px 10px 10px; overflow-y: auto; flex: 1; min-height: 0; }
+.run {
+  padding: 12px; margin-bottom: 6px; border-radius: var(--radius-sm); cursor: pointer;
+  border: 1px solid transparent; transition: background 0.1s ease;
+}
+.run:hover { background: var(--hover); }
+.run.selected { background: var(--selected); border-color: var(--primary); }
+.run-title { font-weight: 590; font-size: 13.5px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -0.01em; }
+.run-meta { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+.badge { background: var(--code-bg); padding: 2px 7px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; flex-shrink: 0; box-shadow: 0 0 0 3px var(--dot-ring, transparent); }
+.dot.running { background: var(--running); --dot-ring: color-mix(in srgb, var(--running) 20%, transparent); }
+.dot.ok { background: var(--ok); --dot-ring: color-mix(in srgb, var(--ok) 20%, transparent); }
+.dot.err { background: var(--err); --dot-ring: color-mix(in srgb, var(--err) 20%, transparent); }
+.right { display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--bg); }
+.prompt-header {
+  padding: 16px; border-bottom: 1px solid var(--border); white-space: pre-wrap; word-break: break-word;
+  font-size: 13px; line-height: 1.6; background: var(--card); flex-shrink: 0;
+}
+.prompt-header.empty { color: var(--muted); }
+.prompt-header.error-msg { color: var(--err); background: var(--err-tint); }
+.lines-wrap { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 12px; }
+.mono { font: 12px/1.55 ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; }
+.evt { margin-bottom: 12px; display: flex; gap: 10px; align-items: flex-start; }
+.evt-badge {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; display: flex;
+  align-items: center; justify-content: center; font-size: 13px; margin-top: 1px;
+}
+.evt-badge.text { background: var(--primary-tint); }
+.evt-badge.reasoning { background: color-mix(in srgb, var(--muted) 15%, transparent); }
+.evt-badge.raw { background: color-mix(in srgb, var(--muted) 10%, transparent); }
+.evt-body { min-width: 0; flex: 1; padding-top: 3px; }
+.evt-label { font-size: 11px; font-weight: 600; color: var(--muted); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
+.evt-text { white-space: pre-wrap; word-break: break-word; font-size: 13.5px; }
+.evt-raw { color: var(--muted); white-space: pre-wrap; word-break: break-word; font-size: 12px; }
+.evt-reasoning { color: var(--muted); font-style: italic; font-size: 13px; }
+.evt-tool {
+  border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden;
+  background: var(--card); box-shadow: var(--shadow-card); margin-bottom: 10px;
+}
+.evt-tool-head { display: flex; align-items: center; gap: 7px; padding: 9px 11px; font-size: 12px; }
+.evt-tool-name { font-weight: 600; }
+.evt-tool-status { margin-left: auto; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.evt-tool-status.completed { color: var(--ok); background: var(--ok-tint); }
+.evt-tool-status.error { color: var(--err); background: var(--err-tint); }
+.evt-tool-status.running { color: var(--running); background: var(--code-bg); }
+.evt-tool-cmd { padding: 9px 11px; border-top: 1px solid var(--border); background: var(--code-bg); }
+.evt-tool-out { padding: 9px 11px; border-top: 1px solid var(--border); max-height: 260px; overflow-y: auto; background: var(--code-bg); }
+.evt-tool summary { cursor: pointer; padding: 6px 11px; border-top: 1px solid var(--border); font-size: 11.5px; color: var(--muted); font-weight: 500; }
+.evt-tool summary:hover { color: var(--fg); }
+.evt-tool-file { padding: 9px 11px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.evt-tool-filepath { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; }
+.diffstat { display: inline-grid; grid-auto-flow: column; gap: 8px; font: 600 11px/1 ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace; flex-shrink: 0; }
+.diffstat .add { color: var(--ok); }
+.diffstat .del { color: var(--err); }
+.diff-block { border-top: 1px solid var(--border); background: var(--code-bg); max-height: 320px; overflow-y: auto; }
+.diff-line { padding: 1px 11px; white-space: pre-wrap; word-break: break-word; }
+.diff-line.add { background: var(--ok-tint); color: var(--ok); }
+.diff-line.del { background: var(--err-tint); color: var(--err); }
+.diff-line.ctx { color: var(--muted); }
+.evt-group {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card);
+  cursor: pointer; font-size: 13px; box-shadow: var(--shadow-card); transition: transform 0.08s ease, border-color 0.1s ease;
+}
+.evt-group:hover { border-color: var(--primary); }
+.evt-group:active { transform: scale(0.99); }
+.evt-group-icon {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%; background: var(--primary-tint);
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+}
+.evt-group-icon.err { background: var(--err-tint); }
+.evt-group-label { flex: 1; font-weight: 550; }
+.evt-group-chevron { color: var(--muted); font-size: 15px; }
+.empty-list { padding: 24px; color: var(--muted); list-style: none; text-align: center; font-size: 13px; }
+.error-msg { color: var(--err); padding: 20px; font-size: 13px; }
+.back-btn { display: none; }
+
+.sheet-backdrop {
+  position: fixed; inset: 0; background: rgba(10,10,10,0.45); backdrop-filter: blur(2px); z-index: 50;
+  opacity: 0; pointer-events: none; transition: opacity 0.18s ease;
+}
+.sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 51;
+  background: var(--bg); border: 1px solid var(--border); border-bottom: none;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0; max-height: 82vh; display: flex; flex-direction: column;
+  transform: translateY(100%); transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  box-shadow: var(--shadow-sheet); padding-bottom: env(safe-area-inset-bottom);
+}
+.sheet.open { transform: translateY(0); }
+.sheet-handle { width: 36px; height: 5px; border-radius: 3px; background: var(--border); margin: 10px auto 4px; flex-shrink: 0; }
+.sheet-title { padding: 8px 18px 12px; font-weight: 650; font-size: 15px; border-bottom: 1px solid var(--border); flex-shrink: 0; letter-spacing: -0.01em; }
+.sheet-body { overflow-y: auto; padding: 14px 16px; }
+@media (min-width: 701px) {
+  .sheet {
+    left: 50%; right: auto; bottom: 24px; width: 560px; margin-left: -280px;
+    border-radius: var(--radius); border-bottom: 1px solid var(--border); max-height: 70vh;
+  }
+}
+
+@media (max-width: 700px) {
+  .layout { display: block; height: auto; min-height: 100%; }
+  .left, .right { width: 100%; min-width: 0; }
+  .left { border-right: none; height: auto; }
+  #runs { overflow-y: visible; max-height: none; }
+  .right { display: none; height: auto; min-height: 100vh; }
+  body.detail-open .left { display: none; }
+  body.detail-open .right { display: flex; }
+  .back-btn {
+    display: flex; align-items: center; gap: 4px; text-align: left; padding: 12px 14px;
+    background: var(--bg); border: none; border-bottom: 1px solid var(--border);
+    color: var(--primary); font: inherit; font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .run-title { white-space: normal; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="left">
+    <div class="filters">
+      <input id="filter" type="text" placeholder="Filter by prompt…" autocomplete="off">
+      <select id="agent"><option value="">all</option></select>
+    </div>
+    <ul id="runs"></ul>
+  </aside>
+  <main class="right">
+    <button id="back" class="back-btn" type="button">‹ Back to runs</button>
+    <div id="prompt-header" class="prompt-header empty">Select a run</div>
+    <div class="lines-wrap" id="lines"></div>
+  </main>
+</div>
+<div id="sheet-backdrop" class="sheet-backdrop"></div>
+<div id="sheet" class="sheet">
+  <div class="sheet-handle"></div>
+  <div id="sheet-title" class="sheet-title"></div>
+  <div id="sheet-body" class="sheet-body mono"></div>
+</div>
+<script>
+const $ = (s) => document.querySelector(s);
+const els = {
+  filter: $('#filter'), agent: $('#agent'), runs: $('#runs'),
+  prompt: $('#prompt-header'), lines: $('#lines'), back: $('#back'),
+  linesWrap: $('#lines'),
+  sheet: $('#sheet'), sheetBackdrop: $('#sheet-backdrop'),
+  sheetTitle: $('#sheet-title'), sheetBody: $('#sheet-body'),
+};
+const state = {
+  runs: [], filterText: '', filterAgent: '',
+  selectedRunId: null, selectedRun: null,
+  pollTimer: null, listTimer: null, lastLineCount: 0,
+  groups: {},
+};
+
+function parseRunIdFromPath() {
+  const m = location.pathname.match(/^\/opencode-log\/([^\/]+)\/?$/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+function relTime(iso) {
+  if (!iso) return '';
+  const t = new Date(iso).getTime();
+  if (!isFinite(t)) return '';
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 60) return s + 's ago';
+  const m = Math.round(s / 60);
+  if (m < 60) return m + 'm ago';
+  const h = Math.round(m / 60);
+  if (h < 24) return h + 'h ago';
+  return Math.round(h / 24) + 'd ago';
+}
+
+function truncate(s, n) { s = String(s ?? ''); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+const ESC = { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' };
+function escapeHtml(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ESC[c]); }
+
+async function fetchJson(url) {
+  const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+
+const ANSI_RE = /\x1b\[[0-9;]*m/g;
+function stripAnsi(s) { return String(s ?? '').replace(ANSI_RE, ''); }
+
+function truncateMiddle(s, n) {
+  s = String(s ?? '');
+  if (s.length <= n) return s;
+  const head = Math.ceil(n * 0.6), tail = n - head;
+  return s.slice(0, head) + '\n… (' + (s.length - n) + ' more chars) …\n' + s.slice(s.length - tail);
+}
+
+// A tool_use event's action bucket, mirroring how other agentic tools (e.g.
+// t3code's MessagesTimeline) group a run of tool calls into one summary
+// line ("Ran 3 commands", "Read 2 files") instead of showing every call
+// inline -- see references/t3code/apps/web/src/components/chat/MessagesTimeline.logic.ts.
+function toolActionType(tool, cmd) {
+  const t = String(tool || '').toLowerCase();
+  if (t === 'read' || t === 'glob' || t === 'grep') return 'read';
+  if (t === 'write' || t === 'edit' || t === 'multiedit' || t === 'notebookedit') return 'edit';
+  if (t === 'bash' || cmd) return 'command';
+  if (t === 'websearch' || t === 'webfetch') return 'search';
+  return 'other';
+}
+const ACTION_LABELS = {
+  read: (n) => `Read ${n} ${n === 1 ? 'file' : 'files'}`,
+  edit: (n) => `Changed ${n} ${n === 1 ? 'file' : 'files'}`,
+  command: (n) => `Ran ${n} ${n === 1 ? 'command' : 'commands'}`,
+  search: (n) => `Searched ${n} ${n === 1 ? 'time' : 'times'}`,
+  other: (n) => `Used ${n} ${n === 1 ? 'tool' : 'tools'}`,
+};
+function summarizeToolGroup(items) {
+  const counts = {};
+  for (const it of items) counts[it.actionType] = (counts[it.actionType] || 0) + 1;
+  const labels = Object.entries(counts).map(([action, n]) => ACTION_LABELS[action](n));
+  if (labels.length === 0) return 'Used tools';
+  if (labels.length === 1) return labels[0];
+  const lower = labels.map((l, i) => (i === 0 ? l : l.charAt(0).toLowerCase() + l.slice(1)));
+  return lower.length === 2 ? lower.join(' and ') : lower.slice(0, -1).join(', ') + ', and ' + lower.at(-1);
+}
+
+// Renders a compact +N -N pill, same shape as t3code's DiffStatLabel
+// (references/t3code/apps/web/src/components/chat/DiffStatLabel.tsx) --
+// monospace, green additions, red deletions, no parens (matches its
+// `layout: "inline"` variant).
+function diffStatHtml(additions, deletions) {
+  return '<span class="diffstat"><span class="add">+' + additions + '</span><span class="del">-' + deletions + '</span></span>';
+}
+
+// A naive unified line diff (LCS-free: longest common prefix/suffix trim,
+// good enough for the single-hunk edits opencode's `edit` tool actually
+// produces) -- not t3code's real diff engine, but the same visual shape:
+// a scrollable block of +/- lines, colored, monospace.
+function lineDiff(oldStr, newStr) {
+  const a = String(oldStr ?? '').split('\n');
+  const b = String(newStr ?? '').split('\n');
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start += 1;
+  let endA = a.length, endB = b.length;
+  while (endA > start && endB > start && a[endA - 1] === b[endB - 1]) { endA -= 1; endB -= 1; }
+  const lines = [];
+  for (let i = 0; i < start; i += 1) lines.push({ cls: 'ctx', text: ' ' + a[i] });
+  for (let i = start; i < endA; i += 1) lines.push({ cls: 'del', text: '-' + a[i] });
+  for (let i = start; i < endB; i += 1) lines.push({ cls: 'add', text: '+' + b[i] });
+  for (let i = endA; i < a.length; i += 1) lines.push({ cls: 'ctx', text: ' ' + a[i] });
+  return { additions: endB - start, deletions: endA - start, lines };
+}
+
+function diffBlockHtml(lines) {
+  return '<div class="diff-block mono">' + lines.map((l) =>
+    '<div class="diff-line ' + l.cls + '">' + escapeHtml(l.text) + '</div>'
+  ).join('') + '</div>';
+}
+
+function toolCardHtml(t) {
+  const head = '<div class="evt-tool-head"><span class="evt-icon">🔧</span><span class="evt-tool-name">' + escapeHtml(t.tool) + '</span>'
+    + (t.diff ? diffStatHtml(t.diff.additions, t.diff.deletions) : '')
+    + '<span class="evt-tool-status ' + t.statusClass + '">' + escapeHtml(t.statusLabel) + '</span></div>';
+  if (t.filePath) {
+    return '<div class="evt-tool">' + head
+      + '<div class="evt-tool-file"><span class="evt-tool-filepath">' + escapeHtml(t.filePath) + '</span></div>'
+      + (t.diff ? diffBlockHtml(t.diff.lines) : '')
+      + t.outHtml + '</div>';
+  }
+  return '<div class="evt-tool">' + head
+    + (t.cmd ? '<div class="evt-tool-cmd mono">' + escapeHtml(t.cmd) + '</div>' : '')
+    + t.outHtml + '</div>';
+}
+
+// Parses one raw log line (a JSON opencode event, or a plain terminal
+// string) into a typed item: {kind: 'tool', ...} feeds the grouping pass
+// below, {kind: 'other', html} renders inline as-is, {kind: 'skip'} is
+// dropped (pure turn bookkeeping).
+function parseLine(raw) {
+  let obj;
+  try { obj = JSON.parse(raw); } catch { obj = null; }
+  if (!obj || typeof obj !== 'object' || !obj.type) {
+    const text = stripAnsi(raw).trim();
+    if (!text) return { kind: 'skip' };
+    return { kind: 'other', html: '<div class="evt"><span class="evt-badge raw">›</span>'
+      + '<div class="evt-body"><div class="evt-raw mono">' + escapeHtml(text) + '</div></div></div>' };
+  }
+
+  // Every event line wraps a `part` (opencode's own event envelope: {type,
+  // timestamp, sessionID, part: {...actual content, with its own `type`}}),
+  // but a couple of shapes have been seen with the field flattened to the
+  // top level too -- read part.text/part.type first, fall back to the
+  // top-level field.
+  const part0 = obj.part || {};
+  const evtType = obj.type;
+  const text0 = typeof part0.text === 'string' ? part0.text : obj.text;
+
+  if (evtType === 'text' && typeof text0 === 'string') {
+    return { kind: 'other', html: '<div class="evt"><span class="evt-badge text">💬</span>'
+      + '<div class="evt-body"><div class="evt-label">Assistant</div>'
+      + '<div class="evt-text">' + escapeHtml(text0) + '</div></div></div>' };
+  }
+
+  if (evtType === 'reasoning' && typeof text0 === 'string') {
+    return { kind: 'other', html: '<div class="evt"><span class="evt-badge reasoning">🧠</span>'
+      + '<div class="evt-body"><div class="evt-label">Thinking</div>'
+      + '<div class="evt-reasoning">' + escapeHtml(text0) + '</div></div></div>' };
+  }
+
+  if ((evtType === 'tool_use' || evtType === 'tool') && obj.part) {
+    const part = obj.part;
+    const state = part.state || {};
+    const tool = part.tool || 'tool';
+    const toolLower = String(tool).toLowerCase();
+    const status = state.status || 'unknown';
+    const input = state.input || {};
+    const cmd = typeof input.command === 'string' ? input.command : JSON.stringify(input);
+    const rawOut = state.output ?? (state.metadata && state.metadata.output) ?? '';
+    const exit = state.metadata && typeof state.metadata.exit === 'number' ? state.metadata.exit : null;
+    const statusClass = exit != null && exit !== 0 ? 'error' : (status === 'running' ? 'running' : 'completed');
+    const statusLabel = status === 'running' ? 'running' : (exit != null ? 'exit ' + exit : status);
+    const outText = truncateMiddle(String(rawOut).trim(), 4000);
+    const outHtml = outText
+      ? '<details><summary>output</summary>'
+        + '<div class="evt-tool-out mono">' + escapeHtml(outText) + '</div></details>'
+      : '';
+
+    // write/edit tools carry a filePath + old/new content -- render as a
+    // real diff (see lineDiff/diffStatHtml) instead of a raw JSON dump of
+    // the tool input, matching t3code's per-file +N -N stat.
+    let filePath, diff;
+    if (toolLower === 'write' && typeof input.filePath === 'string') {
+      filePath = input.filePath;
+      diff = lineDiff('', input.content ?? '');
+    } else if ((toolLower === 'edit' || toolLower === 'multiedit') && typeof input.filePath === 'string') {
+      filePath = input.filePath;
+      diff = lineDiff(input.oldString ?? '', input.newString ?? '');
+    }
+
+    return {
+      kind: 'tool', tool, cmd, statusClass, statusLabel, outHtml, filePath, diff,
+      actionType: toolActionType(tool, cmd),
+    };
+  }
+
+  // step_start/step_finish are opencode's own turn-boundary bookkeeping
+  // (one step_finish per LLM turn, running token/cost totals) -- the run's
+  // own final tokens/cost are already shown in the run list, so these are
+  // pure noise here.
+  if (evtType === 'step_finish' || evtType === 'step-finish') return { kind: 'skip' };
+  if (evtType === 'step_start' || evtType === 'step-start') return { kind: 'skip' };
+
+  // Unrecognized event shape -- never drop it silently, just don't pretend
+  // to understand it: collapsed raw JSON.
+  return { kind: 'other', html: '<div class="evt"><details><summary>' + escapeHtml(evtType) + '</summary>'
+    + '<div class="mono">' + escapeHtml(JSON.stringify(obj, null, 2)) + '</div></details></div>' };
+}
+
+// Groups consecutive tool_use items into one collapsed summary row (tap
+// opens a bottom sheet listing each call), same shape as the run list.
+// `groups` accumulates {title, itemsHtml} keyed by a fresh id per render.
+function renderTranscript(lines, groups) {
+  const items = lines.map(parseLine);
+  let html = '';
+  let i = 0;
+  let groupSeq = 0;
+  while (i < items.length) {
+    const item = items[i];
+    if (item.kind === 'tool') {
+      const cluster = [];
+      while (i < items.length && items[i].kind === 'tool') { cluster.push(items[i]); i += 1; }
+      const groupId = 'g' + (groupSeq += 1);
+      const title = summarizeToolGroup(cluster);
+      groups[groupId] = { title, itemsHtml: cluster.map(toolCardHtml).join('') };
+      const anyError = cluster.some((c) => c.statusClass === 'error');
+      const diffTotal = cluster.reduce((acc, c) => c.diff
+        ? { additions: acc.additions + c.diff.additions, deletions: acc.deletions + c.diff.deletions }
+        : acc, { additions: 0, deletions: 0 });
+      const showDiffStat = diffTotal.additions + diffTotal.deletions > 0;
+      html += '<div class="evt-group" data-group-id="' + groupId + '">'
+        + '<span class="evt-group-icon' + (anyError ? ' err' : '') + '">' + (anyError ? '⚠️' : '🔧') + '</span>'
+        + '<span class="evt-group-label">' + escapeHtml(title) + '</span>'
+        + (showDiffStat ? diffStatHtml(diffTotal.additions, diffTotal.deletions) : '')
+        + '<span class="evt-group-chevron">›</span></div>';
+      continue;
+    }
+    if (item.kind === 'other') html += item.html;
+    i += 1;
+  }
+  return html;
+}
+
+function openSheet(title, bodyHtml) {
+  els.sheetTitle.textContent = title;
+  els.sheetBody.innerHTML = bodyHtml;
+  els.sheetBackdrop.classList.add('open');
+  els.sheet.classList.add('open');
+}
+function closeSheet() {
+  els.sheetBackdrop.classList.remove('open');
+  els.sheet.classList.remove('open');
+}
+
+function statusClass(run) {
+  if (run.status === 'running') return 'running';
+  return run.status === 'finished' ? (run.ok ? 'ok' : 'err') : 'running';
+}
+
+function refreshAgentOptions() {
+  const agents = new Set();
+  let hasUnassigned = false;
+  for (const r of state.runs) {
+    if (r.agent == null || r.agent === '') hasUnassigned = true;
+    else agents.add(r.agent);
+  }
+  const opts = ['<option value="">all</option>'];
+  if (hasUnassigned) opts.push('<option value="__unassigned__">(unassigned)</option>');
+  for (const a of [...agents].sort()) opts.push('<option value="' + escapeHtml(a) + '">' + escapeHtml(a) + '</option>');
+  const prev = state.filterAgent;
+  els.agent.innerHTML = opts.join('');
+  els.agent.value = (prev === '' || prev === '__unassigned__' || agents.has(prev)) ? prev : '';
+  if (els.agent.value !== prev) state.filterAgent = els.agent.value;
+}
+
+function renderRunsList() {
+  refreshAgentOptions();
+  const text = state.filterText.toLowerCase();
+  const af = state.filterAgent;
+  const filtered = state.runs.filter((r) => {
+    if (text && !(r.prompt || '').toLowerCase().includes(text)) return false;
+    if (af === '__unassigned__') return r.agent != null && r.agent !== '';
+    if (af) return r.agent !== af;
+    return true;
+  });
+  if (filtered.length === 0) { els.runs.innerHTML = '<li class="empty-list">No runs</li>'; return; }
+  els.runs.innerHTML = filtered.map((r) => {
+    const sel = r.runId === state.selectedRunId ? ' selected' : '';
+    const aLabel = r.agent || 'unassigned';
+    return '<li class="run' + sel + '" data-run-id="' + escapeHtml(r.runId) + '">'
+      + '<div class="run-title">' + escapeHtml(truncate(r.prompt, 80)) + '</div>'
+      + '<div class="run-meta">'
+      + '<span class="dot ' + statusClass(r) + '"></span>'
+      + '<span class="badge">' + escapeHtml(aLabel) + '</span>'
+      + '<span class="badge">' + escapeHtml(r.model || '?') + '</span>'
+      + '<span>' + escapeHtml(relTime(r.startedAt)) + '</span>'
+      + '</div></li>';
+  }).join('');
+}
+
+function renderRight(initial) {
+  els.prompt.classList.remove('empty', 'error-msg');
+  const r = state.selectedRun;
+  if (!r) {
+    els.prompt.textContent = 'Select a run';
+    els.prompt.classList.add('empty');
+    els.lines.innerHTML = '';
+    state.lastLineCount = 0;
+    return;
+  }
+  els.prompt.textContent = r.prompt || '';
+  const lines = r.lines || [];
+  if (initial || lines.length !== state.lastLineCount) {
+    const wasAtBottom = els.linesWrap.scrollTop + els.linesWrap.clientHeight >= els.linesWrap.scrollHeight - 40;
+    state.groups = {};
+    els.lines.innerHTML = renderTranscript(lines, state.groups);
+    state.lastLineCount = lines.length;
+    if (initial || wasAtBottom) els.linesWrap.scrollTop = els.linesWrap.scrollHeight;
+  }
+}
+
+function showRightError(msg) {
+  state.selectedRun = null;
+  els.prompt.classList.remove('empty');
+  els.prompt.classList.add('error-msg');
+  els.prompt.textContent = msg;
+  els.lines.innerHTML = '';
+  state.lastLineCount = 0;
+}
+
+async function loadRunList() {
+  try {
+    const data = await fetchJson('/opencode-log/api/runs');
+    state.runs = Array.isArray(data.runs) ? data.runs : [];
+    renderRunsList();
+  } catch (e) {
+    els.runs.innerHTML = '<li class="error-msg">failed to load runs</li>';
+  }
+}
+
+async function loadSelectedRun(initial) {
+  if (!state.selectedRunId) { state.selectedRun = null; renderRight(initial); return; }
+  try {
+    const data = await fetchJson('/opencode-log/api/runs/' + encodeURIComponent(state.selectedRunId));
+    state.selectedRun = data;
+    renderRight(initial);
+    if (data.status === 'running') startPolling(); else stopPolling();
+  } catch (e) {
+    showRightError('failed to load run: ' + (e && e.message ? e.message : 'unknown'));
+    stopPolling();
+  }
+}
+
+function startPolling() {
+  if (state.pollTimer) return;
+  state.pollTimer = setInterval(async () => {
+    if (!state.selectedRunId) return stopPolling();
+    try {
+      const data = await fetchJson('/opencode-log/api/runs/' + encodeURIComponent(state.selectedRunId));
+      state.selectedRun = data;
+      renderRight(false);
+      const idx = state.runs.findIndex((r) => r.runId === state.selectedRunId);
+      if (idx >= 0) {
+        const row = state.runs[idx];
+        row.status = data.status; row.ok = data.ok; row.finishedAt = data.finishedAt;
+        renderRunsList();
+      }
+      if (data.status !== 'running') stopPolling();
+    } catch (e) { /* transient */ }
+  }, 1500);
+}
+
+function stopPolling() { if (state.pollTimer) { clearInterval(state.pollTimer); state.pollTimer = null; } }
+
+els.filter.addEventListener('input', () => {
+  clearTimeout(els.filter._t);
+  els.filter._t = setTimeout(() => { state.filterText = els.filter.value; renderRunsList(); }, 300);
+});
+els.agent.addEventListener('change', () => { state.filterAgent = els.agent.value; renderRunsList(); });
+els.runs.addEventListener('click', (e) => {
+  const li = e.target.closest('.run');
+  if (!li) return;
+  const id = li.dataset.runId;
+  document.body.classList.add('detail-open');
+  if (id && id !== state.selectedRunId) {
+    state.selectedRunId = id;
+    renderRunsList();
+    loadSelectedRun(false);
+  }
+});
+els.back.addEventListener('click', () => document.body.classList.remove('detail-open'));
+
+els.lines.addEventListener('click', (e) => {
+  const el = e.target.closest('.evt-group');
+  if (!el) return;
+  const group = state.groups[el.dataset.groupId];
+  if (group) openSheet(group.title, group.itemsHtml);
+});
+els.sheetBackdrop.addEventListener('click', closeSheet);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSheet(); });
+
+(async () => {
+  const pathId = parseRunIdFromPath();
+  await loadRunList();
+  if (pathId) { state.selectedRunId = pathId; document.body.classList.add('detail-open'); }
+  else if (state.runs.length > 0) state.selectedRunId = state.runs[0].runId;
+  await loadSelectedRun(true);
+  state.listTimer = setInterval(loadRunList, 5000);
+})();
+</script>
+</body>
+</html>

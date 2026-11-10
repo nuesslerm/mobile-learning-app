@@ -1,0 +1,74 @@
+{
+  "method": "terminal.list",
+  "exchanges": [
+    {
+      "name": "lists the terminals of a workspace",
+      "before": [
+        {
+          "id": 1,
+          "method": "terminal.open",
+          "params": {
+            "workspace": "w1",
+            "terminal": "t1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "terminal.list",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "workspace": "w1",
+          "terminals": [
+            {
+              "workspace": "w1",
+              "terminal": "t1",
+              "title": "t1",
+              "cwd": "<volatile>",
+              "cols": 80,
+              "rows": 24,
+              "status": "running",
+              "exit_code": null,
+              "pid": "<volatile>",
+              "offset": "<volatile>",
+              "base_offset": 0,
+              "updated_at": "<volatile>"
+            }
+          ]
+        }
+      },
+      "actions": [
+        "pty_list"
+      ],
+      "volatile": [
+        "/result/terminals/0/cwd",
+        "/result/terminals/0/pid",
+        "/result/terminals/0/offset",
+        "/result/terminals/0/updated_at"
+      ]
+    },
+    {
+      "name": "a workspace nobody attached has no executor",
+      "request": {
+        "id": 1,
+        "method": "terminal.list",
+        "params": {
+          "workspace": "nowhere"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "NO_EXECUTOR",
+          "message": "no executor is attached for workspace nowhere"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

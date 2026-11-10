@@ -1,0 +1,41 @@
+Usage: wf ship eas [options]
+
+Publish the app to Expo as an EAS Update (frontend/mla-tamagui's publish:eas
+script). Needs EXPO_TOKEN from the vault. EXPO_PUBLIC_* variables in the
+environment are baked into the published bundle.
+
+Options:
+  --branch <branch>          EAS branch to publish to (default: the current git
+                             branch)
+  --initial-route <route>    Route the update opens on (default: /)
+  --message <message>        Update message (default: the last commit subject)
+  --platform <platform>      all | ios | android: one update group for those
+                             platforms (default: the script's own, ios)
+  --pointer                  Also store the summary as the branch's latest
+                             update, which the e2e tests load (CI's publish
+                             only: they refuse an update without the lab flag,
+                             backend hosts and token CI bakes in, or whose baked
+                             tailnet names have moved)
+  --latest                   Publish nothing: print the update the branch pointer
+                             names (CI's last publish; --branch defaults to dev)
+                             as {branch, commit, group, platforms, link}; exit 1
+                             with {ok:false, error, next} when none is stored
+  --frontend <name>          Frontend package to publish (default: mla-tamagui)
+  -h, --help                 display help for command
+
+Output: one JSON line on stdout {published, branch, initialRoute, commit, group,
+platform, platforms[], env[], hosts[], memory {peakRssMb, vm}, timing {exportS,
+uploadS, servedS}, link, maps {uploaded, base, files[] | error}, served
+{platform, runtimeVersion, url, status, s | error}, pointers {summary, latest |
+error}}. env holds the names (never the values) of the EXPO_PUBLIC_* variables
+the bundle baked in, hosts the hosts their URLs name. peakRssMb is the largest
+process the publish ran; vm is the VM's load and MemAvailable sampled during it
+when WF_VM_SAMPLE_SECS is set. servedS is the seconds after the upload until
+u.expo.dev serves the group's manifest to a device of that platform (android
+when the group has it; WF_EAS_UPDATES_URL overrides the host, and
+WF_EAS_SERVED_TIMEOUT_S the 120 s it waits). The line is stored in the
+verification bucket as verification/eas-updates/<group>/summary.json and, with
+--pointer, as verification/eas-updates/latest-<branch>.json.
+Exit 1 when the publish fails (the tail of its output on stderr) or, with
+--pointer, when latest-<branch>.json was not stored (it still names an earlier
+update); 2 on a bad option.

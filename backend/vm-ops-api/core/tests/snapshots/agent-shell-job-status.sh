@@ -1,0 +1,1 @@
+if [ ! -d "$1" ]; then echo 0; printf "\n---EXITCODE---\n"; echo 137; exit 0; fi; wc -c < "$1/output.log" 2>/dev/null || echo 0; printf "\n---EXITCODE---\n"; if [ -f "$1/exit-code" ]; then cat "$1/exit-code"; else pgid=$(cat "$1/pid" 2>/dev/null); [ -z "$pgid" ] || kill -0 "-$pgid" 2>/dev/null || echo 137; fi

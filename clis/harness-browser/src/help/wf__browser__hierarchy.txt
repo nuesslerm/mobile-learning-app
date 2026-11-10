@@ -1,0 +1,8 @@
+Usage: wf browser hierarchy [--device N]
+
+The screen's elements as JSON (Maestro's `maestro hierarchy`), so an agent can write a selector: every on-screen element
+with a test id, an accessibility label, its own text or a field value, the app page first, then its same-origin frames
+(the editor's web view), at most 500. Bounds are clipped to the screen; text is a field's value for an input. Every
+failed wait writes the same dump as evidence.
+
+Result: {platform, elements: [{id, label, text, bounds: {left, top, right, bottom}, frame}]}

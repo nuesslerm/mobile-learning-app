@@ -1,0 +1,39 @@
+Usage: wf exec serve --rca-url <url> --workspace <id> --root <dir> [--executor <id>] [--worktree-base <dir>] [--browse-allow <dirs>] [--reconnect] [--git-hooks] [--secret-env NAME]
+
+Attach this directory to the rca service as an executor: open
+GET /exec/v2/executors?workspace=<id> (a WebSocket, Authorization: Bearer) and
+run every request frame {id, tool, args} against --root, answering
+{id, ok, result} or {id, ok: false, error: {code, message}}; run_command also
+streams {id, stream, data} frames first, and worktree_setup streams its progress
+as {id, seq, event} frames. A path outside --root and --worktree-base (a `..`,
+or a symlink that leaves the directory it started in) is PATH_OUTSIDE_ROOT; only
+browse reads elsewhere, inside --browse-allow. A second executor attached with
+the same id replaces this one: rca closes this channel with code 4001. When the
+channel ends, whatever still runs for it is killed.
+
+Options:
+  --rca-url <url>             The rca service, http://host:port or ws://host:port
+  --workspace <id>            The executor's root workspace; a turn names it
+  --root <dir>                The repository root every action is confined to
+  --executor <id>             The executor's id (default: the workspace id); rca
+                              keeps the workspaces made later (workspace.create,
+                              worktree.create) with the executor that owns them
+  --worktree-base <dir>       Where git_worktree_add makes worktrees, a directory
+                              outside --root; confinement widens to it
+  --browse-allow <dirs>       Comma-separated directories browse may list besides
+                              --root and --worktree-base
+  --reconnect                 When the channel drops (not a close with 4001), open
+                              it again for the same executor: its ptys go on and
+                              rca re-attaches to them by byte offset
+  --git-hooks                 Let the repository's own hooks run in the git actions
+                              (commit, merge, rebase, checkout, ...); off by default
+  --secret-env <NAME>         The environment variable holding the bearer (default
+                              CHAT_AGENT_API_SECRET); the value is never printed
+  -h, --help                  display help for command
+
+Output, one JSON object per line: {ok: true, event: "attached", workspace,
+executor, root, worktreeBase, rcaUrl} once the channel is open, then on a clean
+close {ok: true, event: "closed", closeCode} and exit 0. A refused connection, an
+unset bearer, a bad --root, --worktree-base or --browse-allow, a dropped socket
+or a close with 4001 prints {ok: false, error, next} (with closeCode for 4001)
+and exits 1. A missing option exits 2.

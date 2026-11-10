@@ -1,0 +1,83 @@
+{
+  "runbook": "device-lab-tamil-writing.md",
+  "gate": "G2 Tamil writing",
+  "sha": "dbea00703b8dc15b52083c3ffe544c0919aded00",
+  "platform": "browser",
+  "ranAt": "2026-10-19T20:25:25.093Z",
+  "ranOn": "ci",
+  "verdict": "pass",
+  "recordingsReadBack": true,
+  "criteria": {
+    "all_units_pass": "pass (8 of 8 units)",
+    "zero_warnings": "pass (0 warnings)",
+    "recorded_and_read_back": "pass (one recording per unit, read back after upload and decoded again for the report)",
+    "unit_under_60s": "pass (longest 43.0 s, median 30.1 s)"
+  },
+  "notes": "CI on the VM, e2e/tamil-writing.lua, one unit per job step, screen iphone-15-pro 1254x2748. Replaces the hand-run record of mid-October; the units, timings and recordings are in the report page.",
+  "evidence": {
+    "page": "https://claude.ai/artifact/Gs665MsAYg5xfUMEWfnM2L",
+    "recordingsReadBack": true,
+    "runs": [
+      "run-60ac8c0538a2fa1e",
+      "run-565dc84b1e667f2c",
+      "run-7ddd6b4938a3a643",
+      "run-c19f5a6b4f1f2e6a",
+      "run-bd406c487573c057",
+      "run-08d66b7b4c17b482",
+      "run-b1f12c33cc229c5d",
+      "run-e8a06be0a4f0fe0b"
+    ],
+    "units": {
+      "letters=1-2 part=vowels": {
+        "runId": "run-60ac8c0538a2fa1e",
+        "durationS": 30.1,
+        "verdict": "pass"
+      },
+      "letters=3-4 part=vowels": {
+        "runId": "run-565dc84b1e667f2c",
+        "durationS": 27.5,
+        "verdict": "pass"
+      },
+      "letters=5-6 part=vowels": {
+        "runId": "run-7ddd6b4938a3a643",
+        "durationS": 20.3,
+        "verdict": "pass"
+      },
+      "part=consonant": {
+        "runId": "run-c19f5a6b4f1f2e6a",
+        "durationS": 13.6,
+        "verdict": "pass"
+      },
+      "part=words word=word-uyir-a": {
+        "runId": "run-bd406c487573c057",
+        "durationS": 43.0,
+        "verdict": "pass"
+      },
+      "part=words word=word-uyir-aa": {
+        "runId": "run-08d66b7b4c17b482",
+        "durationS": 30.2,
+        "verdict": "pass"
+      },
+      "part=words word=word-uyir-i": {
+        "runId": "run-b1f12c33cc229c5d",
+        "durationS": 30.1,
+        "verdict": "pass"
+      },
+      "part=write": {
+        "runId": "run-e8a06be0a4f0fe0b",
+        "durationS": 23.6,
+        "verdict": "pass"
+      }
+    },
+    "recordings": [
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-60ac8c0538a2fa1e/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-565dc84b1e667f2c/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-7ddd6b4938a3a643/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-c19f5a6b4f1f2e6a/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-bd406c487573c057/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-08d66b7b4c17b482/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-b1f12c33cc229c5d/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-e8a06be0a4f0fe0b/run.mp4"
+    ]
+  }
+}

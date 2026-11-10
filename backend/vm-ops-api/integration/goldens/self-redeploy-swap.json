@@ -1,0 +1,33 @@
+[
+  [
+    "run",
+    "--pull",
+    "always",
+    "--rm",
+    "-d",
+    "-v",
+    "/var/run/docker.sock:/var/run/docker.sock",
+    "-v",
+    "<world>/vm:<world>/vm",
+    "-v",
+    "/usr/local/bin/bws:/usr/local/bin/bws:ro",
+    "-v",
+    "clis:/opt/clis:ro",
+    "-w",
+    "<world>/vm",
+    "-e",
+    "IMAGE_TAG=sha-1234567",
+    "-e",
+    "IMAGE_NAMESPACE=ns",
+    "-e",
+    "GITHUB_RAW_TOKEN=tok",
+    "-e",
+    "BETTERSTACK_OTLP_HOST=",
+    "-e",
+    "BETTERSTACK_OTLP_TOKEN=otlp-tok",
+    "<image>",
+    "sh",
+    "-c",
+    "{\ndate -u +%FT%TZ\necho 'pulling tag=sha-1234567'\nOTLP_HOST=${BETTERSTACK_OTLP_HOST:-}; OTLP_TOKEN=${BETTERSTACK_OTLP_TOKEN:-}\nwf log emit --service vm-ops-api --host-label \"main\" --attr tag=sha-1234567 --level info --message redeploy.started || true\ntrap 'rm -rf <world>/vm/.staging' EXIT\nrm -rf <world>/vm/.staging\nREDEPLOY_EXIT=0; RESTORED=none\nrollback() { for f in <world>/vm/.env.defaults <world>/vm/.env <world>/vm/docker-compose.yml; do [ ! -f \"$f.prev\" ] || mv -f \"$f.prev\" \"$f\" || return 1; done; }\nkeep() { [ ! -f \"$1\" ] || { cp -p \"$1\" \"$1.prev.tmp\" && mv -f \"$1.prev.tmp\" \"$1.prev\"; } || { rm -f \"$1.prev.tmp\"; return 1; }; }\n{\n{ [ ! -f <world>/vm/.swap-pending ] || { echo 'a swap was interrupted: putting the previous files back'; rollback && rm -f <world>/vm/.swap-pending; }; } &&\nmkdir -p <world>/vm/.staging &&\necho '[provision] refreshing vm-ops-api'\"'\"'s own compose file and .env.defaults from 123456789abcdef0123456789abcdef012345678' &&\n<helper:provision> 'https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/123456789abcdef0123456789abcdef012345678/infra/oracle-cloud/vm-ops-api/docker-compose.yml' '<world>/vm/.staging/docker-compose.yml' 'https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/123456789abcdef0123456789abcdef012345678/infra/oracle-cloud/vm-ops-api/.env.defaults' '<world>/vm/.staging/.env.defaults' &&\nif [ -f <world>/vm/.env.local ]; then grep -E '^(BWS_[A-Z0-9_]+|SECRETS_BACKEND)=' <world>/vm/.env.local > <world>/vm/.staging/.env.bootstrap || true; if sh -n <world>/vm/.staging/.env.bootstrap; then set -a; . <world>/vm/.staging/.env.bootstrap; set +a; rm -f <world>/vm/.staging/.env.bootstrap; else rm -f <world>/vm/.staging/.env.bootstrap; echo '[env] .env.local has a BWS_ or SECRETS_BACKEND line that does not parse' >&2; false; fi; fi &&\nunset BETTERSTACK_OTLP_TOKEN BETTERSTACK_OTLP_HOST EXPO_PUBLIC_BETTERSTACK_TOKEN &&\n( cd <world>/vm/.staging && wf secret sync-env --for vm-ops-api --backend bitwarden --base .env.defaults --out .env ) &&\ncp <world>/vm/.staging/.env <world>/vm/.staging/.env.synced &&\necho \"HOST_LABEL=main\" >> <world>/vm/.staging/.env &&\n<helper:appendEnvLocal> <world>/vm/.staging/.env <world>/vm/.env.local &&\n<helper:verifyEnv> <world>/vm/.staging/.env.synced <world>/vm/.staging/.env &&\n( cd <world>/vm/.staging && docker compose config -q ) &&\n( cd <world>/vm/.staging && docker compose pull ops-api )\n} || REDEPLOY_EXIT=$?\nif [ \"$REDEPLOY_EXIT\" = 0 ]; then { keep <world>/vm/.env.defaults && keep <world>/vm/.env && keep <world>/vm/docker-compose.yml; } || REDEPLOY_EXIT=$?; fi\nif [ \"$REDEPLOY_EXIT\" = 0 ]; then\n{\n: > <world>/vm/.swap-pending &&\nmv -f <world>/vm/.staging/.env.defaults <world>/vm/.env.defaults &&\nmv -f <world>/vm/.staging/.env <world>/vm/.env &&\nmv -f <world>/vm/.staging/docker-compose.yml <world>/vm/docker-compose.yml &&\nrm -f <world>/vm/.swap-pending &&\n( cd <world>/vm && docker compose up -d --wait --wait-timeout 120 ) &&\nif cp -p <world>/vm/.env <world>/vm/.env.tmp && echo \"IMAGE_TAG=sha-1234567\" >> <world>/vm/.env.tmp && mv -f <world>/vm/.env.tmp <world>/vm/.env; then :; else rm -f <world>/vm/.env.tmp; false; fi\n} || REDEPLOY_EXIT=$?\n  if [ \"$REDEPLOY_EXIT\" != 0 ]; then\n    if rollback; then rm -f <world>/vm/.swap-pending; if ( cd <world>/vm && IMAGE_TAG=sha-7654321 docker compose up -d ); then RESTORED=ok; else RESTORED=failed; echo \"restore: docker compose up -d failed\"; fi; else RESTORED=failed; echo \"restore: moving the .prev files back failed\"; fi\n  fi\nfi\necho \"exit=$REDEPLOY_EXIT restored=$RESTORED\"\nif [ \"$REDEPLOY_EXIT\" = \"0\" ]; then LOGGER_LEVEL=info; LOGGER_MSG=redeploy.succeeded; else LOGGER_LEVEL=error; LOGGER_MSG=redeploy.failed; fi\nBETTERSTACK_OTLP_HOST=\"$OTLP_HOST\" BETTERSTACK_OTLP_TOKEN=\"$OTLP_TOKEN\" wf log emit --service vm-ops-api --host-label \"main\" --attr tag=sha-1234567 --level \"$LOGGER_LEVEL\" --message \"$LOGGER_MSG\" --attr exitCode=\"$REDEPLOY_EXIT\" --attr restored=\"$RESTORED\" || true\nprintf '{\"ts\":\"%s\",\"key\":\"vm-ops-api\",\"requestedBy\":\"self-redeploy\",\"tag\":\"sha-1234567\",\"ref\":\"123456789abcdef0123456789abcdef012345678\",\"outcome\":\"%s\",\"exitCode\":%s,\"restored\":\"%s\"}\\n' \"$(date -u +%FT%TZ)\" \"$LOGGER_MSG\" \"$REDEPLOY_EXIT\" \"$RESTORED\" >> redeploy-history.jsonl\ntail -n 200 redeploy-history.jsonl > redeploy-history.jsonl.tmp && mv redeploy-history.jsonl.tmp redeploy-history.jsonl\nexit \"$REDEPLOY_EXIT\"\n} > last-redeploy.log 2>&1"
+  ]
+]

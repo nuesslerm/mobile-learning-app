@@ -1,0 +1,77 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "pass": true,
+      "input": {
+        "nums": [
+          2,
+          7,
+          11,
+          15
+        ],
+        "target": 9
+      },
+      "actual": [
+        0,
+        1
+      ],
+      "expected": [
+        0,
+        1
+      ],
+      "stdout": "",
+      "stderr": "",
+      "error": null,
+      "elapsed_ms": 1
+    },
+    {
+      "pass": true,
+      "input": {
+        "nums": [
+          2,
+          7,
+          11,
+          15
+        ],
+        "target": 9
+      },
+      "actual": [
+        0,
+        1
+      ],
+      "expected": [
+        0,
+        1
+      ],
+      "stdout": "",
+      "stderr": "",
+      "error": null,
+      "elapsed_ms": 1
+    },
+    {
+      "pass": true,
+      "input": {
+        "nums": [
+          2,
+          7,
+          11,
+          15
+        ],
+        "target": 9
+      },
+      "actual": [
+        0,
+        1
+      ],
+      "expected": [
+        0,
+        1
+      ],
+      "stdout": "",
+      "stderr": "",
+      "error": null,
+      "elapsed_ms": 1
+    }
+  ]
+}

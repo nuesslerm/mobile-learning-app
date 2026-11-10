@@ -1,0 +1,337 @@
+name: agent-shell
+# Still NO /var/run/docker.sock mount and no host bind-mount anywhere in
+# this file -- redeploying the VM's OTHER apps still goes through
+# vm-ops-api's own HTTP API (redeploy-app), never a local docker call
+# against the host's daemon. The ONE container that runs the nested dockerd
+# is `agent-dind`, and IT is `privileged: true` (cgroup/device access dockerd
+# needs), but that is privilege over THIS container's own kernel namespaces,
+# not the host's: no host socket, no host mount, no visibility into the host's
+# Docker Engine or any other app's container. `app` and `agent-sessions` are
+# NOT privileged; they reach the daemon only through the dind-socket volume.
+# The host blast radius a compromised session here has is unchanged.
+
+# Every role container is the same image serving the same human: the login
+# surface needs the provider keys and the SSH identity source just
+# as much as the tools container does. Split out as an anchor after the role
+# split left agent-sessions with only two variables, which emptied its
+# authorized_keys and locked SSH out entirely.
+x-agent-environment: &agent-environment
+  HOST_LABEL: ${HOST_LABEL}
+  # Every agent container shares the tailscale sidecar's network namespace, so it is already on the tailnet: `wf` (deploy status,
+  # vm-ops health, vm exec) connects directly instead of through the SOCKS5 listener a sandbox outside the tailnet uses
+  # (an empty value disables the proxy; without it `wf ship --status` here fails with curl exit 7 on localhost:1055).
+  WF_TAILNET_SOCKS: ""
+  # Bearer token for redeploy-app's call to vm-ops-api's OWN routes
+  # (redeploy, /agent-shell/credentials, ...) -- these gate on
+  # VM_OPS_API_AUTH_TOKEN, distinct from VM_GATEWAY_AUTH_SEED below
+  # (which only gates vm-gateway's Funnel). See clis/secrets/src/data/registry.json's
+  # VM_OPS_API_AUTH_TOKEN entry for the full two-ingress-path rationale.
+  VM_OPS_API_AUTH_TOKEN: ${VM_OPS_API_AUTH_TOKEN:-}
+  VM_GATEWAY_AUTH_SEED: ${VM_GATEWAY_AUTH_SEED:-}
+  # For `wf secret login <tool>` -- the same guard headers
+  # vnc-auth-session's own listener already checks, letting a human
+  # SSH'd in here trigger a VNC login session themselves (reaches
+  # vnc-auth:8795 over the shared tailnet) instead of needing someone
+  # else to call the listener's HTTP API on their behalf.
+  VNC_AUTH_TRIGGER_SECRET: ${VNC_AUTH_TRIGGER_SECRET:-}
+  VNC_AUTH_OWNER_CHAT_ID: ${VNC_AUTH_OWNER_CHAT_ID:-}
+  # T3 Code's OpenCode provider spawns a plain `opencode` child process
+  # (t3code-serve.sh) that inherits this container's env -- OpenCode
+  # auto-detects these by reading its own shipped
+  # ~/.cache/opencode/models.json (minimax -> MINIMAX_API_KEY,
+  # kimi-for-coding -> KIMI_API_KEY), no opencode.json needed. Same
+  # vault secrets remote-chat-agent already requires, reused here, not
+  # new. OPENCODE_API_KEY is the one rename: OpenCode's binary reads
+  # THIS name internally, while the vault stores the same value as
+  # OPENCODE_GO_API_KEY (see clis/secrets/src/data/registry.json's
+  # entry).
+  MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+  KIMI_API_KEY: ${KIMI_API_KEY:-}
+  OPENCODE_API_KEY: ${OPENCODE_GO_API_KEY:-}
+  # The primary source authorized_keys is built from -- a deliberate
+  # decision to trust sshid.io alone as the PERSONAL identity source for
+  # this container rather than also wiring in the separate
+  # ORACLE_DEPLOY_SSH_PUBLIC_KEY/BREAK_GLASS_SSH_PUBLIC_KEY vault keys
+  # (those still exist, for the VM host's own Terraform var, just not
+  # here). Not secret, not vault-resolved -- a public identity-keys URL
+  # fetched live by entrypoint.sh (see .env.defaults for why).
+  SSHID_URL: ${SSHID_URL:-}
+  # One deliberate, narrowly-scoped exception to "SSHID_URL only" -- a
+  # machine-only test identity for an agent session's automated/
+  # exploratory e2e checks over SSH, NOT a second personal
+  # identity. Not secret (a public key); see entrypoint.sh's own comment.
+  AGENT_SHELL_E2E_SSH_PUBLIC_KEY: ${AGENT_SHELL_E2E_SSH_PUBLIC_KEY:-}
+  # BETTERSTACK_OTLP_TOKEN/_HOST -- same pair every other app's compose
+  # file wires, feeding the 15-min heartbeat (heartbeat.sh) rather than
+  # @lib/logging's OTel bridge, since this container has no persistent
+  # Node process to host it -- see the compiled `logger` CLI baked into
+  # the image (Dockerfile) instead. Empty defaults so an unset value
+  # degrades to console-only, same contract as every other app.
+  BETTERSTACK_OTLP_TOKEN: ${BETTERSTACK_OTLP_TOKEN:-}
+  BETTERSTACK_OTLP_HOST: ${BETTERSTACK_OTLP_HOST:-}
+  # The `wf test` worker posts one row per job to HEALTH_RPT.TEST_RUNS; empty means no rows, and each job logs that once.
+  TEST_RUNS_ORDS_BASE_URL: ${TEST_RUNS_ORDS_BASE_URL:-}
+  WF_USAGE_ORDS_BASE_URL: ${WF_USAGE_ORDS_BASE_URL:-}
+  HEALTH_REPORTS_ORDS_PASSWORD: ${HEALTH_REPORTS_ORDS_PASSWORD:-}
+  # One Docker Hub PAT for every build and push; unset aborts the deploy instead of building without a login.
+  DOCKERHUB_TOKEN: ${DOCKERHUB_TOKEN:?DOCKERHUB_TOKEN is not set}
+  DOCKERHUB_USERNAME: ${DOCKERHUB_USERNAME:-nuesslerm}
+  # Same Contents:Read-only PAT vm-ops-api already uses for its own
+  # raw.githubusercontent.com fetches -- reused, not new, so a script in
+  # this container can `git clone` this private repo.
+  VM_PROVISION_GITHUB_TOKEN: ${VM_PROVISION_GITHUB_TOKEN:-}
+  # Bootstrap Bitwarden credentials -- NOT vault secrets themselves (a
+  # bootstrap token can't fetch itself from the vault it authenticates
+  # to), so unlike every other var above these come from this
+  # container's own `.env.local` (cloud-init already seeds one per
+  # `vm_apps` entry, agent-shell included -- see main.tf's vm_apps
+  # list), appended into `.env` by vm-ops-api's own provisioning step
+  # (confirmed live: "[append-env-local] appended 2 line(s) from
+  # /home/ubuntu/agent-shell/.env.local"), not fetched from Bitwarden.
+  # Without this passthrough, `wf vm logs --grep` can never
+  # authenticate to BetterStack -- confirmed live: a genuinely
+  # redeployed service's marker log sat in BetterStack the whole time
+  # while every retry from inside this container silently failed to
+  # resolve credentials, reading as "not found yet" instead of
+  # "couldn't check at all".
+  BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN: ${BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN:-}
+  BWS_SERVER_URL: ${BWS_SERVER_URL:-}
+  # Everything below moves per-user and per-toolchain state onto the
+  # shared volume, so it survives a redeploy AND is visible to the other
+  # containers that mount it. Before this, `agent-shell` had NO volume
+  # except tailscale-state -- every redeploy wiped ~/.claude, ~/.codex,
+  # ~/.docker/config.json, bash history, and any clone made by hand,
+  # which is most of what the vm-ops-api credential relay exists to
+  # paper over.
+  HOME: /workspace/home
+  # npm/bun/cargo/pipx/mise all write to their own fixed locations; each
+  # is redirected rather than symlinked, so `npm i -g <x>` simply
+  # persists with no wrapper and no ceremony (Tier 1). The Tier 2
+  # manifest that would make this reproducible is U4 and does not exist
+  # yet -- this comment used to point at one in entrypoint.sh.
+  NPM_CONFIG_PREFIX: /workspace/tools/npm
+  MISE_DATA_DIR: /workspace/tools/mise
+  BUN_INSTALL: /workspace/tools/bun
+  CARGO_HOME: /workspace/tools/cargo
+  PIPX_HOME: /workspace/tools/pipx
+  PIPX_BIN_DIR: /workspace/tools/npm/bin
+  # Shared with every worktree's `pnpm install`, so a fresh worktree
+  # links from the store instead of refetching the whole dependency
+  # graph over the network.
+  PNPM_STORE_DIR: /workspace/cache/pnpm
+  # T3 Code (github.com/pingdotgg/t3code) server, supervised by
+  # t3code-serve.sh -- see that file and README.md's "T3 Code remote
+  # access" section. Off by default (ENABLED=false) until verified
+  # end to end; VERSION/NODE_VERSION are pinned exact releases, never
+  # `latest`, since this is an unattended restart target.
+  AGENT_SHELL_T3CODE_ENABLED: ${AGENT_SHELL_T3CODE_ENABLED:-false}
+  AGENT_SHELL_T3CODE_VERSION: ${AGENT_SHELL_T3CODE_VERSION:-}
+  AGENT_SHELL_T3CODE_NODE_VERSION: ${AGENT_SHELL_T3CODE_NODE_VERSION:-24.13.1}
+  # T3CODE_* are T3 Code's own recognized env vars (see
+  # references/t3code/apps/server/src/cli/config.ts), not this repo's
+  # naming convention -- kept as-is rather than translated so they stay
+  # greppable against T3 Code's own docs and source.
+  T3CODE_HOME: /workspace/tools/t3code
+  T3CODE_PORT: ${AGENT_SHELL_T3CODE_PORT:-3773}
+  T3CODE_NO_BROWSER: "true"
+
+# Docker's json-file log driver keeps every line of a container forever unless told otherwise; the model services print
+# a lot, so each service rotates its own log (three files of 20 MB) instead of filling the host disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.2
+    container_name: agent-shell-tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_VM_AUTH_KEY}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_HOSTNAME: agent-shell-${HOST_LABEL}
+      # Same reason as every other app's sidecar: without this, `app`
+      # (sharing this container's netns) never resolves
+      # vm-ops-api-${HOST_LABEL} for redeploy-app.
+      TS_ACCEPT_DNS: "true"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging: *logging
+
+  agent-dind:
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${IMAGE_TAG:-latest}
+    container_name: agent-shell-dind
+    network_mode: service:tailscale
+    # The ONLY service that runs the nested dockerd (Dockerfile's own
+    # comment) -- an in-container Docker Engine needs broad access to this
+    # container's own kernel-facing interfaces (cgroups, devices, mount
+    # namespace) that a default container profile blocks. Still fully
+    # contained: no host socket, no host mount, no visibility outside this
+    # container's own namespaces. It shares the docker.sock with `app` and
+    # `agent-sessions` over the dind-socket volume.
+    privileged: true
+    # A hard VM reset leaves docker.pid (PID 1) in the writable layer, and dockerd then refuses to start.
+    entrypoint:
+      ['/bin/sh', '-c', 'rm -f /var/run/docker.pid /var/run/docker/containerd/containerd.pid; exec /entrypoint.sh']
+    environment:
+      <<: *agent-environment
+      AGENT_SHELL_ROLE: dind
+    volumes:
+      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      - clis:/opt/clis:ro
+      - workspace:/workspace
+      # The nested dockerd's own image/layer/buildx store. Was on the
+      # container's ephemeral layer, so EVERY redeploy threw away every
+      # image built here and the whole build cache, and the next build
+      # started stone cold.
+      #
+      # Deliberately its own volume and NEVER part of `workspace`: this is
+      # per-daemon state that a second dockerd touching it would corrupt,
+      # and it is the thing that grew past 40GB on the vfs storage driver.
+      # Clean it from inside this container with `docker buildx prune -af`
+      # + `docker system prune -af` -- no compose down, no host access.
+      - docker-state:/var/lib/docker
+      # The docker.sock the OTHER two non-privileged services connect to.
+      # agent-dind's dockerd binds `-H unix:///run/dind/docker.sock` here.
+      - dind-socket:/run/dind
+    healthcheck:
+      test: ["CMD", "docker", "-H", "unix:///run/dind/docker.sock", "info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    depends_on:
+      - tailscale
+    restart: unless-stopped
+    logging: *logging
+
+  agent-sessions:
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${IMAGE_TAG:-latest}
+    container_name: agent-shell-sessions
+    network_mode: service:tailscale
+    environment:
+      <<: *agent-environment
+      AGENT_SHELL_ROLE: sessions
+      DOCKER_HOST: unix:///run/dind/docker.sock
+    volumes:
+      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      - clis:/opt/clis:ro
+      - workspace:/workspace
+      - dind-socket:/run/dind
+    # Port probe instead of `pgrep sshd`: the image ships no procps, and a listening sshd is the stronger signal.
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/22"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+    depends_on:
+      - tailscale
+    restart: unless-stopped
+    logging: *logging
+
+  app:
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${IMAGE_TAG:-latest}
+    container_name: agent-shell
+    # Agent sessions run their builds, recordings and tests here. Under contention the cores go by share: the ci-runner project's gh-runner has 256, the other
+    # containers 1024, so work here outranked CI four to one (6 Nov: an agent's VM jobs held 120 percent of the 200 for 80 minutes and two
+    # CI runs timed out). 128 puts it below CI; an idle VM still lets it use every core.
+    cpu_shares: 128
+    network_mode: service:tailscale
+    # NOT privileged -- the nested dockerd now lives in `agent-dind`, and
+    # this container reaches it only through the dind-socket volume.
+    environment:
+      <<: *agent-environment
+      AGENT_SHELL_ROLE: tools
+      DOCKER_HOST: unix:///run/dind/docker.sock
+    # RAM-backed scratch of `wf vm state backup|verify`: the staged SQLite copies and the restore of a verify are plaintext credentials and
+    # databases, and a tmpfs is gone with any kill, OOM or restart, so none of it can outlive its run on the container's disk. Sized for
+    # the largest volume cap (agent-workspace, 1 GB in vm-apps.json) plus a quarter; RAM is only used while a run holds files there (12 GB VM).
+    tmpfs:
+      - /scratch:size=1280m,mode=1777
+    volumes:
+      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      - clis:/opt/clis:ro
+      # THE SHARED WORKSPACE. Mounted at the SAME ABSOLUTE PATH in every
+      # container that touches it -- non-negotiable, and already a scar in
+      # this repo: remote-chat-agent's opencode container failed every turn
+      # with `NotFound: FileSystem.realPath (/app/.worktrees...)` because a
+      # shared netns shares no files and a path is resolved against each
+      # container's OWN filesystem. See that compose file's own comment.
+      #
+      # `name:` pins the real volume name instead of letting compose prefix
+      # it with the project name (`agent-shell_...`), which is what makes it
+      # addressable from a DIFFERENT compose project. Deliberately NOT
+      # `external: true`: external requires the volume to already exist, so
+      # a fresh VM boot would fail provisioning until something ran `docker
+      # volume create` first. With `name:` alone, whichever project starts
+      # first creates it and the other just attaches.
+      - workspace:/workspace
+      # The state volumes of the other projects (`stateVolumes` of vm-apps.json), for `wf vm state backup|restore|verify`, which runs
+      # in this container through vm-ops-api's exec route: this container has the OCI key, age and the vault, and no host docker
+      # socket to start a throwaway container with. Backup only reads them; restore writes only into an empty one (or --force).
+      - orca-state:/state/orca-serve/orca-state
+      - leetcode-backend-data:/state/leetcode-backend/leetcode-backend-data
+      - vnc-auth-credentials:/state/vnc-auth-session/vnc-auth-credentials
+      # The docker.sock from agent-dind, so tools reach the daemon without
+      # being privileged themselves.
+      - dind-socket:/run/dind
+    # The tools role idles on `sleep infinity`; the entrypoint-initialised workspace is its readiness.
+    healthcheck:
+      test: ["CMD", "test", "-d", "/workspace/home"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 300s
+    depends_on:
+      - tailscale
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  # The ci-runner project writes it; every project that runs `wf` declares it external. Both provisioning paths create it first.
+  clis:
+    external: true
+    name: clis
+  tailscale-state:
+  docker-state:
+  dind-socket:
+  # `external: true`, not a `name:` pin. Both are enough to SHARE the volume,
+  # but with a `name:` pin compose considers it owned by whichever project
+  # created it and warns on the other -- and, more seriously, a
+  # `docker compose down -v` under that owning project would delete it out from
+  # under the other service. `external` says plainly that neither project owns
+  # its lifecycle.
+  #
+  # The cost is that an external volume must already EXIST or compose refuses
+  # to start, so both provisioning paths create it first (idempotently):
+  # vm-ops-api's redeploy sibling, and cloud-init's provision-apps.js for a
+  # fresh VM. Without those, this line would turn a hypothetical hazard into a
+  # guaranteed first-boot failure for both services.
+  workspace:
+    external: true
+    name: agent-workspace
+  # The state volumes of three other projects, by their real names (`<project>_<volume>`) and `name:` pinned: whichever project starts
+  # first creates one and the other attaches. Not `external: true`, which would need both provisioning paths to create them first.
+  # Compose here treats them as its own, so `docker compose down -v` in this project would delete them: this project is never
+  # brought down with -v (`wf ship --wipe-state` removes only tailscale-state volumes).
+  orca-state:
+    name: orca-serve_orca-state
+  leetcode-backend-data:
+    name: leetcode-backend_leetcode-backend-data
+  vnc-auth-credentials:
+    name: vnc-auth-session_vnc-auth-credentials

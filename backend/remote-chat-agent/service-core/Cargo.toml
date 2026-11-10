@@ -1,0 +1,77 @@
+[package]
+name = "rca-service-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The service's use cases and rules without a transport or an adapter: one-shot runs, voice edits, attachments, edit-latency rows, the agent API groups and the ports they call out through (the environment among them). rca-service (rs) implements the ports and serves the routes"
+
+[lib]
+name = "rca_service_core"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+# The doubles of the ports (`testing`), for the service crate's tests
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+base64.workspace = true
+futures-util.workspace = true
+html-escape.workspace = true
+path-clean.workspace = true
+percent-encoding.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+time = { workspace = true, features = ["macros"] }
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+fancy-regex = "0.19.2"
+serde_path_to_error = "0.1"
+rca-core = { version = "0.1", registry = "mla" }
+rca-ladder = { version = "0.1", registry = "mla" }
+remote-chat-agent-core = { path = "../core" }
+remote-chat-agent-render = { path = "../render" }
+rca-cli-driver = { path = "../cli-driver" }
+rca-exec-channel = { path = "../exec-channel" }
+rca-agent-core = { path = "../agent-core" }
+rca-group-agent = { path = "../group-agent" }
+rca-group-workspace = { path = "../group-workspace" }
+rca-group-state = { path = "../group-state" }
+rca-group-terminal = { path = "../group-terminal" }
+rca-group-git = { path = "../group-git" }
+rca-group-hosted = { path = "../group-hosted" }
+rca-group-schedules = { path = "../group-schedules" }
+rca-group-preview = { path = "../group-preview" }
+rca-group-attachments = { path = "../group-attachments" }
+rca-group-catalog = { path = "../group-catalog" }
+agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments" }
+# The groups the use cases serve answer in the words of their contract crates, through the executor actions of the families they call
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-service = { path = "../../../libraries/agent-api/agent-api-service" }
+agent-api-state = { path = "../../../libraries/agent-api/agent-api-state" }
+agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent" }
+agent-api-workspace = { path = "../../../libraries/agent-api/agent-api-workspace" }
+exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
+exec-fs = { path = "../../../libraries/agent-api/exec-fs" }
+exec-git = { path = "../../../libraries/agent-api/exec-git" }
+exec-pty = { path = "../../../libraries/agent-api/exec-pty" }
+agent-api-terminal = { path = "../../../libraries/agent-api/agent-api-terminal" }
+agent-api-git = { path = "../../../libraries/agent-api/agent-api-git" }
+
+[dev-dependencies]
+rca-group-hosted = { path = "../group-hosted", features = ["testing"] }
+rca-group-preview = { path = "../group-preview", features = ["testing"] }
+rca-group-attachments = { path = "../group-attachments", features = ["testing"] }
+rca-group-catalog = { path = "../group-catalog", features = ["testing"] }
+agent-api-preview = { path = "../../../libraries/agent-api/agent-api-preview" }
+agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments" }
+agent-api-catalog = { path = "../../../libraries/agent-api/agent-api-catalog" }
+agent-api-hosted = { path = "../../../libraries/agent-api/agent-api-hosted" }
+rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
+rca-cli-driver = { path = "../cli-driver", features = ["testing"] }
+rca-group-agent = { path = "../group-agent", features = ["testing"] }
+rca-group-state = { path = "../group-state", features = ["testing"] }
+remote-chat-agent-core = { path = "../core", features = ["testing"] }
+tokio.workspace = true

@@ -1,0 +1,18 @@
+Usage: wf vm net [options] [command]
+
+Tailnet device + auth-key management
+
+Options:
+  -h, --help                   display help for command
+
+Commands:
+  device                       Tailnet device records: list, retire
+  up [options]                 Join this machine to the tailnet (starts
+                               tailscaled if stopped). Idempotent — safe to
+                               re-run
+  auth-key                     TS_VM_AUTH_KEY: status (how long it has left;
+                               exits non-zero when rotation is due), rotate
+                               (before Tailscale’s 90-day cap expires it)
+  resolve <name...>            The name each tailnet host answers to now (the
+                               base name or its -1 .. -5 drift), as JSON
+  help [command]               display help for command

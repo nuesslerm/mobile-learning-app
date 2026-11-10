@@ -1,0 +1,41 @@
+{
+  "name": "@app/leetcode-auth-cookie-capture",
+  "description": "Captures a LeetCode session cookie through a headed browser login (cold). The service is Rust (rs/), with its flow tests in rs/tests/flow.rs.",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cargo run --release --locked -p leetcode-auth-cookie-capture-rs --manifest-path Cargo.toml",
+    "capture:local": "CAPTURE_MODE=local cargo run --release --locked -p leetcode-auth-cookie-capture-rs --manifest-path Cargo.toml -- --once",
+    "build": "cargo build --release --locked -p leetcode-auth-cookie-capture-rs --manifest-path Cargo.toml",
+    "test:flow": "cargo test --locked -p leetcode-auth-cookie-capture-rs --test flow --manifest-path Cargo.toml",
+    "test:integration": "cargo test --locked -p leetcode-auth-cookie-capture-rs --test integration --manifest-path Cargo.toml",
+    "test:verify:deployed": "cargo test --locked -p leetcode-auth-cookie-capture-rs --test deployed_verification --manifest-path Cargo.toml -- --ignored",
+    "docker:up": "docker compose -f docker-compose.capture.yml up",
+    "docker:down": "docker compose -f docker-compose.capture.yml down"
+  },
+  "nx": {
+    "targets": {
+      "test:flow": {
+        "inputs": [
+          "default",
+          "^production",
+          "^native",
+          {
+            "externalDependencies": []
+          }
+        ]
+      },
+      "test:integration": {
+        "inputs": [
+          "default",
+          "^production",
+          "^native",
+          {
+            "externalDependencies": []
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+# Minimal, explicit config for the agent-shell container's sshd -- narrower
+# than Debian's own defaults, not relying on them. Key-only, one non-root
+# user, nothing else listens here.
+Port 22
+PermitRootLogin no
+PasswordAuthentication no
+KbdInteractiveAuthentication no
+PubkeyAuthentication yes
+# Absolute, image-local path -- deliberately NOT the default `%h/.ssh/
+# authorized_keys`. `agent`'s home moved onto the shared `agent-workspace`
+# volume (entrypoint.sh's usermod), and resolving authorized_keys through %h
+# would make EVERY login depend on that volume being present and correctly
+# owned. An empty or unmounted volume would then mean nobody can SSH in at
+# all -- with no console and no host SSH, that is unrecoverable from here.
+# Keeping the keys in the image's own filesystem decouples "can I log in"
+# from "is the workspace healthy".
+AuthorizedKeysFile /etc/ssh/authorized_keys.d/%u
+ChallengeResponseAuthentication no
+UsePAM yes
+AllowUsers agent
+X11Forwarding no
+AllowTcpForwarding no
+PrintMotd no
+Subsystem sftp /usr/lib/openssh/sftp-server

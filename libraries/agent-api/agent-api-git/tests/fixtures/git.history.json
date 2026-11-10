@@ -1,0 +1,42 @@
+{
+  "method": "git.history",
+  "exchanges": [
+    {
+      "name": "lists the commits newest first",
+      "request": {
+        "id": 1,
+        "method": "git.history",
+        "params": {
+          "workspace": "w1",
+          "limit": 5
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "commits": [
+            {
+              "sha": "584baedb16cc19246c01f67532c4bfd77c4edddc",
+              "short": "584baed",
+              "parents": [],
+              "author_name": "Test Author",
+              "author_email": "author@example.test",
+              "authored_ms": 1793810374000,
+              "subject": "first commit",
+              "body": ""
+            }
+          ],
+          "truncated": false
+        }
+      },
+      "actions": [
+        "git_log"
+      ],
+      "volatile": [
+        "/result/commits/0/sha",
+        "/result/commits/0/short",
+        "/result/commits/0/authored_ms"
+      ]
+    }
+  ]
+}

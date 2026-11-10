@@ -1,0 +1,187 @@
+{
+  "method": "thread.settle",
+  "exchanges": [
+    {
+      "name": "settles a thread",
+      "before": [
+        {
+          "id": "setup-create-t-se",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-se",
+            "title": "Thread t-se",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.settle",
+        "params": {
+          "thread": "t-se",
+          "state": "settled"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": {
+            "thread": {
+              "id": "t-se",
+              "title": "Thread t-se",
+              "workspace": "w1",
+              "driver": "claudeAgent",
+              "status": "idle",
+              "last_seq": 1,
+              "created_at": "2026-11-04T10:00:00Z",
+              "updated_at": "2026-11-04T10:00:00Z"
+            },
+            "settle": {
+              "state": "settled",
+              "settled_at_ms": 1700000000000
+            }
+          },
+          "seq": 1
+        }
+      },
+      "volatile": [
+        "/result/thread/thread/created_at",
+        "/result/thread/thread/updated_at",
+        "/result/thread/thread/last_seq",
+        "/result/thread/settle/settled_at_ms",
+        "/result/thread/settle/snoozed_at_ms",
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "snoozes a thread until a time in the future",
+      "before": [
+        {
+          "id": "setup-create-t-sn",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-sn",
+            "title": "Thread t-sn",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "2",
+        "method": "thread.settle",
+        "params": {
+          "thread": "t-sn",
+          "state": "snoozed",
+          "until_ms": 4102444800000
+        }
+      },
+      "response": {
+        "id": "2",
+        "result": {
+          "thread": {
+            "thread": {
+              "id": "t-sn",
+              "title": "Thread t-sn",
+              "workspace": "w1",
+              "driver": "claudeAgent",
+              "status": "idle",
+              "last_seq": 1,
+              "created_at": "2026-11-04T10:00:00Z",
+              "updated_at": "2026-11-04T10:00:00Z"
+            },
+            "settle": {
+              "snoozed_until_ms": 4102444800000,
+              "snoozed_at_ms": 1700000000000
+            }
+          },
+          "seq": 1
+        }
+      },
+      "volatile": [
+        "/result/thread/thread/created_at",
+        "/result/thread/thread/updated_at",
+        "/result/thread/thread/last_seq",
+        "/result/thread/settle/settled_at_ms",
+        "/result/thread/settle/snoozed_at_ms",
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "refuses a wake time that is not in the future",
+      "request": {
+        "id": "3",
+        "method": "thread.settle",
+        "params": {
+          "thread": "t-sn",
+          "state": "snoozed",
+          "until_ms": 1
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "SNOOZE_NOT_FUTURE",
+          "message": "Thread t-sn snooze wake time 1 is not in the future."
+        }
+      }
+    },
+    {
+      "name": "refuses a snooze of an archived thread",
+      "before": [
+        {
+          "id": "setup-create-t-se2",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-se2",
+            "title": "Thread t-se2",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        },
+        {
+          "id": "setup-arch",
+          "method": "thread.archive",
+          "params": {
+            "thread": "t-se2"
+          }
+        }
+      ],
+      "request": {
+        "id": "4",
+        "method": "thread.settle",
+        "params": {
+          "thread": "t-se2",
+          "state": "snoozed",
+          "until_ms": 4102444800000
+        }
+      },
+      "response": {
+        "id": "4",
+        "error": {
+          "code": "SNOOZE_ARCHIVED",
+          "message": "Thread t-se2 is archived and cannot be snoozed."
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "5",
+        "method": "thread.settle",
+        "params": {
+          "thread": "nope",
+          "state": "settled"
+        }
+      },
+      "response": {
+        "id": "5",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

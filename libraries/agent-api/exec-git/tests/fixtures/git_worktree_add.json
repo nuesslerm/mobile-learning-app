@@ -1,0 +1,202 @@
+{
+  "action": "git_worktree_add",
+  "exchanges": [
+    {
+      "name": "creates a branch from a revision and checks it out in a new worktree under the base",
+      "setup": {
+        "files": {
+          "a.txt": "x"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "w1",
+        "tool": "git_worktree_add",
+        "args": {
+          "name": "wt1",
+          "branch": "feature/x",
+          "base": "HEAD"
+        }
+      },
+      "response": {
+        "id": "w1",
+        "ok": true,
+        "result": {
+          "path": "/base/wt1",
+          "branch": "feature/x",
+          "head": "0000000"
+        }
+      },
+      "volatile": [
+        "/result/path",
+        "/result/head"
+      ]
+    },
+    {
+      "name": "refuses a worktree that already exists",
+      "setup": {
+        "files": {
+          "a.txt": "x"
+        },
+        "commit": true,
+        "worktrees": {
+          "wt1": "taken"
+        }
+      },
+      "request": {
+        "id": "w2",
+        "tool": "git_worktree_add",
+        "args": {
+          "name": "wt1",
+          "branch": "other",
+          "base": "HEAD"
+        }
+      },
+      "response": {
+        "id": "w2",
+        "ok": false,
+        "error": {
+          "code": "ALREADY_EXISTS",
+          "message": "worktree wt1 already exists"
+        }
+      }
+    },
+    {
+      "name": "refuses a name that is a path",
+      "setup": {
+        "files": {
+          "a.txt": "x"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "w3",
+        "tool": "git_worktree_add",
+        "args": {
+          "name": "../escape",
+          "branch": "b",
+          "base": "HEAD"
+        }
+      },
+      "response": {
+        "id": "w3",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`name` must be one plain directory name"
+        }
+      }
+    },
+    {
+      "name": "refuses a branch that git would read as an option",
+      "setup": {
+        "files": {
+          "a.txt": "x"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "w4",
+        "tool": "git_worktree_add",
+        "args": {
+          "name": "wt",
+          "branch": "--orphan"
+        }
+      },
+      "response": {
+        "id": "w4",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`branch` must be a branch name"
+        }
+      }
+    },
+    {
+      "name": "refuses a base that git would read as an option",
+      "setup": {
+        "files": {
+          "a.txt": "x"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "w5",
+        "tool": "git_worktree_add",
+        "args": {
+          "name": "wt",
+          "branch": "b",
+          "base": "--detach"
+        }
+      },
+      "response": {
+        "id": "w5",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`base` must be a revision"
+        }
+      }
+    },
+    {
+      "name": "leaves no worktree behind when git refuses the revision",
+      "setup": {
+        "files": {
+          "a.txt": "x"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "w6",
+        "tool": "git_worktree_add",
+        "args": {
+          "name": "wt",
+          "branch": "b",
+          "base": "no-such-rev"
+        }
+      },
+      "response": {
+        "id": "w6",
+        "ok": false,
+        "error": {
+          "code": "IO_ERROR",
+          "message": "git worktree add: fatal"
+        }
+      },
+      "volatile": [
+        "/error/message"
+      ]
+    },
+    {
+      "name": "creates the worktree a setup then runs in",
+      "setup": {
+        "files": {
+          "a.txt": "x"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "w9",
+        "tool": "git_worktree_add",
+        "args": {
+          "name": "wt",
+          "branch": "feature/setup",
+          "base": "HEAD"
+        }
+      },
+      "response": {
+        "id": "w9",
+        "ok": true,
+        "result": {
+          "path": "/base/wt",
+          "branch": "feature/setup",
+          "head": "0000000"
+        }
+      },
+      "volatile": [
+        "/result/path",
+        "/result/head"
+      ]
+    }
+  ]
+}

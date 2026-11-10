@@ -1,0 +1,108 @@
+{
+  "action": "git_push",
+  "exchanges": [
+    {
+      "name": "pushes the current branch to its remote",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "push47",
+        "tool": "git_push",
+        "args": {}
+      },
+      "response": {
+        "id": "push47",
+        "ok": true,
+        "result": {
+          "remote": "origin",
+          "branch": "main",
+          "set_upstream": false,
+          "output": "<volatile>"
+        }
+      },
+      "volatile": [
+        "/result/output"
+      ]
+    },
+    {
+      "name": "refuses a branch that does not exist",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "push48",
+        "tool": "git_push",
+        "args": {
+          "branch": "nope"
+        }
+      },
+      "response": {
+        "id": "push48",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "git push: branch nope does not exist"
+        }
+      }
+    },
+    {
+      "name": "refuses a remote the repository does not have",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "push49",
+        "tool": "git_push",
+        "args": {
+          "remote": "nope"
+        }
+      },
+      "response": {
+        "id": "push49",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`remote` nope is not a configured remote of this repository"
+        }
+      }
+    },
+    {
+      "name": "refuses an option given as the branch",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "push50",
+        "tool": "git_push",
+        "args": {
+          "branch": "--delete"
+        }
+      },
+      "response": {
+        "id": "push50",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`branch` must be a branch name"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "method": "terminal.open",
+  "exchanges": [
+    {
+      "name": "opens a terminal at the root with a size and a title",
+      "request": {
+        "id": 1,
+        "method": "terminal.open",
+        "params": {
+          "workspace": "w1",
+          "terminal": "t1",
+          "cols": 100,
+          "rows": 30,
+          "title": "build"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "workspace": "w1",
+          "terminal": "t1",
+          "title": "build",
+          "cwd": "<volatile>",
+          "cols": 100,
+          "rows": 30,
+          "status": "running",
+          "exit_code": null,
+          "pid": "<volatile>",
+          "offset": "<volatile>",
+          "base_offset": 0,
+          "updated_at": "<volatile>",
+          "opened": true
+        }
+      },
+      "actions": [
+        "pty_open"
+      ],
+      "volatile": [
+        "/result/cwd",
+        "/result/pid",
+        "/result/offset",
+        "/result/updated_at"
+      ]
+    },
+    {
+      "name": "a second open of a running terminal returns it and opens nothing",
+      "before": [
+        {
+          "id": 1,
+          "method": "terminal.open",
+          "params": {
+            "workspace": "w1",
+            "terminal": "t1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "terminal.open",
+        "params": {
+          "workspace": "w1",
+          "terminal": "t1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "workspace": "w1",
+          "terminal": "t1",
+          "title": "t1",
+          "cwd": "<volatile>",
+          "cols": 80,
+          "rows": 24,
+          "status": "running",
+          "exit_code": null,
+          "pid": "<volatile>",
+          "offset": "<volatile>",
+          "base_offset": 0,
+          "updated_at": "<volatile>",
+          "opened": false
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/cwd",
+        "/result/pid",
+        "/result/offset",
+        "/result/updated_at"
+      ]
+    },
+    {
+      "name": "a name that is no terminal name is refused",
+      "request": {
+        "id": 1,
+        "method": "terminal.open",
+        "params": {
+          "workspace": "w1",
+          "terminal": "../x"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "terminal must be 1-48 of letters, digits, `_`, `-`, `.` and not start with `.`"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "a cwd outside the root is refused by the executor",
+      "request": {
+        "id": 1,
+        "method": "terminal.open",
+        "params": {
+          "workspace": "w1",
+          "terminal": "t2",
+          "cwd": "../.."
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "PATH_OUTSIDE_ROOT",
+          "message": "<volatile>"
+        }
+      },
+      "actions": [
+        "pty_open"
+      ],
+      "volatile": [
+        "/error/message"
+      ]
+    }
+  ]
+}

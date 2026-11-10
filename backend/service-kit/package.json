@@ -1,0 +1,24 @@
+{
+  "name": "@lib/service-kit",
+  "description": "The Rust services' shared runtime: telemetry, rate limits and the vault fallback for secrets. Its flow tests (tests/flow_*.rs) drive each through its public entry point; without this manifest no CI stage runs them.",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:flow": "cargo test --locked -p service-kit --test flow_rate_limit --test flow_secrets --test flow_telemetry --manifest-path ../Cargo.toml"
+  },
+  "nx": {
+    "targets": {
+      "test:flow": {
+        "inputs": [
+          "default",
+          "^production",
+          "^native",
+          {
+            "externalDependencies": []
+          }
+        ]
+      }
+    }
+  }
+}

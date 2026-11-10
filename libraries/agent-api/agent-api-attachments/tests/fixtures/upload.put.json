@@ -1,0 +1,193 @@
+{
+  "method": "upload.put",
+  "exchanges": [
+    {
+      "name": "keeps the bytes under the id the caller named",
+      "request": {
+        "id": 1,
+        "method": "upload.put",
+        "params": {
+          "name": "shot.png",
+          "mime_type": "image/png",
+          "kind": "image",
+          "data": "aGk=",
+          "id": "att-1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "attachment": {
+            "id": "att-1",
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "size_bytes": 2,
+            "sha256": "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4",
+            "created_at_ms": "<volatile>"
+          }
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/attachment/created_at_ms"
+      ]
+    },
+    {
+      "name": "mints an id when none is named",
+      "request": {
+        "id": 2,
+        "method": "upload.put",
+        "params": {
+          "name": "shot.png",
+          "mime_type": "image/png",
+          "kind": "image",
+          "data": "aGk="
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "attachment": {
+            "id": "<volatile>",
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "size_bytes": 2,
+            "sha256": "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4",
+            "created_at_ms": "<volatile>"
+          }
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/attachment/created_at_ms",
+        "/result/attachment/id"
+      ]
+    },
+    {
+      "name": "is idempotent for the same id with the same bytes",
+      "before": [
+        {
+          "id": "setup-3",
+          "method": "upload.put",
+          "params": {
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "data": "aGk=",
+            "id": "att-3"
+          }
+        }
+      ],
+      "request": {
+        "id": 3,
+        "method": "upload.put",
+        "params": {
+          "name": "shot.png",
+          "mime_type": "image/png",
+          "kind": "image",
+          "data": "aGk=",
+          "id": "att-3"
+        }
+      },
+      "response": {
+        "id": 3,
+        "result": {
+          "attachment": {
+            "id": "att-3",
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "size_bytes": 2,
+            "sha256": "8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4",
+            "created_at_ms": "<volatile>"
+          }
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/attachment/created_at_ms"
+      ]
+    },
+    {
+      "name": "answers ATTACHMENT_EXISTS for an id that holds other bytes",
+      "before": [
+        {
+          "id": "setup-4",
+          "method": "upload.put",
+          "params": {
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "data": "aGk=",
+            "id": "att-4"
+          }
+        }
+      ],
+      "request": {
+        "id": 4,
+        "method": "upload.put",
+        "params": {
+          "name": "shot.png",
+          "mime_type": "image/png",
+          "kind": "image",
+          "data": "aGVsbG8=",
+          "id": "att-4"
+        }
+      },
+      "response": {
+        "id": 4,
+        "error": {
+          "code": "ATTACHMENT_EXISTS",
+          "message": "attachment att-4 already holds other bytes"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "answers INVALID_PARAMS for an id that could leave its directory",
+      "request": {
+        "id": 5,
+        "method": "upload.put",
+        "params": {
+          "name": "shot.png",
+          "mime_type": "image/png",
+          "kind": "image",
+          "data": "aGk=",
+          "id": "../x"
+        }
+      },
+      "response": {
+        "id": 5,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "id is 1 to 128 letters, digits, dots, dashes or underscores, and does not start with a dot"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "answers INVALID_PARAMS for data that is not base64",
+      "request": {
+        "id": 6,
+        "method": "upload.put",
+        "params": {
+          "name": "shot.png",
+          "mime_type": "image/png",
+          "kind": "image",
+          "data": "***",
+          "id": "att-6"
+        }
+      },
+      "response": {
+        "id": 6,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "data is not base64"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

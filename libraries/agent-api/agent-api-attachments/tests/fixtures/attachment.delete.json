@@ -1,0 +1,72 @@
+{
+  "method": "attachment.delete",
+  "exchanges": [
+    {
+      "name": "drops an attachment",
+      "before": [
+        {
+          "id": "setup-1",
+          "method": "upload.put",
+          "params": {
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "data": "aGk=",
+            "id": "att-1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "attachment.delete",
+        "params": {
+          "id": "att-1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "id": "att-1",
+          "deleted": true
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "is safe to repeat: no attachment is deleted false, not an error",
+      "request": {
+        "id": 2,
+        "method": "attachment.delete",
+        "params": {
+          "id": "att-9"
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "id": "att-9",
+          "deleted": false
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "answers INVALID_PARAMS for an id with a separator",
+      "request": {
+        "id": 3,
+        "method": "attachment.delete",
+        "params": {
+          "id": "a/b"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "id is 1 to 128 letters, digits, dots, dashes or underscores, and does not start with a dot"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "pools": {
+    "opencode-go": { "secretKey": "OPENCODE_GO_API_KEY", "resetHint": "daily" },
+    "minimax":     { "secretKey": "MINIMAX_API_KEY",    "resetHint": "5h" },
+    "kimi":        { "secretKey": "KIMI_API_KEY",       "resetHint": "5h" },
+    "claude-max":  { "secretKey": null,                  "resetHint": "5h", "enabled": false },
+    "openai":      { "secretKey": "OPENAI_API_KEY",     "enabled": false },
+    "gemini":      { "secretKey": "GEMINI_API_KEY",     "enabled": false },
+    "codex":       { "secretKey": "OPENAI_API_KEY",     "enabled": false }
+  },
+  "models": {
+    "opencode-go/deepseek-v4.1-flash": { "pool": "opencode-go", "strength": 2, "vision": false, "automatic": true },
+    "minimax/MiniMax-M3":                  { "pool": "minimax",     "strength": 2, "vision": true,  "automatic": true },
+    "kimi-code-plan-global/kimi-for-coding":     { "pool": "kimi",        "strength": 3, "vision": true,  "automatic": true },
+    "kimi-code-plan-global/k3":                  { "pool": "kimi",        "strength": 4, "vision": true,  "automatic": true },
+    "claude-haiku-4-5":                    { "pool": "claude-max",  "strength": 5, "vision": true,  "automatic": true },
+    "claude-sonnet-5":                     { "pool": "claude-max",  "strength": 6, "vision": true,  "automatic": true },
+    "claude-opus-5":                       { "pool": "claude-max",  "strength": 7, "vision": true,  "automatic": false },
+    "claude-fable-5-1":                    { "pool": "claude-max",  "strength": 7, "vision": true,  "automatic": false }
+  },
+  "ladders": {
+    "implementer:unit":        ["opencode-go/deepseek-v4.1-flash", "minimax/MiniMax-M3", "kimi-code-plan-global/kimi-for-coding", "kimi-code-plan-global/k3", "claude-haiku-4-5", "claude-sonnet-5"],
+    "implementer:contract":    ["opencode-go/deepseek-v4.1-flash", "minimax/MiniMax-M3", "kimi-code-plan-global/kimi-for-coding", "kimi-code-plan-global/k3", "claude-haiku-4-5", "claude-sonnet-5"],
+    "implementer:flow":        ["opencode-go/deepseek-v4.1-flash", "minimax/MiniMax-M3", "kimi-code-plan-global/kimi-for-coding", "kimi-code-plan-global/k3", "claude-haiku-4-5", "claude-sonnet-5"],
+    "implementer:integration": ["opencode-go/deepseek-v4.1-flash", "minimax/MiniMax-M3", "kimi-code-plan-global/kimi-for-coding", "kimi-code-plan-global/k3", "claude-haiku-4-5", "claude-sonnet-5"],
+    "implementer:e2e":         ["opencode-go/deepseek-v4.1-flash", "minimax/MiniMax-M3", "kimi-code-plan-global/kimi-for-coding", "kimi-code-plan-global/k3", "claude-haiku-4-5", "claude-sonnet-5"],
+    "implementer:visual":      ["opencode-go/deepseek-v4.1-flash", "minimax/MiniMax-M3", "kimi-code-plan-global/kimi-for-coding", "kimi-code-plan-global/k3", "claude-haiku-4-5", "claude-sonnet-5"],
+    "judge:text":              ["opencode-go/deepseek-v4.1-flash", "minimax/MiniMax-M3", "kimi-code-plan-global/kimi-for-coding", "kimi-code-plan-global/k3", "claude-haiku-4-5"],
+    "judge:vision":            ["minimax/MiniMax-M3",            "kimi-code-plan-global/kimi-for-coding", "kimi-code-plan-global/k3", "claude-sonnet-5"],
+    "document":                ["opencode-go/deepseek-v4.1-flash", "minimax/MiniMax-M3", "kimi-code-plan-global/kimi-for-coding", "kimi-code-plan-global/k3", "claude-haiku-4-5"],
+    "runbook":                 ["opencode-go/deepseek-v4.1-flash", "minimax/MiniMax-M3", "kimi-code-plan-global/kimi-for-coding", "kimi-code-plan-global/k3", "claude-sonnet-5"]
+  }
+}

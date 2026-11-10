@@ -1,0 +1,36 @@
+{
+  "action": "create_file",
+  "exchanges": [
+    {
+      "name": "creates a file with the content given",
+      "request": {"id": "n1", "tool": "create_file", "args": {"path": "new.txt", "content": "hello"}},
+      "response": {"id": "n1", "ok": true, "result": {"bytes": 5}}
+    },
+    {
+      "name": "creates an empty file when no content is given, with its parent directories when asked",
+      "request": {"id": "n2", "tool": "create_file", "args": {"path": "a/b/empty.txt", "create_dirs": true}},
+      "response": {"id": "n2", "ok": true, "result": {"bytes": 0}}
+    },
+    {
+      "name": "refuses a path that exists and leaves the file as it was",
+      "setup": {"files": {"a.txt": "keep"}},
+      "request": {"id": "n3", "tool": "create_file", "args": {"path": "a.txt", "content": "new"}},
+      "response": {"id": "n3", "ok": false, "error": {"code": "ALREADY_EXISTS", "message": "a.txt already exists"}}
+    },
+    {
+      "name": "refuses a missing parent directory unless asked to create it",
+      "request": {"id": "n4", "tool": "create_file", "args": {"path": "no/such/dir.txt"}},
+      "response": {"id": "n4", "ok": false, "error": {"code": "NOT_FOUND", "message": "no/such/dir.txt does not exist"}}
+    },
+    {
+      "name": "refuses a path outside the root",
+      "request": {"id": "n5", "tool": "create_file", "args": {"path": "../escape.txt", "content": "x"}},
+      "response": {"id": "n5", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../escape.txt is outside the root"}}
+    },
+    {
+      "name": "refuses content that is not a string",
+      "request": {"id": "n6", "tool": "create_file", "args": {"path": "x.txt", "content": 5}},
+      "response": {"id": "n6", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`content` must be a string"}}
+    }
+  ]
+}

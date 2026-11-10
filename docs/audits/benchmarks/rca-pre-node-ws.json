@@ -1,0 +1,24 @@
+{
+  "label": "pre-ws",
+  "date": "2026-10-08T21:41:37.962Z",
+  "command": "node dist/bundle/index.mjs",
+  "runs": 5,
+  "artifactBytes": 14869215,
+  "coldStartMs": 482.91505700000016,
+  "idleRssMb": 134.015625,
+  "rssAfterHealthMb": 140.1328125,
+  "healthP50Ms": 0.9345254999989265,
+  "scenarios": {
+    "ws request": {
+      "p50Ms": 0.1297500000000582,
+      "rssAfterMb": 141.2109375
+    },
+    "ws 100 connections": {
+      "p50Ms": 0.9909929999998894,
+      "rssAfterMb": 143.40234375
+    }
+  },
+  "finalRssMb": 143.50390625,
+  "peakRssMb": 143.50390625,
+  "peakRssMaxMb": 143.76953125
+}

@@ -1,0 +1,15 @@
+Usage: wf offload bearers mint --label <name>
+
+Mints a device bearer on the rca service and prints its token: the one credential
+a mapper (wf t3 serve) or a phone opens the agent API socket (/agent/v1/socket)
+with. The service secret opens that socket no longer; it only mints, lists and
+revokes, and is read from CHAT_AGENT_API_SECRET in the environment. The token is
+printed here and nowhere else: the service keeps a digest of it. Store it in the
+vault under the key of the app that holds it (T3_RCA_BEARER for wf t3 serve).
+
+Prints one JSON line {ok, id, label, createdAt, token, next}; exit 0, 1 when the
+service refuses or cannot be reached ({ok: false, error, next}), 2 without --label.
+
+Options:
+  --label <name>  what the bearer is for, shown in the list (required)
+  -h, --help      display help for command

@@ -1,0 +1,28 @@
+Usage: wf vm state restore --app <app> [options]
+
+Fills the app's state volumes from the newest snapshot that `verify` tagged
+verified (and the sqlite snapshot of the same run), then recreates the app's
+containers (redeploy with recreate=all from dev) so it reads the state;
+agent-shell, which is deployed by hand, is not recreated.
+
+It never extracts over data and never under a running app: it refuses when the
+app has a running container (vm-ops-api is asked) and when any volume is not
+empty, writing nothing, and prints the exact steps. There is no --force. A
+fresh VM is restored by cloud-init before any app starts, not by this verb;
+this one is for a single damaged volume of a stopped app.
+
+Answer (one JSON line on stdout, exit 0 only when "ok" is true):
+  {"event":"vm-state","verb":"<verb>","ok":bool,"bucket":"mobile-learning-vm-state",
+   "apps":[{"app":"orca-serve","ok":bool,"stamp":"20261107033000Z","ageSeconds":n,
+            "volumes":[{"ok":bool,"volume":"orca-state","snapshot":"<restic id>","measuredBytes":n,
+                        "maxBytes":n,"databases":n,"error":"..."}],
+            "error":"...","next":"..."}],
+   "repository":{"ok":bool,"bytes":n,"budgetBytes":n,"error":"..."},
+   "error":"...","next":"..."}
+A failed row carries the tool's own error and the next step; the restic
+password is never printed.
+  restarted: the apps recreated; restartFailed: the ones that were not.
+
+Options:
+  --app <name>  the app whose volumes are restored (required)
+  --local       the agent-shell side (see backup)

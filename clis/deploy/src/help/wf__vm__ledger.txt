@@ -1,0 +1,11 @@
+Usage: wf vm ledger [options] [command]
+
+Read one of the VM ledger files (allowlist: opencode-dispatch-runs.jsonl,
+pool-cooldowns.json)
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  cat <name>      Print a VM ledger file verbatim
+  help [command]  display help for command

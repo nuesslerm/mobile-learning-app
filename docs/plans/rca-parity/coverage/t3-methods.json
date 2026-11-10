@@ -1,0 +1,2991 @@
+{
+  "schema": 1,
+  "app": "t3",
+  "generatedBy": "wf parity coverage --app t3",
+  "pin": {
+    "file": "tooling/t3-conformance/t3-pin.json",
+    "version": "0.1.6",
+    "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e"
+  },
+  "counts": {
+    "catalog": {
+      "rpc": 208,
+      "subscriptions": 27,
+      "commands": 55,
+      "mutations": 3,
+      "http": 38
+    },
+    "phone": {
+      "rpc": 149,
+      "subscriptions": 20,
+      "commands": 40,
+      "mutations": 3,
+      "http": 13
+    },
+    "files": {
+      "reached": 1407,
+      "phone": 1001
+    }
+  },
+  "flags": {
+    "dynamicMethodNames": {
+      "note": "an RPC client indexed by a variable: a generic dispatcher whose methods are counted where their tags are bound",
+      "sites": [
+        {
+          "site": "packages/client-runtime/src/rpc/client.ts:200",
+          "method": "tag"
+        },
+        {
+          "site": "packages/client-runtime/src/rpc/client.ts:225",
+          "method": "tag"
+        },
+        {
+          "site": "packages/client-runtime/src/rpc/client.ts:284",
+          "method": "tag"
+        }
+      ]
+    },
+    "rawFetches": {
+      "note": "fetch calls on URLs the server or a third party hands out; not an endpoint of the environment HttpApi, so not a row",
+      "sites": [
+        {
+          "site": "apps/mobile/src/features/browser/PreviewStreamWebView.tsx:84",
+          "target": "chooser.uploadUrl"
+        },
+        {
+          "site": "apps/mobile/src/features/files/ZipArchiveView.tsx:197",
+          "target": "url"
+        },
+        {
+          "site": "apps/mobile/src/features/settings/environment-maintenance.ts:57",
+          "target": "url"
+        },
+        {
+          "site": "apps/mobile/src/features/threads/ThreadMarkdownImage.tsx:48",
+          "target": "uri"
+        },
+        {
+          "site": "apps/mobile/src/lib/attachmentDocument.ts:50",
+          "target": "target"
+        },
+        {
+          "site": "packages/client-runtime/src/device/stream.ts:721",
+          "target": "httpUrl(videoPath)"
+        },
+        {
+          "site": "packages/client-runtime/src/device/stream.ts:839",
+          "target": "httpUrl(`/helper/${device}/stream.mjpeg`)"
+        },
+        {
+          "site": "packages/client-runtime/src/device/stream.ts:863",
+          "target": "httpUrl(`/api?device=${device}`)"
+        },
+        {
+          "site": "packages/client-runtime/src/device/stream.ts:890",
+          "target": "webRtcUrl('close')"
+        },
+        {
+          "site": "packages/client-runtime/src/device/stream.ts:1012",
+          "target": "webRtcUrl('offer')"
+        },
+        {
+          "site": "packages/client-runtime/src/projectFaviconCache.ts:99",
+          "target": "url"
+        }
+      ]
+    },
+    "nativeModules": {
+      "note": "native module sources are not scanned; a method they send by name is not a row",
+      "modules": [
+        {
+          "dir": "apps/mobile/modules/t3-agent-notifications",
+          "nativeFiles": 3
+        },
+        {
+          "dir": "apps/mobile/modules/t3-composer-editor",
+          "nativeFiles": 6
+        },
+        {
+          "dir": "apps/mobile/modules/t3-highlights",
+          "nativeFiles": 2
+        },
+        {
+          "dir": "apps/mobile/modules/t3-native-controls",
+          "nativeFiles": 17
+        },
+        {
+          "dir": "apps/mobile/modules/t3-review-diff",
+          "nativeFiles": 7
+        },
+        {
+          "dir": "apps/mobile/modules/t3-source-text",
+          "nativeFiles": 4
+        },
+        {
+          "dir": "apps/mobile/modules/t3-terminal",
+          "nativeFiles": 10
+        },
+        {
+          "dir": "apps/mobile/modules/t3-widget-expiry",
+          "nativeFiles": 2
+        }
+      ]
+    }
+  },
+  "rows": [
+    {
+      "id": "command:checkpoint.rollback",
+      "kind": "command",
+      "name": "checkpoint.rollback",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:922",
+        "packages/client-runtime/src/operations/commands.ts:951"
+      ]
+    },
+    {
+      "id": "command:delegated_task.completion-delivery.acknowledge",
+      "kind": "command",
+      "name": "delegated_task.completion-delivery.acknowledge",
+      "phone": false
+    },
+    {
+      "id": "command:delegated_task.completion-delivery.dispose",
+      "kind": "command",
+      "name": "delegated_task.completion-delivery.dispose",
+      "phone": false
+    },
+    {
+      "id": "command:delegated_task.request",
+      "kind": "command",
+      "name": "delegated_task.request",
+      "phone": false
+    },
+    {
+      "id": "command:delegated_task.wake-policy",
+      "kind": "command",
+      "name": "delegated_task.wake-policy",
+      "phone": false
+    },
+    {
+      "id": "command:message.dispatch",
+      "kind": "command",
+      "name": "message.dispatch",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:467",
+        "packages/client-runtime/src/operations/commands.ts:736",
+        "packages/client-runtime/src/operations/commands.ts:764"
+      ]
+    },
+    {
+      "id": "command:notification.delivery.accept",
+      "kind": "command",
+      "name": "notification.delivery.accept",
+      "phone": false
+    },
+    {
+      "id": "command:prepared-run.fail",
+      "kind": "command",
+      "name": "prepared-run.fail",
+      "phone": false
+    },
+    {
+      "id": "command:prepared-run.progress",
+      "kind": "command",
+      "name": "prepared-run.progress",
+      "phone": false
+    },
+    {
+      "id": "command:prepared-run.release",
+      "kind": "command",
+      "name": "prepared-run.release",
+      "phone": false
+    },
+    {
+      "id": "command:prepared-run.retry",
+      "kind": "command",
+      "name": "prepared-run.retry",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:1063"
+      ]
+    },
+    {
+      "id": "command:provider-session.detach",
+      "kind": "command",
+      "name": "provider-session.detach",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:969"
+      ]
+    },
+    {
+      "id": "command:provider.switch",
+      "kind": "command",
+      "name": "provider.switch",
+      "phone": false
+    },
+    {
+      "id": "command:queue.resume",
+      "kind": "command",
+      "name": "queue.resume",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:1030"
+      ]
+    },
+    {
+      "id": "command:queued-message.promote-to-steer",
+      "kind": "command",
+      "name": "queued-message.promote-to-steer",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:1041"
+      ]
+    },
+    {
+      "id": "command:queued-run.cancel",
+      "kind": "command",
+      "name": "queued-run.cancel",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:1053"
+      ]
+    },
+    {
+      "id": "command:queued-run.edit",
+      "kind": "command",
+      "name": "queued-run.edit",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:1079"
+      ]
+    },
+    {
+      "id": "command:queued-run.reorder",
+      "kind": "command",
+      "name": "queued-run.reorder",
+      "phone": false
+    },
+    {
+      "id": "command:queued-run.start",
+      "kind": "command",
+      "name": "queued-run.start",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:1031"
+      ]
+    },
+    {
+      "id": "command:run.interrupt",
+      "kind": "command",
+      "name": "run.interrupt",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:871"
+      ]
+    },
+    {
+      "id": "command:runtime-request.respond",
+      "kind": "command",
+      "name": "runtime-request.respond",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:882",
+        "packages/client-runtime/src/operations/commands.ts:895"
+      ]
+    },
+    {
+      "id": "command:subagent.stop",
+      "kind": "command",
+      "name": "subagent.stop",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:796",
+        "packages/client-runtime/src/operations/commands.ts:807"
+      ]
+    },
+    {
+      "id": "command:thread.active.reorder",
+      "kind": "command",
+      "name": "thread.active.reorder",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:540"
+      ]
+    },
+    {
+      "id": "command:thread.archive",
+      "kind": "command",
+      "name": "thread.archive",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:483"
+      ]
+    },
+    {
+      "id": "command:thread.auto-settle",
+      "kind": "command",
+      "name": "thread.auto-settle",
+      "phone": false
+    },
+    {
+      "id": "command:thread.auto-settle.set",
+      "kind": "command",
+      "name": "thread.auto-settle.set",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:517"
+      ]
+    },
+    {
+      "id": "command:thread.create",
+      "kind": "command",
+      "name": "thread.create",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:400"
+      ]
+    },
+    {
+      "id": "command:thread.created.record",
+      "kind": "command",
+      "name": "thread.created.record",
+      "phone": false
+    },
+    {
+      "id": "command:thread.delete",
+      "kind": "command",
+      "name": "thread.delete",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:434"
+      ]
+    },
+    {
+      "id": "command:thread.fork",
+      "kind": "command",
+      "name": "thread.fork",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:983",
+        "packages/client-runtime/src/operations/commands.ts:999"
+      ]
+    },
+    {
+      "id": "command:thread.guest-message.dismiss",
+      "kind": "command",
+      "name": "thread.guest-message.dismiss",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:460"
+      ]
+    },
+    {
+      "id": "command:thread.guest-share.close",
+      "kind": "command",
+      "name": "thread.guest-share.close",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:445"
+      ]
+    },
+    {
+      "id": "command:thread.interaction-mode.set",
+      "kind": "command",
+      "name": "thread.interaction-mode.set",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:662"
+      ]
+    },
+    {
+      "id": "command:thread.mark-unread",
+      "kind": "command",
+      "name": "thread.mark-unread",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:603"
+      ]
+    },
+    {
+      "id": "command:thread.merge_back",
+      "kind": "command",
+      "name": "thread.merge_back",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:1015"
+      ]
+    },
+    {
+      "id": "command:thread.metadata.update",
+      "kind": "command",
+      "name": "thread.metadata.update",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:622"
+      ]
+    },
+    {
+      "id": "command:thread.model-selection.set",
+      "kind": "command",
+      "name": "thread.model-selection.set",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:638"
+      ]
+    },
+    {
+      "id": "command:thread.pin",
+      "kind": "command",
+      "name": "thread.pin",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:503"
+      ]
+    },
+    {
+      "id": "command:thread.pin.reorder",
+      "kind": "command",
+      "name": "thread.pin.reorder",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:529"
+      ]
+    },
+    {
+      "id": "command:thread.pull-request-link.sync",
+      "kind": "command",
+      "name": "thread.pull-request-link.sync",
+      "phone": false
+    },
+    {
+      "id": "command:thread.pull-request.link",
+      "kind": "command",
+      "name": "thread.pull-request.link",
+      "phone": true,
+      "sites": [
+        "apps/mobile/src/features/threads/useLinkedPullRequestActions.ts:84",
+        "packages/client-runtime/src/operations/commands.ts:1098",
+        "packages/client-runtime/src/operations/commands.ts:1111"
+      ]
+    },
+    {
+      "id": "command:thread.pull-request.sync",
+      "kind": "command",
+      "name": "thread.pull-request.sync",
+      "phone": false
+    },
+    {
+      "id": "command:thread.pull-request.unlink",
+      "kind": "command",
+      "name": "thread.pull-request.unlink",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:1103",
+        "packages/client-runtime/src/operations/commands.ts:1134",
+        "packages/client-runtime/src/threadPullRequestCompatibility.ts:35"
+      ]
+    },
+    {
+      "id": "command:thread.pull-request.watch",
+      "kind": "command",
+      "name": "thread.pull-request.watch",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:1117",
+        "packages/client-runtime/src/operations/commands.ts:1125",
+        "packages/client-runtime/src/operations/commands.ts:857"
+      ]
+    },
+    {
+      "id": "command:thread.runtime-mode.set",
+      "kind": "command",
+      "name": "thread.runtime-mode.set",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:651"
+      ]
+    },
+    {
+      "id": "command:thread.settle",
+      "kind": "command",
+      "name": "thread.settle",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:495"
+      ]
+    },
+    {
+      "id": "command:thread.snooze",
+      "kind": "command",
+      "name": "thread.snooze",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:568"
+      ]
+    },
+    {
+      "id": "command:thread.stop",
+      "kind": "command",
+      "name": "thread.stop",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:823"
+      ]
+    },
+    {
+      "id": "command:thread.title.regeneration.complete",
+      "kind": "command",
+      "name": "thread.title.regeneration.complete",
+      "phone": false
+    },
+    {
+      "id": "command:thread.unarchive",
+      "kind": "command",
+      "name": "thread.unarchive",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:489"
+      ]
+    },
+    {
+      "id": "command:thread.unpin",
+      "kind": "command",
+      "name": "thread.unpin",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:550"
+      ]
+    },
+    {
+      "id": "command:thread.unsettle",
+      "kind": "command",
+      "name": "thread.unsettle",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:557"
+      ]
+    },
+    {
+      "id": "command:thread.unsnooze",
+      "kind": "command",
+      "name": "thread.unsnooze",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:579"
+      ]
+    },
+    {
+      "id": "command:thread.user-input.dismiss",
+      "kind": "command",
+      "name": "thread.user-input.dismiss",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:910"
+      ]
+    },
+    {
+      "id": "command:thread.visit",
+      "kind": "command",
+      "name": "thread.visit",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:590"
+      ]
+    },
+    {
+      "id": "http:auth.browserSession",
+      "kind": "http",
+      "name": "auth.browserSession",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/auth/browser-session"
+    },
+    {
+      "id": "http:auth.pairingCredential",
+      "kind": "http",
+      "name": "auth.pairingCredential",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/auth/pairing-token",
+      "sites": [
+        "packages/client-runtime/src/state/peerPairingCode.ts:51",
+        "packages/client-runtime/src/state/peerPairingCode.ts:54"
+      ]
+    },
+    {
+      "id": "http:auth.revokeClient",
+      "kind": "http",
+      "name": "auth.revokeClient",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/auth/clients/revoke"
+    },
+    {
+      "id": "http:auth.revokeOtherClients",
+      "kind": "http",
+      "name": "auth.revokeOtherClients",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/auth/clients/revoke-others"
+    },
+    {
+      "id": "http:auth.revokePairingLink",
+      "kind": "http",
+      "name": "auth.revokePairingLink",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/auth/pairing-links/revoke"
+    },
+    {
+      "id": "http:auth.session",
+      "kind": "http",
+      "name": "auth.session",
+      "phone": true,
+      "method": "GET",
+      "path": "/api/auth/session",
+      "sites": [
+        "packages/client-runtime/src/state/session.ts:63",
+        "packages/client-runtime/src/state/session.ts:65"
+      ]
+    },
+    {
+      "id": "http:auth.token",
+      "kind": "http",
+      "name": "auth.token",
+      "phone": true,
+      "method": "POST",
+      "path": "/oauth/token",
+      "sites": [
+        "packages/client-runtime/src/authorization/remote.ts:128",
+        "packages/client-runtime/src/authorization/remote.ts:156"
+      ]
+    },
+    {
+      "id": "http:auth.webSocketTicket",
+      "kind": "http",
+      "name": "auth.webSocketTicket",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/auth/websocket-ticket",
+      "sites": [
+        "packages/client-runtime/src/authorization/remote.ts:229",
+        "packages/client-runtime/src/authorization/remote.ts:260"
+      ]
+    },
+    {
+      "id": "http:auth.webSocketTicketFor",
+      "kind": "http",
+      "name": "auth.webSocketTicketFor",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/auth/websocket-ticket/:use",
+      "sites": [
+        "packages/client-runtime/src/authorization/remote.ts:230",
+        "packages/client-runtime/src/authorization/remote.ts:261",
+        "packages/client-runtime/src/state/deviceHubAccess.ts:43"
+      ]
+    },
+    {
+      "id": "http:connect.checkReachability",
+      "kind": "http",
+      "name": "connect.checkReachability",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/connect/reachability"
+    },
+    {
+      "id": "http:connect.health",
+      "kind": "http",
+      "name": "connect.health",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/t3-connect/health"
+    },
+    {
+      "id": "http:connect.linkProof",
+      "kind": "http",
+      "name": "connect.linkProof",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/connect/link-proof",
+      "sites": [
+        "apps/mobile/src/features/cloud/linkEnvironment.ts:190"
+      ]
+    },
+    {
+      "id": "http:connect.linkState",
+      "kind": "http",
+      "name": "connect.linkState",
+      "phone": false,
+      "method": "GET",
+      "path": "/api/connect/link-state"
+    },
+    {
+      "id": "http:connect.preferences",
+      "kind": "http",
+      "name": "connect.preferences",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/connect/preferences"
+    },
+    {
+      "id": "http:connect.relayConfig",
+      "kind": "http",
+      "name": "connect.relayConfig",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/connect/relay-config",
+      "sites": [
+        "apps/mobile/src/features/cloud/linkEnvironment.ts:225"
+      ]
+    },
+    {
+      "id": "http:connect.t3MintCredential",
+      "kind": "http",
+      "name": "connect.t3MintCredential",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/t3-connect/mint-credential"
+    },
+    {
+      "id": "http:connect.unlink",
+      "kind": "http",
+      "name": "connect.unlink",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/connect/unlink"
+    },
+    {
+      "id": "http:mcpOAuth.approval",
+      "kind": "http",
+      "name": "mcpOAuth.approval",
+      "phone": false,
+      "method": "POST",
+      "path": "/oauth/mcp/approval"
+    },
+    {
+      "id": "http:mcpOAuth.authorizationServer",
+      "kind": "http",
+      "name": "mcpOAuth.authorizationServer",
+      "phone": false,
+      "method": "GET",
+      "path": "/.well-known/oauth-authorization-server"
+    },
+    {
+      "id": "http:mcpOAuth.authorize",
+      "kind": "http",
+      "name": "mcpOAuth.authorize",
+      "phone": false,
+      "method": "GET",
+      "path": "/oauth/mcp/authorize"
+    },
+    {
+      "id": "http:mcpOAuth.decision",
+      "kind": "http",
+      "name": "mcpOAuth.decision",
+      "phone": false,
+      "method": "POST",
+      "path": "/oauth/mcp/decision"
+    },
+    {
+      "id": "http:mcpOAuth.mcpProtectedResource",
+      "kind": "http",
+      "name": "mcpOAuth.mcpProtectedResource",
+      "phone": false,
+      "method": "GET",
+      "path": "/.well-known/oauth-protected-resource/mcp"
+    },
+    {
+      "id": "http:mcpOAuth.protectedResource",
+      "kind": "http",
+      "name": "mcpOAuth.protectedResource",
+      "phone": false,
+      "method": "GET",
+      "path": "/.well-known/oauth-protected-resource"
+    },
+    {
+      "id": "http:mcpOAuth.register",
+      "kind": "http",
+      "name": "mcpOAuth.register",
+      "phone": false,
+      "method": "POST",
+      "path": "/oauth/mcp/register"
+    },
+    {
+      "id": "http:mcpOAuth.token",
+      "kind": "http",
+      "name": "mcpOAuth.token",
+      "phone": false,
+      "method": "POST",
+      "path": "/oauth/mcp/token"
+    },
+    {
+      "id": "http:metadata.descriptor",
+      "kind": "http",
+      "name": "metadata.descriptor",
+      "phone": true,
+      "method": "GET",
+      "path": "/.well-known/t3/environment",
+      "sites": [
+        "packages/client-runtime/src/environment/descriptor.ts:15"
+      ]
+    },
+    {
+      "id": "http:orchestration.shellSnapshot",
+      "kind": "http",
+      "name": "orchestration.shellSnapshot",
+      "phone": true,
+      "method": "GET",
+      "path": "/api/orchestration/shell",
+      "sites": [
+        "packages/client-runtime/src/state/shellSnapshotHttp.ts:49",
+        "packages/client-runtime/src/state/shellSnapshotHttp.ts:53"
+      ]
+    },
+    {
+      "id": "http:orchestration.threadBoundedSnapshot",
+      "kind": "http",
+      "name": "orchestration.threadBoundedSnapshot",
+      "phone": true,
+      "method": "GET",
+      "path": "/api/orchestration/threads/:threadId/bounded",
+      "sites": [
+        "packages/client-runtime/src/state/boundedThreadSnapshotHttp.ts:44",
+        "packages/client-runtime/src/state/boundedThreadSnapshotHttp.ts:47"
+      ]
+    },
+    {
+      "id": "http:orchestration.threadHistoryPage",
+      "kind": "http",
+      "name": "orchestration.threadHistoryPage",
+      "phone": true,
+      "method": "GET",
+      "path": "/api/orchestration/threads/:threadId/history",
+      "sites": [
+        "packages/client-runtime/src/state/threadHistoryHttp.ts:41",
+        "packages/client-runtime/src/state/threadHistoryHttp.ts:44"
+      ]
+    },
+    {
+      "id": "http:orchestration.threadSnapshot",
+      "kind": "http",
+      "name": "orchestration.threadSnapshot",
+      "phone": false,
+      "method": "GET",
+      "path": "/api/orchestration/threads/:threadId"
+    },
+    {
+      "id": "http:orchestration.threadTranscript",
+      "kind": "http",
+      "name": "orchestration.threadTranscript",
+      "phone": true,
+      "method": "GET",
+      "path": "/api/orchestration/threads/:threadId/transcript",
+      "sites": [
+        "packages/client-runtime/src/state/threadTranscriptHttp.ts:25",
+        "packages/client-runtime/src/state/threadTranscriptHttp.ts:28"
+      ]
+    },
+    {
+      "id": "http:projects.mutate",
+      "kind": "http",
+      "name": "projects.mutate",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/projects/mutate"
+    },
+    {
+      "id": "http:projects.snapshot",
+      "kind": "http",
+      "name": "projects.snapshot",
+      "phone": false,
+      "method": "GET",
+      "path": "/api/projects"
+    },
+    {
+      "id": "http:pullRequests.diff",
+      "kind": "http",
+      "name": "pullRequests.diff",
+      "phone": true,
+      "method": "POST",
+      "path": "/api/pull-requests/diff",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestDiffHttp.ts:54",
+        "packages/client-runtime/src/state/pullRequestDiffHttp.ts:56"
+      ]
+    },
+    {
+      "id": "http:webhooks.webhookGet",
+      "kind": "http",
+      "name": "webhooks.webhookGet",
+      "phone": false,
+      "method": "GET",
+      "path": "/api/hooks/:hookId/:token"
+    },
+    {
+      "id": "http:webhooks.webhookPatch",
+      "kind": "http",
+      "name": "webhooks.webhookPatch",
+      "phone": false,
+      "method": "PATCH",
+      "path": "/api/hooks/:hookId/:token"
+    },
+    {
+      "id": "http:webhooks.webhookPost",
+      "kind": "http",
+      "name": "webhooks.webhookPost",
+      "phone": false,
+      "method": "POST",
+      "path": "/api/hooks/:hookId/:token"
+    },
+    {
+      "id": "http:webhooks.webhookPut",
+      "kind": "http",
+      "name": "webhooks.webhookPut",
+      "phone": false,
+      "method": "PUT",
+      "path": "/api/hooks/:hookId/:token"
+    },
+    {
+      "id": "mutation:project.create",
+      "kind": "mutation",
+      "name": "project.create",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:314",
+        "packages/client-runtime/src/operations/commands.ts:346",
+        "packages/client-runtime/src/operations/projects.ts:296"
+      ]
+    },
+    {
+      "id": "mutation:project.delete",
+      "kind": "mutation",
+      "name": "project.delete",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:333",
+        "packages/client-runtime/src/operations/commands.ts:389"
+      ]
+    },
+    {
+      "id": "mutation:project.update",
+      "kind": "mutation",
+      "name": "project.update",
+      "phone": true,
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:324",
+        "packages/client-runtime/src/operations/commands.ts:365"
+      ]
+    },
+    {
+      "id": "rpc:agentSessions.import",
+      "kind": "rpc",
+      "name": "agentSessions.import",
+      "phone": false,
+      "scope": "orchestration:operate"
+    },
+    {
+      "id": "rpc:agentSessions.scan",
+      "kind": "rpc",
+      "name": "agentSessions.scan",
+      "phone": false,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:assets.createUrl",
+      "kind": "rpc",
+      "name": "assets.createUrl",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/assets.ts:140",
+        "packages/client-runtime/src/state/assets.ts:164"
+      ]
+    },
+    {
+      "id": "rpc:assets.persistChatAttachments",
+      "kind": "rpc",
+      "name": "assets.persistChatAttachments",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:295"
+      ]
+    },
+    {
+      "id": "rpc:attachments.createUploadUrl",
+      "kind": "rpc",
+      "name": "attachments.createUploadUrl",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/attachments.ts:26"
+      ]
+    },
+    {
+      "id": "rpc:attachments.delete",
+      "kind": "rpc",
+      "name": "attachments.delete",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/attachments.ts:30"
+      ]
+    },
+    {
+      "id": "rpc:cloud.getRelayClientStatus",
+      "kind": "rpc",
+      "name": "cloud.getRelayClientStatus",
+      "phone": false,
+      "scope": "relay:read"
+    },
+    {
+      "id": "rpc:cloud.installRelayClient",
+      "kind": "rpc",
+      "name": "cloud.installRelayClient",
+      "phone": false,
+      "subscription": true,
+      "scope": "relay:write"
+    },
+    {
+      "id": "rpc:device.action",
+      "kind": "rpc",
+      "name": "device.action",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/device.ts:89"
+      ]
+    },
+    {
+      "id": "rpc:device.close",
+      "kind": "rpc",
+      "name": "device.close",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/device.ts:71"
+      ]
+    },
+    {
+      "id": "rpc:device.configure",
+      "kind": "rpc",
+      "name": "device.configure",
+      "phone": true,
+      "scope": "settings:write",
+      "sites": [
+        "packages/client-runtime/src/state/device.ts:45"
+      ]
+    },
+    {
+      "id": "rpc:device.detail",
+      "kind": "rpc",
+      "name": "device.detail",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/device.ts:83"
+      ]
+    },
+    {
+      "id": "rpc:device.easAccount",
+      "kind": "rpc",
+      "name": "device.easAccount",
+      "phone": false,
+      "scope": "settings:write"
+    },
+    {
+      "id": "rpc:device.list",
+      "kind": "rpc",
+      "name": "device.list",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/device.ts:59"
+      ]
+    },
+    {
+      "id": "rpc:device.open",
+      "kind": "rpc",
+      "name": "device.open",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/device.ts:65"
+      ]
+    },
+    {
+      "id": "rpc:device.shutdown",
+      "kind": "rpc",
+      "name": "device.shutdown",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/device.ts:77"
+      ]
+    },
+    {
+      "id": "rpc:device.simlockIdentity",
+      "kind": "rpc",
+      "name": "device.simlockIdentity",
+      "phone": false,
+      "scope": "settings:write"
+    },
+    {
+      "id": "rpc:device.testHost",
+      "kind": "rpc",
+      "name": "device.testHost",
+      "phone": false,
+      "scope": "settings:write"
+    },
+    {
+      "id": "rpc:filesystem.browse",
+      "kind": "rpc",
+      "name": "filesystem.browse",
+      "phone": true,
+      "scope": "filesystem:read",
+      "sites": [
+        "packages/client-runtime/src/state/filesystem.ts:123"
+      ]
+    },
+    {
+      "id": "rpc:filesystem.getMetadata",
+      "kind": "rpc",
+      "name": "filesystem.getMetadata",
+      "phone": true,
+      "scope": "filesystem:read",
+      "sites": [
+        "packages/client-runtime/src/state/fileMetadata.ts:144"
+      ]
+    },
+    {
+      "id": "rpc:git.preparePullRequestThread",
+      "kind": "rpc",
+      "name": "git.preparePullRequestThread",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/git.ts:18"
+      ]
+    },
+    {
+      "id": "rpc:git.resolvePullRequest",
+      "kind": "rpc",
+      "name": "git.resolvePullRequest",
+      "phone": false,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:git.runStackedAction",
+      "kind": "rpc",
+      "name": "git.runStackedAction",
+      "phone": true,
+      "subscription": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/vcsAction.ts:487"
+      ]
+    },
+    {
+      "id": "rpc:guestShare.create",
+      "kind": "rpc",
+      "name": "guestShare.create",
+      "phone": false,
+      "scope": "access:write"
+    },
+    {
+      "id": "rpc:mcpApps.callTool",
+      "kind": "rpc",
+      "name": "mcpApps.callTool",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/mcpApps.ts:13"
+      ]
+    },
+    {
+      "id": "rpc:mcpApps.readResource",
+      "kind": "rpc",
+      "name": "mcpApps.readResource",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/mcpApps.ts:26"
+      ]
+    },
+    {
+      "id": "rpc:mcpApps.toolInfo",
+      "kind": "rpc",
+      "name": "mcpApps.toolInfo",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/mcpApps.ts:17",
+        "packages/client-runtime/src/state/mcpApps.ts:22"
+      ]
+    },
+    {
+      "id": "rpc:mcpApps.updateModelContext",
+      "kind": "rpc",
+      "name": "mcpApps.updateModelContext",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/mcpApps.ts:30"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.dispatchCommand",
+      "kind": "rpc",
+      "name": "orchestration.dispatchCommand",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:278",
+        "packages/client-runtime/src/state/orchestration.ts:70"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.forceStopThread",
+      "kind": "rpc",
+      "name": "orchestration.forceStopThread",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:112"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getArchivedShellSnapshot",
+      "kind": "rpc",
+      "name": "orchestration.getArchivedShellSnapshot",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:145"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getFullThreadDiff",
+      "kind": "rpc",
+      "name": "orchestration.getFullThreadDiff",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:122"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getOlderSettledThreads",
+      "kind": "rpc",
+      "name": "orchestration.getOlderSettledThreads",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/olderSettledThreads.ts:230",
+        "packages/client-runtime/src/state/olderSettledThreads.ts:248"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getThreadFamily",
+      "kind": "rpc",
+      "name": "orchestration.getThreadFamily",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/threadFamilies.ts:110"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getThreadProjection",
+      "kind": "rpc",
+      "name": "orchestration.getThreadProjection",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:281"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getTurnDiff",
+      "kind": "rpc",
+      "name": "orchestration.getTurnDiff",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:97"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getTurnItem",
+      "kind": "rpc",
+      "name": "orchestration.getTurnItem",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:116",
+        "packages/client-runtime/src/state/threads.ts:835"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getWorkflowScript",
+      "kind": "rpc",
+      "name": "orchestration.getWorkflowScript",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:102"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.getWorktreeThreadIds",
+      "kind": "rpc",
+      "name": "orchestration.getWorktreeThreadIds",
+      "phone": false,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:orchestration.launchThread",
+      "kind": "rpc",
+      "name": "orchestration.launchThread",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:712"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.searchThread",
+      "kind": "rpc",
+      "name": "orchestration.searchThread",
+      "phone": false,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:orchestration.searchThreadStream",
+      "kind": "rpc",
+      "name": "orchestration.searchThreadStream",
+      "phone": false,
+      "subscription": true,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:orchestration.searchThreads",
+      "kind": "rpc",
+      "name": "orchestration.searchThreads",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/olderSettledThreads.ts:389",
+        "packages/client-runtime/src/state/orchestration.ts:139"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.stopWorkflow",
+      "kind": "rpc",
+      "name": "orchestration.stopWorkflow",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:108"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.subscribeCommandOutput",
+      "kind": "rpc",
+      "name": "orchestration.subscribeCommandOutput",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:85"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.subscribeShell",
+      "kind": "rpc",
+      "name": "orchestration.subscribeShell",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:74",
+        "packages/client-runtime/src/state/shell.ts:363"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.subscribeThread",
+      "kind": "rpc",
+      "name": "orchestration.subscribeThread",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/orchestration.ts:78",
+        "packages/client-runtime/src/state/threads.ts:938"
+      ]
+    },
+    {
+      "id": "rpc:peerLinks.answerRequest",
+      "kind": "rpc",
+      "name": "peerLinks.answerRequest",
+      "phone": true,
+      "scope": "access:write",
+      "sites": [
+        "packages/client-runtime/src/state/peerLinks.ts:36"
+      ]
+    },
+    {
+      "id": "rpc:peerLinks.link",
+      "kind": "rpc",
+      "name": "peerLinks.link",
+      "phone": true,
+      "scope": "access:write",
+      "sites": [
+        "packages/client-runtime/src/state/peerLinks.ts:23"
+      ]
+    },
+    {
+      "id": "rpc:peerLinks.list",
+      "kind": "rpc",
+      "name": "peerLinks.list",
+      "phone": true,
+      "scope": "access:read",
+      "sites": [
+        "packages/client-runtime/src/state/peerLinks.ts:15"
+      ]
+    },
+    {
+      "id": "rpc:peerLinks.unlink",
+      "kind": "rpc",
+      "name": "peerLinks.unlink",
+      "phone": false,
+      "scope": "access:write"
+    },
+    {
+      "id": "rpc:preview.adjust",
+      "kind": "rpc",
+      "name": "preview.adjust",
+      "phone": true,
+      "scope": "preview:operate",
+      "sites": [
+        "packages/client-runtime/src/state/preview.ts:56"
+      ]
+    },
+    {
+      "id": "rpc:preview.clearProfile",
+      "kind": "rpc",
+      "name": "preview.clearProfile",
+      "phone": false,
+      "scope": "preview:operate"
+    },
+    {
+      "id": "rpc:preview.close",
+      "kind": "rpc",
+      "name": "preview.close",
+      "phone": true,
+      "scope": "preview:operate",
+      "sites": [
+        "packages/client-runtime/src/state/preview.ts:62"
+      ]
+    },
+    {
+      "id": "rpc:preview.list",
+      "kind": "rpc",
+      "name": "preview.list",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/preview.ts:26"
+      ]
+    },
+    {
+      "id": "rpc:preview.open",
+      "kind": "rpc",
+      "name": "preview.open",
+      "phone": true,
+      "scope": "preview:operate",
+      "sites": [
+        "packages/client-runtime/src/state/preview.ts:44"
+      ]
+    },
+    {
+      "id": "rpc:preview.reportProfiles",
+      "kind": "rpc",
+      "name": "preview.reportProfiles",
+      "phone": false,
+      "scope": "preview:operate"
+    },
+    {
+      "id": "rpc:preview.reportStatus",
+      "kind": "rpc",
+      "name": "preview.reportStatus",
+      "phone": false,
+      "scope": "preview:operate"
+    },
+    {
+      "id": "rpc:preview.resize",
+      "kind": "rpc",
+      "name": "preview.resize",
+      "phone": true,
+      "scope": "preview:operate",
+      "sites": [
+        "packages/client-runtime/src/state/preview.ts:50"
+      ]
+    },
+    {
+      "id": "rpc:preview.stopLocalServer",
+      "kind": "rpc",
+      "name": "preview.stopLocalServer",
+      "phone": false,
+      "scope": "terminal:operate"
+    },
+    {
+      "id": "rpc:projectClone.cancel",
+      "kind": "rpc",
+      "name": "projectClone.cancel",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/sourceControl.ts:56"
+      ]
+    },
+    {
+      "id": "rpc:projectClone.retry",
+      "kind": "rpc",
+      "name": "projectClone.retry",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/sourceControl.ts:65"
+      ]
+    },
+    {
+      "id": "rpc:projectClone.start",
+      "kind": "rpc",
+      "name": "projectClone.start",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/sourceControl.ts:45"
+      ]
+    },
+    {
+      "id": "rpc:projects.createFromThread",
+      "kind": "rpc",
+      "name": "projects.createFromThread",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/projectCommands.ts:206"
+      ]
+    },
+    {
+      "id": "rpc:projects.createNew",
+      "kind": "rpc",
+      "name": "projects.createNew",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/projectCommands.ts:200"
+      ]
+    },
+    {
+      "id": "rpc:projects.ensureScratch",
+      "kind": "rpc",
+      "name": "projects.ensureScratch",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/projectCommands.ts:179"
+      ]
+    },
+    {
+      "id": "rpc:projects.listEntries",
+      "kind": "rpc",
+      "name": "projects.listEntries",
+      "phone": true,
+      "scope": "filesystem:read",
+      "sites": [
+        "packages/client-runtime/src/state/projectCommands.ts:122",
+        "packages/client-runtime/src/state/projectCommands.ts:127"
+      ]
+    },
+    {
+      "id": "rpc:projects.listIgnoredFiles",
+      "kind": "rpc",
+      "name": "projects.listIgnoredFiles",
+      "phone": false,
+      "scope": "filesystem:read"
+    },
+    {
+      "id": "rpc:projects.mutate",
+      "kind": "rpc",
+      "name": "projects.mutate",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/operations/commands.ts:339"
+      ]
+    },
+    {
+      "id": "rpc:projects.readFile",
+      "kind": "rpc",
+      "name": "projects.readFile",
+      "phone": true,
+      "scope": "filesystem:read",
+      "sites": [
+        "packages/client-runtime/src/state/projectCommands.ts:138",
+        "packages/client-runtime/src/state/projectCommands.ts:143"
+      ]
+    },
+    {
+      "id": "rpc:projects.searchContents",
+      "kind": "rpc",
+      "name": "projects.searchContents",
+      "phone": false,
+      "scope": "filesystem:read"
+    },
+    {
+      "id": "rpc:projects.searchEntries",
+      "kind": "rpc",
+      "name": "projects.searchEntries",
+      "phone": true,
+      "scope": "filesystem:read",
+      "sites": [
+        "packages/client-runtime/src/state/projectCommands.ts:112",
+        "packages/client-runtime/src/state/projectCommands.ts:116"
+      ]
+    },
+    {
+      "id": "rpc:projects.writeFile",
+      "kind": "rpc",
+      "name": "projects.writeFile",
+      "phone": true,
+      "scope": "filesystem:write",
+      "sites": [
+        "packages/client-runtime/src/state/projectCommands.ts:212",
+        "packages/client-runtime/src/state/projectCommands.ts:220"
+      ]
+    },
+    {
+      "id": "rpc:provider.auth.cancel",
+      "kind": "rpc",
+      "name": "provider.auth.cancel",
+      "phone": true,
+      "scope": "providers:manage",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1237"
+      ]
+    },
+    {
+      "id": "rpc:provider.auth.complete",
+      "kind": "rpc",
+      "name": "provider.auth.complete",
+      "phone": true,
+      "scope": "providers:manage",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1217"
+      ]
+    },
+    {
+      "id": "rpc:provider.auth.logout",
+      "kind": "rpc",
+      "name": "provider.auth.logout",
+      "phone": true,
+      "scope": "providers:manage",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1241"
+      ]
+    },
+    {
+      "id": "rpc:provider.auth.respond",
+      "kind": "rpc",
+      "name": "provider.auth.respond",
+      "phone": true,
+      "scope": "providers:manage",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1213"
+      ]
+    },
+    {
+      "id": "rpc:provider.auth.start",
+      "kind": "rpc",
+      "name": "provider.auth.start",
+      "phone": true,
+      "scope": "providers:manage",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1205"
+      ]
+    },
+    {
+      "id": "rpc:provider.auth.subscribe",
+      "kind": "rpc",
+      "name": "provider.auth.subscribe",
+      "phone": true,
+      "subscription": true,
+      "scope": "providers:manage",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1200"
+      ]
+    },
+    {
+      "id": "rpc:provider.chatgpt.handoff.subscribe",
+      "kind": "rpc",
+      "name": "provider.chatgpt.handoff.subscribe",
+      "phone": false,
+      "subscription": true,
+      "scope": "providers:manage"
+    },
+    {
+      "id": "rpc:provider.chatgpt.import-profile",
+      "kind": "rpc",
+      "name": "provider.chatgpt.import-profile",
+      "phone": true,
+      "scope": "providers:manage",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1225"
+      ]
+    },
+    {
+      "id": "rpc:provider.chatgpt.reconnect-profile",
+      "kind": "rpc",
+      "name": "provider.chatgpt.reconnect-profile",
+      "phone": true,
+      "scope": "providers:manage",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1221"
+      ]
+    },
+    {
+      "id": "rpc:provider.consumeResetCredit",
+      "kind": "rpc",
+      "name": "provider.consumeResetCredit",
+      "phone": true,
+      "scope": "providers:manage",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1360"
+      ]
+    },
+    {
+      "id": "rpc:provider.install.cancel",
+      "kind": "rpc",
+      "name": "provider.install.cancel",
+      "phone": false,
+      "scope": "providers:manage"
+    },
+    {
+      "id": "rpc:provider.install.remove",
+      "kind": "rpc",
+      "name": "provider.install.remove",
+      "phone": false,
+      "scope": "providers:manage"
+    },
+    {
+      "id": "rpc:provider.install.start",
+      "kind": "rpc",
+      "name": "provider.install.start",
+      "phone": false,
+      "scope": "providers:manage"
+    },
+    {
+      "id": "rpc:provider.install.subscribe",
+      "kind": "rpc",
+      "name": "provider.install.subscribe",
+      "phone": false,
+      "subscription": true,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:provider.uploadFeedback",
+      "kind": "rpc",
+      "name": "provider.uploadFeedback",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/threadCommands.ts:372"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.activity",
+      "kind": "rpc",
+      "name": "pullRequests.activity",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:40",
+        "packages/client-runtime/src/state/pullRequests.ts:218",
+        "packages/client-runtime/src/state/pullRequests.ts:219"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.changeBreakdown",
+      "kind": "rpc",
+      "name": "pullRequests.changeBreakdown",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:44",
+        "packages/client-runtime/src/state/pullRequests.ts:448",
+        "packages/client-runtime/src/state/pullRequests.ts:449"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.checks",
+      "kind": "rpc",
+      "name": "pullRequests.checks",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:331",
+        "packages/client-runtime/src/state/pullRequestRouting.ts:39",
+        "packages/client-runtime/src/state/pullRequests.ts:392"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.comment",
+      "kind": "rpc",
+      "name": "pullRequests.comment",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:54",
+        "packages/client-runtime/src/state/pullRequests.ts:492",
+        "packages/client-runtime/src/state/pullRequests.ts:493"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.detail",
+      "kind": "rpc",
+      "name": "pullRequests.detail",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:37",
+        "packages/client-runtime/src/state/pullRequestRouting.ts:463",
+        "packages/client-runtime/src/state/pullRequestRouting.ts:508"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.diffFileContents",
+      "kind": "rpc",
+      "name": "pullRequests.diffFileContents",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:42",
+        "packages/client-runtime/src/state/pullRequests.ts:419",
+        "packages/client-runtime/src/state/pullRequests.ts:420"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.filesViewed",
+      "kind": "rpc",
+      "name": "pullRequests.filesViewed",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:43",
+        "packages/client-runtime/src/state/pullRequests.ts:441",
+        "packages/client-runtime/src/state/pullRequests.ts:442"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.filterOptions",
+      "kind": "rpc",
+      "name": "pullRequests.filterOptions",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequests.ts:382"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.generateReviewGuide",
+      "kind": "rpc",
+      "name": "pullRequests.generateReviewGuide",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequests.ts:606",
+        "packages/client-runtime/src/state/pullRequests.ts:607"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.invalidate",
+      "kind": "rpc",
+      "name": "pullRequests.invalidate",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:214",
+        "packages/client-runtime/src/state/pullRequestRouting.ts:243",
+        "packages/client-runtime/src/state/pullRequests.ts:670"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.labelCandidates",
+      "kind": "rpc",
+      "name": "pullRequests.labelCandidates",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:46",
+        "packages/client-runtime/src/state/pullRequests.ts:260",
+        "packages/client-runtime/src/state/pullRequests.ts:261"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.linkedThreads",
+      "kind": "rpc",
+      "name": "pullRequests.linkedThreads",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequests.ts:345",
+        "packages/client-runtime/src/state/pullRequests.ts:354"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.list",
+      "kind": "rpc",
+      "name": "pullRequests.list",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequests.ts:361"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.listStats",
+      "kind": "rpc",
+      "name": "pullRequests.listStats",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequests.ts:375"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.preview",
+      "kind": "rpc",
+      "name": "pullRequests.preview",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:38",
+        "packages/client-runtime/src/state/pullRequests.ts:239",
+        "packages/client-runtime/src/state/pullRequests.ts:240"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.replyToThread",
+      "kind": "rpc",
+      "name": "pullRequests.replyToThread",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:57",
+        "packages/client-runtime/src/state/pullRequests.ts:522",
+        "packages/client-runtime/src/state/pullRequests.ts:523"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.reportState",
+      "kind": "rpc",
+      "name": "pullRequests.reportState",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:231"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.requestReviewers",
+      "kind": "rpc",
+      "name": "pullRequests.requestReviewers",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:60",
+        "packages/client-runtime/src/state/pullRequests.ts:530",
+        "packages/client-runtime/src/state/pullRequests.ts:531"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.reviewGuide",
+      "kind": "rpc",
+      "name": "pullRequests.reviewGuide",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequests.ts:269",
+        "packages/client-runtime/src/state/pullRequests.ts:270"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.reviewerCandidates",
+      "kind": "rpc",
+      "name": "pullRequests.reviewerCandidates",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:45",
+        "packages/client-runtime/src/state/pullRequests.ts:279",
+        "packages/client-runtime/src/state/pullRequests.ts:280"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.routing",
+      "kind": "rpc",
+      "name": "pullRequests.routing",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:345"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.routingIdentity",
+      "kind": "rpc",
+      "name": "pullRequests.routingIdentity",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:419"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.runAction",
+      "kind": "rpc",
+      "name": "pullRequests.runAction",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:52",
+        "packages/client-runtime/src/state/pullRequests.ts:337",
+        "packages/client-runtime/src/state/pullRequests.ts:469"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.setFilesViewed",
+      "kind": "rpc",
+      "name": "pullRequests.setFilesViewed",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:305",
+        "packages/client-runtime/src/state/pullRequestRouting.ts:307",
+        "packages/client-runtime/src/state/pullRequestRouting.ts:314"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.setLabels",
+      "kind": "rpc",
+      "name": "pullRequests.setLabels",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:61",
+        "packages/client-runtime/src/state/pullRequests.ts:616",
+        "packages/client-runtime/src/state/pullRequests.ts:617"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.setReaction",
+      "kind": "rpc",
+      "name": "pullRequests.setReaction",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:58",
+        "packages/client-runtime/src/state/pullRequests.ts:659",
+        "packages/client-runtime/src/state/pullRequests.ts:660"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.setThreadResolution",
+      "kind": "rpc",
+      "name": "pullRequests.setThreadResolution",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:59",
+        "packages/client-runtime/src/state/pullRequests.ts:652",
+        "packages/client-runtime/src/state/pullRequests.ts:653"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.stack",
+      "kind": "rpc",
+      "name": "pullRequests.stack",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:36",
+        "packages/client-runtime/src/state/pullRequests.ts:177",
+        "packages/client-runtime/src/state/pullRequests.ts:178"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.submitReview",
+      "kind": "rpc",
+      "name": "pullRequests.submitReview",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:56",
+        "packages/client-runtime/src/state/pullRequests.ts:515",
+        "packages/client-runtime/src/state/pullRequests.ts:516"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.subscribeRefreshes",
+      "kind": "rpc",
+      "name": "pullRequests.subscribeRefreshes",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequests.ts:123"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.summary",
+      "kind": "rpc",
+      "name": "pullRequests.summary",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:35",
+        "packages/client-runtime/src/state/pullRequestRouting.ts:508",
+        "packages/client-runtime/src/state/pullRequests.ts:150"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.threadComments",
+      "kind": "rpc",
+      "name": "pullRequests.threadComments",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:41",
+        "packages/client-runtime/src/state/pullRequests.ts:402",
+        "packages/client-runtime/src/state/pullRequests.ts:403"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.update",
+      "kind": "rpc",
+      "name": "pullRequests.update",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:53",
+        "packages/client-runtime/src/state/pullRequests.ts:484",
+        "packages/client-runtime/src/state/pullRequests.ts:485"
+      ]
+    },
+    {
+      "id": "rpc:pullRequests.updateComment",
+      "kind": "rpc",
+      "name": "pullRequests.updateComment",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/pullRequestRouting.ts:55",
+        "packages/client-runtime/src/state/pullRequests.ts:499",
+        "packages/client-runtime/src/state/pullRequests.ts:500"
+      ]
+    },
+    {
+      "id": "rpc:review.getBranchCommits",
+      "kind": "rpc",
+      "name": "review.getBranchCommits",
+      "phone": false,
+      "scope": "filesystem:read"
+    },
+    {
+      "id": "rpc:review.getDiffFileContents",
+      "kind": "rpc",
+      "name": "review.getDiffFileContents",
+      "phone": true,
+      "scope": "filesystem:read",
+      "sites": [
+        "packages/client-runtime/src/state/review.ts:93"
+      ]
+    },
+    {
+      "id": "rpc:review.getDiffPreview",
+      "kind": "rpc",
+      "name": "review.getDiffPreview",
+      "phone": true,
+      "scope": "filesystem:read",
+      "sites": [
+        "packages/client-runtime/src/state/review.ts:36",
+        "packages/client-runtime/src/state/review.ts:73"
+      ]
+    },
+    {
+      "id": "rpc:scheduledTasks.delete",
+      "kind": "rpc",
+      "name": "scheduledTasks.delete",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1529"
+      ]
+    },
+    {
+      "id": "rpc:scheduledTasks.getWebhookDelivery",
+      "kind": "rpc",
+      "name": "scheduledTasks.getWebhookDelivery",
+      "phone": false,
+      "scope": "orchestration:operate"
+    },
+    {
+      "id": "rpc:scheduledTasks.listWebhookDeliveries",
+      "kind": "rpc",
+      "name": "scheduledTasks.listWebhookDeliveries",
+      "phone": false,
+      "scope": "orchestration:operate"
+    },
+    {
+      "id": "rpc:scheduledTasks.rotateWebhookToken",
+      "kind": "rpc",
+      "name": "scheduledTasks.rotateWebhookToken",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1542"
+      ]
+    },
+    {
+      "id": "rpc:scheduledTasks.runNow",
+      "kind": "rpc",
+      "name": "scheduledTasks.runNow",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1538"
+      ]
+    },
+    {
+      "id": "rpc:scheduledTasks.setEnabled",
+      "kind": "rpc",
+      "name": "scheduledTasks.setEnabled",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1523"
+      ]
+    },
+    {
+      "id": "rpc:scheduledTasks.subscribe",
+      "kind": "rpc",
+      "name": "scheduledTasks.subscribe",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1299"
+      ]
+    },
+    {
+      "id": "rpc:scheduledTasks.upsert",
+      "kind": "rpc",
+      "name": "scheduledTasks.upsert",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1517"
+      ]
+    },
+    {
+      "id": "rpc:secrets.answerRequest",
+      "kind": "rpc",
+      "name": "secrets.answerRequest",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1554"
+      ]
+    },
+    {
+      "id": "rpc:server.acceptAcpRegistryUrlAuth",
+      "kind": "rpc",
+      "name": "server.acceptAcpRegistryUrlAuth",
+      "phone": false,
+      "scope": "providers:manage"
+    },
+    {
+      "id": "rpc:server.checkOtlpEndpoint",
+      "kind": "rpc",
+      "name": "server.checkOtlpEndpoint",
+      "phone": false,
+      "scope": "settings:write"
+    },
+    {
+      "id": "rpc:server.commitDesktopUpdate",
+      "kind": "rpc",
+      "name": "server.commitDesktopUpdate",
+      "phone": true,
+      "scope": "environment:maintain",
+      "sites": [
+        "packages/client-runtime/src/connection/outdatedHostUpdate.ts:191",
+        "packages/client-runtime/src/state/server.ts:1042",
+        "packages/client-runtime/src/state/server.ts:962"
+      ]
+    },
+    {
+      "id": "rpc:server.deleteAcpRegistrySession",
+      "kind": "rpc",
+      "name": "server.deleteAcpRegistrySession",
+      "phone": false,
+      "scope": "orchestration:operate"
+    },
+    {
+      "id": "rpc:server.disableAcpRegistryProvider",
+      "kind": "rpc",
+      "name": "server.disableAcpRegistryProvider",
+      "phone": false,
+      "scope": "providers:manage"
+    },
+    {
+      "id": "rpc:server.discoverSourceControl",
+      "kind": "rpc",
+      "name": "server.discoverSourceControl",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/sourceControl.ts:22"
+      ]
+    },
+    {
+      "id": "rpc:server.getConfig",
+      "kind": "rpc",
+      "name": "server.getConfig",
+      "phone": false,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:server.getDatabaseStorage",
+      "kind": "rpc",
+      "name": "server.getDatabaseStorage",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1139"
+      ]
+    },
+    {
+      "id": "rpc:server.getHostResources",
+      "kind": "rpc",
+      "name": "server.getHostResources",
+      "phone": false,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:server.getNpmRelease",
+      "kind": "rpc",
+      "name": "server.getNpmRelease",
+      "phone": false,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:server.getProcessDiagnostics",
+      "kind": "rpc",
+      "name": "server.getProcessDiagnostics",
+      "phone": false,
+      "scope": "diagnostics:read"
+    },
+    {
+      "id": "rpc:server.getProcessResourceHistory",
+      "kind": "rpc",
+      "name": "server.getProcessResourceHistory",
+      "phone": false,
+      "scope": "diagnostics:read"
+    },
+    {
+      "id": "rpc:server.getResourceTelemetryHistory",
+      "kind": "rpc",
+      "name": "server.getResourceTelemetryHistory",
+      "phone": false,
+      "scope": "diagnostics:read"
+    },
+    {
+      "id": "rpc:server.getStorageCleanupReport",
+      "kind": "rpc",
+      "name": "server.getStorageCleanupReport",
+      "phone": false,
+      "subscription": true,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:server.getTraceDiagnostics",
+      "kind": "rpc",
+      "name": "server.getTraceDiagnostics",
+      "phone": false,
+      "scope": "diagnostics:read"
+    },
+    {
+      "id": "rpc:server.getUsageSummary",
+      "kind": "rpc",
+      "name": "server.getUsageSummary",
+      "phone": true,
+      "scope": "diagnostics:read",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1305",
+        "packages/client-runtime/src/state/server.ts:1309",
+        "packages/client-runtime/src/state/server.ts:1315"
+      ]
+    },
+    {
+      "id": "rpc:server.importAcpRegistrySession",
+      "kind": "rpc",
+      "name": "server.importAcpRegistrySession",
+      "phone": false,
+      "scope": "orchestration:operate"
+    },
+    {
+      "id": "rpc:server.listAcpRegistryProviders",
+      "kind": "rpc",
+      "name": "server.listAcpRegistryProviders",
+      "phone": false,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:server.listAcpRegistrySessions",
+      "kind": "rpc",
+      "name": "server.listAcpRegistrySessions",
+      "phone": false,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:server.logoutAcpRegistry",
+      "kind": "rpc",
+      "name": "server.logoutAcpRegistry",
+      "phone": false,
+      "scope": "providers:manage"
+    },
+    {
+      "id": "rpc:server.prepareAcpRegistryAgent",
+      "kind": "rpc",
+      "name": "server.prepareAcpRegistryAgent",
+      "phone": false,
+      "scope": "providers:manage"
+    },
+    {
+      "id": "rpc:server.prepareTriage",
+      "kind": "rpc",
+      "name": "server.prepareTriage",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1185"
+      ]
+    },
+    {
+      "id": "rpc:server.probe",
+      "kind": "rpc",
+      "name": "server.probe",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/rpc/session.ts:409"
+      ]
+    },
+    {
+      "id": "rpc:server.refreshProviders",
+      "kind": "rpc",
+      "name": "server.refreshProviders",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1369",
+        "packages/client-runtime/src/state/server.ts:1371"
+      ]
+    },
+    {
+      "id": "rpc:server.refreshUsageRates",
+      "kind": "rpc",
+      "name": "server.refreshUsageRates",
+      "phone": true,
+      "scope": "diagnostics:read",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1563"
+      ]
+    },
+    {
+      "id": "rpc:server.removeKeybinding",
+      "kind": "rpc",
+      "name": "server.removeKeybinding",
+      "phone": false,
+      "scope": "settings:write"
+    },
+    {
+      "id": "rpc:server.reportClientActivity",
+      "kind": "rpc",
+      "name": "server.reportClientActivity",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "apps/mobile/src/connection/background-activity.ts:66"
+      ]
+    },
+    {
+      "id": "rpc:server.retryResourceTelemetry",
+      "kind": "rpc",
+      "name": "server.retryResourceTelemetry",
+      "phone": false,
+      "scope": "diagnostics:read"
+    },
+    {
+      "id": "rpc:server.runStorageCleanup",
+      "kind": "rpc",
+      "name": "server.runStorageCleanup",
+      "phone": false,
+      "scope": "settings:write"
+    },
+    {
+      "id": "rpc:server.searchAcpRegistry",
+      "kind": "rpc",
+      "name": "server.searchAcpRegistry",
+      "phone": false,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:server.setAcpRegistryProvider",
+      "kind": "rpc",
+      "name": "server.setAcpRegistryProvider",
+      "phone": false,
+      "scope": "providers:manage"
+    },
+    {
+      "id": "rpc:server.signalProcess",
+      "kind": "rpc",
+      "name": "server.signalProcess",
+      "phone": false,
+      "scope": "environment:maintain"
+    },
+    {
+      "id": "rpc:server.uninstallAcpRegistryManagedBinary",
+      "kind": "rpc",
+      "name": "server.uninstallAcpRegistryManagedBinary",
+      "phone": false,
+      "scope": "providers:manage"
+    },
+    {
+      "id": "rpc:server.updateProvider",
+      "kind": "rpc",
+      "name": "server.updateProvider",
+      "phone": true,
+      "scope": "providers:manage",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1405"
+      ]
+    },
+    {
+      "id": "rpc:server.updateServer",
+      "kind": "rpc",
+      "name": "server.updateServer",
+      "phone": true,
+      "scope": "environment:maintain",
+      "sites": [
+        "packages/client-runtime/src/connection/outdatedHostUpdate.ts:171",
+        "packages/client-runtime/src/state/server.ts:936"
+      ]
+    },
+    {
+      "id": "rpc:server.updateServerWithProgress",
+      "kind": "rpc",
+      "name": "server.updateServerWithProgress",
+      "phone": true,
+      "subscription": true,
+      "scope": "environment:maintain",
+      "sites": [
+        "packages/client-runtime/src/connection/outdatedHostUpdate.ts:145",
+        "packages/client-runtime/src/state/server.ts:896"
+      ]
+    },
+    {
+      "id": "rpc:server.updateSettings",
+      "kind": "rpc",
+      "name": "server.updateSettings",
+      "phone": true,
+      "scope": "settings:write",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1171"
+      ]
+    },
+    {
+      "id": "rpc:server.upsertKeybinding",
+      "kind": "rpc",
+      "name": "server.upsertKeybinding",
+      "phone": false,
+      "scope": "settings:write"
+    },
+    {
+      "id": "rpc:shell.openInEditor",
+      "kind": "rpc",
+      "name": "shell.openInEditor",
+      "phone": false,
+      "scope": "orchestration:operate"
+    },
+    {
+      "id": "rpc:sourceControl.appAccess",
+      "kind": "rpc",
+      "name": "sourceControl.appAccess",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/sourceControl.ts:26",
+        "packages/client-runtime/src/state/sourceControl.ts:31"
+      ]
+    },
+    {
+      "id": "rpc:sourceControl.cloneRepository",
+      "kind": "rpc",
+      "name": "sourceControl.cloneRepository",
+      "phone": false,
+      "scope": "source-control:write"
+    },
+    {
+      "id": "rpc:sourceControl.lookupRepository",
+      "kind": "rpc",
+      "name": "sourceControl.lookupRepository",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/sourceControl.ts:39"
+      ]
+    },
+    {
+      "id": "rpc:sourceControl.publishRepository",
+      "kind": "rpc",
+      "name": "sourceControl.publishRepository",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/sourceControl.ts:91"
+      ]
+    },
+    {
+      "id": "rpc:sourceControl.signInCancel",
+      "kind": "rpc",
+      "name": "sourceControl.signInCancel",
+      "phone": true,
+      "scope": "settings:write",
+      "sites": [
+        "packages/client-runtime/src/state/sourceControl.ts:83"
+      ]
+    },
+    {
+      "id": "rpc:sourceControl.signInStart",
+      "kind": "rpc",
+      "name": "sourceControl.signInStart",
+      "phone": true,
+      "scope": "settings:write",
+      "sites": [
+        "packages/client-runtime/src/state/sourceControl.ts:75"
+      ]
+    },
+    {
+      "id": "rpc:sourceControl.signInWait",
+      "kind": "rpc",
+      "name": "sourceControl.signInWait",
+      "phone": true,
+      "scope": "settings:write",
+      "sites": [
+        "packages/client-runtime/src/state/sourceControl.ts:79"
+      ]
+    },
+    {
+      "id": "rpc:sourceControl.starred",
+      "kind": "rpc",
+      "name": "sourceControl.starred",
+      "phone": false,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:subscribeAuthAccess",
+      "kind": "rpc",
+      "name": "subscribeAuthAccess",
+      "phone": false,
+      "subscription": true,
+      "scope": "access:read"
+    },
+    {
+      "id": "rpc:subscribeDeviceState",
+      "kind": "rpc",
+      "name": "subscribeDeviceState",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/device.ts:41"
+      ]
+    },
+    {
+      "id": "rpc:subscribeDiscoveredLocalServers",
+      "kind": "rpc",
+      "name": "subscribeDiscoveredLocalServers",
+      "phone": false,
+      "subscription": true,
+      "scope": "orchestration:read"
+    },
+    {
+      "id": "rpc:subscribePreviewEvents",
+      "kind": "rpc",
+      "name": "subscribePreviewEvents",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/preview.ts:31"
+      ]
+    },
+    {
+      "id": "rpc:subscribeProjectClones",
+      "kind": "rpc",
+      "name": "subscribeProjectClones",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/sourceControl.ts:87"
+      ]
+    },
+    {
+      "id": "rpc:subscribeResourceTelemetry",
+      "kind": "rpc",
+      "name": "subscribeResourceTelemetry",
+      "phone": true,
+      "subscription": true,
+      "scope": "diagnostics:read",
+      "sites": [
+        "apps/mobile/src/connection/background-activity-scopes.ts:40"
+      ]
+    },
+    {
+      "id": "rpc:subscribeServerConfig",
+      "kind": "rpc",
+      "name": "subscribeServerConfig",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/rpc/client.ts:282",
+        "packages/client-runtime/src/rpc/session.ts:269",
+        "packages/client-runtime/src/rpc/session.ts:403"
+      ]
+    },
+    {
+      "id": "rpc:subscribeServerLifecycle",
+      "kind": "rpc",
+      "name": "subscribeServerLifecycle",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/server.ts:1009",
+        "packages/client-runtime/src/state/server.ts:599"
+      ]
+    },
+    {
+      "id": "rpc:subscribeTerminalMetadata",
+      "kind": "rpc",
+      "name": "subscribeTerminalMetadata",
+      "phone": true,
+      "subscription": true,
+      "scope": "terminal:read",
+      "sites": [
+        "packages/client-runtime/src/state/terminal.ts:84"
+      ]
+    },
+    {
+      "id": "rpc:subscribeVcsStatus",
+      "kind": "rpc",
+      "name": "subscribeVcsStatus",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "apps/mobile/src/connection/background-activity-scopes.ts:43",
+        "packages/client-runtime/src/state/vcs.ts:289"
+      ]
+    },
+    {
+      "id": "rpc:subscribeWorktreeSetup",
+      "kind": "rpc",
+      "name": "subscribeWorktreeSetup",
+      "phone": true,
+      "subscription": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/vcs.ts:322"
+      ]
+    },
+    {
+      "id": "rpc:terminal.attach",
+      "kind": "rpc",
+      "name": "terminal.attach",
+      "phone": true,
+      "subscription": true,
+      "scope": "terminal:operate",
+      "sites": [
+        "packages/client-runtime/src/state/terminal.ts:69"
+      ]
+    },
+    {
+      "id": "rpc:terminal.clear",
+      "kind": "rpc",
+      "name": "terminal.clear",
+      "phone": true,
+      "scope": "terminal:operate",
+      "sites": [
+        "packages/client-runtime/src/state/terminal.ts:108"
+      ]
+    },
+    {
+      "id": "rpc:terminal.close",
+      "kind": "rpc",
+      "name": "terminal.close",
+      "phone": true,
+      "scope": "terminal:operate",
+      "sites": [
+        "packages/client-runtime/src/state/terminal.ts:114"
+      ]
+    },
+    {
+      "id": "rpc:terminal.observe",
+      "kind": "rpc",
+      "name": "terminal.observe",
+      "phone": true,
+      "subscription": true,
+      "scope": "terminal:read",
+      "sites": [
+        "packages/client-runtime/src/state/terminal.ts:59"
+      ]
+    },
+    {
+      "id": "rpc:terminal.open",
+      "kind": "rpc",
+      "name": "terminal.open",
+      "phone": true,
+      "scope": "terminal:operate",
+      "sites": [
+        "packages/client-runtime/src/state/terminal.ts:92"
+      ]
+    },
+    {
+      "id": "rpc:terminal.resize",
+      "kind": "rpc",
+      "name": "terminal.resize",
+      "phone": true,
+      "scope": "terminal:operate",
+      "sites": [
+        "packages/client-runtime/src/state/terminal.ts:102"
+      ]
+    },
+    {
+      "id": "rpc:terminal.write",
+      "kind": "rpc",
+      "name": "terminal.write",
+      "phone": true,
+      "scope": "terminal:operate",
+      "sites": [
+        "packages/client-runtime/src/state/terminal.ts:98"
+      ]
+    },
+    {
+      "id": "rpc:vcs.createRef",
+      "kind": "rpc",
+      "name": "vcs.createRef",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/vcs.ts:338"
+      ]
+    },
+    {
+      "id": "rpc:vcs.createWorktree",
+      "kind": "rpc",
+      "name": "vcs.createWorktree",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/vcs.ts:315"
+      ]
+    },
+    {
+      "id": "rpc:vcs.init",
+      "kind": "rpc",
+      "name": "vcs.init",
+      "phone": false,
+      "scope": "source-control:write"
+    },
+    {
+      "id": "rpc:vcs.listRefs",
+      "kind": "rpc",
+      "name": "vcs.listRefs",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/vcs.ts:146",
+        "packages/client-runtime/src/state/vcs.ts:283"
+      ]
+    },
+    {
+      "id": "rpc:vcs.pull",
+      "kind": "rpc",
+      "name": "vcs.pull",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/vcs.ts:301"
+      ]
+    },
+    {
+      "id": "rpc:vcs.refreshStatus",
+      "kind": "rpc",
+      "name": "vcs.refreshStatus",
+      "phone": true,
+      "scope": "orchestration:read",
+      "sites": [
+        "packages/client-runtime/src/state/vcs.ts:308"
+      ]
+    },
+    {
+      "id": "rpc:vcs.removeWorktree",
+      "kind": "rpc",
+      "name": "vcs.removeWorktree",
+      "phone": false,
+      "scope": "source-control:write"
+    },
+    {
+      "id": "rpc:vcs.switchRef",
+      "kind": "rpc",
+      "name": "vcs.switchRef",
+      "phone": true,
+      "scope": "source-control:write",
+      "sites": [
+        "packages/client-runtime/src/state/vcs.ts:345"
+      ]
+    },
+    {
+      "id": "rpc:worktreeSetup.cancel",
+      "kind": "rpc",
+      "name": "worktreeSetup.cancel",
+      "phone": true,
+      "scope": "orchestration:operate",
+      "sites": [
+        "packages/client-runtime/src/state/vcs.ts:327"
+      ]
+    }
+  ]
+}

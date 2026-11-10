@@ -1,0 +1,8 @@
+id: api-does-not-use-infrastructure
+language: rust
+severity: error
+message: An api module may not use the infrastructure layer directly; main.rs wires the adapters in and api talks to application ports.
+files:
+  - "**/api/**/*.rs"
+rule:
+  matches: names-infrastructure

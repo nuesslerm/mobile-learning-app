@@ -1,0 +1,81 @@
+{
+  "method": "preview.resize",
+  "exchanges": [
+    {
+      "name": "keeps the viewport the app asked for",
+      "before": [
+        {
+          "id": "o",
+          "method": "preview.open",
+          "params": {
+            "thread": "t1",
+            "url": "http://127.0.0.1:3000/"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "preview.resize",
+        "params": {
+          "thread": "t1",
+          "tab": "tab-2",
+          "viewport": {
+            "mode": "preset",
+            "width": 390,
+            "height": 844,
+            "preset": "iphone-14"
+          }
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "session": {
+            "thread": "t1",
+            "tab": "tab-2",
+            "nav": {
+              "state": "loading",
+              "url": "http://127.0.0.1:3000/",
+              "title": ""
+            },
+            "can_go_back": false,
+            "can_go_forward": false,
+            "viewport": {
+              "mode": "preset",
+              "width": 390,
+              "height": 844,
+              "preset": "iphone-14"
+            },
+            "updated_ms": 1
+          }
+        }
+      },
+      "volatile": [
+        "/result/session/updated_ms"
+      ]
+    },
+    {
+      "name": "refuses a viewport larger than a 4K screen",
+      "request": {
+        "id": 1,
+        "method": "preview.resize",
+        "params": {
+          "thread": "t1",
+          "tab": "tab-2",
+          "viewport": {
+            "mode": "freeform",
+            "width": 3840,
+            "height": 2161
+          }
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "viewport area is at most 8294400"
+        }
+      }
+    }
+  ]
+}

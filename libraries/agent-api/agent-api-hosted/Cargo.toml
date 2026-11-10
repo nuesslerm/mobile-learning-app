@@ -1,0 +1,20 @@
+[package]
+name = "agent-api-hosted"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's hosted source control groups (`hosted.pr`: pr.* and mr.*, `hosted.clone`: clone.*, `hosted.auth`: sourceControl.*): the methods, the executor actions each is answered by and which params it forwards"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dev-dependencies]
+agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+exec-hosted = { path = "../exec-hosted" }
+serde_json = { version = "1", features = ["preserve_order"] }

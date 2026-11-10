@@ -1,0 +1,84 @@
+{
+  "method": "service.status",
+  "exchanges": [
+    {
+      "name": "names the protocol, the build and the groups the service serves",
+      "request": {
+        "id": 1,
+        "method": "service.status",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "protocol": 1,
+          "version": "0.1.0",
+          "commit": "flow-sha",
+          "groups": [
+            "service",
+            "service.activity",
+            "state",
+            "state.watch",
+            "files",
+            "files.edit",
+            "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.clone", "hosted.auth", "git.ai", "accounts",
+            "agent.threads",
+            "agent.requests",
+            "agent.queue",
+            "agent.lifecycle",
+            "schedules",
+            "schedules.watch",
+            "attachments",
+            "agent.catalog",
+            "preview",
+            "preview.sessions",
+            "preview.watch"
+          ]
+        }
+      },
+      "volatile": [
+        "/result/version",
+        "/result/commit"
+      ]
+    },
+    {
+      "name": "answers a string id with the same string",
+      "request": {
+        "id": "status-1",
+        "method": "service.status"
+      },
+      "response": {
+        "id": "status-1",
+        "result": {
+          "protocol": 1,
+          "version": "0.1.0",
+          "commit": "flow-sha",
+          "groups": [
+            "service",
+            "service.activity",
+            "state",
+            "state.watch",
+            "files",
+            "files.edit",
+            "workspace.worktrees", "terminal", "git", "hosted.pr", "hosted.clone", "hosted.auth", "git.ai", "accounts",
+            "agent.threads",
+            "agent.requests",
+            "agent.queue",
+            "agent.lifecycle",
+            "schedules",
+            "schedules.watch",
+            "attachments",
+            "agent.catalog",
+            "preview",
+            "preview.sessions",
+            "preview.watch"
+          ]
+        }
+      },
+      "volatile": [
+        "/result/version",
+        "/result/commit"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+Usage: wf vm terraform exec [options] <workingDir> [args...]
+
+Run terraform with the remote-state credentials injected (plan, output, state
+list, init, import, ...). Unguarded: no free-tier check, no rollback.
+
+Options:
+  -h, --help  display help for command

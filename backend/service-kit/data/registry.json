@@ -1,0 +1,806 @@
+{
+  "ADB_ADMIN_PASSWORD": {
+    "service": "adb-admin-password",
+    "envVar": "ADB_ADMIN_PASSWORD",
+    "scope": "vm",
+    "description": "WHAT: ADMIN password for the health-reports Always-Free Autonomous Database (infra/oracle-cloud/autonomous-db.tf). WHERE: consumed only by Terraform (var.adb_admin_password) and by the one-time ORDS setup script (the since-removed wf command `infra oracle db setup-health-reports`) that connects as ADMIN to create the dedicated schema/user. WHY IT MATTERS: high — full control of the database. Never used by any long-running service; day-to-day reads/writes go through HEALTH_REPORTS_ORDS_PASSWORD's narrower schema instead. Self-generated (24 chars, mixed case + digit, no 'admin' substring per Oracle's password rule)."
+  },
+  "HEALTH_REPORTS_ORDS_PASSWORD": {
+    "service": "health-reports-ords-password",
+    "envVar": "HEALTH_REPORTS_ORDS_PASSWORD",
+    "scope": "ci-deploy",
+    "description": "WHAT: password for the HEALTH_RPT database user, which ORDS auto-REST auth maps directly to HTTP Basic Auth on the health-reports endpoints (GET/POST .../ords/health/health_reports/). WHERE: `wf check --health --publish` (writes) and the service-report frontend (reads, embedded client-side as EXPO_PUBLIC_HEALTH_REPORTS_ORDS_PASSWORD -- same public-bundle tradeoff EXPO_PUBLIC_BETTERSTACK_TOKEN already makes). WHY IT MATTERS: low-medium -- scoped to one table holding non-secret service-health/test-result data, not the ADMIN account. Self-generated.",
+    "check": {
+      "live": {
+        "url": "{TEST_RUNS_ORDS_BASE_URL}?limit=1",
+        "basic": [
+          "health_rpt",
+          "{value}"
+        ]
+      }
+    }
+  },
+  "HEALTH_REPORTS_ORDS_BASE_URL": {
+    "service": "health-reports-ords-base-url",
+    "envVar": "HEALTH_REPORTS_ORDS_BASE_URL",
+    "scope": "ci-open",
+    "description": "WHAT: full ORDS auto-REST URL for the health_reports table, e.g. https://<adb-hostname>/ords/health/health_reports/ (trailing slash required). Not secret on its own, but vault-stored like VM_HOST: it's an OCI-generated value tied to one specific Autonomous DB and would need a manual update everywhere it's used if the DB were ever recreated. WHERE: `wf check --health --publish` and the frontend (embedded as EXPO_PUBLIC_HEALTH_REPORTS_ORDS_BASE_URL). HOW TO GET IT: `terraform output health_reports_ords_base_url` in infra/oracle-cloud, after autonomous-db.tf has been applied and the one-time ORDS setup script (the since-removed wf command `infra oracle db setup-health-reports`) has run -- the base connection_urls.ords_url from Terraform plus the /health/health_reports/ path the setup script maps."
+  },
+  "EDIT_STATS_ORDS_BASE_URL": {
+    "service": "edit-stats-ords-base-url",
+    "envVar": "EDIT_STATS_ORDS_BASE_URL",
+    "scope": "ci-open",
+    "description": "WHAT: full ORDS auto-REST URL for the HEALTH_RPT.EDIT_EVENTS table, e.g. https://<adb-hostname>/ords/health/edit_events/ (trailing slash required) -- one row per voice/text edit call (transcribe, plan) and per client-side turn, keyed by editId. Same Autonomous DB and same HEALTH_RPT user as HEALTH_REPORTS_ORDS_BASE_URL; the password is HEALTH_REPORTS_ORDS_PASSWORD. Not secret on its own, vault-stored like HEALTH_REPORTS_ORDS_BASE_URL because it is tied to one specific database. WHERE: backend/remote-chat-agent (src/lib/editStats.ts writes). HOW TO GET IT: HEALTH_REPORTS_ORDS_BASE_URL with the last path segment replaced by edit_events/, after the since-removed wf command `infra oracle db add-edit-stats` has created and REST-enabled the table.",
+    "check": {
+      "shape": {
+        "url": true
+      }
+    }
+  },
+  "TEST_RUNS_ORDS_BASE_URL": {
+    "service": "test-runs-ords-base-url",
+    "envVar": "TEST_RUNS_ORDS_BASE_URL",
+    "scope": "ci-open",
+    "description": "WHAT: full ORDS auto-REST URL for the HEALTH_RPT.TEST_RUNS table, e.g. https://<adb-hostname>/ords/health/test_runs/ (trailing slash required) -- one row per test-harness run (flow tests, `wf run` in the browser or on Android, `wf test` queue jobs), keyed by run_id. Same Autonomous DB and same HEALTH_RPT user as HEALTH_REPORTS_ORDS_BASE_URL; the password is HEALTH_REPORTS_ORDS_PASSWORD. Not secret on its own, vault-stored like EDIT_STATS_ORDS_BASE_URL because it is tied to one specific database. WHERE: `wf run`, the `wf test` worker and `wf test metrics record|list` (the test_metrics module of pipeline), read from the environment only (shell, repo .env, ~/.config/wf/.env) so a run never waits on the vault; unset means rows are not posted and each run logs one line saying so. HOW TO GET IT: `wf test metrics setup` (creates and REST-enables the table as ADMIN through REST-enabled SQL) prints it as restUrl: HEALTH_REPORTS_ORDS_BASE_URL with the last path segment replaced by test_runs/.",
+    "check": {
+      "shape": {
+        "url": true
+      }
+    }
+  },
+  "WF_USAGE_ORDS_BASE_URL": {
+    "service": "wf-usage-ords-base-url",
+    "envVar": "WF_USAGE_ORDS_BASE_URL",
+    "scope": "ci-open",
+    "description": "WHAT: full ORDS auto-REST URL for the HEALTH_RPT.WF_USAGE table, e.g. https://<adb-hostname>/ords/health/wf_usage/ (trailing slash required) -- one anonymised row per wf command (command path, exit code, duration, the scrubbed error, wf version, OS; never the host, the arguments or a key name). Same Autonomous DB and HEALTH_RPT user as HEALTH_REPORTS_ORDS_BASE_URL; the password is HEALTH_REPORTS_ORDS_PASSWORD. Not secret on its own, vault-stored like TEST_RUNS_ORDS_BASE_URL because it is tied to one specific database. WHERE: every wf command (clis/wf/src/usage_row.rs), read from the environment (shell, repo .env, ~/.config/wf/.env), then from the vault through its sealed local copy (the CI runner holds only the read token); unset means the row is not recorded and the command says so on stderr (WF_USAGE=off turns rows off). HOW TO GET IT: HEALTH_REPORTS_ORDS_BASE_URL with the last path segment replaced by wf_usage/; the table comes from infra/oracle-cloud/sql/wf_usage.sql.",
+    "check": {
+      "shape": {
+        "url": true
+      }
+    }
+  },
+  "POOL_COOLDOWNS_ORDS_BASE_URL": {
+    "service": "pool-cooldowns-ords-base-url",
+    "envVar": "POOL_COOLDOWNS_ORDS_BASE_URL",
+    "scope": "ci-open",
+    "description": "WHAT: full ORDS auto-REST URL for the HEALTH_RPT.POOL_COOLDOWNS table, e.g. https://<adb-hostname>/ords/health/pool_cooldowns/ (trailing slash required) -- one row per model pool that hit a usage cap (pool name, the cooldown as JSON, the time it was written), shared by every caller of the model ladder (remote-chat-agent, wf offload) so a cap seen by one is seen by all. Same Autonomous DB and HEALTH_RPT user as HEALTH_REPORTS_ORDS_BASE_URL; the password is HEALTH_REPORTS_ORDS_PASSWORD. CREATE: run infra/oracle-cloud/sql/pool_cooldowns.sql once as ADMIN, then store the URL.",
+    "check": {
+      "shape": {
+        "url": true
+      }
+    }
+  },
+  "ORACLE_DEPLOY_SSH_PRIVATE_KEY": {
+    "service": "oracle-deploy-ssh-private-key",
+    "envVar": "ORACLE_DEPLOY_SSH_PRIVATE_KEY",
+    "scope": "vm",
+    "description": "WHAT: private half of the ed25519 deploy keypair used for the one-time/break-glass SSH bootstrap of the OCI VM (see infra/oracle-cloud/README.md). WHERE: loaded into an SSH client (e.g. Termius) for interactive access, or as the GitHub Actions DEPLOY_SSH_KEY secret for `deploy-*` workflows' first-ever-setup step -- writing DEPLOY_SSH_KEY itself is NOT possible from a sandboxed session (the egress proxy blocks the Actions secrets API), so that GitHub secret must be updated by hand from this vault value after any rotation. WHY IT MATTERS: critical -- whoever holds this can SSH into the VM as `ubuntu`. Minted as a replacement after the original oracle_deploy keypair's public half turned out to be unrecoverable from any sandboxed session (vault, GitHub API, and every vm-ops-api read surface all checked and came back empty -- see docs/known-gaps.md #8)."
+  },
+  "BREAK_GLASS_SSH_PUBLIC_KEY": {
+    "service": "break-glass-ssh-public-key",
+    "envVar": "BREAK_GLASS_SSH_PUBLIC_KEY",
+    "scope": "vm",
+    "description": "WHAT: a personal SSH public key (not the oracle_deploy deploy keypair) authorized alongside it -- same value as main.tf's break_glass_ssh_public_key Terraform var for the VM host itself, also fed into agent-shell's authorized_keys so the same personal key works on both surfaces. Not secret (a public key). WHERE: agent-shell's docker-compose.prod.yml env, baked into the agent user's ~/.ssh/authorized_keys by entrypoint.sh at container start."
+  },
+  "ORACLE_DEPLOY_SSH_PUBLIC_KEY": {
+    "service": "oracle-deploy-ssh-public-key",
+    "envVar": "ORACLE_DEPLOY_SSH_PUBLIC_KEY",
+    "scope": "vm",
+    "description": "WHAT: public half of ORACLE_DEPLOY_SSH_PRIVATE_KEY. Not secret on its own, but vault-stored alongside the private half so `ssh_public_key_path` (infra/oracle-cloud/variables.tf, baked into a new VM's authorized_keys only at instance CREATE) is never again dependent on a single local .pub file nobody can locate. WHERE: `terraform.tfvars`'s `ssh_public_key_path` (write this value to a local file and point the var at it) whenever the main VM is recreated."
+  },
+  "TS_VM_AUTH_KEY": {
+    "service": "ts-vm-auth-key",
+    "envVar": "TS_VM_AUTH_KEY",
+    "scope": "ci-deploy",
+    "description": "WHAT: Tailscale pre-auth key that joins a container to your tailnet. WHERE: the `tailscale` sidecar in every backend compose file (leetcode-backend, leetcode-auth-cookie-capture, remote-chat-agent, vm-gateway, vm-ops-api, vnc-auth-session, and the agent-shell and ci-runner projects, each its own node: agent-shell-<host>, ci-runner-<host>; the key is reusable, so one value serves every node). WHY IT MATTERS: critical — services reach each other only over the tailnet, so without it nothing is addressable. Tailscale caps auth keys at 90 days, and expiry breaks the NEXT join rather than running nodes — so it fails silently, mid-rebuild. Rotate off-VM with `wf vm net auth-key rotate` (mints a fresh tagged key via the TS_VM_OAUTH client and writes it back here) rather than by hand. Renamed from TAILSCALE_AUTH_KEY.",
+    "check": {
+      "shape": {
+        "prefix": "tskey-"
+      }
+    }
+  },
+  "LEETCODE_BACKEND_ADMIN_SECRET": {
+    "service": "leetcode-backend-admin-secret",
+    "envVar": "LEETCODE_BACKEND_ADMIN_SECRET",
+    "scope": "ci-deploy",
+    "description": "WHAT: password for leetcode-backend's admin routes. WHERE: leetcode-backend checks it on admin endpoints; leetcode-auth-cookie-capture sends it when pushing a freshly captured LeetCode session back to the backend. WHY IT MATTERS: high — it is the admin gate; a leak lets anyone on the tailnet drive admin operations. Self-generated: `bw generate --passphrase --words 6 --separator - --includeNumber --capitalize`.",
+    "uncheckable": "a secret both sides share: only the service holding the other side can say whether it matches, so there is no standalone check"
+  },
+  "LEETCODE_CAPTURE_TRIGGER_SECRET": {
+    "service": "leetcode-capture-trigger-secret",
+    "envVar": "LEETCODE_CAPTURE_TRIGGER_SECRET",
+    "scope": "ci-deploy",
+    "description": "WHAT: password for the leetcode-auth-cookie-capture listener's trigger endpoint — 'start a browser login-capture run'. WHERE: sent by leetcode-backend (src/app.ts) as the X-Capture-Trigger-Secret header, checked by the capture listener (src/server.ts). One env-var name on both sides, so one vault item. WHY IT MATTERS: low-medium — worst case someone kicks off a redundant capture run. Self-generated.",
+    "uncheckable": "a secret both sides share: only the service holding the other side can say whether it matches, so there is no standalone check"
+  },
+  "TELEGRAM_NOTIFY_SECRET": {
+    "service": "leetcode-notify-secret",
+    "envVar": "TELEGRAM_NOTIFY_SECRET",
+    "scope": "ci-deploy",
+    "description": "WHAT: password for the Telegram bot's private notification server (POST /notify on port 8790) — how a headless service asks the bot to relay a message to you. WHERE: sent by leetcode-auth-cookie-capture (src/data/telegramNotifier.ts) as the X-Notify-Secret header, checked by the notify server of the Telegram bot, deleted 2026-10; nothing receives it until a replacement exists. Used for 'LeetCode session expired - log in now: <url>' and capture success/failure pings. One env-var name on both sides. WHY IT MATTERS: low-medium — a leak lets someone make your own bot send you messages, including a spoofed login link (phishing-adjacent). Self-generated.",
+    "uncheckable": "a secret both sides share: only the service holding the other side can say whether it matches, so there is no standalone check"
+  },
+  "CHAT_AGENT_API_SECRET": {
+    "service": "bot-agent-shared-secret",
+    "envVar": "CHAT_AGENT_API_SECRET",
+    "scope": "ci-deploy",
+    "description": "WHAT: password for remote-chat-agent's HTTP API — the coding agent that runs opencode and owns git worktrees. WHERE: sent by remote-chat-agent's callers as the X-Bot-Secret header, checked by remote-chat-agent (src/routes/worktree.ts). One env-var name on both sides. WHY IT MATTERS: medium-high — it is the only thing stopping an unauthenticated caller from driving the coding agent. Self-generated. NOTE: named for the service it protects (the chat agent), not the caller — it is NOT a Telegram credential; see TELEGRAM_BOT_TOKEN for that.",
+    "uncheckable": "a secret both sides share: only the service holding the other side can say whether it matches, so there is no standalone check"
+  },
+  "TELEGRAM_BOT_TOKEN": {
+    "service": "telegram-bot-token",
+    "envVar": "TELEGRAM_BOT_TOKEN",
+    "scope": "ci-deploy",
+    "description": "WHAT: Telegram Bot API token — the bot's identity with Telegram itself, from @BotFather. WHERE: remote-chat-agent (sends diff/plan/file-preview messages directly). WHY IT MATTERS: critical for that path — no bot at all without it, and a leak means full control of your bot. HOW TO GET IT: you RETRIEVE an existing bot's token here, you do NOT regenerate it — do not reach for /newbot unless you actually intend to create a second bot, which mints a different identity and orphans every chat already pointed at the old one. Open Telegram -> message @BotFather -> /mybots -> tap your bot in the list (this repo's e2e helpers use @opencode_test_james_bot) -> tap 'API Token'. Shortcut: send /token and pick the bot from the keyboard. SHAPE: a numeric bot id, a colon, then ~35 chars (8123456789:AAHx...) — that whole string is the value. VERIFY: `curl -s \"https://api.telegram.org/bot<TOKEN>/getMe\"` echoes the bot's own username back.",
+    "check": {
+      "shape": {
+        "regex": "^\\d+:[A-Za-z0-9_-]{30,}$"
+      },
+      "live": {
+        "url": "https://api.telegram.org/bot{value}/getMe",
+        "contains": "\"ok\":true"
+      }
+    }
+  },
+  "VNC_AUTH_TRIGGER_SECRET": {
+    "service": "vnc-auth-trigger-secret",
+    "envVar": "VNC_AUTH_TRIGGER_SECRET",
+    "scope": "ci-deploy",
+    "description": "WHAT: password for the vnc-auth-capture listener's control channel (POST /auth/start) — 'spin up a remote desktop for an interactive login and mint a one-time link'. WHERE: sent by an agent as the X-Auth-Trigger-Secret header, checked by the listener (the vnc module of the wf-login crate). WHY IT MATTERS: medium — gates who can start an auth-session desktop (the desktop itself is separately gated by VNC_AUTH_DESKTOP_PASSWORD). Self-generated. NOTE: unrelated to LEETCODE_CAPTURE_TRIGGER_SECRET — different service, different door.",
+    "uncheckable": "a secret both sides share: only the service holding the other side can say whether it matches, so there is no standalone check"
+  },
+  "VNC_AUTH_DESKTOP_PASSWORD": {
+    "service": "vnc-auth-vnc-password",
+    "envVar": "VNC_AUTH_DESKTOP_PASSWORD",
+    "scope": "ci-deploy",
+    "description": "WHAT: the login password for the auth-session remote desktop stream itself (Selkies/KasmVNC web session, paired with VNC_AUTH_VNC_USER). WHERE: the PASSWORD env var in clis/vnc-auth-capture/docker-compose.auth.yml. WHY IT MATTERS: HIGHEST of the self-generated set — this guards a live interactive desktop that you type real credentials into (LeetCode login, Claude/Google SSO), so whoever holds it plus the tailnet URL can watch you type passwords. Self-generated; a long passphrase is safe here (web session auth, not the legacy 8-char VNC scheme).",
+    "uncheckable": "a secret both sides share: only the service holding the other side can say whether it matches, so there is no standalone check"
+  },
+  "VNC_AUTH_OWNER_CHAT_ID": {
+    "service": "vnc-auth-owner-chat-id",
+    "envVar": "VNC_AUTH_OWNER_CHAT_ID",
+    "scope": "ci-deploy",
+    "description": "WHAT: comma-separated Telegram user/chat id allowlist — who is allowed to drive the auth-session control channel and send /done. WHERE: enforced by the vnc-auth-capture listener (403 for non-owners) and the bot. WHY IT MATTERS: medium — an allowlist rather than a password, and not really secret; a wrong value locks you out or lets another chat drive the flow. HOW TO GET IT: quickest is to message Telegram @userinfobot, which replies with your numeric id. Alternatively read it back from the bot that will enforce the allowlist — better, because it also proves that bot can see you: open the bot in Telegram, send it any message, then fetch https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/getUpdates and read result[].message.chat.id. SIGN MATTERS: a private DM's chat id equals your personal user id and is a POSITIVE integer (e.g. 123456789) — that is what belongs here. A group/channel id is NEGATIVE (-100...) and belongs here only if you deliberately want the login prompt routed to a group rather than to you.",
+    "check": {
+      "shape": {
+        "regex": "^-?\\d+(,-?\\d+)*$"
+      }
+    }
+  },
+  "VNC_AUTH_OWNER_NOTIFY_SECRET": {
+    "service": "vnc-auth-owner-notify-secret",
+    "envVar": "VNC_AUTH_OWNER_NOTIFY_SECRET",
+    "scope": "ci-deploy",
+    "description": "WHAT: password gating the Telegram bot's inbound POST /owner-notify route (bot deleted 2026-10; no receiver until a replacement exists) -- 'DM the owner chat(s) a VNC auth-session login link'. WHERE: sent by remote-chat-agent's reactive-interrupt (src/lib/authRecovery.ts) as the X-Owner-Notify-Secret header; was checked by the bot's notify server. WHY IT MATTERS: medium -- a deliberately SEPARATE secret from TELEGRAM_NOTIFY_SECRET (that one broadcasts to every known chat; this one only ever DMs the configured owner chat(s), a different trust surface). Self-generated: `openssl rand -hex 32`.",
+    "uncheckable": "a secret both sides share: only the service holding the other side can say whether it matches, so there is no standalone check"
+  },
+  "OPENCODE_CONSOLE_SERVICE_KEY": {
+    "service": "opencode-console-service-key",
+    "envVar": "OPENCODE_CONSOLE_SERVICE_KEY",
+    "scope": "vm",
+    "description": "WHAT: a service-account key (oc_sk_...) for https://opencode.ai/console usage export. WHERE: `wf offload ask --stats --reconcile`. WHY IT MATTERS: low — read-only usage data. HOW TO GET IT: Console → service accounts; never fabricate the value."
+  },
+  "OPENCODE_GO_API_KEY": {
+    "service": "opencode-api-key",
+    "envVar": "OPENCODE_GO_API_KEY",
+    "scope": "ci-deploy",
+    "description": "WHAT: the OpenCode API key. WHERE: read by the opencode server / model config — it enables both the opencode-go/* models (deepseek-v4.1-flash etc.) and OpenCode's own provider. NAMING: this is the single canonical name for the key in this repo; OpenCode's binary reads it as OPENCODE_API_KEY, so callers remap it at spawn time in compose. WHY IT MATTERS: REQUIRED for remote-chat-agent — the agent runs opencode and cannot serve a model without a provider key. Get it from the OpenCode dashboard.",
+    "uncheckable": "the provider's read-only key-check endpoint is not confirmed"
+  },
+  "OPENCODE_SERVER_PASSWORD": {
+    "service": "opencode-server-password",
+    "envVar": "OPENCODE_SERVER_PASSWORD",
+    "scope": "ci-deploy",
+    "description": "WHAT: basic-auth password for the `opencode serve` HTTP API that remote-chat-agent runs. WHERE: read by the opencode binary itself (docker-compose.prod.yml's opencode service) and by any client attaching with `opencode attach`. WHY IT MATTERS: the server binds 0.0.0.0 inside the tailscale sidecar's netns, so without this ANY tailnet device can create, read and delete agent sessions with no credential -- verified live by doing exactly that from an unrelated machine, and the server says so itself at boot: 'OPENCODE_SERVER_PASSWORD is not set; server is unsecured.' Not internet-exposed (tailnet only), which is why this is a real hole rather than an emergency. Self-generated: `openssl rand -hex 32`.",
+    "uncheckable": "a secret both sides share: only the service holding the other side can say whether it matches, so there is no standalone check"
+  },
+  "MINIMAX_API_KEY": {
+    "service": "minimax-api-key",
+    "envVar": "MINIMAX_API_KEY",
+    "scope": "ci-deploy",
+    "description": "WHAT: Minimax provider API key, enabling minimax/MiniMax-M3 and related models. WHERE: OPTIONAL in remote-chat-agent's model config. WHY IT MATTERS: REQUIRED for remote-chat-agent — the deploy hard-fails without it rather than silently shipping an agent with no provider key. From the Minimax platform dashboard.",
+    "uncheckable": "the provider's read-only key-check endpoint is not confirmed"
+  },
+  "KIMI_API_KEY": {
+    "service": "kimi-api-key",
+    "envVar": "KIMI_API_KEY",
+    "scope": "ci-deploy",
+    "description": "WHAT: Kimi Code subscription API key (provider `kimi-for-coding`, base https://api.kimi.com/coding/v1) — exposes the four served models `kimi-for-coding` (Kimi K2.7 Code, 262k context), `kimi-for-coding-highspeed`, `k3` (Kimi K3, 1M context), and `k3-256k` (vision + coding capable). The previously-default model id was retired by the provider and is no longer routable — every dispatch to it now exits 1 within ~4s with opencode's `UnknownError: Unexpected server error`. WHERE: OPTIONAL in remote-chat-agent's model config, read by the opencode harness / model config. WHY IT MATTERS: REQUIRED for remote-chat-agent — the deploy hard-fails without it rather than silently shipping an agent with no provider key. From the Moonshot/Kimi dashboard.",
+    "check": {
+      "live": {
+        "url": "https://api.kimi.com/coding/v1/models",
+        "header": {
+          "Authorization": "Bearer {value}"
+        }
+      }
+    }
+  },
+  "GROQ_API_KEY": {
+    "service": "groq-api-key",
+    "envVar": "GROQ_API_KEY",
+    "scope": "ci-deploy",
+    "description": "WHAT: Groq API key. WHERE: backend/remote-chat-agent's speech-to-text engine switch (src/lib/sttEngine.ts) when STT_ENGINE=groq -- hosted whisper-large-v3-turbo via Groq's OpenAI-compatible /audio/transcriptions, the Expo-Go-compatible hosted alternative to the faster-whisper sidecar; later the planner provider race. WHY IT MATTERS: medium -- metered third-party usage; recordings leave the VM when this engine is on. Optional: absent, the engine falls back to the sidecar or whisper.cpp. HOW TO GET IT: console.groq.com -> API Keys.",
+    "check": {
+      "live": {
+        "url": "https://api.groq.com/openai/v1/models",
+        "header": {
+          "Authorization": "Bearer {value}"
+        }
+      }
+    }
+  },
+  "CLAUDE_CODE_OAUTH_TOKEN": {
+    "service": "claude-code-oauth-token",
+    "envVar": "CLAUDE_CODE_OAUTH_TOKEN",
+    "scope": "ci-deploy",
+    "description": "WHAT: long-lived OAuth token minted by `claude setup-token`, letting the Claude Code CLI/Agent SDK authenticate without an interactive login. WHERE: remote-chat-agent, read at startup (src/startupGate.ts) and passed through to the `claude` process when AGENT_CLI=claude selects the Claude adapter built by clis/vnc-auth-capture's createClaudeAdapter (service string 'claude-code-oauth-token' — the two MUST agree, see the claude descriptor in the vnc module of the wf-login crate). WHY IT MATTERS: high, and structurally different from GH_TOKEN — this token is ACCOUNT-WIDE AND UNSCOPEABLE. Unlike a fine-grained GitHub PAT it cannot be limited to specific repos, specific spend, or specific permissions: anyone holding it can use the full Claude account it was minted from. Registered OPTIONAL (not required) in the remote-chat-agent deploy group (KTD7) — a required entry would hard-fail every opencode-only deploy too, so absence only becomes fatal at startup, and only when AGENT_CLI actually resolves to 'claude'. HOW TO GET IT: run `claude setup-token` interactively (or via the vnc-auth-capture desktop flow for a headless VM) and copy the printed token. CONTROLS: revoke immediately from the Anthropic Console / Claude account's connected-apps or API-access settings if it leaks — there is no per-repo or per-spend scope to fall back on, so revocation is the only lever; rotate at least quarterly (well inside the ~1-year expiry) rather than waiting for it to lapse, and never let this token reach a repo, log line, or client-visible response.",
+    "uncheckable": "no read-only endpoint is documented for an OAuth token minted by `claude setup-token`"
+  },
+  "EXPO_PUBLIC_BETTERSTACK_TOKEN": {
+    "service": "betterstack-ingest-token",
+    "envVar": "EXPO_PUBLIC_BETTERSTACK_TOKEN",
+    "scope": "public",
+    "description": "WHAT: BetterStack REST ingest token for the mobile app's legacy forwarder. WHERE: the removed first app's REST forwarder, paired with EXPO_PUBLIC_BETTERSTACK_HOST. WHY IT MATTERS: low (an ingest-only token for a client-shipped app). NOTE: stored in the vault as BETTERSTACK_SOURCE_TOKEN, hence the `bitwardenKey` bridge — without it this resolved to nothing, silently, because the registry looked up a key name the vault never had.",
+    "bitwardenKey": "BETTERSTACK_SOURCE_TOKEN",
+    "uncheckable": "its only endpoint is a write (log ingest), so a check would write a log line"
+  },
+  "BETTERSTACK_OTLP_TOKEN": {
+    "service": "betterstack-otlp-token-backend-cli",
+    "envVar": "BETTERSTACK_OTLP_TOKEN",
+    "scope": "ci-deploy",
+    "description": "WHAT: BetterStack OTLP ingest token for backend services and CLI telemetry ONLY — deliberately separate from EXPO_PUBLIC_BETTERSTACK_OTLP_TOKEN (mobile's own OTLP token) and from the legacy EXPO_PUBLIC_BETTERSTACK_TOKEN REST forwarder token. WHERE: read by every backend/* service's @lib/logging OTel bridge (frontend/libraries/logging/src/node/otelProviders.ts) and by wf's span/metric instrumentation — OPTIONAL everywhere, a deploy succeeds without it (falls back to console-only logging, no traces/metrics exported). WHY IT MATTERS: medium, not low like the mobile token — this token is shared across all 5 backend services plus every CI run of `wf`, none of which ship it to an untrusted client, but a leak from any one of those (a compromised CI runner, a misconfigured log line, a compromised backend host) lets an attacker inject forged spans/logs/metrics that appear to originate from ANY backend service or from CI, undermining the trustworthiness of every cross-boundary trace this plan's R11 depends on, and can exhaust the shared source's ingest quota for real backend and CI telemetry. Rotate if any backend host or CI runner is suspected compromised. From BetterStack -> Telemetry -> Sources -> <a source dedicated to backend and CLI, NOT the mobile source> -> OTLP ingest token.",
+    "uncheckable": "its only endpoint is a write (log ingest), so a check would write a log line"
+  },
+  "VM_PROVISION_GITHUB_TOKEN": {
+    "service": "vm-provision-github-token",
+    "envVar": "VM_PROVISION_GITHUB_TOKEN",
+    "scope": "vm",
+    "description": "WHAT: fine-grained GitHub PAT scoped ONLY to Contents=Read on nuesslerm/mobile-learning-app -- no Write, no Pull requests, no Actions, no other repos. WHERE: vm-ops-api (backend/vm-ops-api/core/src/application/scripts/redeploy.rs), used ONLY by /services/:app/redeploy's first-time provisioning path to fetch that app's docker-compose file + .env.defaults + the wf CLI bundle from raw.githubusercontent.com at a pinned main-branch ref -- never derived from the request. OPTIONAL: without it, provisioning an app that isn't yet deployed to a VM fails with a clear 'GET ... -> 404' (this repo is private, so unauthenticated raw fetches 404 rather than reaching the file) -- pull/redeploy of an ALREADY-provisioned app is unaffected. WHY IT MATTERS: low-to-medium -- deliberately far narrower than GITHUB_TOKEN (remote-chat-agent's clone/push/PR credential): a leak only grants read access to this one already-mostly-public-structure repo's contents, nothing an attacker couldn't otherwise infer from the open-source-shaped codebase, and grants no write/push/PR capability at all. HOW TO GET IT: github.com -> Settings -> Developer settings -> Fine-grained tokens -> Generate new token -> Repository access: Only select repositories -> nuesslerm/mobile-learning-app -> Permissions -> Contents: Read-only (leave everything else at No access) -> set an expiry -> Generate. Set with: wf secret set VM_PROVISION_GITHUB_TOKEN.",
+    "check": {
+      "live": {
+        "url": "https://api.github.com/rate_limit",
+        "header": {
+          "Authorization": "Bearer {value}",
+          "User-Agent": "wf-preflight"
+        }
+      }
+    }
+  },
+  "PNPM_CACHE_PAR_URL": {
+    "service": "pnpm-cache-par-url",
+    "envVar": "PNPM_CACHE_PAR_URL",
+    "scope": "vm",
+    "description": "ORPHANED: its only consumer, the pnpm store sync of the shared dev Metro, was retired on 22 Oct; kept because vault secrets are never destroyed (the bucket and PAR stay in pnpm-cache.tf until it is dropped). Was: WHAT: OCI Object Storage pre-authenticated request (PAR) URL, scoped to PUT/GET on exactly one object (expo-hello-world-app-2/pnpm-store.tar.gz in the private <name_prefix>-pnpm-cache bucket -- infra/oracle-cloud/pnpm-cache.tf's oci_objectstorage_preauthrequest.pnpm_cache_rw). Minted by Terraform, not a human -- read it back with `terraform output pnpm_cache_par_url` after applying pnpm-cache.tf, then `wf secret set PNPM_CACHE_PAR_URL`. WHERE: the retired pnpm store sync -- restored the pnpm store from this URL before `pnpm install` on a fresh worktree/VM, and re-uploaded (overwriting the same object -- see pnpm-cache.tf's own comment on why a fixed key needs no separate purge step) after a successful install. WHY IT MATTERS: medium -- grants write access to one object in a private bucket, not read of anything else in the tenancy; worst case from a leak is someone overwriting the cache with garbage, which self-heals on the next successful install (content-addressed store, corrupt/wrong entries just get re-fetched). Expires 2028-08-27 (OCI PARs require an expiration, no auto-renew) -- re-mint via `terraform apply` on pnpm-cache.tf and re-set this secret when it does."
+  },
+  "NX_REMOTE_CACHE_PAR_URL": {
+    "service": "nx-remote-cache-par-url",
+    "envVar": "NX_REMOTE_CACHE_PAR_URL",
+    "scope": "vm",
+    "description": "ORPHANED: its only consumer, the nx remote cache, was removed in 2026-10; kept because vault secrets are never destroyed. Was: WHAT: OCI Object Storage pre-authenticated request (PAR) URL, prefix-scoped (AnyObjectReadWrite on nx-cache/*, not one fixed object like PNPM_CACHE_PAR_URL) -- infra/oracle-cloud/pnpm-cache.tf's oci_objectstorage_preauthrequest.nx_cache_rw, same private bucket as the pnpm cache. Minted by Terraform, not a human -- read it back with `terraform output nx_cache_par_url` after applying pnpm-cache.tf, then `wf secret set NX_REMOTE_CACHE_PAR_URL`. WHERE: vm-ops-api ONLY (the removed Node source's handleNxCacheStore/handleNxCacheRetrieve) -- it alone talks to OCI; every other consumer (agent-shell, CI) reaches those two HTTP routes instead, through vm-gateway (its own tailnet address for local callers, its public Funnel for CI), and never sees this PAR at all. Those two routes carry no auth check of their own -- vm-gateway's own gate (VM_GATEWAY_AUTH_SEED's legacy-static path for local callers, its allowUnsignedRotating tier for CI) is what protects them, so no separate nx-cache-specific secret exists. This is a deliberate redesign: the original client-side design (each container's own `nx` process fetching/storing directly against this PAR via a custom Nx tasks-runner, the removed nx remote cache) never actually ran on any invocation -- confirmed live via zero objects ever appearing under nx-cache/ despite Nx reporting cache hits (those hits were always Nx's own local cache) -- because Nx 21+ silently dropped the `tasksRunnerOptions.default.runner` mechanism it depended on (see https://nx.dev/deprecated/custom-tasks-runner). Nx's actual supported self-hosted-cache mechanism is the built-in NX_SELF_HOSTED_REMOTE_CACHE_SERVER/_ACCESS_TOKEN HTTP client, which is what the vm-ops-api proxy now serves. WHY IT MATTERS: medium -- grants write access to an unbounded set of objects under one prefix in a private bucket, not read of anything else in the tenancy; worst case from a leak is someone poisoning a cached task's output, which is why this stays scoped to one narrow prefix rather than the whole bucket, and why it now lives on exactly one host instead of being duplicated to every consumer. Expires 2028-08-27 (OCI PARs require an expiration, no auto-renew) -- re-mint via `terraform apply` on pnpm-cache.tf and re-set this secret when it does."
+  },
+  "BUILD_CACHE_READ_PAR_URL": {
+    "service": "build-cache-read-par-url",
+    "envVar": "BUILD_CACHE_READ_PAR_URL",
+    "scope": "ci-open",
+    "description": "WHAT: OCI Object Storage pre-authenticated request (PAR) URL, bucket-wide AnyObjectRead with listing denied, on the private <name_prefix>-build-cache bucket -- infra/oracle-cloud/build-cache.tf's oci_objectstorage_preauthrequest.build_cache_read. The value is a URL prefix ending in /o/: wf appends the object key (nx/g<generation>/<nx hash>, pnpm/g<generation>/store-v11.tar.gz). Minted by Terraform, not a human -- read it back with `wf vm terraform exec infra/oracle-cloud output -raw build_cache_read_par_url` after applying, then store it (macOS: `wf secret set BUILD_CACHE_READ_PAR_URL`; sandbox, CI runner and VM: `bws secret create` into mobile-learning-deploy-secrets, which BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN reads). WHERE: `wf` (clis/blob-cache) on every site that builds or tests: the sandbox, the CI runner and the VM. The Nx cache shim that `wf test run --stage` and `wf check --staged` start GETs and HEADs task results through it, and `wf cache restore pnpm` GETs the pnpm store. wf resolves it from the environment, then the vault; unresolved means a cold run, never a red one. WHY IT MATTERS: low -- read-only, cannot list or delete, so a holder must already know a key to download that one entry (cached task terminal output or a package tarball). Expires 2028-10-01 (OCI PARs require an expiration and cannot be edited) -- re-mint with `terraform taint oci_objectstorage_preauthrequest.build_cache_read` plus apply and re-set this secret when it does."
+  },
+  "BUILD_CACHE_WRITE_PAR_URL": {
+    "service": "build-cache-write-par-url",
+    "envVar": "BUILD_CACHE_WRITE_PAR_URL",
+    "scope": "ci-deploy",
+    "description": "WHAT: OCI Object Storage pre-authenticated request (PAR) URL, bucket-wide AnyObjectWrite, on the private <name_prefix>-build-cache bucket (the same bucket as BUILD_CACHE_READ_PAR_URL) -- infra/oracle-cloud/build-cache.tf's oci_objectstorage_preauthrequest.build_cache_write. The value is a URL prefix ending in /o/: wf appends the object key. Minted by Terraform, not a human -- read it back with `wf vm terraform exec infra/oracle-cloud output -raw build_cache_write_par_url` after applying, then store it (macOS: `wf secret set BUILD_CACHE_WRITE_PAR_URL`; sandbox, CI runner and VM: `bws secret create` into mobile-learning-deploy-secrets). WHERE: `wf` (clis/blob-cache): the Nx cache shim PUTs new task results through it (the first write wins: wf probes the read PAR first), `wf cache save pnpm` overwrites the one pnpm store object, `wf cache purge` writes meta/generation. Both the sandbox and CI write, only behind wf's client-side guard (tree clean, HEAD an ancestor of origin/dev, node and pnpm equal to the pins); unresolved means read-only, never a red run. WHY IT MATTERS: medium -- a PAR carries no identity, so any holder can write or overwrite any key, including meta/generation; the worst case is a poisoned task result replayed until its 14-day lifecycle expiry, which `wf cache purge nx` (a new generation) and the weekly audit repair. It cannot read, list or delete. Expires 2028-10-01 (OCI PARs require an expiration and cannot be edited) -- re-mint with `terraform taint oci_objectstorage_preauthrequest.build_cache_write` plus apply and re-set this secret when it does."
+  },
+  "LIBS_READ_PAR_URL": {
+    "service": "libs-read-par-url",
+    "envVar": "LIBS_READ_PAR_URL",
+    "scope": "ci-open",
+    "description": "WHAT: OCI Object Storage pre-authenticated request (PAR) URL, object-prefix read on `libs/` of the build-cache bucket, ending `/o/libs/`: the read URL of the `mla` sparse registry that holds the versioned shared crates (docs/plans/versioned-libraries/plan.md). WHERE: wf lib (status, release) and the image builds that resolve a service's pinned library versions. WHY IT MATTERS: low-medium -- it reads published crates, never writes; a Cargo lockfile records the index URL, so a registry URL that carries this token must never be committed (use a stable non-secret index URL for lockfiles). HOW TO GET IT: the build-cache Terraform needs a prefix-restricted PAR on `libs/` (and the bucket lifecycle rule must not expire `libs/`); store it with `wf secret set LIBS_READ_PAR_URL`.",
+    "uncheckable": "a pre-authenticated URL is only usable against the bucket it names; wf lib reports it when a release or status call fails"
+  },
+  "LIBS_WRITE_PAR_URL": {
+    "service": "libs-write-par-url",
+    "envVar": "LIBS_WRITE_PAR_URL",
+    "scope": "vm",
+    "description": "WHAT: OCI Object Storage pre-authenticated request (PAR) URL, object-prefix write on `libs/` of the build-cache bucket, ending `/o/libs/`; the same prefix as LIBS_READ_PAR_URL. WHERE: wf lib release (uploads a crate and its sparse-index line, never overwrites an existing version) and wf lib prune. WHY IT MATTERS: high for the libraries -- a leak lets anyone publish a crate version the services would then build; it grants no access outside `libs/`. HOW TO GET IT: as LIBS_READ_PAR_URL, with write permission; `wf secret set LIBS_WRITE_PAR_URL`.",
+    "uncheckable": "a pre-authenticated URL is only usable against the bucket it names; wf lib reports it when a release or status call fails"
+  },
+  "LIBS_INDEX_WRITE_PAR_URL": {
+    "service": "libs-index-write-par-url",
+    "envVar": "LIBS_INDEX_WRITE_PAR_URL",
+    "scope": "vm",
+    "description": "WHAT: OCI Object Storage pre-authenticated request (PAR) URL, whole-bucket write, on the public `mobile-learning-libs-index` bucket that holds the libs registry's sparse index (infra/oracle-cloud/build-cache.tf, output libs_index_write_par_url). WHERE: wf lib release and prune (writes the index files and config.json; the index is read publicly, with no credential). WHY IT MATTERS: high for the libraries -- a leak lets anyone rewrite the index and point a version at a different crate (cargo still checks each crate against the index checksum, which the writer controls); it grants no access outside that bucket. HOW TO GET IT: `wf vm terraform exec infra/oracle-cloud output -raw libs_index_write_par_url | wf secret set LIBS_INDEX_WRITE_PAR_URL`.",
+    "uncheckable": "a pre-authenticated URL is only usable against the bucket it names; wf lib reports it when a release fails"
+  },
+  "VM_OPS_API_AUTH_TOKEN": {
+    "service": "vm-ops-api-auth-token",
+    "envVar": "VM_OPS_API_AUTH_TOKEN",
+    "scope": "ci-deploy",
+    "description": "WHAT: bearer token vm-ops-api's own blanket auth check (src/api/http/auth.ts) validates against -- a SEPARATE secret from VM_GATEWAY_AUTH_SEED, minted with `openssl rand -hex 32`. WHY SEPARATE: vm-ops-api has two ingress paths -- the tailnet, directly, and vm-gateway's public Funnel, which forwards the caller's Authorization header through unchanged -- and each needed its own gate. Before this split, vm-ops-api validated the SAME VM_GATEWAY_AUTH_SEED value vm-gateway itself checks, which meant anything vm-gateway would accept (including CI, which holds a gateway credential) could in principle reach vm-ops-api's sensitive routes (redeploy, exec-script) too, if it ever got past vm-gateway's own gate. Splitting them means CI's gateway-scoped credential (see VM_GATEWAY_AUTH_SEED's own entry, its allowUnsignedRotating tier) can never satisfy THIS check -- only something that separately holds this token can. WHERE: vm-ops-api itself (src/api/http/auth.ts), agent-shell's redeploy-app.sh and README (calling vm-ops-api's /services/:app/redeploy directly over the tailnet), and vnc-auth-capture's agent-shell-relay.ts (calling vm-ops-api's /agent-shell/credentials the same way). leetcode-backend's own usage routes are UNRELATED -- they keep checking VM_GATEWAY_AUTH_SEED directly, untouched by this split. WHY IT MATTERS: critical -- this is now THE credential that can trigger a VM redeploy or run an arbitrary exec-script on vm-ops-api; never deliver it to CI or anything with a smaller trust footprint than the tailnet itself. ADMIN seed: the seed of the admin port, the only one that serves every route (the generic exec-script among them). The ci-runner container's environment no longer holds it; CI jobs resolve it from the vault only for the calls only the admin port serves (the exec-script behind `wf cache guard` in the plan job, `wf vm state backup`, the android lease of the e2e job, the old build_on=agent-shell build path, and the failure report's `wf vm exec --status`). Everything else in CI uses the CI seed. It moves to scope vm (Phase 6 of docs/plans/ci-scoped-vault-access/plan.md) once those calls leave CI jobs. The CI port has its own seed, VM_OPS_API_CI_AUTH_TOKEN, which opens nothing the admin port alone serves.",
+    "uncheckable": "a secret both sides share: only the service holding the other side can say whether it matches, so there is no standalone check"
+  },
+  "VM_OPS_API_CI_AUTH_TOKEN": {
+    "service": "vm-ops-api-ci-auth-token",
+    "envVar": "VM_OPS_API_CI_AUTH_TOKEN",
+    "scope": "ci-deploy",
+    "description": "WHAT: the seed of vm-ops-api's CI port, the second listener (CI_PORT, 8081) that serves only what a CI job needs: health, the container and stats reads, a redeploy of a tag CI already pushed, its smoke test and its status. The port takes the signed rotating token derived from this seed (hex(HMAC-SHA256(seed, UTC date)), today's or yesterday's, with the Ed25519 signature of VM_GATEWAY_REQUEST_SIGNING_PRIVATE_KEY) and nothing else, never the raw seed. WHY SEPARATE: a token derived from VM_OPS_API_AUTH_TOKEN opens only the admin port and one derived from this seed opens only the CI port, so a CI job that holds this seed cannot reach the generic exec-script or any other admin route (decisions 6 and 9 of docs/plans/ci-scoped-vault-access/plan.md). Mint it with `openssl rand -hex 32`, different from VM_OPS_API_AUTH_TOKEN: vm-ops-api refuses to start with CI_PORT set and the two equal. WHERE: vm-ops-api's own .env (sync-env --for vm-ops-api) and the CI jobs that call vm-ops-api through `wf` (clis/wf-vmops/src/vmops.rs picks it when WF_VM_CI_PORT is set). WHY IT MATTERS: it can redeploy any app to any tag already in the registry, so it belongs in the ci-deploy token only.",
+    "uncheckable": "a secret both sides share: only the service holding the other side can say whether it matches, so there is no standalone check"
+  },
+  "EXPO_PUBLIC_BETTERSTACK_OTLP_TOKEN": {
+    "service": "betterstack-otlp-token-mobile",
+    "envVar": "EXPO_PUBLIC_BETTERSTACK_OTLP_TOKEN",
+    "scope": "vm",
+    "description": "WHAT: BetterStack OTLP ingest token for the mobile app's OTel logs/spans/metrics export (U12, contingent on U1's Hermes feasibility spike passing). Deliberately separate from BETTERSTACK_OTLP_TOKEN (backend and CLI's own OTLP token, KTD9) so a leak from the publicly-shipped mobile bundle can't forge backend- and CI-attributed telemetry. WHERE: inlined into published EAS Update bundles (EXPO_PUBLIC_* is compiled in, therefore publicly visible by design) — read by the OTel bridge of the removed first app's logging once U12 ships. WHY IT MATTERS: low — same profile as EXPO_PUBLIC_BETTERSTACK_TOKEN, a write-only ingest token; never put a real secret behind an EXPO_PUBLIC_ name. From BetterStack -> Telemetry -> Sources -> <a source dedicated to mobile, NOT the backend and CLI source> -> OTLP ingest token."
+  },
+  "EXPO_TOKEN": {
+    "service": "expo-token",
+    "envVar": "EXPO_TOKEN",
+    "scope": "ci-deploy",
+    "description": "WHAT: Expo access token that authenticates the EAS CLI non-interactively (no browser login). WHERE: any headless publish/build — `pnpm --filter mobile-learning-app run publish:eas`, `eas build|submit|update`, and the eas-simulator skill; a cloud sandbox or CI has no browser so this is the only way `eas whoami` succeeds there. WHY IT MATTERS: high — it can publish EAS Updates and builds to your Expo account, i.e. ship code to real devices. In NO `sync-env --for` deploy group: no deploy host takes it; `wf ship eas` and the CI eas-update job read it straight from the vault. Get it from expo.dev -> Account -> Access Tokens; verify with `npx --yes eas-cli@latest whoami`. It is a PERSONAL access token for the `nuesslerm` user, never a robot-account token: the retired dev Metro made Expo Go compare the account its CLI was signed in as against the one the phone was signed in as and refuse on a mismatch (\"signed in to Expo CLI as 'Claude (robot)' and to Expo Go as 'nuesslerm' -- these accounts need to match\"), and a robot identity can never equal a user identity. Whether an EAS Update opened in Expo Go has the same requirement is unchecked, so keep it personal."
+  },
+  "DOCKERHUB_USERNAME": {
+    "service": "dockerhub-username",
+    "envVar": "DOCKERHUB_USERNAME",
+    "scope": "vm",
+    "description": "WHAT: Docker Hub account name that owns this project's image repositories (nuesslerm). WHERE: lives in the GH-CI Bitwarden project (NOT the deploy project) and is read by bitwarden/sm-action in build-images.yml + every deploy-*.yml; it forms the image path docker.io/<username>/<service>. WHY IT MATTERS: not secret — it is visible in every public image reference and in the compose files. EXPECTED TO REPORT `missing` in `wf secret list --backend bitwarden`: that command uses the DEPLOY-scoped machine account, which by design cannot read the GH-CI project. That is the scoping working, not a fault. Deliberately in NO `sync-env --for` deploy group: the images are PUBLIC, so a VM pulls them unauthenticated and never needs either Docker Hub credential.",
+    "publicValue": true
+  },
+  "DOCKERHUB_TOKEN": {
+    "service": "dockerhub-token",
+    "envVar": "DOCKERHUB_TOKEN",
+    "scope": "ci-deploy",
+    "description": "WHAT: the one Docker Hub Personal Access Token (Read & Write, NOT Delete) every build and push uses: agent-shell's `docker login` and CI's build-image action, which reads it for the push step only on a push to dev. WHERE: the DEPLOY Bitwarden project, delivered by `sync-env --for agent-shell` into agent-shell's `.env`; an unset or rejected value aborts the deploy (compose `:?`, a failed `docker login` exits 1). Image repos are public, so pulls are unauthenticated and only that push step needs it. WHY IT MATTERS: medium-high, a leak lets someone overwrite a `:latest` tag a VM later pulls and runs. HOW TO GET IT: hub.docker.com -> Account Settings -> Personal access tokens -> Generate new token, permissions 'Read & Write'; shown ONCE. Rotate by updating this one vault entry, then `wf ship agent-shell --redeploy-only --tag latest --ref <sha>` so the VM's synced `.env` carries it. DOCKERHUB_USERNAME is not secret and not vault-resolved.",
+    "check": {
+      "live": {
+        "url": "https://auth.docker.io/token?service=registry.docker.io&scope=repository:{DOCKERHUB_USERNAME|nuesslerm}/wf-preflight:pull",
+        "basic": [
+          "{DOCKERHUB_USERNAME|nuesslerm}",
+          "{value}"
+        ]
+      }
+    }
+  },
+  "AGENT_SHELL_E2E_SSH_PRIVATE_KEY": {
+    "service": "agent-shell-e2e-ssh-private-key",
+    "envVar": "AGENT_SHELL_E2E_SSH_PRIVATE_KEY",
+    "scope": "vm",
+    "description": "WHAT: the private half of a narrowly-scoped, machine-only ed25519 test identity used ONLY to drive real, automated/exploratory SSH sessions against agent-shell's `wf` from an agent session -- NOT a personal identity, and NOT a replacement for SSHID_URL (agent-shell's authorized_keys stays sourced from SSHID_URL for personal access; this is the one deliberate exception, matching the `AGENT_SHELL_E2E_SSH_PUBLIC_KEY` env var wired into entrypoint.sh/docker-compose.prod.yml). WHERE: the DEPLOY Bitwarden project, resolved by whatever drives the e2e checks (the workflow-cli e2e test, or an ad hoc agent session), written to a 0600 temp file for the life of one ssh invocation and never persisted longer than that. WHY IT MATTERS: low -- it authenticates as the unprivileged, non-root `agent` user inside an already-untrusted-by-design container (no docker socket, no host mount; see agent-shell/README.md's 'Why this exists'), scoped to nothing this key alone couldn't already do via the container's own exec-script route. HOW TO GET IT: minted by an agent session itself (`ssh-keygen -t ed25519`) -- an SSH keypair is exactly the kind of credential this repo's 'mint it yourself' policy covers, no human needed -- then `wf secret set AGENT_SHELL_E2E_SSH_PRIVATE_KEY` with the private half. The matching public half is NOT a secret; it lives directly in `infra/oracle-cloud/agent-shell/.env.defaults` as `AGENT_SHELL_E2E_SSH_PUBLIC_KEY`."
+  },
+  "TELEGRAM_API_ID": {
+    "service": "telegram-api-id",
+    "envVar": "TELEGRAM_API_ID",
+    "scope": "vm",
+    "description": "ORPHANED: its only consumer, the opencode-telegram-bot e2e suite, was deleted in 2026-10; kept because vault secrets are never destroyed. Was: WHAT: Telegram MTProto application id. WHERE: the opencode-telegram-bot e2e test client only (a real user account driving the bot), never in production. WHY IT MATTERS: test-only. From my.telegram.org -> API development tools."
+  },
+  "TELEGRAM_API_HASH": {
+    "service": "telegram-api-hash",
+    "envVar": "TELEGRAM_API_HASH",
+    "scope": "vm",
+    "description": "ORPHANED: its only consumer, the opencode-telegram-bot e2e suite, was deleted in 2026-10; kept because vault secrets are never destroyed. Was: WHAT: Telegram MTProto application hash, paired with TELEGRAM_API_ID. WHERE: the opencode-telegram-bot e2e test client only. WHY IT MATTERS: test-only. From my.telegram.org -> API development tools."
+  },
+  "TELEGRAM_SESSION": {
+    "service": "telegram-session",
+    "envVar": "TELEGRAM_SESSION",
+    "scope": "vm",
+    "description": "ORPHANED: its only consumer, the opencode-telegram-bot e2e suite, was deleted in 2026-10; kept because vault secrets are never destroyed. Was: WHAT: a saved MTProto session string — a logged-in Telegram USER session for the e2e suite. WHERE: opencode-telegram-bot e2e tests. WHY IT MATTERS: test-only, but treat it like a password: it is live access to that Telegram account. Generate with `pnpm --filter the removed Telegram bot telegram:auth`."
+  },
+  "VM_HOST": {
+    "service": "vm-host",
+    "envVar": "VM_HOST",
+    "scope": "ci-deploy",
+    "description": "WHAT: public IP or hostname of the Oracle Cloud VM every backend service is deployed to. WHERE: CI deploy jobs, resolved from the mobile-learning-gh-ci-secrets project via bitwarden/sm-action. WHY IT MATTERS: not secret — an address — but it tracks an ephemeral instance IP that changes on every VM recreate, which is exactly why it lives in the vault rather than as a GitHub Actions secret an agent cannot rotate. See AGENTS.md -> 'CI secrets live in Bitwarden'.",
+    "bitwardenKey": "VM_HOST"
+  },
+  "TELEGRAM_PHONE_NUMBER": {
+    "service": "telegram-phone-number",
+    "envVar": "TELEGRAM_PHONE_NUMBER",
+    "scope": "vm",
+    "description": "ORPHANED: its only consumer, the opencode-telegram-bot e2e suite, was deleted in 2026-10; kept because vault secrets are never destroyed. Was: WHAT: the E.164 phone number of the Telegram USER account the e2e suite acts as, e.g. +49.... WHERE: `telegram:auth --phone` defaults to it, so re-minting TELEGRAM_SESSION needs no human-supplied number. WHY IT MATTERS: not a credential on its own — it cannot log in without a code delivered to that account — but it identifies a real person's account, so it is stored rather than committed. Pair with TELEGRAM_SESSION."
+  },
+  "TELEGRAM_2FA_PASSWORD": {
+    "service": "telegram-2fa-password",
+    "envVar": "TELEGRAM_2FA_PASSWORD",
+    "scope": "vm",
+    "description": "ORPHANED: its only consumer, the opencode-telegram-bot e2e suite, was deleted in 2026-10; kept because vault secrets are never destroyed. Was: WHAT: the two-step-verification password of the Telegram USER account the e2e suite acts as. WHERE: `telegram:auth --password` defaults to it, so re-minting TELEGRAM_SESSION after a revoke needs only a fresh login code. WHY IT MATTERS: treat as a real password — it is the second factor protecting that account, and combined with a login code it grants full access. Storing it alongside TELEGRAM_SESSION means the vault holds both factors, so vault access is account access; a throwaway account keeps that blast radius small."
+  },
+  "TELEGRAM_TEST_GROUP_ID": {
+    "service": "telegram-test-group-id",
+    "envVar": "TELEGRAM_TEST_GROUP_ID",
+    "scope": "vm",
+    "description": "ORPHANED: its only consumer, the opencode-telegram-bot e2e suite, was deleted in 2026-10; kept because vault secrets are never destroyed. Was: WHAT: chat id of the persistent supergroup the e2e suite posts into. WHERE: opencode-telegram-bot e2e tests. WHY IT MATTERS: test-only, not secret — an identifier. Auto-created by the e2e setup, or paste an existing group's chat id."
+  },
+  "BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN": {
+    "service": "bws-deploy-secrets-read-access-token",
+    "envVar": "BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN",
+    "scope": "vm",
+    "description": "WHAT: Bitwarden Secrets Manager machine-account access token for the DEPLOY path, with project access 'Can read' — READ-ONLY on purpose. WHERE: the bitwarden secrets backend (resolved env-first, then macOS keychain), i.e. every VM's ~/<app>/.env.local and any CI that resolves secrets. Passed to the `bws` child process as BWS_ACCESS_TOKEN, which is the env var name bws itself reads. WHY IT MATTERS: critical and special — this is the credential that UNLOCKS the vault, so it can never live inside the vault, and a leak exposes every other secret. Read-only is the security property that makes it safe to ship to a VM running model-generated code: that host can resolve secrets but cannot rewrite or delete them. Do NOT grant it write to make `wf secret push-notes` work — use BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN for that. From Bitwarden -> Secrets Manager -> Machine accounts -> access token (grant the project 'Can read').",
+    "bootstrap": true
+  },
+  "BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN": {
+    "service": "bws-deploy-secrets-edit-access-token",
+    "envVar": "BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN",
+    "scope": "vm",
+    "description": "WHAT: a SECOND Bitwarden Secrets Manager machine-account access token, with project access 'Can read, write' — the only credential in this repo allowed to mutate the vault. WHERE: `wf secret push-notes` only (the secrets module of secrets), which writes each secret's note from its registry description so the Bitwarden UI stops drifting from this file. Resolved env-first then macOS keychain; passed to the `bws` child as BWS_ACCESS_TOKEN. WHY IT MATTERS: high — it can overwrite vault contents. Keep it on your LAPTOP ONLY: never put it in a VM's .env.local, never in CI, and it is deliberately absent from every `sync-env --for` deploy group so no deploy can ever receive it. The read-only deploy token (BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN) stays the one that ships. From Bitwarden -> Secrets Manager -> Machine accounts -> create a second account -> grant the project 'Can read, write'.",
+    "bootstrap": true
+  },
+  "BWS_GH_CI_SECRETS_READ_ACCESS_TOKEN": {
+    "service": "bws-gh-ci-secrets-read-access-token",
+    "envVar": "BWS_GH_CI_SECRETS_READ_ACCESS_TOKEN",
+    "scope": "vm",
+    "description": "WHAT: Bitwarden Secrets Manager machine-account token, 'Can read' on the GH-CI project ONLY. WHERE: the single Bitwarden credential stored as a GitHub Actions repo secret; bitwarden/sm-action exchanges it for DOCKERHUB_USERNAME/DOCKERHUB_TOKEN in build-images.yml, and for VM_HOST in all four deploy-*.yml workflows — the deploy workflows no longer resolve Docker Hub creds at all since they stopped building images themselves (they pull the tag build-images.yml already pushed). WHY IT MATTERS: medium — and the scoping is the whole point. Using BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN here instead would give EVERY workflow run (and every third-party action it invokes) read access to EVERY application secret — GH_TOKEN, TELEGRAM_BOT_TOKEN, CLAUDE_CODE_OAUTH_TOKEN, the lot. Scoped to the CI project, a leak costs only Docker image push rights and VM_HOST (a public IP already exposed on 80/443). NEVER put the deploy read token, and never the EDIT token, in GitHub Actions. HOW TO GET IT: Bitwarden web vault -> Secrets Manager -> Machine accounts -> new account -> grant 'Can read' on the gh-ci project ONLY -> generate access token. EU-hosted, so the workflows must also point sm-action at vault.bitwarden.eu (see BWS_SERVER_URL).",
+    "bootstrap": true
+  },
+  "BWS_CI_OPEN_ACCESS_TOKEN": {
+    "service": "bws-ci-open-access-token",
+    "envVar": "BWS_CI_OPEN_ACCESS_TOKEN",
+    "scope": "vm",
+    "description": "WHAT: Bitwarden Secrets Manager machine-account access token, 'Can read' on the ci-open project ONLY (the read-only values: cache read URLs, ORDS base URLs, libs read URL). WHERE: delivered to CI as a GitHub Actions repo secret, then mapped onto job env by the workflows; `wf secret` in CI picks it for the keys of scope ci-open. Never read from the vault by `wf` in CI (it is what unlocks the vault, so it cannot live in it): it is stored only where the owner or an agent sets GitHub repo secrets. WHY IT MATTERS: high for ci-deploy, medium for ci-open; a leak exposes exactly the keys of its project and nothing else. HOW TO GET IT: Bitwarden web vault -> Secrets Manager -> Machine accounts -> new account -> 'Can read' on the ci-open project ONLY -> generate access token (plan docs/plans/ci-scoped-vault-access/plan.md).",
+    "bootstrap": true
+  },
+  "BWS_CI_DEPLOY_ACCESS_TOKEN": {
+    "service": "bws-ci-deploy-access-token",
+    "envVar": "BWS_CI_DEPLOY_ACCESS_TOKEN",
+    "scope": "vm",
+    "description": "WHAT: Bitwarden Secrets Manager machine-account access token, 'Can read' on the ci-deploy project ONLY (the privileged values: signing keys, vm-ops-api seeds, Docker Hub, Expo, Tailscale, cache and bundle write URLs; used only by deploy-type steps on push to dev). WHERE: delivered to CI as a GitHub Actions repo secret, then mapped onto job env by the workflows; `wf secret` in CI picks it for the keys of scope ci-deploy. Never read from the vault by `wf` in CI (it is what unlocks the vault, so it cannot live in it): it is stored only where the owner or an agent sets GitHub repo secrets. WHY IT MATTERS: high for ci-deploy, medium for ci-open; a leak exposes exactly the keys of its project and nothing else. HOW TO GET IT: Bitwarden web vault -> Secrets Manager -> Machine accounts -> new account -> 'Can read' on the ci-deploy project ONLY -> generate access token (plan docs/plans/ci-scoped-vault-access/plan.md).",
+    "bootstrap": true
+  },
+  "BWS_SERVER_URL": {
+    "service": "bws-server-url",
+    "envVar": "BWS_SERVER_URL",
+    "scope": "vm",
+    "description": "WHAT: which Bitwarden cloud to talk to. REQUIRED for EU-hosted accounts: https://vault.bitwarden.eu. WHERE: the bitwarden backend, resolved env-first then macOS keychain, and baked into each VM's .env.local by the Terraform cloud-init. WHY IT MATTERS: not secret, but a wrong/missing value fails every deploy — `bws` defaults to the US cloud and rejects an EU token with a bare `invalid_client` / `401` that looks exactly like a bad credential.",
+    "bootstrap": true
+  },
+  "OCI_TENANCY_OCID": {
+    "service": "oci-tenancy-ocid",
+    "envVar": "OCI_TENANCY_OCID",
+    "scope": "vm",
+    "description": "WHAT: Oracle Cloud tenancy OCID. Not secret-shaped (it's an identifier, not a bearer credential), but kept in this vault alongside the rest of the OCI auth set rather than splitting one logical credential group across two storage mechanisms. WHERE: `infra/oracle-cloud/` Terraform (the `oci` provider block in versions.tf, and `compartment_id` on the tenancy-scoped data source in main.tf), materialized into terraform.tfvars by `wf vm creds sync`. WHY IT MATTERS: identifies which Oracle account Terraform talks to; wrong value fails auth outright. From: OCI Console -> profile menu (top-right) -> Tenancy, or the API-key dialog's config preview (see docs/solutions/infra/oracle-cloud-agent-provisioning.md Part 1.3).",
+    "check": {
+      "shape": {
+        "prefix": "ocid1."
+      }
+    }
+  },
+  "OCI_USER_OCID": {
+    "service": "oci-user-ocid",
+    "envVar": "OCI_USER_OCID",
+    "scope": "vm",
+    "description": "WHAT: OCID of the dedicated `agent-terraform` IAM user whose API signing key Terraform authenticates as — never your own admin/personal OCI user. WHERE: `infra/oracle-cloud/` Terraform provider auth, materialized into terraform.tfvars by `wf vm creds sync`. WHY IT MATTERS: identifies the (narrowly-policy-scoped, per docs/solutions/infra/oracle-cloud-agent-provisioning.md Part 1.2) identity Terraform runs as. From: OCI Console -> Identity & Security -> Domains -> Users -> agent-terraform -> copy OCID.",
+    "check": {
+      "shape": {
+        "prefix": "ocid1."
+      }
+    }
+  },
+  "OCI_API_KEY_FINGERPRINT": {
+    "service": "oci-api-key-fingerprint",
+    "envVar": "OCI_API_KEY_FINGERPRINT",
+    "scope": "vm",
+    "description": "WHAT: fingerprint of the `agent-terraform` user's uploaded API signing key (pairs with OCI_API_PRIVATE_KEY). WHERE: `infra/oracle-cloud/` Terraform provider auth, materialized into terraform.tfvars by `wf vm creds sync`. WHY IT MATTERS: OCI's API rejects a private key whose fingerprint doesn't match the one on file for the user — this has to stay in lockstep with OCI_API_PRIVATE_KEY (both come from the same 'Add API key' dialog; if you ever rotate the key, update both together). From: OCI Console -> Identity & Security -> Domains -> Users -> agent-terraform -> API keys -> Add API key -> Generate API key pair (the config preview shows this).",
+    "check": {
+      "shape": {
+        "regex": "^([0-9a-f]{2}:){15}[0-9a-f]{2}$"
+      }
+    }
+  },
+  "OCI_API_PRIVATE_KEY": {
+    "service": "oci-api-private-key",
+    "envVar": "OCI_API_PRIVATE_KEY",
+    "scope": "vm",
+    "description": "WHAT: the full PEM contents (multi-line) of the `agent-terraform` user's API signing private key. WHERE: never written to this repo's working tree — `wf vm creds sync` writes it to ~/.oci/oci_api_key.pem (chmod 600, outside the repo) and points terraform.tfvars' api_private_key_path at that file. WHY IT MATTERS: the sensitive one in this group. Scoped to compute/network/volume-manage + budget-read only (per the narrow IAM policy in docs/solutions/infra/oracle-cloud-agent-provisioning.md Part 1.2), so a leak's blast radius is 'attacker can resize/destroy the two backend VMs and read the budget,' not 'attacker owns the tenancy.' From: same 'Add API key' dialog as OCI_API_KEY_FINGERPRINT — download the private key there, paste its full contents (including the BEGIN/END PRIVATE KEY lines) into this vault entry, then delete the local download.",
+    "check": {
+      "shape": {
+        "pem": true
+      }
+    }
+  },
+  "OCI_COMPARTMENT_OCID": {
+    "service": "oci-compartment-ocid",
+    "envVar": "OCI_COMPARTMENT_OCID",
+    "scope": "vm",
+    "description": "WHAT: the compartment every `infra/oracle-cloud/` resource is created in (root/tenancy compartment is fine for a personal account — same value as OCI_TENANCY_OCID in that case). WHERE: `compartment_id` on every resource in main.tf, and the budget's `target_compartment_id` in budget.tf, materialized into terraform.tfvars by `wf vm creds sync`. WHY IT MATTERS: scopes where Terraform is allowed to create/destroy things — matching the IAM policy's compartment scope in docs/solutions/infra/oracle-cloud-agent-provisioning.md Part 1.2. From: OCI Console -> Identity & Security -> Compartments (or reuse the tenancy OCID for the root compartment).",
+    "check": {
+      "shape": {
+        "prefix": "ocid1."
+      }
+    }
+  },
+  "OCI_REGION": {
+    "service": "oci-region",
+    "envVar": "OCI_REGION",
+    "scope": "vm",
+    "description": "WHAT: OCI home region identifier, e.g. eu-frankfurt-1. WHERE: `infra/oracle-cloud/` Terraform provider auth, materialized into terraform.tfvars by `wf vm creds sync`. WHY IT MATTERS: Always-Free Ampere A1 capacity is per-region-and-availability-domain; a wrong region either fails auth or hits a pool you were never allocated capacity in. From: the same API-key dialog config preview as OCI_TENANCY_OCID/OCI_USER_OCID/OCI_API_KEY_FINGERPRINT.",
+    "check": {
+      "shape": {
+        "regex": "^[a-z]{2}-[a-z]+-\\d+$"
+      }
+    }
+  },
+  "OCI_API_PRIVATE_KEY_PASSPHRASE": {
+    "service": "oci-api-private-key-passphrase",
+    "envVar": "OCI_API_PRIVATE_KEY_PASSPHRASE",
+    "scope": "vm",
+    "description": "WHAT: passphrase for OCI_API_PRIVATE_KEY, only if that key is encrypted. WHERE: `infra/oracle-cloud/versions.tf`'s `oci` provider block (`private_key_password`), materialized into terraform.tfvars' `api_private_key_passphrase` by `wf vm creds sync`. WHY IT MATTERS: optional, not required — a key generated via the OCI Console's 'Add API key -> Generate API key pair' button is unencrypted by default and needs no passphrase at all. Only set this if you generated the keypair yourself (e.g. openssl) with a passphrase and uploaded the public half to OCI.",
+    "uncheckable": "it only unlocks the private key, so there is nothing to check it against on its own"
+  },
+  "PAGERDUTY_INTEGRATION_KEY": {
+    "service": "pagerduty-integration-key",
+    "envVar": "PAGERDUTY_INTEGRATION_KEY",
+    "scope": "vm",
+    "description": "WHAT: the Integration Key from a PagerDuty service's 'Custom Event Transformer' integration (NOT 'Oracle Cloud Infrastructure Monitoring' — that one silently drops non-alarm-format messages, which is what OCI Events/ONS sends). WHERE: `infra/oracle-cloud/security-alerts.tf`'s `pagerduty_integration_key` variable, materialized into terraform.tfvars by `wf vm creds sync` (optional — omitted from tfvars entirely if unset in the vault, so PagerDuty alerting just stays off rather than erroring). Terraform builds the full endpoint itself (`https://<PAGERDUTY_EVENTS_DOMAIN>/integration/<key>/enqueue`) — only the bare key goes here, never the full URL (storing both is redundant, the URL just embeds this same key). WHY IT MATTERS: a bearer credential — anyone holding it can create arbitrary incidents in your PagerDuty account. From: PagerDuty -> Services -> (a service) -> Integrations tab -> Add another integration -> 'Custom Event Transformer' -> copy the Integration Key shown.",
+    "check": {
+      "shape": {
+        "regex": "^[A-Za-z0-9]{32}$"
+      }
+    }
+  },
+  "BUDGET_ALERT_EMAIL": {
+    "service": "budget-alert-email",
+    "envVar": "BUDGET_ALERT_EMAIL",
+    "scope": "vm",
+    "description": "WHAT: the address the OCI budget alert rules and the budget-guard topic email when spend leaves $0. Not secret-shaped, but kept in the vault beside the PagerDuty pair so a fresh sandbox's apply does not strip the recipients. WHERE: `infra/oracle-cloud/budget.tf`'s `budget_alert_email` variable, materialized into terraform.tfvars by `wf vm creds sync` (optional; empty means no email recipients). From: the owner's alerting inbox.",
+    "check": {
+      "shape": {
+        "regex": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+      }
+    }
+  },
+  "PAGERDUTY_EVENTS_DOMAIN": {
+    "service": "pagerduty-events-domain",
+    "envVar": "PAGERDUTY_EVENTS_DOMAIN",
+    "scope": "vm",
+    "description": "WHAT: the region-specific Events API host — `events.pagerduty.com` for a US-region PagerDuty account, `events.eu.pagerduty.com` for an EU-region one (check your account's own URL, e.g. `<subdomain>.eu.pagerduty.com` means EU). Not secret-shaped (not a bearer credential), but kept alongside PAGERDUTY_INTEGRATION_KEY rather than splitting one logical config pair across two storage mechanisms — same reasoning as OCI_TENANCY_OCID above. WHERE: `infra/oracle-cloud/security-alerts.tf`'s `pagerduty_events_domain` variable, materialized into terraform.tfvars by `wf vm creds sync` (optional — Terraform's own variable default, `events.pagerduty.com`, applies if this is unset in the vault). WHY IT MATTERS: the wrong region's domain doesn't error — the request just never reaches your account, so alerts silently never arrive. From: whichever domain your PagerDuty account itself is hosted at.",
+    "check": {
+      "shape": {
+        "regex": "^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$"
+      }
+    }
+  },
+  "VM_GATEWAY_AUTH_SEED": {
+    "service": "gateway-auth-seed",
+    "envVar": "VM_GATEWAY_AUTH_SEED",
+    "scope": "ci-deploy",
+    "description": "WHAT: bearer token guarding vm-gateway's own public Tailscale Funnel (the removed vm-gateway) -- the ONE public HTTPS ingress into the VM. vm-ops-api's OWN blanket check now validates a SEPARATE secret (VM_OPS_API_AUTH_TOKEN) instead of this one, split specifically so a caller that only holds THIS token (CI -- see below) can pass the gateway but never vm-ops-api's own sensitive routes (redeploy, exec-script). Also reused (deliberately, not independently -- unaffected by the vm-ops-api split above) to gate leetcode-backend's usage routes (/api/leetcode/user-status, /run, /format, /submit, /poll) via the same Authorization: Bearer header shape -- see requireBearerToken.ts -- rather than minting a second secret, since a public Tailscale Funnel exposing that service needs the same kind of per-request auth. WHERE: vm-gateway's own .env (via sync-env --for vm-gateway) and leetcode-backend's own .env; checked by both services on every request. ALSO lives in the gh-ci Bitwarden project (unlike VM_OPS_API_AUTH_TOKEN, which never does) so CI (ci.yml/architecture.yml/build-images.yml) can reach vm-gateway's Funnel -- CI computes the day's rotating value itself (HMAC-SHA256(this seed, today's UTC date), no request-specific binding) and sends that rather than this raw seed, matching the removed vm-gateway's `allowUnsignedRotating: true` option: a valid rotating token is accepted there even without the Ed25519 signature the full scheme normally also requires, so CI never touches the signing private key, the single most sensitive credential in this whole scheme. A captured unsigned-rotating value is only useful for its grace window, not forever, unlike this raw seed. WHY IT MATTERS: this IS the access control for the one deliberately-public surface in the whole system — the OCI security list allows 0.0.0.0/0 on 80/443 (the caller has no fixed source IP to allowlist), so a leaked token means anyone can hit it. Generate with e.g. `openssl rand -hex 32`, then `wf secret set VM_GATEWAY_AUTH_SEED`. Renamed from VM_OPS_API_TOKEN -- the old name undersold its role once it became the shared seed for the gateway auth scheme, not one service's own static check.",
+    "uncheckable": "a secret both sides share: only the service holding the other side can say whether it matches, so there is no standalone check"
+  },
+  "VM_GATEWAY_REQUEST_SIGNING_PRIVATE_KEY": {
+    "service": "gateway-request-signing-private-key",
+    "envVar": "VM_GATEWAY_REQUEST_SIGNING_PRIVATE_KEY",
+    "scope": "ci-deploy",
+    "description": "WHAT: the Ed25519 private key half of the request-signing scheme layered on top of VM_GATEWAY_AUTH_SEED (clis/wf-vmops/src/vmops.rs, backend/vm-ops-api/core/src/domain/auth.rs, the removed vm-gateway). Used to sign method+path+timestamp(+body-hash) for every hardened-mode request; the server side verifies against the PUBLIC half, VM_GATEWAY_REQUEST_SIGNING_PUBLIC_KEY -- which is NOT secret and is committed directly in vm-ops-api's and vm-gateway's own .env.defaults, never resolved from here. WHERE: client-side ONLY -- resolved by whatever signs outgoing hardened-mode requests (`clis/wf-vmops/src/vmops.rs`, or an agent session with vault access). Deliberately appears in NO app's deploy secret group (mirroring BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN's own convention) -- it must never be delivered to any VM's own .env; a VM only ever needs the public half to verify, never the private half to sign. WHY IT MATTERS: this is the actual 'possession' factor the whole layered scheme exists for -- unlike the rotating token (derivable by anyone who has the seed), only the true holder of this key can produce a valid signature, so it must never be baked into a frontend bundle, a VM's own environment, or anything else that isn't the trusted signer. PEM (PKCS8), real newlines escaped as literal \\n for single-line storage; generate with Node's `crypto.generateKeyPairSync('ed25519')` (ask an agent session to generate + store a fresh pair), never regenerate without also updating both apps' committed VM_GATEWAY_REQUEST_SIGNING_PUBLIC_KEY to the matching new public half. Renamed from VM_OPS_API_SIGNING_PRIVATE_KEY for the same reason as VM_GATEWAY_AUTH_SEED."
+  },
+  "VM_GATEWAY_REQUEST_SIGNING_PUBLIC_KEY": {
+    "service": "gateway-request-signing-public-key",
+    "envVar": "VM_GATEWAY_REQUEST_SIGNING_PUBLIC_KEY",
+    "scope": "vm",
+    "description": "WHAT: the Ed25519 PUBLIC half of the request-signing scheme (see VM_GATEWAY_REQUEST_SIGNING_PRIVATE_KEY). NOT SECRET -- it only verifies signatures, it cannot produce them. WHERE: read from each app's COMMITTED .env.defaults by backend/vm-ops-api/core/src/domain/auth.rs and the removed vm-gateway -- deliberately NOT delivered by sync-env, so this entry appears in NO `--for` deploy group (same convention as VM_GATEWAY_REQUEST_SIGNING_PRIVATE_KEY and DOCKERHUB_USERNAME). WHY IT IS REGISTERED ANYWAY: the value also exists in the vault, and an unregistered vault secret is invisible -- it cannot appear in `wf secret list`, so nothing surfaces it when the keypair is rotated and the two committed copies drift from the private half. Registering it makes the vault copy the rotation reference `wf secret get` can print and diff against both .env.defaults files, without changing what any deploy delivers. KEEP IN STEP: the vault copy and BOTH committed copies must be byte-identical (verified identical at 116 chars / sha256 0aad2209 when this entry was added); regenerating the pair means updating all three plus the private key.",
+    "publicValue": true
+  },
+  "TS_TAILNET_ID": {
+    "service": "ts-tailnet-id",
+    "envVar": "TS_TAILNET_ID",
+    "scope": "ci-deploy",
+    "description": "WHAT: the tailnet identifier every Tailscale API call is scoped to (an org-style id, not the `*.ts.net` DNS name). WHERE: `.github/workflows/tailscale-acl.yml` and the `wf vm net …` commands. WHY IT MATTERS: non-secret but required — every `/api/v2/tailnet/<id>/…` request needs it, so device listing and ACL sync both fail without it. Find it in the Tailscale admin console URL (telemetry-style `tailnet=` param) or under Settings -> General. Renamed from TS_TAILNET.",
+    "vault": "gh-ci"
+  },
+  "TS_CI_OAUTH_CLIENT_ID": {
+    "service": "ts-ci-oauth-client-id",
+    "envVar": "TS_CI_OAUTH_CLIENT_ID",
+    "scope": "ci-deploy",
+    "description": "WHAT: client id of the Tailscale OAuth client that syncs the tailnet ACL. WHERE: `.github/workflows/tailscale-acl.yml` (via bitwarden/sm-action, resolved by UUID). WHY IT MATTERS: without it the GitOps ACL workflow can't authenticate, so `infra/tailscale/policy.hujson` stops being the source of truth and the console silently drifts. Scoped to `policy_file` ONLY — deliberately cannot touch devices or mint keys; that is TS_VM_OAUTH_CLIENT_*'s job, kept separate so device management can be revoked without breaking ACL sync. Tailscale admin -> Settings -> OAuth clients. Renamed from TS_OAUTH_ID.",
+    "vault": "gh-ci"
+  },
+  "TS_CI_OAUTH_CLIENT_SECRET": {
+    "service": "ts-ci-oauth-client-secret",
+    "envVar": "TS_CI_OAUTH_CLIENT_SECRET",
+    "scope": "ci-deploy",
+    "description": "WHAT: client secret paired with TS_CI_OAUTH_CLIENT_ID. WHERE: `.github/workflows/tailscale-acl.yml`. WHY IT MATTERS: the credential half of ACL GitOps auth; shown once at generation, so rotating means generating a new client and updating both halves. Scoped to `policy_file` only. Renamed from TS_OAUTH_SECRET.",
+    "vault": "gh-ci"
+  },
+  "TS_VM_OAUTH_CLIENT_ID": {
+    "service": "ts-vm-oauth-client-id",
+    "envVar": "TS_VM_OAUTH_CLIENT_ID",
+    "scope": "ci-deploy",
+    "description": "WHAT: client id of the Tailscale OAuth client that manages VM tailnet devices and auth keys. WHERE: `wf vm net device list|retire`, `wf vm net auth-key rotate`, and the scheduled rotation workflow. WHY IT MATTERS: this is the only credential that can delete a stale device record. A stale offline device holding a bare hostname makes the next node register as `vm-ops-api-<host>-N`, which vm-gateway's proxyRegistry does not resolve — that failure took a VM fully unreachable once, recoverable only by recreating it. Scoped to `devices:core` + `auth_keys` (write) and tagged `tag:mobile-learning`. Tailscale admin -> Settings -> OAuth clients.",
+    "vault": "gh-ci"
+  },
+  "TS_VM_OAUTH_CLIENT_SECRET": {
+    "service": "ts-vm-oauth-client-secret",
+    "envVar": "TS_VM_OAUTH_CLIENT_SECRET",
+    "scope": "ci-deploy",
+    "description": "WHAT: client secret paired with TS_VM_OAUTH_CLIENT_ID. WHERE: same commands as its id. WHY IT MATTERS: grants device deletion and auth-key minting on the tailnet, so it is the most powerful Tailscale credential here — never ship it to a VM (it would let a compromised host evict every node and mint its own keys). Shown once at generation; rotating means a new client and updating both halves.",
+    "vault": "gh-ci"
+  },
+  "BETTERSTACK_OTLP_HOST": {
+    "service": "betterstack-otlp-host",
+    "envVar": "BETTERSTACK_OTLP_HOST",
+    "scope": "ci-deploy",
+    "description": "WHAT: BetterStack OTLP ingest HOST for backend and CLI telemetry — the `s<id>.eu-<region>.betterstackdata.com` half of the pair whose token is BETTERSTACK_OTLP_TOKEN. WHERE: read by frontend/libraries/logging/src/node/otelProviders.ts to build the /v1/logs|traces|metrics URLs; delivered to every backend service via `wf secret sync-env`. WHY IT MATTERS: not a credential (a host name leaks nothing) but REQUIRED for any telemetry to leave a host — without it @lib/logging silently degrades to console-only and BetterStack receives nothing at all, which is precisely what happened: the collection sat at ZERO rows because this value lived in the vault but was never registered here, so sync-env never wrote it and every service fell back to console. Registered rather than committed to .env.defaults so the vault stays the single source of truth and there is exactly one place to change it. From BetterStack -> Telemetry -> Sources -> the backend and CLI OTLP source -> ingest host.",
+    "check": {
+      "shape": {
+        "regex": "^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$"
+      }
+    }
+  },
+  "BETTERSTACK_INGEST_HOST": {
+    "service": "betterstack-ingest-host",
+    "envVar": "EXPO_PUBLIC_BETTERSTACK_HOST",
+    "scope": "public",
+    "bitwardenKey": "BETTERSTACK_INGEST_HOST",
+    "description": "WHAT: BetterStack REST ingest host for the legacy (non-OTLP) forwarder in the removed first app's REST forwarder. WHERE: paired with EXPO_PUBLIC_BETTERSTACK_TOKEN. WHY IT MATTERS: low — the OTLP path is the strategic one; this is the older REST forwarder kept for the mobile app. NOTE the envVar and the vault key differ deliberately: the code wants EXPO_PUBLIC_BETTERSTACK_HOST, the vault stores BETTERSTACK_INGEST_HOST, and `bitwardenKey` is what bridges them — exactly the mismatch that left this unresolvable before."
+  },
+  "BETTERSTACK_API_TOKEN": {
+    "service": "betterstack-api-token",
+    "envVar": "BETTERSTACK_API_TOKEN",
+    "scope": "vm",
+    "vault": "admin",
+    "description": "WHAT: BetterStack Telemetry API token (telemetry.betterstack.com/api/v1). THIS ONE IS A **GLOBAL READ-WRITE** TOKEN: Better Stack's own UI states global tokens are SHARED ACROSS ALL TEAMS in the account, so it is NOT scoped to team t550358 -- it can read and mutate every team's Telemetry configuration, not just this project's. Treat it as the highest-blast-radius credential in this registry after the Bitwarden edit token. WHERE: read only by a human/agent session looking up source metadata (GET /api/v1/sources -> each source's `table_name`, `data_region`, `ingesting_host`). Nothing in the repo reads it at runtime and it is in NO `--for` deploy group -- no VM, container or CI job ever calls this API, and none should be given this token. WHY IT EXISTS: the ClickHouse collection name is the one piece of the query path that cannot be derived. It is fixed at source-creation time from `table_name` and does NOT track the source's current display name, and BetterStack answers a wrong name and an unauthorized one with the same `cluster not found` -- so guessing is unbounded (16 variants of \"Backend & Infra (OTLP)\" failed before this token resolved it to `backend_infra_otlp` in one call). It also revealed `data_region`, which is what makes the two sources need DIFFERENT ClickHouse connect hosts. NOTE the API does NOT expose ClickHouse connect usernames/passwords -- those still come from each source's Connect panel by hand. WHY IT MATTERS: read-write and cross-team means a leak lets an attacker DELETE sources (destroying log history), pause ingestion, or repoint a VRL transformation -- silently blinding every service that logs here. PREFER A SCOPED, READ-ONLY TOKEN and replace this one if the account ever offers it. HOW TO GET IT: telemetry.betterstack.com -> Settings -> API tokens. CONTROLS: admin-scoped in the vault, never in a deploy group, never in CI; revoke and reissue from that same settings page if it is ever exposed. SET IT WITHOUT LEAKING IT: `printf %s '<token>' | wf secret update BETTERSTACK_API_TOKEN --value-stdin --apply` (a `--value <token>` argument is visible to `ps` and lands in shell history)."
+  },
+  "CH_BACKEND_HOST": {
+    "service": "betterstack-ch-backend-host",
+    "envVar": "CH_BACKEND_HOST",
+    "scope": "ci-deploy",
+    "description": "WHAT: ClickHouse *connect* HOST for this source (e.g. eu-fsn-3-connect.betterstackdata.com). NOTE this is the QUERY side and is a different string from the INGEST host (s<id>.<region>.betterstackdata.com) -- do not try to convert one into the other. WHERE: the BetterStack source \"Backend & Infra (OTLP)\", written to by every backend/* service and the wf CLI (frontend/libraries/logging/src/node OTel bridge, via BETTERSTACK_OTLP_TOKEN/HOST). This is the source that actually has data -- BetterStack shows it Active. It is the one to query when debugging a VM or a backend service. Read by `wf vm logs --source backend` (module `vm_logs`). There are TWO sources and therefore TWO full quadruples (CH_BACKEND_* and CH_MOBILE_*): BetterStack returns the same 'cluster not found' for a wrong collection name AND for a collection the credential is not scoped to, so sharing one host/user/password across both sources would make a scoping failure indistinguishable from a typo. Four extra entries buy that ambiguity away permanently. HOW TO GET IT: BetterStack -> Telemetry -> Sources -> \"Backend & Infra (OTLP)\" -> the ClickHouse Connect panel. WHY IT MATTERS: read-only QUERY credential for logs already sent, not an ingest credential -- it cannot write or forge telemetry. Still real: it reads every log line the source holds, which includes whatever metadata the apps put in withMetadata(). In the deploy vault since 19 Oct 2026, because the deployed-deployment verification tests (backend/service-kit/src/e2e.rs) read their own request line back on the CI runner, which holds only the deploy read token; still in NO `--for` deploy group -- no service reads logs back, only writes them, so this must never reach a host's .env."
+  },
+  "CH_BACKEND_USER": {
+    "service": "betterstack-ch-backend-user",
+    "envVar": "CH_BACKEND_USER",
+    "scope": "ci-deploy",
+    "description": "WHAT: ClickHouse connect USERNAME for this source. WHERE: the BetterStack source \"Backend & Infra (OTLP)\", written to by every backend/* service and the wf CLI (frontend/libraries/logging/src/node OTel bridge, via BETTERSTACK_OTLP_TOKEN/HOST). This is the source that actually has data -- BetterStack shows it Active. It is the one to query when debugging a VM or a backend service. Read by `wf vm logs --source backend` (module `vm_logs`). There are TWO sources and therefore TWO full quadruples (CH_BACKEND_* and CH_MOBILE_*): BetterStack returns the same 'cluster not found' for a wrong collection name AND for a collection the credential is not scoped to, so sharing one host/user/password across both sources would make a scoping failure indistinguishable from a typo. Four extra entries buy that ambiguity away permanently. HOW TO GET IT: BetterStack -> Telemetry -> Sources -> \"Backend & Infra (OTLP)\" -> the ClickHouse Connect panel. WHY IT MATTERS: read-only QUERY credential for logs already sent, not an ingest credential -- it cannot write or forge telemetry. Still real: it reads every log line the source holds, which includes whatever metadata the apps put in withMetadata(). In the deploy vault since 19 Oct 2026, because the deployed-deployment verification tests (backend/service-kit/src/e2e.rs) read their own request line back on the CI runner, which holds only the deploy read token; still in NO `--for` deploy group -- no service reads logs back, only writes them, so this must never reach a host's .env."
+  },
+  "CH_BACKEND_PASSWORD": {
+    "service": "betterstack-ch-backend-password",
+    "envVar": "CH_BACKEND_PASSWORD",
+    "scope": "ci-deploy",
+    "description": "WHAT: ClickHouse connect PASSWORD for this source. WHERE: the BetterStack source \"Backend & Infra (OTLP)\", written to by every backend/* service and the wf CLI (frontend/libraries/logging/src/node OTel bridge, via BETTERSTACK_OTLP_TOKEN/HOST). This is the source that actually has data -- BetterStack shows it Active. It is the one to query when debugging a VM or a backend service. Read by `wf vm logs --source backend` (module `vm_logs`). There are TWO sources and therefore TWO full quadruples (CH_BACKEND_* and CH_MOBILE_*): BetterStack returns the same 'cluster not found' for a wrong collection name AND for a collection the credential is not scoped to, so sharing one host/user/password across both sources would make a scoping failure indistinguishable from a typo. Four extra entries buy that ambiguity away permanently. HOW TO GET IT: BetterStack -> Telemetry -> Sources -> \"Backend & Infra (OTLP)\" -> the ClickHouse Connect panel. WHY IT MATTERS: read-only QUERY credential for logs already sent, not an ingest credential -- it cannot write or forge telemetry. Still real: it reads every log line the source holds, which includes whatever metadata the apps put in withMetadata(). In the deploy vault since 19 Oct 2026, because the deployed-deployment verification tests (backend/service-kit/src/e2e.rs) read their own request line back on the CI runner, which holds only the deploy read token; still in NO `--for` deploy group -- no service reads logs back, only writes them, so this must never reach a host's .env."
+  },
+  "CH_BACKEND_TABLE": {
+    "service": "betterstack-ch-backend-table",
+    "envVar": "CH_BACKEND_TABLE",
+    "scope": "ci-deploy",
+    "description": "WHAT: Source COLLECTION name including the _logs suffix (t<teamId>_<sourceName>_logs). Queries MUST wrap it in the remote() table function -- a bare `FROM <table>` always fails with UNKNOWN_TABLE, which reads like a credentials problem and is not one. This table is only the RECENT half: BetterStack moves older rows to the sibling t<teamId>_<sourceName>_s3 collection (read as s3Cluster(primary, <it>) WHERE _row_type = 1), so a quiet source reads empty from this table alone; `wf vm logs` reads the union of both. WHERE: the BetterStack source \"Backend & Infra (OTLP)\", written to by every backend/* service and the wf CLI (frontend/libraries/logging/src/node OTel bridge, via BETTERSTACK_OTLP_TOKEN/HOST). This is the source that actually has data -- BetterStack shows it Active. It is the one to query when debugging a VM or a backend service. Read by `wf vm logs --source backend` (module `vm_logs`). There are TWO sources and therefore TWO full quadruples (CH_BACKEND_* and CH_MOBILE_*): BetterStack returns the same 'cluster not found' for a wrong collection name AND for a collection the credential is not scoped to, so sharing one host/user/password across both sources would make a scoping failure indistinguishable from a typo. Four extra entries buy that ambiguity away permanently. HOW TO GET IT: BetterStack -> Telemetry -> Sources -> \"Backend & Infra (OTLP)\" -> the ClickHouse Connect panel. WHY IT MATTERS: read-only QUERY credential for logs already sent, not an ingest credential -- it cannot write or forge telemetry. Still real: it reads every log line the source holds, which includes whatever metadata the apps put in withMetadata(). In the deploy vault since 19 Oct 2026, because the deployed-deployment verification tests (backend/service-kit/src/e2e.rs) read their own request line back on the CI runner, which holds only the deploy read token; still in NO `--for` deploy group -- no service reads logs back, only writes them, so this must never reach a host's .env."
+  },
+  "CH_MOBILE_HOST": {
+    "service": "betterstack-ch-mobile-host",
+    "envVar": "CH_MOBILE_HOST",
+    "scope": "vm",
+    "vault": "admin",
+    "description": "WHAT: ClickHouse *connect* HOST for this source (e.g. eu-fsn-3-connect.betterstackdata.com). NOTE this is the QUERY side and is a different string from the INGEST host (s<id>.<region>.betterstackdata.com) -- do not try to convert one into the other. WHERE: the BetterStack source \"Mobile Learning App\", written to by the mobile app's legacy REST forwarder (in the removed first app, via EXPO_PUBLIC_BETTERSTACK_TOKEN/HOST). Only receives data from a published EAS bundle (__DEV__ === false) or a local run with EXPO_PUBLIC_LOG_BETTERSTACK=true -- so it reads 'No recent data' whenever nobody has published recently. Read by `wf vm logs --source mobile` (module `vm_logs`). There are TWO sources and therefore TWO full quadruples (CH_BACKEND_* and CH_MOBILE_*): BetterStack returns the same 'cluster not found' for a wrong collection name AND for a collection the credential is not scoped to, so sharing one host/user/password across both sources would make a scoping failure indistinguishable from a typo. Four extra entries buy that ambiguity away permanently. HOW TO GET IT: BetterStack -> Telemetry -> Sources -> \"Mobile Learning App\" -> the ClickHouse Connect panel. WHY IT MATTERS: read-only QUERY credential for logs already sent, not an ingest credential -- it cannot write or forge telemetry. Still real: it reads every log line the source holds, which includes whatever metadata the apps put in withMetadata(). Scoped `admin` and in NO `--for` deploy group by design -- no VM ever reads logs back, only writes them, so this must never reach a host's .env."
+  },
+  "CH_MOBILE_USER": {
+    "service": "betterstack-ch-mobile-user",
+    "envVar": "CH_MOBILE_USER",
+    "scope": "vm",
+    "vault": "admin",
+    "description": "WHAT: ClickHouse connect USERNAME for this source. WHERE: the BetterStack source \"Mobile Learning App\", written to by the mobile app's legacy REST forwarder (in the removed first app, via EXPO_PUBLIC_BETTERSTACK_TOKEN/HOST). Only receives data from a published EAS bundle (__DEV__ === false) or a local run with EXPO_PUBLIC_LOG_BETTERSTACK=true -- so it reads 'No recent data' whenever nobody has published recently. Read by `wf vm logs --source mobile` (module `vm_logs`). There are TWO sources and therefore TWO full quadruples (CH_BACKEND_* and CH_MOBILE_*): BetterStack returns the same 'cluster not found' for a wrong collection name AND for a collection the credential is not scoped to, so sharing one host/user/password across both sources would make a scoping failure indistinguishable from a typo. Four extra entries buy that ambiguity away permanently. HOW TO GET IT: BetterStack -> Telemetry -> Sources -> \"Mobile Learning App\" -> the ClickHouse Connect panel. WHY IT MATTERS: read-only QUERY credential for logs already sent, not an ingest credential -- it cannot write or forge telemetry. Still real: it reads every log line the source holds, which includes whatever metadata the apps put in withMetadata(). Scoped `admin` and in NO `--for` deploy group by design -- no VM ever reads logs back, only writes them, so this must never reach a host's .env."
+  },
+  "CH_MOBILE_PASSWORD": {
+    "service": "betterstack-ch-mobile-password",
+    "envVar": "CH_MOBILE_PASSWORD",
+    "scope": "vm",
+    "vault": "admin",
+    "description": "WHAT: ClickHouse connect PASSWORD for this source. WHERE: the BetterStack source \"Mobile Learning App\", written to by the mobile app's legacy REST forwarder (in the removed first app, via EXPO_PUBLIC_BETTERSTACK_TOKEN/HOST). Only receives data from a published EAS bundle (__DEV__ === false) or a local run with EXPO_PUBLIC_LOG_BETTERSTACK=true -- so it reads 'No recent data' whenever nobody has published recently. Read by `wf vm logs --source mobile` (module `vm_logs`). There are TWO sources and therefore TWO full quadruples (CH_BACKEND_* and CH_MOBILE_*): BetterStack returns the same 'cluster not found' for a wrong collection name AND for a collection the credential is not scoped to, so sharing one host/user/password across both sources would make a scoping failure indistinguishable from a typo. Four extra entries buy that ambiguity away permanently. HOW TO GET IT: BetterStack -> Telemetry -> Sources -> \"Mobile Learning App\" -> the ClickHouse Connect panel. WHY IT MATTERS: read-only QUERY credential for logs already sent, not an ingest credential -- it cannot write or forge telemetry. Still real: it reads every log line the source holds, which includes whatever metadata the apps put in withMetadata(). Scoped `admin` and in NO `--for` deploy group by design -- no VM ever reads logs back, only writes them, so this must never reach a host's .env."
+  },
+  "CH_MOBILE_TABLE": {
+    "service": "betterstack-ch-mobile-table",
+    "envVar": "CH_MOBILE_TABLE",
+    "scope": "vm",
+    "vault": "admin",
+    "description": "WHAT: Source COLLECTION name including the _logs suffix (t<teamId>_<sourceName>_logs). Queries MUST wrap it in the remote() table function -- a bare `FROM <table>` always fails with UNKNOWN_TABLE, which reads like a credentials problem and is not one. This table is only the RECENT half: BetterStack moves older rows to the sibling t<teamId>_<sourceName>_s3 collection (read as s3Cluster(primary, <it>) WHERE _row_type = 1), so a quiet source reads empty from this table alone; `wf vm logs` reads the union of both. WHERE: the BetterStack source \"Mobile Learning App\", written to by the mobile app's legacy REST forwarder (in the removed first app, via EXPO_PUBLIC_BETTERSTACK_TOKEN/HOST). Only receives data from a published EAS bundle (__DEV__ === false) or a local run with EXPO_PUBLIC_LOG_BETTERSTACK=true -- so it reads 'No recent data' whenever nobody has published recently. Read by `wf vm logs --source mobile` (module `vm_logs`). There are TWO sources and therefore TWO full quadruples (CH_BACKEND_* and CH_MOBILE_*): BetterStack returns the same 'cluster not found' for a wrong collection name AND for a collection the credential is not scoped to, so sharing one host/user/password across both sources would make a scoping failure indistinguishable from a typo. Four extra entries buy that ambiguity away permanently. HOW TO GET IT: BetterStack -> Telemetry -> Sources -> \"Mobile Learning App\" -> the ClickHouse Connect panel. WHY IT MATTERS: read-only QUERY credential for logs already sent, not an ingest credential -- it cannot write or forge telemetry. Still real: it reads every log line the source holds, which includes whatever metadata the apps put in withMetadata(). Scoped `admin` and in NO `--for` deploy group by design -- no VM ever reads logs back, only writes them, so this must never reach a host's .env."
+  },
+  "OCI_TFSTATE_S3_ACCESS_KEY_ID": {
+    "service": "oci-tfstate-s3-access-key-id",
+    "envVar": "OCI_TFSTATE_S3_ACCESS_KEY_ID",
+    "scope": "vm",
+    "bitwardenKey": "OCI_TFSTATE_S3_ACCESS_KEY_ID",
+    "vault": "admin",
+    "description": "WHAT: the ACCESS KEY half of an OCI Customer Secret Key, used purely as S3-compatible credentials for the Terraform remote state backend. WHERE: resolved under its own name and exported as AWS_ACCESS_KEY_ID only for the duration of `terraform init/plan/apply` in infra/oracle-cloud (versions.tf declares a `s3` backend pointed at OCI Object Storage`s S3-compat endpoint). WHY IT MATTERS: before this existed, terraform.tfstate lived only on whichever laptop last ran apply and was gitignored, so any fresh clone (or sandboxed agent session) could not plan or apply without re-importing every resource by hand -- and a lost laptop meant a lost state file. Scoped `admin` so it never syncs to a VM: no host needs to read Terraform state. From: OCI Console -> Identity -> Users -> your user -> Customer Secret Keys -> Generate (the key is shown once). NOTE: deliberately NOT registered under the bare AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY names: `get()` resolves env-first, and sandboxes (this repo`s agent proxy among them) inject placeholder AWS_* values, which would silently shadow the vault and make every terraform init fail with an unhelpful auth error."
+  },
+  "OCI_TFSTATE_S3_SECRET_ACCESS_KEY": {
+    "service": "oci-tfstate-s3-secret-access-key",
+    "envVar": "OCI_TFSTATE_S3_SECRET_ACCESS_KEY",
+    "scope": "vm",
+    "bitwardenKey": "OCI_TFSTATE_S3_SECRET_ACCESS_KEY",
+    "vault": "admin",
+    "description": "WHAT: the SECRET half of the OCI Customer Secret Key whose id is OCI_TFSTATE_S3_ACCESS_KEY_ID. WHERE: resolved under its own name and exported as AWS_SECRET_ACCESS_KEY only for the duration of the Terraform s3 backend in infra/oracle-cloud. WHY IT MATTERS: grants read/write to the mobile-learning-tfstate bucket, which holds Terraform state -- state contains every resource id and any sensitive attribute Terraform recorded, so this is as sensitive as the infra credentials themselves. Scoped `admin` so `sync-env` can never write it into a VM .env. OCI shows the secret exactly once at creation; regenerate a new Customer Secret Key if it is lost (max 2 per user). NOTE: deliberately NOT registered under the bare AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY names: `get()` resolves env-first, and sandboxes (this repo`s agent proxy among them) inject placeholder AWS_* values, which would silently shadow the vault and make every terraform init fail with an unhelpful auth error."
+  },
+  "VERIFICATION_ARTIFACTS_PAR_URL": {
+    "service": "verification-artifacts-par-url",
+    "envVar": "VERIFICATION_ARTIFACTS_PAR_URL",
+    "scope": "ci-deploy",
+    "description": "WHAT: OCI Object Storage pre-authenticated request (PAR) URL, prefix-scoped (AnyObjectWrite on verification/* in the publicly-readable <name_prefix>-verification-artifacts bucket -- infra/oracle-cloud/verification-artifacts.tf's oci_objectstorage_preauthrequest.verification_artifacts_write). Minted by Terraform, not a human -- read it back with `wf vm terraform output infra/oracle-cloud` (verification_artifacts_par_url) after applying, then store it (macOS: `wf secret set VERIFICATION_ARTIFACTS_PAR_URL`; sandbox: `bws secret create` into mobile-learning-deploy-secrets, done 2026-09-06). WHERE: the evidence publisher (`wf test publish`) uploads capture reports, screenshots, recordings, explorer findings and runbook results under verification/<epic>/<branch>/<run>/ so a GitHub epic can link the evidence (#274). WHY IT MATTERS: low-medium -- write-only to one throwaway prefix whose objects expire after 30 days; reads are public by design (UI screenshots of a demo app), so a leak lets someone upload junk evidence, nothing more. Expires 2027-09-01 (OCI PARs require an expiration) -- re-mint via `terraform apply` and re-set this secret when it does."
+  },
+  "AGENT_SHELL_SSH_PRIVATE_KEY": {
+    "service": "agent-shell-ssh-private-key",
+    "envVar": "AGENT_SHELL_SSH_PRIVATE_KEY",
+    "scope": "vm",
+    "vault": "admin",
+    "description": "WHAT: ed25519 private key for the owner`s Mac to SSH into agent-shell-main over the tailnet (vault note: \"ED25519 key for nuesslerm Mac to agent-shell-main via tailnet\", added 2026-09-04 outside the registry). WHERE: only the owner`s laptop, loaded into ssh-agent by hand; no service, no sync-env group. WHY IT MATTERS: an interactive shell on the VM as the agent-shell user; scoped `admin` so no VM .env can ever receive it and agent sessions (which never SSH to the VM by repo rule) do not resolve it. Registered by the drift check, not by the code that uses it: if the laptop key is rotated, replace the vault value and keep this entry."
+  },
+  "GCLOUD_DRIVE_CREDENTIALS_DB_B64": {
+    "service": "gcloud-drive-credentials-db",
+    "envVar": "GCLOUD_DRIVE_CREDENTIALS_DB_B64",
+    "scope": "ci-deploy",
+    "description": "WHAT: the owner's gcloud login with Drive access (`gcloud auth login --enable-gdrive-access`): gcloud's credentials.db, base64, holding a Google refresh token. WHERE: the nightly Gem sync job (.github/workflows/repomix-gemini-context.yml) on the vm runner restores it into ~/.config/gcloud so `knowledge index --gemini` can mint a Drive token; the runner is a different container from agent-shell, where the login lives. Kept in step by `wf secret login gcloud` (set when the login finishes, emptied by `--clear`; needs the vault write token). WHY IT MATTERS: high -- anyone holding it can act as the owner's Google account with Drive scope until it is revoked.",
+    "uncheckable": "a Google login: only a Drive call with the token it yields says whether it still works, and that needs the owner's account"
+  },
+  "BETTERSTACK_HEARTBEAT_URL": {
+    "service": "betterstack-heartbeat-url",
+    "envVar": "BETTERSTACK_HEARTBEAT_URL",
+    "scope": "ci-deploy",
+    "description": "WHAT: the ping URL of the BetterStack Uptime heartbeat \"VM host sampling (reporting-service pings every minute)\" (period 120 s, grace 180 s). WHERE: reporting-service pings it after each host sweep; optional, the service samples without it. WHY IT MATTERS: BetterStack alerts (email, push) when the pings stop, which is how a stalled or dead VM is noticed from outside it; the URL alone lets anyone send a ping, so a leaked one could hide an outage, but it grants no read access. HOW TO ROTATE: delete and recreate the heartbeat in BetterStack Uptime (or via its API), then `wf secret update BETTERSTACK_HEARTBEAT_URL --apply`.",
+    "uncheckable": "a heartbeat URL answers a GET with a ping, which would itself count as one; the alert is the check"
+  },
+  "BETTERSTACK_METRICS_TOKEN": {
+    "service": "betterstack-metrics-token",
+    "envVar": "BETTERSTACK_METRICS_TOKEN",
+    "scope": "ci-deploy",
+    "description": "WHAT: BetterStack ingest token of the OTLP metrics source that receives the VM's health gauges (container.health, host.*, ci.runner.*). WHERE: reporting-service, which publishes every sweep's samples to it (clis/telemetry OtlpMetricsSink); OPTIONAL: without it (or its host) the service logs `metrics.publish.off` and publishes nothing, sampling and the ORDS history are unaffected. WHY IT MATTERS: medium -- a leak lets anyone forge health gauges that the alerts read, hiding an outage or raising a false one; it grants no read access. HOW TO GET IT: BetterStack -> Telemetry -> Sources -> Connect source -> OpenTelemetry metrics (a source of its own, not the logs source) -> ingest token; store it in Bitwarden with `wf secret set BETTERSTACK_METRICS_TOKEN`.",
+    "uncheckable": "its only endpoint is a write (metrics ingest), so a check would write a gauge"
+  },
+  "BETTERSTACK_METRICS_HOST": {
+    "service": "betterstack-metrics-host",
+    "envVar": "BETTERSTACK_METRICS_HOST",
+    "scope": "ci-deploy",
+    "description": "WHAT: the ingest HOST (`s<id>.<region>.betterstackdata.com`, no scheme, no path) of the metrics source whose token is BETTERSTACK_METRICS_TOKEN. WHERE: reporting-service; the OTLP metrics URL is built as https://<host>/v1/metrics. WHY IT MATTERS: not a credential, but without it no gauge leaves the VM. From the same BetterStack source page as the token.",
+    "check": {
+      "shape": {
+        "regex": "^[A-Za-z0-9][A-Za-z0-9.-]*[A-Za-z0-9]$"
+      }
+    }
+  },
+  "T3_RCA_BEARER": {
+    "service": "t3-rca-bearer",
+    "envVar": "T3_RCA_BEARER",
+    "scope": "ci-deploy",
+    "description": "WHAT: a device bearer for remote-chat-agent's agent API socket (`/agent/v1/socket`), the one credential `wf t3 serve` holds for it: the service secret (CHAT_AGENT_API_SECRET) opens that socket no longer. WHERE: read by `wf t3 serve` (clis/t3-serve/src/verbs.rs) from its environment and sent as `Authorization: Bearer`; remote-chat-agent keeps only a digest of it (`device-bearers.json` on its state volume). One bearer per mapper or device. HOW TO GET IT: the service mints it, once, for the holder of the service secret: `wf offload bearers mint --label t3` prints the token, then store it in the vault under this key (`wf secret create T3_RCA_BEARER`); `wf offload bearers list` shows the bearers and `wf offload bearers revoke <id>` ends one. WHY IT MATTERS: medium-high — it lets a caller start and follow agent turns and read the workspaces the service's executors serve, but it opens neither the executor channel nor the bearer endpoints. Self-generated by the service.",
+    "uncheckable": "a bearer the service minted and keeps only the digest of: only a connection to the running service says whether it still opens the socket, so there is no standalone check"
+  },
+  "ORCA_RCA_BEARER": {
+    "service": "orca-rca-bearer",
+    "envVar": "ORCA_RCA_BEARER",
+    "scope": "ci-deploy",
+    "description": "WHAT: a device bearer for remote-chat-agent's agent API socket (`/agent/v1/socket`), the one credential `orca-serve serve` holds for it. WHERE: read by `orca-serve serve` (clis/orca-serve/src/verbs.rs) from its environment and sent as `Authorization: Bearer`; remote-chat-agent keeps only a digest of it (`device-bearers.json` on its state volume). One bearer per mapper or device, so it is not T3_RCA_BEARER. HOW TO GET IT: the service mints it, once, for the holder of the service secret: `wf offload bearers mint --label orca` prints the token, then store it in the vault under this key (`wf secret create ORCA_RCA_BEARER`); `wf offload bearers list` shows the bearers and `wf offload bearers revoke <id>` ends one. WHY IT MATTERS: medium-high — it lets a caller start and follow agent turns and read the workspaces the service's executors serve, but it opens neither the executor channel nor the bearer endpoints. Self-generated by the service.",
+    "uncheckable": "a bearer the service minted and keeps only the digest of: only a connection to the running service says whether it still opens the socket, so there is no standalone check"
+  },
+  "ORCA_VERIFY_PAIR_URL": {
+    "service": "orca-verify-pair-url",
+    "envVar": "ORCA_VERIFY_PAIR_URL",
+    "scope": "ci-deploy",
+    "description": "WHAT: the `orca://pair?code=...` link of one device paired with the deployed orca-serve for its own deployment verification: the link carries the host's public key, its tailnet address and that device's token. WHERE: read by the deployed verification test of clis/orca-serve (tests/deployed_verification.rs, WF_DEPLOYED=1), which connects as that phone and asks status.get (read-only); orca-serve itself never reads it. HOW TO GET IT: once the service runs, `wf vm ops pair orca-serve | wf secret update ORCA_VERIFY_PAIR_URL --value-stdin --apply` (vm-ops-api runs `orca-serve pair` in the container and the verb prints only the link, a credential; the first time, `wf secret create ORCA_VERIFY_PAIR_URL --value-stdin` takes the same pipe). Revoke it by removing the device from devices.json on the state volume. WHY IT MATTERS: medium — the token lets a caller use every method orca-serve serves as a paired phone, over the tailnet only. Self-generated by the service.",
+    "check": {
+      "shape": {
+        "regex": "^orca://pair\\?code=[A-Za-z0-9_-]+$"
+      }
+    }
+  },
+  "VM_STATE_RESTIC_PASSWORD": {
+    "service": "vm-state-restic-password",
+    "envVar": "VM_STATE_RESTIC_PASSWORD",
+    "scope": "vm",
+    "description": "WHAT: the password of the restic repository that holds the VM state backups (the Object Storage bucket `mobile-learning-vm-state`: orca-state, leetcode-backend-data, vnc-auth-credentials, agent-workspace); restic derives the repository's encryption keys from it. WHERE: read by `wf vm state backup|verify|list|restore` on agent-shell (clis/deploy/src/vm_state), which hands it to restic through the child's environment only, and by cloud-init (`provision-apps.js` reads every vault secret) to restore the volumes of a fresh VM before any app starts; never printed, never written to a file. It is not in any app's group, so it is not synced into a container environment. HOW TO GET IT: minted once, 32 random bytes in base64url (`openssl rand -base64 32 | tr '+/' '-_' | tr -d '='`), stored with `wf secret create VM_STATE_RESTIC_PASSWORD`; never fabricated, never replaced (restic cannot re-encrypt a repository under a new password without `restic key passwd`, and a lost password makes every backup unreadable). WHY IT MATTERS: high — it opens every device pairing, login credential and agent session of the VM, and losing it makes the backups unreadable, so it also lives only in the vault. Self-generated, once.",
+    "check": {
+      "shape": {
+        "regex": "^[A-Za-z0-9_-]{43,}$"
+      }
+    }
+  },
+  "VM_STATE_AGE_RECIPIENT": {
+    "service": "vm-state-age-recipient",
+    "envVar": "VM_STATE_AGE_RECIPIENT",
+    "scope": "vm",
+    "description": "ORPHANED, RETIRED, do not use: the age public key of the retired tar + age VM state backup; the backup is restic now (VM_STATE_RESTIC_PASSWORD) and nothing reads it. Kept because vault secrets are never destroyed and the secrets check refuses a vault entry no registry key names."
+  },
+  "VM_STATE_AGE_IDENTITY": {
+    "service": "vm-state-age-identity",
+    "envVar": "VM_STATE_AGE_IDENTITY",
+    "scope": "vm",
+    "description": "ORPHANED, RETIRED, do not use: the age secret key of the retired tar + age VM state backup (the bucket's old objects, long gone); the backup is restic now (VM_STATE_RESTIC_PASSWORD) and nothing reads it. Kept because vault secrets are never destroyed and the secrets check refuses a vault entry no registry key names."
+  },
+  "GITHUB_TOKEN": {
+    "service": "github-token",
+    "envVar": "GITHUB_TOKEN",
+    "scope": "vm",
+    "description": "ORPHANED: no consumer reads it since remote-chat-agent stopped holding a GitHub token (a workspace's own host credentials push, through its executor); kept because vault secrets are never destroyed."
+  }
+}

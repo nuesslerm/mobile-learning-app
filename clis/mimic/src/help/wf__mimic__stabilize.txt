@@ -1,0 +1,38 @@
+Usage: wf mimic stabilize [options] <recording> <recording>...
+
+Make recordings of one corpus agree. Each <recording> is a set written by
+`wf mimic record --allow-nondeterministic` against the same corpus (two or three
+consecutive recordings; a copy of the set directory per run). The cases present in
+all of them are compared after the first recording's rules; for each that differs:
+  - a value that differs but keeps its shape (a hex or base64 id, a port, a hash, an
+    ISO timestamp, a cookie name with a port and a hash, a uuid) proposes a `token`
+    rule with the regex of that shape, unless a stable answer of the corpus also
+    matches it: then the rule is a `pointer` rule scoped to that interaction, so a
+    stable answer is never masked
+  - a number under a key that differed in every recording proposes `volatile-number`
+    for the key; a short number or word that differs is never masked (cause short-value)
+  - the same frames of a stream in another interleaving propose `canonical-order`
+    (the server-to-client steps of a channel ordered by the request they answer)
+  - what no rule can honestly hide stays unstable with a cause: text-change,
+    array-length, key-set, type-change, short-value, volatile
+The proposals are applied and the comparison repeated until no new rule appears.
+
+Options:
+  --allowlist <file>   stability-allowlist.json (default <first recording>/stability-allowlist.json):
+                       {schema: "mimic-stability-allowlist/1", entries: [{id, cause, reason}]};
+                       every unstable id must be listed with the cause it still has and a reason,
+                       and a listed id that is stable now is stale
+  --min-pct <n>        the share of compared cases that must agree after the rules (default 99)
+  --write              apply the rules to the first recording: rules.json gains the proposed
+                       rules, its interactions are masked by them, the `nondeterministic` tag
+                       follows what is still unstable, and <set>/stability.json is written
+  --report <file>      where --write puts the report (default <first recording>/stability.json)
+  -h, --help           display help for command
+
+Output (schema mimic-stability/1):
+  {schema, ok, runs: [set names], compared, unobserved: [ids missing from a run],
+   stable_before, stable_after, stable_pct, min_pct, causes: {cause: count},
+   proposals: [{rule: <mimic-rules/1 rule>, why, scope: "global"|<interaction id>, seen_in}],
+   unstable: [{id, row, cause, reason, samples: [{pointer, cause, a, b}]}],
+   accounting: {allowlisted, unlisted, stale, wrong_cause}, wrote: [paths], warnings, next}
+Exit 0 when the accounting is clean and stable_pct reaches --min-pct, 1 otherwise, 2 on usage.

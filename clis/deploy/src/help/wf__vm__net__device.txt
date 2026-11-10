@@ -1,0 +1,13 @@
+Usage: wf vm net device [options] [command]
+
+Tailnet device records
+
+Options:
+  -h, --help        display help for command
+
+Commands:
+  list [options]    Show every tailnet device with its staleness verdict,
+                    flagging collision-suffixed names
+  retire [options]  Delete stale device records so the next node can claim the
+                    bare hostname vm-gateway expects. DRY RUN unless --apply
+  help [command]    display help for command

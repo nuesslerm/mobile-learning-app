@@ -1,0 +1,5 @@
+Usage: wf browser debug-resume [--device N]
+
+Releases the paused page, or cancels a pending pause. Browser only, as set-breakpoint.
+
+Result: {resumed, paused: false}

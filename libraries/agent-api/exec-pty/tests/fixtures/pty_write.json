@@ -1,0 +1,10 @@
+{
+  "action": "pty_write",
+  "exchanges": [
+    {
+      "name": "refuses input for a pty that does not exist",
+      "request": {"id": "w1", "tool": "pty_write", "args": {"pty": "never-opened", "data": "ls\n"}},
+      "response": {"id": "w1", "ok": false, "error": {"code": "NOT_FOUND", "message": "pty never-opened does not exist"}}
+    }
+  ]
+}

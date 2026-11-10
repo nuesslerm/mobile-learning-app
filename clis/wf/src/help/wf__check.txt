@@ -1,0 +1,72 @@
+Usage: wf check [options] [sha]
+
+Verify a change or the repository. One mode per run; the rest of the line goes to
+that mode.
+
+Arguments:
+  sha                dev SHA to run tier 3 against (same as --deployed <sha>)
+
+Options:
+  --staged           the lefthook pre-commit gate: lint, simplicity budget, dead
+                     references, wf bundle freshness, affected typecheck and
+                     tests, cassette sets, secrets. A staged file of a cassette
+                     set, of `clis/mimic`, `tooling/mimic-drivers` or the Orca
+                     pin runs `wf mimic verify --all` (`--live` too when the
+                     reference's code or pin changed and its toolchain is
+                     installed), and a staged file under a fixture tree (a
+                     directory with a `fixture-provenance.json`) runs `wf
+                     mimic verify --fixtures <dir>`. Lint, typecheck, unit and flow tests run
+                     as `nx run-many`, so a task whose inputs hash like an
+                     earlier pass (this checkout's, or one the shared build
+                     cache holds: `wf cache --help`) replays, and the line
+                     `verify: nx <targets> over <n> projects: <h> of <t> tasks
+                     replayed from the cache` says how many. The run writes to
+                     the shared cache only when the tools match mise.toml, HEAD
+                     is on origin/dev and nothing unstaged or untracked is in
+                     the tree; otherwise it says why on stderr and reads only,
+                     so a stale sandbox never seeds it
+  --pushed           the lefthook pre-push gate: what CI would run for the
+                     commits being pushed, in the stages the sandbox can run
+                     (typecheck-lint-unit-tests, flow-tests, integration-tests,
+                     browser-e2e-tests), through the same Nx cache, so CI
+                     replays their passes. It also runs the crates' live-model
+                     e2e (cli-e2e-tests) so CI replays it; a vault without the
+                     model key fails the push before any stage, and only
+                     WF_PUSH_CLI_E2E=0 leaves it out. A browser test that would run needs
+                     the export CI builds, so the gate joins the tailnet
+                     (`wf vm net up`), waits for the services the tests call,
+                     bakes their addresses and the vault's gateway token into
+                     `wf test prepare --web`, and stops the push naming what is
+                     missing; an all-replay browser stage needs none of it. Plans
+                     `--changed --base origin/dev` (`--base <ref>` changes it),
+                     runs each stage with `wf test run --stage`, and exits 1
+                     when one fails, which stops the push. A push to dev (read
+                     from the ref lines git gives the hook) writes its passes
+                     to the shared cache from a clean tree; any other push
+                     only reads. The deploys, the services' e2e and the browser
+                     and Android tests still run in CI
+  --budget           the simplicity budget only
+  --workspace-crossings  JSON list of the path dependencies that cross a Cargo
+                     workspace boundary; fails on one not in
+                     clis/pipeline/data/workspace-crossings.json or an entry
+                     that no longer crosses (the list only shrinks)
+  --cargo-inputs     JSON list of the packages whose test:flow or test:integration
+                     only runs cargo; fails on one whose Nx inputs lack
+                     { "externalDependencies": [] } (the npm layout differs by
+                     CPU, so the gate's hash would never match CI's)
+  --deployed <sha>   tier 3: wait for /health to report <sha>, then probe
+                     (--base, --publish, --no-publish-eas, --dry-run, ...)
+  --health           repo-wide snapshot: container status, BetterStack
+                     liveness and error counts; --run-tests runs every tier,
+                     --run-expensive-e2e adds the ones that spend real
+                     resources, --list-unit-targets lists them
+  --visual           visual gate over changed routes: screenshots vs baselines,
+                     console errors, vision judges
+  --drift            fail when the generated agent config or the editor bundle
+                     is stale
+  --dead-refs        fail when a doc, instruction, script or manifest names a
+                     path, link, package, wf command, `wf browser|android` verb,
+                     Lua device:<method> or pnpm script that no longer exists
+                     (goals: their verbs and methods; with --staged: as the
+                     index holds it, what a commit would record)
+  -h, --help         display help for command

@@ -1,0 +1,67 @@
+Usage: wf mimic [options] [command]
+
+Characterization and differential testing against a pinned reference
+(docs/plans/mimic/plan.md). `record` runs the reference through a driver over a
+corpus and writes a cassette set: normalised interactions with machine-checked
+provenance (the hash of the pin file, the rules and the corpus). `replay` feeds
+the cassette's inputs to a candidate and diffs what it did; `diff` compares two
+sets; `verify` checks a set is fresh and intact, offline; `crawl` derives the
+reference's whole API and a request corpus from its pinned source; `stabilize` infers
+the mask rules that make several recordings of one corpus equal; `remask` applies a
+changed rules.json to a committed set and re-seals it; `import` and `export`
+convert legacy CLI fixtures into an imported set and prove the conversion lossless.
+
+This is the separate binary wf-mimic: `wf mimic ...` runs `wf-mimic mimic ...`
+in its place, found beside wf, else on PATH, so a change here rebuilds
+wf-mimic and not wf.
+
+A cassette set is a directory: cassette.json (header), interactions.jsonl (one
+interaction per line), rules.json (mimic-rules/1), corpus.json (mimic-corpus/1),
+mimic.toml (targets), allowlist.json (optional), raw/ (never committed). A
+target is a driver that speaks mimic-driver/1: JSON lines over the stdio of a
+child process. {"hello":true} answers {"hello":{"driver":{name,version,
+protocol,toolchain_lock_hash?},"target_version"?,"coverage"}}; {"id","op"?,
+"input"} answers {"id","steps":[{dir,channel?,kind,rid?,len?,payload}],
+"effects":[{type,...}],"outcome":{status:"ok"|"error",code?,reference_accepts?}}
+or {"id","error"}.
+
+mimic.toml (paths relative to the file):
+  rules = "rules.json"             corpus = "corpus.json"  (both default to the file beside mimic.toml)
+  allowlist = "allowlist.json"     (optional; entries may carry "pin_hash")
+  [reference]                      the pinned program a record runs
+  driver = "stdio"                 command = ["node", "driver.mjs"]
+  cwd, env, timeout_ms             name, version, commit
+  pin = "pin.json"                 version_pointer = "/version", commit_pointer
+  [candidate.<name>]               the program a replay runs (same keys)
+  [diff]                           breaking_paths = [...], advertised_prefixes
+                                   ignore_dirs = ["c2s"]  (steps the driver was given are not compared)
+  [diff.fold]                      a stream's chunks count as one list per request:
+                                   channel, tag, chunk, values, once, squash (see wf mimic diff)
+  [record]                         batch, write_chunk, stability_pct (the flags of wf mimic record)
+  live_when_named = "why"          in [reference]: `verify --all --live` skips it, `verify <set> --live` runs it
+  [record]                         allow_nondeterministic (default false), args: what `wf mimic job record`
+                                   adds to the record call of the set
+  [provision] / provision_file     how a runner installs the reference (wf mimic provision --help); the
+                                   VM runs it for a [record <set>] commit marker (wf mimic trigger --help)
+
+Every verb prints one JSON object on stdout with "schema": "mimic-<verb>/1",
+"ok", "warnings" and "next" (the one command to run next), never prompts, and
+exits 0 clean, 1 findings, 2 usage or environment error (then also "error" and
+"evidence").
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  record [options] <set>      Run the reference over the corpus and write the set
+  replay [options] <set>      Run the cassette's inputs against a candidate and diff
+  diff [options] <a> <b>      Diff two cassette sets
+  verify [options] [set...]   Check sets are fresh and intact (offline)
+  trigger [options]           Read the marker of a commit message into the capture jobs it asks for
+  provision [options] <set>   Install a set's reference as its [provision] block says
+  job [options] <record|replay> <set>  One capture job: chunked record, or replay and diff table
+  publish [options] <set>...  Upload recorded sets to the bucket as one run
+  fetch [options] <run-id|latest>  Download a published run into this checkout
+  import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
+  export [options] <format> <set>  Rebuild the legacy files of an imported set and check their hashes
+  help [command]              display help for command

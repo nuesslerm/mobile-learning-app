@@ -1,0 +1,44 @@
+Usage: wf mimic crawl [options] [dir...]
+
+Derive a reference's whole API from its pinned source, never from a hand-written
+list. <dir>/crawl.toml names a crawl command (the driver's `crawl <app>`, which reads
+the pinned tree: the contract schemas, the method registry, the call sites of the
+mobile app and of the CLI, the CLI's own command specs) and writes beside it:
+  inventory.json   every endpoint: id, kind, transport, who uses it (mobile, cli,
+                   internal), the sources that showed it, how its input was derived,
+                   the CLI commands, and the endpoint classes the crawl cannot see
+                   (each with the source that would show them)
+  corpus.json      mimic-corpus/1: per endpoint a valid, boundary and invalid input
+                   derived from its payload schema (tag class:<valid|boundary|invalid|empty>)
+  coverage.json    mimic-coverage/1: what became of each endpoint, case or skipped with why
+`wf mimic record` then runs corpus.json against the real server.
+
+The completeness guard fails (exit 1, nothing written) when the pinned source's own
+listing (the committed catalog, written by `wf parity coverage`) names an endpoint the
+crawl lacks ("lags-source"), an endpoint has no case and no skip reason ("uncovered"),
+a schema-derived endpoint lacks a valid or an invalid case ("missing-class"), a case names
+no endpoint, the inventory's class counts differ from the cases, or the crawl was made
+at another commit than the pin file names ("stale-pin").
+
+crawl.toml (paths relative to the file):
+  app = "t3"                         command = ["node", "src/cli.ts", "crawl", "t3"]
+  cwd = "../../../tooling/mimic-drivers"    env = { KEY = "value" }  (the child also inherits the environment:
+                                     MIMIC_T3_ROOT and MIMIC_ORCA_ROOT point at the reference trees)
+  catalog = "<app>-methods.json"     pin = "<pin file>"    commit_pointer = "/commit"
+
+Options:
+  --all                       every crawl directory under --root (one with a crawl.toml)
+  --root <dir>                where --all looks (default the git top level)
+  --check                     offline: re-run the guard over the committed files and prove
+                              coverage.json and inventory.json are what inventory and corpus
+                              derive; needs no reference tree
+  --fresh                     with --check, also crawl again and require the committed files
+                              to be byte-equal (needs the reference trees)
+  -h, --help                  display help for command
+
+Output (schema mimic-crawl/1):
+  {schema, ok, sets: [{dir, app, ok, mode: crawl|check|check-fresh, summary: {app, pin,
+  endpoints, by_kind, by_user, by_source, by_input, by_class, cases, skipped, streaming,
+  cli_commands, sources: [{name, available, found, note?}], blind: [{class,
+  missing_source, detail}]}, problems: [{code, id, detail}], warnings, changed, wrote, next,
+  error?}], warnings, next}

@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "app": "t3",
+  "milestones": {
+    "rpc:*": "M3",
+    "command:*": "M4",
+    "mutation:*": "M6",
+    "http:*": "M3"
+  },
+  "targets": {
+    "command:reached.archive": "agent:thread.archive",
+    "command:reached.create": "agent:thread.create",
+    "mutation:project.reached-create": "agent:workspace.create"
+  },
+  "decisions": {}
+}

@@ -1,0 +1,117 @@
+diff --git a/lib/commonjs/positioner.js b/lib/commonjs/positioner.js
+index 63b14fd2ce4c6c97ea85cdb34377e3829de4f3c0..00773631013ec12f70198767af86f034a96d472b 100644
+--- a/lib/commonjs/positioner.js
++++ b/lib/commonjs/positioner.js
+@@ -56,8 +56,9 @@ const Positioner = ({
+   }, [position, bottom, top, offset]);
+   const hasChildren = _react.default.Children.count(children) > 0;
+   return /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+-    style: [containerStyle, insetValues, style],
+-    pointerEvents: _reactNative.Platform.OS === 'android' && !hasChildren ? 'none' : 'box-none',
++    style: [containerStyle, insetValues, {
++      pointerEvents: _reactNative.Platform.OS === 'android' && !hasChildren ? 'none' : 'box-none'
++    }, style],
+     ...props,
+     children: children
+   });
+diff --git a/lib/commonjs/toast.js b/lib/commonjs/toast.js
+index 91dfa82dcdb795c60128c64526bb69aadc7f79e1..43006256eaa89f0415522f3947a119fead074b28 100644
+--- a/lib/commonjs/toast.js
++++ b/lib/commonjs/toast.js
+@@ -386,13 +386,8 @@ const ToastIcon = ({
+   }
+ };
+ exports.ToastIcon = ToastIcon;
++// boxShadow on every platform: react-native-web deprecates the shadow* props and warns on each toast
+ const elevationStyle = {
+-  shadowOpacity: 0.0015 * 4 + 0.1,
+-  shadowRadius: 3 * 4,
+-  shadowOffset: {
+-    height: 4,
+-    width: 0
+-  },
+-  elevation: 4
++  boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.106)'
+ };
+ //# sourceMappingURL=toast.js.map
+\ No newline at end of file
+diff --git a/lib/module/positioner.js b/lib/module/positioner.js
+index 9651c4b44cd7d4189a8488a205508fa869f9cd49..51a00badc8016038b4159c375109a0ee0a413a2b 100644
+--- a/lib/module/positioner.js
++++ b/lib/module/positioner.js
+@@ -66,8 +66,9 @@ export const Positioner = ({
+       style: [outsidePressableStyle, androidElevationStyle],
+       onPress: handleOutsidePress
+     }), /*#__PURE__*/_jsx(View, {
+-      style: [containerStyle, androidElevationStyle, insetValues, style],
+-      pointerEvents: Platform.OS === 'android' && !hasChildren ? 'none' : 'box-none',
++      style: [containerStyle, androidElevationStyle, insetValues, {
++        pointerEvents: Platform.OS === 'android' && !hasChildren ? 'none' : 'box-none'
++      }, style],
+       ...props,
+       children: children
+     })]
+diff --git a/lib/module/toast.js b/lib/module/toast.js
+index dd73820927e1e4c68960d1682c6f1eb2ac371153..cadc5056b6cfe6724962e777b161eae16ff2417f 100644
+--- a/lib/module/toast.js
++++ b/lib/module/toast.js
+@@ -478,14 +478,9 @@ const ToastIcon = ({
+       });
+   }
+ };
++// boxShadow on every platform: react-native-web deprecates the shadow* props and warns on each toast
+ const elevationStyle = {
+-  shadowOpacity: 0.0015 * 4 + 0.1,
+-  shadowRadius: 3 * 4,
+-  shadowOffset: {
+-    height: 4,
+-    width: 0
+-  },
+-  elevation: 4
++  boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.106)'
+ };
+ const CloseButton = ({
+   dismissible,
+diff --git a/src/positioner.tsx b/src/positioner.tsx
+index c0f6183776bc81880489dfdcfdda694ba82789b3..a75392cfc3c78798282d1b93bf63098e58f2a9b4 100644
+--- a/src/positioner.tsx
++++ b/src/positioner.tsx
+@@ -68,10 +68,13 @@ export const Positioner: React.FC<
+         />
+       )}
+       <View
+-        style={[containerStyle, androidElevationStyle, insetValues, style]}
+-        pointerEvents={
+-          Platform.OS === 'android' && !hasChildren ? 'none' : 'box-none'
+-        }
++        style={[
++          containerStyle,
++          androidElevationStyle,
++          insetValues,
++          { pointerEvents: Platform.OS === 'android' && !hasChildren ? 'none' : 'box-none' },
++          style,
++        ]}
+         {...props}
+       >
+         {children}
+diff --git a/src/toast.tsx b/src/toast.tsx
+index 69122dfc4eefef10a5db9200d3d3ff2cbb8bf832..3b5e719756b56be13c3038e48d33b464371e6aa1 100644
+--- a/src/toast.tsx
++++ b/src/toast.tsx
+@@ -633,14 +633,9 @@ const ToastIcon: React.FC<
+   }
+ };
+ 
++// boxShadow on every platform: react-native-web deprecates the shadow* props and warns on each toast
+ const elevationStyle = {
+-  shadowOpacity: 0.0015 * 4 + 0.1,
+-  shadowRadius: 3 * 4,
+-  shadowOffset: {
+-    height: 4,
+-    width: 0,
+-  },
+-  elevation: 4,
++  boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.106)'
+ };
+ 
+ const CloseButton: React.FC<{

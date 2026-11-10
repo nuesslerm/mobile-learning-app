@@ -1,0 +1,61 @@
+{
+  "suite": "android",
+  "description": "The lab APK (EAS build android-apk-lab) cold-started three times on a slim redroid 14 (1.5 CPU, no GPU, 432x1200@192, the pixel count of the earlier 540x960@240) that the suite boots and removes: cold start from launch to the first `ReactNativeJS: Running \"main\"` log line (`am start -W` times out on this device), the app's PSS, RSS, Java heap, native heap (Hermes lives here) and code from `dumpsys meminfo`, the device's used RAM, and crashes in the crash buffer. Lab-only: an ARM container on a shared VM, not a phone. The APK is a fixed EAS build (apkUrl), so the numbers move with the device and the slim set, not with JS changes, until the URL is bumped to a newer build; APP_BENCH_APK_URL overrides it.",
+  "runs": 3,
+  "params": {
+    "container": "rdl-bench",
+    "port": 5556,
+    "package": "com.nuesslerm.mla_tamagui",
+    "apkUrl": "https://expo.dev/artifacts/eas/InOOrANdxiYkYnjxcYhrBnEdd8ad_WiIGbxkvisodAE.apk",
+    "apkBuild": "b8e1fb0e-0646-4872-a473-2c9322a87ec6",
+    "settleSeconds": 15,
+    "teardown": true
+  },
+  "metrics": {
+    "apkBytes": {
+      "better": "lower",
+      "tolerance": 0.02,
+      "scope": "lab-only"
+    },
+    "coldStartMs": {
+      "better": "lower",
+      "tolerance": 0.4,
+      "scope": "lab-only"
+    },
+    "pssBytes": {
+      "better": "lower",
+      "tolerance": 0.25,
+      "scope": "lab-only"
+    },
+    "rssBytes": {
+      "better": "lower",
+      "tolerance": 0.2,
+      "scope": "lab-only"
+    },
+    "javaHeapBytes": {
+      "better": "lower",
+      "tolerance": 0.35,
+      "scope": "lab-only"
+    },
+    "nativeHeapBytes": {
+      "better": "lower",
+      "tolerance": 0.5,
+      "scope": "lab-only"
+    },
+    "codeBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "deviceUsedBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "crashes": {
+      "better": "lower",
+      "tolerance": 0.0,
+      "scope": "lab-only"
+    }
+  }
+}

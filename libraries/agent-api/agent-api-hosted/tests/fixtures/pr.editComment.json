@@ -1,0 +1,28 @@
+{
+  "method": "pr.editComment",
+  "exchanges": [
+    {
+      "name": "the executor refuses a request that names no comment, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "pr.editComment",
+        "params": {
+          "workspace": "w1",
+          "provider": "github",
+          "number": 1,
+          "body": "x"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`comment` must be a string"
+        }
+      },
+      "actions": [
+        "hosted_pr_comment_edit"
+      ]
+    }
+  ]
+}

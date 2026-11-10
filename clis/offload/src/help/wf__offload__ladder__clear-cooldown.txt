@@ -1,0 +1,6 @@
+Usage: wf offload ladder clear-cooldown [options] <pool>
+
+Drop a pool from the cooldown list so the ladder tries it again
+
+Options:
+  -h, --help  display help for command

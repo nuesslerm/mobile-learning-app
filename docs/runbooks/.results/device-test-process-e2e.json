@@ -1,0 +1,18 @@
+{
+  "runbook": "device-test-process e2e",
+  "sha": "a7fcc39b6e07b5761aadac05e32f260e629b1c40",
+  "ranAt": "2026-10-13T19:10:00.000Z",
+  "verdict": "pass",
+  "ranOn": "vm",
+  "how": "wf test enqueue device-lab-metro-android --wait, run from the sandbox; the worker on the VM checked the commit out in its own clone, waited for the dev Metro, took the device lease, ran wf run with the Lua script on the slim redroid, and released the lease",
+  "job": "1a136a9f9e9-47605",
+  "requester": "sandbox-main",
+  "startedMs": 1791918474204,
+  "finishedMs": 1791918613704,
+  "durationMs": 139500,
+  "recording": [
+    "/workspace/home/wf-test-queue/results/1a136a9f9e9-47605/rec/run.mp4"
+  ],
+  "recordingReadBack": "h264 540x960, 92.2 s, 172175 bytes, fetched with wf test fetch",
+  "resultsDir": "/workspace/home/wf-test-queue/results/1a136a9f9e9-47605"
+}

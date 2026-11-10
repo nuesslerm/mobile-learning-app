@@ -1,0 +1,28 @@
+{
+  "method": "sourceControl.publishRepository",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "sourceControl.publishRepository",
+        "params": {
+          "provider": "github",
+          "repo": "octo/hello",
+          "dir": "missing-dir",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "missing-dir is not a git repository"
+        }
+      },
+      "actions": [
+        "hosted_repo_publish"
+      ]
+    }
+  ]
+}

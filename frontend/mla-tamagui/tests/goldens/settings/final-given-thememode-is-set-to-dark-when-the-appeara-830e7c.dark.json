@@ -1,0 +1,93 @@
+{
+  "suite": "settings",
+  "step": "final-given-thememode-is-set-to-dark-when-the-appeara-830e7c",
+  "scheme": "dark",
+  "snapshot": "settings/final-given-thememode-is-set-to-dark-when-the-appeara-830e7c.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "AppearanceSettingsScreen",
+      "AppearanceSettingsScreenHeader",
+      "AppearanceSettingsScreenHeaderBack",
+      "AppearanceSettingsScreenHeaderTitle",
+      "AppearanceSettingsScreen-ScrollView",
+      "AppearanceSettingsScreen-ModeControl",
+      "AppearanceSettingsScreen-ModeControl-system",
+      "AppearanceSettingsScreen-ModeControl-light",
+      "AppearanceSettingsScreen-ModeControl-dark",
+      "AppearanceSettingsScreen-ThemeGrid",
+      "AppearanceSettingsScreen-ThemeTile-ios-native",
+      "AppearanceSettingsScreen-ThemeTilePress-ios-native",
+      "AppearanceSettingsScreen-ThemeTileSwatches-ios-native",
+      "AppearanceSettingsScreen-ThemeTilePrimary-ios-native",
+      "AppearanceSettingsScreen-ThemeTileAccent-ios-native",
+      "AppearanceSettingsScreen-ThemeTileColor6-ios-native",
+      "AppearanceSettingsScreen-ThemeTileLabelRow-ios-native",
+      "AppearanceSettingsScreen-ThemeTileLabel-ios-native",
+      "AppearanceSettingsScreen-ThemeTile-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTilePress-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileSwatches-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTilePrimary-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileAccent-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileColor6-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileLabelRow-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTileLabel-monochrome-pro",
+      "AppearanceSettingsScreen-ThemeTile-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTilePress-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileSwatches-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTilePrimary-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileAccent-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileColor6-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileLabelRow-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTileLabel-classic-duolingo",
+      "AppearanceSettingsScreen-ThemeTile-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTilePress-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTileSwatches-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTilePrimary-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTileAccent-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTileColor6-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTileLabelRow-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTileLabel-ocean-breeze",
+      "AppearanceSettingsScreen-ThemeTile-forest-fresh",
+      "AppearanceSettingsScreen-ThemeTilePress-forest-fresh",
+      "AppearanceSettingsScreen-ThemeTileSwatches-forest-fresh"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nAppearance\nSystem\nLight\nDark\niOS Native\nMonochrome Pro\nClassic Duolingo\nOcean Breeze\nForest Fresh\nDesert Dawn\nPastel Pop\nMidnight Neon\nRoyal Purple\nChess Wood\nSunset Vibes\nLeetCode Slate"
+  },
+  "timings": {
+    "render_ms": 249
+  },
+  "name": "settings/final-given-thememode-is-set-to-dark-when-the-appeara-830e7c.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

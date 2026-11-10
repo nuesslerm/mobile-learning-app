@@ -1,0 +1,68 @@
+{
+  "method": "thread.subscribe",
+  "exchanges": [
+    {
+      "name": "subscribes to a thread from its start and says the stream and where the replay ends",
+      "before": [
+        {
+          "id": "setup-t-sub",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-sub"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.subscribe",
+        "params": {
+          "thread": "t-sub"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "topic": "thread/t-sub",
+          "after_seq": 0,
+          "last_seq": 0
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "thread.subscribe",
+        "params": {
+          "thread": "nope",
+          "after_seq": 4
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    },
+    {
+      "name": "refuses a position that is no sequence number",
+      "request": {
+        "id": "3",
+        "method": "thread.subscribe",
+        "params": {
+          "thread": "t-sub",
+          "after_seq": -1
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "invalid value: integer `-1`, expected u64"
+        }
+      }
+    }
+  ]
+}

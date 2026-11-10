@@ -1,0 +1,77 @@
+{
+  "method": "terminal.write",
+  "exchanges": [
+    {
+      "name": "writes input to a running terminal",
+      "before": [
+        {
+          "id": 1,
+          "method": "terminal.open",
+          "params": {
+            "workspace": "w1",
+            "terminal": "t1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "terminal.write",
+        "params": {
+          "workspace": "w1",
+          "terminal": "t1",
+          "data": "echo hi\n"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "bytes": 8
+        }
+      },
+      "actions": [
+        "pty_write"
+      ]
+    },
+    {
+      "name": "a terminal nobody opened is unknown",
+      "request": {
+        "id": 1,
+        "method": "terminal.write",
+        "params": {
+          "workspace": "w1",
+          "terminal": "ghost",
+          "data": "x"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "UNKNOWN_TERMINAL",
+          "message": "no terminal ghost in workspace w1"
+        }
+      },
+      "actions": [
+        "pty_list"
+      ]
+    },
+    {
+      "name": "input is required",
+      "request": {
+        "id": 1,
+        "method": "terminal.write",
+        "params": {
+          "workspace": "w1",
+          "terminal": "t1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "data is required"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

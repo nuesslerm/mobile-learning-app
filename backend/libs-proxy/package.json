@@ -1,0 +1,25 @@
+{
+  "name": "@backend/libs-proxy",
+  "description": "Tailnet read proxy for the private Cargo registry: serves the sparse index and .crate files out of the libs bucket through a read link it never reveals. Rust (rs/, core/); its flow tests drive the router in-process and a real Cargo client (rs/tests/flow.rs).",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cargo run --release --locked -p libs-proxy-rs --manifest-path Cargo.toml",
+    "test:flow": "cargo test --locked -p libs-proxy-core -p libs-proxy-rs --test flow --manifest-path Cargo.toml"
+  },
+  "nx": {
+    "targets": {
+      "test:flow": {
+        "inputs": [
+          "default",
+          "^production",
+          "^native",
+          {
+            "externalDependencies": []
+          }
+        ]
+      }
+    }
+  }
+}

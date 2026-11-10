@@ -1,0 +1,145 @@
+{
+  "outputStyle": "token-diet",
+  "env": {
+    "CLOUDSDK_AUTH_ACCESS_TOKEN": ""
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "deny": [
+      "mcp__github__merge_pull_request",
+      "mcp__github__enable_pr_auto_merge",
+      "Bash(gh pr merge:*)",
+      "Bash(git push origin main:*)",
+      "Bash(git push origin master:*)",
+      "Bash(git push origin HEAD:main:*)",
+      "Bash(git push origin HEAD:master:*)",
+      "Bash(git push -u origin main:*)",
+      "Bash(git push -u origin master:*)",
+      "Bash(git push --force origin main:*)",
+      "Bash(git push --force origin master:*)",
+      "Bash(LEFTHOOK=0 git commit:*)",
+      "Bash(LEFTHOOK=0 git:*)"
+    ],
+    "allow": [
+      "Bash(docker push:*)",
+      "Bash(terraform apply:*)",
+      "Bash(oci:*)",
+      "Bash(git:*)",
+      "Bash(gh:*)",
+      "Bash(wf:*)",
+      "Bash(pnpm:*)",
+      "Bash(npm:*)",
+      "Bash(npx:*)",
+      "Bash(node:*)",
+      "Bash(python3:*)",
+      "Bash(curl:*)",
+      "Bash(ssh:*)",
+      "Bash(scp:*)",
+      "Bash(rsync:*)",
+      "Bash(cat:*)",
+      "Bash(ls:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(sed:*)",
+      "Bash(awk:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(mkdir:*)",
+      "Bash(touch:*)",
+      "Edit(lefthook.yml)",
+      "mcp__Claude_Code_Remote__read_documentation",
+      "mcp__Claude_Code_Remote__get_session",
+      "mcp__Claude_Code_Remote__get_trigger",
+      "mcp__Claude_Code_Remote__list_triggers",
+      "mcp__Claude_Code_Remote__list_sessions",
+      "mcp__Claude_Code_Remote__list_environments",
+      "mcp__Claude_Code_Remote__list_repos",
+      "mcp__Claude_Code_Remote__check_repo_access",
+      "mcp__Claude_Code_Remote__create_session",
+      "mcp__Claude_Code_Remote__create_trigger",
+      "mcp__Claude_Code_Remote__update_trigger",
+      "mcp__Claude_Code_Remote__delete_trigger",
+      "mcp__Claude_Code_Remote__fire_trigger",
+      "mcp__Claude_Code_Remote__send_later",
+      "mcp__Claude_Code_Remote__add_repo",
+      "mcp__Claude_Code_Remote__register_repo_root",
+      "mcp__Claude_Code_Remote__subscribe_pr_activity",
+      "mcp__Claude_Code_Remote__unsubscribe_pr_activity",
+      "mcp__Claude_Code_Remote__watch_url",
+      "mcp__Claude_Code_Remote__unwatch_url",
+      "mcp__Claude_Code_Remote__set_session_tags",
+      "mcp__Claude_Code_Remote__set_session_title",
+      "mcp__Claude_Code_Remote__archive_session",
+      "mcp__Claude_Code_Remote__unarchive_session",
+      "mcp__Claude_Code_Remote__interrupt_session",
+      "Artifact",
+      "ArtifactComments",
+      "ArtifactData",
+      "Agent",
+      "Skill",
+      "WebFetch",
+      "WebSearch",
+      "TaskCreate",
+      "TaskUpdate",
+      "TaskList",
+      "TaskGet",
+      "TaskStop",
+      "Monitor",
+      "NotebookEdit",
+      "SendUserFile",
+      "ToolSearch",
+      "mcp__github",
+      "mcp__Claude_Code_Remote",
+      "mcp__Claude_Docs",
+      "mcp__ccd_session",
+      "mcp__agentation"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/libraries/hook-runtime/src/dispatch.mjs\"",
+            "timeout": 600
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/libraries/hook-runtime/src/dispatch.mjs\"",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Edit|Write|mcp__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/libraries/hook-runtime/src/dispatch.mjs\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/libraries/hook-runtime/src/dispatch.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

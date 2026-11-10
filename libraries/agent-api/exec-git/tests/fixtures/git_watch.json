@@ -1,0 +1,85 @@
+{
+  "action": "git_watch",
+  "exchanges": [
+    {
+      "name": "sends the status once and ends at max_events",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "watc73",
+        "tool": "git_watch",
+        "args": {
+          "max_events": 1
+        }
+      },
+      "events": [
+        {
+          "kind": "git.status",
+          "status": {
+            "branch": "main",
+            "head": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+            "detached": false,
+            "ahead": 0,
+            "behind": 0,
+            "files": [
+              {
+                "path": "a.txt",
+                "index": ".",
+                "worktree": "M",
+                "conflicted": false
+              },
+              {
+                "path": "new.txt",
+                "index": "?",
+                "worktree": "?",
+                "conflicted": false
+              }
+            ],
+            "truncated": false,
+            "clean": false
+          }
+        }
+      ],
+      "response": {
+        "id": "watc73",
+        "ok": true,
+        "result": {
+          "events": 1,
+          "cancelled": false
+        }
+      }
+    },
+    {
+      "name": "refuses an interval that is too short",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "watc74",
+        "tool": "git_watch",
+        "args": {
+          "interval_ms": 1
+        }
+      },
+      "response": {
+        "id": "watc74",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`interval_ms` must be between 100 and 60000"
+        }
+      }
+    }
+  ]
+}

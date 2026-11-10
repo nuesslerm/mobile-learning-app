@@ -1,0 +1,3 @@
+# The private registry of the shared libraries (libraries.json), read through the tailnet proxy (backend/libs-proxy). Lockfiles record this URL: it carries no secret.
+[registries.mla]
+index = "sparse+http://libs-proxy:8793/index/"

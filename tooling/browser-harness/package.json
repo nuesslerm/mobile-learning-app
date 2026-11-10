@@ -1,0 +1,26 @@
+{
+  "name": "@tooling/browser-harness",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-device-frameset": "catalog:"
+  },
+  "devDependencies": {
+    "@typescript/native": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "@vitejs/plugin-react": "catalog:",
+    "oxlint": "catalog:",
+    "vite": "catalog:"
+  }
+}

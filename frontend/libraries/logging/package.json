@@ -1,0 +1,94 @@
+{
+  "name": "@lib/logging",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Transport-agnostic logging core: Logger, compile-time call-site injection (babel plugin), PipelineTransport and stages, live tail, persistence contract, console capture, secret and PII scrubbing. Hosts wire their own LogLayer transports via configureLogger().",
+  "type": "module",
+  "main": "./src/index.ts",
+  "react-native": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./logger": "./src/logger/index.ts",
+    "./plugins": "./src/plugins/index.ts",
+    "./primitives": "./src/primitives/index.ts",
+    "./liveTail": "./src/liveTail/index.ts",
+    "./persistence": "./src/persistence/index.ts",
+    "./pipeline": "./src/pipeline/index.ts",
+    "./install": "./src/install/index.ts",
+    "./babel": "./dist/babel/injectLoggerSource.js",
+    "./babel-preset": "./babel-preset.cjs",
+    "./babel-register": "./src/babel/register.mjs",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "dist",
+    "babel-preset.cjs"
+  ],
+  "scripts": {
+    "build:babel": "tsc -p tsconfig.babel.json && node -e \"require('fs').writeFileSync('dist/babel/package.json','{\\\"type\\\":\\\"commonjs\\\"}\\n')\"",
+    "prepare": "pnpm run build:babel",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
+    "test": "vitest run",
+    "test:unit": "vitest run --exclude 'tests/e2e/**' --exclude 'tests/integration/**' --exclude '**/*.integration.test.*' --exclude '**/*.e2e.test.*'",
+    "test:integration": "vitest run tests/integration"
+  },
+  "peerDependencies": {
+    "@babel/core": "*",
+    "@loglayer/transport": "*",
+    "loglayer": "*",
+    "typescript": "catalog:",
+    "vitest": "catalog:",
+    "prettier": "catalog:",
+    "prettier-plugin-tailwindcss": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "@babel/core": {
+      "optional": true
+    },
+    "typescript": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    },
+    "prettier": {
+      "optional": true
+    },
+    "prettier-plugin-tailwindcss": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@babel/core": "^7.26.0",
+    "@babel/preset-typescript": "^7.26.0"
+  },
+  "devDependencies": {
+    "@typescript/native": "catalog:",
+    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@loglayer/transport": "^3.1.0",
+    "@types/babel__core": "^7.20.5",
+    "@types/node": "^22.13.1",
+    "loglayer": "^9.2.0",
+    "oxlint": "catalog:"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "nx": {
+    "targets": {
+      "test:integration": {
+        "inputs": [
+          "default",
+          "^production",
+          "^native",
+          {
+            "fileset": "{workspaceRoot}/clis/telemetry/contract/callsite.json"
+          }
+        ]
+      }
+    }
+  }
+}

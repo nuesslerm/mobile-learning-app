@@ -1,0 +1,43 @@
+{
+  "servers": {
+    "agentation": {
+      "default": {
+        "type": "local",
+        "enabled": false,
+        "command": [
+          "npx",
+          "-y",
+          "agentation-mcp@1.2.0",
+          "server"
+        ]
+      },
+      "opencode": {
+        "type": "local",
+        "enabled": true,
+        "command": [
+          "npx",
+          "-y",
+          "agentation-mcp@1.2.0",
+          "server"
+        ]
+      },
+      "claude": {
+        "type": "stdio",
+        "command": "npx",
+        "args": [
+          "-y",
+          "agentation-mcp@1.2.0",
+          "server"
+        ]
+      },
+      "codex": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "agentation-mcp@1.2.0",
+          "server"
+        ]
+      }
+    }
+  }
+}

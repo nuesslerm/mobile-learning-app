@@ -1,0 +1,7 @@
+Usage: wf vm ops health [options]
+
+GET /health -- confirms vm-ops-api is reachable and which image/commit it is
+running
+
+Options:
+  -h, --help  display help for command

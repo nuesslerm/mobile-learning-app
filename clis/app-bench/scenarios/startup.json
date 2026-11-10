@@ -1,0 +1,139 @@
+{
+  "suite": "startup",
+  "description": "What start-up executes in the lab web export, per package: V8 precise coverage of a cold load of the start route at iPhone 15 Pro size, mapped to packages through the export's source maps. A package that must stay out of start-up has a reference of 0, so any growth fails compare. Lab-only (Chromium V8).",
+  "runs": 3,
+  "params": {
+    "cwd": "frontend/mla-tamagui",
+    "platform": "web",
+    "sourceMaps": true,
+    "env": {
+      "EXPO_PUBLIC_DEVICE_LAB": "1",
+      "EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL": "http://127.0.0.1:8789",
+      "EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN": "local-e2e-token",
+      "EXPO_PUBLIC_AGENT_BASE_URL": "http://127.0.0.1:8787",
+      "EXPO_PUBLIC_VM_OPS_API_BASE_URL": "http://127.0.0.1:8091"
+    },
+    "device": "iphone-15-pro",
+    "port": 8802,
+    "baseUrl": "/mla-tamagui",
+    "settleMs": 1500,
+    "start": "/",
+    "scriptFilter": "/_expo/static/js/web/",
+    "packages": [
+      "react-native-reanimated",
+      "react-native-gesture-handler",
+      "@gorhom/bottom-sheet",
+      "zod",
+      "@tamagui/themes",
+      "@tamagui/config",
+      "@tamagui/web",
+      "tamagui",
+      "sonner-native",
+      "expo-router",
+      "react-native-web",
+      "react-dom",
+      "react-native-screens",
+      "react-native-safe-area-context",
+      "@react-navigation/native"
+    ]
+  },
+  "metrics": {
+    "startupScriptBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startupExecutedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.react-native-reanimated.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only",
+      "gate": false,
+      "gateNote": "its initial (262,602 B) came from the first TS tool, which attributed this package differently: the Rust tool reads 342,357 B here while \"other\" fell by 149 KB and the total fell 7.8%, so the total (startupExecutedBytes) gates, not this row"
+    },
+    "startup.react-native-gesture-handler.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.@gorhom/bottom-sheet.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.zod.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.@tamagui/themes.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.@tamagui/config.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.@tamagui/web.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.tamagui.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.sonner-native.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.expo-router.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.react-native-web.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.react-dom.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.react-native-screens.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.react-native-safe-area-context.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.@react-navigation/native.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.first-party.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    },
+    "startup.other.executedBytes": {
+      "better": "lower",
+      "tolerance": 0.05,
+      "scope": "lab-only"
+    }
+  }
+}

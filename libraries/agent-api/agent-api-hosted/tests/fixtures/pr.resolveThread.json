@@ -1,0 +1,28 @@
+{
+  "method": "pr.resolveThread",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "pr.resolveThread",
+        "params": {
+          "number": 1,
+          "thread": "a b",
+          "provider": "github",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`thread` must be an id of letters, digits, `_`, `-`, `=`"
+        }
+      },
+      "actions": [
+        "hosted_pr_resolve_thread"
+      ]
+    }
+  ]
+}

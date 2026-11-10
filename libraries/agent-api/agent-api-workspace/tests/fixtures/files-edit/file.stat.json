@@ -1,0 +1,48 @@
+{
+  "method": "file.stat",
+  "exchanges": [
+    {
+      "name": "gives the kind, size and modification time of a path",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "a.txt"
+        },
+        "id": 1,
+        "method": "file.stat"
+      },
+      "response": {
+        "result": {
+          "kind": "file",
+          "size": 5,
+          "modified_ms": 0
+        },
+        "id": 1
+      },
+      "actions": [
+        "stat"
+      ]
+    },
+    {
+      "name": "relays the executor's refusal of a path that is not there",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "missing.txt"
+        },
+        "id": 2,
+        "method": "file.stat"
+      },
+      "response": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "missing.txt does not exist"
+        },
+        "id": 2
+      },
+      "actions": [
+        "stat"
+      ]
+    }
+  ]
+}

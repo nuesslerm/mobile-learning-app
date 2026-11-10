@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "app": "orca",
+  "milestones": {
+    "rpc:*": "M5",
+    "transport:*": "M5",
+    "http:mobile/src/transport/relay.ts#2": "M5"
+  },
+  "targets": {},
+  "decisions": {
+    "http:mobile/src/transport/relay.ts#1": {"state": "excluded", "reason": "third-party fetch"}
+  }
+}

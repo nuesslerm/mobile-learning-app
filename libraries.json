@@ -1,0 +1,13 @@
+{
+  "registries": [
+    { "alias": "mla", "kind": "cargo-sparse", "url": "env:LIBS_READ_PAR_URL", "tokenEnv": "LIBS_WRITE_PAR_URL", "publish": "bucket-sparse",
+      "indexUrl": "http://libs-proxy:8793/index/" },
+    { "alias": "crates-io", "kind": "crates-io", "url": "sparse+https://index.crates.io/", "tokenEnv": "CARGO_REGISTRY_TOKEN", "publish": "cargo-publish" }
+  ],
+  "libraries": [
+    { "name": "service-kit", "kind": "rust", "path": "backend/service-kit", "registry": "mla" },
+    { "name": "telemetry", "kind": "rust", "path": "clis/telemetry", "registry": "mla" },
+    { "name": "rca-core", "kind": "rust", "path": "libraries/rca-core", "registry": "mla" },
+    { "name": "rca-ladder", "kind": "rust", "path": "libraries/rca-core/plugins/ladder", "registry": "mla" }
+  ]
+}

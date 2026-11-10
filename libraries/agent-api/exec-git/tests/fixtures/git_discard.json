@@ -1,0 +1,153 @@
+{
+  "action": "git_discard",
+  "exchanges": [
+    {
+      "name": "restores a changed tracked file",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "disc25",
+        "tool": "git_discard",
+        "args": {
+          "paths": [
+            "a.txt"
+          ]
+        }
+      },
+      "response": {
+        "id": "disc25",
+        "ok": true,
+        "result": {
+          "restored": 1,
+          "cleaned": 0
+        }
+      }
+    },
+    {
+      "name": "removes an untracked file only when asked",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "disc26",
+        "tool": "git_discard",
+        "args": {
+          "paths": [
+            "new.txt"
+          ],
+          "untracked": true
+        }
+      },
+      "response": {
+        "id": "disc26",
+        "ok": true,
+        "result": {
+          "restored": 0,
+          "cleaned": 1
+        }
+      }
+    },
+    {
+      "name": "keeps an untracked file when not asked",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "disc27",
+        "tool": "git_discard",
+        "args": {
+          "paths": [
+            "new.txt"
+          ]
+        }
+      },
+      "response": {
+        "id": "disc27",
+        "ok": true,
+        "result": {
+          "restored": 0,
+          "cleaned": 0
+        }
+      }
+    },
+    {
+      "name": "refuses a revision that is an option as the source",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "disc28",
+        "tool": "git_discard",
+        "args": {
+          "paths": [
+            "a.txt"
+          ],
+          "source": "--output=x"
+        }
+      },
+      "response": {
+        "id": "disc28",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`source` must be a revision"
+        }
+      }
+    },
+    {
+      "name": "refuses a request that names no path",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "disc29",
+        "tool": "git_discard",
+        "args": {}
+      },
+      "response": {
+        "id": "disc29",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`paths` must name at least one path (`.` is the whole tree)"
+        }
+      }
+    }
+  ]
+}

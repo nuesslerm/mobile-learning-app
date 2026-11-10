@@ -1,0 +1,35 @@
+[package]
+name = "reporting-service-rs"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "reporting_service"
+path = "src/lib.rs"
+
+[[bin]]
+name = "reporting-service-rs"
+path = "src/main.rs"
+
+[dependencies]
+async-trait.workspace = true
+axum.workspace = true
+clap.workspace = true
+nix = { workspace = true, features = ["fs"] }
+percent-encoding.workspace = true
+reqwest.workspace = true
+reporting-service-core = { path = "../core" }
+serde.workspace = true
+serde_json.workspace = true
+service-kit = { version = "0.1", registry = "mla" }
+telemetry = { version = "0.1", registry = "mla", features = ["metrics"] }
+tokio = { workspace = true, features = ["fs", "io-util", "net", "process", "rt-multi-thread", "signal"] }
+tracing.workspace = true
+
+[dev-dependencies]
+telemetry = { version = "0.1", registry = "mla", features = ["metrics", "testing"] }
+service-kit = { version = "0.1", registry = "mla", features = ["e2e", "blackbox"] }
+http-body-util.workspace = true
+tempfile.workspace = true
+tower = { workspace = true, features = ["util"] }

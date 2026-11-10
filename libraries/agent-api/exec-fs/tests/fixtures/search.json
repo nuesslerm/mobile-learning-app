@@ -1,0 +1,33 @@
+{
+  "action": "search",
+  "exchanges": [
+    {
+      "name": "finds the lines of file contents that match a pattern",
+      "setup": {"files": {"src/a.txt": "one\ntwo\nthree\nfour\n", "b.rs": "fn main() {}\n"}},
+      "request": {"id": "s1", "tool": "search", "args": {"pattern": "^f.u.$", "kind": "content"}},
+      "response": {"id": "s1", "ok": true, "result": {"matches": [{"path": "src/a.txt", "line": 4, "text": "four"}], "truncated": false}}
+    },
+    {
+      "name": "finds file names that match a glob",
+      "setup": {"files": {"src/a.txt": "one\n", "b.rs": "fn main() {}\n"}},
+      "request": {"id": "s2", "tool": "search", "args": {"pattern": "**/*.txt", "kind": "files"}},
+      "response": {"id": "s2", "ok": true, "result": {"matches": [{"path": "src/a.txt"}], "truncated": false}}
+    },
+    {
+      "name": "limits a content search to the files a glob names",
+      "setup": {"files": {"a.txt": "main\n", "b.rs": "fn main() {}\n"}},
+      "request": {"id": "s3", "tool": "search", "args": {"pattern": "main", "path": ".", "glob": "*.rs", "kind": "content"}},
+      "response": {"id": "s3", "ok": true, "result": {"matches": [{"path": "b.rs", "line": 1, "text": "fn main() {}"}], "truncated": false}}
+    },
+    {
+      "name": "refuses a kind that is neither content nor files",
+      "request": {"id": "s4", "tool": "search", "args": {"pattern": "x", "kind": "names"}},
+      "response": {"id": "s4", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`kind` must be \"content\" or \"files\""}}
+    },
+    {
+      "name": "refuses a directory outside the root",
+      "request": {"id": "s5", "tool": "search", "args": {"pattern": "x", "path": "../elsewhere", "kind": "files"}},
+      "response": {"id": "s5", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../elsewhere is outside the root"}}
+    }
+  ]
+}

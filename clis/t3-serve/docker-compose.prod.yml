@@ -1,0 +1,64 @@
+# Docker's json-file log driver keeps every line of a container forever unless told otherwise, so each service rotates its own
+# log (three files of 20 MB) instead of filling the host disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.2
+    container_name: t3-serve-tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_VM_AUTH_KEY}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_HOSTNAME: t3-serve
+      # t3 reaches rca by its tailnet name (remote-chat-agent-prod), which only resolves with MagicDNS accepted
+      TS_ACCEPT_DNS: "true"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging: *logging
+
+  app:
+    # Built in CI (repo-root context); deployed via vm-ops-api /services/t3-serve/redeploy.
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/t3-serve:${IMAGE_TAG:-latest}
+    container_name: t3-serve
+    # Tailnet only, no published port: a phone pairs over the tailnet, and the tailnet ACL is the first authorization.
+    network_mode: service:tailscale
+    volumes:
+      - t3-state:/data
+    environment:
+      T3_PORT: ${T3_PORT:-8797}
+      T3_LABEL: ${T3_LABEL:-rca}
+      T3_RCA_URL: ${T3_RCA_URL:-}
+      T3_RCA_WORKSPACE: ${T3_RCA_WORKSPACE:-}
+      # The one credential t3 holds for rca: a device bearer (sync-env --for t3-serve), never the service secret.
+      T3_RCA_BEARER: ${T3_RCA_BEARER:-}
+    healthcheck:
+      test: ["CMD", "t3-serve", "t3", "serve", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      - tailscale
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  tailscale-state:
+  t3-state:

@@ -1,0 +1,253 @@
+{
+  "schema": "mimic-corpus/1",
+  "seed": 0,
+  "generators": [
+    {
+      "kind": "corpus",
+      "name": "validate",
+      "op": "dsl.validate",
+      "files": [
+        "cases/validate.json"
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "blocks",
+      "op": "dsl.blocks",
+      "files": [
+        "cases/blocks.json"
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "repair",
+      "op": "dsl.repair",
+      "files": [
+        "cases/repair.json"
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "limits",
+      "op": "dsl.limits",
+      "files": [
+        "cases/limits.json"
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "normalize",
+      "op": "dsl.normalize",
+      "files": [
+        "cases/normalize.json"
+      ]
+    },
+    {
+      "kind": "property",
+      "name": "validate-property",
+      "op": "dsl.validate",
+      "count": 40,
+      "shrink_steps": 6,
+      "template": {
+        "code": "",
+        "commands": [],
+        "whole": false
+      },
+      "fields": [
+        {
+          "pointer": "/code",
+          "gen": "choice",
+          "values": [
+            "x = 1\ny = 2\n",
+            "def f(a):\n    return a\n",
+            "for i in range(3):\n    pass\n",
+            "",
+            "a = [1, 2]\nb = a[0]\n"
+          ]
+        },
+        {
+          "pointer": "/commands",
+          "gen": "list",
+          "min_len": 1,
+          "max_len": 6,
+          "item": {
+            "gen": "one-of",
+            "variants": [
+              {
+                "gen": "record",
+                "fields": {
+                  "type": {
+                    "gen": "choice",
+                    "values": [
+                      "replaceRange"
+                    ]
+                  },
+                  "start": {
+                    "gen": "int",
+                    "min": 0,
+                    "max": 40
+                  },
+                  "end": {
+                    "gen": "int",
+                    "min": 0,
+                    "max": 40
+                  },
+                  "newText": {
+                    "gen": "text",
+                    "min_len": 0,
+                    "max_len": 8
+                  }
+                }
+              },
+              {
+                "gen": "record",
+                "fields": {
+                  "type": {
+                    "gen": "choice",
+                    "values": [
+                      "deleteRange"
+                    ]
+                  },
+                  "start": {
+                    "gen": "int",
+                    "min": 0,
+                    "max": 40
+                  },
+                  "end": {
+                    "gen": "int",
+                    "min": 0,
+                    "max": 40
+                  }
+                }
+              },
+              {
+                "gen": "record",
+                "fields": {
+                  "type": {
+                    "gen": "choice",
+                    "values": [
+                      "extractBlock"
+                    ]
+                  },
+                  "start": {
+                    "gen": "int",
+                    "min": 0,
+                    "max": 40
+                  },
+                  "end": {
+                    "gen": "int",
+                    "min": 0,
+                    "max": 40
+                  },
+                  "newName": {
+                    "gen": "choice",
+                    "values": [
+                      "a_b",
+                      "é",
+                      "x1"
+                    ]
+                  }
+                }
+              },
+              {
+                "gen": "record",
+                "fields": {
+                  "type": {
+                    "gen": "choice",
+                    "values": [
+                      "renameSymbol"
+                    ]
+                  },
+                  "position": {
+                    "gen": "int",
+                    "min": 0,
+                    "max": 40
+                  },
+                  "newName": {
+                    "gen": "choice",
+                    "values": [
+                      "a_b",
+                      "é",
+                      "x1"
+                    ]
+                  }
+                }
+              },
+              {
+                "gen": "record",
+                "fields": {
+                  "type": {
+                    "gen": "choice",
+                    "values": [
+                      "wrapWith"
+                    ]
+                  },
+                  "start": {
+                    "gen": "int",
+                    "min": 0,
+                    "max": 40
+                  },
+                  "end": {
+                    "gen": "int",
+                    "min": 0,
+                    "max": 40
+                  },
+                  "before": {
+                    "gen": "choice",
+                    "values": [
+                      "try:\n",
+                      "(",
+                      "if a:\n    "
+                    ]
+                  },
+                  "after": {
+                    "gen": "choice",
+                    "values": [
+                      "\nfinally:",
+                      ")",
+                      ""
+                    ]
+                  }
+                }
+              },
+              {
+                "gen": "record",
+                "fields": {
+                  "type": {
+                    "gen": "choice",
+                    "values": [
+                      "replaceLines"
+                    ]
+                  },
+                  "startLine": {
+                    "gen": "int",
+                    "min": 1,
+                    "max": 6
+                  },
+                  "endLine": {
+                    "gen": "int",
+                    "min": 1,
+                    "max": 6
+                  },
+                  "newText": {
+                    "gen": "text",
+                    "min_len": 0,
+                    "max_len": 8
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "pointer": "/whole",
+          "gen": "choice",
+          "values": [
+            true,
+            false
+          ]
+        }
+      ]
+    }
+  ]
+}

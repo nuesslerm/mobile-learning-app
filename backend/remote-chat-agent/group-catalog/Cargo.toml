@@ -1,0 +1,32 @@
+[package]
+name = "rca-group-catalog"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The catalog group of the service's agent API (models.list, agents.detect, skills.list, commands.list): the service's table of the drivers, and the agent CLIs and skills of an executor, asked of that executor and never read from the service's disk"
+
+[lib]
+name = "rca_group_catalog"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+# The doubles of the ports, for the service crate's tests
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-catalog = { path = "../../../libraries/agent-api/agent-api-catalog" }
+rca-agent-core = { path = "../agent-core" }
+rca-exec-channel = { path = "../exec-channel" }
+exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
+exec-fs = { path = "../../../libraries/agent-api/exec-fs" }
+exec-proc = { path = "../../../libraries/agent-api/exec-proc" }
+
+[dev-dependencies]
+tokio.workspace = true
+rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
+rca-group-catalog = { path = ".", features = ["testing"] }

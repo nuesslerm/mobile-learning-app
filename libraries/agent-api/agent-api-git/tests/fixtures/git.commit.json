@@ -1,0 +1,64 @@
+{
+  "method": "git.commit",
+  "exchanges": [
+    {
+      "name": "commits the staged changes",
+      "before": [
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "README.md"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.commit",
+        "params": {
+          "workspace": "w1",
+          "message": "second"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "sha": "ee630898ac4d393f3d265620b16dfbc17f5f510c",
+          "short": "ee63089",
+          "subject": "second"
+        }
+      },
+      "actions": [
+        "git_commit"
+      ],
+      "volatile": [
+        "/result/sha",
+        "/result/short"
+      ]
+    },
+    {
+      "name": "an empty message is refused",
+      "request": {
+        "id": 1,
+        "method": "git.commit",
+        "params": {
+          "workspace": "w1",
+          "message": "  "
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`message` must not be empty"
+        }
+      },
+      "actions": [
+        "git_commit"
+      ]
+    }
+  ]
+}

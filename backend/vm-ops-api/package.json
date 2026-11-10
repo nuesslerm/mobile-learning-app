@@ -1,0 +1,35 @@
+{
+  "name": "@backend/vm-ops-api",
+  "description": "The bearer-gated control surface of the VM, in Rust (core/, rs/). Its integration suite is integration/, run against this service's binary; its flow tests drive the router in-process (rs/tests/flow.rs).",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:flow": "cargo test --locked --manifest-path Cargo.toml -p vm-ops-api-core -p vm-ops-api-rs",
+    "test:integration": "cargo build --locked --manifest-path Cargo.toml -p vm-ops-api-rs --target-dir ../target && VM_OPS_API_CMD=\"$PWD/../target/debug/vm-ops-api-rs\" cargo test --locked --manifest-path integration/Cargo.toml --target-dir ../target"
+  },
+  "nx": {
+    "targets": {
+      "test:flow": {
+        "inputs": [
+          "default",
+          "^production",
+          "^native",
+          {
+            "externalDependencies": []
+          }
+        ]
+      },
+      "test:integration": {
+        "inputs": [
+          "default",
+          "^production",
+          "^native",
+          {
+            "externalDependencies": []
+          }
+        ]
+      }
+    }
+  }
+}

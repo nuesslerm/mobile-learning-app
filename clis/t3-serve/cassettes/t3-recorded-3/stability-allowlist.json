@@ -1,0 +1,90 @@
+{
+ "schema": "mimic-stability-allowlist/1",
+ "entries": [
+  {
+   "id": "t3-command-thread.interaction-mode.set",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-command-thread.snooze",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-command-thread.unpin",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-http-auth.webSocketTicketFor",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-attachments.delete",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-device.open",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-orchestration.getTurnItem",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-orchestration.searchThreads",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-orchestration.subscribeShell",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-provider.uploadFeedback",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-scheduledTasks.upsert",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-server.getDatabaseStorage",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-subscribeDeviceState",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-subscribeResourceTelemetry",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-terminal.attach",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-vcs.listRefs",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  },
+  {
+   "id": "t3-rpc-vcs.switchRef",
+   "cause": "array-length",
+   "reason": "R1 recording answered differently on two runs; websocket Ack/Chunk frames interleave differently run to run; script not yet split per request (R2 VM re-record pending)"
+  }
+ ]
+}

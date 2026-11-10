@@ -1,0 +1,14 @@
+[package]
+name = "t3-contracts"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The T3 Code wire at protocol 2 as serde types: RPC framing, scopes and the scope table, descriptor, auth and environment error bodies, history cursor"
+
+[lib]
+doctest = false
+
+[dependencies]
+base64 = "0.22"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }

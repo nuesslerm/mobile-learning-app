@@ -1,0 +1,876 @@
+import { execFileSync } from 'node:child_process';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest';
+
+import { API_SECRET, startService, type Service } from './harness.js';
+
+const AUTH = { 'x-bot-secret': API_SECRET };
+const UNAUTHORIZED = { error: 'Unauthorized', code: 'UNAUTHORIZED' };
+
+function git(cwd: string, ...args: string[]): string {
+  return execFileSync('git', args, {
+    cwd,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
+
+function gitTry(cwd: string, ...args: string[]): void {
+  try {
+    git(cwd, ...args);
+  } catch {
+    // a refused merge is the point
+  }
+}
+
+type Repo = { root: string; work: string; origin: string };
+
+function makeRepo(): Repo {
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'rca-vcs-')));
+  const origin = join(root, 'origin.git');
+  const work = join(root, 'work');
+  git(root, 'init', '--bare', '-b', 'main', origin);
+  mkdirSync(work);
+  git(work, 'init', '-b', 'main');
+  git(work, 'config', 'user.email', 'bb@example.test');
+  git(work, 'config', 'user.name', 'Black Box');
+  git(work, 'remote', 'add', 'origin', origin);
+  writeFileSync(join(work, 'a.txt'), 'one\n');
+  writeFileSync(join(work, 'c.txt'), 'gone soon\n');
+  git(work, 'add', '-A');
+  git(work, 'commit', '-m', 'initial');
+  git(work, 'push', '-u', 'origin', 'main');
+  return { root, work, origin };
+}
+
+const q = (cwd: string) => `cwd=${encodeURIComponent(cwd)}`;
+
+describe('remote-chat-agent over a real socket: /api/vcs', () => {
+  let svc: Service;
+  let repo: Repo;
+
+  beforeAll(async () => {
+    svc = await startService();
+  });
+  afterAll(async () => {
+    await svc.stop();
+  });
+  beforeEach(() => {
+    repo = makeRepo();
+  });
+  afterEach(() => {
+    rmSync(repo.root, { recursive: true, force: true });
+  });
+
+  it('given no secret or a wrong one, when any vcs route is called, then it answers 401 before looking at the request', async () => {
+    const calls = [
+      svc.call(`/api/vcs/status?${q(repo.work)}`),
+      svc.call(`/api/vcs/diff?${q(repo.work)}`, {
+        headers: { 'x-bot-secret': 'wrong' },
+      }),
+      svc.call('/api/vcs/commit', {
+        method: 'POST',
+        body: JSON.stringify({ cwd: repo.work, message: 'm' }),
+      }),
+      svc.call('/api/vcs/push', {
+        method: 'POST',
+        headers: { 'x-bot-secret': '' },
+        body: '{}',
+      }),
+    ];
+
+    for (const res of await Promise.all(calls)) {
+      expect(res.status).toBe(401);
+      expect(res.json()).toEqual(UNAUTHORIZED);
+    }
+  });
+
+  it('given no cwd, when status, diff, commit or push is called, then each answers 400 naming the parameter', async () => {
+    const results = await Promise.all([
+      svc.call('/api/vcs/status', { headers: AUTH }),
+      svc.call('/api/vcs/diff', { headers: AUTH }),
+      svc.call('/api/vcs/commit', {
+        method: 'POST',
+        headers: AUTH,
+        body: JSON.stringify({ message: 'm' }),
+      }),
+      svc.call('/api/vcs/push', { method: 'POST', headers: AUTH, body: '{}' }),
+    ]);
+
+    for (const res of results) {
+      expect(res.status).toBe(400);
+      expect(res.json()).toEqual({
+        error: 'Missing required parameter: cwd',
+        code: 'INVALID_REQUEST',
+      });
+    }
+  });
+
+  it('given a commit without a usable message, when it is posted, then it answers 400 and nothing is committed', async () => {
+    writeFileSync(join(repo.work, 'a.txt'), 'changed\n');
+
+    const missing = await svc.call('/api/vcs/commit', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ cwd: repo.work }),
+    });
+    const blank = await svc.call('/api/vcs/commit', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ cwd: repo.work, message: '   ' }),
+    });
+
+    for (const res of [missing, blank]) {
+      expect(res.status).toBe(400);
+      expect(res.json()).toEqual({
+        error: 'Missing required field: message',
+        code: 'INVALID_REQUEST',
+      });
+    }
+    expect(git(repo.work, 'rev-list', '--count', 'HEAD').trim()).toBe('1');
+  });
+
+  it('given a clean checkout tracking origin, when status is requested, then it reports the branch and upstream with nothing to do', async () => {
+    const res = await svc.call(`/api/vcs/status?${q(repo.work)}`, {
+      headers: AUTH,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.json()).toEqual({
+      branch: 'main',
+      upstream: 'origin/main',
+      ahead: 0,
+      behind: 0,
+      files: [],
+      clean: true,
+    });
+  });
+
+  it('given every kind of change, when status is requested, then each file carries git status in git order and untracked files come last', async () => {
+    writeFileSync(join(repo.work, 'a.txt'), 'changed\n');
+    rmSync(join(repo.work, 'c.txt'));
+    writeFileSync(join(repo.work, 'b.txt'), 'staged new\n');
+    git(repo.work, 'add', 'b.txt');
+    writeFileSync(join(repo.work, 'e.txt'), 'staged then edited\n');
+    git(repo.work, 'add', 'e.txt');
+    writeFileSync(join(repo.work, 'e.txt'), 'edited again\n');
+    writeFileSync(join(repo.work, 'z-new.txt'), 'untracked\n');
+
+    const res = await svc.call(`/api/vcs/status?${q(repo.work)}`, {
+      headers: AUTH,
+    });
+
+    expect(res.json()).toEqual({
+      branch: 'main',
+      upstream: 'origin/main',
+      ahead: 0,
+      behind: 0,
+      files: [
+        { path: 'a.txt', status: 'modified' },
+        { path: 'b.txt', status: 'added' },
+        { path: 'c.txt', status: 'deleted' },
+        { path: 'e.txt', status: 'added' },
+        { path: 'z-new.txt', status: 'untracked' },
+      ],
+      clean: false,
+    });
+  });
+
+  it('given a staged rename, when status is requested, then it is renamed and the path is the old and new name as git prints them', async () => {
+    git(repo.work, 'mv', 'a.txt', 'renamed.txt');
+
+    const res = await svc.call(`/api/vcs/status?${q(repo.work)}`, {
+      headers: AUTH,
+    });
+
+    expect((res.json() as { files: unknown }).files).toEqual([
+      { path: 'a.txt -> renamed.txt', status: 'renamed' },
+    ]);
+  });
+
+  it('given a merge with a conflict, when status is requested, then the file is conflicted', async () => {
+    writeFileSync(join(repo.work, 'a.txt'), 'main side\n');
+    git(repo.work, 'commit', '-am', 'main edit');
+    git(repo.work, 'checkout', '-b', 'other', 'HEAD~1');
+    writeFileSync(join(repo.work, 'a.txt'), 'other side\n');
+    git(repo.work, 'commit', '-am', 'other edit');
+    git(repo.work, 'checkout', 'main');
+    gitTry(repo.work, 'merge', 'other');
+
+    const res = await svc.call(`/api/vcs/status?${q(repo.work)}`, {
+      headers: AUTH,
+    });
+
+    expect((res.json() as { files: unknown }).files).toEqual([
+      { path: 'a.txt', status: 'conflicted' },
+    ]);
+  });
+
+  it('given local commits and commits on origin, when status is requested, then ahead and behind count them', async () => {
+    const other = join(repo.root, 'other');
+    git(repo.root, 'clone', repo.origin, other);
+    git(other, 'config', 'user.email', 'bb@example.test');
+    git(other, 'config', 'user.name', 'Black Box');
+    writeFileSync(join(other, 'theirs.txt'), 'x\n');
+    git(other, 'add', '-A');
+    git(other, 'commit', '-m', 'theirs one');
+    writeFileSync(join(other, 'theirs.txt'), 'y\n');
+    git(other, 'commit', '-am', 'theirs two');
+    git(other, 'push', 'origin', 'main');
+    git(repo.work, 'fetch', 'origin');
+    writeFileSync(join(repo.work, 'mine.txt'), 'm\n');
+    git(repo.work, 'add', '-A');
+    git(repo.work, 'commit', '-m', 'mine');
+
+    const res = await svc.call(`/api/vcs/status?${q(repo.work)}`, {
+      headers: AUTH,
+    });
+
+    expect(res.json()).toMatchObject({
+      branch: 'main',
+      upstream: 'origin/main',
+      ahead: 1,
+      behind: 2,
+      clean: true,
+    });
+  });
+
+  it('given a branch with no upstream, when status is requested, then upstream is null', async () => {
+    git(repo.work, 'checkout', '-b', 'feature');
+
+    const res = await svc.call(`/api/vcs/status?${q(repo.work)}`, {
+      headers: AUTH,
+    });
+
+    expect(res.json()).toMatchObject({
+      branch: 'feature',
+      upstream: null,
+      ahead: 0,
+      behind: 0,
+    });
+  });
+
+  it('given a detached HEAD, when status is requested, then the branch is null', async () => {
+    git(repo.work, 'checkout', '--detach');
+
+    const res = await svc.call(`/api/vcs/status?${q(repo.work)}`, {
+      headers: AUTH,
+    });
+
+    expect(res.json()).toMatchObject({ branch: null, upstream: null });
+  });
+
+  it('given a directory that is not a repository, when status or diff is requested, then git failing answers 422 GIT_FAILED', async () => {
+    const plain = join(repo.root, 'plain');
+    mkdirSync(plain);
+
+    const status = await svc.call(`/api/vcs/status?${q(plain)}`, {
+      headers: AUTH,
+    });
+    const diff = await svc.call(`/api/vcs/diff?${q(plain)}`, { headers: AUTH });
+
+    for (const res of [status, diff]) {
+      expect(res.status).toBe(422);
+      expect(res.json()).toMatchObject({ code: 'GIT_FAILED' });
+    }
+    expect((status.json() as { error: string }).error).toMatch(
+      /not a git repository/
+    );
+  });
+
+  it('given a clean checkout, when the diff is requested, then it is empty and not truncated', async () => {
+    const res = await svc.call(`/api/vcs/diff?${q(repo.work)}`, {
+      headers: AUTH,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.json()).toEqual({ diff: '', truncated: false });
+  });
+
+  it('given an unstaged and a staged change, when the diff is requested, then staged=true shows only the staged one and anything else the unstaged', async () => {
+    writeFileSync(join(repo.work, 'a.txt'), 'unstaged edit\n');
+    writeFileSync(join(repo.work, 'c.txt'), 'staged edit\n');
+    git(repo.work, 'add', 'c.txt');
+
+    const unstaged = (
+      await svc.call(`/api/vcs/diff?${q(repo.work)}`, { headers: AUTH })
+    ).json() as {
+      diff: string;
+      truncated: boolean;
+    };
+    const staged = (
+      await svc.call(`/api/vcs/diff?${q(repo.work)}&staged=true`, {
+        headers: AUTH,
+      })
+    ).json() as {
+      diff: string;
+      truncated: boolean;
+    };
+    const notExactlyTrue = (
+      await svc.call(`/api/vcs/diff?${q(repo.work)}&staged=1`, {
+        headers: AUTH,
+      })
+    ).json() as {
+      diff: string;
+    };
+
+    expect(unstaged.diff).toContain('diff --git a/a.txt b/a.txt');
+    expect(unstaged.diff).toContain('+unstaged edit');
+    expect(unstaged.diff).not.toContain('c.txt');
+    expect(staged.diff).toContain('diff --git a/c.txt b/c.txt');
+    expect(staged.diff).toContain('+staged edit');
+    expect(staged.diff).not.toContain('a.txt');
+    expect(unstaged.truncated).toBe(false);
+    expect(staged.truncated).toBe(false);
+    expect(notExactlyTrue.diff).toBe(unstaged.diff);
+  });
+
+  it('given a diff longer than 200,000 characters, when it is requested, then it is cut at 200,000 and flagged truncated', async () => {
+    writeFileSync(join(repo.work, 'a.txt'), `${'x'.repeat(300_000)}\n`);
+
+    const res = (
+      await svc.call(`/api/vcs/diff?${q(repo.work)}`, { headers: AUTH })
+    ).json() as {
+      diff: string;
+      truncated: boolean;
+    };
+
+    expect(res.truncated).toBe(true);
+    expect(res.diff).toHaveLength(200_000);
+    expect(res.diff.startsWith('diff --git a/a.txt b/a.txt')).toBe(true);
+  });
+
+  it('given tracked and untracked changes, when a commit without paths is posted, then everything is committed and the sha is the new HEAD', async () => {
+    writeFileSync(join(repo.work, 'a.txt'), 'edited\n');
+    writeFileSync(join(repo.work, 'new.txt'), 'fresh\n');
+
+    const res = await svc.call('/api/vcs/commit', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ cwd: repo.work, message: 'commit everything' }),
+    });
+
+    expect(res.status).toBe(200);
+    const { sha } = res.json() as { sha: string };
+    expect(sha).toMatch(/^[0-9a-f]{40}$/);
+    expect(sha).toBe(git(repo.work, 'rev-parse', 'HEAD').trim());
+    expect(git(repo.work, 'log', '-1', '--format=%s').trim()).toBe(
+      'commit everything'
+    );
+    expect(git(repo.work, 'status', '--porcelain')).toBe('');
+  });
+
+  it('given several changes, when a commit names paths, then only those paths are committed', async () => {
+    writeFileSync(join(repo.work, 'a.txt'), 'edited\n');
+    writeFileSync(join(repo.work, 'new.txt'), 'fresh\n');
+
+    const res = await svc.call('/api/vcs/commit', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({
+        cwd: repo.work,
+        message: 'just a',
+        paths: ['a.txt'],
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(
+      git(repo.work, 'show', '--name-only', '--format=', 'HEAD').trim()
+    ).toBe('a.txt');
+    expect(git(repo.work, 'status', '--porcelain').trim()).toBe('?? new.txt');
+  });
+
+  it('given nothing to commit, when a commit is posted, then it answers 409 NOTHING_TO_COMMIT', async () => {
+    const res = await svc.call('/api/vcs/commit', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ cwd: repo.work, message: 'empty' }),
+    });
+
+    expect(res.status).toBe(409);
+    expect(res.json()).toMatchObject({ code: 'NOTHING_TO_COMMIT' });
+    expect((res.json() as { error: string }).error).toMatch(
+      /nothing to commit/i
+    );
+  });
+
+  it('given a path git does not know, when a commit names it, then it answers 422 GIT_FAILED and commits nothing', async () => {
+    const res = await svc.call('/api/vcs/commit', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({
+        cwd: repo.work,
+        message: 'bad path',
+        paths: ['no-such-file.txt'],
+      }),
+    });
+
+    expect(res.status).toBe(422);
+    expect(res.json()).toMatchObject({ code: 'GIT_FAILED' });
+    expect(git(repo.work, 'rev-list', '--count', 'HEAD').trim()).toBe('1');
+  });
+
+  it('given a local commit, when push is posted without a branch, then the current branch reaches origin', async () => {
+    writeFileSync(join(repo.work, 'a.txt'), 'edited\n');
+    git(repo.work, 'commit', '-am', 'to push');
+
+    const res = await svc.call('/api/vcs/push', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ cwd: repo.work }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.json()).toEqual({ branch: 'main', remote: 'origin' });
+    expect(git(repo.origin, 'rev-parse', 'main').trim()).toBe(
+      git(repo.work, 'rev-parse', 'HEAD').trim()
+    );
+  });
+
+  it('given a new branch, when push is posted with setUpstream, then origin has it and the branch tracks it', async () => {
+    git(repo.work, 'checkout', '-b', 'feature');
+    writeFileSync(join(repo.work, 'f.txt'), 'f\n');
+    git(repo.work, 'add', '-A');
+    git(repo.work, 'commit', '-m', 'feature work');
+
+    const res = await svc.call('/api/vcs/push', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({
+        cwd: repo.work,
+        branch: 'feature',
+        setUpstream: true,
+      }),
+    });
+
+    expect(res.json()).toEqual({ branch: 'feature', remote: 'origin' });
+    expect(git(repo.origin, 'rev-parse', 'feature').trim()).toBe(
+      git(repo.work, 'rev-parse', 'HEAD').trim()
+    );
+    expect(
+      git(repo.work, 'rev-parse', '--abbrev-ref', 'feature@{u}').trim()
+    ).toBe('origin/feature');
+  });
+
+  it('given a detached HEAD and no branch, when push is posted, then it answers 422 saying why', async () => {
+    git(repo.work, 'checkout', '--detach');
+
+    const res = await svc.call('/api/vcs/push', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ cwd: repo.work }),
+    });
+
+    expect(res.status).toBe(422);
+    expect(res.json()).toEqual({
+      error: 'not on a branch (detached HEAD) and no branch specified',
+      code: 'GIT_FAILED',
+    });
+  });
+
+  it('given a branch origin has moved past, when push is posted, then git refusing answers 422 and origin is untouched', async () => {
+    const other = join(repo.root, 'other');
+    git(repo.root, 'clone', repo.origin, other);
+    git(other, 'config', 'user.email', 'bb@example.test');
+    git(other, 'config', 'user.name', 'Black Box');
+    writeFileSync(join(other, 'theirs.txt'), 'x\n');
+    git(other, 'add', '-A');
+    git(other, 'commit', '-m', 'theirs');
+    git(other, 'push', 'origin', 'main');
+    const originHead = git(repo.origin, 'rev-parse', 'main').trim();
+    writeFileSync(join(repo.work, 'a.txt'), 'diverged\n');
+    git(repo.work, 'commit', '-am', 'mine');
+
+    const res = await svc.call('/api/vcs/push', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ cwd: repo.work }),
+    });
+
+    expect(res.status).toBe(422);
+    expect(res.json()).toMatchObject({ code: 'GIT_FAILED' });
+    expect((res.json() as { error: string }).error).toMatch(
+      /rejected|non-fast-forward|failed to push/
+    );
+    expect(git(repo.origin, 'rev-parse', 'main').trim()).toBe(originHead);
+  });
+});
+
+describe('remote-chat-agent over a real socket: /api/source-control', () => {
+  let svc: Service;
+  let root: string;
+  let stub: string;
+  let cwd: string;
+
+  const calls = (): { cwd: string; args: string[] }[] => {
+    let log = '';
+    try {
+      log = readFileSync(join(stub, 'calls.log'), 'utf8');
+    } catch {
+      return [];
+    }
+    return log
+      .split('---\n')
+      .filter((chunk) => chunk.length > 0)
+      .map((chunk) => {
+        const [dir = '', ...args] = chunk.trimEnd().split('\n');
+        return { cwd: dir, args };
+      });
+  };
+  const reply = (stdout: string) => writeFileSync(join(stub, 'reply'), stdout);
+  const fail = (stderr: string) => writeFileSync(join(stub, 'fail'), stderr);
+
+  const PR = {
+    number: 41,
+    title: 'Add a thing',
+    url: 'https://github.com/o/r/pull/41',
+    state: 'OPEN',
+    headRefName: 'feat',
+    baseRefName: 'main',
+    isDraft: true,
+  };
+  const FIELDS = 'number,title,url,state,headRefName,baseRefName,isDraft';
+
+  beforeAll(async () => {
+    root = realpathSync(mkdtempSync(join(tmpdir(), 'rca-sc-')));
+    stub = join(root, 'bin');
+    cwd = join(root, 'repo');
+    mkdirSync(stub);
+    mkdirSync(cwd);
+    const gh = join(stub, 'gh');
+    writeFileSync(
+      gh,
+      [
+        '#!/bin/sh',
+        'd="$(dirname "$0")"',
+        '{ pwd; for a in "$@"; do printf \'%s\\n\' "$a"; done; echo ---; } >> "$d/calls.log"',
+        'if [ -f "$d/fail" ]; then cat "$d/fail" >&2; exit 1; fi',
+        'cat "$d/reply"',
+        '',
+      ].join('\n')
+    );
+    chmodSync(gh, 0o755);
+    svc = await startService({
+      env: { PATH: `${stub}:${process.env['PATH'] ?? ''}` },
+    });
+  });
+  afterAll(async () => {
+    await svc.stop();
+    rmSync(root, { recursive: true, force: true });
+  });
+  beforeEach(() => {
+    rmSync(join(stub, 'calls.log'), { force: true });
+    rmSync(join(stub, 'fail'), { force: true });
+    reply('[]');
+  });
+
+  it('given no secret, when any source-control route is called, then it answers 401 and gh is never run', async () => {
+    const results = await Promise.all([
+      svc.call(`/api/source-control/pull-requests?${q(cwd)}`),
+      svc.call(`/api/source-control/pull-requests/41?${q(cwd)}`, {
+        headers: { 'x-bot-secret': 'wrong' },
+      }),
+      svc.call('/api/source-control/pull-requests', {
+        method: 'POST',
+        body: '{}',
+      }),
+    ]);
+
+    for (const res of results) {
+      expect(res.status).toBe(401);
+      expect(res.json()).toEqual(UNAUTHORIZED);
+    }
+    expect(calls()).toEqual([]);
+  });
+
+  it('given no cwd, when the list is requested, then it answers 400 and gh is never run', async () => {
+    const res = await svc.call('/api/source-control/pull-requests', {
+      headers: AUTH,
+    });
+
+    expect(res.status).toBe(400);
+    expect(res.json()).toEqual({
+      error: 'Missing required parameter: cwd',
+      code: 'INVALID_REQUEST',
+    });
+    expect(calls()).toEqual([]);
+  });
+
+  it('given gh output, when the list is requested without a state, then gh runs in the cwd and only the summary fields come back', async () => {
+    reply(
+      JSON.stringify([
+        { ...PR, author: { login: 'someone' }, labels: [] },
+        {
+          number: 42,
+          title: 'No state',
+          url: 'https://github.com/o/r/pull/42',
+          headRefName: 'b',
+          baseRefName: 'main',
+          isDraft: false,
+        },
+      ])
+    );
+
+    const res = await svc.call(`/api/source-control/pull-requests?${q(cwd)}`, {
+      headers: AUTH,
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.json()).toEqual([
+      PR,
+      {
+        number: 42,
+        title: 'No state',
+        url: 'https://github.com/o/r/pull/42',
+        state: 'OPEN',
+        headRefName: 'b',
+        baseRefName: 'main',
+        isDraft: false,
+      },
+    ]);
+    expect(calls()).toEqual([{ cwd, args: ['pr', 'list', '--json', FIELDS] }]);
+  });
+
+  it('given a state, when the list is requested, then it is passed to gh as given except all, which is dropped', async () => {
+    await svc.call(`/api/source-control/pull-requests?${q(cwd)}&state=merged`, {
+      headers: AUTH,
+    });
+    await svc.call(`/api/source-control/pull-requests?${q(cwd)}&state=all`, {
+      headers: AUTH,
+    });
+    await svc.call(`/api/source-control/pull-requests?${q(cwd)}&state=bogus`, {
+      headers: AUTH,
+    });
+
+    expect(calls().map((c) => c.args)).toEqual([
+      ['pr', 'list', '--json', FIELDS, '--state', 'merged'],
+      ['pr', 'list', '--json', FIELDS],
+      ['pr', 'list', '--json', FIELDS, '--state', 'bogus'],
+    ]);
+  });
+
+  it("given gh failing, when the list is requested, then it answers 502 with gh's stderr", async () => {
+    fail('gh: To get started with GitHub CLI, please run: gh auth login\n');
+
+    const res = await svc.call(`/api/source-control/pull-requests?${q(cwd)}`, {
+      headers: AUTH,
+    });
+
+    expect(res.status).toBe(502);
+    expect(res.json()).toEqual({
+      error: 'gh: To get started with GitHub CLI, please run: gh auth login\n',
+      code: 'SOURCE_CONTROL_FAILED',
+    });
+  });
+
+  it('given gh printing something that is not JSON, when the list is requested, then it answers 502 SOURCE_CONTROL_FAILED', async () => {
+    reply('not json at all');
+
+    const res = await svc.call(`/api/source-control/pull-requests?${q(cwd)}`, {
+      headers: AUTH,
+    });
+
+    expect(res.status).toBe(502);
+    expect(res.json()).toMatchObject({ code: 'SOURCE_CONTROL_FAILED' });
+  });
+
+  it('given a pull request number, when it is requested, then gh views that number in the cwd and the summary comes back', async () => {
+    reply(JSON.stringify(PR));
+
+    const res = await svc.call(
+      `/api/source-control/pull-requests/41?${q(cwd)}`,
+      { headers: AUTH }
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.json()).toEqual(PR);
+    expect(calls()).toEqual([
+      { cwd, args: ['pr', 'view', '41', '--json', FIELDS] },
+    ]);
+  });
+
+  it('given a number that is not numeric or no cwd, when a pull request is requested, then it answers 400 and gh is never run', async () => {
+    const notANumber = await svc.call(
+      `/api/source-control/pull-requests/abc?${q(cwd)}`,
+      { headers: AUTH }
+    );
+    const noCwd = await svc.call('/api/source-control/pull-requests/41', {
+      headers: AUTH,
+    });
+
+    for (const res of [notANumber, noCwd]) {
+      expect(res.status).toBe(400);
+      expect(res.json()).toEqual({
+        error: 'Missing/invalid parameters: cwd, number',
+        code: 'INVALID_REQUEST',
+      });
+    }
+    expect(calls()).toEqual([]);
+  });
+
+  it("given gh failing, when a pull request is requested, then it answers 502 with gh's stderr", async () => {
+    fail('no pull requests found for branch\n');
+
+    const res = await svc.call(
+      `/api/source-control/pull-requests/41?${q(cwd)}`,
+      { headers: AUTH }
+    );
+
+    expect(res.status).toBe(502);
+    expect(res.json()).toEqual({
+      error: 'no pull requests found for branch\n',
+      code: 'SOURCE_CONTROL_FAILED',
+    });
+  });
+
+  it.each([
+    [{ head: 'feat', base: 'main', title: 't' }],
+    [{ cwd: '/x', base: 'main', title: 't' }],
+    [{ cwd: '/x', head: 'feat', title: 't' }],
+    [{ cwd: '/x', head: 'feat', base: 'main' }],
+  ])(
+    'given a create body missing a required field %j, when it is posted, then it answers 400 and gh is never run',
+    async (body) => {
+      const res = await svc.call('/api/source-control/pull-requests', {
+        method: 'POST',
+        headers: AUTH,
+        body: JSON.stringify(body),
+      });
+
+      expect(res.status).toBe(400);
+      expect(res.json()).toEqual({
+        error: 'Missing required fields: cwd, head, base, title',
+        code: 'INVALID_REQUEST',
+      });
+      expect(calls()).toEqual([]);
+    }
+  );
+
+  it('given gh printing the new pull request URL, when one is created, then it answers 201 with the number read from the URL', async () => {
+    reply('https://github.com/o/r/pull/77\n');
+
+    const res = await svc.call('/api/source-control/pull-requests', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({
+        cwd,
+        head: 'feat',
+        base: 'main',
+        title: 'Add a thing',
+        body: 'Because.',
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.json()).toEqual({
+      number: 77,
+      title: 'Add a thing',
+      url: 'https://github.com/o/r/pull/77',
+      state: 'OPEN',
+      headRefName: 'feat',
+      baseRefName: 'main',
+      isDraft: false,
+    });
+    expect(calls()).toEqual([
+      {
+        cwd,
+        args: [
+          'pr',
+          'create',
+          '--head',
+          'feat',
+          '--base',
+          'main',
+          '--title',
+          'Add a thing',
+          '--body',
+          'Because.',
+        ],
+      },
+    ]);
+  });
+
+  it('given draft true and no body, when a pull request is created, then gh gets an empty body and --draft last, and the summary says draft', async () => {
+    reply('Warning: 1 uncommitted change\nhttps://github.com/o/r/pull/78\n');
+
+    const res = await svc.call('/api/source-control/pull-requests', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({
+        cwd,
+        head: 'feat',
+        base: 'main',
+        title: 'Draft one',
+        draft: true,
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.json()).toMatchObject({
+      number: 78,
+      url: 'https://github.com/o/r/pull/78',
+      isDraft: true,
+    });
+    expect(calls()[0]?.args).toEqual([
+      'pr',
+      'create',
+      '--head',
+      'feat',
+      '--base',
+      'main',
+      '--title',
+      'Draft one',
+      '--body',
+      '',
+      '--draft',
+    ]);
+  });
+
+  it('given gh printing a line that has no pull request number, when one is created, then the number is 0 and the line is the url', async () => {
+    reply('created somewhere\n');
+
+    const res = await svc.call('/api/source-control/pull-requests', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ cwd, head: 'feat', base: 'main', title: 't' }),
+    });
+
+    expect(res.status).toBe(201);
+    expect(res.json()).toMatchObject({ number: 0, url: 'created somewhere' });
+  });
+
+  it("given gh failing, when a pull request is created, then it answers 502 with gh's stderr", async () => {
+    fail('a pull request for branch "feat" already exists\n');
+
+    const res = await svc.call('/api/source-control/pull-requests', {
+      method: 'POST',
+      headers: AUTH,
+      body: JSON.stringify({ cwd, head: 'feat', base: 'main', title: 't' }),
+    });
+
+    expect(res.status).toBe(502);
+    expect(res.json()).toEqual({
+      error: 'a pull request for branch "feat" already exists\n',
+      code: 'SOURCE_CONTROL_FAILED',
+    });
+  });
+});

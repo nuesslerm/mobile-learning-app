@@ -1,0 +1,17 @@
+{
+  "schema": "mimic-corpus/1",
+  "seed": 0,
+  "generators": [
+    {
+      "kind": "corpus",
+      "name": "files",
+      "op": "script",
+      "cases": [
+        { "id": "files-stat-file", "row": "rpc:files.stat", "input": { "requests": [{ "method": "files.stat", "params": { "worktree": "id:w1::", "relativePath": "README.md" } }] } },
+        { "id": "files-stat-nested", "row": "rpc:files.stat", "input": { "requests": [{ "method": "files.stat", "params": { "worktree": "id:w1::", "relativePath": "src/main.rs" } }] } },
+        { "id": "files-readdir-root", "row": "rpc:files.readDir", "input": { "requests": [{ "method": "files.readDir", "params": { "worktree": "id:w1::", "relativePath": "" } }] } },
+        { "id": "files-read-text", "row": "rpc:files.read", "input": { "requests": [{ "method": "files.read", "params": { "worktree": "id:w1::", "relativePath": "README.md" } }] } }
+      ]
+    }
+  ]
+}

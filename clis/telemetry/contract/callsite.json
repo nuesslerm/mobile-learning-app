@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "doc": [
+    "The call-site contract of the repo's loggers: what a record carries about the line that logged it, the same in every language.",
+    "file: the path of the source file relative to the implementation's `root` (the root of its own build: the cargo workspace for Rust, the repo for TypeScript), with forward slashes.",
+    "line: the 1-based line of the logging call.",
+    "fn: the name of the innermost enclosing NAMED function: a method reports its own name, a closure, callback or async block reports the function around it, and a call outside any named function reports null.",
+    "A source file marks every logging call with a trailing comment `@site <case> fn=<name>` (`fn=-` for null) on the line of the call, and logs the case id as the record's message; `callsite-check` derives the expected line, file and fn from the markers and compares them with what the implementation emitted, so a case is added by writing its marker."
+  ],
+  "markerPattern": "@site\\s+(\\S+)\\s+fn=(\\S+)",
+  "cases": {
+    "top-level-function": { "in": ["rust", "ts"] },
+    "method": { "in": ["rust", "ts"] },
+    "nested-function": { "in": ["rust", "ts"] },
+    "callback-in-function": { "in": ["rust", "ts"] },
+    "async-function": { "in": ["rust", "ts"] },
+    "arrow-const": { "in": ["ts"] },
+    "module-level": { "in": ["ts"] }
+  },
+  "implementations": {
+    "rust": { "root": "clis/telemetry", "record": { "case": "msg", "file": "filename", "line": "line_number", "fn": "function" } },
+    "ts": { "root": ".", "record": { "case": "msg", "file": "file", "line": "line", "fn": "fn" } }
+  }
+}

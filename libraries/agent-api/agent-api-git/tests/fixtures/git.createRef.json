@@ -1,0 +1,52 @@
+{
+  "method": "git.createRef",
+  "exchanges": [
+    {
+      "name": "creates a branch and switches to it",
+      "request": {
+        "id": 1,
+        "method": "git.createRef",
+        "params": {
+          "workspace": "w1",
+          "name": "feature/x",
+          "checkout": true
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "name": "feature/x",
+          "kind": "branch",
+          "sha": "584baedb16cc19246c01f67532c4bfd77c4edddc"
+        }
+      },
+      "actions": [
+        "git_create_ref"
+      ],
+      "volatile": [
+        "/result/sha"
+      ]
+    },
+    {
+      "name": "a name git cannot use is refused",
+      "request": {
+        "id": 1,
+        "method": "git.createRef",
+        "params": {
+          "workspace": "w1",
+          "name": "a..b"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`name` must be a branch or tag name"
+        }
+      },
+      "actions": [
+        "git_create_ref"
+      ]
+    }
+  ]
+}

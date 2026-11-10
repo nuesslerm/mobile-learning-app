@@ -1,0 +1,79 @@
+{
+  "method": "service.clientActivity",
+  "exchanges": [
+    {
+      "name": "keeps a lease and answers when it ends",
+      "request": {
+        "id": 1,
+        "method": "service.clientActivity",
+        "params": {
+          "client": "phone-1",
+          "kind": "mobile",
+          "visible": true,
+          "focused": true,
+          "recently_interacted": true,
+          "scopes": [
+            "server-config"
+          ],
+          "ttl_ms": 1,
+          "observed_at_ms": 1000
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "expires_at_ms": 0
+        }
+      },
+      "volatile": [
+        "/result/expires_at_ms"
+      ]
+    },
+    {
+      "name": "keeps a lease with no ttl and no app state",
+      "request": {
+        "id": 2,
+        "method": "service.clientActivity",
+        "params": {
+          "client": "phone-1",
+          "kind": "mobile",
+          "visible": false,
+          "focused": false,
+          "recently_interacted": false,
+          "scopes": [],
+          "observed_at_ms": 1000
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "expires_at_ms": 0
+        }
+      },
+      "volatile": [
+        "/result/expires_at_ms"
+      ]
+    },
+    {
+      "name": "refuses a report with no client",
+      "request": {
+        "id": 3,
+        "method": "service.clientActivity",
+        "params": {
+          "kind": "web",
+          "visible": true,
+          "focused": true,
+          "recently_interacted": true,
+          "observed_at_ms": 1000
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "missing field `client`"
+        }
+      }
+    }
+  ]
+}

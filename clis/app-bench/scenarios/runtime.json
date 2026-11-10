@@ -1,0 +1,57 @@
+{
+  "suite": "runtime",
+  "description": "Interaction cost in the lab web export: long tasks and tap latency during a fixed tour, plus Tamagui-shaped render scenarios (variant update, deep tree mount). Lab-only.",
+  "runs": 3,
+  "params": {
+    "device": "iphone-15-pro",
+    "port": 8802,
+    "baseUrl": "/mla-tamagui",
+    "settleMs": 400,
+    "tap": {
+      "path": "/tamil/write/uyir-a",
+      "testId": "TamilWriteToggleTemplate",
+      "count": 20
+    },
+    "variant": {
+      "path": "/showcase",
+      "testIds": [
+        "Showcase-CodingAgent-ChipPlan",
+        "Showcase-CodingAgent-ChipBuild"
+      ],
+      "count": 20
+    },
+    "mount": {
+      "path": "/showcase",
+      "readyTestId": "ShowcaseHeading",
+      "awayPath": "/tamil/write/uyir-a",
+      "samples": 5
+    }
+  },
+  "metrics": {
+    "longTasks": {
+      "better": "lower",
+      "tolerance": 0.3,
+      "scope": "lab-only"
+    },
+    "tapLatencyMs": {
+      "better": "lower",
+      "tolerance": 0.15,
+      "scope": "lab-only"
+    },
+    "variantUpdateMs": {
+      "better": "lower",
+      "tolerance": 0.2,
+      "scope": "lab-only"
+    },
+    "deepTreeMountMs": {
+      "better": "lower",
+      "tolerance": 0.3,
+      "scope": "lab-only"
+    },
+    "longTaskMs": {
+      "better": "lower",
+      "tolerance": 0.3,
+      "scope": "lab-only"
+    }
+  }
+}

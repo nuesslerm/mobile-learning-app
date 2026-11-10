@@ -1,0 +1,99 @@
+{
+  "method": "git.compare",
+  "exchanges": [
+    {
+      "name": "compares a branch with main",
+      "before": [
+        {
+          "id": 1,
+          "method": "git.createRef",
+          "params": {
+            "workspace": "w1",
+            "name": "topic",
+            "checkout": true
+          }
+        },
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "t.txt",
+            "content": "t\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "t.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "on topic"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.compare",
+        "params": {
+          "workspace": "w1",
+          "base": "main",
+          "head": "topic"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "base": "main",
+          "head": "topic",
+          "merge_base": "ec8af9cbb2cc8765b5f7ff0b1cfb4fd4be865f02",
+          "ahead": 1,
+          "behind": 0,
+          "commits": [
+            {
+              "sha": "d31751af383fa1d2d28c455d75de5a2ad282367f",
+              "short": "d31751a",
+              "parents": [
+                "ec8af9cbb2cc8765b5f7ff0b1cfb4fd4be865f02"
+              ],
+              "author_name": "Test Author",
+              "author_email": "author@example.test",
+              "authored_ms": 1793810373000,
+              "subject": "on topic",
+              "body": ""
+            }
+          ],
+          "files": [
+            {
+              "path": "t.txt",
+              "status": "added",
+              "additions": 1,
+              "deletions": 0,
+              "binary": false
+            }
+          ],
+          "truncated": false
+        }
+      },
+      "actions": [
+        "git_compare"
+      ],
+      "volatile": [
+        "/result/merge_base",
+        "/result/commits/0/sha",
+        "/result/commits/0/short",
+        "/result/commits/0/authored_ms",
+        "/result/commits/0/parents/0"
+      ]
+    }
+  ]
+}

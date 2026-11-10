@@ -1,0 +1,2067 @@
+{
+  "schema": "mimic-known-gaps/2",
+  "groups": [
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ],
+      "ids": [
+        "t3-command-delegated-task.request-boundary-full",
+        "t3-command-delegated-task.request-invalid-wrong-type-commandId",
+        "t3-command-delegated-task.request-valid-min",
+        "t3-command-message.dispatch-boundary-full",
+        "t3-command-provider.switch-boundary-full",
+        "t3-command-provider.switch-invalid-wrong-type-commandId",
+        "t3-command-provider.switch-valid-min",
+        "t3-command-queued-run.edit-boundary-full",
+        "t3-command-thread.auto-settle-boundary-full",
+        "t3-command-thread.auto-settle-invalid-wrong-type-commandId",
+        "t3-command-thread.auto-settle-valid-min",
+        "t3-command-thread.create-boundary-full",
+        "t3-command-thread.create-invalid-wrong-type-commandId",
+        "t3-command-thread.fork-boundary-full",
+        "t3-command-thread.merge-back-boundary-full",
+        "t3-command-thread.model-selection.set-boundary-full",
+        "t3-command-thread.model-selection.set-invalid-wrong-type-commandId",
+        "t3-command-thread.model-selection.set-valid-min",
+        "t3-command-thread.pull-request-link.sync-boundary-full",
+        "t3-command-thread.pull-request-link.sync-invalid-wrong-type-commandId",
+        "t3-command-thread.pull-request-link.sync-valid-min",
+        "t3-command-thread.pull-request.link-boundary-full",
+        "t3-command-thread.pull-request.link-invalid-wrong-type-commandId",
+        "t3-command-thread.pull-request.link-valid-min",
+        "t3-command-thread.pull-request.unlink-invalid-wrong-type-commandId",
+        "t3-command-thread.pull-request.unlink-valid-min",
+        "t3-command-thread.pull-request.watch-boundary-full",
+        "t3-command-thread.pull-request.watch-invalid-wrong-type-commandId",
+        "t3-command-thread.pull-request.watch-valid-min",
+        "t3-command-thread.settle-boundary-full",
+        "t3-rpc-agentSessions.import-invalid-drop-projectId",
+        "t3-rpc-agentSessions.import-invalid-no-payload",
+        "t3-rpc-device.action-invalid-no-payload",
+        "t3-rpc-device.action-invalid-wrong-type",
+        "t3-rpc-device.close-invalid-drop-threadId",
+        "t3-rpc-device.close-invalid-no-payload",
+        "t3-rpc-device.configure-invalid-wrong-type-enabled",
+        "t3-rpc-device.detail-invalid-no-payload",
+        "t3-rpc-device.detail-valid-min",
+        "t3-rpc-device.easAccount-invalid-wrong-type-hostId",
+        "t3-rpc-device.list-invalid-wrong-type-updateTool",
+        "t3-rpc-device.open-invalid-drop-threadId",
+        "t3-rpc-device.open-invalid-no-payload",
+        "t3-rpc-device.shutdown-invalid-drop-deviceId",
+        "t3-rpc-device.shutdown-invalid-no-payload",
+        "t3-rpc-device.shutdown-invalid-wrong-type-deviceId",
+        "t3-rpc-device.simlockIdentity-invalid-wrong-type-gatewayUrl",
+        "t3-rpc-device.testHost-boundary-full",
+        "t3-rpc-device.testHost-invalid-drop-id",
+        "t3-rpc-device.testHost-invalid-no-payload",
+        "t3-rpc-device.testHost-invalid-wrong-type-id",
+        "t3-rpc-git.resolvePullRequest-invalid-drop-cwd",
+        "t3-rpc-git.resolvePullRequest-invalid-no-payload",
+        "t3-rpc-git.resolvePullRequest-invalid-wrong-type-cwd",
+        "t3-rpc-guestShare.create-invalid-drop-threadId",
+        "t3-rpc-guestShare.create-invalid-no-payload",
+        "t3-rpc-mcpApps.callTool-invalid-drop-threadId",
+        "t3-rpc-mcpApps.callTool-invalid-no-payload",
+        "t3-rpc-mcpApps.readResource-invalid-drop-threadId",
+        "t3-rpc-mcpApps.readResource-invalid-no-payload",
+        "t3-rpc-mcpApps.toolInfo-invalid-drop-threadId",
+        "t3-rpc-mcpApps.toolInfo-invalid-no-payload",
+        "t3-rpc-mcpApps.updateModelContext-invalid-drop-threadId",
+        "t3-rpc-mcpApps.updateModelContext-invalid-no-payload",
+        "t3-rpc-orchestration.getThreadProjection-invalid-drop-threadId",
+        "t3-rpc-orchestration.getThreadProjection-invalid-no-payload",
+        "t3-rpc-orchestration.getWorktreeThreadIds-invalid-drop-worktreePath",
+        "t3-rpc-orchestration.getWorktreeThreadIds-invalid-no-payload",
+        "t3-rpc-orchestration.getWorktreeThreadIds-invalid-wrong-type-worktreePath",
+        "t3-rpc-orchestration.launchThread-boundary-full",
+        "t3-rpc-orchestration.launchThread-invalid-wrong-type-commandId",
+        "t3-rpc-orchestration.launchThread-valid-min",
+        "t3-rpc-orchestration.searchThread-invalid-drop-threadId",
+        "t3-rpc-orchestration.searchThread-invalid-no-payload",
+        "t3-rpc-orchestration.searchThreadStream-invalid-drop-threadId",
+        "t3-rpc-orchestration.searchThreadStream-invalid-no-payload",
+        "t3-rpc-orchestration.subscribeThread-invalid-drop-threadId",
+        "t3-rpc-orchestration.subscribeThread-invalid-no-payload",
+        "t3-rpc-preview.adjust-boundary-full",
+        "t3-rpc-preview.clearProfile-invalid-drop-profileId",
+        "t3-rpc-preview.clearProfile-invalid-no-payload",
+        "t3-rpc-preview.clearProfile-invalid-wrong-type-profileId",
+        "t3-rpc-preview.reportProfiles-boundary-full",
+        "t3-rpc-preview.reportProfiles-invalid-drop-profiles",
+        "t3-rpc-preview.reportProfiles-invalid-no-payload",
+        "t3-rpc-preview.reportProfiles-invalid-wrong-type-profiles",
+        "t3-rpc-preview.stopLocalServer-boundary-limit-pid",
+        "t3-rpc-preview.stopLocalServer-invalid-drop-pid",
+        "t3-rpc-preview.stopLocalServer-invalid-no-payload",
+        "t3-rpc-preview.stopLocalServer-invalid-wrong-type-pid",
+        "t3-rpc-preview.stopLocalServer-valid-min",
+        "t3-rpc-projects.listIgnoredFiles-invalid-drop-cwd",
+        "t3-rpc-projects.listIgnoredFiles-invalid-no-payload",
+        "t3-rpc-projects.listIgnoredFiles-invalid-wrong-type-cwd",
+        "t3-rpc-projects.readFile-invalid-drop-cwd",
+        "t3-rpc-projects.readFile-invalid-no-payload",
+        "t3-rpc-projects.readFile-invalid-wrong-type-cwd",
+        "t3-rpc-projects.searchContents-invalid-drop-cwd",
+        "t3-rpc-projects.searchContents-invalid-no-payload",
+        "t3-rpc-projects.searchContents-invalid-wrong-type-cwd",
+        "t3-rpc-provider.chatgpt.handoff.subscribe-boundary-full",
+        "t3-rpc-provider.chatgpt.handoff.subscribe-boundary-limit-attemptId",
+        "t3-rpc-provider.chatgpt.handoff.subscribe-invalid-drop-instanceId",
+        "t3-rpc-provider.chatgpt.handoff.subscribe-invalid-no-payload",
+        "t3-rpc-provider.chatgpt.handoff.subscribe-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.chatgpt.handoff.subscribe-valid-min",
+        "t3-rpc-provider.chatgpt.import-profile-boundary-full",
+        "t3-rpc-provider.chatgpt.import-profile-invalid-drop-instanceId",
+        "t3-rpc-provider.chatgpt.import-profile-invalid-no-payload",
+        "t3-rpc-provider.chatgpt.import-profile-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.chatgpt.import-profile-valid-min",
+        "t3-rpc-provider.consumeResetCredit-invalid-no-payload",
+        "t3-rpc-provider.consumeResetCredit-invalid-wrong-type",
+        "t3-rpc-provider.install.cancel-invalid-drop-instanceId",
+        "t3-rpc-provider.install.cancel-invalid-no-payload",
+        "t3-rpc-provider.install.cancel-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.install.remove-invalid-drop-instanceId",
+        "t3-rpc-provider.install.remove-invalid-no-payload",
+        "t3-rpc-provider.install.remove-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.install.start-invalid-drop-instanceId",
+        "t3-rpc-provider.install.start-invalid-no-payload",
+        "t3-rpc-provider.install.start-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.install.subscribe-invalid-drop-instanceId",
+        "t3-rpc-provider.install.subscribe-invalid-no-payload",
+        "t3-rpc-provider.install.subscribe-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.uploadFeedback-invalid-drop-threadId",
+        "t3-rpc-provider.uploadFeedback-invalid-no-payload",
+        "t3-rpc-pullRequests.filterOptions-invalid-drop-kind",
+        "t3-rpc-pullRequests.filterOptions-invalid-no-payload",
+        "t3-rpc-pullRequests.filterOptions-invalid-wrong-type-kind",
+        "t3-rpc-pullRequests.generateReviewGuide-invalid-drop-projectId",
+        "t3-rpc-pullRequests.generateReviewGuide-invalid-no-payload",
+        "t3-rpc-pullRequests.setReaction-boundary-full",
+        "t3-rpc-pullRequests.submitReview-boundary-full",
+        "t3-rpc-pullRequests.update-invalid-no-payload",
+        "t3-rpc-pullRequests.update-invalid-wrong-type-title",
+        "t3-rpc-pullRequests.update-valid-min",
+        "t3-rpc-review.getBranchCommits-invalid-drop-cwd",
+        "t3-rpc-review.getBranchCommits-invalid-no-payload",
+        "t3-rpc-review.getBranchCommits-invalid-wrong-type-cwd",
+        "t3-rpc-scheduledTasks.getWebhookDelivery-invalid-drop-id",
+        "t3-rpc-scheduledTasks.getWebhookDelivery-invalid-no-payload",
+        "t3-rpc-scheduledTasks.listWebhookDeliveries-invalid-drop-id",
+        "t3-rpc-scheduledTasks.listWebhookDeliveries-invalid-no-payload",
+        "t3-rpc-scheduledTasks.upsert-boundary-full",
+        "t3-rpc-server.acceptAcpRegistryUrlAuth-invalid-drop-instanceId",
+        "t3-rpc-server.acceptAcpRegistryUrlAuth-invalid-no-payload",
+        "t3-rpc-server.acceptAcpRegistryUrlAuth-invalid-wrong-type-instanceId",
+        "t3-rpc-server.checkOtlpEndpoint-invalid-drop-url",
+        "t3-rpc-server.checkOtlpEndpoint-invalid-no-payload",
+        "t3-rpc-server.checkOtlpEndpoint-invalid-wrong-type-url",
+        "t3-rpc-server.checkOtlpEndpoint-valid-min",
+        "t3-rpc-server.deleteAcpRegistrySession-invalid-drop-instanceId",
+        "t3-rpc-server.deleteAcpRegistrySession-invalid-no-payload",
+        "t3-rpc-server.deleteAcpRegistrySession-invalid-wrong-type-instanceId",
+        "t3-rpc-server.disableAcpRegistryProvider-invalid-drop-instanceId",
+        "t3-rpc-server.disableAcpRegistryProvider-invalid-no-payload",
+        "t3-rpc-server.disableAcpRegistryProvider-invalid-wrong-type-instanceId",
+        "t3-rpc-server.getNpmRelease-boundary-limit-spec",
+        "t3-rpc-server.getNpmRelease-invalid-drop-spec",
+        "t3-rpc-server.getNpmRelease-invalid-no-payload",
+        "t3-rpc-server.getNpmRelease-invalid-wrong-type-spec",
+        "t3-rpc-server.getNpmRelease-valid-min",
+        "t3-rpc-server.getProcessResourceHistory-invalid-drop-windowMs",
+        "t3-rpc-server.getProcessResourceHistory-invalid-no-payload",
+        "t3-rpc-server.getProcessResourceHistory-invalid-wrong-type-windowMs",
+        "t3-rpc-server.getResourceTelemetryHistory-invalid-drop-windowMs",
+        "t3-rpc-server.getResourceTelemetryHistory-invalid-no-payload",
+        "t3-rpc-server.getResourceTelemetryHistory-invalid-wrong-type-windowMs",
+        "t3-rpc-server.importAcpRegistrySession-invalid-drop-instanceId",
+        "t3-rpc-server.importAcpRegistrySession-invalid-no-payload",
+        "t3-rpc-server.importAcpRegistrySession-invalid-wrong-type-instanceId",
+        "t3-rpc-server.listAcpRegistryProviders-invalid-drop-instanceId",
+        "t3-rpc-server.listAcpRegistryProviders-invalid-no-payload",
+        "t3-rpc-server.listAcpRegistryProviders-invalid-wrong-type-instanceId",
+        "t3-rpc-server.listAcpRegistrySessions-invalid-drop-instanceId",
+        "t3-rpc-server.listAcpRegistrySessions-invalid-no-payload",
+        "t3-rpc-server.listAcpRegistrySessions-invalid-wrong-type-instanceId",
+        "t3-rpc-server.logoutAcpRegistry-invalid-drop-instanceId",
+        "t3-rpc-server.logoutAcpRegistry-invalid-no-payload",
+        "t3-rpc-server.logoutAcpRegistry-invalid-wrong-type-instanceId",
+        "t3-rpc-server.prepareAcpRegistryAgent-invalid-drop-agentId",
+        "t3-rpc-server.prepareAcpRegistryAgent-invalid-no-payload",
+        "t3-rpc-server.prepareAcpRegistryAgent-invalid-wrong-type-agentId",
+        "t3-rpc-server.prepareTriage-invalid-drop-client",
+        "t3-rpc-server.prepareTriage-invalid-no-payload",
+        "t3-rpc-server.prepareTriage-invalid-wrong-type-client",
+        "t3-rpc-server.removeKeybinding-boundary-full",
+        "t3-rpc-server.removeKeybinding-invalid-drop-key",
+        "t3-rpc-server.removeKeybinding-invalid-no-payload",
+        "t3-rpc-server.removeKeybinding-invalid-wrong-type-key",
+        "t3-rpc-server.removeKeybinding-valid-min",
+        "t3-rpc-server.searchAcpRegistry-boundary-full",
+        "t3-rpc-server.searchAcpRegistry-invalid-drop-query",
+        "t3-rpc-server.searchAcpRegistry-invalid-no-payload",
+        "t3-rpc-server.searchAcpRegistry-invalid-wrong-type-query",
+        "t3-rpc-server.setAcpRegistryProvider-invalid-drop-instanceId",
+        "t3-rpc-server.setAcpRegistryProvider-invalid-no-payload",
+        "t3-rpc-server.setAcpRegistryProvider-invalid-wrong-type-instanceId",
+        "t3-rpc-server.signalProcess-invalid-drop-pid",
+        "t3-rpc-server.signalProcess-invalid-no-payload",
+        "t3-rpc-server.signalProcess-invalid-wrong-type-pid",
+        "t3-rpc-server.uninstallAcpRegistryManagedBinary-invalid-drop-agentId",
+        "t3-rpc-server.uninstallAcpRegistryManagedBinary-invalid-no-payload",
+        "t3-rpc-server.uninstallAcpRegistryManagedBinary-invalid-wrong-type-agentId",
+        "t3-rpc-server.updateSettings-boundary-full",
+        "t3-rpc-server.upsertKeybinding-boundary-full",
+        "t3-rpc-server.upsertKeybinding-invalid-drop-key",
+        "t3-rpc-server.upsertKeybinding-invalid-no-payload",
+        "t3-rpc-server.upsertKeybinding-invalid-wrong-type-key",
+        "t3-rpc-server.upsertKeybinding-valid-min",
+        "t3-rpc-shell.openInEditor-boundary-full",
+        "t3-rpc-shell.openInEditor-invalid-drop-cwd",
+        "t3-rpc-shell.openInEditor-invalid-no-payload",
+        "t3-rpc-shell.openInEditor-invalid-wrong-type-cwd",
+        "t3-rpc-shell.openInEditor-valid-min",
+        "t3-rpc-sourceControl.cloneRepository-invalid-drop-destinationPath",
+        "t3-rpc-sourceControl.cloneRepository-invalid-no-payload",
+        "t3-rpc-sourceControl.cloneRepository-invalid-wrong-type-destinationPath",
+        "t3-rpc-sourceControl.starred-invalid-drop-provider",
+        "t3-rpc-sourceControl.starred-invalid-no-payload",
+        "t3-rpc-sourceControl.starred-invalid-wrong-type-provider",
+        "t3-rpc-subscribeDiscoveredLocalServers-invalid-wrong-type-configuredUrls",
+        "t3-rpc-subscribeWorktreeSetup-invalid-drop-threadId",
+        "t3-rpc-subscribeWorktreeSetup-invalid-no-payload",
+        "t3-rpc-vcs.init-invalid-drop-cwd",
+        "t3-rpc-vcs.init-invalid-no-payload",
+        "t3-rpc-vcs.init-invalid-wrong-type-cwd",
+        "t3-rpc-vcs.removeWorktree-invalid-drop-cwd",
+        "t3-rpc-vcs.removeWorktree-invalid-no-payload",
+        "t3-rpc-vcs.removeWorktree-invalid-wrong-type-cwd"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift"
+      ],
+      "ids": [
+        "t3-command-checkpoint.rollback-boundary-full",
+        "t3-command-checkpoint.rollback-invalid-wrong-type-commandId",
+        "t3-command-checkpoint.rollback-valid-min",
+        "t3-command-delegated-task.completion-delivery.acknowledge-valid-min",
+        "t3-command-delegated-task.completion-delivery.dispose-invalid-wrong-type-commandId",
+        "t3-command-delegated-task.completion-delivery.dispose-valid-min",
+        "t3-command-delegated-task.wake-policy-invalid-wrong-type-commandId",
+        "t3-command-delegated-task.wake-policy-valid-min",
+        "t3-command-message.dispatch-invalid-wrong-type-commandId",
+        "t3-command-message.dispatch-valid-min",
+        "t3-command-notification.delivery.accept-invalid-wrong-type-commandId",
+        "t3-command-notification.delivery.accept-valid-min",
+        "t3-command-prepared-run.fail-boundary-full",
+        "t3-command-prepared-run.fail-invalid-wrong-type-commandId",
+        "t3-command-prepared-run.fail-valid-min",
+        "t3-command-prepared-run.progress-invalid-wrong-type-commandId",
+        "t3-command-prepared-run.progress-valid-min",
+        "t3-command-prepared-run.release-invalid-wrong-type-commandId",
+        "t3-command-prepared-run.release-valid-min",
+        "t3-command-prepared-run.retry-invalid-wrong-type-commandId",
+        "t3-command-prepared-run.retry-valid-min",
+        "t3-command-provider-session.detach-boundary-full",
+        "t3-command-provider-session.detach-invalid-wrong-type-commandId",
+        "t3-command-provider-session.detach-valid-min",
+        "t3-command-queue.resume-invalid-wrong-type-commandId",
+        "t3-command-queue.resume-valid-min",
+        "t3-command-queued-message.promote-to-steer-invalid-wrong-type-commandId",
+        "t3-command-queued-message.promote-to-steer-valid-min",
+        "t3-command-queued-run.cancel-invalid-wrong-type-commandId",
+        "t3-command-queued-run.cancel-valid-min",
+        "t3-command-queued-run.edit-invalid-wrong-type-commandId",
+        "t3-command-queued-run.edit-valid-min",
+        "t3-command-queued-run.reorder-invalid-wrong-type-commandId",
+        "t3-command-queued-run.reorder-valid-min",
+        "t3-command-queued-run.start-invalid-wrong-type-commandId",
+        "t3-command-queued-run.start-valid-min",
+        "t3-command-run.interrupt-boundary-full",
+        "t3-command-run.interrupt-invalid-wrong-type-commandId",
+        "t3-command-run.interrupt-valid-min",
+        "t3-command-runtime-request.respond-boundary-full",
+        "t3-command-runtime-request.respond-invalid-wrong-type-commandId",
+        "t3-command-runtime-request.respond-valid-min",
+        "t3-command-subagent.stop-invalid-wrong-type-commandId",
+        "t3-command-subagent.stop-valid-min",
+        "t3-command-thread.active.reorder-invalid-wrong-type-commandId",
+        "t3-command-thread.active.reorder-valid-min",
+        "t3-command-thread.archive-invalid-wrong-type-commandId",
+        "t3-command-thread.auto-settle.set-invalid-wrong-type-commandId",
+        "t3-command-thread.delete-boundary-full",
+        "t3-command-thread.delete-invalid-wrong-type-commandId",
+        "t3-command-thread.delete-valid-min",
+        "t3-command-thread.fork-invalid-wrong-type-commandId",
+        "t3-command-thread.fork-valid-min",
+        "t3-command-thread.guest-message.dismiss-invalid-wrong-type-commandId",
+        "t3-command-thread.guest-message.dismiss-valid-min",
+        "t3-command-thread.guest-share.close-invalid-wrong-type-commandId",
+        "t3-command-thread.guest-share.close-valid-min",
+        "t3-command-thread.interaction-mode.set-invalid-wrong-type-commandId",
+        "t3-command-thread.interaction-mode.set-valid-min",
+        "t3-command-thread.mark-unread-invalid-wrong-type-commandId",
+        "t3-command-thread.mark-unread-valid-min",
+        "t3-command-thread.merge-back-invalid-wrong-type-commandId",
+        "t3-command-thread.merge-back-valid-min",
+        "t3-command-thread.metadata.update-boundary-full",
+        "t3-command-thread.metadata.update-invalid-wrong-type-commandId",
+        "t3-command-thread.metadata.update-valid-min",
+        "t3-command-thread.pin-boundary-full",
+        "t3-command-thread.pin-invalid-wrong-type-commandId",
+        "t3-command-thread.pin-valid-min",
+        "t3-command-thread.pin.reorder-invalid-wrong-type-commandId",
+        "t3-command-thread.pin.reorder-valid-min",
+        "t3-command-thread.pull-request.sync-boundary-full",
+        "t3-command-thread.pull-request.sync-boundary-limit-snapshotSequence",
+        "t3-command-thread.pull-request.sync-invalid-wrong-type-commandId",
+        "t3-command-thread.pull-request.sync-valid-min",
+        "t3-command-thread.runtime-mode.set-invalid-wrong-type-commandId",
+        "t3-command-thread.runtime-mode.set-valid-min",
+        "t3-command-thread.settle-invalid-wrong-type-commandId",
+        "t3-command-thread.snooze-invalid-wrong-type-commandId",
+        "t3-command-thread.snooze-valid-min",
+        "t3-command-thread.stop-boundary-full",
+        "t3-command-thread.stop-invalid-wrong-type-commandId",
+        "t3-command-thread.stop-valid-min",
+        "t3-command-thread.title.regeneration.complete-boundary-full",
+        "t3-command-thread.title.regeneration.complete-invalid-wrong-type-commandId",
+        "t3-command-thread.title.regeneration.complete-valid-min",
+        "t3-command-thread.unarchive-invalid-wrong-type-commandId",
+        "t3-command-thread.unarchive-valid-min",
+        "t3-command-thread.unpin-invalid-wrong-type-commandId",
+        "t3-command-thread.unpin-valid-min",
+        "t3-command-thread.unsettle-invalid-wrong-type-commandId",
+        "t3-command-thread.unsettle-valid-min",
+        "t3-command-thread.unsnooze-invalid-wrong-type-commandId",
+        "t3-command-thread.unsnooze-valid-min",
+        "t3-command-thread.user-input.dismiss-invalid-wrong-type-commandId",
+        "t3-command-thread.user-input.dismiss-valid-min",
+        "t3-command-thread.visit-boundary-full",
+        "t3-command-thread.visit-boundary-limit-searchQuery",
+        "t3-command-thread.visit-invalid-wrong-type-commandId",
+        "t3-command-thread.visit-valid-min",
+        "t3-rpc-orchestration.dispatchCommand-boundary-full",
+        "t3-rpc-orchestration.dispatchCommand-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ],
+      "ids": [
+        "t3-command-delegated-task.request-invalid-no-payload",
+        "t3-command-message.dispatch-invalid-no-payload",
+        "t3-command-thread.create-invalid-no-payload",
+        "t3-command-thread.fork-invalid-no-payload",
+        "t3-command-thread.merge-back-invalid-no-payload",
+        "t3-rpc-assets.createUrl-invalid-drop-resource",
+        "t3-rpc-assets.createUrl-invalid-no-payload",
+        "t3-rpc-assets.createUrl-invalid-wrong-type-resource",
+        "t3-rpc-assets.createUrl-valid-min",
+        "t3-rpc-assets.persistChatAttachments-boundary-full",
+        "t3-rpc-assets.persistChatAttachments-invalid-drop-threadId",
+        "t3-rpc-assets.persistChatAttachments-invalid-no-payload",
+        "t3-rpc-attachments.createUploadUrl-boundary-full",
+        "t3-rpc-attachments.createUploadUrl-invalid-no-payload",
+        "t3-rpc-attachments.createUploadUrl-invalid-wrong-type",
+        "t3-rpc-attachments.createUploadUrl-valid-min",
+        "t3-rpc-attachments.delete-invalid-drop-attachmentId",
+        "t3-rpc-attachments.delete-invalid-no-payload",
+        "t3-rpc-attachments.delete-invalid-wrong-type-attachmentId",
+        "t3-rpc-filesystem.browse-invalid-wrong-type-partialPath",
+        "t3-rpc-filesystem.getMetadata-invalid-drop-paths",
+        "t3-rpc-filesystem.getMetadata-invalid-no-payload",
+        "t3-rpc-filesystem.getMetadata-invalid-wrong-type-paths",
+        "t3-rpc-git.preparePullRequestThread-invalid-wrong-type-cwd",
+        "t3-rpc-git.runStackedAction-invalid-wrong-type-actionId",
+        "t3-rpc-orchestration.dispatchCommand-invalid-wrong-type",
+        "t3-rpc-orchestration.getOlderSettledThreads-invalid-wrong-type-before",
+        "t3-rpc-orchestration.getTurnDiff-invalid-drop-fromTurnCount",
+        "t3-rpc-orchestration.getTurnDiff-invalid-no-payload",
+        "t3-rpc-orchestration.getTurnDiff-invalid-wrong-type-fromTurnCount",
+        "t3-rpc-peerLinks.answerRequest-invalid-drop-threadId",
+        "t3-rpc-peerLinks.answerRequest-invalid-no-payload",
+        "t3-rpc-peerLinks.link-invalid-drop-url",
+        "t3-rpc-peerLinks.link-invalid-no-payload",
+        "t3-rpc-peerLinks.link-invalid-wrong-type-url",
+        "t3-rpc-peerLinks.unlink-invalid-drop-environmentId",
+        "t3-rpc-peerLinks.unlink-invalid-no-payload",
+        "t3-rpc-preview.open-boundary-full",
+        "t3-rpc-preview.reportStatus-invalid-wrong-type-threadId",
+        "t3-rpc-preview.reportStatus-valid-min",
+        "t3-rpc-preview.resize-invalid-wrong-type-threadId",
+        "t3-rpc-preview.resize-valid-min",
+        "t3-rpc-projects.createNew-invalid-wrong-type-name",
+        "t3-rpc-projects.mutate-invalid-no-payload",
+        "t3-rpc-projects.mutate-invalid-wrong-type",
+        "t3-rpc-projects.searchEntries-invalid-wrong-type-cwd",
+        "t3-rpc-projects.writeFile-invalid-wrong-type-cwd",
+        "t3-rpc-provider.auth.cancel-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.auth.complete-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.auth.logout-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.auth.respond-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.auth.start-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.auth.subscribe-invalid-wrong-type-instanceId",
+        "t3-rpc-provider.chatgpt.reconnect-profile-invalid-wrong-type-instanceId",
+        "t3-rpc-pullRequests.comment-invalid-drop-body",
+        "t3-rpc-pullRequests.comment-invalid-no-payload",
+        "t3-rpc-pullRequests.comment-invalid-wrong-type-body",
+        "t3-rpc-pullRequests.linkedThreads-invalid-no-payload",
+        "t3-rpc-pullRequests.replyToThread-invalid-drop-threadId",
+        "t3-rpc-pullRequests.replyToThread-invalid-no-payload",
+        "t3-rpc-pullRequests.replyToThread-invalid-wrong-type-threadId",
+        "t3-rpc-pullRequests.routingIdentity-invalid-wrong-type-host",
+        "t3-rpc-pullRequests.runAction-invalid-drop-action",
+        "t3-rpc-pullRequests.runAction-invalid-no-payload",
+        "t3-rpc-pullRequests.runAction-invalid-wrong-type-action",
+        "t3-rpc-pullRequests.setReaction-invalid-no-payload",
+        "t3-rpc-pullRequests.setThreadResolution-invalid-drop-threadId",
+        "t3-rpc-pullRequests.setThreadResolution-invalid-no-payload",
+        "t3-rpc-pullRequests.setThreadResolution-invalid-wrong-type-threadId",
+        "t3-rpc-pullRequests.submitReview-invalid-no-payload",
+        "t3-rpc-pullRequests.updateComment-invalid-drop-commentId",
+        "t3-rpc-pullRequests.updateComment-invalid-no-payload",
+        "t3-rpc-pullRequests.updateComment-invalid-wrong-type-commentId",
+        "t3-rpc-review.getDiffFileContents-invalid-wrong-type-cwd",
+        "t3-rpc-review.getDiffPreview-invalid-wrong-type-cwd",
+        "t3-rpc-scheduledTasks.upsert-invalid-wrong-type-title",
+        "t3-rpc-scheduledTasks.upsert-valid-min",
+        "t3-rpc-server.getUsageSummary-boundary-full",
+        "t3-rpc-server.getUsageSummary-invalid-wrong-type-sinceDay",
+        "t3-rpc-server.getUsageSummary-valid-min",
+        "t3-rpc-server.reportClientActivity-boundary-full",
+        "t3-rpc-server.reportClientActivity-invalid-drop-clientId",
+        "t3-rpc-server.reportClientActivity-invalid-no-payload",
+        "t3-rpc-server.reportClientActivity-invalid-wrong-type-clientId",
+        "t3-rpc-server.reportClientActivity-valid-min",
+        "t3-rpc-server.updateProvider-invalid-wrong-type-provider",
+        "t3-rpc-server.updateSettings-invalid-wrong-type-patch",
+        "t3-rpc-sourceControl.appAccess-invalid-wrong-type-provider",
+        "t3-rpc-sourceControl.lookupRepository-invalid-wrong-type-provider",
+        "t3-rpc-sourceControl.publishRepository-invalid-wrong-type-cwd",
+        "t3-rpc-sourceControl.signInCancel-invalid-wrong-type-provider",
+        "t3-rpc-sourceControl.signInStart-invalid-wrong-type-provider",
+        "t3-rpc-sourceControl.signInWait-invalid-wrong-type-provider",
+        "t3-rpc-terminal.open-invalid-drop-cwd",
+        "t3-rpc-terminal.open-invalid-no-payload",
+        "t3-rpc-terminal.open-invalid-wrong-type-cwd",
+        "t3-rpc-vcs.createRef-invalid-wrong-type-cwd",
+        "t3-rpc-vcs.listRefs-invalid-wrong-type-cwd",
+        "t3-rpc-vcs.pull-invalid-wrong-type-cwd",
+        "t3-rpc-vcs.switchRef-invalid-wrong-type-cwd"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
+      ],
+      "ids": [
+        "t3-rpc-agentSessions.scan-invalid-no-payload",
+        "t3-rpc-agentSessions.scan-valid-min",
+        "t3-rpc-cloud.getRelayClientStatus-valid-min",
+        "t3-rpc-device.close-boundary-full",
+        "t3-rpc-device.close-invalid-wrong-type-threadId",
+        "t3-rpc-device.close-valid-min",
+        "t3-rpc-device.configure-boundary-full",
+        "t3-rpc-device.configure-invalid-no-payload",
+        "t3-rpc-device.configure-valid-min",
+        "t3-rpc-device.list-invalid-no-payload",
+        "t3-rpc-device.list-valid-min",
+        "t3-rpc-filesystem.browse-boundary-full",
+        "t3-rpc-filesystem.browse-valid-min",
+        "t3-rpc-orchestration.getFullThreadDiff-boundary-full",
+        "t3-rpc-orchestration.getFullThreadDiff-boundary-limit-toTurnCount",
+        "t3-rpc-orchestration.getFullThreadDiff-invalid-wrong-type-threadId",
+        "t3-rpc-orchestration.getFullThreadDiff-valid-min",
+        "t3-rpc-orchestration.getOlderSettledThreads-boundary-full",
+        "t3-rpc-orchestration.getOlderSettledThreads-valid-min",
+        "t3-rpc-orchestration.getTurnItem-boundary-full",
+        "t3-rpc-orchestration.getTurnItem-invalid-wrong-type-threadId",
+        "t3-rpc-orchestration.getTurnItem-valid-min",
+        "t3-rpc-orchestration.getWorktreeThreadIds-valid-min",
+        "t3-rpc-preview.clearProfile-valid-min",
+        "t3-rpc-preview.reportProfiles-valid-min",
+        "t3-rpc-pullRequests.filterOptions-boundary-full",
+        "t3-rpc-pullRequests.filterOptions-valid-min",
+        "t3-rpc-pullRequests.listStats-boundary-full",
+        "t3-rpc-scheduledTasks.delete-invalid-wrong-type-id",
+        "t3-rpc-scheduledTasks.delete-valid-min",
+        "t3-rpc-scheduledTasks.listWebhookDeliveries-boundary-full",
+        "t3-rpc-scheduledTasks.listWebhookDeliveries-invalid-wrong-type-id",
+        "t3-rpc-scheduledTasks.listWebhookDeliveries-valid-min",
+        "t3-rpc-server.acceptAcpRegistryUrlAuth-valid-min",
+        "t3-rpc-server.getProcessDiagnostics-invalid-no-payload",
+        "t3-rpc-server.getProcessDiagnostics-valid-min",
+        "t3-rpc-server.getResourceTelemetryHistory-boundary-limit-windowMs",
+        "t3-rpc-server.getResourceTelemetryHistory-valid-min",
+        "t3-rpc-server.getTraceDiagnostics-valid-min",
+        "t3-rpc-server.retryResourceTelemetry-invalid-no-payload",
+        "t3-rpc-server.retryResourceTelemetry-valid-min",
+        "t3-rpc-server.runStorageCleanup-invalid-no-payload",
+        "t3-rpc-server.runStorageCleanup-valid-min",
+        "t3-rpc-server.searchAcpRegistry-valid-min",
+        "t3-rpc-server.signalProcess-boundary-limit-pid",
+        "t3-rpc-server.signalProcess-valid-min",
+        "t3-rpc-server.uninstallAcpRegistryManagedBinary-valid-min",
+        "t3-rpc-sourceControl.appAccess-valid-min",
+        "t3-rpc-sourceControl.starred-valid-min"
+      ]
+    },
+    {
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type extra drift",
+        "steps.http:ret:_.[2].payload.headers.vary extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-auth.browserSession-invalid-drop-credential",
+        "t3-http-auth.browserSession-invalid-wrong-type-credential",
+        "t3-http-auth.revokeClient-invalid-drop-sessionId",
+        "t3-http-auth.revokePairingLink-invalid-drop-id",
+        "t3-http-auth.revokePairingLink-invalid-wrong-type-id",
+        "t3-http-connect.health-invalid-drop-proof",
+        "t3-http-connect.health-invalid-wrong-type-proof",
+        "t3-http-connect.linkProof-invalid-drop-challenge",
+        "t3-http-connect.linkProof-invalid-wrong-type-challenge",
+        "t3-http-connect.preferences-invalid-drop-publishAgentActivity",
+        "t3-http-connect.preferences-invalid-wrong-type-publishAgentActivity",
+        "t3-http-connect.relayConfig-invalid-drop-relayUrl",
+        "t3-http-connect.relayConfig-invalid-wrong-type-relayUrl",
+        "t3-http-connect.t3MintCredential-invalid-drop-proof",
+        "t3-http-connect.t3MintCredential-invalid-wrong-type-proof",
+        "t3-http-mcpOAuth.approval-invalid-wrong-type-response-type",
+        "t3-http-mcpOAuth.decision-boundary-full",
+        "t3-http-mcpOAuth.decision-invalid-drop-authorization",
+        "t3-http-mcpOAuth.decision-invalid-wrong-type-authorization",
+        "t3-http-mcpOAuth.decision-valid-min",
+        "t3-http-mcpOAuth.register-invalid-wrong-type-client-name",
+        "t3-http-orchestration.shellSnapshot-empty-empty-object",
+        "t3-http-orchestration.shellSnapshot-invalid-no-payload",
+        "t3-http-orchestration.threadBoundedSnapshot-empty-empty-object",
+        "t3-http-orchestration.threadBoundedSnapshot-invalid-no-payload",
+        "t3-http-orchestration.threadHistoryPage-empty-empty-object",
+        "t3-http-orchestration.threadHistoryPage-invalid-no-payload",
+        "t3-http-orchestration.threadSnapshot-empty-empty-object",
+        "t3-http-orchestration.threadSnapshot-invalid-no-payload",
+        "t3-http-orchestration.threadTranscript-empty-empty-object",
+        "t3-http-orchestration.threadTranscript-invalid-no-payload",
+        "t3-http-projects.mutate-valid-min",
+        "t3-http-pullRequests.diff-boundary-full",
+        "t3-http-pullRequests.diff-invalid-wrong-type-cursor",
+        "t3-http-pullRequests.diff-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value extra drift"
+      ],
+      "ids": [
+        "t3-rpc-projectClone.start-boundary-full",
+        "t3-rpc-projects.listEntries-invalid-drop-cwd",
+        "t3-rpc-projects.listEntries-invalid-no-payload",
+        "t3-rpc-projects.listEntries-invalid-wrong-type-cwd",
+        "t3-rpc-projects.searchEntries-boundary-full",
+        "t3-rpc-projects.searchEntries-boundary-limit-limit",
+        "t3-rpc-projects.searchEntries-valid-min",
+        "t3-rpc-projects.writeFile-valid-min",
+        "t3-rpc-provider.chatgpt.reconnect-profile-valid-min",
+        "t3-rpc-pullRequests.filesViewed-boundary-full",
+        "t3-rpc-pullRequests.filesViewed-boundary-limit-number",
+        "t3-rpc-pullRequests.filesViewed-invalid-wrong-type-projectId",
+        "t3-rpc-pullRequests.filesViewed-valid-min",
+        "t3-rpc-pullRequests.linkedThreads-invalid-drop-projectId",
+        "t3-rpc-pullRequests.list-boundary-full",
+        "t3-rpc-pullRequests.list-invalid-drop-state",
+        "t3-rpc-pullRequests.list-invalid-no-payload",
+        "t3-rpc-pullRequests.list-invalid-wrong-type-state",
+        "t3-rpc-pullRequests.listStats-invalid-drop-refs",
+        "t3-rpc-pullRequests.listStats-invalid-no-payload",
+        "t3-rpc-pullRequests.listStats-invalid-wrong-type-refs",
+        "t3-rpc-review.getDiffFileContents-valid-min",
+        "t3-rpc-review.getDiffPreview-boundary-full",
+        "t3-rpc-review.getDiffPreview-valid-min",
+        "t3-rpc-server.refreshProviders-invalid-wrong-type-instanceId",
+        "t3-rpc-vcs.createRef-valid-min",
+        "t3-rpc-vcs.switchRef-valid-min"
+      ]
+    },
+    {
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-auth.browserSession-invalid-no-payload",
+        "t3-http-auth.revokeClient-invalid-no-payload",
+        "t3-http-auth.revokePairingLink-invalid-no-payload",
+        "t3-http-connect.health-invalid-no-payload",
+        "t3-http-connect.linkProof-invalid-no-payload",
+        "t3-http-connect.preferences-invalid-no-payload",
+        "t3-http-connect.relayConfig-invalid-no-payload",
+        "t3-http-connect.t3MintCredential-invalid-no-payload",
+        "t3-http-mcpOAuth.approval-invalid-no-payload",
+        "t3-http-mcpOAuth.decision-invalid-no-payload",
+        "t3-http-mcpOAuth.register-invalid-no-payload",
+        "t3-http-mcpOAuth.token-boundary-full",
+        "t3-http-mcpOAuth.token-invalid-no-payload",
+        "t3-http-mcpOAuth.token-invalid-wrong-type-grant-type",
+        "t3-http-mcpOAuth.token-valid-min",
+        "t3-http-projects.mutate-invalid-no-payload",
+        "t3-http-projects.mutate-invalid-wrong-type",
+        "t3-http-pullRequests.diff-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error._tag",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail extra drift"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.activity-invalid-wrong-type-projectId",
+        "t3-rpc-pullRequests.changeBreakdown-invalid-wrong-type-projectId",
+        "t3-rpc-pullRequests.checks-boundary-limit-number",
+        "t3-rpc-pullRequests.checks-invalid-wrong-type-projectId",
+        "t3-rpc-pullRequests.checks-valid-min",
+        "t3-rpc-pullRequests.detail-invalid-wrong-type-projectId",
+        "t3-rpc-pullRequests.labelCandidates-invalid-wrong-type-projectId",
+        "t3-rpc-pullRequests.preview-boundary-limit-number",
+        "t3-rpc-pullRequests.preview-invalid-wrong-type-projectId",
+        "t3-rpc-pullRequests.preview-valid-min",
+        "t3-rpc-pullRequests.reviewerCandidates-invalid-wrong-type-projectId",
+        "t3-rpc-pullRequests.routing-invalid-wrong-type-projectId",
+        "t3-rpc-pullRequests.stack-invalid-wrong-type-projectId",
+        "t3-rpc-pullRequests.summary-boundary-limit-number",
+        "t3-rpc-pullRequests.summary-invalid-wrong-type-projectId",
+        "t3-rpc-pullRequests.summary-valid-min"
+      ]
+    },
+    {
+      "class": "extra at steps.ws:s2c:*.[*]",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0] extra drift"
+      ],
+      "ids": [
+        "t3-rpc-cloud.getRelayClientStatus-invalid-no-payload",
+        "t3-rpc-device.list-boundary-full",
+        "t3-rpc-orchestration.subscribeThread-boundary-limit-afterSequence",
+        "t3-rpc-scheduledTasks.getWebhookDelivery-invalid-wrong-type-id",
+        "t3-rpc-server.discoverSourceControl-invalid-no-payload",
+        "t3-rpc-server.discoverSourceControl-valid-min",
+        "t3-rpc-server.getConfig-invalid-no-payload",
+        "t3-rpc-server.getConfig-valid-min",
+        "t3-rpc-server.prepareTriage-boundary-full",
+        "t3-rpc-server.prepareTriage-valid-min",
+        "t3-rpc-server.refreshProviders-boundary-full",
+        "t3-rpc-server.refreshProviders-invalid-no-payload",
+        "t3-rpc-server.refreshProviders-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.values missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit extra drift"
+      ],
+      "ids": [
+        "t3-rpc-cloud.installRelayClient-invalid-no-payload",
+        "t3-rpc-orchestration.subscribeThread-boundary-full",
+        "t3-rpc-server.getStorageCleanupReport-invalid-no-payload",
+        "t3-rpc-server.getStorageCleanupReport-valid-min",
+        "t3-rpc-subscribeAuthAccess-invalid-no-payload",
+        "t3-rpc-subscribeAuthAccess-valid-min",
+        "t3-rpc-subscribeDeviceState-invalid-no-payload",
+        "t3-rpc-subscribeDeviceState-valid-min",
+        "t3-rpc-subscribeDiscoveredLocalServers-boundary-full",
+        "t3-rpc-subscribeDiscoveredLocalServers-invalid-no-payload",
+        "t3-rpc-subscribeDiscoveredLocalServers-valid-min",
+        "t3-rpc-subscribeResourceTelemetry-invalid-no-payload",
+        "t3-rpc-subscribeResourceTelemetry-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.reason",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail extra drift"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.activity-boundary-limit-number",
+        "t3-rpc-pullRequests.activity-valid-min",
+        "t3-rpc-pullRequests.changeBreakdown-boundary-limit-number",
+        "t3-rpc-pullRequests.changeBreakdown-valid-min",
+        "t3-rpc-pullRequests.detail-boundary-limit-number",
+        "t3-rpc-pullRequests.detail-valid-min",
+        "t3-rpc-pullRequests.labelCandidates-boundary-limit-number",
+        "t3-rpc-pullRequests.labelCandidates-valid-min",
+        "t3-rpc-pullRequests.reviewerCandidates-boundary-limit-number",
+        "t3-rpc-pullRequests.reviewerCandidates-valid-min",
+        "t3-rpc-pullRequests.stack-boundary-limit-number",
+        "t3-rpc-pullRequests.stack-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.reason",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-server.deleteAcpRegistrySession-valid-min",
+        "t3-rpc-server.disableAcpRegistryProvider-valid-min",
+        "t3-rpc-server.importAcpRegistrySession-boundary-full",
+        "t3-rpc-server.importAcpRegistrySession-valid-min",
+        "t3-rpc-server.listAcpRegistryProviders-valid-min",
+        "t3-rpc-server.listAcpRegistrySessions-boundary-full",
+        "t3-rpc-server.listAcpRegistrySessions-valid-min",
+        "t3-rpc-server.logoutAcpRegistry-valid-min",
+        "t3-rpc-server.setAcpRegistryProvider-boundary-full",
+        "t3-rpc-server.setAcpRegistryProvider-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.reason",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.threadId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-mcpApps.callTool-invalid-wrong-type-threadId",
+        "t3-rpc-mcpApps.callTool-valid-min",
+        "t3-rpc-mcpApps.readResource-invalid-wrong-type-threadId",
+        "t3-rpc-mcpApps.readResource-valid-min",
+        "t3-rpc-mcpApps.toolInfo-invalid-wrong-type-threadId",
+        "t3-rpc-mcpApps.toolInfo-valid-min",
+        "t3-rpc-mcpApps.updateModelContext-boundary-full",
+        "t3-rpc-mcpApps.updateModelContext-invalid-wrong-type-threadId",
+        "t3-rpc-mcpApps.updateModelContext-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body._tag",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body._tag missing breaking",
+        "steps.http:ret:_.[2].payload.body.message changed drift",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.health-valid-min",
+        "t3-http-connect.linkProof-valid-min",
+        "t3-http-connect.preferences-boundary-full",
+        "t3-http-connect.relayConfig-boundary-full",
+        "t3-http-connect.relayConfig-valid-min",
+        "t3-http-connect.t3MintCredential-valid-min",
+        "t3-http-mcpOAuth.approval-boundary-full",
+        "t3-http-mcpOAuth.approval-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.error",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.error missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.headers.x-t3-hook-outcome missing breaking"
+      ],
+      "ids": [
+        "t3-http-webhooks.webhookGet-empty-empty-object",
+        "t3-http-webhooks.webhookGet-invalid-no-payload",
+        "t3-http-webhooks.webhookPatch-empty-empty-object",
+        "t3-http-webhooks.webhookPatch-invalid-no-payload",
+        "t3-http-webhooks.webhookPost-empty-empty-object",
+        "t3-http-webhooks.webhookPost-invalid-no-payload",
+        "t3-http-webhooks.webhookPut-empty-empty-object",
+        "t3-http-webhooks.webhookPut-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.searchThread-boundary-full",
+        "t3-rpc-orchestration.searchThread-boundary-limit-index",
+        "t3-rpc-orchestration.searchThread-invalid-wrong-type-threadId",
+        "t3-rpc-orchestration.searchThread-valid-min",
+        "t3-rpc-orchestration.searchThreadStream-boundary-full",
+        "t3-rpc-orchestration.searchThreadStream-boundary-limit-index",
+        "t3-rpc-orchestration.searchThreadStream-invalid-wrong-type-threadId",
+        "t3-rpc-orchestration.searchThreadStream-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.reason",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.easAccount-boundary-full",
+        "t3-rpc-device.easAccount-invalid-no-payload",
+        "t3-rpc-device.easAccount-valid-min",
+        "t3-rpc-device.simlockIdentity-boundary-full",
+        "t3-rpc-device.simlockIdentity-invalid-no-payload",
+        "t3-rpc-device.simlockIdentity-valid-min",
+        "t3-rpc-guestShare.create-invalid-wrong-type-threadId",
+        "t3-rpc-guestShare.create-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift"
+      ],
+      "ids": [
+        "t3-rpc-provider.auth.cancel-valid-min",
+        "t3-rpc-provider.auth.complete-valid-min",
+        "t3-rpc-provider.auth.logout-valid-min",
+        "t3-rpc-provider.auth.respond-valid-min",
+        "t3-rpc-provider.auth.start-boundary-full",
+        "t3-rpc-provider.auth.start-valid-min",
+        "t3-rpc-pullRequests.reviewGuide-boundary-limit-number",
+        "t3-rpc-pullRequests.reviewGuide-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation changed drift"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.activity-boundary-full",
+        "t3-rpc-pullRequests.changeBreakdown-boundary-full",
+        "t3-rpc-pullRequests.detail-boundary-full",
+        "t3-rpc-pullRequests.generateReviewGuide-boundary-full",
+        "t3-rpc-pullRequests.labelCandidates-boundary-full",
+        "t3-rpc-pullRequests.reviewGuide-boundary-full",
+        "t3-rpc-pullRequests.reviewerCandidates-boundary-full",
+        "t3-rpc-pullRequests.stack-boundary-full"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.message",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift"
+      ],
+      "ids": [
+        "t3-rpc-peerLinks.link-boundary-full",
+        "t3-rpc-peerLinks.link-valid-min",
+        "t3-rpc-scheduledTasks.rotateWebhookToken-invalid-wrong-type-id",
+        "t3-rpc-scheduledTasks.rotateWebhookToken-valid-min",
+        "t3-rpc-scheduledTasks.runNow-invalid-wrong-type-id",
+        "t3-rpc-scheduledTasks.runNow-valid-min",
+        "t3-rpc-scheduledTasks.setEnabled-invalid-wrong-type-id",
+        "t3-rpc-scheduledTasks.setEnabled-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking"
+      ],
+      "ids": [
+        "t3-mutation-project.delete-boundary-full",
+        "t3-mutation-project.delete-invalid-wrong-type-commandId",
+        "t3-mutation-project.delete-valid-min",
+        "t3-mutation-project.update-invalid-wrong-type-commandId",
+        "t3-mutation-project.update-valid-min",
+        "t3-rpc-projects.createFromThread-invalid-wrong-type-threadId",
+        "t3-rpc-projects.createFromThread-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-attachments.delete-valid-min",
+        "t3-rpc-preview.close-boundary-full",
+        "t3-rpc-preview.close-invalid-wrong-type-threadId",
+        "t3-rpc-preview.close-valid-min",
+        "t3-rpc-pullRequests.invalidate-boundary-full",
+        "t3-rpc-pullRequests.invalidate-invalid-no-payload",
+        "t3-rpc-pullRequests.invalidate-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.invalidate-invalid-wrong-type-reference",
+        "t3-rpc-pullRequests.reportState-boundary-full",
+        "t3-rpc-pullRequests.reportState-invalid-drop-reference",
+        "t3-rpc-pullRequests.reportState-invalid-no-payload",
+        "t3-rpc-pullRequests.reportState-invalid-wrong-type-reference",
+        "t3-rpc-pullRequests.reportState-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift"
+      ],
+      "ids": [
+        "t3-rpc-peerLinks.answerRequest-boundary-full",
+        "t3-rpc-peerLinks.answerRequest-invalid-wrong-type-threadId",
+        "t3-rpc-peerLinks.answerRequest-valid-min",
+        "t3-rpc-secrets.answerRequest-invalid-wrong-type-threadId",
+        "t3-rpc-secrets.answerRequest-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.authorization_servers",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.authorization_servers missing breaking",
+        "steps.http:ret:_.[2].payload.body.bearer_methods_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.resource missing breaking",
+        "steps.http:ret:_.[2].payload.body.resource_name missing breaking",
+        "steps.http:ret:_.[2].payload.body.scopes_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-mcpOAuth.mcpProtectedResource-empty-empty-object",
+        "t3-http-mcpOAuth.mcpProtectedResource-invalid-no-payload",
+        "t3-http-mcpOAuth.protectedResource-empty-empty-object",
+        "t3-http-mcpOAuth.protectedResource-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.instanceId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-provider.install.cancel-valid-min",
+        "t3-rpc-provider.install.remove-valid-min",
+        "t3-rpc-provider.install.start-valid-min",
+        "t3-rpc-provider.install.subscribe-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift"
+      ],
+      "ids": [
+        "t3-rpc-sourceControl.lookupRepository-boundary-full",
+        "t3-rpc-sourceControl.lookupRepository-valid-min",
+        "t3-rpc-sourceControl.publishRepository-boundary-full",
+        "t3-rpc-sourceControl.publishRepository-valid-min"
+      ]
+    },
+    {
+      "class": "extra at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.provider",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.provider extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.requirement extra drift"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.routing-boundary-full",
+        "t3-rpc-pullRequests.routing-boundary-limit-number",
+        "t3-rpc-pullRequests.routing-valid-min",
+        "t3-rpc-pullRequests.routingIdentity-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.revoked",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.revoked missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-auth.revokeClient-invalid-wrong-type-sessionId",
+        "t3-http-auth.revokeClient-valid-min",
+        "t3-http-auth.revokePairingLink-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit missing breaking",
+        "steps.ws:s2c:1.[0].payload.values extra drift"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.subscribeShell-invalid-wrong-type-afterSequence",
+        "t3-rpc-provider.auth.subscribe-valid-min",
+        "t3-rpc-subscribeServerConfig-invalid-wrong-type-environmentThemes"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.threadId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.id extra drift"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.getThreadProjection-invalid-wrong-type-threadId",
+        "t3-rpc-orchestration.getThreadProjection-valid-min",
+        "t3-rpc-orchestration.subscribeThread-invalid-wrong-type-threadId"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.threadId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.id extra drift"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.forceStopThread-boundary-full",
+        "t3-rpc-orchestration.forceStopThread-invalid-wrong-type-threadId",
+        "t3-rpc-orchestration.forceStopThread-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.threadId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-provider.uploadFeedback-boundary-full",
+        "t3-rpc-provider.uploadFeedback-invalid-wrong-type-threadId",
+        "t3-rpc-provider.uploadFeedback-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.hostId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.hostId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.action-boundary-full",
+        "t3-rpc-device.open-boundary-full",
+        "t3-rpc-device.shutdown-boundary-full"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.projectId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.projectId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-agentSessions.import-boundary-full",
+        "t3-rpc-agentSessions.import-invalid-wrong-type-projectId",
+        "t3-rpc-agentSessions.import-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason extra drift"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.checks-boundary-full",
+        "t3-rpc-pullRequests.preview-boundary-full",
+        "t3-rpc-pullRequests.summary-boundary-full"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason changed drift"
+      ],
+      "ids": [
+        "t3-rpc-sourceControl.signInCancel-valid-min",
+        "t3-rpc-sourceControl.signInStart-valid-min",
+        "t3-rpc-sourceControl.signInWait-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.refs",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.isRepo changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.refs changed breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.totalCount changed drift"
+      ],
+      "ids": [
+        "t3-rpc-vcs.listRefs-boundary-full",
+        "t3-rpc-vcs.listRefs-boundary-limit-cursor",
+        "t3-rpc-vcs.listRefs-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.platform.machine",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[0].payload.body.platform.machine missing breaking"
+      ],
+      "ids": [
+        "t3-http-metadata.descriptor-empty-empty-object",
+        "t3-http-metadata.descriptor-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.cache-control extra drift",
+        "steps.http:ret:_.[2].payload.headers.content-type extra drift",
+        "steps.http:ret:_.[2].payload.headers.pragma extra drift",
+        "steps.http:ret:_.[2].payload.headers.vary extra drift"
+      ],
+      "ids": [
+        "t3-http-auth.pairingCredential-boundary-full",
+        "t3-http-auth.pairingCredential-invalid-wrong-type-label"
+      ]
+    },
+    {
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.cache-control missing breaking",
+        "steps.http:ret:_.[2].payload.headers.content-security-policy missing breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
+        "steps.http:ret:_.[2].payload.headers.referrer-policy missing breaking",
+        "steps.http:ret:_.[2].payload.headers.x-content-type-options missing breaking",
+        "steps.http:ret:_.[2].payload.headers.x-frame-options missing breaking",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-mcpOAuth.authorize-empty-empty-object",
+        "t3-http-mcpOAuth.authorize-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.authorization_endpoint",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.authorization_endpoint missing breaking",
+        "steps.http:ret:_.[2].payload.body.authorization_response_iss_parameter_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.code_challenge_methods_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.grant_types_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.issuer missing breaking",
+        "steps.http:ret:_.[2].payload.body.registration_endpoint missing breaking",
+        "steps.http:ret:_.[2].payload.body.response_types_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.scopes_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.token_endpoint missing breaking",
+        "steps.http:ret:_.[2].payload.body.token_endpoint_auth_methods_supported missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-mcpOAuth.authorizationServer-empty-empty-object",
+        "t3-http-mcpOAuth.authorizationServer-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.cause missing breaking",
+        "steps.http:ret:_.[2].payload.body.checkedAt missing breaking",
+        "steps.http:ret:_.[2].payload.body.fix missing breaking",
+        "steps.http:ret:_.[2].payload.body.hint missing breaking",
+        "steps.http:ret:_.[2].payload.body.reason missing breaking",
+        "steps.http:ret:_.[2].payload.body.status missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.checkReachability-empty-empty-object",
+        "t3-http-connect.checkReachability-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.cloudUserId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.cloudUserId missing breaking",
+        "steps.http:ret:_.[2].payload.body.holdWebhooksWhileOffline missing breaking",
+        "steps.http:ret:_.[2].payload.body.linkRevoked missing breaking",
+        "steps.http:ret:_.[2].payload.body.linked missing breaking",
+        "steps.http:ret:_.[2].payload.body.managedTunnelActive missing breaking",
+        "steps.http:ret:_.[2].payload.body.publishAgentActivity missing breaking",
+        "steps.http:ret:_.[2].payload.body.reachability missing breaking",
+        "steps.http:ret:_.[2].payload.body.relayIssuer missing breaking",
+        "steps.http:ret:_.[2].payload.body.relayUrl missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.linkState-empty-empty-object",
+        "t3-http-connect.linkState-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.endpointRuntimeStatus",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.endpointRuntimeStatus missing breaking",
+        "steps.http:ret:_.[2].payload.body.ok missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.unlink-empty-empty-object",
+        "t3-http-connect.unlink-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.error",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.error missing breaking",
+        "steps.http:ret:_.[2].payload.body.error_description missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-mcpOAuth.register-boundary-full",
+        "t3-http-mcpOAuth.register-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.projects",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.projects missing breaking",
+        "steps.http:ret:_.[2].payload.body.updatedAt missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-projects.snapshot-empty-empty-object",
+        "t3-http-projects.snapshot-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.revokedCount",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.revokedCount missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-auth.revokeOtherClients-empty-empty-object",
+        "t3-http-auth.revokeOtherClients-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit missing breaking",
+        "steps.ws:s2c:1.[0].payload.values extra drift",
+        "steps.ws:s2c:1.[1] extra drift"
+      ],
+      "ids": [
+        "t3-rpc-git.runStackedAction-boundary-full",
+        "t3-rpc-git.runStackedAction-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect extra drift"
+      ],
+      "ids": [
+        "t3-command-thread.created.record-invalid-wrong-type-commandId",
+        "t3-command-thread.created.record-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.argumentCount",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.argumentCount missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.command missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.exitCode missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.failureKind missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.stderrLength missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.stderrTruncated missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-vcs.init-boundary-full",
+        "t3-rpc-vcs.init-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.command missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-vcs.removeWorktree-boundary-full",
+        "t3-rpc-vcs.removeWorktree-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.failure missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.limit missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.normalizedCwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.queryLength missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.searchContents-boundary-limit-query",
+        "t3-rpc-projects.searchContents-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.failure missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.normalizedCwd missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-projects.listEntries-boundary-full",
+        "t3-rpc-projects.listEntries-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.failure missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operationPath missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.relativePath missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.resolvedPath missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-projects.readFile-boundary-full",
+        "t3-rpc-projects.readFile-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.scriptPath missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.id extra drift"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.getWorkflowScript-invalid-wrong-type-threadId",
+        "t3-rpc-orchestration.getWorkflowScript-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.subagentId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.threadId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.id extra drift"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.stopWorkflow-invalid-wrong-type-threadId",
+        "t3-rpc-orchestration.stopWorkflow-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cwd",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-review.getBranchCommits-boundary-full",
+        "t3-rpc-review.getBranchCommits-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.hostId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.hostId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.hostLabel missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.action-valid-min",
+        "t3-rpc-device.shutdown-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.hostId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.hostId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.platform missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.open-invalid-wrong-type-threadId",
+        "t3-rpc-device.open-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.taskId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.taskId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-scheduledTasks.getWebhookDelivery-boundary-full",
+        "t3-rpc-scheduledTasks.getWebhookDelivery-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.threadId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.threadId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.id extra drift"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.subscribeCommandOutput-invalid-wrong-type-threadId",
+        "t3-rpc-orchestration.subscribeCommandOutput-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation changed drift"
+      ],
+      "ids": [
+        "t3-rpc-git.preparePullRequestThread-boundary-full",
+        "t3-rpc-git.preparePullRequestThread-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.provider changed drift"
+      ],
+      "ids": [
+        "t3-rpc-projectClone.start-invalid-wrong-type-projectId",
+        "t3-rpc-projectClone.start-valid-min"
+      ]
+    },
+    {
+      "class": "extra at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.message",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift"
+      ],
+      "ids": [
+        "t3-rpc-preview.adjust-invalid-wrong-type-threadId",
+        "t3-rpc-preview.adjust-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.reason",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.updateProvider-boundary-full",
+        "t3-rpc-server.updateProvider-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.revision",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.revision changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.serverEpoch changed drift"
+      ],
+      "ids": [
+        "t3-rpc-preview.list-invalid-wrong-type-threadId",
+        "t3-rpc-preview.list-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.tabId",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.tabId changed drift"
+      ],
+      "ids": [
+        "t3-rpc-preview.open-invalid-wrong-type-threadId",
+        "t3-rpc-preview.open-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.values",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values changed breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0] changed breaking"
+      ],
+      "ids": [
+        "t3-rpc-subscribeProjectClones-invalid-no-payload",
+        "t3-rpc-subscribeProjectClones-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.values.[*]",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0] changed drift"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.subscribeRefreshes-invalid-no-payload",
+        "t3-rpc-pullRequests.subscribeRefreshes-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.values.[*].compactCommand",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].compactCommand changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].databaseBytes changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].incrementalVacuumEnabled changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.getDatabaseStorage-invalid-no-payload",
+        "t3-rpc-server.getDatabaseStorage-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].config.environment.platform.machine",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.platform.machine missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.remoteOpenTargets changed breaking"
+      ],
+      "ids": [
+        "t3-rpc-subscribeServerConfig-invalid-no-payload",
+        "t3-rpc-subscribeServerConfig-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].resolvedRepositoryIdentityRoots",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].kind changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].resolvedRepositoryIdentityRoots missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].snapshot missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].sequence extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].project extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[1].kind changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[1].project missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].location extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[1].thread extra drift",
+        "steps.ws:s2c:1.[0].payload.values.[2].kind changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[2].thread missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[2].threadId extra drift"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.subscribeShell-boundary-full",
+        "t3-rpc-orchestration.subscribeShell-boundary-limit-afterSequence"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].payload.environment.platform.machine",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.platform.machine missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.platform.machine missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-subscribeServerLifecycle-invalid-no-payload",
+        "t3-rpc-subscribeServerLifecycle-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.values.[*].snapshot.archivedThreads",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].snapshot.archivedThreads changed breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].snapshot.threads changed breaking"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.subscribeShell-invalid-no-payload",
+        "t3-rpc-orchestration.subscribeShell-valid-min"
+      ]
+    },
+    {
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
+        "steps.http:ret:_.[2].payload.headers.cache-control extra drift",
+        "steps.http:ret:_.[2].payload.headers.pragma extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-auth.pairingCredential-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body._tag",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body._tag missing breaking",
+        "steps.http:ret:_.[2].payload.body.code changed drift",
+        "steps.http:ret:_.[2].payload.body.reason missing breaking",
+        "steps.http:ret:_.[2].payload.body.traceId missing breaking",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-auth.browserSession-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.http:ret:_.[*].payload.body.cloudUserId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.cloudUserId missing breaking",
+        "steps.http:ret:_.[2].payload.body.holdWebhooksWhileOffline missing breaking",
+        "steps.http:ret:_.[2].payload.body.linkRevoked missing breaking",
+        "steps.http:ret:_.[2].payload.body.linked missing breaking",
+        "steps.http:ret:_.[2].payload.body.managedTunnelActive missing breaking",
+        "steps.http:ret:_.[2].payload.body.publishAgentActivity missing breaking",
+        "steps.http:ret:_.[2].payload.body.relayIssuer missing breaking",
+        "steps.http:ret:_.[2].payload.body.relayUrl missing breaking",
+        "steps.http:ret:_.[2].payload.body.code extra drift",
+        "steps.http:ret:_.[2].payload.body.message extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ],
+      "ids": [
+        "t3-http-connect.preferences-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.http:ret:_.[*].payload.body.id",
+      "severity": "drift",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body.id changed drift",
+        "steps.http:ret:_.[2].payload.headers.cache-control extra drift",
+        "steps.http:ret:_.[2].payload.headers.pragma extra drift"
+      ],
+      "ids": [
+        "t3-http-auth.pairingCredential-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:close:s2c:_.[*].payload.code",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:close:s2c:_.[0].payload.code changed drift",
+        "steps.ws:s2c:1.[0] extra drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.ensureScratch-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-git.resolvePullRequest-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.failure missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.normalizedCwd missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.listIgnoredFiles-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.provider missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-sourceControl.cloneRepository-boundary-full"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-server.prepareAcpRegistryAgent-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-device.testHost-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.instanceId",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.instanceId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-provider.consumeResetCredit-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.provider missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-sourceControl.cloneRepository-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation changed drift"
+      ],
+      "ids": [
+        "t3-rpc-vcs.pull-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.command changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason extra drift"
+      ],
+      "ids": [
+        "t3-rpc-vcs.createRef-boundary-full"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason extra drift"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.reviewGuide-invalid-wrong-type-projectId"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.availableMemoryBytes",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.availableMemoryBytes changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.cpuCount changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.cpuUtilization changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sampledAt changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.totalMemoryBytes changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.getHostResources-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "kind at steps.ws:s2c:*.[*].payload.exit.value.cpuUtilization",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.availableMemoryBytes changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.cpuCount changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.cpuUtilization kind breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.sampledAt changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.totalMemoryBytes changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.getHostResources-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.commitError",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.commitError missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.workspaceRoot changed drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.createNew-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.errors",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.errors changed breaking"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.list-valid-min"
+      ]
+    },
+    {
+      "class": "kind at steps.ws:s2c:*.[*].payload.exit.value.fetchedAt",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.fetchedAt kind breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.knownModels changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.source changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.status changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.refreshUsageRates-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.projectSettingsFolded",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.projectSettingsFolded changed drift"
+      ],
+      "ids": [
+        "t3-rpc-server.updateSettings-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.values",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values changed breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.platform.machine missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.remoteOpenTargets changed breaking"
+      ],
+      "ids": [
+        "t3-rpc-subscribeServerConfig-boundary-full"
+      ]
+    },
+    {
+      "class": "kind at steps.ws:s2c:*.[*].payload.values.[*].projection.thread.archivedAt",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].projection.thread.archivedAt kind breaking"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.subscribeThread-valid-golden"
+      ]
+    }
+  ]
+}

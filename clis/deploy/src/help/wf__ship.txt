@@ -1,0 +1,50 @@
+Usage: wf ship [options] [service...]
+
+Redeploy a service through vm-ops-api at a tag CI pushed. Nothing here builds an image: CI builds and pushes every image of a push to dev on the runner (`wf ship build <app> --tag <tag>`, see `wf ship build --help`), and `wf ship <service> --ref <sha> --redeploy-only --tag sha-<8>` redeploys what it pushed. A hand build is docker buildx in agent-shell's own docker, never into a production tag.
+`wf ship ci-runner --ref <ref>` mints a one-hour runner registration token with VM_PROVISION_GITHUB_TOKEN and redeploys the runner with it as RUNNER_TOKEN, plus a one-hour single-use tag:ci-self-hosted Tailscale key as TS_CI_RUNNER_AUTH_KEY so the runner node joins with its own tag (when no key can be minted it prints one line and the runner keeps joining with the shared key); the PAT and both values go nowhere else and are never printed. With --wipe-state the runner's volumes (its tailnet identity and registration) are wiped first, which moves an existing node onto the new tag; a key already in TS_CI_RUNNER_AUTH_KEY in the environment is sent as is instead of minted (mint it where the Tailscale credentials are readable).
+A redeploy prints the seconds of each of its steps (`phase <name>: <n> s`): with --smoke, a smoke test (the pushed image run once as a throwaway container on a spare port beside the live one; a failure prints that container's log and swaps nothing) and a tailnet probe; the pull and swap; and, with --wait-serving, one bounded /health check. An app with no image (ci-runner) redeploys at latest.
+`wf ship vm-ops-api --ref <commit> --redeploy-only --tag <tag>` (--ref must name a commit) asks POST /redeploy?ref=<sha>&tag=<tag> to prove the image and swap vm-ops-api itself in; a swap that fails is recorded in /redeploy/status and --wait-serving reports it at once.
+--wait-serving: the deploy is done only when the service serves the --ref commit (its /health), within 2 minutes; a service with no /health (vnc-auth-session, leetcode-auth-cookie-capture) is confirmed by the sha tag of its running image. CI's deploy legs use it.
+
+Options:
+  --ref <ref>      Branch or commit to provision config from (the commit a
+                   --wait-serving waits for)
+  --tag <tag>      Docker tag CI pushed (default: latest)
+  --redeploy-only  Pull+restart the service at --tag (required for a service
+                   with an image: wf ship never builds)
+  --smoke          With --redeploy-only: first run the pushed tag as a throwaway
+                   container and probe it (nothing is swapped on a failure); CI's
+                   deploy legs use it after `wf ship build`. vm-ops-api always
+                   proves its own image first
+  --promote-latest Point the named images' latest at --tag, in a VM job that must
+                   end 0: `wf ship --promote-latest vm-ops-api-rs watchdog --tag sha-<7>`.
+                   It is an exec-script job, admin port only, so it fails from a
+                   CI job (WF_VM_CI_PORT set); CI moves `latest` with
+                   `wf ship promote <app> --tag <tag>`, which needs no route.
+  --wipe-state     Also wipe the tailscale-state volume
+  --recreate-all   Recreate every container of the service, sidecars included
+  --changed        Print which services a push must deploy, each with why, and
+                   whether it publishes an EAS Update: {"legs":[{"app","why":[...]}],
+                   "easUpdate":{"publish","why":[...]}}. A service is planned when the hash of its
+                   images and compose project differs between the commit it runs and HEAD
+                   (or that commit is unknown or not in the checkout). The update is published when the
+                   app's package graph (and the lockfile entries it reaches) changed since
+                   the commit of the branch's latest-dev.json pointer, when a tailnet name
+                   that update baked in has moved, or when that commit cannot be read or
+                   the changed packages cannot be listed; a rotated backend token is not
+                   seen, publish it with --force (--force: all legs and the update; --also <a,b>: those services too, changed or not;
+                   --since <sha>: compare with that commit instead of what
+                   each service runs and the pointer names, asking vm-ops-api and the
+                   bucket nothing, so no tailnet name is checked either; --github-output:
+                   append legs= and eas_update= to $GITHUB_OUTPUT)
+  --status         Deployer state: vm-ops-api /health and the container status
+                   of each service
+  -h, --help       display help for command
+
+Commands:
+  eas [options]    Publish the app to Expo as an EAS Update
+  retire <service> Take down the compose project of a removed service
+  worker [--sha <commit>] [--print]
+                   Build that commit's wf on the VM and install it for the
+                   test-queue worker (a dev deploy never updates it); JSON
+                   with ok, sha, seconds, sourceChecksum

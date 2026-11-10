@@ -1,0 +1,15 @@
+[package]
+name = "parity-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The pure core of `wf parity`: the reference scans of the pinned phone apps, the coverage table and its checks"
+
+[lib]
+doctest = false
+
+[features]
+testing = []
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }

@@ -1,0 +1,92 @@
+{
+  "method": "queue.add",
+  "exchanges": [
+    {
+      "name": "queues a prompt behind the turns before it",
+      "before": [
+        {
+          "id": "setup-create-t-qa",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-qa",
+            "title": "Thread t-qa",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "queue.add",
+        "params": {
+          "thread": "t-qa",
+          "item": "q1",
+          "prompt": "next"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": "t-qa",
+          "item": {
+            "item": "q1",
+            "prompt": "next",
+            "created_at_ms": 1700000000000
+          },
+          "position": 1,
+          "seq": 1
+        }
+      },
+      "volatile": [
+        "/result/item/created_at_ms",
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "refuses a prompt for a thread with no workspace or driver to run it",
+      "before": [
+        {
+          "id": "setup-create-t-qb",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-qb",
+            "title": "Thread t-qb"
+          }
+        }
+      ],
+      "request": {
+        "id": "2",
+        "method": "queue.add",
+        "params": {
+          "thread": "t-qb",
+          "prompt": "next"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "NO_DEFAULTS",
+          "message": "thread t-qb has no workspace or driver and the queued prompt names none"
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "3",
+        "method": "queue.add",
+        "params": {
+          "thread": "nope",
+          "prompt": "next"
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

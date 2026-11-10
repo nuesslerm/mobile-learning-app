@@ -1,0 +1,53 @@
+[package]
+name = "wf-mimic"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "`wf mimic`: record a pinned reference into cassettes, replay them against a candidate and diff, the composition root of mimic-core (docs/plans/mimic/plan.md)"
+
+# The tests are one flow binary (tests/flow.rs) driving the thin binary below, with the toy reference (`mimic-toy`) as the program it records.
+[lib]
+test = false
+doctest = false
+
+[[bin]]
+name = "wf-mimic"
+path = "src/bin/wf-mimic.rs"
+test = false
+
+# The toy reference of the flow tests: a deterministic program that makes up an id and a timestamp on every run and speaks mimic-driver/1.
+[[bin]]
+name = "mimic-toy"
+path = "src/bin/mimic-toy.rs"
+required-features = ["testing"]
+test = false
+
+# The toy ws+http reference of the tap flow tests: a driver whose target is an in-process HTTP and WebSocket server, reached through a Tap.
+[[bin]]
+name = "mimic-toy-wire"
+path = "src/bin/mimic-toy-wire.rs"
+required-features = ["testing"]
+test = false
+
+# The flow test compares the help texts with the reference the owner reads and the imported CLI sets rebuild from their cassettes; the provenance scan classifies the contract fixtures of agent-api.
+[package.metadata.flow]
+inputs = ["../../docs/reference/wf-cli.md", "../../libraries/agent-api/exec-testkit/cassettes/**", "../../libraries/agent-api/exec-hosted/tests/cassettes/**", "../../libraries/agent-api/fixture-provenance.json", "../../libraries/agent-api/*/tests/fixtures/**", "../../tooling/t3-conformance/goldens/**", "../../tooling/t3-conformance/allowlist.json", "../../tooling/t3-conformance/t3-pin.json", "../../tooling/orca-conformance/orca-pin.json", "../../docs/plans/rca-parity/coverage/*-methods.json", "../t3-serve/cassettes/**", "../orca-serve/cassettes/**"]
+
+[features]
+testing = ["mimic-core/testing"]
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+wf-bucket = { path = "../wf-bucket" }
+mimic-core = { path = "core" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+toml = { version = "0.8", default-features = false, features = ["parse"] }
+
+# The pre-push gate runs the flow test without features: the self dev-dependency builds the toy for it.
+[dev-dependencies]
+wf-mimic = { path = ".", features = ["testing"] }
+mimic-core = { path = "core", features = ["testing"] }
+tempfile = "3"
+tiny_http = "0.12"
+regex = "1"

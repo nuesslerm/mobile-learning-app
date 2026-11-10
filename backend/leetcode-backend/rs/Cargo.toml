@@ -1,0 +1,36 @@
+[package]
+name = "leetcode-backend-rs"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "leetcode_backend"
+path = "src/lib.rs"
+
+[[bin]]
+name = "leetcode-backend-rs"
+path = "src/main.rs"
+
+[dependencies]
+async-trait.workspace = true
+axum.workspace = true
+clap.workspace = true
+leetcode-backend-core = { path = "../core" }
+percent-encoding.workspace = true
+reqwest.workspace = true
+secrecy.workspace = true
+serde_json.workspace = true
+service-kit = { version = "0.1", registry = "mla" }
+subtle.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["fs", "io-util", "net", "process", "rt-multi-thread", "signal"] }
+tower-http.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+service-kit = { version = "0.1", registry = "mla", features = ["e2e", "blackbox"] }
+http-body-util.workspace = true
+leetcode-backend-core = { path = "../core", features = ["testing"] }
+tokio-stream.workspace = true
+tower = { workspace = true, features = ["util"] }

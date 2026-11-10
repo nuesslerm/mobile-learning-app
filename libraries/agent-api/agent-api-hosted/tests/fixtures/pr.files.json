@@ -1,0 +1,27 @@
+{
+  "method": "pr.files",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "pr.files",
+        "params": {
+          "number": 0,
+          "provider": "github",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`number` must be a positive integer"
+        }
+      },
+      "actions": [
+        "hosted_pr_files"
+      ]
+    }
+  ]
+}

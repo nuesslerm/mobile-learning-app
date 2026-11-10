@@ -1,0 +1,1438 @@
+{
+  "schema": 1,
+  "app": "t3",
+  "generatedBy": "wf parity coverage --app t3 --traces <dir|bundle>",
+  "source": {
+    "runs": [
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 158,
+        "passed": 82
+      },
+      {
+        "suite": "t3-serve-integration",
+        "sha": "6b791822b5821696ecd91d957c21d0531c057491",
+        "complete": true,
+        "tests": 65,
+        "passed": 65
+      }
+    ]
+  },
+  "rows": {
+    "command:checkpoint.rollback": {
+      "suite": "t3-serve-integration",
+      "test": "rollback_m12::a_rollback_puts_the_files_back_to_how_the_first_dropped_turn_found_them_and_a_rollback_that_drops_nothing_touches_none",
+      "agent": [
+        "thread.create",
+        "thread.rollback"
+      ],
+      "executor": [
+        "git_discard"
+      ]
+    },
+    "command:message.dispatch": {
+      "suite": "t3-serve-integration",
+      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "agent": [
+        "thread.create",
+        "thread.subscribe",
+        "turn.start"
+      ],
+      "executor": [
+        "git_checkpoint",
+        "put_blob"
+      ]
+    },
+    "command:provider-session.detach": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "agent": [
+        "thread.create",
+        "thread.detach"
+      ],
+      "executor": []
+    },
+    "command:queue.resume": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_the_executor_writing_for_each",
+      "agent": [
+        "queue.resume",
+        "thread.create"
+      ],
+      "executor": [
+        "git_checkpoint",
+        "write_file"
+      ]
+    },
+    "command:queued-message.promote-to-steer": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_steers_the_running_turn_before_the_rest_start_by_themselves",
+      "agent": [
+        "thread.create",
+        "turn.steer"
+      ],
+      "executor": [
+        "git_checkpoint",
+        "write_file"
+      ]
+    },
+    "command:queued-run.cancel": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_steers_the_running_turn_before_the_rest_start_by_themselves",
+      "agent": [
+        "queue.delete",
+        "thread.create"
+      ],
+      "executor": []
+    },
+    "command:queued-run.edit": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_steers_the_running_turn_before_the_rest_start_by_themselves",
+      "agent": [
+        "queue.edit",
+        "thread.create"
+      ],
+      "executor": []
+    },
+    "command:queued-run.start": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_starts_it_or_resumes_the_queue_and_rca_refuses_it_on_an_archived_thread",
+      "agent": [
+        "queue.resume",
+        "thread.create"
+      ],
+      "executor": [
+        "git_checkpoint",
+        "write_file"
+      ]
+    },
+    "command:run.interrupt": {
+      "suite": "t3-serve-integration",
+      "test": "chain::an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_to_interrupt_it",
+      "agent": [
+        "turn.interrupt"
+      ],
+      "executor": []
+    },
+    "command:runtime-request.respond": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_one_and_a_dismissal_ends_the_wait",
+      "agent": [
+        "approval.answer",
+        "thread.create"
+      ],
+      "executor": [
+        "write_file"
+      ]
+    },
+    "command:subagent.stop": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_workflow_stop_and_a_subagent_stop_each_end_the_running_turn_through_rca_and_a_stop_with_nothing_running_is_not_asked_of_rca",
+      "agent": [
+        "thread.create",
+        "workflow.stop"
+      ],
+      "executor": []
+    },
+    "command:thread.active.reorder": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+      "agent": [
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.archive": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_starts_it_or_resumes_the_queue_and_rca_refuses_it_on_an_archived_thread",
+      "agent": [
+        "thread.archive",
+        "thread.create"
+      ],
+      "executor": []
+    },
+    "command:thread.auto-settle.set": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+      "agent": [
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.create": {
+      "suite": "t3-serve-integration",
+      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "agent": [
+        "thread.create"
+      ],
+      "executor": []
+    },
+    "command:thread.delete": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "agent": [
+        "thread.create",
+        "thread.delete"
+      ],
+      "executor": []
+    },
+    "command:thread.fork": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+      "agent": [
+        "thread.create",
+        "thread.fork"
+      ],
+      "executor": []
+    },
+    "command:thread.interaction-mode.set": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+      "agent": [
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.mark-unread": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+      "agent": [
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.merge_back": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "agent": [
+        "thread.create",
+        "thread.mergeBack"
+      ],
+      "executor": []
+    },
+    "command:thread.metadata.update": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+      "agent": [
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.model-selection.set": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+      "agent": [
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.pin": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-command-thread.pin",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "command:thread.pin.reorder": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+      "agent": [
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.pull-request.link": {
+      "suite": "t3-serve-integration",
+      "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
+      "agent": [
+        "state.get",
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.pull-request.unlink": {
+      "suite": "t3-serve-integration",
+      "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
+      "agent": [
+        "state.get",
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.pull-request.watch": {
+      "suite": "t3-serve-integration",
+      "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
+      "agent": [
+        "state.get",
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.runtime-mode.set": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+      "agent": [
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.settle": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "agent": [
+        "thread.create",
+        "thread.settle"
+      ],
+      "executor": []
+    },
+    "command:thread.snooze": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "agent": [
+        "thread.create",
+        "thread.settle"
+      ],
+      "executor": []
+    },
+    "command:thread.stop": {
+      "suite": "t3-serve-integration",
+      "test": "chain::an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_to_interrupt_it",
+      "agent": [
+        "thread.subscribe",
+        "turn.interrupt",
+        "turn.start"
+      ],
+      "executor": []
+    },
+    "command:thread.unarchive": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_starts_it_or_resumes_the_queue_and_rca_refuses_it_on_an_archived_thread",
+      "agent": [
+        "thread.archive",
+        "thread.create"
+      ],
+      "executor": []
+    },
+    "command:thread.unpin": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+      "agent": [
+        "state.set"
+      ],
+      "executor": []
+    },
+    "command:thread.unsettle": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "agent": [
+        "thread.create",
+        "thread.settle"
+      ],
+      "executor": []
+    },
+    "command:thread.unsnooze": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "agent": [
+        "thread.create",
+        "thread.settle"
+      ],
+      "executor": []
+    },
+    "command:thread.user-input.dismiss": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_one_and_a_dismissal_ends_the_wait",
+      "agent": [
+        "input.dismiss",
+        "thread.create"
+      ],
+      "executor": [
+        "write_file"
+      ]
+    },
+    "command:thread.visit": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
+      "agent": [
+        "state.set"
+      ],
+      "executor": []
+    },
+    "http:auth.pairingCredential": {
+      "suite": "t3-serve-integration",
+      "test": "local_m5::a_pairing_code_minted_over_http_pairs_a_second_device_with_only_the_delegated_scopes_and_a_device_without_access_write_is_refused",
+      "agent": [],
+      "executor": []
+    },
+    "http:auth.session": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-http-auth.session",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:auth.token": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-http-auth.token",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:auth.webSocketTicket": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-http-auth.webSocketTicket",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "http:auth.webSocketTicketFor": {
+      "suite": "t3-serve-integration",
+      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "agent": [],
+      "executor": []
+    },
+    "http:metadata.descriptor": {
+      "suite": "t3-serve-integration",
+      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "agent": [],
+      "executor": []
+    },
+    "http:orchestration.shellSnapshot": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+      "agent": [],
+      "executor": []
+    },
+    "http:orchestration.threadBoundedSnapshot": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+      "agent": [
+        "thread.history"
+      ],
+      "executor": []
+    },
+    "http:orchestration.threadHistoryPage": {
+      "suite": "t3-serve-integration",
+      "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
+      "agent": [
+        "thread.history"
+      ],
+      "executor": []
+    },
+    "http:orchestration.threadTranscript": {
+      "suite": "t3-serve-integration",
+      "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
+      "agent": [
+        "thread.history"
+      ],
+      "executor": []
+    },
+    "http:pullRequests.diff": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::a_pull_request_is_read_from_gh_through_rca_and_the_phone_gets_its_summary_preview_detail_checks_and_diff",
+      "agent": [
+        "pr.diff",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_diff"
+      ]
+    },
+    "mutation:project.create": {
+      "suite": "t3-serve-integration",
+      "test": "projects_m12::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+      "agent": [
+        "file.browse",
+        "state.set",
+        "workspace.create"
+      ],
+      "executor": [
+        "browse"
+      ]
+    },
+    "mutation:project.delete": {
+      "suite": "t3-serve-integration",
+      "test": "projects_m12::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+      "agent": [
+        "file.browse",
+        "state.set",
+        "workspace.remove"
+      ],
+      "executor": [
+        "browse"
+      ]
+    },
+    "mutation:project.update": {
+      "suite": "t3-serve-integration",
+      "test": "chain::a_project_is_renamed_and_deleted_and_the_shell_the_phone_reads_afterwards_no_longer_lists_it",
+      "agent": [
+        "state.set"
+      ],
+      "executor": []
+    },
+    "rpc:assets.createUrl": {
+      "suite": "t3-serve-integration",
+      "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
+      "agent": [
+        "attachment.get"
+      ],
+      "executor": []
+    },
+    "rpc:assets.persistChatAttachments": {
+      "suite": "t3-serve-integration",
+      "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
+      "agent": [
+        "upload.put"
+      ],
+      "executor": []
+    },
+    "rpc:attachments.createUploadUrl": {
+      "suite": "t3-serve-integration",
+      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:attachments.delete": {
+      "suite": "t3-serve-integration",
+      "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
+      "agent": [
+        "attachment.delete"
+      ],
+      "executor": []
+    },
+    "rpc:filesystem.browse": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-filesystem.browse",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:filesystem.getMetadata": {
+      "suite": "t3-serve-integration",
+      "test": "workspace_m6::a_file_is_written_searched_and_measured_in_the_repository_and_a_directory_outside_it_is_browsed_only_inside_the_allowlist",
+      "agent": [
+        "file.stat"
+      ],
+      "executor": [
+        "stat"
+      ]
+    },
+    "rpc:git.preparePullRequestThread": {
+      "suite": "t3-serve-integration",
+      "test": "prs_m12::a_pull_request_is_prepared_in_a_worktree_at_its_fetched_head_and_the_same_worktree_is_found_again",
+      "agent": [
+        "git.fetch",
+        "pr.view",
+        "worktree.create",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_fetch",
+        "git_worktree_add",
+        "git_worktree_list",
+        "hosted_pr_view"
+      ]
+    },
+    "rpc:git.runStackedAction": {
+      "suite": "t3-serve-integration",
+      "test": "vcs_m9::a_commit_and_push_are_stacked_with_progress_a_pull_brings_what_another_clone_pushed_and_the_status_stream_follows_the_repository",
+      "agent": [
+        "git.commit",
+        "git.diff",
+        "git.push",
+        "git.stage",
+        "git.status",
+        "git.subscribe",
+        "git.upstreamStatus",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_commit",
+        "git_diff",
+        "git_push",
+        "git_stage",
+        "git_status",
+        "git_upstream",
+        "git_worktree_list"
+      ]
+    },
+    "rpc:orchestration.dispatchCommand": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-orchestration.dispatchCommand",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:orchestration.forceStopThread": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-orchestration.forceStopThread",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:orchestration.getArchivedShellSnapshot": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-orchestration.getArchivedShellSnapshot",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.getFullThreadDiff": {
+      "suite": "t3-serve-integration",
+      "test": "workspace_m6::a_worktree_made_for_a_new_branch_is_a_checkout_under_the_base_whose_files_and_diff_are_the_worktrees_and_not_the_repositorys",
+      "agent": [
+        "thread.diff",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_diff",
+        "git_worktree_list"
+      ]
+    },
+    "rpc:orchestration.getOlderSettledThreads": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-orchestration.getOlderSettledThreads",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:orchestration.getThreadFamily": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-orchestration.getThreadFamily",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:orchestration.getThreadProjection": {
+      "suite": "t3-serve-integration",
+      "test": "chain::a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_the_run_on_its_streams",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:orchestration.getTurnDiff": {
+      "suite": "t3-serve-integration",
+      "test": "workspace_m6::the_diff_of_a_thread_is_what_git_shows_in_its_directory_for_the_whole_thread_and_for_its_turns",
+      "agent": [
+        "turn.diff",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_diff",
+        "git_worktree_list"
+      ]
+    },
+    "rpc:orchestration.getTurnItem": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+      "agent": [
+        "thread.history"
+      ],
+      "executor": []
+    },
+    "rpc:orchestration.launchThread": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-orchestration.launchThread",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:orchestration.searchThreads": {
+      "suite": "t3-serve-integration",
+      "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+      "agent": [
+        "thread.search"
+      ],
+      "executor": []
+    },
+    "rpc:orchestration.stopWorkflow": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-orchestration.stopWorkflow",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:orchestration.subscribeCommandOutput": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-orchestration.subscribeCommandOutput",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:orchestration.subscribeShell": {
+      "suite": "t3-serve-integration",
+      "test": "chain::a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_the_run_on_its_streams",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:orchestration.subscribeThread": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-orchestration.subscribeThread",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:preview.adjust": {
+      "suite": "t3-serve-integration",
+      "test": "preview_m12::tabs_are_opened_listed_resized_adjusted_reported_and_closed_and_a_second_phone_following_the_stream_sees_each_change_in_order",
+      "agent": [
+        "preview.adjust"
+      ],
+      "executor": []
+    },
+    "rpc:preview.close": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-preview.close",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:preview.list": {
+      "suite": "t3-serve-integration",
+      "test": "preview_m12::tabs_are_opened_listed_resized_adjusted_reported_and_closed_and_a_second_phone_following_the_stream_sees_each_change_in_order",
+      "agent": [
+        "preview.list"
+      ],
+      "executor": []
+    },
+    "rpc:preview.open": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-preview.open",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:preview.resize": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-preview.resize",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:projectClone.cancel": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::a_clone_makes_the_project_runs_gh_in_the_executor_streams_its_end_is_cancelled_when_it_hangs_and_retries",
+      "agent": [
+        "clone.cancel"
+      ],
+      "executor": []
+    },
+    "rpc:projectClone.retry": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-projectClone.retry",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:projectClone.start": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-projectClone.start",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:projects.createFromThread": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-projects.createFromThread",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:projects.createNew": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-projects.createNew",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:projects.ensureScratch": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-projects.ensureScratch",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:projects.listEntries": {
+      "suite": "t3-serve-integration",
+      "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
+      "agent": [
+        "file.list",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "list_dir"
+      ]
+    },
+    "rpc:projects.mutate": {
+      "suite": "t3-serve-integration",
+      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "agent": [
+        "file.browse",
+        "state.set"
+      ],
+      "executor": [
+        "browse"
+      ]
+    },
+    "rpc:projects.readFile": {
+      "suite": "t3-serve-integration",
+      "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
+      "agent": [
+        "file.read",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "read_file"
+      ]
+    },
+    "rpc:projects.searchEntries": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-projects.searchEntries",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:projects.writeFile": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-projects.writeFile",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:provider.auth.cancel": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-provider.auth.cancel",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:provider.auth.complete": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-provider.auth.complete",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:provider.auth.logout": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-provider.auth.logout",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:provider.auth.respond": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-provider.auth.respond",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:provider.auth.start": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-provider.auth.start",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:provider.auth.subscribe": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-provider.auth.subscribe",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.activity": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-pullRequests.activity",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.changeBreakdown": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-pullRequests.changeBreakdown",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.checks": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-pullRequests.checks",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.comment": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+      "agent": [
+        "pr.comment",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_comment"
+      ]
+    },
+    "rpc:pullRequests.detail": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-pullRequests.detail",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.diffFileContents": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-pullRequests.diffFileContents",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.filesViewed": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-pullRequests.filesViewed",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.filterOptions": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
+      "agent": [
+        "pr.labelCandidates",
+        "sourceControl.lookupRepository",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_repo_labels",
+        "hosted_repo_view"
+      ]
+    },
+    "rpc:pullRequests.generateReviewGuide": {
+      "suite": "t3-serve-integration",
+      "test": "prs_m12::a_review_guide_is_written_by_a_model_turn_of_the_real_service_over_gh_s_diff_checked_against_it_and_kept_in_rcas_state",
+      "agent": [
+        "pr.view",
+        "state.get",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_view"
+      ]
+    },
+    "rpc:pullRequests.labelCandidates": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-pullRequests.labelCandidates",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.linkedThreads": {
+      "suite": "t3-serve-integration",
+      "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
+      "agent": [
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:pullRequests.list": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
+      "agent": [
+        "pr.list",
+        "sourceControl.discover",
+        "sourceControl.lookupRepository",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_auth_status",
+        "hosted_pr_list",
+        "hosted_repo_view"
+      ]
+    },
+    "rpc:pullRequests.listStats": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
+      "agent": [
+        "pr.files",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_files"
+      ]
+    },
+    "rpc:pullRequests.preview": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-pullRequests.preview",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.replyToThread": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+      "agent": [
+        "pr.reply",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_reply"
+      ]
+    },
+    "rpc:pullRequests.requestReviewers": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-pullRequests.requestReviewers",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.reviewGuide": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-pullRequests.reviewGuide",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.reviewerCandidates": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-pullRequests.reviewerCandidates",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.routing": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-pullRequests.routing",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.routingIdentity": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-pullRequests.routingIdentity",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.runAction": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+      "agent": [
+        "pr.merge",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_merge"
+      ]
+    },
+    "rpc:pullRequests.setFilesViewed": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-pullRequests.setFilesViewed",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.setLabels": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-pullRequests.setLabels",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.setReaction": {
+      "suite": "t3-serve-integration",
+      "test": "prs_m12::a_reaction_is_added_then_taken_back_by_deleting_the_accounts_own_reaction_and_a_comment_is_edited_with_its_text_on_stdin",
+      "agent": [
+        "pr.react",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_react"
+      ]
+    },
+    "rpc:pullRequests.setThreadResolution": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+      "agent": [
+        "pr.resolveThread",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_resolve_thread"
+      ]
+    },
+    "rpc:pullRequests.stack": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-pullRequests.stack",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.submitReview": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+      "agent": [
+        "pr.review",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_review"
+      ]
+    },
+    "rpc:pullRequests.summary": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-pullRequests.summary",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:pullRequests.threadComments": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::the_activity_a_thread_the_breakdown_and_the_candidates_are_read_from_gh_and_know_what_the_pull_request_already_has",
+      "agent": [
+        "pr.threads",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_threads"
+      ]
+    },
+    "rpc:pullRequests.update": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
+      "agent": [
+        "pr.edit",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_edit"
+      ]
+    },
+    "rpc:pullRequests.updateComment": {
+      "suite": "t3-serve-integration",
+      "test": "prs_m12::a_reaction_is_added_then_taken_back_by_deleting_the_accounts_own_reaction_and_a_comment_is_edited_with_its_text_on_stdin",
+      "agent": [
+        "pr.editComment",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "hosted_pr_comment_edit"
+      ]
+    },
+    "rpc:review.getDiffFileContents": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-review.getDiffFileContents",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:review.getDiffPreview": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-review.getDiffPreview",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:scheduledTasks.delete": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-scheduledTasks.delete",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:scheduledTasks.rotateWebhookToken": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-scheduledTasks.rotateWebhookToken",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:scheduledTasks.runNow": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-scheduledTasks.runNow",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:scheduledTasks.setEnabled": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-scheduledTasks.setEnabled",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:scheduledTasks.subscribe": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-scheduledTasks.subscribe",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:scheduledTasks.upsert": {
+      "suite": "t3-serve-integration",
+      "test": "schedules_m12::a_scheduled_task_is_saved_followed_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
+      "agent": [
+        "schedule.subscribe",
+        "schedule.upsert",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list"
+      ]
+    },
+    "rpc:server.discoverSourceControl": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::the_sign_in_shows_the_cli_code_and_address_waits_for_the_account_cancels_another_and_discovery_says_who_is_signed_in_with_no_token_in_any_answer",
+      "agent": [
+        "sourceControl.discover"
+      ],
+      "executor": [
+        "hosted_auth_status"
+      ]
+    },
+    "rpc:server.getDatabaseStorage": {
+      "suite": "t3-serve-integration",
+      "test": "settings_m10::the_database_storage_stream_measures_the_state_database_serve_keeps_in_its_state_directory",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:server.getUsageSummary": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-server.getUsageSummary",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:server.probe": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-server.probe",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:server.refreshProviders": {
+      "suite": "t3-serve-integration",
+      "test": "settings_m10::two_providers_sign_in_by_a_device_code_and_a_pasted_code_each_in_its_own_directory_and_a_turn_then_runs_in_the_signed_in_ones_alone",
+      "agent": [
+        "provider.list",
+        "provider.refresh"
+      ],
+      "executor": []
+    },
+    "rpc:server.reportClientActivity": {
+      "suite": "t3-serve-integration",
+      "test": "local_m5::a_clients_activity_is_kept_by_the_real_service_and_a_client_without_the_diagnostics_scope_never_reaches_it",
+      "agent": [
+        "service.clientActivity"
+      ],
+      "executor": []
+    },
+    "rpc:server.updateSettings": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-server.updateSettings",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:sourceControl.appAccess": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-sourceControl.appAccess",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:sourceControl.lookupRepository": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-sourceControl.lookupRepository",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:sourceControl.publishRepository": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-sourceControl.publishRepository",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:sourceControl.signInCancel": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-sourceControl.signInCancel",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:sourceControl.signInStart": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-sourceControl.signInStart",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:sourceControl.signInWait": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-sourceControl.signInWait",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:subscribePreviewEvents": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-subscribePreviewEvents",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:subscribeProjectClones": {
+      "suite": "t3-serve-integration",
+      "test": "hosted_m11::a_clone_makes_the_project_runs_gh_in_the_executor_streams_its_end_is_cancelled_when_it_hangs_and_retries",
+      "agent": [
+        "clone.status"
+      ],
+      "executor": []
+    },
+    "rpc:subscribeServerConfig": {
+      "suite": "t3-serve-integration",
+      "test": "chain::a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_the_run_on_its_streams",
+      "agent": [
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:subscribeServerLifecycle": {
+      "suite": "t3-serve-integration",
+      "test": "chain::a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_the_run_on_its_streams",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:subscribeTerminalMetadata": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-subscribeTerminalMetadata",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:subscribeVcsStatus": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-subscribeVcsStatus",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:subscribeWorktreeSetup": {
+      "suite": "t3-serve-integration",
+      "test": "workspace_m6::the_setup_of_a_worktree_rca_started_is_followed_by_the_phone_to_done_and_a_long_one_is_cancelled_by_it",
+      "agent": [
+        "worktree.list",
+        "worktree.setup.subscribe"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "worktree_setup"
+      ]
+    },
+    "rpc:terminal.attach": {
+      "suite": "t3-serve-integration",
+      "test": "terminal_m8::a_terminal_cannot_start_outside_the_executors_root_and_the_executors_environment_does_not_reach_the_shell",
+      "agent": [
+        "terminal.attach",
+        "terminal.list",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "pty_list"
+      ]
+    },
+    "rpc:terminal.clear": {
+      "suite": "t3-serve-integration",
+      "test": "terminal_m8::a_terminal_is_attached_typed_into_resized_observed_cleared_listed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
+      "agent": [
+        "terminal.clear",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "pty_write"
+      ]
+    },
+    "rpc:terminal.close": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-terminal.close",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:terminal.observe": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-terminal.observe",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:terminal.open": {
+      "suite": "t3-serve-integration",
+      "test": "terminal_m8::a_terminal_cannot_start_outside_the_executors_root_and_the_executors_environment_does_not_reach_the_shell",
+      "agent": [
+        "terminal.open",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "pty_list",
+        "pty_open"
+      ]
+    },
+    "rpc:terminal.resize": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-terminal.resize",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:terminal.write": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-3::t3-rpc-terminal.write",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:vcs.createRef": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-vcs.createRef",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:vcs.createWorktree": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-vcs.createWorktree",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:vcs.listRefs": {
+      "suite": "t3-serve-integration",
+      "test": "vcs_m9::the_status_refs_and_diffs_of_the_repository_are_read_and_a_branch_is_made_and_switched_to_through_the_executors_git",
+      "agent": [
+        "git.refs",
+        "git.upstreamStatus",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_refs",
+        "git_upstream",
+        "git_worktree_list"
+      ]
+    },
+    "rpc:vcs.pull": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-vcs.pull",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:vcs.refreshStatus": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-2::t3-rpc-vcs.refreshStatus",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:vcs.switchRef": {
+      "suite": "t3-serve-integration",
+      "test": "vcs_m9::the_status_refs_and_diffs_of_the_repository_are_read_and_a_branch_is_made_and_switched_to_through_the_executors_git",
+      "agent": [
+        "git.checkout",
+        "git.refs",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_checkout",
+        "git_refs",
+        "git_worktree_list"
+      ]
+    },
+    "rpc:worktreeSetup.cancel": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-recorded-1::t3-rpc-worktreeSetup.cancel",
+      "agent": [],
+      "executor": []
+    }
+  }
+}

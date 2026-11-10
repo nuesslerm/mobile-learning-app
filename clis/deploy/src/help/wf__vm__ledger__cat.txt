@@ -1,0 +1,9 @@
+Usage: wf vm ledger cat [options] <name>
+
+Print a VM ledger file verbatim
+
+Arguments:
+  name        Ledger basename (opencode-dispatch-runs.jsonl|pool-cooldowns.json)
+
+Options:
+  -h, --help  display help for command

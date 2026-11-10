@@ -1,0 +1,27 @@
+Usage: wf vm ops drill [options] <action>
+
+Second-door drill: take the vm-ops-api container down on purpose and measure who
+brings it back. The service does it (POST /drill, signed, 202 before a detached
+sibling acts: `stop` is docker stop after 5 s, `freeze` is SIGSTOP after 5 s with
+its own thaw after 600 s). wf asserts /health on 8080 stops answering, polls it
+until it answers again (limit 10 minutes), then reads the watchdog's log: by is
+"watchdog" only when a successful watchdog.recreated line for that container is
+newer than the drill. If nothing brings it back in time, wf reports recovered
+false: there is no standby, so fix it or recreate the VM. A LIVE, mutating drill:
+run it only with the owner's approval.
+
+Arguments:
+  action      stop | freeze
+
+Options:
+  -h, --help  display help for command
+
+Output: one JSON line with --json (indented without) on stdout {ok, action,
+container, down, downS, recovered, recoveredS, by ("watchdog" | "other" |
+"unknown", null when not recovered), event {timestamp, container, reason, ok},
+logsError, commit}. Exit 0 only when the service recovered; on failure ok is
+false, error and next say what happened and the exit code is 1.
+
+Environment: WF_VM_POLL_MS (default 5000), WF_VM_DOWN_TIMEOUT_MS (how long
+/health may keep answering after the 202, default 60000) and
+WF_VM_RECOVER_TIMEOUT_MS (default 600000).

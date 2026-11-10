@@ -1,0 +1,119 @@
+name: vm-ops-api
+# Fixed project name (rather than letting compose default it from the
+# directory basename): /redeploy's sibling container runs `docker compose`
+# with its working directory set to the real host path (see src/api/server.ts's
+# VM_DIR / src/application/scripts/redeploy.ts), which would resolve to this same
+# name anyway -- explicit here so that stays true regardless of exactly
+# which path the sibling is launched with, keeping container/network
+# naming identical across every redeploy instead of ever risking a
+# parallel, wrongly-named set.
+#
+# No public Caddy/ports here -- vm-ops-api joins the tailnet like every
+# other app instead of binding its own sidecar to the VM's public ports
+# directly. vm-gateway is the public-facing surface (its own Funnel),
+# forwarding to this instance's TS_HOSTNAME (vm-ops-api-${HOST_LABEL})
+# over the tailnet.
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.2
+    container_name: vm-ops-api-tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_VM_AUTH_KEY}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_HOSTNAME: vm-ops-api-${HOST_LABEL}
+      # Defaults to false (confirmed against Tailscale's own docs) -- without
+      # this, the sidecar joins the tailnet but never configures MagicDNS for
+      # any container sharing its netns, so a bare peer hostname (e.g.
+      # vm-ops-api-${HOST_LABEL} from vm-gateway's proxyRegistry) never
+      # resolves. Confirmed live: every sidecar's boot log showed `dns:
+      # OScfg: {}` / `SearchDomains:[]` -- DNS was never being managed at all.
+      TS_ACCEPT_DNS: "true"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+
+  # The Rust service (backend/vm-ops-api), the only vm-ops-api. Its siblings run its own image, which carries the helper
+  # subcommands the swap scripts call. Port 8080 is the admin port (every route, the admin seed) and CI_PORT (8081) the CI port
+  # (health, reads, redeploy of a pushed tag; its own seed); the shared netns puts both on vm-ops-api-main and nothing is
+  # published, so infra/tailscale/policy.hujson decides who reaches which.
+  ops-api:
+    image: ${IMAGE_NAMESPACE:-nuesslerm}/vm-ops-api-rs:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    network_mode: service:tailscale
+    environment:
+      - VM_OPS_API_AUTH_TOKEN=${VM_OPS_API_AUTH_TOKEN}
+      # The CI port's own seed and port; the service refuses to start with the port set and no seed, or the admin seed as the seed.
+      - VM_OPS_API_CI_AUTH_TOKEN=${VM_OPS_API_CI_AUTH_TOKEN:-}
+      - CI_PORT=${CI_PORT:-}
+      - HOST_LABEL=${HOST_LABEL}
+      - IMAGE_NAMESPACE=${IMAGE_NAMESPACE:-nuesslerm}
+      # The deployed tag, reported by /health; no image bakes it in.
+      - VM_OPS_API_IMAGE_TAG=${IMAGE_TAG:-unknown}
+      # Optional (see .env.defaults): without either, the BetterStack log emission is skipped.
+      - BETTERSTACK_OTLP_HOST=${BETTERSTACK_OTLP_HOST:-}
+      - BETTERSTACK_OTLP_TOKEN=${BETTERSTACK_OTLP_TOKEN:-}
+      # Optional (see .env.defaults) -- /services/:app/redeploy's first-time
+      # provisioning fails with a clear "GET ... -> 404" without it (this repo
+      # is private).
+      - VM_PROVISION_GITHUB_TOKEN=${VM_PROVISION_GITHUB_TOKEN:-}
+      # Non-secret (a public key). PEM with real newlines escaped as literal \n.
+      - VM_GATEWAY_REQUEST_SIGNING_PUBLIC_KEY=${VM_GATEWAY_REQUEST_SIGNING_PUBLIC_KEY:-}
+      # Unset/false (default): accepts either the legacy raw token or the
+      # new rotating-token+signature scheme. true: legacy token rejected.
+      - REQUIRE_SIGNED_AUTH=${REQUIRE_SIGNED_AUTH:-}
+    volumes:
+      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      - clis:/opt/clis:ro
+      # :ro only stops replacing the socket file; the boundary is the fixed
+      # route set (container list/logs/exec plus the redeploy siblings).
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Host-backed state vm-ops-api owns (cooldowns, opencode-log):
+      # a redeploy recreates this container.
+      - /home/ubuntu/vm-ops-api/state:/state
+    healthcheck:
+      test: ["CMD", "vm-ops-api-rs", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      - tailscale
+
+  # Own container so a broken ops-api never takes the recreate loop down with it.
+  watchdog:
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/watchdog:${IMAGE_TAG:-latest}
+    container_name: watchdog
+    restart: unless-stopped
+    environment:
+      - HOST_LABEL=${HOST_LABEL}
+      - BETTERSTACK_OTLP_HOST=${BETTERSTACK_OTLP_HOST:-}
+      - BETTERSTACK_OTLP_TOKEN=${BETTERSTACK_OTLP_TOKEN:-}
+    healthcheck:
+      test: ["CMD", "docker", "info", "--format", "{{.ServerVersion}}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Same host paths as the compose working_dir labels, so `docker compose` finds each app's files and .env.
+      - /home/ubuntu:/home/ubuntu:ro
+
+volumes:
+  # Written by the runner in the agent-shell project (clis.yml); external here so this project never removes it.
+  clis:
+    external: true
+    name: clis
+  tailscale-state:

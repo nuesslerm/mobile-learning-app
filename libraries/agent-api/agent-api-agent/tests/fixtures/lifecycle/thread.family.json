@@ -1,0 +1,82 @@
+{
+  "method": "thread.family",
+  "exchanges": [
+    {
+      "name": "names the root and lists the thread",
+      "before": [
+        {
+          "id": "setup-create-t-fa",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-fa",
+            "title": "Thread t-fa",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.family",
+        "params": {
+          "thread": "t-fa"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "root": "t-fa",
+          "threads": [
+            {
+              "thread": {
+                "id": "t-fa",
+                "title": "Thread t-fa",
+                "workspace": "w1",
+                "driver": "claudeAgent",
+                "status": "idle",
+                "last_seq": 0,
+                "created_at": "2026-11-04T10:00:00Z",
+                "updated_at": "2026-11-04T10:00:00Z"
+              }
+            }
+          ]
+        }
+      },
+      "volatile": [
+        "/result/threads/0/thread/created_at",
+        "/result/threads/0/thread/updated_at"
+      ]
+    },
+    {
+      "name": "answers an empty family for a thread nobody knows",
+      "request": {
+        "id": "2",
+        "method": "thread.family",
+        "params": {
+          "thread": "nope"
+        }
+      },
+      "response": {
+        "id": "2",
+        "result": {
+          "threads": []
+        }
+      }
+    },
+    {
+      "name": "refuses a family of no thread",
+      "request": {
+        "id": "3",
+        "method": "thread.family",
+        "params": {}
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "thread is required"
+        }
+      }
+    }
+  ]
+}

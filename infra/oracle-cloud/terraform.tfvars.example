@@ -1,0 +1,80 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored — it
+# holds your OCIDs and (optionally) the Bitwarden bootstrap token.
+
+# --- OCI auth (see README "Getting the OCIDs") ---
+tenancy_ocid         = "ocid1.tenancy.oc1..aaaa..."
+user_ocid            = "ocid1.user.oc1..aaaa..."
+api_key_fingerprint  = "aa:bb:cc:dd:ee:ff:00:11:22:33:44:55:66:77:88:99"
+api_private_key_path = "~/.oci/oci_api_key.pem"
+region               = "eu-frankfurt-1"
+compartment_ocid     = "ocid1.tenancy.oc1..aaaa..." # root compartment == tenancy OCID is fine
+# Only needed if you generated the keypair yourself (e.g. openssl) with a
+# passphrase, rather than via the OCI Console's unencrypted-by-default
+# "Generate API key pair" button.
+# api_private_key_passphrase = "..."
+
+# --- Access ---
+ssh_public_key_path = "~/.ssh/oracle_deploy.pub"
+# ssh_ingress_cidr  = "203.0.113.7/32"   # lock SSH to your IP (recommended)
+
+# --- Optional: bake the Bitwarden bootstrap creds into each VM's .env.local ---
+# Leave blank to write .env.local by hand on the VM instead.
+# bws_read_access_token = "0.xxxxxxxx.xxxxxxxxxxxxxxxxxxxx:xxxxxxxx"
+# Region: DEFAULTS to the EU cloud (this account is EU-hosted). US accounts must
+# set this to "" explicitly.
+# bws_server_url   = "https://vault.bitwarden.eu"
+
+# --- Optional: git identity for remote-chat-agent's commits ---
+# Defaults attribute commits to the agent itself rather than impersonating you.
+# Override if you want your own name/email on the agent's commits.
+# git_user_name  = "remote-chat-agent"
+# git_user_email = "remote-chat-agent@users.noreply.github.com"
+
+# --- Optional sizing overrides ---
+# Defaults give the single VM the ENTIRE current 2 OCPU / 12 GB free A1 pool
+# (Oracle halved it from 4/24 on 2026-06-15, see
+# docs/oracle-cloud-agent-provisioning.md). Lowering these leaves free capacity
+# unused; raising them is rejected by always-free-quota.tf's regional cap, which
+# must be raised in step.
+# vm_ocpus = 2
+# vm_memory_gbs = 12
+
+# Boot volume. Always Free allows 200 GB of block storage TOTAL, and
+# dummy_boot_volume_gbs (the permanent e2e/rescue box) holds the rest — so
+# boot_volume_gbs + dummy_boot_volume_gbs must stay <= 200.
+# boot_volume_gbs = 150
+# dummy_boot_volume_gbs = 50
+
+# --- Optional: a personal SSH key alongside the deploy keypair ---
+# For a client like Termius. Public keys are not secret. Only applied on
+# instance CREATE (metadata is in ignore_changes) — adding this to a running VM
+# needs `terraform apply -replace=oci_core_instance.main`.
+# break_glass_ssh_public_key = "ssh-ed25519 AAAA... you@laptop"
+
+# --- Optional: cost monitoring (Terraform-managed budget + alert rules) ---
+# Leave budget_alert_email blank to still get an OCI Budget (console-visible
+# cost tracking) with no email alerts wired up.
+# budget_alert_email = "you@example.com"
+# budget_amount_usd  = 20
+
+# --- Optional: automated kill switch (budget-guard.tf) ---
+# Set after running scripts/deploy-budget-guard-function.sh (needs Docker —
+# see that script's header). Blank skips creating the whole Events/Function
+# pipeline; budget_alert_email above must also be set.
+# function_image = "eu-frankfurt-1.ocir.io/<namespace>/budget-guard-functions/budget-guard:0.0.1"
+# budget_guard_stop_threshold_pct    = 50   # default; 50% of budget_amount_usd
+# budget_guard_destroy_threshold_pct = 100  # default; 100% of budget_amount_usd
+
+# --- Optional: security alerts (security-alerts.tf) ---
+# New API keys/users/policies, security list/NSG changes, compute
+# launch/terminate — see README "9. Security alerts" for the PagerDuty-side
+# setup (must be a "Custom Event Transformer" integration, not "Oracle Cloud
+# Infrastructure Monitoring"). Either or both of these may be set. Also
+# settable via the vault (PAGERDUTY_INTEGRATION_KEY / PAGERDUTY_EVENTS_DOMAIN)
+# and materialized here by `wf vm creds sync`, same as the OCI_*
+# values above.
+# security_alert_email      = "you@example.com"
+# pagerduty_integration_key = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# Only needed on PagerDuty's EU service region (default is the US host,
+# events.pagerduty.com) — check your account's own URL: <subdomain>.eu.pagerduty.com means EU.
+# pagerduty_events_domain = "events.eu.pagerduty.com"

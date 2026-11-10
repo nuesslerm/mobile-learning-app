@@ -1,0 +1,57 @@
+diff --git a/node_modules/react-native-reanimated/lib/module/fabricUtils.js b/node_modules/react-native-reanimated/lib/module/fabricUtils.js
+--- a/node_modules/react-native-reanimated/lib/module/fabricUtils.js
++++ b/node_modules/react-native-reanimated/lib/module/fabricUtils.js
+@@ -4,13 +4,15 @@
+ export function getShadowNodeWrapperFromRef(ref, hostInstance) {
+   let resolvedInstance = hostInstance?.__internalInstanceHandle ?? ref?.__internalInstanceHandle;
+   if (!resolvedInstance) {
+-    if (ref.getNativeScrollRef) {
+-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+-      resolvedInstance = ref.getNativeScrollRef().__internalInstanceHandle;
+-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
++    // PATCHED (patches/react-native-reanimated): guard against
++    // getNativeScrollRef() returning null during the layout-effect ref attach.
++    const nativeScrollRef = ref.getNativeScrollRef ? ref.getNativeScrollRef() : null;
++    if (nativeScrollRef && nativeScrollRef.__internalInstanceHandle) {
++      resolvedInstance = nativeScrollRef.__internalInstanceHandle;
+     } else if (ref._reactInternals) {
+-      resolvedInstance = findHostInstance(ref).__internalInstanceHandle;
+-    } else {
++      resolvedInstance = findHostInstance(ref)?.__internalInstanceHandle;
++    }
++    if (!resolvedInstance) {
+       throw new Error(`[Reanimated] Failed to find host instance for a ref.`);
+     }
+   }
+diff --git a/node_modules/react-native-reanimated/src/fabricUtils.ts b/node_modules/react-native-reanimated/src/fabricUtils.ts
+--- a/node_modules/react-native-reanimated/src/fabricUtils.ts
++++ b/node_modules/react-native-reanimated/src/fabricUtils.ts
+@@ -12,14 +12,23 @@
+     hostInstance?.__internalInstanceHandle ?? ref?.__internalInstanceHandle;
+ 
+   if (!resolvedInstance) {
+-    if (ref.getNativeScrollRef) {
++    // PATCHED (patches/react-native-reanimated): guard against
++    // getNativeScrollRef() returning null during the layout-effect ref attach
++    // (e.g. @gorhom/bottom-sheet scrollables), which dereferenced null
++    // (`__internalInstanceHandle` of null) and crashed the app. Fall back to
++    // findHostInstance, which resolves the host node from the fiber tree.
++    const nativeScrollRef = ref.getNativeScrollRef
++      ? ref.getNativeScrollRef()
++      : null;
++    // eslint-disable-next-line @typescript-eslint/no-explicit-any
++    if (nativeScrollRef && (nativeScrollRef as any).__internalInstanceHandle) {
+       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+-      resolvedInstance = (ref.getNativeScrollRef() as any)
+-        .__internalInstanceHandle;
++      resolvedInstance = (nativeScrollRef as any).__internalInstanceHandle;
+       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     } else if ((ref as any)._reactInternals) {
+-      resolvedInstance = findHostInstance(ref).__internalInstanceHandle;
+-    } else {
++      resolvedInstance = findHostInstance(ref)?.__internalInstanceHandle;
++    }
++    if (!resolvedInstance) {
+       throw new Error(`[Reanimated] Failed to find host instance for a ref.`);
+     }
+   }

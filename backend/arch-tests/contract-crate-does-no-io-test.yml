@@ -1,0 +1,22 @@
+id: contract-crate-does-no-io
+valid:
+  - use std::{collections::HashMap, io::Read};
+  - use std::sync::{Arc, Mutex};
+  - use tokio::{sync::mpsc, time};
+  - use serde_json::{json, Value};
+  - use agent_api_proto::{code, Request};
+  - 'fn f(p: &str) -> String { std::path::Path::new(p).display().to_string() }'
+invalid:
+  - use std::fs::File;
+  - use std::{fs, io};
+  - use std::{io::{self, Read}, process::Command};
+  - use std::{self as s, env as e};
+  - use tokio::{fs::File as F, sync::mpsc};
+  - use tokio::{net::TcpStream};
+  - use reqwest::{Client, Url};
+  - use axum::Router;
+  - use dirs;
+  - use {std::sync::Arc, dirs};
+  - 'fn f() { let _ = std::env::var("X"); }'
+  - 'fn f() { let _ = std::process::Command::new("x"); }'
+  - 'fn f() { let _ = tokio::signal::ctrl_c(); }'

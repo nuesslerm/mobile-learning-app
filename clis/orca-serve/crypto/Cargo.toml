@@ -1,0 +1,36 @@
+[package]
+name = "orca-crypto"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Orca's paired-device crypto as a pure core: the NaCl box and E2EE v2 handshakes, sealed frames with counters, device-token auth and the pairing offer, behind entropy, key-pair and device ports"
+
+[lib]
+doctest = false
+
+[features]
+# In-memory doubles of every port.
+testing = []
+
+[dependencies]
+x25519-dalek = { version = "2", default-features = false }
+salsa20 = "0.10"
+crypto_secretbox = "0.1"
+hkdf = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+subtle = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+getrandom = "0.2"
+
+[dev-dependencies]
+serde_json = "1"
+orca-crypto = { path = ".", features = ["testing"] }
+mimic-core = { path = "../../mimic/core" }
+
+# The tests (tests/flow.rs) read the handshake and frame vectors recorded from the pinned reference (the wf mimic set vectors/orca-crypto).
+[package.metadata.flow]
+inputs = ["vectors/orca-crypto/**"]
+# The replay test links mimic-core as a dev-dependency: an edit to it reruns the flow task.
+uses = ["mimic-core"]

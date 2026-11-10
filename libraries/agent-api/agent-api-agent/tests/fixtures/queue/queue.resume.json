@@ -1,0 +1,91 @@
+{
+  "method": "queue.resume",
+  "exchanges": [
+    {
+      "name": "releases a queue nothing held",
+      "before": [
+        {
+          "id": "setup-create-t-qr",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-qr",
+            "title": "Thread t-qr",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "queue.resume",
+        "params": {
+          "thread": "t-qr"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": "t-qr",
+          "held": false,
+          "seq": 1
+        }
+      },
+      "volatile": [
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "refuses a thread that is archived",
+      "before": [
+        {
+          "id": "setup-create-t-qr2",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-qr2",
+            "title": "Thread t-qr2",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        },
+        {
+          "id": "setup-arch",
+          "method": "thread.archive",
+          "params": {
+            "thread": "t-qr2"
+          }
+        }
+      ],
+      "request": {
+        "id": "2",
+        "method": "queue.resume",
+        "params": {
+          "thread": "t-qr2"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_ACTIVE",
+          "message": "Thread t-qr2 is not active."
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "3",
+        "method": "queue.resume",
+        "params": {
+          "thread": "nope"
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

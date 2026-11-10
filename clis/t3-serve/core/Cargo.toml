@@ -1,0 +1,20 @@
+[package]
+name = "t3-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The T3-compatible server's pure core: pairing and auth rules, the command engine, projections, resume and the RPC session, behind ports"
+
+[lib]
+doctest = false
+
+[features]
+# In-memory doubles of every port.
+testing = []
+
+[dependencies]
+t3-contracts = { path = "../contracts" }
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"

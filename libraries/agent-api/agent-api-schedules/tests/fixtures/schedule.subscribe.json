@@ -1,0 +1,135 @@
+{
+  "method": "schedule.subscribe",
+  "exchanges": [
+    {
+      "name": "answers the schedules as they are, the stream's seq and no reset for a caller that has none",
+      "before": [
+        {
+          "id": "setup-sub",
+          "method": "schedule.upsert",
+          "params": {
+            "id": "s-sub",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "interval",
+              "every_ms": 60000
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "schedule.subscribe",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "topic": "schedules",
+          "tasks": [
+            {
+              "id": "s-sub",
+              "title": "Nightly",
+              "prompt": "run the checks",
+              "enabled": true,
+              "schedule": {
+                "type": "interval",
+                "every_ms": 60000
+              },
+              "workspace": "w1",
+              "driver": "claudeAgent",
+              "model": null,
+              "thread": null,
+              "runtime_mode": null,
+              "interaction_mode": null,
+              "created_at_ms": 1700000000000,
+              "updated_at_ms": 1700000000000,
+              "next_run_ms": 1700000060000,
+              "last_run_ms": null,
+              "last_run_status": "never",
+              "last_run_error": null,
+              "run_count": 0,
+              "webhook": null
+            }
+          ],
+          "seq": "<volatile>",
+          "reset": false
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "resets a caller whose seq is ahead of the stream",
+      "request": {
+        "id": 2,
+        "method": "schedule.subscribe",
+        "params": {
+          "after_seq": 18446744073709551000
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "topic": "schedules",
+          "tasks": [
+            {
+              "id": "s-sub",
+              "title": "Nightly",
+              "prompt": "run the checks",
+              "enabled": true,
+              "schedule": {
+                "type": "interval",
+                "every_ms": 60000
+              },
+              "workspace": "w1",
+              "driver": "claudeAgent",
+              "model": null,
+              "thread": null,
+              "runtime_mode": null,
+              "interaction_mode": null,
+              "created_at_ms": 1700000000000,
+              "updated_at_ms": 1700000000000,
+              "next_run_ms": 1700000060000,
+              "last_run_ms": null,
+              "last_run_status": "never",
+              "last_run_error": null,
+              "run_count": 0,
+              "webhook": null
+            }
+          ],
+          "seq": "<volatile>",
+          "reset": true
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "refuses a seq that is not a number",
+      "request": {
+        "id": 3,
+        "method": "schedule.subscribe",
+        "params": {
+          "after_seq": "3"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "after_seq must be a non-negative integer"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

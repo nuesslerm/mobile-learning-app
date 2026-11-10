@@ -1,0 +1,82 @@
+{
+  "method": "n=5 rounds of the reporting service's cold start, idle RSS and two hot routes, implementations interleaved per round. See the script header.",
+  "host": "x86_64",
+  "implementations": {
+    "node": {
+      "start_ms": 597.739,
+      "idle_rss_kb": 114924,
+      "health_p50_ms": 0.566,
+      "series_24h_p50_ms": 95.867,
+      "rounds": [
+        {
+          "start_ms": 596.465,
+          "idle_rss_kb": 114924,
+          "health_p50_ms": 0.534,
+          "series_24h_p50_ms": 94.928
+        },
+        {
+          "start_ms": 592.42,
+          "idle_rss_kb": 115192,
+          "health_p50_ms": 0.542,
+          "series_24h_p50_ms": 97.773
+        },
+        {
+          "start_ms": 645.136,
+          "idle_rss_kb": 115292,
+          "health_p50_ms": 0.566,
+          "series_24h_p50_ms": 97.054
+        },
+        {
+          "start_ms": 597.739,
+          "idle_rss_kb": 114804,
+          "health_p50_ms": 0.703,
+          "series_24h_p50_ms": 93.912
+        },
+        {
+          "start_ms": 623.382,
+          "idle_rss_kb": 114584,
+          "health_p50_ms": 0.566,
+          "series_24h_p50_ms": 95.867
+        }
+      ]
+    },
+    "rust": {
+      "start_ms": 18.408,
+      "idle_rss_kb": 10212,
+      "health_p50_ms": 0.783,
+      "series_24h_p50_ms": 37.54,
+      "rounds": [
+        {
+          "start_ms": 17.341,
+          "idle_rss_kb": 10164,
+          "health_p50_ms": 0.797,
+          "series_24h_p50_ms": 38.074
+        },
+        {
+          "start_ms": 19.065,
+          "idle_rss_kb": 10296,
+          "health_p50_ms": 0.783,
+          "series_24h_p50_ms": 38.016
+        },
+        {
+          "start_ms": 18.919,
+          "idle_rss_kb": 10292,
+          "health_p50_ms": 0.726,
+          "series_24h_p50_ms": 37.291
+        },
+        {
+          "start_ms": 16.319,
+          "idle_rss_kb": 10184,
+          "health_p50_ms": 0.797,
+          "series_24h_p50_ms": 37.54
+        },
+        {
+          "start_ms": 18.408,
+          "idle_rss_kb": 10212,
+          "health_p50_ms": 0.735,
+          "series_24h_p50_ms": 36.774
+        }
+      ]
+    }
+  }
+}

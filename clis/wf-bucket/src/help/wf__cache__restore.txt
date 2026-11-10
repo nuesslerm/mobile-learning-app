@@ -1,0 +1,25 @@
+Usage: wf cache restore [options] <kind>
+
+Fill an empty local pnpm store from the bucket before `pnpm install`, or (kind metro) the app's build directory
+(frontend/mla-tamagui/node_modules/.cache/app-build: Metro's transform cache and tsc's build info) before an export or a typecheck, so a
+recreated VM or a fresh checkout fetches nothing it already has. It does nothing
+when the local store (metro: the app-build directory) is not empty, as it is on a runner whose checkout persists, and then asks the bucket nothing. Needs only
+the read link (BUILD_CACHE_READ_PAR_URL: the environment, then the vault). The
+store is the path `pnpm store path` prints, so npm_config_store_dir applies. The
+object is unpacked beside the store and moved into place whole, so a download or
+archive that breaks leaves the store as it was.
+
+Any problem with the bucket (no link, unreachable, no object, over budget) is a
+cold run: exit 0. Only a step on this machine that failed (pnpm missing, tar
+failed, no room) exits 1.
+
+Output: one JSON object on stdout {ok, kind, restored, bytes, reason, ms} where
+reason says why nothing was restored (local store not empty, no object, store
+not used: no link, unreachable, credential, budget or disabled, or the failed
+step) and null when the store was filled.
+
+Arguments:
+  kind        pnpm | metro
+
+Options:
+  -h, --help  display help for command

@@ -1,0 +1,13 @@
+# The set of the Orca mobile-bundle contract: the manifest, the windows and the schema probes the pinned Orca code gives for a synthetic
+# bundle. Re-record with: wf mimic record clis/orca-serve/map-mobile/fixtures/orca-mobile-bundle
+rules = "rules.json"
+corpus = "corpus.json"
+
+[reference]
+driver = "stdio"
+name = "orca"
+command = ["node", "../../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca-lib"]
+env = { NODE_NO_WARNINGS = "1" }
+pin = "../../../../../tooling/orca-conformance/orca-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"

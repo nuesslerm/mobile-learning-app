@@ -1,0 +1,28 @@
+Usage: wf vm terraform apply [options] <workingDir> <compartmentId>
+       wf vm terraform apply --recreate [workingDir]
+
+Guarded apply: free-tier check on every planned create/resize (the Always-Free
+A1 pool is 2 OCPU / 12 GB; what a replaced or resized instance holds counts as
+freed), post-apply convergence check, auto-rollback on failure.
+
+--recreate rebuilds the VM from clean: it checks the remote state holds
+oci_core_instance.main, destroys it, deletes every tailnet record its nodes left
+(so the new nodes claim the bare hostnames, never `-1` names), then runs the
+guarded apply above, which creates the VM again. The compartment comes from
+OCI_COMPARTMENT_OCID (environment or vault). Every apply takes the vault
+bootstrap token and the ADB admin password from the environment or Bitwarden and
+makes the deploy key once if missing, and retries while OCI still counts a
+just-destroyed instance. cloud-init then provisions every app in main.tf's
+vm_apps. Prints the guarded apply's verdict.
+A failed tailnet cleanup is an error: it is retried 4 times with a growing pause,
+then the command stops BEFORE the create with exit 1 and one JSON verdict
+{"ok":false,"reason":...,"vmDestroyed":true,"created":false,"evidence":[{"attempt":n,
+"error":...}],"next":["wf vm net device retire --replaced-vm --apply","wf vm terraform apply
+<dir> <compartment>"]}: run those two commands to continue. (The same holds for a
+plain apply that replaces the VM.)
+This is the only way to replace the VM: `wf vm terraform exec` refuses a raw
+-replace of oci_core_instance.main.
+
+Options:
+  --recreate  destroy and recreate the VM, clearing its tailnet records in between
+  -h, --help  display help for command

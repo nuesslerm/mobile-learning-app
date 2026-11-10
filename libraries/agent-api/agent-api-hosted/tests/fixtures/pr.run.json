@@ -1,0 +1,27 @@
+{
+  "method": "pr.run",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "pr.run",
+        "params": {
+          "run": 0,
+          "provider": "github",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`run` must be a positive integer"
+        }
+      },
+      "actions": [
+        "hosted_run_view"
+      ]
+    }
+  ]
+}

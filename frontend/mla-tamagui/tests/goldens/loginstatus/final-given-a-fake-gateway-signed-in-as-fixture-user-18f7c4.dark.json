@@ -1,0 +1,37 @@
+{
+  "suite": "loginstatus",
+  "step": "final-given-a-fake-gateway-signed-in-as-fixture-user-18f7c4",
+  "scheme": "dark",
+  "snapshot": "loginstatus/final-given-a-fake-gateway-signed-in-as-fixture-user-18f7c4.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "LoginScreen",
+      "LoginScreenStatus",
+      "LoginScreenMessage",
+      "LoginScreenExplainer"
+    ],
+    "text": "Signed in as fixture-user\nSigning in happens out-of-band, run by an operator via a separate login-capture session. This screen only shows whether leetcode-backend currently has a valid LeetCode session."
+  },
+  "timings": {
+    "render_ms": 257
+  },
+  "name": "loginstatus/final-given-a-fake-gateway-signed-in-as-fixture-user-18f7c4.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

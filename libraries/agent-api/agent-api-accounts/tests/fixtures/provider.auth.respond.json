@@ -1,0 +1,85 @@
+{
+  "method": "provider.auth.respond",
+  "exchanges": [
+    {
+      "name": "a code pasted into a running login is taken",
+      "before": [
+        {
+          "id": 1,
+          "method": "provider.auth.start",
+          "params": {
+            "provider": "claudeAgent",
+            "method": "paste"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "provider.auth.respond",
+        "params": {
+          "auth": "auth-1",
+          "text": "pasted-code-1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "auth": {
+            "auth": "auth-1",
+            "provider": "claudeAgent",
+            "method": "paste",
+            "status": "pending",
+            "url": "https://login.example.test/device",
+            "code": null,
+            "error": null
+          }
+        }
+      }
+    },
+    {
+      "name": "a login that asks for nothing to be pasted refuses it",
+      "before": [
+        {
+          "id": 1,
+          "method": "provider.auth.start",
+          "params": {
+            "provider": "codex"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "provider.auth.respond",
+        "params": {
+          "auth": "auth-2",
+          "text": "x"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "UNSUPPORTED_METHOD",
+          "message": "auth-2 signs in by a code the person enters at its address; nothing is pasted"
+        }
+      }
+    },
+    {
+      "name": "a session this service did not start is refused",
+      "request": {
+        "id": 1,
+        "method": "provider.auth.respond",
+        "params": {
+          "auth": "auth-9",
+          "text": "x"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "UNKNOWN_AUTH",
+          "message": "auth-9 is no login this service started"
+        }
+      }
+    }
+  ]
+}

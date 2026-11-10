@@ -1,0 +1,36 @@
+[package]
+name = "rca-group-agent"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent.threads group of the service's agent API and its sub-groups agent.requests, agent.queue and agent.lifecycle: threads over the thread engine, the replay and the follow of a thread's events, turns of an agent CLI whose tools are the thread's workspace executor, and what a turn waits on, queues and ends by"
+
+[lib]
+name = "rca_group_agent"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+# The double of the crate's port (`MemoryThreads`), for the crates that register the group and the service's flow tests
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent" }
+rca-agent-core = { path = "../agent-core" }
+# A turn runs a CLI through the driver, and its tools are the executor of the thread's workspace
+rca-cli-driver = { path = "../cli-driver" }
+rca-exec-channel = { path = "../exec-channel" }
+exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
+# A turn starts from a checkpoint of the workspace's files, and a rollback restores it: the names of those executor actions
+exec-git = { path = "../../../libraries/agent-api/exec-git" }
+
+[dev-dependencies]
+rca-cli-driver = { path = "../cli-driver", features = ["testing"] }
+rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
+agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent", features = ["testing"] }

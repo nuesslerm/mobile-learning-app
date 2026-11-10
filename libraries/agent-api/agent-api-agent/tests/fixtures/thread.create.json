@@ -1,0 +1,131 @@
+{
+  "method": "thread.create",
+  "exchanges": [
+    {
+      "name": "creates a thread the service names, with the defaults of its turns",
+      "request": {
+        "id": "1",
+        "method": "thread.create",
+        "params": {
+          "title": "Fix login",
+          "workspace": "w1",
+          "driver": "claudeAgent"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": {
+            "id": "t-named",
+            "title": "Fix login",
+            "workspace": "w1",
+            "driver": "claudeAgent",
+            "status": "idle",
+            "last_seq": 0,
+            "created_at": "2026-11-04T10:00:00Z",
+            "updated_at": "2026-11-04T10:00:00Z"
+          }
+        }
+      },
+      "volatile": [
+        "/result/thread/id",
+        "/result/thread/created_at",
+        "/result/thread/updated_at"
+      ]
+    },
+    {
+      "name": "creates a thread under the id the caller chose",
+      "request": {
+        "id": "2",
+        "method": "thread.create",
+        "params": {
+          "thread": "t-chosen",
+          "title": "Review",
+          "model": "opus"
+        }
+      },
+      "response": {
+        "id": "2",
+        "result": {
+          "thread": {
+            "id": "t-chosen",
+            "title": "Review",
+            "model": "opus",
+            "status": "idle",
+            "last_seq": 0,
+            "created_at": "2026-11-04T10:00:00Z",
+            "updated_at": "2026-11-04T10:00:00Z"
+          }
+        }
+      },
+      "volatile": [
+        "/result/thread/created_at",
+        "/result/thread/updated_at"
+      ]
+    },
+    {
+      "name": "answers the thread that has the id when it is created again",
+      "request": {
+        "id": "3",
+        "method": "thread.create",
+        "params": {
+          "thread": "t-chosen",
+          "title": "Another title"
+        }
+      },
+      "response": {
+        "id": "3",
+        "result": {
+          "thread": {
+            "id": "t-chosen",
+            "title": "Review",
+            "model": "opus",
+            "status": "idle",
+            "last_seq": 0,
+            "created_at": "2026-11-04T10:00:00Z",
+            "updated_at": "2026-11-04T10:00:00Z"
+          }
+        }
+      },
+      "volatile": [
+        "/result/thread/created_at",
+        "/result/thread/updated_at"
+      ]
+    },
+    {
+      "name": "refuses a field the method does not have",
+      "request": {
+        "id": "4",
+        "method": "thread.create",
+        "params": {
+          "title": "x",
+          "colour": "red"
+        }
+      },
+      "response": {
+        "id": "4",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "unknown field `colour`, expected one of `thread`, `title`, `workspace`, `driver`, `model`"
+        }
+      }
+    },
+    {
+      "name": "refuses an id that is empty",
+      "request": {
+        "id": "5",
+        "method": "thread.create",
+        "params": {
+          "thread": ""
+        }
+      },
+      "response": {
+        "id": "5",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "thread must not be empty"
+        }
+      }
+    }
+  ]
+}

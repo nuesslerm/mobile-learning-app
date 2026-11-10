@@ -1,0 +1,32 @@
+{
+  "suite": "usevoiceeditpseudo",
+  "step": "final-given-a-typed-rename-when-sent-then-it-takes-t-abd1f2",
+  "scheme": "light",
+  "snapshot": "usevoiceeditpseudo/final-given-a-typed-rename-when-sent-then-it-takes-t-abd1f2.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [],
+    "text": ""
+  },
+  "timings": {
+    "render_ms": 224
+  },
+  "name": "usevoiceeditpseudo/final-given-a-typed-rename-when-sent-then-it-takes-t-abd1f2.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "name": "mimic-drivers",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Drivers for wf mimic (mimic-driver/1, JSON lines over stdio), one src/<target>/ folder each. The toolchain they bundle with (esbuild, zod, tweetnacl, noble hashes) is pinned by pnpm-lock.yaml; runs on Node 22.18+ type stripping.",
+  "scripts": {
+    "test:flow": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings"
+  },
+  "dependencies": {
+    "@noble/hashes": "1.8.0",
+    "esbuild": "0.27.7",
+    "tweetnacl": "1.0.3",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "oxlint": "catalog:"
+  },
+  "nx": {
+    "targets": {
+      "test:flow": {
+        "cache": true,
+        "inputs": [
+          "default",
+          "{workspaceRoot}/pnpm-lock.yaml",
+          "{workspaceRoot}/tooling/orca-conformance/orca-pin.json",
+          "{workspaceRoot}/docs/plans/rca-parity/coverage/orca-methods.json",
+          "{workspaceRoot}/docs/plans/rca-parity/coverage/t3-methods.json",
+          "{workspaceRoot}/clis/t3-serve/cassettes/**",
+          "{workspaceRoot}/clis/orca-serve/cassettes/**",
+          "{workspaceRoot}/tooling/t3-conformance/t3-pin.json",
+          "{workspaceRoot}/clis/orca-serve/map-mobile/fixtures/**",
+          "{workspaceRoot}/clis/orca-serve/crypto/vectors/**",
+          "{workspaceRoot}/frontend/libraries/voice-edit-dsl/**",
+          "{workspaceRoot}/backend/remote-chat-agent/rs/tests/cassettes/**"
+        ]
+      }
+    }
+  }
+}

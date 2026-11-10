@@ -1,0 +1,31 @@
+Usage: wf android test <script.lua> [--env K=V]... [--publish] [--test-output-dir D] [--no-record] [--update-goldens]
+                       [--goldens-dir D] [--device D] [--cold-start] [--speed N]
+       wf android test --api [--json]
+
+Runs one Lua script against the Android device (Maestro's `maestro test`; redroid, adb by --device, ANDROID_SERIAL
+or WF_ANDROID_SERIAL). The run starts from the Expo Go already running (appStart "reused"); --cold-start force-stops
+it first, so the script's first deep link loads the app from scratch (appStart "cold"; `wf test run` does this once
+per job, after a failed unit and when the target changes: another update group). The report's timing carries appStart and startupS. The script
+drives `device` with the command table's methods (`wf android test --api`); --env K=V fills its `env` table.
+assert_screenshot compares with its golden
+(docs/runbooks/goldens/android/, or --goldens-dir) on every run; --update-goldens writes them instead. The test
+renews its device lease every 60 s while it runs. --speed N (else WF_TEST_SPEED; 1 to 4, default 1, anything else is a
+usage error) runs the user's gestures at N times their pace: the swipe verb's default 400 ms and scroll_until_visible's
+600 ms drags are divided by N, never below 250 ms. A duration the script passes, a stroke, typed text (adb types it
+at once), a sleep, a wait and a timeout keep their own time. The report's speed says which ran. CI runs Android at 1:
+an Android swipe lifts the finger while it still moves, so a shorter one flings further, and a toolbar key it brings in
+can fly past the screen; speed 2 waits for a published editor-typing run at 2 with no toolbar key typed on the keyboard.
+
+Every run ends with <test-output-dir>/report.{json,html} (default .agents/tmp/runs/<script>-<ms>; schema in
+`wf android test --api`), timing.jsonl and the recording; --publish uploads the run as a bundle (`wf test publish`)
+and posts its test_runs row. Output: the script's log lines and its report:, bundle:, recording: and goldens: lines.
+
+Logs instead of a debugger: the run id (<script>-<ms>) goes into every launch link as ?wfRun=<id>, the app puts it on each
+BetterStack line it sends, and after the script the harness reads those lines (waiting up to WF_ANDROID_LOGS_WAIT_S, default
+30 s, for ingest) and the report's App logs section lists them, crashes first, their stacks mapped to source lines through
+the update group's maps (`wf android stack`). It says when lines may be missing (slow ingest, no ingest pair in the build).
+
+Removed: --goldens (assert_screenshot always compares); --logpoint (an Android run loads the EAS Update, which has no inspector: it is
+refused with exit 1, and there is no Android debugger; the browser run has one).
+
+Exit: 0 pass, 1 the script failed or the harness errored (the report says which), 2 a usage error, 124 stopped by SIGTERM (report written).

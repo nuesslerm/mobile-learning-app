@@ -1,0 +1,11 @@
+# mla-tamagui (frontend app)
+
+Loaded on demand when working under `frontend/mla-tamagui/`. The always-on rules live in the root `AGENTS.md`; this file carries the how-to for this area, moved here verbatim so the root stays small (known-gaps #51).
+
+## Flow tests
+
+Screen flow tests mount whole routes via `createFlowApp` with `useDependencyOverrides` (no bare `renderScreen`, no `transport="fixture"`); how it works and how a feature opts in: `docs/solutions/testing/flow-tests-mount-whole-routes.md`.
+
+Never `vi.mock` in a flow test (oxlint rejects it). Interact through the `FlowSession` (`tap`, `type`, `layout`, `stroke`, `editor()`). A new fake for a port ships from the port owner's `testing` entry, never from the harness; only a native package is a harness stub (`frontend/libraries/flow-test-harness/README.md`, "Adding a double or a stub"). Where doubles live: `docs/solutions/architecture/hexagonal-architecture-by-package-type.md`.
+
+Hard rule (owner): a flow test stubs a dependency only at the data level (a port's double) or the native API level (no runtime in jsdom). Anything React Native Testing Library or the DOM can render or capture accurately is rendered for real, so goldens show it: a canvas draws its paths as SVG, markdown renders as markdown, charts draw their marks.

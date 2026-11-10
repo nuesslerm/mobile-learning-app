@@ -1,0 +1,35 @@
+Usage: wf browser <command> [options]
+
+The browser harness: Chromium framed as a phone, driven through the browser daemon (`wf browser-daemon`). A session is a
+device: --device names it, and a verb drives the only open session when none is named (a running test's session only
+when --device names it). Every verb prints one JSON line: {ok, command, platform, device, ms, result} with exit 0; a
+failure {ok:false, ..., error, next} with exit 1; a usage error {ok:false, error, usage} with exit 2. --json is accepted
+and ignored. `wf browser <command> --help` prints one in full.
+
+Devices:
+  start-device --device N [--screen-size P] [--frame F] [--color-scheme S] [--tailnet] [--plain] [--headless]
+                         opens session N (starts the daemon when none runs)
+  stop-device [--device N | --all]
+                         closes the session, or every session
+  list-devices           the daemon, the open sessions (with the pid of a test that owns one) and the screen presets
+  hierarchy [--device N] the screen's elements as JSON, to write a selector from
+
+Tests:
+  test <script.lua>      runs one Lua test (`wf browser test --help`); `test --api` prints the script API
+
+Checks and the tailnet:
+  check-taps <video> [--inputs F]
+                         every tap in a recording's input log shows its dot in the video (exit 1 when one does not)
+  tailnet-forward --host H --port P [--local-port L]
+                         forwards one tailnet host:port to a local port, for a page in the device frame
+  tunnel [services...]   publishes the deployed VM services on localhost ports (foreground)
+
+Debugger (browser only: there is no Android debugger):
+  set-breakpoint <file:line[:condition]> [--device N]
+  debug-pause [--timeout ms] | debug-step [over|into|out] | debug-eval <expr> | debug-resume   [--device N]
+
+The daemon (frozen for @lib/browser-client and the cookie-capture service; human text, or one pino line with --json):
+  start [--headless] [--screenshot-dir D] | status | stop
+
+A dropped verb (eval, cookies, network-stub, ...) exits 2 with {error:"dropped", why, use}; any other unknown verb exits
+2 with {error:"unknown verb '<verb>'", verbs, usage}.

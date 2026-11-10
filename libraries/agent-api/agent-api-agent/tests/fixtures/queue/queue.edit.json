@@ -1,0 +1,68 @@
+{
+  "method": "queue.edit",
+  "exchanges": [
+    {
+      "name": "changes the text of a queued prompt",
+      "before": [
+        {
+          "id": "setup-create-t-qe",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-qe",
+            "title": "Thread t-qe",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        },
+        {
+          "id": "setup-a1",
+          "method": "queue.add",
+          "params": {
+            "thread": "t-qe",
+            "item": "q1",
+            "prompt": "one"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "queue.edit",
+        "params": {
+          "thread": "t-qe",
+          "item": "q1",
+          "prompt": "better"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": "t-qe",
+          "item": "q1",
+          "seq": 1
+        }
+      },
+      "volatile": [
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "refuses an item that is not queued",
+      "request": {
+        "id": "2",
+        "method": "queue.edit",
+        "params": {
+          "thread": "t-qe",
+          "item": "nope",
+          "prompt": "x"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "ITEM_NOT_QUEUED",
+          "message": "Run nope is not queued."
+        }
+      }
+    }
+  ]
+}

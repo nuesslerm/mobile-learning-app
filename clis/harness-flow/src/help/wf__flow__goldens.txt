@@ -1,0 +1,14 @@
+Usage: wf flow goldens --snapshots <dir> --goldens <dir> [--color-scheme light|dark] [--report <file>] [--threshold <ratio>]
+                       [--pixel-threshold <0..1>] [--width 393] [--height 852] [--max-width 360] [--max-height 2*height]
+                       [--update | --save] [--keep-unused]
+
+The flow harness's golden pass, with no device (`wf flow run` calls it after vitest): renders each
+<snapshots>/<suite>/<name>.html (the frozen DOM a flow test wrote) in headless Chromium, offline, keeps the top
+--max-height px of the page, downscales it to --max-width and compares it with <goldens>/<suite>/<name>.<scheme>.png
+(pixelmatch at --pixel-threshold, default 0.1; a match differs in at most --threshold of the pixels, default 0.002).
+A mismatch writes actual, expected and diff PNGs under <report dir>/out/; every golden gets a sidecar .json.
+--update rewrites the goldens and removes those no snapshot produced (not with --keep-unused); --save only paints
+each screenshot to <report dir>/out/<suite>/<name>.<scheme>.actual.png and compares nothing. The report is a gallery page.
+
+Output: {"ok","scheme","report","counts":{match,updated,mismatch,missing,errors},"unused":[..],"errors":[..],
+"goldens":[{"name","verdict","ok","message","golden","actual","expected","diff","differing_pixels","ratio"}],"next"}

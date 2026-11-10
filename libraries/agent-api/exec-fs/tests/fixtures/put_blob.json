@@ -1,0 +1,31 @@
+{
+  "action": "put_blob",
+  "exchanges": [
+    {
+      "name": "writes the decoded bytes to a new file, making the parent directories",
+      "request": {"id": "b1", "tool": "put_blob", "args": {"path": ".rca/attachments/a1/note.txt", "data": "aGVsbG8="}},
+      "response": {"id": "b1", "ok": true, "result": {"path": ".rca/attachments/a1/note.txt", "bytes": 5}}
+    },
+    {
+      "name": "refuses a path that exists and leaves the file as it was",
+      "setup": {"files": {"a.txt": "keep"}},
+      "request": {"id": "b2", "tool": "put_blob", "args": {"path": "a.txt", "data": "bmV3"}},
+      "response": {"id": "b2", "ok": false, "error": {"code": "ALREADY_EXISTS", "message": "a.txt already exists"}}
+    },
+    {
+      "name": "refuses a path outside the root",
+      "request": {"id": "b3", "tool": "put_blob", "args": {"path": "../escape.bin", "data": "eA=="}},
+      "response": {"id": "b3", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../escape.bin is outside the root"}}
+    },
+    {
+      "name": "refuses data that is not base64",
+      "request": {"id": "b4", "tool": "put_blob", "args": {"path": "x.bin", "data": "***"}},
+      "response": {"id": "b4", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`data` must be base64"}}
+    },
+    {
+      "name": "refuses a missing data argument",
+      "request": {"id": "b5", "tool": "put_blob", "args": {"path": "x.bin"}},
+      "response": {"id": "b5", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`data` must be a string"}}
+    }
+  ]
+}

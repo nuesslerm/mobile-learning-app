@@ -1,0 +1,51 @@
+Recording: a run is recorded by default and prints "recording: <file>" lines; the run fails when no recording was made.
+Gates belong in the script: clear_logs() before a step, assert_true(#device:get_logs() == 0, 'no warnings') after it.
+
+Report: every run, pass or fail (an assert_true failure, a Lua error, a wait timeout, a syntax error, a refused flag), ends
+with <test-output-dir>/report.json and report.html (one self-contained page of it, links relative to that dir; also with
+--no-record) and prints "report: <page>". report.json (schema 1):
+  verdict pass|fail|error (fail: the script raised; error: it never ran or the harness broke), ok, exitCode, message,
+  traceback (the Lua stack, "stack traceback:..."), notes[] (harness problems: recording, force-stop), script, platform,
+  device, screen ("WxH" of the first screenshot), sha (WF_RUN_SHA or git HEAD), speed (the run's --speed or
+  WF_TEST_SPEED, 1 to 4, default 1), args{} (the --env values), startedMs, finishedMs, started, finished, durationS,
+  recordDir (the test output dir),
+  timing      {wallS, deviceS, scriptS, sleepS, luaS, calls, phases{setup, script, teardown, report, publish} (s),
+              byVerb[{verb, calls, s, p50Ms, p95Ms, maxMs, insideS, misses, timeouts, errors}], byInner[{part, calls, s, p50Ms}],
+              byStep[{step, count, s}], slowest[{verb, ms, line, outcome, t0}], timeline[span]} or null, from this run's
+              spans (<test-output-dir>/timing.jsonl by default, or the file WF_RUN_TIMING names). A span is one JSON line
+              {id, parent, kind, name, t0, ms, outcome, line}: kind phase|step|call|inner|sleep, t0 ms since the run started,
+              outcome ok|hit|miss|timeout|error (get_element and optional waits: hit or miss), line the script's file:line.
+              Inner spans (adb, UI-server RPC, daemon calls) nest under their call, so no time counts twice.
+              `wf test publish` keeps the summary without timeline in the index entry and the row's timing_json.
+  steps[]     {ms, kind, detail, n} from the input log (n: the action id the on-page marker shows; browser only) <test-output-dir>/run.inputs.jsonl (browser: ms into the recording;
+              android: ms since the run started, WF_ANDROID_INPUT_LOG unless already set)
+  screenshots[] {path, href}: device:take_screenshot files, PNGs under the test output dir (not goldens/) and under --env out=,
+              and a wait timeout's screenshot, oldest first
+  recordings[]  {path, href}: every .mp4/.webm under the test output dir and what stop_recording returned
+  evidence[]    {path, href}: each failed wait's evidence JSON (wait-timeout-<ms>.json, beside its screenshot)
+  goldens[]     {name, verdict, ok, message, ratio, differingPixels, golden, actual, expected, diff} (images as {path, href})
+  warnings[]    every warn or error line a get_logs call returned plus the buffer at the end, deduplicated
+  debugHits[]   the debug.jsonl hits: {file, line, function, frames[{function, file, line}], locals, ...}
+
+Speed: wf <harness> test --speed N, or WF_TEST_SPEED=N (a number from 1 to 4, default 1; anything else stops the test
+before it starts, exit 2), runs a user's gestures at N times their pace: the swipe verb's default duration (400 ms) and
+scroll_until_visible's 600 ms drags are divided by N but never shortened below 250 ms, so on the browser (whose swipe holds
+still before it lifts) a drag stays a drag and never becomes a fling; there the pauses between typed keys are divided by N
+too. An Android swipe lifts while it still moves, so a shorter one flings further. A duration the script passes, the
+strokes of draw_strokes_on, sleep_ms, waits, timeouts and Android's input_text keep their own time. CI runs the browser at
+2 and Android at 1.
+
+Debugging: wf browser test <script.lua> --logpoint file:line[:condition] (repeatable) arms deferred logpoints before the first
+page loads. Browser only: an Android run loads the EAS Update, which has no inspector, so `wf android test` refuses --logpoint
+(exit 1, the report says why), `wf test run` refuses it too (exit 2, {ok:false,error,next}) and device:get_debug_hits() is not on android. Every hit is one JSON line in
+<test-output-dir>/debug.jsonl, printed as "debug: <path> (N hits)", and device:get_debug_hits() reads them during the run. A hit holds the stack (original
+files and lines) and the locals of the top frame, so a failing run explains itself without log statements. See
+`wf browser --help` for the interactive debugger (set-breakpoint, debug-*), browser only.
+
+Goldens: device:assert_screenshot(name [, {threshold_percentage=95, ignore={{l,t,r,b}}}]) scales the screen to 360 px and
+compares it with docs/runbooks/goldens/<platform>/<name>.png (or --goldens-dir) on every run: below threshold_percentage, or
+with no golden, the script fails with the diff as evidence. --update-goldens writes every golden and its sidecar instead
+(verdict updated). ignore rects are in tap units (scaled by dpr on the browser). Each call writes
+<test-output-dir>/goldens/<name>.actual.png and <name>.json; a mismatch adds <name>.expected.png and <name>.diff.png (changed
+pixels red). After the run, <test-output-dir>/goldens.html is a gallery of every golden (name, image, verdict), goldens.json
+the same as data, and the run prints "goldens: <page> (n match, n updated, n mismatch, n missing)".

@@ -1,0 +1,148 @@
+{
+  "method": "git.rebase",
+  "exchanges": [
+    {
+      "name": "stops on a conflict and lists it, a rebase needing a clean tree",
+      "before": [
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "c.txt",
+            "content": "base\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "c.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "base"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.createRef",
+          "params": {
+            "workspace": "w1",
+            "name": "topic",
+            "checkout": true
+          }
+        },
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "c.txt",
+            "content": "topic\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "c.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "topic"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.checkout",
+          "params": {
+            "workspace": "w1",
+            "ref": "main"
+          }
+        },
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "c.txt",
+            "content": "main\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "c.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "main"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.discard",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "README.md"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.rebase",
+        "params": {
+          "workspace": "w1",
+          "op": "start",
+          "ref": "topic"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "ok": false,
+          "head": "860c68b141e26bd82f10702feb3dc267b67a9c0b",
+          "updated": true,
+          "conflicted": true,
+          "conflicts": [
+            "c.txt"
+          ],
+          "operation": "rebase",
+          "output": "Rebasing (1/1)\rerror: could not apply 9163dc6... main\nhint: Resolve all conflicts manually, mark them as resolved with\nhint: \"git add/rm <conflicted_files>\", then run \"git rebase --continue\".\nhint: You can instead skip this commit: run \"git rebase --skip\".\nhint: To abort and get back to the state before \"git rebase\", run \"git rebase --abort\".\nCould not apply 9163dc6... main"
+        }
+      },
+      "actions": [
+        "git_rebase"
+      ],
+      "volatile": [
+        "/result/head",
+        "/result/output"
+      ]
+    }
+  ]
+}

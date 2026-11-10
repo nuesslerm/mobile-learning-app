@@ -1,0 +1,105 @@
+{
+  "action": "git_create_ref",
+  "exchanges": [
+    {
+      "name": "creates a branch at HEAD",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "crea36",
+        "tool": "git_create_ref",
+        "args": {
+          "name": "feature/one"
+        }
+      },
+      "response": {
+        "id": "crea36",
+        "ok": true,
+        "result": {
+          "name": "feature/one",
+          "kind": "branch",
+          "sha": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b"
+        }
+      }
+    },
+    {
+      "name": "creates an annotated tag",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "crea37",
+        "tool": "git_create_ref",
+        "args": {
+          "name": "v1",
+          "kind": "tag",
+          "message": "release one"
+        }
+      },
+      "response": {
+        "id": "crea37",
+        "ok": true,
+        "result": {
+          "name": "v1",
+          "kind": "tag",
+          "sha": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b"
+        }
+      }
+    },
+    {
+      "name": "refuses a name git would read as an option",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "crea38",
+        "tool": "git_create_ref",
+        "args": {
+          "name": "-x"
+        }
+      },
+      "response": {
+        "id": "crea38",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`name` must be a branch or tag name"
+        }
+      }
+    },
+    {
+      "name": "refuses a branch that exists",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "crea39",
+        "tool": "git_create_ref",
+        "args": {
+          "name": "main"
+        }
+      },
+      "response": {
+        "id": "crea39",
+        "ok": false,
+        "error": {
+          "code": "ALREADY_EXISTS",
+          "message": "git branch: fatal: a branch named 'main' already exists"
+        }
+      }
+    }
+  ]
+}

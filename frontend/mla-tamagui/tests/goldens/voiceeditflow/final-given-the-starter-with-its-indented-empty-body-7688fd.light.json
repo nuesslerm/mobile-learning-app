@@ -1,0 +1,62 @@
+{
+  "suite": "voiceeditflow",
+  "step": "final-given-the-starter-with-its-indented-empty-body-7688fd",
+  "scheme": "light",
+  "snapshot": "voiceeditflow/final-given-the-starter-with-its-indented-empty-body-7688fd.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-plan",
+      "ProblemWorkspaceTab-code",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorDiffToggle",
+      "ProblemEditorDiffToggle-Indicator",
+      "ProblemEditorDiffToggle-Label",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTextEditStartButton",
+      "ProblemEditorVoiceStartButton",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInput",
+      "ProblemPlanTab",
+      "ProblemPlanSteps",
+      "ProblemPlanComposer",
+      "ProblemPlanMicButton",
+      "ProblemPlanTextInput",
+      "ProblemPlanAddButton"
+    ],
+    "text": "Plan\nCode\nPython\nDiff\nFormat\nRun Local\nRun\nReset"
+  },
+  "timings": {
+    "render_ms": 241
+  },
+  "name": "voiceeditflow/final-given-the-starter-with-its-indented-empty-body-7688fd.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

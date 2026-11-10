@@ -1,0 +1,27 @@
+{
+  "method": "sourceControl.signInCancel",
+  "exchanges": [
+    {
+      "name": "cancelling a sign-in that is not running is answered, not refused",
+      "request": {
+        "id": 1,
+        "method": "sourceControl.signInCancel",
+        "params": {
+          "workspace": "w1",
+          "provider": "github",
+          "flow": "login-404"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "flow": "login-404",
+          "cancelled": false
+        }
+      },
+      "actions": [
+        "hosted_auth_login_cancel"
+      ]
+    }
+  ]
+}

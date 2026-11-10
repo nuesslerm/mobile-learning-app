@@ -1,0 +1,25 @@
+Usage: wf vm state verify [options]
+
+For every volume vm-apps.json declares: restores the newest snapshot (and the
+sqlite snapshot of its run) into a private scratch directory that is removed on
+every way out, restic checks each file it writes, runs PRAGMA integrity_check on
+every SQLite database in it, and only then tags the snapshots `verified`. It
+also runs `restic check --read-data-subset 5%` on the repository and compares
+its size with the budget. A missing volume, a damaged snapshot, a database that
+fails the check or a repository over budget is a failure; nothing is ever
+written to a volume. The recreate preflight and the nightly workflow run it.
+
+Answer (one JSON line on stdout, exit 0 only when "ok" is true):
+  {"event":"vm-state","verb":"<verb>","ok":bool,"bucket":"mobile-learning-vm-state",
+   "apps":[{"app":"orca-serve","ok":bool,"stamp":"20261107033000Z","ageSeconds":n,
+            "volumes":[{"ok":bool,"volume":"orca-state","snapshot":"<restic id>","measuredBytes":n,
+                        "maxBytes":n,"databases":n,"error":"..."}],
+            "error":"...","next":"..."}],
+   "repository":{"ok":bool,"bytes":n,"budgetBytes":n,"error":"..."},
+   "error":"...","next":"..."}
+A failed row carries the tool's own error and the next step; the restic
+password is never printed.
+
+Options:
+  --app <name>  only this app
+  --local       the agent-shell side (see backup)

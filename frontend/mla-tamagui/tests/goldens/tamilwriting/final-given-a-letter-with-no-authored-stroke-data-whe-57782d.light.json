@@ -1,0 +1,86 @@
+{
+  "suite": "tamilwriting",
+  "step": "final-given-a-letter-with-no-authored-stroke-data-whe-57782d",
+  "scheme": "light",
+  "snapshot": "tamilwriting/final-given-a-letter-with-no-authored-stroke-data-whe-57782d.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1006,
+    "page_height": 1006
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "TamilLessonScreen",
+      "TamilLessonHeader",
+      "TamilLessonHeaderBack",
+      "TamilLessonHeaderTitle",
+      "TamilLessonHeaderSubtitle",
+      "TamilLessonHeaderActions",
+      "TamilLessonReset",
+      "TamilLessonScroll",
+      "TamilPracticePosition",
+      "TamilPracticeMasteryDots",
+      "TamilPracticeMasteryDot0",
+      "TamilPracticeMasteryDot1",
+      "TamilPracticeMasteryDot2",
+      "TamilPracticePrevious",
+      "TamilPracticeLessonBar",
+      "TamilPracticeLessonBarFill",
+      "TamilPracticeLessonBarTrack",
+      "TamilPracticeNext",
+      "TamilPracticeCharacterCard",
+      "TamilPracticeGlyph",
+      "TamilPracticeTransliteration",
+      "TamilPracticeTamilName",
+      "TamilPracticeSound",
+      "TamilPracticeStrokeHint",
+      "TamilPracticeExample",
+      "TamilPracticeCanvas",
+      "TamilPracticeCanvasGuide",
+      "TamilPracticeCanvasGuideMeasure",
+      "TamilPracticeCanvasGuideGlyph",
+      "TamilPracticeCanvasSurface",
+      "TamilPracticeFeedback",
+      "TamilPracticeToggleGuide",
+      "TamilPracticeUndo",
+      "TamilPracticeClear",
+      "TamilPracticeWriteBig",
+      "TamilPracticeAgain",
+      "TamilPracticeGotIt",
+      "TamilLessonDescription"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nவல்லினம்\nHard consonants\nLetter 1 of 6\nக்\nk\nககரம்\nk / g, as in skate\nVertical down, shoulder out to the right, then the dot (புள்ளி) on top.\nபக்கம் · pakkam · page, side\nக்\nக்\nTrace over the guide letter with your finger.\nWrite it large, with instructions\nPractise again\nGot it\nSix body-letters, each "
+  },
+  "timings": {
+    "render_ms": 505
+  },
+  "name": "tamilwriting/final-given-a-letter-with-no-authored-stroke-data-whe-57782d.light",
+  "image": {
+    "width": 360,
+    "height": 958
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

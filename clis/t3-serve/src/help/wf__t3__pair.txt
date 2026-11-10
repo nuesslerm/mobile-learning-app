@@ -1,0 +1,28 @@
+Usage: wf t3 pair [options]
+
+Mint a one-time pairing code: 12 characters of 23456789ABCDEFGHJKLMNPQRSTUVWXYZ,
+valid 5 minutes (--ttl) and redeemable once, and print the pairing URL
+<base>/pair#token=<code> the T3 app opens or scans. It writes only the code's hash
+to the state directory, so it works while `serve` runs. The code in the output
+is the only copy: it is not logged and cannot be read back from the store.
+
+The code is exchanged for a 30-day bearer token whose scopes are the ones given
+here. Without --scope the narrowest set that lets the phone work:
+orchestration:read, orchestration:operate, terminal:read, terminal:operate,
+filesystem:read, filesystem:write. The other scopes (settings:write,
+providers:manage, environment:maintain, preview:operate, diagnostics:read,
+source-control:write, review:write, access:read, access:write, relay:read,
+relay:write) only by flag.
+
+Output: one JSON object on stdout:
+  {ok, url, code, baseUrl, expiresAt, ttlSeconds, scopes, label, environmentId}
+expiresAt is an ISO instant. ok is false, with exit 1, when a scope is not one of
+the 17 or the store cannot be written (error and next say which).
+
+Options:
+  --base-url <url>     where the server is reached (T3_BASE_URL; default http://127.0.0.1:3774)
+  --ttl <seconds>      how long the code is valid (default 300)
+  --scope <list>       comma-separated scopes, repeatable; replaces the default set
+  --label <text>       name of the paired client in the store (default "wf t3 pair")
+  --state-dir <dir>    store directory (T3_STATE_DIR; default ~/.local/share/t3-compat)
+  -h, --help           display help for command

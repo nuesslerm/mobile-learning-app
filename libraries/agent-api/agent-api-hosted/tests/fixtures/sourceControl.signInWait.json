@@ -1,0 +1,27 @@
+{
+  "method": "sourceControl.signInWait",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "sourceControl.signInWait",
+        "params": {
+          "provider": "github",
+          "flow": "login-404",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no sign-in flow login-404"
+        }
+      },
+      "actions": [
+        "hosted_auth_login_wait"
+      ]
+    }
+  ]
+}

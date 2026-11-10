@@ -1,0 +1,20 @@
+[package]
+name = "agent-api-agent"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's agent sub-groups: `agent.threads` (`thread.create/list/get/subscribe/history/transcript`, `turn.start/interrupt`, the thirteen neutral thread events) and, as modules of their own, `agent.requests`, `agent.queue` and `agent.lifecycle` (M4): methods, params, results, error codes, events and fixtures"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }

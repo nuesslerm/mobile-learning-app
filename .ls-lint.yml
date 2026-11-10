@@ -1,0 +1,56 @@
+# Folder layout of the services (`pnpm run arch:services`). Each Rust service is a pair of crates: `core` holds `domain` and
+# `application`, `rs` holds `api` and `infrastructure` and no `domain` or `application` (a rule or a use case lives in a core).
+# Nothing else may sit at the root of a `src/`; inside a layer any snake_case module is fine. The direction of
+# the imports between the layers is checked by `backend/arch-rules` (ast-grep). A rule applies to the key's own directory
+# and everything below it until a deeper key overrides it, so the `*` keys release the layers' contents. remote-chat-agent's
+# `cli-driver`, `exec-channel`, `agent-core`, `group-agent` and `group-workspace` crates are cores split out of its `core`: the first has the two layers, the others are flat.
+# Its `service-core` is the core of the service crate `rs`: the use cases and the ports they call out through, with the two layers.
+ls:
+  backend/*/core/src:
+    .dir: regex:(src|domain|application|testing)
+    .rs: regex:(lib|testing)
+  backend/*/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/*/rs/src:
+    .dir: regex:(src|api|infrastructure)
+    .rs: regex:(lib|main|compose|ports)
+  backend/*/rs/src/*:
+    .dir: regex:(api|infrastructure)
+    .rs: snake_case
+  backend/*/rs/src/*/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/*/service-core/src:
+    .dir: regex:(src|domain|application)
+    .rs: regex:(lib|testing)
+  backend/*/service-core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/*/cli-driver/src:
+    .dir: regex:(src|domain|application)
+    .rs: regex:(lib|testing)
+  backend/*/cli-driver/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/*/exec-channel/src:
+    .dir: regex:src
+    .rs: regex:(lib|mcp|placed|registry|remote|testing)
+  backend/*/agent-core/src:
+    .dir: regex:src
+    .rs: regex:(lib|bearers|connection)
+  backend/*/group-agent/src:
+    .dir: regex:src
+    .rs: regex:(lib|checkpoint|group|lifecycle|neutral|port|queue|refusal|requests|runner|staging|testing|turns)
+  backend/*/group-workspace/src:
+    .dir: regex:src
+    .rs: regex:(lib|edit|files|relay|setup|tests|workspaces|worktrees)
+  backend/*/opencode/src:
+    .dir: regex:src
+    .rs: regex:(lib|backend|http|testing|tests)
+  backend/*/speech/src:
+    .dir: regex:src
+    .rs: regex:(lib|speech|tests)
+  backend/*/host/src:
+    .dir: regex:src
+    .rs: regex:(lib|proc|exec|file_store|files|docs|runs|tests)

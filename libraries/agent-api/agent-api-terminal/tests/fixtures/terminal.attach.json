@@ -1,0 +1,78 @@
+{
+  "method": "terminal.attach",
+  "exchanges": [
+    {
+      "name": "attaches from the start",
+      "before": [
+        {
+          "id": 1,
+          "method": "terminal.open",
+          "params": {
+            "workspace": "w1",
+            "terminal": "t1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "terminal.attach",
+        "params": {
+          "workspace": "w1",
+          "terminal": "t1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "workspace": "w1",
+          "terminal": "t1",
+          "after_offset": null,
+          "start_offset": 0,
+          "offset": "<volatile>",
+          "reset": false,
+          "cols": 80,
+          "rows": 24,
+          "status": "running",
+          "exit_code": null
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/offset"
+      ]
+    },
+    {
+      "name": "an offset the stream has not reached is refused",
+      "before": [
+        {
+          "id": 1,
+          "method": "terminal.open",
+          "params": {
+            "workspace": "w1",
+            "terminal": "t1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "terminal.attach",
+        "params": {
+          "workspace": "w1",
+          "terminal": "t1",
+          "after_offset": 999999999
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "OFFSET_AHEAD",
+          "message": "after_offset 999999999 is past the end of the stream, <volatile>"
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/error/message"
+      ]
+    }
+  ]
+}

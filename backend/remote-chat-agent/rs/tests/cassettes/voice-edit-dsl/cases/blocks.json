@@ -1,0 +1,6146 @@
+[
+ {
+  "id": "blocks-0000",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "try:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0001",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "x = 1\nexcept ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0002",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0003",
+  "input": {
+   "code": "hello world",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "finally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0004",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 5,
+      "newText": "a\nif é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0005",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 1,
+      "newText": "return x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0006",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "a\nreturn x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0007",
+  "input": {
+   "code": "",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0008",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 7,
+      "text": "\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0009",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 5,
+      "newText": "x = 1\nexcept ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0010",
+  "input": {
+   "code": "hello world",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "finally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0011",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "a\nwith open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0012",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0013",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "if a:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0014",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "class A(B):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0015",
+  "input": {
+   "code": "x",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0016",
+  "input": {
+   "code": "",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "x = 1\nifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0017",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 1,
+      "newText": "x = 1\nelif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0018",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0019",
+  "input": {
+   "code": "",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "with open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0020",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 9,
+      "endLine": 5,
+      "newText": "if x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0021",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "while x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0022",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 3,
+      "newText": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0023",
+  "input": {
+   "code": "x",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0024",
+  "input": {
+   "code": "x",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "while x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0025",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "x = 1\nif a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0026",
+  "input": {
+   "code": "\n\n\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 5,
+      "text": "\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0027",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0028",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 4,
+      "newText": "x = 1\nreturn x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0029",
+  "input": {
+   "code": "x",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "x = 1\n        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0030",
+  "input": {
+   "code": "\n\n\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 3,
+      "newText": "try:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0031",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 5,
+      "text": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0032",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 7,
+      "newText": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0033",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "x = 1\nifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0034",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0035",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 2,
+      "newText": "except ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0036",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 7,
+      "newText": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0037",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 6,
+      "text": "x = 1\nwhile x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0038",
+  "input": {
+   "code": "",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "a\n    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0039",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "a\nclass A(B):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0040",
+  "input": {
+   "code": "x",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "except ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0041",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 4,
+      "newText": "x = 1\nif x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0042",
+  "input": {
+   "code": "",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0043",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 3,
+      "newText": "with open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0044",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 2,
+      "newText": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0045",
+  "input": {
+   "code": "x",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0046",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 6,
+      "text": "return x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0047",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 5,
+      "text": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0048",
+  "input": {
+   "code": "",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "if x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0049",
+  "input": {
+   "code": "\n\n\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "x = 1\nelif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0050",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "a\nclass A(B):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0051",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 4,
+      "newText": "a\n        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0052",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0053",
+  "input": {
+   "code": "hello world",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "with open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0054",
+  "input": {
+   "code": "hello world",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "a\n    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0055",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "a\ndef f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0056",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 1,
+      "newText": "    pass"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0057",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "class A(B):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0058",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "a\nreturn x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0059",
+  "input": {
+   "code": "hello world",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "try:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0060",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "finally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0061",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 4,
+      "newText": "try:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0062",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0063",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "except ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0064",
+  "input": {
+   "code": "\n\n\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "a\n\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0065",
+  "input": {
+   "code": "",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0066",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 2,
+      "newText": "    pass"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0067",
+  "input": {
+   "code": "hello world",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "finally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0068",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0069",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 9,
+      "text": "with open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0070",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 5,
+      "text": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0071",
+  "input": {
+   "code": "\n\n\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "if x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0072",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "x = 1\n        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0073",
+  "input": {
+   "code": "",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0074",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0075",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 4,
+      "newText": "finally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0076",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0077",
+  "input": {
+   "code": "\n\n\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 5,
+      "newText": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0078",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "finally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0079",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 4,
+      "newText": "while x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0080",
+  "input": {
+   "code": "hello world",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "a\nwith open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0081",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0082",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0083",
+  "input": {
+   "code": "hello world",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "except ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0084",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 2,
+      "newText": "x = 1\nif x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0085",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 1,
+      "newText": "a\n    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0086",
+  "input": {
+   "code": "x",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "a\ntry:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0087",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0088",
+  "input": {
+   "code": "x",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0089",
+  "input": {
+   "code": "hello world",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "x = 1\nfinally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0090",
+  "input": {
+   "code": "hello world",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "x = 1\nif a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0091",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "class A(B):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0092",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 4,
+      "newText": "x = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0093",
+  "input": {
+   "code": "x",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0094",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 3,
+      "newText": "ifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0095",
+  "input": {
+   "code": "x",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "a\nreturn x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0096",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 1,
+      "newText": "x = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0097",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "a\nif x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0098",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 4,
+      "newText": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0099",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0100",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0101",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 6,
+      "text": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0102",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 1,
+      "newText": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0103",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 4,
+      "newText": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0104",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 2,
+      "newText": "a\nif é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0105",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 2,
+      "newText": "a\n\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0106",
+  "input": {
+   "code": "",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "x = 1\ntry:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0107",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 8,
+      "text": "x = 1\ntry:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0108",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "if a:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0109",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0110",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 3,
+      "newText": "x = 1\ntry:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0111",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0112",
+  "input": {
+   "code": "hello world",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "a\n        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0113",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 4,
+      "newText": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0114",
+  "input": {
+   "code": "",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "finally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0115",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 6,
+      "newText": "except ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0116",
+  "input": {
+   "code": "",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "except ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0117",
+  "input": {
+   "code": "x",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "    pass"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0118",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "a\nif x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0119",
+  "input": {
+   "code": "x",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "x = 1\nreturn x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0120",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "a\nifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0121",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0122",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 6,
+      "endLine": 3,
+      "newText": "\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0123",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0124",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "a\nreturn x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0125",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "x = 1\nx = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0126",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 3,
+      "newText": "if x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0127",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0128",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 8,
+      "newText": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0129",
+  "input": {
+   "code": "x",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "x = 1\ndef f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0130",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 6,
+      "endLine": 1,
+      "newText": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0131",
+  "input": {
+   "code": "",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "a\n        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0132",
+  "input": {
+   "code": "hello world",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "x = 1\nx = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0133",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0134",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 6,
+      "endLine": 3,
+      "newText": "class A(B):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0135",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "a\nreturn x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0136",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 6,
+      "endLine": 5,
+      "newText": "return x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0137",
+  "input": {
+   "code": "x",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "x = 1\niffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0138",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 3,
+      "newText": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0139",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0140",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 3,
+      "newText": "x = 1\nifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0141",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "    pass"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0142",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 1,
+      "newText": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0143",
+  "input": {
+   "code": "\n\n\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "a\nreturn x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0144",
+  "input": {
+   "code": "hello world",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0145",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "x = 1\ntry:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0146",
+  "input": {
+   "code": "x",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "while x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0147",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 3,
+      "newText": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0148",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 4,
+      "newText": "class A(B):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0149",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 4,
+      "newText": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0150",
+  "input": {
+   "code": "",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0151",
+  "input": {
+   "code": "\n\n\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 2,
+      "newText": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0152",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 6,
+      "endLine": 4,
+      "newText": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0153",
+  "input": {
+   "code": "\n\n\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0154",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "x = 1\nexcept ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0155",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 5,
+      "newText": "ifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0156",
+  "input": {
+   "code": "hello world",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "finally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0157",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 5,
+      "text": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0158",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 4,
+      "newText": "x = 1\n\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0159",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "x = 1\nif a:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0160",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 4,
+      "newText": "x = 1\nreturn x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0161",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "a\n    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0162",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 9,
+      "endLine": 6,
+      "newText": "with open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0163",
+  "input": {
+   "code": "",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0164",
+  "input": {
+   "code": "\n\n\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 5,
+      "newText": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0165",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "x = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0166",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "return x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0167",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0168",
+  "input": {
+   "code": "",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "x = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0169",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "try:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0170",
+  "input": {
+   "code": "hello world",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0171",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "with open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0172",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 6,
+      "newText": "    pass"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0173",
+  "input": {
+   "code": "x",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0174",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 4,
+      "newText": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0175",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "a\n        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0176",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 1,
+      "newText": "ifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0177",
+  "input": {
+   "code": "hello world",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0178",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "while x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0179",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 1,
+      "newText": "except ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0180",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0181",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "ifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0182",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "a\nwith open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0183",
+  "input": {
+   "code": "x",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "class A(B):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0184",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 2,
+      "newText": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0185",
+  "input": {
+   "code": "\n\n\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "a\nfinally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0186",
+  "input": {
+   "code": "x",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0187",
+  "input": {
+   "code": "\n\n\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "try:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0188",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 1,
+      "newText": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0189",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 1,
+      "newText": "a\nif a:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0190",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0191",
+  "input": {
+   "code": "\n\n\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "except ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0192",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "a\nifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0193",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 6,
+      "endLine": 8,
+      "newText": "x = 1\niffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0194",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "a\nwhile x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0195",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "ifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0196",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 8,
+      "endLine": 2,
+      "newText": "ifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0197",
+  "input": {
+   "code": "\n\n\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 4,
+      "newText": "a\n    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0198",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 6,
+      "text": "a\nelif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0199",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 9,
+      "text": "return x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0200",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 4,
+      "newText": "while x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0201",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0202",
+  "input": {
+   "code": "hello world",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "x = 1\n\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0203",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0204",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 4,
+      "newText": "finally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0205",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 6,
+      "newText": "x = 1\nifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0206",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 8,
+      "text": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0207",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0208",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 4,
+      "newText": "a\n\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0209",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0210",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "except ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0211",
+  "input": {
+   "code": "hello world",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "x = 1\nexcept ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0212",
+  "input": {
+   "code": "",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "with open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0213",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 5,
+      "newText": "if a:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0214",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 7,
+      "endLine": 4,
+      "newText": "finally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0215",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 3,
+      "newText": "ifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0216",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 8,
+      "text": "if a:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0217",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "return x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0218",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 4,
+      "newText": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0219",
+  "input": {
+   "code": "",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "x = 1\nexcept ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0220",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0221",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 4,
+      "newText": "try:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0222",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 4,
+      "newText": "try:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0223",
+  "input": {
+   "code": "x",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "return x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0224",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0225",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "    pass"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0226",
+  "input": {
+   "code": "hello world",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0227",
+  "input": {
+   "code": "\n\n\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "a\ndef f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0228",
+  "input": {
+   "code": "x",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "except ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0229",
+  "input": {
+   "code": "hello world",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "a\nif x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0230",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 8,
+      "text": "a\nifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0231",
+  "input": {
+   "code": "hello world",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "x = 1\nif a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0232",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 5,
+      "newText": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0233",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 1,
+      "newText": "x = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0234",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 5,
+      "text": "x = 1\nif a:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0235",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "x = 1\n    pass"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0236",
+  "input": {
+   "code": "hello world",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "a\n    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0237",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "a\nif x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0238",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 5,
+      "text": "if a:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0239",
+  "input": {
+   "code": "\n\n\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 5,
+      "newText": "x = 1\nwith open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0240",
+  "input": {
+   "code": "x",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "a\nelif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0241",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "x = 1\n    pass"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0242",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0243",
+  "input": {
+   "code": "x",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0244",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "a\nwhile x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0245",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "return x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0246",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 9,
+      "endLine": 1,
+      "newText": "a\nif a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0247",
+  "input": {
+   "code": "hello world",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0248",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 8,
+      "text": "class A(B):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0249",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "x = 1\nif é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0250",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "x = 1\nelif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0251",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "x = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0252",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 4,
+      "newText": "ifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0253",
+  "input": {
+   "code": "",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "while x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0254",
+  "input": {
+   "code": "\n\n\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 5,
+      "newText": "if x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0255",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0256",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 8,
+      "newText": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0257",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "elif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0258",
+  "input": {
+   "code": "",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "class A(B):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0259",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 5,
+      "text": "ifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0260",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 4,
+      "endLine": 4,
+      "newText": "a\nwhile x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0261",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "except ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0262",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 4,
+      "newText": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0263",
+  "input": {
+   "code": "x",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0264",
+  "input": {
+   "code": "\n\n\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 4,
+      "text": "a\n        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0265",
+  "input": {
+   "code": "",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "x = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0266",
+  "input": {
+   "code": "\n\n\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "x = 1\nwhile x < y:  "
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0267",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        left = 0\n        right = len(s) - 1\n        while left < right:\n            pass\n",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 8,
+      "text": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0268",
+  "input": {
+   "code": "\n\n\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 2,
+      "newText": "a\ntry:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0269",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 9,
+      "endLine": 4,
+      "newText": "\tif tabbed:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0270",
+  "input": {
+   "code": "x",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "a\nx = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0271",
+  "input": {
+   "code": "",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0272",
+  "input": {
+   "code": "\n\n\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 5,
+      "endLine": 2,
+      "newText": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0273",
+  "input": {
+   "code": "hello world",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "return x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0274",
+  "input": {
+   "code": "\n\n\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 4,
+      "newText": "a\nexcept ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0275",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "x = 1\nx = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0276",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "ifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0277",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "a\nelif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0278",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "    else:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0279",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0280",
+  "input": {
+   "code": "hello world",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 1,
+      "newText": "x = 1\nfinally:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0281",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "if é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0282",
+  "input": {
+   "code": "\n\n\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 5,
+      "newText": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0283",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 5,
+      "text": "a\n        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0284",
+  "input": {
+   "code": "",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 1,
+      "newText": "x = 1\nelif a == b:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0285",
+  "input": {
+   "code": "a\nb\n\n   \nc",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "with open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0286",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "if x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0287",
+  "input": {
+   "code": "",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "ifé:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0288",
+  "input": {
+   "code": "emoji = \"😀😀\"\nname = \"é\"\nnext_line = 1",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "iffy x:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0289",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "if a:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0290",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 3,
+      "text": "a\nif é:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0291",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 2,
+      "newText": "x = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0292",
+  "input": {
+   "code": "    indented only\n        deeper\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 2,
+      "text": "if a:\r"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0293",
+  "input": {
+   "code": "hello world",
+   "language": "typescript",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 0,
+      "text": "        for i in range(3):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0294",
+  "input": {
+   "code": "def f(a, b):\n    total = a + b\n    return total\n",
+   "language": "",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "def f(a):"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0295",
+  "input": {
+   "code": "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        pass",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 1,
+      "endLine": 2,
+      "newText": "a\nexcept ValueError:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0296",
+  "input": {
+   "code": "",
+   "language": "PYTHON",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 1,
+      "text": "if x"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0297",
+  "input": {
+   "code": "x = 1\r\ny = 2\r\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 2,
+      "endLine": 3,
+      "newText": "x = {\"a\": 1}:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0298",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "Python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "replaceLines",
+      "startLine": 3,
+      "endLine": 2,
+      "newText": "a\nwith open(p) as f:"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "blocks-0299",
+  "input": {
+   "code": "function sum(arr) {\n  let total = 0;\n  for (let i = 0; i < arr.length; i++) {\n    total += arr[i];\n  }\n  return total;\n}\n",
+   "language": "python",
+   "alternative": {
+    "id": "a",
+    "label": "l",
+    "summary": "s",
+    "confidence": 0.9,
+    "commands": [
+     {
+      "type": "insertAfterLine",
+      "line": 5,
+      "text": "try:"
+     }
+    ]
+   }
+  }
+ }
+]

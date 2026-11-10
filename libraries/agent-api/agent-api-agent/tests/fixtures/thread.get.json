@@ -1,0 +1,76 @@
+{
+  "method": "thread.get",
+  "exchanges": [
+    {
+      "name": "answers the thread a create made",
+      "before": [
+        {
+          "id": "setup-t-get",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-get",
+            "title": "Look",
+            "workspace": "w1"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.get",
+        "params": {
+          "thread": "t-get"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": {
+            "id": "t-get",
+            "title": "Look",
+            "workspace": "w1",
+            "status": "idle",
+            "last_seq": 0,
+            "created_at": "2026-11-04T10:00:00Z",
+            "updated_at": "2026-11-04T10:00:00Z"
+          }
+        }
+      },
+      "volatile": [
+        "/result/thread/created_at",
+        "/result/thread/updated_at"
+      ]
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "thread.get",
+        "params": {
+          "thread": "nope"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    },
+    {
+      "name": "refuses a request that names no thread",
+      "request": {
+        "id": "3",
+        "method": "thread.get",
+        "params": {}
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "thread is required"
+        }
+      }
+    }
+  ]
+}

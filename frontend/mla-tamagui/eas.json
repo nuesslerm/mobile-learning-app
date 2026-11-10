@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 20.3.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "simulator-dev": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true,
+        "scheme": "mlatamagui"
+      }
+    },
+    "android-apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "android-apk-lab": {
+      "extends": "android-apk",
+      "env": {
+        "EXPO_PUBLIC_AGENT_BASE_URL": "http://100.91.40.14:8787",
+        "EXPO_PUBLIC_ANDROID_CLEARTEXT": "1",
+        "EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL": "http://100.70.25.11:8789",
+        "EXPO_PUBLIC_VM_OPS_API_BASE_URL": "http://100.90.100.94:8080",
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a"
+      },
+      "environment": "preview"
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "method": "file.search",
+  "exchanges": [
+    {
+      "name": "finds the entries whose path contains the query, best match first",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "query": "main"
+        },
+        "id": 1,
+        "method": "file.search"
+      },
+      "response": {
+        "result": {
+          "entries": [
+            {
+              "path": "src/main.rs",
+              "kind": "file"
+            },
+            {
+              "path": "docs/main-guide.md",
+              "kind": "file"
+            },
+            {
+              "path": "docs/domain.md",
+              "kind": "file"
+            }
+          ],
+          "truncated": false
+        },
+        "id": 1
+      },
+      "actions": [
+        "search_entries"
+      ]
+    },
+    {
+      "name": "needs a query before it asks the executor",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "query": ""
+        },
+        "id": 2,
+        "method": "file.search"
+      },
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "query is required"
+        },
+        "id": 2
+      },
+      "actions": []
+    }
+  ]
+}

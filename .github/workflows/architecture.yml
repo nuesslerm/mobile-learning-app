@@ -1,0 +1,126 @@
+name: Architecture
+
+# Architecture checks, run by hand only (workflow_dispatch below); where each check also runs:
+# docs/solutions/architecture/hexagonal-architecture-by-package-type.md. Two parallel jobs:
+#   - root-checks: tooling that lives in this repo (the wf black-box suite, eslint plugin,
+#     root typecheck). Cheap (~3min) and not affected-gated — it validates
+#     infra almost every change touches transitively, so gating it would save
+#     little while adding risk.
+#   - app-checks: the mla-tamagui workspace member (typecheck, lint,
+#     depcruise, metro-target, unit) plus lint of every package changed since origin/dev.
+#   dependency-cruiser exits non-zero only on `error`-severity rule violations,
+#   so `warn`-level advice (e.g. legacy features still missing a barrel) does
+#   not fail the build — matching the repo's "strict but warnings, ratchet
+#   over time" policy.
+
+on:
+  workflow_dispatch:
+permissions:
+  actions: write
+  contents: read
+
+# A newer push on the same PR/branch makes an in-flight run irrelevant — same
+# reasoning as build-images.yml. Without this, pushing several times during
+# review queued (or ran concurrently) a full run per push, none of them
+# cancelled, all billed in full even though only the last one mattered.
+concurrency:
+  group: architecture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Both jobs here are expensive (~4min and ~20min). Since 2026-09-03 the
+  # workflow runs only on workflow_dispatch; the per-commit signal is
+  # lefthook's pre-commit (decision log 33).
+  root-checks:
+    name: Root (tooling + types)
+    runs-on: ubuntu-latest
+    # Hard backstop, not a normal-case limit: without this, a hang like the
+    # tzdata/debconf one found in leetcode-auth-cookie-capture's Dockerfile
+    # burns the full default 6h runner allocation before anything stops it.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+          cache: pnpm
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Typecheck (root, packages-only)
+        run: pnpm run typecheck
+
+      - uses: ./.github/actions/install-wf
+
+      - name: Check simplicity budget
+        run: wf check --budget
+
+      - name: Test ESLint plugin (vitest)
+        run: pnpm --filter @lib/eslint-plugin-mobile-learn run test
+
+      # Pre-emptive CI_BUDGET_LOW flip -- see ci.yml's fast job and
+      # .github/actions/check-ci-budget/action.yml for the full rationale.
+      # The root-checks job is short (~3 min) but it runs on every PR, so
+      # having the check here means the flip is attempted many times even
+      # if one run fails to land it.
+      - name: Check CI budget and flip flag if low
+        if: always()
+        uses: ./.github/actions/check-ci-budget
+
+      - name: Flow tests of the wf surface
+        # The wf binary was built by install-wf above; the flow tests drive it as a child process, through stub tools.
+        run: 'WF_BIN="$(command -v wf)" cargo test --manifest-path clis/Cargo.toml -p wf --test flow surface::'
+
+  app-checks:
+    name: App (mla-tamagui)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # The origin/dev diff needs history; actions/checkout defaults to a shallow (depth 1) clone.
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+          cache: pnpm
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Typecheck
+        run: pnpm --filter mla-tamagui run typecheck
+
+      - name: Lint
+        run: pnpm --filter mla-tamagui run lint
+
+      - name: Check architecture boundaries (dependency-cruiser)
+        run: pnpm --filter mla-tamagui run arch
+
+      - name: Check the Rust services' folder layout and layer imports (ls-lint, ast-grep)
+        run: pnpm run arch:services
+
+      - name: Lint packages changed since origin/dev
+        run: pnpm --filter "...[origin/dev]" run --if-present lint
+
+      - name: Flow tests
+        run: pnpm --filter mla-tamagui run test:flow
+
+      # Pre-emptive CI_BUDGET_LOW flip -- app-checks is the most expensive
+      # job in this repo (~20 min on a cold cache). Flipping here saves the
+      # most budget at month-end. See .github/actions/check-ci-budget/action.yml
+      # for the design rationale.
+      - name: Check CI budget and flip flag if low
+        if: always()
+        uses: ./.github/actions/check-ci-budget

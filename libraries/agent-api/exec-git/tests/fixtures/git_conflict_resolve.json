@@ -1,0 +1,190 @@
+{
+  "action": "git_conflict_resolve",
+  "exchanges": [
+    {
+      "name": "takes our side of a conflicted file",
+      "setup": {
+        "files": {
+          "a.txt": "base\n"
+        },
+        "commit": true,
+        "conflict": {
+          "path": "a.txt",
+          "ours": "ours\n",
+          "theirs": "theirs\n"
+        }
+      },
+      "request": {
+        "id": "conf61",
+        "tool": "git_conflict_resolve",
+        "args": {
+          "path": "a.txt",
+          "resolution": "ours"
+        }
+      },
+      "response": {
+        "id": "conf61",
+        "ok": true,
+        "result": {
+          "path": "a.txt",
+          "remaining": []
+        }
+      }
+    },
+    {
+      "name": "takes their side",
+      "setup": {
+        "files": {
+          "a.txt": "base\n"
+        },
+        "commit": true,
+        "conflict": {
+          "path": "a.txt",
+          "ours": "ours\n",
+          "theirs": "theirs\n"
+        }
+      },
+      "request": {
+        "id": "conf62",
+        "tool": "git_conflict_resolve",
+        "args": {
+          "path": "a.txt",
+          "resolution": "theirs"
+        }
+      },
+      "response": {
+        "id": "conf62",
+        "ok": true,
+        "result": {
+          "path": "a.txt",
+          "remaining": []
+        }
+      }
+    },
+    {
+      "name": "writes the content given and marks the file resolved",
+      "setup": {
+        "files": {
+          "a.txt": "base\n"
+        },
+        "commit": true,
+        "conflict": {
+          "path": "a.txt",
+          "ours": "ours\n",
+          "theirs": "theirs\n"
+        }
+      },
+      "request": {
+        "id": "conf63",
+        "tool": "git_conflict_resolve",
+        "args": {
+          "path": "a.txt",
+          "resolution": "content",
+          "content": "merged\n"
+        }
+      },
+      "response": {
+        "id": "conf63",
+        "ok": true,
+        "result": {
+          "path": "a.txt",
+          "remaining": []
+        }
+      }
+    },
+    {
+      "name": "marks a file resolved as it was edited",
+      "setup": {
+        "files": {
+          "a.txt": "base\n"
+        },
+        "commit": true,
+        "conflict": {
+          "path": "a.txt",
+          "ours": "ours\n",
+          "theirs": "theirs\n"
+        },
+        "edit": {
+          "a.txt": "by hand\n"
+        }
+      },
+      "request": {
+        "id": "conf64",
+        "tool": "git_conflict_resolve",
+        "args": {
+          "path": "a.txt",
+          "resolution": "resolved"
+        }
+      },
+      "response": {
+        "id": "conf64",
+        "ok": true,
+        "result": {
+          "path": "a.txt",
+          "remaining": []
+        }
+      }
+    },
+    {
+      "name": "refuses a file that is not conflicted",
+      "setup": {
+        "files": {
+          "a.txt": "base\n"
+        },
+        "commit": true,
+        "conflict": {
+          "path": "a.txt",
+          "ours": "ours\n",
+          "theirs": "theirs\n"
+        }
+      },
+      "request": {
+        "id": "conf65",
+        "tool": "git_conflict_resolve",
+        "args": {
+          "path": "b.txt",
+          "resolution": "ours"
+        }
+      },
+      "response": {
+        "id": "conf65",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`path` b.txt is not a conflicted file"
+        }
+      }
+    },
+    {
+      "name": "refuses a path that leaves the tree",
+      "setup": {
+        "files": {
+          "a.txt": "base\n"
+        },
+        "commit": true,
+        "conflict": {
+          "path": "a.txt",
+          "ours": "ours\n",
+          "theirs": "theirs\n"
+        }
+      },
+      "request": {
+        "id": "conf66",
+        "tool": "git_conflict_resolve",
+        "args": {
+          "path": "../a.txt",
+          "resolution": "content",
+          "content": "x"
+        }
+      },
+      "response": {
+        "id": "conf66",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`path` must be a path inside the repository's working tree"
+        }
+      }
+    }
+  ]
+}

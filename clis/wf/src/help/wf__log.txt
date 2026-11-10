@@ -1,0 +1,12 @@
+Usage: wf log [options] [command]
+
+Emit structured log lines to BetterStack (`wf log emit`, also shipped as the
+static `logger` binary)
+
+Options:
+  -h, --help      display help for command
+
+Commands:
+  emit [options]  Print one structured log line and send it to BetterStack;
+                  exits 1 when it could not be sent.
+  help [command]  display help for command

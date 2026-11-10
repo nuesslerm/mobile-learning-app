@@ -1,0 +1,86 @@
+Usage: wf ci audit [options]
+
+The nightly audit of CI on dev (04:00 Berlin time, .github/workflows/ci-audit.yml).
+It never gates or fails a push and always exits 0: it reads the completed runs of
+the CI workflow on dev since --since (default the last 24 hours), judges them and
+prints one JSON verdict with the findings and, for each finding, the next step.
+A run's wall time says little (a cold run and a replayed one differ by an hour),
+so each unit of work is judged against itself in the ledger (HEALTH_RPT.CI_TASKS
+and CI_JOBS in the autonomous database; WF_CI_LEDGER_FILE names a JSON lines
+file instead). Each judged run is recorded in the ledger for the next one.
+
+Findings (kind: what it means):
+
+  should-have-hit   a task ran although an earlier run already produced its
+                    result under the same input hash (and the task has been
+                    replayed from a cache before, so it can be cached, and the
+                    entry is under 13 days old): the cache did not serve it.
+                    A correctness fault (hard: true).
+  cache-read-only   a job whose build cache refused to write ("reads only for
+                    this run"), so nothing it built is reused. Hard.
+  degraded, rejected-write, seeded-lost
+                    the cache layers' own health, as `wf ci cache-health` judges
+                    it (a degraded store, a refused write, an entry the store
+                    acknowledged but does not hold). Hard.
+  pnpm-save-slow, drift, replayed-nothing
+                    the other `wf ci cache-health` findings (a slow pnpm save,
+                    tasks hashed differently, a seeded stage that replayed none)
+  pnpm-packed-outside-flow-tests
+                    a job other than WF_PNPM_SAVE_JOB (flow-tests) packed and
+                    uploaded the pnpm store
+  hit-ratio         a stage with at least 10 tasks over the window replayed less
+                    than hitRatioFloorPercent of them
+  key-drift         a task's input hash moved since the previous run although
+                    `nx show projects --affected` says nothing it depends on
+                    changed: something non-deterministic is in its key
+  slower-same-work  the same task and hash took slowerPercent and slowerSeconds
+                    more than its median in earlier runs: the machine was slow
+  runner-wait       a job waited more than waitSeconds for a runner that no
+                    other run was holding
+  idle              idlePercent of the wall time, and idleSeconds, passed
+                    between jobs with nothing running
+  io-wait           the VM's I/O wait peak over the run above ioWaitPeak percent
+  cpu-seconds       the VM's CPU-seconds over the run (average busy share of its
+                    2 cores times the wall time) above cpuSecondsThreshold plus
+                    cpuSecondsPerExtraDeploy for each deploy leg beyond the
+                    first; 0 turns it off
+  cpu-iowait        the CPU's own I/O wait peak over the run above cpuIowaitPeak
+                    percent (from reporting-service; skipped when unreachable)
+  cold-slower       on a forced cold run, a job over the median of the last four
+                    cold runs plus slackPercent and slackSeconds
+
+The thresholds are in .github/ci-audit.json (WF_CI_AUDIT_FILE names another
+file; a missing key keeps its default: slowerPercent 50, slowerSeconds 30,
+slackPercent 25, slackSeconds 60, floorSeconds 120, waitSeconds 600,
+idlePercent 5, idleSeconds 120, ioWaitPeak 60, cpuIowaitPeak 15,
+cpuSecondsThreshold 0, cpuSecondsPerExtraDeploy 0, hitRatioFloorPercent 0). They
+are thresholds, not gates: the nightly agent moves them with evidence
+(docs/runbooks/nightly-audit.md). A run with a failed or cancelled job is not
+judged for time and tasks (its timings say nothing) but its cache health still
+is, and a ledger that cannot be reached is said in the notes and skips the task
+checks.
+
+Environment: GITHUB_TOKEN (actions: read), GITHUB_REPOSITORY, GITHUB_RUN_ID and
+GITHUB_SHA (the audit's own run; the judged runs come from the listing);
+optional GITHUB_STEP_SUMMARY, WF_VM_STATS_URL, GITHUB_API_URL, WF_CI_LEDGER_FILE,
+HEALTH_REPORTS_ORDS_BASE_URL and HEALTH_REPORTS_ORDS_PASSWORD (the environment,
+then the vault), WF_PNPM_SAVE_JOB and WF_NX_BIN.
+
+Output, one JSON line (schema 1):
+  {schema, ok, since, runs: [{run, sha, cold, judged, reason, tasks, cpuSeconds,
+   findings}], findings: [{kind, run, subject, hard, wasteSeconds, message,
+   next}], stages: [{stage, replayed, tasks, hitRatioPercent}], threshold:
+   {cpuSecondsThreshold, cpuSecondsPerExtraDeploy, hitRatioFloorPercent, file},
+   notes, report}
+`ok` is true when nothing was found and null (with `reason`) when the runs could
+not be listed; `next` is what to do about that finding; `report` is the markdown
+that goes in the job summary.
+
+Options:
+  --since <seconds>  audit the runs that started at or after this epoch time
+                     (default: 24 hours ago)
+  --run <id>         audit this one run instead of listing (its sha is
+                     GITHUB_SHA)
+  --cold             with --run: the run was a forced cold run
+  --dry-run          judge and print, write no job summary and no ledger rows
+  -h, --help         display help for command

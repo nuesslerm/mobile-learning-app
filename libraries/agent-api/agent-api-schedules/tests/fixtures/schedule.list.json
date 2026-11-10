@@ -1,0 +1,96 @@
+{
+  "method": "schedule.list",
+  "exchanges": [
+    {
+      "name": "lists no schedule on a service that has none",
+      "request": {
+        "id": 1,
+        "method": "schedule.list",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "tasks": []
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "lists a saved schedule with its next run",
+      "before": [
+        {
+          "id": "setup-list",
+          "method": "schedule.upsert",
+          "params": {
+            "id": "s-list",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "interval",
+              "every_ms": 60000
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": 2,
+        "method": "schedule.list",
+        "params": {}
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "tasks": [
+            {
+              "id": "s-list",
+              "title": "Nightly",
+              "prompt": "run the checks",
+              "enabled": true,
+              "schedule": {
+                "type": "interval",
+                "every_ms": 60000
+              },
+              "workspace": "w1",
+              "driver": "claudeAgent",
+              "model": null,
+              "thread": null,
+              "runtime_mode": null,
+              "interaction_mode": null,
+              "created_at_ms": 1700000000000,
+              "updated_at_ms": 1700000000000,
+              "next_run_ms": 1700000060000,
+              "last_run_ms": null,
+              "last_run_status": "never",
+              "last_run_error": null,
+              "run_count": 0,
+              "webhook": null
+            }
+          ]
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a param the method does not take",
+      "request": {
+        "id": 3,
+        "method": "schedule.list",
+        "params": {
+          "id": "s-list"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "unknown field `id`, there are no fields"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

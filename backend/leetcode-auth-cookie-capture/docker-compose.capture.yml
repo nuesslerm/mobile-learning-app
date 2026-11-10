@@ -1,0 +1,96 @@
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.2
+    container_name: leetcode-capture-tailscale
+    volumes:
+      - leetcode-capture-tailscale-state:/var/lib/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_VM_AUTH_KEY}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_HOSTNAME: leetcode-capture
+      # Without this, tailscaled never manages this sidecar's DNS at all, so
+      # `app` (sharing this netns via network_mode: service:tailscale below)
+      # has no MagicDNS and LEETCODE_BACKEND_BASE_URL's `*.ts.net` hostname
+      # never resolves. Same established fix already applied to every other
+      # app-with-tailscale-sidecar in this repo except this one and
+      # leetcode-backend -- see docs/known-gaps.md.
+      TS_ACCEPT_DNS: "true"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    # `app` shares this container's network namespace (network_mode:
+    # service:tailscale below), so port publishing has to live here --
+    # `tailscale` is the container that actually owns the network stack;
+    # `app` has none of its own to bind from. Declaring `ports:` on both
+    # (or on `app` alone) fails with "conflicting options: port publishing
+    # and the container type network mode".
+    ports:
+      - "${CAPTURE_NOVNC_PORT:-6080}:${CAPTURE_NOVNC_PORT:-6080}"
+      - "${CAPTURE_LISTENER_PORT:-8792}:${CAPTURE_LISTENER_PORT:-8792}"
+    restart: "no"
+
+  app:
+    # Built in CI (repo-root context) + shipped via `docker save | ssh docker load`.
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/leetcode-auth-cookie-capture:${IMAGE_TAG:-latest}
+    container_name: leetcode-capture
+    network_mode: service:tailscale
+    # Chromium needs more than Docker's default 64MB /dev/shm.
+    shm_size: '2gb'
+    environment:
+      LEETCODE_BACKEND_BASE_URL: ${LEETCODE_BACKEND_BASE_URL}
+      LEETCODE_BACKEND_ADMIN_SECRET: ${LEETCODE_BACKEND_ADMIN_SECRET}
+      # Telemetry → BetterStack: the Rust service exports its logs and heartbeats like every other backend once this pair
+      # is passed INTO the container. Delivered to the host `.env` by `sync-env --for leetcode-auth-cookie-capture`
+      # (TELEMETRY_OPTIONAL in clis/secrets' APP_KEY_GROUPS).
+      BETTERSTACK_OTLP_TOKEN: ${BETTERSTACK_OTLP_TOKEN:-}
+      BETTERSTACK_OTLP_HOST: ${BETTERSTACK_OTLP_HOST:-}
+      # Docker is always the remote/headless path — hardcoded regardless of
+      # what CAPTURE_MODE is set to in the host's .env, so a stray local .env
+      # can't silently break the container (there's no real display in here
+      # to fall back to anyway).
+      CAPTURE_MODE: remote
+      CAPTURE_NOVNC_PORT: ${CAPTURE_NOVNC_PORT:-6080}
+      CAPTURE_TIMEOUT_MS: ${CAPTURE_TIMEOUT_MS:-300000}
+      CAPTURE_POLL_INTERVAL_MS: ${CAPTURE_POLL_INTERVAL_MS:-2000}
+      TELEGRAM_NOTIFY_BASE_URL: ${TELEGRAM_NOTIFY_BASE_URL}
+      TELEGRAM_NOTIFY_SECRET: ${TELEGRAM_NOTIFY_SECRET}
+      LEETCODE_CAPTURE_TRIGGER_SECRET: ${LEETCODE_CAPTURE_TRIGGER_SECRET}
+      CAPTURE_LISTENER_PORT: ${CAPTURE_LISTENER_PORT:-8792}
+      # Telemetry → BetterStack (buffered forwarder; empty = console-only).
+      SECRETS_LOG_BETTERSTACK: ${SECRETS_LOG_BETTERSTACK:-}
+      EXPO_PUBLIC_BETTERSTACK_TOKEN: ${EXPO_PUBLIC_BETTERSTACK_TOKEN:-}
+      EXPO_PUBLIC_BETTERSTACK_HOST: ${EXPO_PUBLIC_BETTERSTACK_HOST:-}
+    # No /health route; the trigger listener answering at all is the liveness signal.
+    healthcheck:
+      test: ["CMD", "leetcode-auth-cookie-capture-rs", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    command: ["leetcode-auth-cookie-capture-rs"]
+    depends_on:
+      - tailscale
+    # Unlike the old one-shot CLI (still available via `pnpm run capture:local`
+    # for native/manual use), the Docker path now runs the persistent listener
+    # (server.ts) — it's meant to stay up waiting for backend's trigger calls,
+    # so it DOES get auto-restarted, unlike the previous one-shot design.
+    restart: unless-stopped
+    volumes:
+      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      - clis:/opt/clis:ro
+
+volumes:
+  # Written by the runner in the agent-shell project (clis.yml); external here so this project never removes it.
+  clis:
+    external: true
+    name: clis
+  leetcode-capture-tailscale-state:

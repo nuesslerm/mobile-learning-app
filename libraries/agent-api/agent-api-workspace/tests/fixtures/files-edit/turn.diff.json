@@ -1,0 +1,64 @@
+{
+  "method": "turn.diff",
+  "exchanges": [
+    {
+      "name": "shows the changes of the workspace since the revision the turn started from",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "base": "HEAD"
+        },
+        "id": 1,
+        "method": "turn.diff"
+      },
+      "response": {
+        "result": {
+          "diff": "diff --git a/a.txt b/a.txt\nindex 5626abf..9a72323 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1 +1,2 @@\n one\n+more\ndiff --git a/b.txt b/b.txt\nindex f719efd..5ea2ed4 100644\n--- a/b.txt\n+++ b/b.txt\n@@ -1 +1 @@\n-two\n+changed\n"
+        },
+        "id": 1
+      },
+      "actions": [
+        "git_diff"
+      ]
+    },
+    {
+      "name": "needs the revision the turn started from",
+      "request": {
+        "params": {
+          "workspace": "w1"
+        },
+        "id": 2,
+        "method": "turn.diff"
+      },
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "base is required"
+        },
+        "id": 2
+      },
+      "actions": []
+    },
+    {
+      "name": "relays the executor's refusal of a base that git would read as an option",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "base": "--output=/tmp/x"
+        },
+        "id": 3,
+        "method": "turn.diff"
+      },
+      "response": {
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`base` must be a revision"
+        },
+        "id": 3
+      },
+      "actions": [
+        "git_diff"
+      ]
+    }
+  ]
+}

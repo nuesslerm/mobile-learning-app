@@ -1,0 +1,22 @@
+Usage: wf vm exec [options] [file]
+
+Run a local script inside agent-shell on the VM; by default streams output until
+it finishes and exits with its exit code
+
+Arguments:
+  file              Local script file to run
+
+Options:
+  --no-wait         Start the job and print its jobId immediately, without
+                    polling
+  --artifact <rel>  Path of an artifact the script wrote (relative to its
+                    artifact root). Repeatable; fetched after the script exits
+                    and saved under <out>/<rel> (default: [])
+  --out <dir>       Directory to write <dir>/output.log, <dir>/exit-code, and
+                    every --artifact under <dir>/<rel> (created via mkdir -p)
+  --status <jobId>  One-shot poll of a job started with --no-wait
+  --log <jobId>     Print the job's whole output log (--status carries only its
+                    last 4 KB); a finished build's log stays until agent-shell
+                    restarts
+  --cancel <jobId>  Abort a running job (idempotent)
+  -h, --help        display help for command

@@ -1,0 +1,28 @@
+[package]
+name = "rca-exec-channel"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The executor channel of the service: how rca asks the workspace's executor (rca-exec) to perform an action, the MCP face a model's tool calls take to it, and the registry of the channels by workspace"
+
+[lib]
+name = "rca_exec_channel"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+# The doubles of the crate's ports (a frame sink that records, a channel that answers from a script), for the service crate's tests
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+# The executor contract: the frames and the actions of each family
+exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
+exec-fs = { path = "../../../libraries/agent-api/exec-fs" }
+exec-proc = { path = "../../../libraries/agent-api/exec-proc" }
+exec-git = { path = "../../../libraries/agent-api/exec-git" }
+exec-pty = { path = "../../../libraries/agent-api/exec-pty" }
+exec-hosted = { path = "../../../libraries/agent-api/exec-hosted" }
+exec-preview = { path = "../../../libraries/agent-api/exec-preview" }

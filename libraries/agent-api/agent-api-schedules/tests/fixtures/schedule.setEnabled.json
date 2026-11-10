@@ -1,0 +1,101 @@
+{
+  "method": "schedule.setEnabled",
+  "exchanges": [
+    {
+      "name": "disables a schedule and clears its next run",
+      "before": [
+        {
+          "id": "setup-en",
+          "method": "schedule.upsert",
+          "params": {
+            "id": "s-en",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "interval",
+              "every_ms": 60000
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "schedule.setEnabled",
+        "params": {
+          "id": "s-en",
+          "enabled": false
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "task": {
+            "id": "s-en",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": false,
+            "schedule": {
+              "type": "interval",
+              "every_ms": 60000
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent",
+            "model": null,
+            "thread": null,
+            "runtime_mode": null,
+            "interaction_mode": null,
+            "created_at_ms": 1700000000000,
+            "updated_at_ms": 1700000000000,
+            "next_run_ms": null,
+            "last_run_ms": null,
+            "last_run_status": "never",
+            "last_run_error": null,
+            "run_count": 0,
+            "webhook": null
+          }
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "answers SCHEDULE_NOT_FOUND for an id no schedule has",
+      "request": {
+        "id": 2,
+        "method": "schedule.setEnabled",
+        "params": {
+          "id": "nope",
+          "enabled": true
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "SCHEDULE_NOT_FOUND",
+          "message": "no schedule has the id nope"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a request that says nothing of enabled",
+      "request": {
+        "id": 3,
+        "method": "schedule.setEnabled",
+        "params": {
+          "id": "s-en"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "missing field `enabled`"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+Usage: wf browser stop
+
+Stops the daemon and every session in it, or exits 1 when none runs. Frozen as start.

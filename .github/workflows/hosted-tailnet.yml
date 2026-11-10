@@ -1,0 +1,58 @@
+name: Hosted tailnet
+
+# What a GitHub-hosted job may reach once it joins the tailnet as `tag:ci-gh-hosted` (Phase 5 of docs/plans/ci-scoped-vault-access/plan.md): the CI port of
+# vm-ops-api answers, the admin port and agent-shell's ssh do not. By hand (workflow_dispatch) or dispatched by scheduled-triggers.yml on an EMPTY
+# commit to dev tagged `[hosted-tailnet]`, never by `push` itself. It joins with the hosted-join OAuth client (Auth Keys only, `tag:ci-gh-hosted` only) and reads no vault token.
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Commit message that carried the tag
+        type: string
+        required: false
+        default: ''
+      sha:
+        description: Commit the router dispatched for
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    name: tailnet reach from a hosted runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Join the tailnet as tag:ci-gh-hosted
+        uses: tailscale/github-action@99a8333667fff04fdd6cffb46dfd409f8329a7bf # v4.3.0
+        with:
+          oauth-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+          tags: tag:ci-gh-hosted
+          use-cache: 'false'
+      - name: The CI port answers, the admin port and agent-shell do not
+        run: |
+          tailscale status --self --json | jq -c '{node: .Self.HostName, tags: .Self.Tags}'
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 http://vm-ops-api-main:8081/health || true)
+          echo "ci_port_health=$code"
+          admin=reachable; nc -z -w 5 vm-ops-api-main 8080 || admin=unreachable
+          shell=reachable; nc -z -w 5 agent-shell-main 22 || shell=unreachable
+          echo "admin_port_8080=$admin agent_shell_22=$shell"
+          # an unsigned request gets 401 from the CI port: the port answers, which is all this probe asks
+          { [ "$code" = 200 ] || [ "$code" = 401 ]; } && [ "$admin" = unreachable ] && [ "$shell" = unreachable ]
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+          submodules: false
+      - name: Rust toolchain
+        run: rustup toolchain install --profile minimal
+      - name: The private registry answers through the tailnet (clis workspace)
+        # .cargo/config.toml reads libs-proxy:8793, granted to tag:ci-gh-hosted; the index URL carries no secret
+        working-directory: clis
+        run: |
+          cargo fetch --locked
+          echo "registry_crates_fetched=$(ls ~/.cargo/registry/cache/*/ | wc -l)"

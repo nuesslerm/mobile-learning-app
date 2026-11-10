@@ -1,0 +1,10 @@
+Usage: wf offload bearers list
+
+Lists the device bearers of the rca service that were not revoked, oldest first:
+their id, label and creation time, never a token.
+
+Prints one JSON line {ok, bearers: [{id, label, createdAt}]}; exit 0, 1 when the
+service refuses or cannot be reached ({ok: false, error, next}).
+
+Options:
+  -h, --help  display help for command

@@ -1,0 +1,20 @@
+{
+ "schema": "mimic-stability-allowlist/1",
+ "entries": [
+  {
+   "id": "orca-accounts.list",
+   "cause": "volatile",
+   "reason": "R1 recording answered differently on two runs; root cause not yet analysed, the R2 double-run stabilizer over a VM re-record will name it"
+  },
+  {
+   "id": "orca-aiVault.listSessions",
+   "cause": "volatile",
+   "reason": "R1 recording answered differently on two runs; root cause not yet analysed, the R2 double-run stabilizer over a VM re-record will name it"
+  },
+  {
+   "id": "orca-skills.discover",
+   "cause": "volatile",
+   "reason": "R1 recording answered differently on two runs; root cause not yet analysed, the R2 double-run stabilizer over a VM re-record will name it"
+  }
+ ]
+}

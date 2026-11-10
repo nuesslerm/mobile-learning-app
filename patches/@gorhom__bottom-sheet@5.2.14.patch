@@ -1,0 +1,137 @@
+diff --git a/lib/commonjs/components/bottomSheetBackdrop/BottomSheetBackdrop.js b/lib/commonjs/components/bottomSheetBackdrop/BottomSheetBackdrop.js
+index f779d6d03aa9593af0d4781b17df49b47722b796..9d61b590cccd516c83faa3433c6aa2de781019ba 100644
+--- a/lib/commonjs/components/bottomSheetBackdrop/BottomSheetBackdrop.js
++++ b/lib/commonjs/components/bottomSheetBackdrop/BottomSheetBackdrop.js
+@@ -98,8 +98,9 @@ const BottomSheetBackdropComponent = ({
+   //#endregion
+ 
+   const AnimatedView = /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNativeReanimated.default.View, {
+-    style: containerStyle,
+-    pointerEvents: pointerEvents,
++    style: [containerStyle, {
++      pointerEvents
++    }],
+     accessible: _providedAccessible ?? undefined,
+     accessibilityRole: _providedAccessibilityRole ?? undefined,
+     accessibilityLabel: _providedAccessibilityLabel ?? undefined,
+diff --git a/lib/commonjs/components/bottomSheetBackground/BottomSheetBackground.js b/lib/commonjs/components/bottomSheetBackground/BottomSheetBackground.js
+index a82a75fba0f6056b0394ddc8c4d732f8e9629fb1..1559f4d87a2457e05297679dacf686697e4083f5 100644
+--- a/lib/commonjs/components/bottomSheetBackground/BottomSheetBackground.js
++++ b/lib/commonjs/components/bottomSheetBackground/BottomSheetBackground.js
+@@ -13,11 +13,12 @@ const BottomSheetBackgroundComponent = ({
+   pointerEvents,
+   style
+ }) => /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+-  pointerEvents: pointerEvents,
+   accessible: true,
+   accessibilityRole: "adjustable",
+   accessibilityLabel: "Bottom Sheet",
+-  style: [_styles.styles.background, style]
++  style: [_styles.styles.background, style, {
++    pointerEvents
++  }]
+ });
+ const BottomSheetBackground = exports.BottomSheetBackground = /*#__PURE__*/(0, _react.memo)(BottomSheetBackgroundComponent);
+ BottomSheetBackground.displayName = 'BottomSheetBackground';
+diff --git a/lib/commonjs/components/bottomSheetHostingContainer/BottomSheetHostingContainer.js b/lib/commonjs/components/bottomSheetHostingContainer/BottomSheetHostingContainer.js
+index 350b8cc2b03c81318dfbb0e81101935c3b413387..675738f4ea751338dd2f1ea0f2c23baa882d120c 100644
+--- a/lib/commonjs/components/bottomSheetHostingContainer/BottomSheetHostingContainer.js
++++ b/lib/commonjs/components/bottomSheetHostingContainer/BottomSheetHostingContainer.js
+@@ -97,7 +97,6 @@ function BottomSheetHostingContainerComponent({
+   //#region render
+   return /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+     ref: containerRef,
+-    pointerEvents: "box-none",
+     onLayout: shouldCalculateHeight ? handleLayoutEvent : undefined,
+     style: containerStyle,
+     collapsable: true,
+diff --git a/lib/module/components/bottomSheetBackdrop/BottomSheetBackdrop.js b/lib/module/components/bottomSheetBackdrop/BottomSheetBackdrop.js
+index aac25f69f8b6ed9d1238c8c72e4ff85cab8b1122..9b6cbbd2e562062f935af5b7c89b27c1ff2232e0 100644
+--- a/lib/module/components/bottomSheetBackdrop/BottomSheetBackdrop.js
++++ b/lib/module/components/bottomSheetBackdrop/BottomSheetBackdrop.js
+@@ -93,8 +93,9 @@ const BottomSheetBackdropComponent = ({
+   //#endregion
+ 
+   const AnimatedView = /*#__PURE__*/_jsx(Animated.View, {
+-    style: containerStyle,
+-    pointerEvents: pointerEvents,
++    style: [containerStyle, {
++      pointerEvents
++    }],
+     accessible: _providedAccessible ?? undefined,
+     accessibilityRole: _providedAccessibilityRole ?? undefined,
+     accessibilityLabel: _providedAccessibilityLabel ?? undefined,
+diff --git a/lib/module/components/bottomSheetBackground/BottomSheetBackground.js b/lib/module/components/bottomSheetBackground/BottomSheetBackground.js
+index dc72a3ea1c8f19ede218068200394baf6ec55509..5f3b072da25754e2dc2b6fcc77808f30829b3e5f 100644
+--- a/lib/module/components/bottomSheetBackground/BottomSheetBackground.js
++++ b/lib/module/components/bottomSheetBackground/BottomSheetBackground.js
+@@ -8,11 +8,12 @@ const BottomSheetBackgroundComponent = ({
+   pointerEvents,
+   style
+ }) => /*#__PURE__*/_jsx(View, {
+-  pointerEvents: pointerEvents,
+   accessible: true,
+   accessibilityRole: "adjustable",
+   accessibilityLabel: "Bottom Sheet",
+-  style: [styles.background, style]
++  style: [styles.background, style, {
++    pointerEvents
++  }]
+ });
+ export const BottomSheetBackground = /*#__PURE__*/memo(BottomSheetBackgroundComponent);
+ BottomSheetBackground.displayName = 'BottomSheetBackground';
+diff --git a/lib/module/components/bottomSheetHostingContainer/BottomSheetHostingContainer.js b/lib/module/components/bottomSheetHostingContainer/BottomSheetHostingContainer.js
+index a088ef26ac6754cd4bec5ec473f9ddd9cc439ce3..ecdc2462d81713026cb9b8b2eafb2a8033f99d4f 100644
+--- a/lib/module/components/bottomSheetHostingContainer/BottomSheetHostingContainer.js
++++ b/lib/module/components/bottomSheetHostingContainer/BottomSheetHostingContainer.js
+@@ -92,7 +92,6 @@ function BottomSheetHostingContainerComponent({
+   //#region render
+   return /*#__PURE__*/_jsx(View, {
+     ref: containerRef,
+-    pointerEvents: "box-none",
+     onLayout: shouldCalculateHeight ? handleLayoutEvent : undefined,
+     style: containerStyle,
+     collapsable: true,
+diff --git a/src/components/bottomSheetBackdrop/BottomSheetBackdrop.tsx b/src/components/bottomSheetBackdrop/BottomSheetBackdrop.tsx
+index a0345b013904e92e0c00ba55ff23ba191d96a395..8de3787ae2e63c213495b2e7c223941407fdadee 100644
+--- a/src/components/bottomSheetBackdrop/BottomSheetBackdrop.tsx
++++ b/src/components/bottomSheetBackdrop/BottomSheetBackdrop.tsx
+@@ -142,8 +142,7 @@ const BottomSheetBackdropComponent = ({
+ 
+   const AnimatedView = (
+     <Animated.View
+-      style={containerStyle}
+-      pointerEvents={pointerEvents}
++      style={[containerStyle, { pointerEvents }]}
+       accessible={_providedAccessible ?? undefined}
+       accessibilityRole={_providedAccessibilityRole ?? undefined}
+       accessibilityLabel={_providedAccessibilityLabel ?? undefined}
+diff --git a/src/components/bottomSheetBackground/BottomSheetBackground.tsx b/src/components/bottomSheetBackground/BottomSheetBackground.tsx
+index 11e7306b86b6a02d2635bd674f4830782c371cd7..c2ad35d2cd536292f80d4e8f6e81de530c2ab092 100644
+--- a/src/components/bottomSheetBackground/BottomSheetBackground.tsx
++++ b/src/components/bottomSheetBackground/BottomSheetBackground.tsx
+@@ -8,11 +8,10 @@ const BottomSheetBackgroundComponent = ({
+   style,
+ }: BottomSheetBackgroundProps) => (
+   <View
+-    pointerEvents={pointerEvents}
+     accessible={true}
+     accessibilityRole="adjustable"
+     accessibilityLabel="Bottom Sheet"
+-    style={[styles.background, style]}
++    style={[styles.background, style, { pointerEvents }]}
+   />
+ );
+ 
+diff --git a/src/components/bottomSheetHostingContainer/BottomSheetHostingContainer.tsx b/src/components/bottomSheetHostingContainer/BottomSheetHostingContainer.tsx
+index 879061dec2ecf791e91da8141805789bcbbf96a8..d06b8dbc97199f1e0c9b2dd0069be883b01a4e24 100644
+--- a/src/components/bottomSheetHostingContainer/BottomSheetHostingContainer.tsx
++++ b/src/components/bottomSheetHostingContainer/BottomSheetHostingContainer.tsx
+@@ -116,7 +116,6 @@ function BottomSheetHostingContainerComponent({
+   return (
+     <View
+       ref={containerRef}
+-      pointerEvents="box-none"
+       onLayout={shouldCalculateHeight ? handleLayoutEvent : undefined}
+       style={containerStyle}
+       collapsable={true}

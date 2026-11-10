@@ -1,0 +1,359 @@
+name: Track contracts
+
+# Follows the real T3 and Orca servers the phone apps are conformed to. For each app the marker names, `wf parity track plan` compares the pin
+# (tooling/t3-conformance/t3-pin.json, tooling/orca-conformance/orca-pin.json) with the newest release (npm `t3`; the newest GitHub release of
+# stablyai/orca). An app that is not behind is done. For an app that is, the legs of the record machinery of record-references.yml record each of
+# its cassette sets against the newest release (the pin is bumped in the runner's checkout only, nothing is committed), resumable in chunks, and
+# replay the new set against our candidate; the last job rebuilds the method lists and coverage tables from the new source and publishes the
+# drift report with the new contracts as one artifact and as a run bundle (`wf test publish`, verification/test-runs/<runId>/).
+#
+# Started by scheduled-triggers.yml (dispatch) on an EMPTY commit to dev tagged `[track t3|orca]`, never by `push` itself; the commit is pushed
+# about every 24 hours by the scheduled session of docs/runbooks/contract-tracker.md:
+#     git commit --allow-empty -m "[track t3 orca]" && git push origin dev
+#     git commit --allow-empty -m "[track orca chunk=15 fresh]" && git push origin dev     (15 minute chunks, no checkpoint)
+# A record that runs out of its budget uploads its checkpoint and exits red; the same marker again resumes it. The marker grammar is
+# `wf parity track --help`.
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: The commit message that carries the marker
+        type: string
+        required: false
+        default: ''
+      sha:
+        description: The marker commit
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  plan:
+    name: Check the pins
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    runs-on: [self-hosted, vm]
+    timeout-minutes: 30
+    outputs:
+      drifted: ${{ steps.plan.outputs.drifted }}
+      record: ${{ steps.plan.outputs.record }}
+      chunk: ${{ steps.plan.outputs.chunk }}
+      fresh: ${{ steps.plan.outputs.fresh }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          ref: ${{ inputs.sha || github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+      - uses: ./.github/actions/install-wf
+      - name: Compare each pin with the newest release
+        id: plan
+        env:
+          COMMIT_MESSAGE: ${{ inputs.message }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          printf '%s' "$COMMIT_MESSAGE" | wf parity track plan --file - > "$RUNNER_TEMP/plan.json"
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/plan.json"
+          fail() {
+            {
+              echo "### The marker was refused"
+              echo
+              jq -r '"`" + (.error // "the plan failed") + "`\n\nNext: " + (.next // "")' "$1"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          }
+          if [ "$code" != 0 ]; then fail "$RUNNER_TEMP/plan.json"; fi
+          record_marker=$(jq -r '.record_marker // empty' "$RUNNER_TEMP/plan.json")
+          {
+            echo "drifted=$(jq -r '.drifted | join(" ")' "$RUNNER_TEMP/plan.json")"
+            echo "record=$([ -n "$record_marker" ] && echo true || echo false)"
+          } >> "$GITHUB_OUTPUT"
+          if [ -n "$record_marker" ]; then
+            # the capture matrix is the one `wf mimic trigger` builds for the same sets: provisioning, toolchains and checkpoints are its data
+            printf '%s' "$record_marker" | wf mimic trigger --file - > "$RUNNER_TEMP/matrix.json" || { cat "$RUNNER_TEMP/matrix.json"; fail "$RUNNER_TEMP/matrix.json"; }
+            {
+              echo "chunk=$(jq -r .chunk "$RUNNER_TEMP/matrix.json")"
+              echo "fresh=$(jq -r .fresh "$RUNNER_TEMP/matrix.json")"
+              echo "matrix=$(jq -c .matrix "$RUNNER_TEMP/matrix.json")"
+            } >> "$GITHUB_OUTPUT"
+          fi
+      - name: Keep the plan for the report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: track-plan
+          path: ${{ runner.temp }}/plan.json
+          retention-days: 14
+
+  capture:
+    name: record ${{ matrix.name }}
+    needs: plan
+    if: ${{ github.ref == 'refs/heads/dev' && needs.plan.outputs.record == 'true' }}
+    runs-on: [self-hosted, vm]
+    permissions:
+      # write: only to delete the checkpoint artifacts of a record that finished
+      actions: write
+      contents: read
+    # Not a concurrency group: it would keep one waiting leg and drop the rest. The one runner runs one job at a time, in this order.
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      WF_SITE: ci
+      CHUNK: ${{ needs.plan.outputs.chunk }}
+      FRESH: ${{ needs.plan.outputs.fresh }}
+      DRIFTED: ${{ needs.plan.outputs.drifted }}
+      SET_NAME: ${{ matrix.name }}
+      SET_DIR: ${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          ref: ${{ inputs.sha || github.sha }}
+          fetch-depth: 1
+      # One setup step per toolchain a [provision] block can pin (TOOLCHAINS in clis/mimic/src/provision.rs); `wf mimic trigger` emits each as a matrix key.
+      - name: Node of the set's provision block
+        if: ${{ matrix.node != '' }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ matrix.node }} # pins-exempt: the reference server's toolchain, no Nx task runs on it
+      - name: Python of the set's provision block
+        if: ${{ matrix.python != '' }}
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Go of the set's provision block
+        if: ${{ matrix.go != '' }}
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Rust of the set's provision block
+        if: ${{ matrix.rust != '' }}
+        env:
+          RUST_TOOLCHAIN: ${{ matrix.rust }}
+        run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal && rustup default "$RUST_TOOLCHAIN"
+      - name: pnpm for the mimic drivers
+        if: ${{ matrix.drivers == true }}
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+      - uses: ./.github/actions/install-wf
+      - name: Point the pins at the newest release
+        # In this checkout only: the provision block reads the pin, so the record is of the newest release and stamped with its commit
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          for app in $DRIFTED; do
+            wf parity track bump --app "$app"
+          done
+      - name: Find the checkpoint of an earlier run
+        id: checkpoint
+        if: ${{ env.FRESH != 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          url="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts?name=track-checkpoint-$SET_NAME&per_page=50"
+          # only a checkpoint of dev: a run of another branch or pull request never feeds this one
+          run_id=$(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$url" | jq -r '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "dev")] | first | .workflow_run.id // empty')
+          echo "an earlier checkpoint of $SET_NAME: run ${run_id:-none}"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+      - name: Restore the checkpoint
+        if: ${{ steps.checkpoint.outputs.run_id != '' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: track-checkpoint-${{ matrix.name }}
+          path: ${{ matrix.checkpoint }}
+          run-id: ${{ steps.checkpoint.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Provision the reference
+        # The pinned source and the install and build steps of the set's [provision] block, niced like the job. No step holds a secret and
+        # nothing is written to GITHUB_ENV: the block's env reaches the record through `wf mimic job` alone
+        if: ${{ matrix.provision == true }}
+        run: nice -n 19 wf mimic provision "$SET_DIR" --when record
+      - name: Record against the newest release
+        id: job
+        run: |
+          OUT_DIR="$RUNNER_TEMP/mimic-out"
+          flags="--chunk $CHUNK --budget 120"
+          if [ "$FRESH" = true ]; then flags="$flags --fresh"; fi
+          mkdir -p "$OUT_DIR"
+          set +e
+          # shellcheck disable=SC2086
+          nice -n 19 wf mimic job record "$SET_DIR" $flags --run "$GITHUB_RUN_ID" --out "$OUT_DIR" > "$OUT_DIR/$SET_NAME.record.json"
+          code=$?
+          set -e
+          cat "$OUT_DIR/$SET_NAME.record.json"
+          {
+            echo "complete=$(jq -r '.complete // false' "$OUT_DIR/$SET_NAME.record.json")"
+            echo "incomplete=$(jq -r '.incomplete // false' "$OUT_DIR/$SET_NAME.record.json")"
+            echo "checkpoint_upload=$(jq -r '.checkpoint_upload // false' "$OUT_DIR/$SET_NAME.record.json")"
+          } >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Keep the checkpoint of an unfinished record
+        # Only a record that ran out of its budget (the job says so), never a failed leg, and only when the unmasked checkpoint holds no token-shaped value
+        if: ${{ always() && steps.job.outputs.incomplete == 'true' && steps.job.outputs.checkpoint_upload == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: track-checkpoint-${{ matrix.name }}
+          path: ${{ matrix.checkpoint }}
+          retention-days: 3
+          if-no-files-found: ignore
+      - name: Replay the new set against our candidate
+        # The drift: what the adapter answers differently from the newest release. A difference is a finding for the report, not a failed leg.
+        if: ${{ success() && toJSON(matrix.candidates) != '[]' }}
+        continue-on-error: true
+        run: nice -n 19 wf mimic job replay "$SET_DIR" --run "$GITHUB_RUN_ID" --out "$RUNNER_TEMP/mimic-out" > "$RUNNER_TEMP/mimic-out/$SET_NAME.replay.stdout.txt"
+      - name: Upload the masked set
+        # raw/ was deleted by the job; the exclusion is the second lock
+        if: ${{ success() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: track-set-${{ matrix.name }}
+          path: |
+            ${{ matrix.dir }}
+            !${{ matrix.dir }}/raw
+          retention-days: 14
+          if-no-files-found: error
+      - name: Upload what the report reads
+        if: ${{ always() }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: track-out-${{ matrix.name }}
+          path: ${{ runner.temp }}/mimic-out/*.json
+          retention-days: 14
+          if-no-files-found: ignore
+      - uses: ./.github/actions/install-bws
+        # after the capture: nothing the provisioned reference ran saw the vault
+        if: ${{ success() }}
+      - name: Publish the set to the bucket
+        # The transport an agent session can reach: `wf mimic fetch <run-id>`. The write link comes from the vault and is never printed.
+        if: ${{ success() }}
+        env:
+          SECRETS_BACKEND: bitwarden
+          BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+        run: wf mimic publish "$SET_DIR" --run "$GITHUB_RUN_ID"
+      - name: Drop the checkpoints of the finished record
+        # a published record leaves nothing to resume, and a later marker must not pick an old checkpoint up
+        if: ${{ success() }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          url="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts?name=track-checkpoint-$SET_NAME&per_page=100"
+          for id in $(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$url" | jq -r '.artifacts[].id'); do
+            curl -fsS -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$id" > /dev/null
+            echo "dropped checkpoint artifact $id"
+          done
+
+  report:
+    name: Drift report
+    needs: [plan, capture]
+    # runs after a failed or unfinished capture too: the report says which set did not finish
+    if: ${{ always() && github.ref == 'refs/heads/dev' && needs.plan.result == 'success' }}
+    runs-on: [self-hosted, vm]
+    timeout-minutes: 60
+    env:
+      WF_SITE: ci
+      DRIFTED: ${{ needs.plan.outputs.drifted }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          ref: ${{ inputs.sha || github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+      - uses: ./.github/actions/install-wf
+      - name: Fetch the plan
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: track-plan
+          path: ${{ runner.temp }}/plan
+      - name: Fetch what the captures wrote
+        if: ${{ needs.plan.outputs.record == 'true' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: track-out-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/inputs
+      - name: Fetch the new cassette sets
+        if: ${{ needs.plan.outputs.record == 'true' }}
+        continue-on-error: true
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: track-set-*
+          path: ${{ runner.temp }}/contracts/cassettes
+      - name: Rebuild the method lists and coverage tables from the new source
+        # The pin is moved in this checkout, the reference is fetched at the commit it names (public, shallow) and `wf parity coverage` rescans it:
+        # the new method list is the contract of the newest release, and a problem of the table is what the adapters still owe
+        if: ${{ env.DRIFTED != '' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/inputs" "$RUNNER_TEMP/contracts/pins" "$RUNNER_TEMP/contracts/coverage"
+          for app in $DRIFTED; do
+            wf parity track bump --app "$app"
+            case "$app" in
+              t3) dir=references/t3code; pin=tooling/t3-conformance/t3-pin.json ;;
+              orca) dir=references/orca; pin=tooling/orca-conformance/orca-pin.json ;;
+            esac
+            commit=$(jq -r .commit "$pin")
+            git submodule update --init --depth 1 "$dir"
+            git -C "$dir" fetch --depth 1 origin "$commit"
+            git -C "$dir" checkout -q --detach "$commit"
+            set +e
+            wf parity coverage --app "$app" > "$RUNNER_TEMP/inputs/coverage-$app.json"
+            set -e
+            cat "$RUNNER_TEMP/inputs/coverage-$app.json"
+            cp "$pin" "$RUNNER_TEMP/contracts/pins/"
+            cp docs/plans/rca-parity/coverage/"$app"*.json docs/plans/rca-parity/coverage/"$app".md "$RUNNER_TEMP/contracts/coverage/"
+          done
+      - name: Write the drift report
+        id: report
+        run: |
+          mkdir -p "$RUNNER_TEMP/inputs" "$RUNNER_TEMP/bundle"
+          wf parity track report --plan "$RUNNER_TEMP/plan/plan.json" --inputs "$RUNNER_TEMP/inputs" --out "$RUNNER_TEMP/bundle" --run "$GITHUB_RUN_ID" --sha "$GITHUB_SHA"
+          cat "$RUNNER_TEMP/bundle/summary.md" >> "$GITHUB_STEP_SUMMARY"
+          # the contracts a run bundle holds (the cassettes are the artifact's and the bucket's set run, not the bundle's)
+          mkdir -p "$RUNNER_TEMP/bundle/contracts"
+          if [ -d "$RUNNER_TEMP/contracts/pins" ]; then cp -r "$RUNNER_TEMP/contracts/pins" "$RUNNER_TEMP/contracts/coverage" "$RUNNER_TEMP/bundle/contracts/"; fi
+          cp "$RUNNER_TEMP"/inputs/*.json "$RUNNER_TEMP/bundle/" 2>/dev/null || true
+      - name: Upload the new contracts and the drift report
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: track-contracts
+          path: |
+            ${{ runner.temp }}/bundle
+            ${{ runner.temp }}/contracts
+          retention-days: 14
+          if-no-files-found: error
+      - uses: ./.github/actions/install-bws
+      - name: Publish the run bundle
+        # verification/test-runs/<runId>/ in the verification-artifacts bucket: where an agent session whose proxy refuses the Actions API reads it
+        env:
+          SECRETS_BACKEND: bitwarden
+          BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+        run: wf test publish "$RUNNER_TEMP/bundle" | tee -a "$GITHUB_STEP_SUMMARY"
+      # an initialized references/t3code breaks the next job's actions/checkout (its recursive submodule step fails on a nested gitlink without a url)
+      - name: Reference trees
+        if: always()
+        run: git submodule deinit -f references/orca references/t3code 2>/dev/null || true

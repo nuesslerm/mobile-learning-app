@@ -1,0 +1,46 @@
+Usage: wf mimic job [options] <record|replay> <set>
+
+One capture job of the record-references workflow, for a set that is already
+provisioned (wf mimic provision).
+
+record: runs `wf mimic record <set> --resume --max-minutes <chunk>` again and again
+(each call is a bounded chunk that leaves its checkpoint under <set>/raw/checkpoint)
+until the record is complete or --budget is spent. A complete record has raw/
+deleted, is verified offline and is scanned for token-shaped values (a Bearer
+token, a JWT): any of them holds the set back (exit 1), because it is published
+to a bucket anyone can read. For a set that allows nondeterminism, a verify that fails
+only on stability accounting (the tags against stability-allowlist.json) does not hold
+the set back: it is reported as `verify.accounting_deferred`, and `wf mimic verify` at the
+commit is the check that the allowlist names the tagged ids. An incomplete one exits 1 with the checkpoint kept
+and "incomplete": true; push the marker again to resume. The checkpoint is bound to
+the provision block (with its source commit), the corpus and the reference pin: one
+bound to anything else, or to nothing, is dropped and the record starts over (--fresh
+does so on purpose). A checkpoint with a token-shaped value in it is not uploaded
+("checkpoint_upload": false). A wf-mimic whose `record` lacks --resume or
+--max-minutes fails at once with that message (exit 2). The [record] table of
+the set's mimic.toml sets allow_nondeterministic (default false: a stability check is
+kept) and extra `record` args; the [env] of the [provision] block reaches the record
+(and replay) through this job alone.
+replay: replays the set against each of its [candidate.<name>] (or --candidate) and
+tabulates severity, counts and the first difference of every non-clean interaction;
+exit 1 when any candidate differs.
+Both append a markdown summary to --summary (default $GITHUB_STEP_SUMMARY).
+
+Options:
+  --chunk <minutes>           record: minutes per call, 1 to 60 (default 10)
+  --budget <minutes>          record: stop starting chunks after this long (default 100)
+  --fresh                     record: delete the checkpoint first
+  --candidate <name>          replay: only this candidate
+  --out <dir>                 replay: write <set>.replay.json here
+  --work-root <dir>           where the provisioned work directories are ({work}, default $MIMIC_WORK_ROOT)
+  --root <dir>                the checkout {repo} names (default: this one)
+  --summary <file>            where the markdown summary is appended
+  --run <id>                  the run id to name (default $GITHUB_RUN_ID, else local)
+  -h, --help                  display help for command
+
+Output (schema mimic-job/1):
+  record: {schema, ok, action, set, dir, run, complete, incomplete?, checkpoint_upload?, checkpoint_leaks?, chunks: [{n, seconds, complete,
+  interactions}], chunk_minutes, interactions, nondeterministic, stable_pct, wall_seconds,
+  raw_removed?, verify?: {ok, exit}, leaks?: [text], error?, warnings, next}
+  replay: {schema, ok, action, set, dir, run, candidates: [{candidate, severity, summary}],
+  differences, wall_seconds, warnings, next}

@@ -1,0 +1,6 @@
+Usage: wf browser stop-device [--device N | --all]
+
+Closes the session (--device, else the only open one), or every session with --all. The daemon keeps running:
+`wf browser stop` ends it.
+
+Result: {closed: [names]}

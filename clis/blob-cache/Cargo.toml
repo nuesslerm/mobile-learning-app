@@ -1,0 +1,13 @@
+[package]
+name = "blob-cache"
+version = "0.1.0"
+edition = "2021"
+description = "One cache over a blob store: kinds, generations, budgets and a breaker in a pure core, behind BlobStore and BlobAdmin ports"
+publish = false
+
+[dependencies]
+cli-http = { path = "../http" }
+getrandom = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tiny_http = "0.12"

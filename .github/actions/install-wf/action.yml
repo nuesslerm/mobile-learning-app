@@ -1,0 +1,91 @@
+name: Install wf
+description: >-
+  The one `wf` on the VM: a static (musl) binary built from clis/ with the deploy profile, incrementally in a target
+  directory on the runner, installed once per clis/ tree under /opt/clis/<tree>/ beside the binaries it runs for `wf t3`
+  and `wf exec`, and put on PATH. A job whose clis/ tree is already installed builds nothing. With `publish: true` (the clis workflow, for a push to dev) it also points
+  /opt/clis/current at that build: the containers mount /opt/clis and run current/wf.
+inputs:
+  live:
+    description: "true brings the run's pull request comment up to date as this job starts (false leaves it alone: the preflight job starts it itself). Job logs were missing from 31 Oct 00:19 UTC until the runner was moved to 2.338.2, which was not this update's doing"
+    default: "true"
+  current:
+    description: Use the wf the previous push published (/opt/clis/current) without building, for the jobs that run before this push's clis build
+    default: "false"
+  publish:
+    description: Point /opt/clis/current at this build
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: Remove untracked files an earlier job left in the reused workspace
+      # checkout runs with clean: false (node_modules and caches stay), so a stray file such as ARCHITECTURE.md survives; the build cache
+      # refuses writes from a dirty tree (18:24 on 30 Oct: 0 of 12 hits, nothing saved). Ignored files stay.
+      shell: bash
+      run: git clean -fd
+    - shell: bash
+      env:
+        # incremental in a target directory beside the checkout, on the runner's work volume, so it outlives the runner
+        # container: a change recompiles only its crates; no cache leaves the VM
+        CARGO_TARGET_DIR: ${{ github.workspace }}/../../wf-cargo-target
+        CARGO_PROFILE_DEPLOY_INCREMENTAL: "true"
+        PUBLISH: ${{ inputs.publish }}
+        CURRENT: ${{ inputs.current }}
+      run: |
+        tree=$(git rev-parse HEAD:clis)
+        # no package ships a wf bin any more; one left in the runner's kept node_modules would shadow this wf inside pnpm run
+        rm -f node_modules/.bin/wf
+        # /opt/clis is the volume the VM's containers mount; a hosted runner keeps its build in its tool cache
+        root=/opt/clis; sudo=$([ "$(id -u)" = 0 ] || echo sudo)
+        { mkdir -p "$root" 2>/dev/null && [ -w "$root" ]; } || root=$RUNNER_TOOL_CACHE/clis
+        if [ "$CURRENT" = "true" ] && [ -x "$root/current/wf" ]; then
+          echo "$root/current" >> "$GITHUB_PATH"
+          echo "wf $(readlink "$root/current") (the published one; this push's clis build comes later)"
+          exit 0
+        fi
+        dir=$root/$tree
+        # wf runs `t3`, `exec` and `mimic` as the binaries beside it (clis/wf/src/external.rs); each is also its package's name
+        bins="t3-serve rca-exec wf-mimic wf"
+        complete=true; for bin in $bins; do [ -x "$dir/$bin" ] || complete=false; done
+        if [ "$complete" = false ]; then
+          target=$(uname -m)-unknown-linux-musl
+          # a cancelled job can stop an install half way; finish it first, or every later apt-get refuses to run
+          { command -v cc && command -v musl-gcc; } >/dev/null || $sudo dpkg --configure -a
+          command -v cc >/dev/null || { $sudo apt-get update -qq && $sudo apt-get install -y -qq build-essential; }
+          command -v musl-gcc >/dev/null || { $sudo apt-get update -qq && $sudo apt-get install -y -qq musl-tools; }
+          command -v cargo >/dev/null || curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          [ -f "$HOME/.cargo/env" ] && . "$HOME/.cargo/env"
+          pin=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' rust-toolchain.toml)
+          cargo --version >/dev/null 2>&1 || { rustup toolchain uninstall "$pin" || true; rustup toolchain install --profile minimal; }
+          rustup target add "$target" >/dev/null
+          # the clis/ tree, not the commit, so a commit that leaves clis/ alone neither rebuilds nor reinstalls
+          export WF_BUILD_SHA=$tree "CC_${target//-/_}=musl-gcc"
+          packages=(); for bin in $bins; do packages+=(-p "$bin"); done
+          (cd clis && cargo build --profile deploy "${packages[@]}" --target "$target")
+          mkdir -p "$root" && tmp=$(mktemp -d "$root/.new-XXXXXX")
+          for bin in $bins; do cp "$CARGO_TARGET_DIR/$target/deploy/$bin" "$tmp/$bin" && chmod 755 "$tmp/$bin"; done
+          chmod 755 "$tmp"
+          # a tree installed before a binary joined the list holds wf alone
+          rm -rf "$dir"
+          mv -T "$tmp" "$dir" 2>/dev/null || rm -rf "$tmp"
+        fi
+        if [ "$PUBLISH" = "true" ]; then
+          ln -sfn "$tree" "$root/.current-new" && mv -T "$root/.current-new" "$root/current"
+          # keep current and the three newest builds, so a rollback is one symlink flip
+          find "$root" -mindepth 1 -maxdepth 1 -type d ! -name "$tree" ! -name '.*' -printf '%T@ %p\n' | sort -rn | tail -n +4 | cut -d' ' -f2- | xargs -r rm -rf
+        fi
+        echo "$dir" >> "$GITHUB_PATH"
+        echo "wf $tree at $dir$([ "$PUBLISH" = "true" ] && echo ', now current')"
+    - name: Update the live comment on the pull request
+      # every job of the CI starts here, so the comment follows the run (`wf ci live`); never a failure of the job
+      if: ${{ github.workflow == 'CI (self-hosted)' && inputs.live == 'true' }}
+      shell: bash
+      continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        GITHUB_SHA: ${{ github.sha }}
+      run: |
+        # the published wf may predate the verb; its own install step put the wf on PATH only for later steps, so find it the same way
+        command -v wf >/dev/null 2>&1 || { [ -x /opt/clis/current/wf ] && export PATH="/opt/clis/current:$PATH"; }
+        wf ci live >/dev/null 2>&1 || true

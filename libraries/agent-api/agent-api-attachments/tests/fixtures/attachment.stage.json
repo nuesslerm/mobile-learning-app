@@ -1,0 +1,189 @@
+{
+  "method": "attachment.stage",
+  "exchanges": [
+    {
+      "name": "writes each attachment into the workspace and names where",
+      "before": [
+        {
+          "id": "setup-1",
+          "method": "upload.put",
+          "params": {
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "data": "aGk=",
+            "id": "att-1"
+          }
+        },
+        {
+          "id": "setup-2",
+          "method": "upload.put",
+          "params": {
+            "id": "att-2",
+            "name": "../notes.txt",
+            "mime_type": "text/plain",
+            "kind": "file",
+            "data": "aGVsbG8gd29ybGQ="
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "attachment.stage",
+        "params": {
+          "workspace": "w1",
+          "ids": [
+            "att-1",
+            "att-2"
+          ]
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "files": [
+            {
+              "id": "att-1",
+              "name": "shot.png",
+              "path": ".rca/attachments/att-1/shot.png",
+              "size_bytes": 2
+            },
+            {
+              "id": "att-2",
+              "name": "../notes.txt",
+              "path": ".rca/attachments/att-2/notes.txt",
+              "size_bytes": 11
+            }
+          ]
+        }
+      },
+      "actions": [
+        "put_blob",
+        "put_blob",
+        "put_blob"
+      ]
+    },
+    {
+      "name": "is safe to repeat: a file already in place is the same file",
+      "before": [
+        {
+          "id": "setup-1",
+          "method": "upload.put",
+          "params": {
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "data": "aGk=",
+            "id": "att-1"
+          }
+        },
+        {
+          "id": "stage-1",
+          "method": "attachment.stage",
+          "params": {
+            "workspace": "w1",
+            "ids": [
+              "att-1"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "id": 2,
+        "method": "attachment.stage",
+        "params": {
+          "workspace": "w1",
+          "ids": [
+            "att-1"
+          ]
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "files": [
+            {
+              "id": "att-1",
+              "name": "shot.png",
+              "path": ".rca/attachments/att-1/shot.png",
+              "size_bytes": 2
+            }
+          ]
+        }
+      },
+      "actions": [
+        "put_blob",
+        "put_blob"
+      ]
+    },
+    {
+      "name": "answers ATTACHMENT_NOT_FOUND and writes nothing when one id is unknown",
+      "before": [
+        {
+          "id": "setup-1",
+          "method": "upload.put",
+          "params": {
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "data": "aGk=",
+            "id": "att-1"
+          }
+        }
+      ],
+      "request": {
+        "id": 3,
+        "method": "attachment.stage",
+        "params": {
+          "workspace": "w1",
+          "ids": [
+            "att-1",
+            "nope"
+          ]
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "ATTACHMENT_NOT_FOUND",
+          "message": "no attachment has the id nope"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "answers NO_EXECUTOR for a workspace nobody serves",
+      "before": [
+        {
+          "id": "setup-1",
+          "method": "upload.put",
+          "params": {
+            "name": "shot.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "data": "aGk=",
+            "id": "att-1"
+          }
+        }
+      ],
+      "request": {
+        "id": 4,
+        "method": "attachment.stage",
+        "params": {
+          "workspace": "w9",
+          "ids": [
+            "att-1"
+          ]
+        }
+      },
+      "response": {
+        "id": 4,
+        "error": {
+          "code": "NO_EXECUTOR",
+          "message": "no executor is attached for workspace w9"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

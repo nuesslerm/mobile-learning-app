@@ -1,0 +1,23 @@
+Usage: wf cache sccache [options] <command...>
+
+Run a command with Rust compiles served from the bucket. A loopback WebDAV server
+starts (sccache's backend uses one endpoint, the bucket has a read link and a
+write link, so the server routes between them), and RUSTC_WRAPPER=sccache,
+CARGO_INCREMENTAL=0, SCCACHE_WEBDAV_ENDPOINT, SCCACHE_WEBDAV_TOKEN and a free
+SCCACHE_SERVER_PORT go into the command's environment. When the command exits the
+run's own sccache server is stopped and its hit and miss counts printed. The
+command's exit code is this verb's. Needs sccache on PATH and the two links; without
+either the command runs with uncompiled-cache semantics and one line says why.
+
+A hit costs one request, a miss one read and one write; the run is capped by
+`sccache.requestsPerRun` and `bytesPerRun` in clis/blob-cache/data/budget.json.
+Keep CARGO_TARGET_DIR the same between runs: a compile's key includes it.
+
+Output: the command's own, then stderr lines `wf: compile cache {gets, puts, store}`
+and `wf: sccache {hits, misses, writeErrors}`.
+
+Arguments:
+  command     the command to run, after an optional --
+
+Options:
+  -h, --help  display help for command

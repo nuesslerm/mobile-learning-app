@@ -1,0 +1,7 @@
+Usage: wf browser check-taps <video> [--inputs inputs.jsonl]
+
+A post-run check that every tap in a recording's input log (default <video>.inputs.jsonl, written beside a recording by
+start-recording or a test run) shows its tap dot in the video within 1500 ms. No daemon is needed.
+
+Result: {taps, dotsFound, missing: [], pass: true}; a tap with no dot fails (exit 1) with the check as evidence and the
+missing tap times in the error.

@@ -1,0 +1,49 @@
+{
+  "method": "thread.transcript",
+  "exchanges": [
+    {
+      "name": "answers the rows of a thread that has run nothing",
+      "before": [
+        {
+          "id": "setup-t-tr",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-tr"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.transcript",
+        "params": {
+          "thread": "t-tr"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": "t-tr",
+          "last_seq": 0,
+          "items": []
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "thread.transcript",
+        "params": {
+          "thread": "nope"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

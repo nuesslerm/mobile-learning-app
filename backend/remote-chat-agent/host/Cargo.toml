@@ -1,0 +1,30 @@
+[package]
+name = "remote-chat-agent-host"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The host adapters of the remote chat agent: programs, provider CLI processes, the workspace filesystem, the thread event log, document text and the ladder's RunHost."
+
+[lib]
+name = "remote_chat_agent_host"
+path = "src/lib.rs"
+doctest = false
+
+[dependencies]
+async-trait.workspace = true
+rca-cli-driver = { path = "../cli-driver" }
+rca-core = { version = "0.1", registry = "mla" }
+rca-ladder = { version = "0.1", registry = "mla" }
+rca-service-core = { path = "../service-core" }
+remote-chat-agent-core = { path = "../core" }
+remote-chat-agent-render = { path = "../render" }
+serde_json.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["fs", "io-util", "process"] }
+tokio-stream.workspace = true
+
+[dev-dependencies]
+rca-service-core = { path = "../service-core", features = ["testing"] }
+remote-chat-agent-core = { path = "../core", features = ["testing"] }
+tempfile.workspace = true
+tokio = { workspace = true, features = ["fs", "io-util", "process", "rt-multi-thread"] }

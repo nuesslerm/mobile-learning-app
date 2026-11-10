@@ -1,0 +1,66 @@
+[package]
+name = "orca-serve"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "`orca-serve`: the Orca-compatible server in front of rca's agent API (serve), its pairing offers (pair) and its method table (api); the composition root of the orca-* crates"
+
+# The tests are one flow binary (tests/flow.rs): the real transport over loopback and the thin binary below, with rca doubled.
+[lib]
+test = false
+doctest = false
+
+[[bin]]
+name = "orca-serve"
+path = "src/bin/orca-serve.rs"
+test = false
+
+# The method-table test reads the reference scan's rows, the status test the pinned protocol constants and the agent API checks the recorded
+# `service.status` exchange: editing any reruns the flow task.
+[package.metadata.flow]
+inputs = ["../../docs/plans/rca-parity/coverage/orca-methods.json", "../../docs/plans/rca-parity/coverage/orca-decisions.json", "../../tooling/orca-conformance/orca-pin.json", "../../libraries/agent-api/agent-api-service/tests/fixtures/**", "map-mobile/fixtures/orca-mobile-bundle/**"]
+
+# The integration chain (tests/integration.rs) runs the built binaries orca-serve, rca-service and rca-exec against each other, and the scripted CLI
+# that exec-testkit builds from its own workspace: a change to any of the last three reruns it, and so does a change to the methods list it
+# names its rows from and to the recorded bundle it serves. The `wf-mimic` binary replays that bundle against map-mobile's example driver
+# (tests/integration/mimic_x2.rs), whose run record carries the clean diff `wf parity coverage` counts a mimic-backed row for. The Orca oracle
+# (tests/integration/mimic_x6.rs) runs the `orca` driver of tooling/mimic-drivers under Node against orca-serve and a scripted host double, over cassettes/.
+[package.metadata.integration]
+uses = ["rca-service", "rca-exec", "exec-testkit", "wf-mimic", "mimic-core"]
+inputs = ["../../docs/plans/rca-parity/coverage/orca-methods.json", "map-mobile/fixtures/orca-mobile-bundle/**", "map-mobile/examples/**", "cassettes/**", "../../tooling/mimic-drivers/src/**", "../../tooling/orca-conformance/orca-pin.json", "../../tooling/mimic-drivers/package.json", "../../pnpm-lock.yaml"]
+
+[features]
+testing = ["orca-core/testing", "orca-crypto/testing", "orca-map-mobile/testing"]
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+orca-core = { path = "core" }
+orca-crypto = { path = "crypto" }
+orca-map-settings = { path = "map-settings" }
+orca-map-mobile = { path = "map-mobile" }
+orca-map-workspace = { path = "map-workspace" }
+orca-map-agent = { path = "map-agent" }
+orca-map-terminal = { path = "map-terminal" }
+orca-map-git = { path = "map-git" }
+orca-map-accounts = { path = "map-accounts" }
+orca-map-state = { path = "map-state" }
+orca-map-hosted = { path = "map-hosted" }
+orca-map-schedules = { path = "map-schedules" }
+sha2 = "0.10"
+libc = "0.2"
+agent-api-client = { path = "../../libraries/agent-api/agent-api-client" }
+agent-api-proto = { path = "../../libraries/agent-api/agent-api-proto" }
+agent-api-service = { path = "../../libraries/agent-api/agent-api-service" }
+agent-api-state = { path = "../../libraries/agent-api/agent-api-state" }
+serde_json = { version = "1", features = ["preserve_order"] }
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+
+[dev-dependencies]
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+orca-serve = { path = ".", features = ["testing"] }
+agent-api-terminal = { path = "../../libraries/agent-api/agent-api-terminal" }
+exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }
+mimic-core = { path = "../mimic/core" }
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+tempfile = "3"
+base64 = "0.22"

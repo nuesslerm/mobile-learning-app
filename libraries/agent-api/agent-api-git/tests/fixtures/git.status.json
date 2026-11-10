@@ -1,0 +1,65 @@
+{
+  "method": "git.status",
+  "exchanges": [
+    {
+      "name": "reports the branch and the changed files",
+      "request": {
+        "id": 1,
+        "method": "git.status",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "branch": "main",
+          "head": "2ba16e412e77c7e68edad66eb0b4799958069606",
+          "detached": false,
+          "ahead": 0,
+          "behind": 0,
+          "files": [
+            {
+              "path": "README.md",
+              "index": ".",
+              "worktree": "M",
+              "conflicted": false
+            },
+            {
+              "path": "new.txt",
+              "index": "?",
+              "worktree": "?",
+              "conflicted": false
+            }
+          ],
+          "truncated": false,
+          "clean": false
+        }
+      },
+      "actions": [
+        "git_status"
+      ],
+      "volatile": [
+        "/result/head"
+      ]
+    },
+    {
+      "name": "a workspace nobody attached is refused",
+      "request": {
+        "id": 1,
+        "method": "git.status",
+        "params": {
+          "workspace": "nobody"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "NO_EXECUTOR",
+          "message": "no executor is attached for workspace nobody"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Stub git binary — logs args to a tmp file, exits 0.
+echo "git $*" >> "${GIT_STUB_LOG:-/tmp/git-stub.log}"
+exit 0

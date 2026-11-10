@@ -1,0 +1,24 @@
+[package]
+name = "agent-api-proto"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The rca agent API's wire (`/agent/v1`, `docs/plans/rca-client/architecture.md`): request, response and event envelopes, the error codes every group shares, the protocol version, and the group and method names"
+
+[lib]
+doctest = false
+
+[features]
+# Loads the recorded exchanges under each contract crate's `tests/fixtures`
+testing = []
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+agent-api-proto = { path = ".", features = ["testing"] }
+
+# The integration test runs the wf-mimic binary of the clis workspace (from WF_MIMIC_BIN, or built from clis): a change to that crate reruns it.
+[package.metadata.integration]
+uses = ["wf-mimic"]

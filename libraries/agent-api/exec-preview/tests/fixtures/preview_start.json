@@ -1,0 +1,20 @@
+{
+  "action": "preview_start",
+  "exchanges": [
+    {
+      "name": "refuses a port below the dev server range before anything is started",
+      "request": {"id": "t1", "tool": "preview_start", "args": {"command": "true", "port": 80}},
+      "response": {"id": "t1", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`port` must be between 3000 and 9999"}}
+    },
+    {
+      "name": "refuses an environment that sets the port the executor sets",
+      "request": {"id": "t2", "tool": "preview_start", "args": {"command": "true", "port": 4000, "env": {"PORT": "1"}}},
+      "response": {"id": "t2", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`env` may not set PORT"}}
+    },
+    {
+      "name": "refuses a directory outside the root",
+      "request": {"id": "t3", "tool": "preview_start", "args": {"command": "true", "port": 4000, "cwd": "../elsewhere"}},
+      "response": {"id": "t3", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../elsewhere is outside the root"}}
+    }
+  ]
+}

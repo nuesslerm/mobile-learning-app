@@ -1,0 +1,19 @@
+[package]
+name = "orca-map-state"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Orca mapping crate for the phone's kept state: settings.get and update, the terminal quick commands and ui.get and set, over rca's state group, behind the AgentApi port of orca-core"
+
+[lib]
+doctest = false
+
+[dependencies]
+orca-core = { path = "../core" }
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-state = { path = "../../../libraries/agent-api/agent-api-state" }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+orca-core = { path = "../core", features = ["testing"] }
+sha2 = "0.10"

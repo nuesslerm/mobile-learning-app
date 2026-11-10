@@ -1,0 +1,98 @@
+{
+  "method": "queue.move",
+  "exchanges": [
+    {
+      "name": "puts an item before another",
+      "before": [
+        {
+          "id": "setup-create-t-qm",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-qm",
+            "title": "Thread t-qm",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        },
+        {
+          "id": "setup-a1",
+          "method": "queue.add",
+          "params": {
+            "thread": "t-qm",
+            "item": "q1",
+            "prompt": "one"
+          }
+        },
+        {
+          "id": "setup-a2",
+          "method": "queue.add",
+          "params": {
+            "thread": "t-qm",
+            "item": "q2",
+            "prompt": "two"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "queue.move",
+        "params": {
+          "thread": "t-qm",
+          "item": "q2",
+          "before": "q1"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": "t-qm",
+          "order": [
+            "q2",
+            "q1"
+          ],
+          "seq": 1
+        }
+      },
+      "volatile": [
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "refuses a place before an item that is not queued",
+      "request": {
+        "id": "2",
+        "method": "queue.move",
+        "params": {
+          "thread": "t-qm",
+          "item": "q1",
+          "before": "ghost"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "ITEM_NOT_QUEUED",
+          "message": "Queue target ghost is not queued."
+        }
+      }
+    },
+    {
+      "name": "refuses an item that is not queued",
+      "request": {
+        "id": "3",
+        "method": "queue.move",
+        "params": {
+          "thread": "t-qm",
+          "item": "ghost"
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "ITEM_NOT_QUEUED",
+          "message": "Run ghost is not queued."
+        }
+      }
+    }
+  ]
+}

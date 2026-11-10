@@ -1,0 +1,19 @@
+Usage: wf vm state list [options]
+
+The snapshots of each declared volume, newest first, with the run stamp, the age
+and whether `verify` tagged it. A volume with no snapshot fails its app.
+
+Answer (one JSON line on stdout, exit 0 only when "ok" is true):
+  {"event":"vm-state","verb":"<verb>","ok":bool,"bucket":"mobile-learning-vm-state",
+   "apps":[{"app":"orca-serve","ok":bool,"stamp":"20261107033000Z","ageSeconds":n,
+            "volumes":[{"ok":bool,"volume":"orca-state","snapshot":"<restic id>","measuredBytes":n,
+                        "maxBytes":n,"databases":n,"error":"..."}],
+            "error":"...","next":"..."}],
+   "repository":{"ok":bool,"bytes":n,"budgetBytes":n,"error":"..."},
+   "error":"...","next":"..."}
+A failed row carries the tool's own error and the next step; the restic
+password is never printed.
+
+Options:
+  --app <name>  only this app
+  --local       the agent-shell side (see backup)

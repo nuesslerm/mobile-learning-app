@@ -1,0 +1,28 @@
+[package]
+name = "mimic-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The pure core of `wf mimic`: the cassette format, normalisation rules, the differ with its allowlist, corpus generation and the record/replay use cases, behind Store, Driver, Clock and Rng ports"
+
+[lib]
+doctest = false
+
+[features]
+# In-memory doubles of every port (MemStore, ScriptedDriver, ToyDriver, FixedClock).
+testing = []
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+base64 = "0.22"
+regex = "1"
+
+# The flow test (tests/flow.rs) needs the doubles, and the pre-push gate runs it without features; it also reads the pinned T3
+# goldens (tooling/t3-conformance/goldens) as the read-only oracle of the normalisation rules.
+[dev-dependencies]
+mimic-core = { path = ".", features = ["testing"] }
+
+[package.metadata.flow]
+inputs = ["../../../tooling/t3-conformance/goldens/**"]

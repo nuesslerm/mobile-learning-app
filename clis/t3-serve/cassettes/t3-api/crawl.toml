@@ -1,0 +1,7 @@
+# The whole T3 API as the pinned source defines it (references/t3code at the commit of the pin): `wf mimic crawl clis/t3-serve/cassettes/t3-api`.
+app = "t3"
+command = ["node", "src/cli.ts", "crawl", "t3"]
+cwd = "../../../../tooling/mimic-drivers"
+catalog = "../../../../docs/plans/rca-parity/coverage/t3-methods.json"
+pin = "../../../../tooling/t3-conformance/t3-pin.json"
+commit_pointer = "/commit"

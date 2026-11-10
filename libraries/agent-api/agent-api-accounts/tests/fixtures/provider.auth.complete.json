@@ -1,0 +1,38 @@
+{
+  "method": "provider.auth.complete",
+  "exchanges": [
+    {
+      "name": "waits for the login to end and answers succeeded",
+      "before": [
+        {
+          "id": 1,
+          "method": "provider.auth.start",
+          "params": {
+            "provider": "codex"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "provider.auth.complete",
+        "params": {
+          "auth": "auth-1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "auth": {
+            "auth": "auth-1",
+            "provider": "codex",
+            "method": "device_code",
+            "status": "succeeded",
+            "url": "https://login.example.test/device",
+            "code": "ABCD-1234",
+            "error": null
+          }
+        }
+      }
+    }
+  ]
+}

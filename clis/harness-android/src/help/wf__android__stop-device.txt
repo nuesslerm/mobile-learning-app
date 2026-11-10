@@ -1,0 +1,11 @@
+Usage: wf android stop-device [--name N] [--dry-run]
+
+Stops the on-demand redroid gracefully (Android gets 30 s to write its state) and removes the container (--name, default
+WF_ANDROID_NAME, else rdl), reporting the VM's MemAvailable before and after on stderr. The /data volume is kept, so the
+next boot stays fast. Not lease-guarded: a crashed run's stale lease must never keep CI's teardown from freeing the VM.
+
+Options:
+  --name <container>     container name (default: WF_ANDROID_NAME, else rdl)
+  --dry-run              print the VM script in result.script instead of running it (was --print)
+
+Result: {name, stopped: true}; with --dry-run {dryRun: true, script}

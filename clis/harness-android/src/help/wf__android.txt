@@ -1,0 +1,28 @@
+Usage: wf android <command> [options]
+
+The Android harness: the one redroid on the VM, driven over adb and its on-device UI server. The emulator runs only in
+CI's android-e2e-tests job. A device verb drives the adb serial --device names, else ANDROID_SERIAL or WF_ANDROID_SERIAL,
+else the only device adb lists; the lifecycle and lease verbs name the container with --name (default WF_ANDROID_NAME,
+else rdl). Every verb prints one JSON line: {ok, command, platform, device, ms, result} with exit 0; a failure {ok:false,
+..., error, next} with exit 1; a usage error {ok:false, error, usage} with exit 2; the lease held by someone else, exit 3.
+--json is accepted and ignored. `wf android <command> --help` prints one in full.
+
+Devices:
+  start-device [--name N] [--screen WxH@dpi] [--port P] [--with F,...] [--slim | --stock] [--expo-go] [--dry-run]
+                         boots the redroid on the VM (slim by default) and waits for it
+  stop-device [--name N] [--dry-run]
+                         removes it, keeping its /data volume (idle cost zero)
+  list-devices [--name N]
+                         the device: booted, the slim set proved, each feature on or off, its lease
+  hierarchy [--device D] the screen's elements as JSON, to write a selector from
+  stack <group> [--platform P] [--file F]
+                         maps a logged JavaScript stack (stdin or --file) to source lines through an EAS Update's source maps
+  lease [acquire|heartbeat|release|status] [--name N] [--wait s] [--ttl s] [--who W] [--id ID] [--local]
+                         one holder at a time on the device (FIFO, TTL)
+  adb [adb-args...]      raw adb with the serial in front (lease-guarded; output not wrapped)
+
+Tests:
+  test <script.lua>      runs one Lua test (`wf android test --help`); `test --api` prints the script API
+
+A dropped verb (text, find, wait, stroke, launch, install, help, start, stop, status) exits 2 with {error:"dropped",
+why, use}; any other unknown verb exits 2 with {error:"unknown verb '<verb>'", verbs, usage}.

@@ -1,0 +1,172 @@
+{
+  "method": "models.list",
+  "exchanges": [
+    {
+      "name": "lists the models and modes of the Claude Code driver, one of them the default",
+      "request": {
+        "id": 1,
+        "method": "models.list",
+        "params": {
+          "driver": "claudeAgent"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "driver": "claudeAgent",
+          "models": [
+            {
+              "id": "sonnet",
+              "label": "Sonnet",
+              "description": "Fast and capable for most work",
+              "is_default": true,
+              "efforts": []
+            },
+            {
+              "id": "opus",
+              "label": "Opus",
+              "description": "The most capable",
+              "is_default": false,
+              "efforts": []
+            },
+            {
+              "id": "haiku",
+              "label": "Haiku",
+              "description": "The fastest",
+              "is_default": false,
+              "efforts": []
+            }
+          ],
+          "runtime_modes": [
+            {
+              "value": "approval-required",
+              "label": "Ask before changes",
+              "description": "Every edit and command waits for approval"
+            },
+            {
+              "value": "auto-accept-edits",
+              "label": "Accept edits",
+              "description": "Edits go through, commands wait for approval"
+            },
+            {
+              "value": "full-access",
+              "label": "Full access",
+              "description": "Edits and commands run without asking"
+            }
+          ],
+          "default_runtime_mode": "full-access",
+          "interaction_modes": [
+            {
+              "value": "default",
+              "label": "Build",
+              "description": "Make the changes asked for"
+            },
+            {
+              "value": "plan",
+              "label": "Plan",
+              "description": "Read only: propose a plan, change nothing"
+            }
+          ],
+          "default_interaction_mode": "default"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "lists the models of the Codex driver, which has its own",
+      "request": {
+        "id": 2,
+        "method": "models.list",
+        "params": {
+          "driver": "codex"
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "driver": "codex",
+          "models": [
+            {
+              "id": "gpt-5-codex",
+              "label": "GPT-5 Codex",
+              "is_default": true,
+              "efforts": []
+            },
+            {
+              "id": "gpt-5",
+              "label": "GPT-5",
+              "is_default": false,
+              "efforts": []
+            }
+          ],
+          "runtime_modes": [
+            {
+              "value": "approval-required",
+              "label": "Ask before changes",
+              "description": "Every edit and command waits for approval"
+            },
+            {
+              "value": "auto-accept-edits",
+              "label": "Accept edits",
+              "description": "Edits go through, commands wait for approval"
+            },
+            {
+              "value": "full-access",
+              "label": "Full access",
+              "description": "Edits and commands run without asking"
+            }
+          ],
+          "default_runtime_mode": "full-access",
+          "interaction_modes": [
+            {
+              "value": "default",
+              "label": "Build",
+              "description": "Make the changes asked for"
+            },
+            {
+              "value": "plan",
+              "label": "Plan",
+              "description": "Read only: propose a plan, change nothing"
+            }
+          ],
+          "default_interaction_mode": "default"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a driver that is not one of the table",
+      "request": {
+        "id": 3,
+        "method": "models.list",
+        "params": {
+          "driver": "gemini"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "driver is one of opencode, claudeAgent, codex"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "needs a driver",
+      "request": {
+        "id": 4,
+        "method": "models.list",
+        "params": {}
+      },
+      "response": {
+        "id": 4,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "missing field `driver`"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

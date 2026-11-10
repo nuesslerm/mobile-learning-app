@@ -1,0 +1,39 @@
+[package]
+name = "wf-bucket"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The buckets `wf` stores in: the build cache and its operator verbs, the pnpm store, and the verification-artifacts bucket's read and write links"
+
+# The test kit hides every secret the registry names from the binary it runs.
+[package.metadata.flow]
+inputs = ["../secrets/src/data/registry.json"]
+
+# The tests are one flow binary (tests/flow.rs) driving the thin binary below; the lib has no unit tests (plan D3).
+[lib]
+test = false
+doctest = false
+
+# Serves only `wf cache`, which is all this crate's flow tests spawn.
+[[bin]]
+name = "wf-bucket"
+path = "src/bin/wf-bucket.rs"
+test = false
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+secrets = { path = "../secrets" }
+blob-cache = { path = "../blob-cache" }
+cli-http = { path = "../http" }
+wf-vmops = { path = "../wf-vmops" }
+telemetry = { version = "0.1", registry = "mla", features = ["metrics"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.10"
+hex = "0.4"
+
+[dev-dependencies]
+wf-testkit = { path = "../wf-testkit" }
+# The relay test doubles vm-ops-api with the fake wf-vmops ships.
+wf-vmops = { path = "../wf-vmops", features = ["testing"] }
+tempfile = "3"
+tiny_http = "0.12"

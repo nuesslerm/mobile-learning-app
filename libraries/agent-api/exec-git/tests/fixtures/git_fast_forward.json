@@ -1,0 +1,52 @@
+{
+  "action": "git_fast_forward",
+  "exchanges": [
+    {
+      "name": "moves the current branch to its upstream: already there",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "fast51",
+        "tool": "git_fast_forward",
+        "args": {}
+      },
+      "response": {
+        "id": "fast51",
+        "ok": true,
+        "result": {
+          "branch": "main",
+          "from": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+          "head": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+          "updated": false
+        }
+      }
+    },
+    {
+      "name": "refuses a branch with no upstream and no target",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "fast52",
+        "tool": "git_fast_forward",
+        "args": {}
+      },
+      "response": {
+        "id": "fast52",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "the branch has no upstream: give `to`"
+        }
+      }
+    }
+  ]
+}

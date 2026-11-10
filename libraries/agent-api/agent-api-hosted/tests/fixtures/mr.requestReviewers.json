@@ -1,0 +1,29 @@
+{
+  "method": "mr.requestReviewers",
+  "exchanges": [
+    {
+      "name": "the mr spelling reaches the same action and defaults to gitlab",
+      "request": {
+        "id": 1,
+        "method": "mr.requestReviewers",
+        "params": {
+          "number": 1,
+          "add": [
+            "--web"
+          ],
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`add`: an account must be letters, digits, `_`, `-`, `.` (or `org/team`)"
+        }
+      },
+      "actions": [
+        "hosted_pr_request_reviewers"
+      ]
+    }
+  ]
+}

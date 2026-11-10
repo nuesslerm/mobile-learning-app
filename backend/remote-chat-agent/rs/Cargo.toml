@@ -1,0 +1,133 @@
+[package]
+name = "rca-service"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+# The flow tests replay the recorded benchmark sessions (tests/flow/harness.rs) and the contract crates' recorded exchanges
+# (tests/flow/contracts.rs). Each crate's directory is named: a wildcard over the crates would leave them out of the hash, because Nx
+# drops the crate projects from a glob that spans them. `agent_threads` (tests/flow/agent_threads.rs) runs the real `rca-exec` binary, built from
+# the clis workspace, so a change to it reruns the flow: `uses` declares the edge no `cargo -p` of a package script does.
+# The `wf-mimic` binary replays the voice edit DSL cassette (tests/flow/voice.rs) and checks its pin, the git tree of the TypeScript library (an input).
+# `agent_threads` also builds the scripted CLI of `exec-testkit` in the libraries/agent-api workspace, whose manifest, config and lockfile slice are inputs only through `uses`.
+[package.metadata.flow]
+uses = ["rca-exec", "exec-testkit", "wf-mimic"]
+inputs = [
+  "../tests/bench/fixtures/**",
+  "../../../frontend/libraries/voice-edit-dsl/**",
+  "../../../libraries/agent-api/agent-api-service/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-state/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-workspace/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-agent/tests/fixtures/**",
+  "../../../libraries/agent-api/exec-testkit/cassettes/**",
+  "../../../libraries/agent-api/exec-fs/tests/fixtures/**",
+  "../../../libraries/agent-api/exec-proc/tests/fixtures/**",
+  "../../../libraries/agent-api/exec-git/tests/fixtures/**",
+  "../../../libraries/agent-api/exec-pty/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-terminal/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-git/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-accounts/tests/fixtures/**",
+  "../../../libraries/agent-api/exec-hosted/tests/cassettes/**",
+  "../../../libraries/agent-api/agent-api-hosted/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-schedules/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-attachments/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-catalog/tests/fixtures/**",
+  "../../../libraries/agent-api/agent-api-preview/tests/fixtures/**",
+  "../../../libraries/agent-api/exec-preview/tests/fixtures/**",
+]
+
+# The integration test (tests/integration.rs) replays the voice edit DSL cassette through the `wf-mimic` binary and leaves its run record
+# (`wf-mimic-voice-edit-dsl`) with the integration stage's bundles; the cassette and the library it pins are its inputs.
+[package.metadata.integration]
+uses = ["wf-mimic"]
+inputs = ["tests/cassettes/voice-edit-dsl/**", "../../../frontend/libraries/voice-edit-dsl/src/**"]
+
+[lib]
+name = "rca_service"
+path = "src/lib.rs"
+
+[[bin]]
+name = "rca-service"
+path = "src/main.rs"
+
+[dependencies]
+agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments" }
+async-trait.workspace = true
+axum.workspace = true
+base64.workspace = true
+dirs.workspace = true
+eventsource-stream.workspace = true
+futures-util.workspace = true
+percent-encoding.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+service-kit = { version = "0.1", registry = "mla" }
+tempfile.workspace = true
+tokio = { workspace = true, features = ["fs", "io-util", "net", "process", "rt-multi-thread", "signal"] }
+tokio-stream.workspace = true
+tokio-util.workspace = true
+tower-http.workspace = true
+tower_governor.workspace = true
+tracing.workspace = true
+url.workspace = true
+rca-ladder = { version = "0.1", registry = "mla" }
+remote-chat-agent-core = { path = "../core" }
+remote-chat-agent-render = { path = "../render" }
+remote-chat-agent-opencode = { path = "../opencode" }
+remote-chat-agent-speech = { path = "../speech" }
+remote-chat-agent-host = { path = "../host" }
+# The use cases, the rules and the ports of the service; this crate implements the ports and serves the routes
+rca-service-core = { path = "../service-core" }
+# The crates split out of the core: how a provider CLI is run, the executor channel and its registry, the agent API without its groups
+rca-cli-driver = { path = "../cli-driver" }
+rca-exec-channel = { path = "../exec-channel" }
+rca-agent-core = { path = "../agent-core" }
+rca-group-agent = { path = "../group-agent" }
+rca-group-workspace = { path = "../group-workspace" }
+rca-group-terminal = { path = "../group-terminal" }
+rca-group-git = { path = "../group-git" }
+rca-group-accounts = { path = "../group-accounts" }
+agent-api-accounts = { path = "../../../libraries/agent-api/agent-api-accounts" }
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+
+[dev-dependencies]
+rca-service-core = { path = "../service-core", features = ["testing"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
+remote-chat-agent-core = { path = "../core", features = ["testing"] }
+time = { workspace = true, features = ["macros"] }
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto", features = ["testing"] }
+rca-agent-core = { path = "../agent-core", features = ["testing"] }
+rca-group-agent = { path = "../group-agent", features = ["testing"] }
+rca-group-accounts = { path = "../group-accounts", features = ["testing"] }
+agent-api-accounts = { path = "../../../libraries/agent-api/agent-api-accounts", features = ["testing"] }
+rca-cli-driver = { path = "../cli-driver", features = ["testing"] }
+rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
+agent-api-service = { path = "../../../libraries/agent-api/agent-api-service", features = ["testing"] }
+agent-api-state = { path = "../../../libraries/agent-api/agent-api-state", features = ["testing"] }
+agent-api-workspace = { path = "../../../libraries/agent-api/agent-api-workspace", features = ["testing"] }
+agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent", features = ["testing"] }
+exec-testkit = { path = "../../../libraries/agent-api/exec-testkit" }
+exec-proto = { path = "../../../libraries/agent-api/exec-proto", features = ["testing"] }
+exec-fs = { path = "../../../libraries/agent-api/exec-fs", features = ["testing"] }
+exec-proc = { path = "../../../libraries/agent-api/exec-proc", features = ["testing"] }
+exec-git = { path = "../../../libraries/agent-api/exec-git", features = ["testing"] }
+agent-api-terminal = { path = "../../../libraries/agent-api/agent-api-terminal", features = ["testing"] }
+agent-api-git = { path = "../../../libraries/agent-api/agent-api-git", features = ["testing"] }
+agent-api-hosted = { path = "../../../libraries/agent-api/agent-api-hosted", features = ["testing"] }
+exec-hosted = { path = "../../../libraries/agent-api/exec-hosted", features = ["testing"] }
+agent-api-schedules = { path = "../../../libraries/agent-api/agent-api-schedules", features = ["testing"] }
+agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments", features = ["testing"] }
+agent-api-catalog = { path = "../../../libraries/agent-api/agent-api-catalog", features = ["testing"] }
+agent-api-preview = { path = "../../../libraries/agent-api/agent-api-preview", features = ["testing"] }
+exec-preview = { path = "../../../libraries/agent-api/exec-preview" }
+rca-group-schedules = { path = "../group-schedules", features = ["testing"] }
+rca-group-attachments = { path = "../group-attachments", features = ["testing"] }
+rca-group-catalog = { path = "../group-catalog", features = ["testing"] }
+rca-group-preview = { path = "../group-preview", features = ["testing"] }
+image = { version = "0.25", default-features = false, features = ["png"] }
+zip = { version = "2", default-features = false, features = ["deflate"] }
+service-kit = { version = "0.1", registry = "mla", features = ["e2e", "blackbox"] }
+http-body-util.workspace = true
+tokio-tungstenite = { version = "0.29", default-features = false, features = ["handshake"] }
+tower = { workspace = true, features = ["util"] }

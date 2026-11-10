@@ -1,0 +1,30 @@
+{
+  "method": "pr.requestReviewers",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "pr.requestReviewers",
+        "params": {
+          "number": 1,
+          "add": [
+            "--web"
+          ],
+          "provider": "github",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`add`: an account must be letters, digits, `_`, `-`, `.` (or `org/team`)"
+        }
+      },
+      "actions": [
+        "hosted_pr_request_reviewers"
+      ]
+    }
+  ]
+}

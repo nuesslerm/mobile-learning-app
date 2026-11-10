@@ -1,0 +1,21 @@
+Usage: wf lib status [options]
+
+Per library: what its registry holds and the version each service pins, read
+from every tracked Cargo.lock of the working tree (a library's own workspace
+lockfile is the library, not a service). Reads only; the index is read through the
+registry's read proxy (indexUrl), so no link is needed on the tailnet. When the
+proxy does not answer and LIBS_READ_PAR_URL resolves, the bucket's index is read
+through that link instead.
+
+Output: one JSON object on stdout:
+  {ok, error, libraries: [{name, kind, path, registry, latest, released, note,
+    pins: [{service, lockfile, version, source, behind}]}]}
+latest is the highest version not yanked, null when the registry is not read by
+status or holds nothing; released lists every version in the index. source is
+`path` (not migrated yet), `mla` or `crates-io`; behind counts the released
+versions newer than the pin, null for a path pin. A registry URL is never
+printed. ok is false, with exit 1, when the store could not be read (error says
+why); the pins are still listed.
+
+Options:
+  -h, --help  display help for command

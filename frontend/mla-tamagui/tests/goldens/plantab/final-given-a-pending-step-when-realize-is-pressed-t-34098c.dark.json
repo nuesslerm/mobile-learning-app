@@ -1,0 +1,71 @@
+{
+  "suite": "plantab",
+  "step": "final-given-a-pending-step-when-realize-is-pressed-t-34098c",
+  "scheme": "dark",
+  "snapshot": "plantab/final-given-a-pending-step-when-realize-is-pressed-t-34098c.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-plan",
+      "ProblemWorkspaceTab-code",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorDiffToggle",
+      "ProblemEditorDiffToggle-Indicator",
+      "ProblemEditorDiffToggle-Label",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTextEditStartButton",
+      "ProblemEditorVoiceStartButton",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInput",
+      "ProblemPlanTab",
+      "ProblemPlanSteps",
+      "ProblemPlanStep-0",
+      "ProblemPlanStep-0-Text",
+      "ProblemPlanStep-0-Status",
+      "ProblemPlanStep-0-Realize",
+      "ProblemPlanStep-0-Split",
+      "ProblemPlanStep-0-Merge",
+      "ProblemPlanStep-0-Up",
+      "ProblemPlanStep-0-Down",
+      "ProblemPlanStep-0-Delete",
+      "ProblemPlanComposer",
+      "ProblemPlanMicButton",
+      "ProblemPlanTextInput",
+      "ProblemPlanAddButton"
+    ],
+    "text": "Plan\nCode\n1\nReturn whether the cleaned string is a palindrome.\nlines 3–3\nAdd"
+  },
+  "timings": {
+    "render_ms": 273
+  },
+  "name": "plantab/final-given-a-pending-step-when-realize-is-pressed-t-34098c.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

@@ -1,0 +1,20 @@
+Usage: wf vm state [options] [command]
+
+Backup and restore of the VM's sensitive state (the stateVolumes of
+infra/oracle-cloud/vm-apps.json) as restic snapshots in the versioned Object
+Storage bucket mobile-learning-vm-state: incremental, encrypted with
+VM_STATE_RESTIC_PASSWORD, deduplicated, 14 snapshots kept per volume
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  backup [options]            Snapshot every state volume (only what changed is
+                              uploaded) and prune to the newest 14
+  restore [options]           Fill an empty volume of a stopped app from its
+                              newest verified snapshot
+  list [options]              The snapshots of each volume, newest first
+  verify [options]            Restore the newest snapshot of every declared
+                              volume into a scratch directory, check it, and
+                              tag it verified
+  help [command]              display help for command

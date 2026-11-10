@@ -1,0 +1,1 @@
+docker exec orca-serve orca-serve pair --endpoint ws://orca-serve:6768

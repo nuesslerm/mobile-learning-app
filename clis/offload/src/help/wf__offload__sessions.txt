@@ -1,0 +1,10 @@
+Usage: wf offload sessions [options] [command]
+
+The sessions the rca service keeps for `wf offload ask`
+
+Options:
+  -h, --help       display help for command
+
+Commands:
+  rm [options]     Drop every session a caller made
+  help [command]   display help for command

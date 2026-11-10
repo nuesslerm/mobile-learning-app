@@ -1,0 +1,13 @@
+id: domain-depends-on-nothing-outer
+valid:
+  - use crate::domain::util::uuid_v4;
+  - use super::schema::parse;
+  - use crate::{domain::util, domain::clis};
+invalid:
+  - use crate::application::ports::Ports;
+  - use crate::infrastructure::env::ProcessEnv;
+  - use crate::api::app::App;
+  - use super::super::application::log;
+  - use crate::{domain, application::log};
+  - use crate::{infrastructure};
+  - use super::{api as front};

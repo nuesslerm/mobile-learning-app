@@ -1,0 +1,22 @@
+{
+  "runbook": "device-lab-metro-android.md",
+  "platform": "android-redroid",
+  "sha": "a7fcc39b6e07b5761aadac05e32f260e629b1c40",
+  "ranAt": "2026-10-13T19:10:00.000Z",
+  "verdict": "pass",
+  "against": "metro",
+  "warnings": 0,
+  "job": "1a136a9f9e9-47605",
+  "criteria": {
+    "1_expo_go_opens_dev_metro": "pass",
+    "2_first_frame_debug_button": "pass (id:DebugFab visible after dismissing Expo Go's intro and developer menu)",
+    "3_no_js_warnings": "pass (0)",
+    "4_recording": "pass (rec/run.mp4, h264 540x960, 92 s, read back)"
+  },
+  "screenshot": "/workspace/home/wf-test-queue/results/1a136a9f9e9-47605/out/home.png",
+  "recording": [
+    "/workspace/home/wf-test-queue/results/1a136a9f9e9-47605/rec/run.mp4"
+  ],
+  "device": "slim redroid 14 (rdl), 61 optional packages disabled, restart proven",
+  "metro": "exp://metro-runner-main:20000"
+}

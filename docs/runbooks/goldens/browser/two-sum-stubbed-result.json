@@ -1,0 +1,63 @@
+{
+  "platform": "browser",
+  "step": 4,
+  "last_action": "tap_on{id='ProblemEditorRunLocalButton'}",
+  "warnings": [],
+  "summary": {
+    "url": "http://localhost:8096/leetcode/two-sum",
+    "title": "",
+    "testids": [
+      "ProblemEditorHeader",
+      "ProblemEditorHeaderBack",
+      "ProblemEditorHeaderTitle",
+      "ProblemEditorHeaderSubtitle",
+      "ProblemEditorHeaderActions",
+      "ProblemEditorInfoButton",
+      "ProblemEditorMenuButton",
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-plan",
+      "ProblemWorkspaceTab-code",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTextEditStartButton",
+      "ProblemEditorVoiceStartButton",
+      "ProblemEditorRunOutcome",
+      "ProblemEditorRunOutcomeStatus",
+      "ProblemEditorRunOutcomeTotals",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInput",
+      "DebugFabWrap",
+      "DebugFab"
+    ],
+    "text": "Two Sum\nArray & Hashing · Easy\nPlan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nAccepted\n3 / 3 test cases passed\nAll tests passed\n3/3 tests"
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 10946,
+    "capture_ms": 783
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.050000000000000044,
+    "ignore": []
+  },
+  "name": "two-sum-stubbed-result",
+  "image": {
+    "width": 360,
+    "height": 789
+  }
+}

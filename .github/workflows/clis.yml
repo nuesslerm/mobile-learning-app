@@ -1,0 +1,48 @@
+name: CLIs
+
+# The one publish of the CLIs on the VM, before anything deploys: pipeline.yml calls this once the flow and unit tests passed, on every push to dev.
+# install-wf builds `wf` incrementally (a static musl binary, so every container's libc runs it), with the t3-serve, rca-exec and wf-mimic
+# binaries it runs for `wf t3`, `wf exec` and `wf mimic`, into /opt/clis/<clis tree>/ on the `clis` volume and points /opt/clis/current
+# at it; the runner and the containers that mount the volume all run those files. A push that leaves clis/ alone finds its
+# tree installed and finishes in seconds.
+on:
+  workflow_call:
+    secrets:
+      BWS_CI_OPEN_ACCESS_TOKEN:
+        required: false
+      BWS_CI_DEPLOY_ACCESS_TOKEN:
+        required: false
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clis:
+    name: clis
+    runs-on: [self-hosted, vm]
+    env:
+      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+    # a cold build of every crate on the loaded VM took over 30 min; a warm one takes seconds
+    timeout-minutes: 60
+    concurrency:
+      group: clis
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+      - uses: ./.github/actions/install-wf
+        with:
+          publish: "true"
+      - name: The current wf is this tree's, on the shared volume
+        run: |
+          mountpoint -q /opt/clis || { echo "/opt/clis is not the clis volume: the runner container predates its mount"; exit 1; }
+          test "$(/opt/clis/current/wf build-sha)" = "$(git rev-parse HEAD:clis)"
+      - name: The current wf runs t3 and exec from the binaries beside it
+        run: |
+          for command in t3 exec; do
+            help=$(/opt/clis/current/wf "$command" --help) || { echo "::error::wf $command --help failed: $help"; exit 1; }
+            case "$help" in "Usage: wf $command "*) ;; *) echo "::error::wf $command --help printed: $help"; exit 1 ;; esac
+          done

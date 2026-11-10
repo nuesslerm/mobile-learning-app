@@ -1,0 +1,26 @@
+{
+  "action": "pty_open",
+  "exchanges": [
+    {
+      "name": "opens a shell on a pty of the asked size",
+      "request": {"id": "o1", "tool": "pty_open", "args": {"pty": "fix1", "cols": 100, "rows": 30}},
+      "response": {"id": "o1", "ok": true, "result": {"pty": "fix1", "pid": 0, "cwd": "/root", "cols": 100, "rows": 30}},
+      "volatile": ["/result/pid", "/result/cwd"]
+    },
+    {
+      "name": "refuses a name that is taken",
+      "request": {"id": "o2", "tool": "pty_open", "args": {"pty": "fix1"}},
+      "response": {"id": "o2", "ok": false, "error": {"code": "ALREADY_EXISTS", "message": "pty fix1 exists"}}
+    },
+    {
+      "name": "refuses a directory outside the workspace",
+      "request": {"id": "o3", "tool": "pty_open", "args": {"pty": "fix2", "cwd": "../outside"}},
+      "response": {"id": "o3", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../outside is outside the root"}}
+    },
+    {
+      "name": "refuses an environment variable that is not allowed",
+      "request": {"id": "o4", "tool": "pty_open", "args": {"pty": "fix3", "env": {"PATH": "/tmp"}}},
+      "response": {"id": "o4", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`env` may not set PATH"}}
+    }
+  ]
+}

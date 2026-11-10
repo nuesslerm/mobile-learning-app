@@ -1,0 +1,18 @@
+{
+  "action": "git_worktree_list",
+  "exchanges": [
+    {
+      "name": "lists the repository's own working tree first, then each worktree",
+      "setup": {"files": {"a.txt": "x"}, "commit": true, "worktrees": {"wt1": "feature/one"}},
+      "request": {"id": "l1", "tool": "git_worktree_list", "args": {}},
+      "response": {"id": "l1", "ok": true, "result": {"worktrees": [{"path": "/root", "head": "0000000", "branch": "main", "is_main": true}, {"path": "/base/wt1", "head": "0000000", "branch": "feature/one", "is_main": false}]}},
+      "volatile": ["/result/worktrees/0/path", "/result/worktrees/0/head", "/result/worktrees/0/branch", "/result/worktrees/1/path", "/result/worktrees/1/head"]
+    },
+    {
+      "name": "refuses a directory that is no repository",
+      "request": {"id": "l2", "tool": "git_worktree_list", "args": {}},
+      "response": {"id": "l2", "ok": false, "error": {"code": "IO_ERROR", "message": "git worktree list: fatal"}},
+      "volatile": ["/error/message"]
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+name: Hosted minutes
+
+# Measures what one small cargo job costs on a GitHub-hosted runner, x64 against arm64 (U0.3 of docs/plans/ci-scoped-vault-access/plan.md,
+# procedure in docs/solutions/ci/hosted-minutes.md). Started by scheduled-triggers.yml (dispatch) on an empty commit tagged
+# "[hosted-minutes x64]" or "[hosted-minutes arm64]", never by 'push' itself. It uses no secret, no vault token and no tailnet.
+on:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Hosted runner label to measure
+        type: choice
+        options:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+        default: ubuntu-latest
+      message:
+        description: Commit message that carried the tag (set by scheduled-triggers.yml)
+        type: string
+        required: false
+        default: ''
+      sha:
+        description: Commit sha that carried the tag (set by scheduled-triggers.yml)
+        type: string
+        required: false
+        default: ''
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    name: libraries workspace tests on hosted runner
+    runs-on: ${{ inputs.runner || (contains(inputs.message, 'arm64') && 'ubuntu-24.04-arm' || 'ubuntu-latest') }}
+    timeout-minutes: 30
+    steps:
+      - name: Start clock
+        run: echo "START=$(date +%s)" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: false
+          ref: ${{ inputs.sha || github.sha }}
+      - name: Rust toolchain
+        # rust-toolchain.toml pins rustc; a hosted image already has rustup
+        run: rustup toolchain install --profile minimal
+      - name: Libraries workspace tests
+        # the clis workspace needs the private registry behind the tailnet (libs-proxy), which a hosted runner cannot reach before Phase 5
+        working-directory: libraries
+        run: cargo test --locked --workspace
+      - name: Runner, arch and elapsed seconds
+        if: always()
+        run: |
+          echo "runner=$RUNNER_NAME os=$RUNNER_OS arch=$RUNNER_ARCH uname=$(uname -m) elapsed_seconds=$(( $(date +%s) - START ))" | tee -a "$GITHUB_STEP_SUMMARY"

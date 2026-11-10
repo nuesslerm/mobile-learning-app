@@ -1,0 +1,45 @@
+[package]
+name = "wf-harness"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The device test harness: `wf android`, `wf browser` and the Lua script API over their two drivers, the browser daemon, the Android lease and lab, goldens, run reports, traces, and the doubles of the browser daemon"
+
+# The test kit hides every registry secret from the binary; the Android journeys run three committed e2e scripts
+# (tooling/browser-harness/dist is a build output the flow job lacks, so no input).
+[package.metadata.flow]
+inputs = ["../secrets/src/data/registry.json", "../../e2e/warm-app.lua", "../../e2e/tamil-writing.lua", "../../e2e/stop-probe.lua"]
+
+# The tests are a flow binary (tests/flow.rs, every dependency doubled) and an e2e binary (tests/e2e.rs, a real Chromium) driving the thin binary below; the lib has no unit tests (plan D3).
+[lib]
+doctest = false
+
+# Serves `wf android` and `wf browser`, and `browser-daemon`, which `wf browser` starts again through the executable.
+[[bin]]
+name = "wf-harness"
+path = "src/bin/wf-harness.rs"
+test = false
+
+[features]
+# The mock browser daemon, a launched-browser session, and what the flow tests of this crate and of `wf` read a run with: the crates
+# that use them dev-depend on this one with the feature, so no production build compiles the test kit.
+testing = ["harness-browser/testing"]
+
+[dependencies]
+harness-core = { path = "../harness-core" }
+harness-browser = { path = "../harness-browser" }
+harness-android = { path = "../harness-android" }
+wf-kit = { path = "../wf-kit" }
+
+[dev-dependencies]
+wf-testkit = { path = "../wf-testkit" }
+wf-vmops = { path = "../wf-vmops", features = ["testing"] }
+tempfile = "3"
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+# This crate's own flow tests use the doubles it ships.
+wf-harness = { path = ".", features = ["testing"] }
+png = { version = "0.17", default-features = false }
+tiny_http = "0.12"
+base64 = "0.22"
+ureq = { version = "3", default-features = false }

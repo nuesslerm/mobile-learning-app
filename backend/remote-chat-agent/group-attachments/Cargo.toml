@@ -1,0 +1,32 @@
+[package]
+name = "rca-group-attachments"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The attachments group of the service's agent API (upload.put, attachment.get, attachment.delete, attachment.stage): files kept in a BlobStore on the service volume, and written into a workspace through the executor that owns it (put_blob)"
+
+[lib]
+name = "rca_group_attachments"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+# The doubles of the ports, for the service crate's tests
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+base64.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2 = "0.10"
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments" }
+rca-agent-core = { path = "../agent-core" }
+rca-exec-channel = { path = "../exec-channel" }
+exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
+exec-fs = { path = "../../../libraries/agent-api/exec-fs" }
+
+[dev-dependencies]
+tokio.workspace = true
+rca-exec-channel = { path = "../exec-channel", features = ["testing"] }

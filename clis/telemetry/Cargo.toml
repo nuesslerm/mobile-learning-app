@@ -1,0 +1,48 @@
+[package]
+name = "telemetry"
+version = "0.1.1"
+edition = "2021"
+publish = false
+
+# Its own workspace and lockfile: every consumer takes it from the mla registry, so a clis member of the same name would make `-p telemetry` ambiguous.
+[workspace]
+
+[features]
+# The process-wide `tracing` subscriber of a long-running service: console lines, OTLP logs and spans.
+service = ["dep:tracing", "dep:tracing-subscriber", "dep:tracing-opentelemetry", "opentelemetry/trace", "opentelemetry_sdk/trace", "opentelemetry-otlp/trace"]
+# One record at a time, blocking, for a CLI.
+oneshot = ["dep:futures-executor"]
+# `logger emit`, the shell scripts' logger, as a library (`wf log emit`) and as the static `logger` binary.
+cli = ["oneshot"]
+
+# The black-box check of the call-site contract (`contract/callsite.json`), for Rust's own tests and the TypeScript logger's.
+callsite = []
+
+# Gauges to an OTLP/HTTP metrics source, one request per batch (`OtlpMetricsSink`).
+metrics = ["opentelemetry/metrics", "opentelemetry_sdk/metrics", "opentelemetry-otlp/metrics"]
+
+# The in-memory `MetricsSink` double for other crates' tests.
+testing = []
+
+[[bin]]
+name = "logger"
+required-features = ["cli"]
+
+[[bin]]
+name = "callsite-check"
+required-features = ["callsite"]
+
+[dependencies]
+opentelemetry = { version = "0.30", default-features = false, features = ["logs"] }
+opentelemetry_sdk = { version = "0.30", default-features = false, features = ["logs"] }
+opentelemetry-otlp = { version = "0.30", default-features = false, features = ["http-json", "logs", "reqwest-blocking-client", "reqwest-rustls"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl"] }
+serde_json = "1"
+futures-executor = { version = "0.3", optional = true }
+tracing = { version = "0.1", optional = true }
+tracing-opentelemetry = { version = "0.31", optional = true }
+tracing-subscriber = { version = "0.3", optional = true, features = ["env-filter", "json"] }
+
+# The flow test needs the one-shot records and the call-site check, which a plain `cargo test -p telemetry --test flow` would not enable.
+[dev-dependencies]
+telemetry = { path = ".", features = ["oneshot", "callsite", "metrics", "testing"] }

@@ -1,0 +1,51 @@
+{
+  "method": "terminal.rename",
+  "exchanges": [
+    {
+      "name": "gives a terminal a title",
+      "before": [
+        {
+          "id": 1,
+          "method": "terminal.open",
+          "params": {
+            "workspace": "w1",
+            "terminal": "t1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "terminal.rename",
+        "params": {
+          "workspace": "w1",
+          "terminal": "t1",
+          "title": "server"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "workspace": "w1",
+          "terminal": "t1",
+          "title": "server",
+          "cwd": "<volatile>",
+          "cols": 80,
+          "rows": 24,
+          "status": "running",
+          "exit_code": null,
+          "pid": "<volatile>",
+          "offset": "<volatile>",
+          "base_offset": 0,
+          "updated_at": "<volatile>"
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/cwd",
+        "/result/pid",
+        "/result/offset",
+        "/result/updated_at"
+      ]
+    }
+  ]
+}

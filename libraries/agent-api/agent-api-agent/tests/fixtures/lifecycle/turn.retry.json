@@ -1,0 +1,53 @@
+{
+  "method": "turn.retry",
+  "exchanges": [
+    {
+      "name": "refuses a turn the thread never ran",
+      "before": [
+        {
+          "id": "setup-create-t-rt",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-rt",
+            "title": "Thread t-rt",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "turn.retry",
+        "params": {
+          "thread": "t-rt",
+          "turn": "u9"
+        }
+      },
+      "response": {
+        "id": "1",
+        "error": {
+          "code": "TURN_NOT_FOUND",
+          "message": "thread t-rt has no turn u9"
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "turn.retry",
+        "params": {
+          "thread": "nope",
+          "turn": "u1"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

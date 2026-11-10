@@ -1,0 +1,20 @@
+Usage: wf mimic publish [options] <set>...
+
+Upload recorded sets to the verification-artifacts bucket as one run, so another
+checkout can fetch them over plain HTTPS (an agent session cannot reach the
+GitHub Actions API, and an Actions artifact needs a login to download). Uploads
+the json, jsonl, toml, txt and md files of each set, never raw/ or a dot file,
+each under verification/record-references/<run>/<set>/, then the manifest (every
+file's size and sha256), then latest/<set>.json. A set without a cassette.json is
+refused. The write link is VERIFICATION_ARTIFACTS_PAR_URL (the vault, or the
+environment); it is never printed. Caps: 60 MB a file, 200 MB a run.
+
+Options:
+  --run <id>                  the run id (default $GITHUB_RUN_ID, else local)
+  --root <dir>                the checkout the sets' paths are recorded against (default: this one)
+  --summary <file>            append the fetch and commit commands here (default $GITHUB_STEP_SUMMARY)
+  -h, --help                  display help for command
+
+Output (schema mimic-publish/1):
+  {schema, ok, run, sets: [{name, dir, files: [{path, bytes, sha256}]}], files, bytes,
+  fetch, warnings, next}

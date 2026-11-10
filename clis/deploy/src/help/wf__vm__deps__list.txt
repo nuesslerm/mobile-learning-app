@@ -1,0 +1,6 @@
+Usage: wf vm deps list [options]
+
+List every entry currently in the manifest.
+
+Options:
+  -h, --help  display help for command

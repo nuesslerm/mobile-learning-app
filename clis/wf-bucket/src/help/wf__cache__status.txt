@@ -1,0 +1,21 @@
+Usage: wf cache status [options]
+
+What the build cache holds and has used against its caps: the bytes stored in the
+bucket and the requests this month, against clis/blob-cache/data/budget.json.
+Exits 1 above either cap. Needs the operator's `oci` and ~/.oci, so it runs in
+the sandbox; nothing unattended depends on it.
+
+The bytes are the bucket's approximate size (`oci os bucket get`); the requests
+are OCI Monitoring's AllRequests for the dedicated bucket, summed from the first
+of this month (UTC), which lags by about a day.
+
+Output: one JSON object on stdout, with or without --json: {ok, storedBytes,
+storedBytesCap, objects, requestsThisMonth (null when the store reports none),
+requestsPerMonthCap, layers, over: ["storedBytes" | "requestsPerMonth"]}. ok is false
+when over is not empty. layers is one row per cache layer (nx, pnpm, probe, sccache,
+metro) with {bytes, objects, ttlDays} from one object listing, or null when the
+listing is unavailable. A failure (no oci, no key, a call refused) prints
+{ok: false, error} and exits 1.
+
+Options:
+  -h, --help  display help for command

@@ -1,0 +1,39 @@
+{
+  "method": "preview.servers",
+  "exchanges": [
+    {
+      "name": "lists no server for an executor that started none",
+      "request": {
+        "id": 1,
+        "method": "preview.servers",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "previews": []
+        }
+      },
+      "actions": [
+        "preview_list"
+      ]
+    },
+    {
+      "name": "refuses a request without a workspace",
+      "request": {
+        "id": 1,
+        "method": "preview.servers",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "workspace is required"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+Usage: wf mimic trigger [options]
+
+Read the marker of a commit message and say which capture jobs it asks for. The
+record-references workflow runs this on the head commit of every push to dev
+whose message carries a marker; it is the one place the marker is parsed.
+
+Marker grammar (one marker per message, on a line of its own that begins with `[`;
+prose that mentions it mid-line, and a message without one, start nothing):
+  [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on the VM runner
+  [replay <set>...]                              replay each set against its candidates, publish the diff
+  <set>      a cassette set: its directory name, or its path from the repository root;
+             the directory holds a mimic.toml (a bare name that matches two is refused)
+  chunk=<n>  minutes per `wf mimic record --max-minutes` call, 1 to 60 (default 10)
+  fresh      drop the checkpoint of an earlier run: the record starts over
+  At most 8 sets. A malformed marker, an unknown set, a record of a set without a
+  [reference], a corpus and a [provision] block, or a replay of a set without a
+  cassette and a [candidate] fails with the reason (exit 2).
+
+Options:
+  --message <text>            the commit message
+  --file <path>               read it from a file, or - for stdin
+  --root <dir>                the repository root the sets are searched under (default: this checkout)
+  -h, --help                  display help for command
+
+Output (schema mimic-trigger/1):
+  {schema, ok, go, action: record|replay|null, chunk?, fresh?, sets: [names],
+  matrix: {include: [{name, dir, provision, drivers, node, python, go, rust, checkpoint,
+  candidates}]}, warnings, next}   (the workflow reads each matrix key by name)

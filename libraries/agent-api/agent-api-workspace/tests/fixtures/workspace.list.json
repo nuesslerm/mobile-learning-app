@@ -1,0 +1,20 @@
+{
+  "method": "workspace.list",
+  "exchanges": [
+    {
+      "name": "lists the workspaces whose executor is attached",
+      "request": {
+        "id": 1,
+        "method": "workspace.list"
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "workspaces": [
+            "w1"
+          ]
+        }
+      }
+    }
+  ]
+}

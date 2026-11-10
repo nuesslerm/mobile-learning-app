@@ -1,0 +1,99 @@
+{
+  "$comment": "Frontmatter contract for docs/solutions entries, vendored from compound-engineering's ce-compound schema.yaml (2026-09-03) and trimmed to what this corpus uses. problem_type picks the track; component and root_cause are open vocabulary (corpus-first: reuse the spelling existing docs use for the area or the cause).",
+  "tracks": {
+    "bug": [
+      "build_error",
+      "test_failure",
+      "runtime_error",
+      "performance_issue",
+      "database_issue",
+      "security_issue",
+      "ui_bug",
+      "integration_issue",
+      "logic_error"
+    ],
+    "knowledge": [
+      "best_practice",
+      "documentation_gap",
+      "workflow_issue",
+      "developer_experience",
+      "architecture_pattern",
+      "design_pattern",
+      "tooling_decision",
+      "convention"
+    ]
+  },
+  "required": ["title", "date", "category", "module", "problem_type", "component", "severity", "tags"],
+  "bugRequired": ["symptoms", "root_cause", "resolution_type"],
+  "enums": {
+    "severity": ["critical", "high", "medium", "low"],
+    "resolution_type": [
+      "code_fix",
+      "migration",
+      "config_change",
+      "test_fix",
+      "dependency_update",
+      "environment_setup",
+      "workflow_improvement",
+      "documentation_update",
+      "tooling_addition",
+      "seed_data_update"
+    ]
+  },
+  "arrays": ["tags", "symptoms", "applies_when", "related_components"],
+  "suggested": {
+    "component": [
+      "data_model",
+      "api_layer",
+      "service_layer",
+      "background_job",
+      "database",
+      "frontend",
+      "messaging",
+      "infrastructure",
+      "observability",
+      "authentication",
+      "payments",
+      "development_workflow",
+      "testing_framework",
+      "documentation",
+      "tooling"
+    ],
+    "root_cause": [
+      "wrong_api",
+      "data_integrity",
+      "concurrency",
+      "async_timing",
+      "memory_leak",
+      "config_error",
+      "logic_error",
+      "test_isolation",
+      "missing_validation",
+      "missing_permission",
+      "missing_workflow_step",
+      "inadequate_documentation",
+      "missing_tooling",
+      "incomplete_setup"
+    ]
+  },
+  "categoryByProblemType": {
+    "build_error": "build-errors",
+    "test_failure": "testing",
+    "runtime_error": "runtime-errors",
+    "performance_issue": "runtime-errors",
+    "database_issue": "infra",
+    "security_issue": "security",
+    "ui_bug": "ui-bugs",
+    "integration_issue": "integration-issues",
+    "logic_error": "logic-errors",
+    "developer_experience": "developer-experience",
+    "workflow_issue": "workflow-issues",
+    "best_practice": "best-practices",
+    "documentation_gap": "best-practices",
+    "architecture_pattern": "architecture",
+    "design_pattern": "design-system",
+    "tooling_decision": "tooling-decisions",
+    "convention": "conventions"
+  },
+  "yamlSafety": "Top-level scalar values must not contain an unquoted ' #' (YAML comment, silently truncates) or ': ' (nested mapping); array items starting with ` [ * & ! | > % @ ? or containing ': ' are wrapped in double quotes; the frontmatter is delimited by a line that is exactly ---."
+}

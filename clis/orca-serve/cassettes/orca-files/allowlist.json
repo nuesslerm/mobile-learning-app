@@ -1,0 +1,22 @@
+{
+  "ignored": [
+    {
+      "path": "mtime",
+      "reason": "the modification time of the file on each host's own disk",
+      "phase": "x6",
+      "pin_hash": "sha256:16dbdfb1c529c0e72d5bb33c44208fdec3291ccfab309514c843b8e03c974875"
+    },
+    {
+      "path": "worktree",
+      "reason": "orcad names a worktree by its store id (repo id and path), orca-serve by the workspace selector the phone sent",
+      "phase": "x6",
+      "pin_hash": "sha256:16dbdfb1c529c0e72d5bb33c44208fdec3291ccfab309514c843b8e03c974875"
+    },
+    {
+      "path": "runtimeId",
+      "reason": "the id of the host's runtime: orcad's own store id, a name for the double",
+      "phase": "x6",
+      "pin_hash": "sha256:16dbdfb1c529c0e72d5bb33c44208fdec3291ccfab309514c843b8e03c974875"
+    }
+  ]
+}

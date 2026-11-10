@@ -1,0 +1,47 @@
+[package]
+name = "offload"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "`wf offload`: `ask` (one prompt, --batch, --runbook, --stats, --savings down the cheap-model ladder), `stats`, `ladder`, the pool-cooldown mirror, and the git-state worker (`plan`, `worker`)"
+
+# The test kit hides every secret the registry names from the binary it runs.
+[package.metadata.flow]
+inputs = ["../secrets/src/data/registry.json"]
+
+# The tests are one flow binary (tests/flow.rs) driving the thin binary below; the lib has no unit tests (plan D3).
+[lib]
+test = false
+doctest = false
+
+# Serves `wf offload`, which is all this crate's flow tests spawn; a worker runs `offload ask` again through the executable.
+[[bin]]
+name = "offload"
+path = "src/bin/offload.rs"
+test = false
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+secrets = { path = "../secrets" }
+wf-vmops = { path = "../wf-vmops" }
+rca-core = { version = "0.1", registry = "mla" }
+rca-ladder = { version = "0.1", registry = "mla" }
+base64 = "0.22"
+cli-http = { path = "../http" }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+nix = { version = "0.31", default-features = false, features = ["signal"] }
+signal-hook = "0.4"
+
+[dev-dependencies]
+wf-testkit = { path = "../wf-testkit" }
+wf-vmops = { path = "../wf-vmops", features = ["testing"] }
+tempfile = "3"
+
+# The live-model e2e suite is one Nx task per group (`cargo-e2e-<group>`, tooling/nx/cargo-crates.js), each keyed by its own test file,
+# the files below and the crates it builds on: a change to the batch, runbook, pricing or worker code reruns none of them.
+[package.metadata.e2e]
+groups = ["ask", "parity", "parity_features", "parity_capabilities"]
+# `parity.rs` holds the helpers every group imports; the opencode Dockerfile pins the opencode version the options are compared with
+shared = ["tests/e2e/parity.rs", "tests/flow/support/**", "../../.opencode/agents/read-only.md", "../../backend/remote-chat-agent/opencode-server/Dockerfile"]
+src = ["src/lib.rs", "src/bin/**", "src/dispatch.rs", "src/dispatch_run.rs", "src/rca_client.rs", "src/run_format.rs", "src/help_table.rs", "src/help/**"]

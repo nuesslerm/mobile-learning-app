@@ -1,0 +1,360 @@
+# Docker's json-file log driver keeps every line of a container forever unless told otherwise; the CI runner and the model services print
+# a lot, so each service rotates its own log (three files of 20 MB) instead of filling the host disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.2
+    container_name: remote-chat-agent-tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_VM_AUTH_KEY}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      # Explicit, matching leetcode-backend's `-prod` convention -- was
+      # previously unset (defaulting to this container's own hostname),
+      # which vm-gateway's proxyRegistry can't target reliably. Needed now
+      # that vm-gateway can proxy directly to this app in debug mode.
+      TS_HOSTNAME: remote-chat-agent-prod
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging: *logging
+
+  # `opencode serve` — the HTTP dependency the agent's opencode gateway dials.
+  # Shares the tailscale network namespace with `agent`, so the agent's default
+  # OPENCODE_SERVER_URL (http://localhost:4096) resolves with no extra config.
+  #
+  # Was missing entirely: the agent shipped only @opencode-ai/sdk (an HTTP
+  # client, `package: null` in config/agentClis.ts) and deliberately never
+  # spawns the server itself, so nothing on the VM provided it and every chat
+  # turn failed with `session_create: returned no session ID`.
+  opencode:
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/opencode-server:${OPENCODE_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    container_name: remote-chat-agent-opencode
+    network_mode: service:tailscale
+    environment:
+      # The name the opencode binary itself reads; stored in the vault under the
+      # canonical OPENCODE_GO_API_KEY, same mapping the agent uses. This alone
+      # authenticates the provider — `opencode auth list` reports it as
+      # `Environment / OpenCode Go [OPENCODE_API_KEY]` and the full model
+      # catalogue resolves. No interactive `opencode auth login` is involved.
+      OPENCODE_API_KEY: ${OPENCODE_GO_API_KEY:-}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+      KIMI_API_KEY: ${KIMI_API_KEY:-}
+      # Basic-auth for this server. It binds 0.0.0.0 inside the tailnet netns,
+      # so without this ANY tailnet device can create, read and delete agent
+      # sessions -- confirmed by doing exactly that from an unrelated machine.
+      # Empty = unsecured, which is the pre-existing behaviour, so image and
+      # secret can land in either order.
+      OPENCODE_SERVER_PASSWORD: ${OPENCODE_SERVER_PASSWORD:-}
+      # opencode's session store is $HOME/.local/share/opencode. Putting HOME on
+      # the shared volume is what lets `opencode attach` from agent-shell reach
+      # the SAME sessions this server serves to the bot, instead of a second
+      # private copy. This replaces the old dedicated opencode-state volume.
+      HOME: /workspace/home
+    volumes:
+      # THE WORKING DIRECTORY MUST BE THE SAME PATH IN BOTH CONTAINERS.
+      #
+      # The agent sends `directory: <cwd>` with every session and prompt, and
+      # opencode resolves that path against ITS OWN filesystem. Sharing a
+      # network namespace (below) shares no files, so before this mount every
+      # turn failed inside opencode with
+      #   prompt_async failed … NotFound: FileSystem.realPath (/app/.worktrees…)
+      # which it logs to its own file and never emits as a `session.error`. The
+      # stream therefore went straight to `session.idle` with zero tokens and no
+      # text part, and the agent forwarded a well-formed empty answer.
+      #
+      # `lib/opencodeClient.ts` now probes the directory before each turn, so a
+      # regression here fails loudly instead of silently — but the mount is what
+      # makes it work.
+      - workspace:/workspace
+    # opencode's session store lives under $HOME/.local/share/opencode. Pointing
+    # HOME at the shared volume puts it on that volume too, which is what lets
+    # `opencode attach` from agent-shell see the SAME sessions this server is
+    # serving to the bot -- rather than a second, private copy. The dedicated
+    # opencode-state volume it used before is therefore gone.
+    # Any HTTP status counts: the server may sit behind OPENCODE_SERVER_PASSWORD basic auth.
+    healthcheck:
+      test: ["CMD", "curl", "-sS", "-o", "/dev/null", "http://127.0.0.1:4096/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      - tailscale
+    # opencode keeps every session it served in memory and gives none back (4.8 GB on 30 Oct with nothing but CI's tests running against it,
+    # on a 12 GB host); a cap makes the kernel restart it, with its sessions still on the workspace volume, instead of starving the host.
+    # 3 GB was too tight: the CLI parity suite pushed it past 3.2 GB and the kernel killed it mid-test (31 Oct 04:17, exit 137, `oom`), a 36 min red stage.
+    mem_limit: 5g
+    memswap_limit: 5g
+    restart: unless-stopped
+    logging: *logging
+
+  # faster-whisper (CTranslate2 int8) speech-to-text sidecar -- stt/server.py.
+  # Same netns as the agent, which calls it at localhost:8790. Measured on
+  # the 10-sentence fixture set: p50 371ms / p90 456ms for tiny.en against
+  # 13.4s for the in-process whisper.cpp path this replaces
+  # (docs/audits/2026-09-14-voice-edit-latency-data.md §9).
+  stt:
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/remote-chat-agent-stt:${STT_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    container_name: remote-chat-agent-stt
+    restart: unless-stopped
+    logging: *logging
+    network_mode: service:tailscale
+    depends_on:
+      - tailscale
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8790/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    environment:
+      PORT: 8790
+      STT_MODEL: ${STT_MODEL:-tiny.en}
+      STT_COMPUTE: ${STT_COMPUTE:-int8}
+      STT_THREADS: ${STT_THREADS:-}
+      STT_BEAM: ${STT_BEAM:-1}
+      STT_INITIAL_PROMPT: ${STT_INITIAL_PROMPT:-}
+
+  agent:
+    # Prebuilt PUBLIC image from the Build images workflow — the host pulls it, so
+    # no registry credential is needed here. IMAGE_NAMESPACE / IMAGE_TAG come from
+    # .env.defaults; pin IMAGE_TAG to a sha-<short> to deploy or roll back to an
+    # exact build.
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/remote-chat-agent:${IMAGE_TAG:-latest}
+    container_name: remote-chat-agent
+    network_mode: service:tailscale
+    environment:
+      NODE_ENV: production
+      PORT: 8787
+      # How long the directory of a finished ask session is kept for a later turn (a day by default; 6.9 GB of them sat on the workspace
+      # volume on 30 Oct). Three hours covers a working session's follow-up turns.
+      RCA_SESSION_TTL_HOURS: "3"
+      # Selects the agent-CLI gateway. The Rust service serves opencode alone;
+      # naming claude or codex makes the container refuse to start, by name.
+      AGENT_CLI: ${AGENT_CLI:-opencode}
+      # routes/chat.ts's resolveCompatibleModel fallback for any request with
+      # no explicit model override -- see .env.defaults for why this must be
+      # forwarded explicitly (present in .env is not the same as present in
+      # this container; confirmed live via the redeploy bisect diagnostic
+      # that it was landing in .env but never reaching this service).
+      OPENCODE_DEFAULT_MODEL: ${OPENCODE_DEFAULT_MODEL:-}
+      # The voice-edit planner's model (config/models.ts reads it; empty keeps
+      # the code default). Env, not image, so the race set and model can move
+      # without a rebuild.
+      OPENCODE_TEXT_MODEL: ${OPENCODE_TEXT_MODEL:-}
+      # whisper.cpp: model file to load (base.en / tiny.en, both baked into the
+      # image) and thread count (defaults to the container's CPU count).
+      WHISPER_MODEL_NAME: ${WHISPER_MODEL_NAME:-}
+      WHISPER_THREADS: ${WHISPER_THREADS:-}
+      # Speech-to-text engine (src/lib/sttEngine.ts). STT_URL points at the
+      # faster-whisper sidecar below (same tailscale netns, so localhost);
+      # empty falls back to in-process whisper.cpp. STT_ENGINE=groq with a
+      # GROQ_API_KEY uses the hosted whisper-large-v3-turbo instead.
+      STT_URL: ${STT_URL:-http://localhost:8790/transcribe}
+      STT_ENGINE: ${STT_ENGINE:-}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      # Edit-latency stats table (src/lib/editStats.ts): ORDS auto-REST URL of
+      # HEALTH_RPT.EDIT_EVENTS plus the schema user's password. Both optional;
+      # absent, the module logs edit_stats.disabled once and every edit still works.
+      EDIT_STATS_ORDS_BASE_URL: ${EDIT_STATS_ORDS_BASE_URL:-}
+      HEALTH_REPORTS_ORDS_PASSWORD: ${HEALTH_REPORTS_ORDS_PASSWORD:-}
+      # The shared model-ladder cooldowns (HEALTH_RPT.POOL_COOLDOWNS, the same user and password as above). REQUIRED: a one-shot run
+      # (POST /runs) answers 503 without them, there is no local ledger to fall back on.
+      POOL_COOLDOWNS_ORDS_BASE_URL: ${POOL_COOLDOWNS_ORDS_BASE_URL:-}
+      # Model-provider keys, all REQUIRED in the remote-chat-agent deploy group,
+      # so `wf secret sync-env` fails before this compose ever runs if one is
+      # missing from the vault.
+      # OPENCODE_API_KEY is the name the opencode binary itself reads; we store
+      # the value under the canonical OPENCODE_GO_API_KEY and map it here.
+      OPENCODE_API_KEY: ${OPENCODE_GO_API_KEY:-}
+      MINIMAX_API_KEY: ${MINIMAX_API_KEY:-}
+      KIMI_API_KEY: ${KIMI_API_KEY:-}
+      # Claude Code OAuth token — OPTIONAL in the vault (KTD7), only required
+      # once AGENT_CLI=claude; the startup gate (src/startupGate.ts) fails
+      # fast and by name if it's missing under that mode.
+      CLAUDE_CODE_OAUTH_TOKEN: ${CLAUDE_CODE_OAUTH_TOKEN:-}
+      # Codex's real credential (~/.codex/auth.json), written by a human's
+      # `codex login` from agent-shell (which shares this exact HOME) via `wf
+      # auth remote-login codex`. `codexGateway.ts`'s own default is a FRESH
+      # temp dir per process, deliberately isolated for tests -- a real
+      # deploy needs it pointed at the shared, persistent HOME instead, or
+      # the login a human just completed would be invisible to this service.
+      CODEX_HOME: ${CODEX_HOME:-/workspace/home/.codex}
+      # Browser origins allowed to call this API cross-origin (comma-separated).
+      # Empty by default: localhost is always allowed so the local web build
+      # works, and anything else must be named explicitly — most routes here
+      # have no auth, so a wildcard would let any page a tailnet user visits
+      # drive this agent. See src/lib/corsMiddleware.ts.
+      CHAT_AGENT_ALLOWED_ORIGINS: ${CHAT_AGENT_ALLOWED_ORIGINS:-}
+      # Shared secret authenticating incoming bot requests (X-Bot-Secret).
+      CHAT_AGENT_API_SECRET: ${CHAT_AGENT_API_SECRET}
+      # Bot API token for the agent's Telegram-forwarding routes (diff/plan/file preview).
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      # Where cloned repos + worktrees live -- now on the SHARED volume, so a
+      # worktree created from Telegram is the same directory agent-shell sees
+      # over SSH. Must stay identical to the path opencode mounts it at.
+      WORKTREE_BASE_DIR: /workspace/worktrees
+      # The Tamil marker's scratch directory must exist at the same path in the opencode container, so it
+      # lives on the shared volume rather than in this container's /tmp.
+      TAMIL_CHECK_SCRATCH_DIR: /workspace/home/.tamil-check
+      # Shared with agent-shell, so ~/.claude, ~/.codex and opencode's session
+      # store are one set of files rather than per-container copies.
+      HOME: /workspace/home
+      # File-backed thread store (src/data/fileThreadStore.ts) on the shared
+      # volume, so thread history survives a redeploy like the tool dirs above.
+      RCA_STATE_DIR: /workspace/home/.remote-chat-agent
+      # One directory per provider CLI (claude, codex, opencode), each the only login its CLI sees (CLAUDE_CONFIG_DIR, CODEX_HOME, the XDG
+      # homes): on the persistent volume, so a login and the tokens the CLI refreshes survive a redeploy. The code's default is /data/providers.
+      RCA_PROVIDERS_ROOT: /workspace/home/.remote-chat-agent/providers
+      # Default cwd for threads that arrive without one (WS clients such as the
+      # Telegram bot never send their own container cwd). Must be a path the
+      # opencode container can see: the shared workspace volume.
+      RCA_DEFAULT_CWD: ${RCA_DEFAULT_CWD:-/workspace/home}
+      # Tier 1 dependency persistence, matching agent-shell exactly (U3). Each
+      # package manager is redirected to the shared volume rather than
+      # symlinked, so a tool installed from EITHER surface is on PATH in both
+      # and survives a redeploy. The values must match agent-shell's or the two
+      # surfaces quietly maintain separate installs while looking shared.
+      NPM_CONFIG_PREFIX: /workspace/tools/npm
+      MISE_DATA_DIR: /workspace/tools/mise
+      BUN_INSTALL: /workspace/tools/bun
+      CARGO_HOME: /workspace/tools/cargo
+      PIPX_HOME: /workspace/tools/pipx
+      PIPX_BIN_DIR: /workspace/tools/npm/bin
+      # The big one for this service specifically: worktree-git.ts runs
+      # `pnpm install` for every worktree it creates, and a shared store means
+      # the second worktree links from disk instead of refetching the whole
+      # graph over the network on a 2-OCPU box.
+      PNPM_STORE_DIR: /workspace/cache/pnpm
+      # So a tool installed via `npm i -g` from either surface is actually
+      # invocable here, not merely present on disk.
+      PATH: /workspace/tools/npm/bin:/workspace/tools/bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+      # Default working directory for a turn that names no worktree. MUST be a
+      # path the opencode container also has (see its `worktrees` mount) —
+      # process.cwd() here is /app, which exists only in THIS container, and
+      # opencode silently produces nothing for a directory it cannot resolve.
+      OPENCODE_CWD: /workspace/worktrees
+      # The agent must authenticate to its own opencode server once that server
+      # requires a password -- otherwise enabling auth breaks every chat turn.
+      # Sent as a header, never in the URL: Node refuses to construct a request
+      # from a URL containing credentials (see buildOpencodeAuthHeaders).
+      OPENCODE_SERVER_PASSWORD: ${OPENCODE_SERVER_PASSWORD:-}
+      # U6a reactive-interrupt (src/lib/authRecovery.ts). The two *_URL vars
+      # are non-secret (.env.defaults); the other three are vault secrets.
+      # All optional -- absent, createOpencodeAuthRecovery returns undefined
+      # and a turn's auth failure surfaces exactly as it did before this
+      # feature existed.
+      VNC_AUTH_LISTENER_URL: ${VNC_AUTH_LISTENER_URL:-}
+      VNC_AUTH_OWNER_NOTIFY_URL: ${VNC_AUTH_OWNER_NOTIFY_URL:-}
+      VNC_AUTH_TRIGGER_SECRET: ${VNC_AUTH_TRIGGER_SECRET:-}
+      VNC_AUTH_OWNER_CHAT_ID: ${VNC_AUTH_OWNER_CHAT_ID:-}
+      VNC_AUTH_OWNER_NOTIFY_SECRET: ${VNC_AUTH_OWNER_NOTIFY_SECRET:-}
+      # Telemetry → BetterStack (buffered forwarder; empty = console-only).
+      SECRETS_LOG_BETTERSTACK: ${SECRETS_LOG_BETTERSTACK:-}
+      EXPO_PUBLIC_BETTERSTACK_TOKEN: ${EXPO_PUBLIC_BETTERSTACK_TOKEN:-}
+      EXPO_PUBLIC_BETTERSTACK_HOST: ${EXPO_PUBLIC_BETTERSTACK_HOST:-}
+      # This is the pair clis/telemetry's Destination::from_env actually
+      # reads for backend services (KTD9: deliberately separate from the
+      # mobile app's EXPO_PUBLIC_BETTERSTACK_* pair above, which this
+      # service doesn't consume) -- was missing here, so BetterStack
+      # forwarding for this service has been silently console-only.
+      BETTERSTACK_OTLP_TOKEN: ${BETTERSTACK_OTLP_TOKEN:-}
+      BETTERSTACK_OTLP_HOST: ${BETTERSTACK_OTLP_HOST:-}
+      # Lets a coding session running in a worktree here redeploy the VM's
+      # services, through vm-ops-api's HTTP API over the tailnet (see
+      # `redeploy-app` in this image) and never a docker socket. Exactly the
+      # capability, and exactly the scoping, agent-shell already has: it can
+      # only select an ALREADY-PUBLISHED image tag, never push novel code.
+      #
+      # Optional in the vault group, so an absent value degrades to
+      # `redeploy-app` refusing with a clear message rather than this service
+      # failing to boot.
+      VM_GATEWAY_AUTH_SEED: ${VM_GATEWAY_AUTH_SEED:-}
+      # redeploy-app resolves vm-ops-api's MagicDNS name from this. Written into
+      # every app's .env by cloud-init and by vm-ops-api's own redeploy step,
+      # so it is always present on a real VM.
+      HOST_LABEL: ${HOST_LABEL:-main}
+      # Bitwarden bootstrap credentials, so service_kit::secrets (through wf) can
+      # resolve ANY registered secret at runtime instead of each one needing its
+      # own passthrough line here. Same pair agent-shell already forwards.
+      #
+      # These were already sitting in this app's .env on the VM -- cloud-init
+      # seeds a .env.local per app and vm-ops-api appends it -- but compose
+      # never forwarded them, so the container could not see them. Confirmed
+      # live rather than inferred, by this service's own redeploy diagnostics:
+      #   BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN: disk=94 container=absent
+      #   BWS_SERVER_URL:                       disk=26 container=absent
+      # which is precisely the "present in .env is not the same as present in
+      # this container" trap OPENCODE_DEFAULT_MODEL's own comment above records.
+      BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN: ${BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN:-}
+      BWS_SERVER_URL: ${BWS_SERVER_URL:-}
+    volumes:
+      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      - clis:/opt/clis:ro
+      - workspace:/workspace
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8787/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+    # No command override: the image ENTRYPOINT prepares the container, then execs the CMD (`rca-service`).
+    depends_on:
+      - tailscale
+      # Ordering only, not readiness: compose has no health gate here, and the
+      # agent tolerates a not-yet-listening opencode because it dials per turn
+      # rather than at boot.
+      - opencode
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  # Written by the runner in the agent-shell project (clis.yml); external here so this project never removes it.
+  clis:
+    external: true
+    name: clis
+  tailscale-state:
+  # Shared by `agent`, `opencode`, AND agent-shell's container in its own
+  # compose project — `name:` pins the real volume name so it is addressable
+  # across projects, instead of being prefixed to `remote-chat-agent_...`.
+  # Deliberately not `external: true`: that requires the volume to exist
+  # already, so a fresh VM boot would fail provisioning until something ran
+  # `docker volume create` first. With `name:`, whichever project starts first
+  # creates it and the other attaches.
+  #
+  # NOTE the old `worktrees` volume is intentionally left on the host rather
+  # than removed — existing worktrees are still in it if anything needs
+  # recovering. Nothing mounts it any more, so it can be dropped once the new
+  # layout has proven itself.
+  # `external: true`, not a `name:` pin. Both are enough to SHARE the volume,
+  # but with a `name:` pin compose considers it owned by whichever project
+  # created it and warns on the other -- and, more seriously, a
+  # `docker compose down -v` under that owning project would delete it out from
+  # under the other service. `external` says plainly that neither project owns
+  # its lifecycle.
+  #
+  # The cost is that an external volume must already EXIST or compose refuses
+  # to start, so both provisioning paths create it first (idempotently):
+  # vm-ops-api's redeploy sibling, and cloud-init's provision-apps.js for a
+  # fresh VM. Without those, this line would turn a hypothetical hazard into a
+  # guaranteed first-boot failure for both services.
+  workspace:
+    external: true
+    name: agent-workspace

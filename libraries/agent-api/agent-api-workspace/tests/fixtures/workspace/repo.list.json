@@ -1,0 +1,44 @@
+{
+  "method": "repo.list",
+  "exchanges": [
+    {
+      "name": "says for each workspace its owner, how it lies there and whether the owner is attached",
+      "before": [
+        {
+          "method": "workspace.create",
+          "params": {
+            "workspace": "proj",
+            "path": "apps/web"
+          },
+          "id": "b10"
+        }
+      ],
+      "request": {
+        "params": {},
+        "id": 1,
+        "method": "repo.list"
+      },
+      "response": {
+        "result": {
+          "repos": [
+            {
+              "workspace": "proj",
+              "executor": "w1",
+              "kind": "directory",
+              "attached": true,
+              "path": "apps/web"
+            },
+            {
+              "workspace": "w1",
+              "executor": "w1",
+              "kind": "root",
+              "attached": true
+            }
+          ]
+        },
+        "id": 1
+      },
+      "actions": []
+    }
+  ]
+}

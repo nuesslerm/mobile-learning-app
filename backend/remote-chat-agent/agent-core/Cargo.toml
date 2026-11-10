@@ -1,0 +1,29 @@
+[package]
+name = "rca-agent-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The service's agent API without its groups: the Group trait, the dispatch of a request frame to the group that serves its method, and the listing of the complete groups that service.status reports"
+
+[lib]
+name = "rca_agent_core"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+# The doubles of the crate's ports (`MemoryBearers`), for the crates that register groups and the service's flow tests
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+# A device bearer is stored as its digest, never as the token
+sha2 = "0.10"
+# The envelopes and the names of groups and methods; the crate knows no group
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+
+[dev-dependencies]
+# So the crate's own tests of its doubles run under the plain `cargo test --lib` of the package script
+rca-agent-core = { path = ".", features = ["testing"] }
+tokio.workspace = true

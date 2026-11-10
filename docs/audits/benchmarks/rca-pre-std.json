@@ -1,0 +1,64 @@
+{
+  "label": "pre-std",
+  "date": "2026-10-09T03:12:55.120Z",
+  "command": "/tmp/claude-0/-home-user-expo-hello-world-app-2/91b07276-1efa-5b20-a5b0-3cfea8778644/scratchpad/rca-service-old-std",
+  "runs": 5,
+  "artifactBytes": 17671312,
+  "coldStartMs": 32.539645000000746,
+  "idleRssMb": 6.53125,
+  "rssAfterHealthMb": 6.609375,
+  "healthP50Ms": 0.39569050000136485,
+  "scenarios": {
+    "chat turn": {
+      "p50Ms": 105.5209560000003,
+      "rssAfterMb": 8.6328125
+    },
+    "run once": {
+      "p50Ms": 106.17663100000209,
+      "rssAfterMb": 8.99609375
+    },
+    "convert pdf": {
+      "p50Ms": 12.268217999999251,
+      "rssAfterMb": 9.046875
+    },
+    "convert pdf (chromium)": {
+      "p50Ms": 12.238775500001793,
+      "rssAfterMb": 9.15234375
+    },
+    "convert docx": {
+      "p50Ms": 1.1240594999999303,
+      "rssAfterMb": 9.44140625
+    },
+    "diff register and page": {
+      "p50Ms": 7.904774499998894,
+      "rssAfterMb": 14.60546875
+    },
+    "file preview (markdown)": {
+      "p50Ms": 0.8328655000004801,
+      "rssAfterMb": 14.984375
+    },
+    "file preview (typescript)": {
+      "p50Ms": 0.6999919999998383,
+      "rssAfterMb": 14.984375
+    },
+    "tamil check": {
+      "p50Ms": 151.7311020000052,
+      "rssAfterMb": 37.859375
+    },
+    "voice transcribe": {
+      "p50Ms": 8.573716999999306,
+      "rssAfterMb": 37.859375
+    },
+    "ws request": {
+      "p50Ms": 0.06114700000034645,
+      "rssAfterMb": 37.87109375
+    },
+    "ws 100 connections": {
+      "p50Ms": 0.898822500001188,
+      "rssAfterMb": 42.91796875
+    }
+  },
+  "finalRssMb": 42.91796875,
+  "peakRssMb": 42.91796875,
+  "peakRssMaxMb": 54.69140625
+}

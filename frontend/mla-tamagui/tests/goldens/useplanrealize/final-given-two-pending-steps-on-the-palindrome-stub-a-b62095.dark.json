@@ -1,0 +1,32 @@
+{
+  "suite": "useplanrealize",
+  "step": "final-given-two-pending-steps-on-the-palindrome-stub-a-b62095",
+  "scheme": "dark",
+  "snapshot": "useplanrealize/final-given-two-pending-steps-on-the-palindrome-stub-a-b62095.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [],
+    "text": ""
+  },
+  "timings": {
+    "render_ms": 244
+  },
+  "name": "useplanrealize/final-given-two-pending-steps-on-the-palindrome-stub-a-b62095.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

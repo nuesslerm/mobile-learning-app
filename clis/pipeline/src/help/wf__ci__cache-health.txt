@@ -1,0 +1,38 @@
+Usage: wf ci cache-health [options]
+
+Judge what the cache layers said about themselves in this CI run's job logs (the
+`ci-cache` events and the `wf: build cache {...}` lines) and exit 1 when one of
+these happened, so the report job that runs it goes red:
+
+  degraded          a layer went cold: the store was unreachable, its link
+                    expired, or the run's request or byte budget ran out.
+  rejected-write    a write the run needed was refused or dropped: the tenancy's
+                    Object Storage is full (StorageQuotaExceeded) or the store
+                    said no. An entry over its per-kind size cap is a deliberate
+                    skip, not a refusal.
+  seeded-lost       the run wrote N entries and the store holds fewer when asked
+                    again ("seeded 7 of 10").
+  replayed-nothing  on a push to dev, a stage the pre-push gate runs ran tasks and
+                    replayed none: the gate's entries are not the ones CI looks for.
+                    The workspace root's own tasks (the typecheck a docs-only push plans)
+                    are not counted: they hash every installed npm package, so a gate on
+                    another install never seeds CI's hash.
+  drift             a drift report in the logs found tasks hashed differently
+                    (judged only when a job log carries a `drift.report` event:
+                    no CI job runs `wf test drift` yet).
+  pnpm-save-slow    the pnpm save took longer than 60 seconds.
+
+A disabled shared cache is a note, not a problem. The same verdict is the "Cache
+health" section of `wf ci comment` and the live pull request comment. Reads the
+run from the GitHub API (GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_RUN_ID,
+GITHUB_SHA; GITHUB_EVENT_NAME and GITHUB_REF_NAME say whether it is a push to
+dev).
+
+Prints one JSON object: {"ok", "events", "unreadable", "findings": [{"kind", "job", "detail"}],
+"notes", "stages": [{"job", "stage", "replayed", "tasks"}]}. Exit 0 healthy, 1
+a problem. When the run cannot be read, or a job log cannot be downloaded, the
+verdict says so ("ok": null with "reason", or "unreadable" and a note) and the
+exit stays 0: a failure to report never fails the run.
+
+Options:
+  -h, --help  display help for command

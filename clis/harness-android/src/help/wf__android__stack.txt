@@ -1,0 +1,13 @@
+Usage: wf android stack <group> [--platform P] [--file F]
+
+Maps a JavaScript stack the app logged (an `app.crash` line from BetterStack) to source lines. The stack is read from --file,
+else stdin. <group> is the EAS Update's group id (in its link, `exp://u.expo.dev/<project>/group/<group>`, and in the run
+summary); the source map comes from the verification bucket, where `wf ship eas` stores the group's maps and summary.json.
+Hermes frames (`at name (address at bundle:LINE:COL)`) map to `name (source:LINE:COL)`; a frame the map cannot place stays as
+logged and carries mapped: false. `wf android test` does the same for every crash and error line of its run.
+
+Options:
+  --platform <p>         the platform's map (default android)
+  --file <path>          read the stack from a file instead of stdin
+
+Result: {group, platform, map, frames: [{raw, mapped, source, line, column, name}], text}

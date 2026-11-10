@@ -1,0 +1,9 @@
+# Terraform state may contain secrets (bws_read_access_token) — never commit it.
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+# Your real vars (OCIDs + bootstrap token). The .example is committed.
+terraform.tfvars
+*.auto.tfvars
+crash.log

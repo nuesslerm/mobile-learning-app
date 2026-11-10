@@ -1,0 +1,52 @@
+{
+  "fetchedAt": "2026-09-12T23:02:21.506Z",
+  "opencode-go/deepseek-v4.1-flash": {
+    "inputPerMTok": 0.06566,
+    "outputPerMTok": 0.13132,
+    "cacheReadPerMTok": 0.013132,
+    "cacheWritePerMTok": null
+  },
+  "minimax/MiniMax-M3": {
+    "inputPerMTok": 0.3,
+    "outputPerMTok": 1.2,
+    "cacheReadPerMTok": 0.06,
+    "cacheWritePerMTok": null
+  },
+  "kimi-code-plan-global/kimi-for-coding": {
+    "inputPerMTok": 0.71,
+    "outputPerMTok": 3.5,
+    "cacheReadPerMTok": 0.15,
+    "cacheWritePerMTok": null
+  },
+  "kimi-code-plan-global/k3": {
+    "inputPerMTok": 2.648138063,
+    "outputPerMTok": 13.28272425,
+    "cacheReadPerMTok": 0.30264435,
+    "cacheWritePerMTok": null
+  },
+  "claude-haiku-4-5": {
+    "inputPerMTok": 1,
+    "outputPerMTok": 5,
+    "cacheReadPerMTok": 0.1,
+    "cacheWritePerMTok": 1.25
+  },
+  "claude-sonnet-5": {
+    "inputPerMTok": 2,
+    "outputPerMTok": 10,
+    "cacheReadPerMTok": 0.2,
+    "cacheWritePerMTok": 2.5
+  },
+  "claude-opus-5": {
+    "inputPerMTok": 5,
+    "outputPerMTok": 25,
+    "cacheReadPerMTok": 0.5,
+    "cacheWritePerMTok": 6.25
+  },
+  "claude-fable-5-1": {
+    "inputPerMTok": 0,
+    "outputPerMTok": 0,
+    "cacheReadPerMTok": null,
+    "cacheWritePerMTok": null,
+    "unknown": true
+  }
+}

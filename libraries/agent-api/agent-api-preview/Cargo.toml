@@ -1,0 +1,21 @@
+[package]
+name = "agent-api-preview"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's preview groups (`preview`: preview.start/stop/servers, a workspace's dev server run by its executor; `preview.sessions`: preview.open/report/resize/adjust/close/list; `preview.watch`: preview.subscribe): the tabs an app shows a preview in, and the events that record them"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+exec-preview = { path = "../exec-preview" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }

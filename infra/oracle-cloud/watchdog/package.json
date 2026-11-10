@@ -1,0 +1,29 @@
+{
+  "name": "@infra/watchdog",
+  "description": "Recreates unhealthy or restart-looping compose containers on the VM. The daemon is Rust (backend/watchdog); its flow tests drive the run loop in-process (backend/watchdog/rs/tests/flow.rs).",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:flow": "CARGO_TARGET_DIR=../../../backend/target cargo test --locked -p watchdog-rs --test flow --manifest-path ../../../backend/watchdog/Cargo.toml"
+  },
+  "nx": {
+    "targets": {
+      "test:flow": {
+        "inputs": [
+          "default",
+          "^production",
+          {
+            "input": "rust",
+            "projects": [
+              "crate-watchdog-rs"
+            ]
+          },
+          {
+            "externalDependencies": []
+          }
+        ]
+      }
+    }
+  }
+}

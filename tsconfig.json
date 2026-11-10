@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "target": "ESNext",
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true
+  },
+  "include": [
+    "*.ts",
+    "*.mjs"
+  ],
+  "exclude": [
+    "node_modules",
+    "frontend/**",
+    "backend/**",
+    "dist/**",
+    "dist-gh-pages/**"
+  ]
+}

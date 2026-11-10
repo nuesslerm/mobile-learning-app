@@ -1,0 +1,32 @@
+{
+  "label": "rust-slice4",
+  "date": "2026-10-08T20:38:49.685Z",
+  "command": "../target/release/rca-service",
+  "runs": 5,
+  "artifactBytes": 14995376,
+  "coldStartMs": 30.76546199999939,
+  "idleRssMb": 4.5390625,
+  "rssAfterHealthMb": 4.640625,
+  "healthP50Ms": 0.4311344999996436,
+  "scenarios": {
+    "chat turn": {
+      "p50Ms": 106.50277600000004,
+      "rssAfterMb": 6.34375
+    },
+    "diff register and page": {
+      "p50Ms": 9.159501499999351,
+      "rssAfterMb": 11.6640625
+    },
+    "file preview (markdown)": {
+      "p50Ms": 0.9942809999993187,
+      "rssAfterMb": 12.12890625
+    },
+    "file preview (typescript)": {
+      "p50Ms": 0.6447190000017144,
+      "rssAfterMb": 12.12890625
+    }
+  },
+  "finalRssMb": 12.12890625,
+  "peakRssMb": 12.12890625,
+  "peakRssMaxMb": 12.25
+}

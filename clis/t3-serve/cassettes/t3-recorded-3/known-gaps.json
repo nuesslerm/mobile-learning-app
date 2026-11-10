@@ -1,0 +1,274 @@
+{
+  "schema": "mimic-known-gaps/1",
+  "gaps": [
+    {
+      "id": "t3-command-prepared-run.retry",
+      "row": "command:prepared-run.retry",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-command-queued-message.promote-to-steer",
+      "row": "command:queued-message.promote-to-steer",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-command-queued-run.start",
+      "row": "command:queued-run.start",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-command-subagent.stop",
+      "row": "command:subagent.stop",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-command-thread.auto-settle.set",
+      "row": "command:thread.auto-settle.set",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-command-thread.fork",
+      "row": "command:thread.fork",
+      "severity": "drift",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ]
+    },
+    {
+      "id": "t3-command-thread.metadata.update",
+      "row": "command:thread.metadata.update",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
+      ]
+    },
+    {
+      "id": "t3-command-thread.pin.reorder",
+      "row": "command:thread.pin.reorder",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-command-thread.pull-request.watch",
+      "row": "command:thread.pull-request.watch",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-command-thread.user-input.dismiss",
+      "row": "command:thread.user-input.dismiss",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-http-metadata.descriptor",
+      "row": "http:metadata.descriptor",
+      "severity": "breaking",
+      "class": "descriptor/body: a field of the answer differs",
+      "diffs": [
+        "steps.http:ret:_.[0].payload.body.platform.machine missing breaking"
+      ]
+    },
+    {
+      "id": "t3-http-orchestration.threadHistoryPage",
+      "row": "http:orchestration.threadHistoryPage",
+      "severity": "breaking",
+      "class": "http-status: the route answers another status",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type extra drift",
+        "steps.http:ret:_.[2].payload.headers.vary extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ]
+    },
+    {
+      "id": "t3-rpc-assets.createUrl",
+      "row": "rpc:assets.createUrl",
+      "severity": "drift",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-device.configure",
+      "row": "rpc:device.configure",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-filesystem.getMetadata",
+      "row": "rpc:filesystem.getMetadata",
+      "severity": "drift",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-mcpApps.callTool",
+      "row": "rpc:mcpApps.callTool",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-mcpApps.updateModelContext",
+      "row": "rpc:mcpApps.updateModelContext",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-peerLinks.link",
+      "row": "rpc:peerLinks.link",
+      "severity": "drift",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-projects.readFile",
+      "row": "rpc:projects.readFile",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-provider.chatgpt.import-profile",
+      "row": "rpc:provider.chatgpt.import-profile",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-pullRequests.generateReviewGuide",
+      "row": "rpc:pullRequests.generateReviewGuide",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-pullRequests.linkedThreads",
+      "row": "rpc:pullRequests.linkedThreads",
+      "severity": "drift",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-pullRequests.setThreadResolution",
+      "row": "rpc:pullRequests.setThreadResolution",
+      "severity": "drift",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-pullRequests.subscribeRefreshes",
+      "row": "rpc:pullRequests.subscribeRefreshes",
+      "severity": "drift",
+      "class": "frames: extra or missing frames",
+      "diffs": [
+        "steps.ws:s2c:1.[0] extra drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-pullRequests.update",
+      "row": "rpc:pullRequests.update",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-server.reportClientActivity",
+      "row": "rpc:server.reportClientActivity",
+      "severity": "drift",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ]
+    }
+  ]
+}

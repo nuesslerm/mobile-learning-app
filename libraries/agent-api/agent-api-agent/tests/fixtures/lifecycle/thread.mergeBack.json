@@ -1,0 +1,63 @@
+{
+  "method": "thread.mergeBack",
+  "exchanges": [
+    {
+      "name": "refuses a thread that is no fork of the target",
+      "before": [
+        {
+          "id": "setup-create-t-mb1",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-mb1",
+            "title": "Thread t-mb1",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        },
+        {
+          "id": "setup-create-t-mb2",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-mb2",
+            "title": "Thread t-mb2",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.mergeBack",
+        "params": {
+          "thread": "t-mb2",
+          "into": "t-mb1"
+        }
+      },
+      "response": {
+        "id": "1",
+        "error": {
+          "code": "NOT_A_FORK",
+          "message": "Thread t-mb2 is not a fork of t-mb1."
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "thread.mergeBack",
+        "params": {
+          "thread": "nope",
+          "into": "t-mb1"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

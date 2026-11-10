@@ -1,0 +1,23 @@
+[package]
+name = "agent-api-client"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "A blocking client of the rca agent API (`GET /agent/v1/socket`, ws:// only): id-matched calls, the events a subscription delivers in order, and a reconnect that resumes each subscription from its last seq"
+
+[lib]
+doctest = false
+
+# The flow tests replay the recorded exchanges of the agent API's contract crates against an in-process server.
+[package.metadata.flow]
+inputs = ["../agent-api-agent/tests/fixtures/**"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+serde_json = { version = "1", features = ["preserve_order"] }
+tracing = "0.1"
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+
+[dev-dependencies]
+agent-api-agent = { path = "../agent-api-agent", features = ["testing"] }
+agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }

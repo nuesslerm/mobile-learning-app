@@ -1,0 +1,45 @@
+{
+  "method": "provider.list",
+  "exchanges": [
+    {
+      "name": "lists every provider signed out with the login methods its CLI offers",
+      "request": {
+        "id": 1,
+        "method": "provider.list",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "providers": [
+            {
+              "provider": "opencode",
+              "status": "signed_out",
+              "selected": false,
+              "auth_methods": [
+                "paste"
+              ]
+            },
+            {
+              "provider": "claudeAgent",
+              "status": "signed_out",
+              "selected": false,
+              "auth_methods": [
+                "paste"
+              ]
+            },
+            {
+              "provider": "codex",
+              "status": "signed_out",
+              "selected": false,
+              "auth_methods": [
+                "device_code"
+              ]
+            }
+          ],
+          "selected": null
+        }
+      }
+    }
+  ]
+}

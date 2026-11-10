@@ -1,0 +1,78 @@
+[package]
+name = "t3-serve"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "`wf t3`: the T3-compatible server (serve) and its pairing codes (pair); the composition root of the t3-* crates"
+
+# The tests are one flow binary (tests/flow.rs) driving the thin binary below and the real router over loopback.
+[lib]
+test = false
+doctest = false
+
+[[bin]]
+name = "t3-serve"
+path = "src/bin/t3-serve.rs"
+test = false
+
+# The replay of the imported cassettes reads `cassettes/`, the scope test the reference scan's method list, the agent API
+# checks the recorded `service.status`, the adapter's file calls the recorded `file.*` exchanges and its thread calls and the double's turns the
+# recorded `agent.threads` exchanges and events: editing any reruns the flow task.
+[package.metadata.flow]
+# The replay of the imported cassettes links mimic-core as a dev-dependency: an edit to it reruns the flow task.
+uses = ["mimic-core"]
+inputs = ["cassettes/**", "../../docs/plans/rca-parity/coverage/t3-methods.json", "../../libraries/agent-api/agent-api-service/tests/fixtures/**", "../../libraries/agent-api/agent-api-workspace/tests/fixtures/**", "../../libraries/agent-api/agent-api-agent/tests/fixtures/**", "../../libraries/agent-api/agent-api-terminal/tests/fixtures/**", "../../libraries/agent-api/agent-api-git/tests/fixtures/**", "../../libraries/agent-api/agent-api-accounts/tests/fixtures/**", "../../libraries/agent-api/agent-api-hosted/tests/fixtures/**", "../../libraries/agent-api/agent-api-schedules/tests/fixtures/**", "../../libraries/agent-api/agent-api-attachments/tests/fixtures/**", "../../libraries/agent-api/agent-api-preview/tests/fixtures/**"]
+
+# The integration chain (tests/integration.rs) runs the built binaries t3-serve, rca-service and rca-exec against each other, and the scripted CLI
+# that exec-testkit builds from its own workspace: a change to any of the last three reruns it (`uses`, with their workspaces' manifests and
+# lockfile slices), and so does a change to the methods list it names its rows from and to the cassettes and the hosted fixtures its replay reads. The flow task reads
+# neither the crates it uses nor these files.
+[package.metadata.integration]
+uses = ["rca-service", "rca-exec", "exec-testkit", "mimic-core"]
+inputs = ["cassettes/**", "../../tooling/t3-conformance/t3-pin.json", "../../docs/plans/rca-parity/coverage/t3-methods.json", "../../libraries/agent-api/exec-hosted/tests/cassettes/**"]
+
+[features]
+testing = ["t3-core/testing"]
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+t3-contracts = { path = "contracts" }
+t3-core = { path = "core" }
+t3-store = { path = "store" }
+t3-http = { path = "http" }
+agent-api-accounts = { path = "../../libraries/agent-api/agent-api-accounts" }
+agent-api-agent = { path = "../../libraries/agent-api/agent-api-agent" }
+agent-api-client = { path = "../../libraries/agent-api/agent-api-client" }
+agent-api-proto = { path = "../../libraries/agent-api/agent-api-proto" }
+agent-api-service = { path = "../../libraries/agent-api/agent-api-service" }
+agent-api-state = { path = "../../libraries/agent-api/agent-api-state" }
+agent-api-terminal = { path = "../../libraries/agent-api/agent-api-terminal" }
+agent-api-git = { path = "../../libraries/agent-api/agent-api-git" }
+agent-api-hosted = { path = "../../libraries/agent-api/agent-api-hosted" }
+agent-api-schedules = { path = "../../libraries/agent-api/agent-api-schedules" }
+agent-api-attachments = { path = "../../libraries/agent-api/agent-api-attachments" }
+agent-api-preview = { path = "../../libraries/agent-api/agent-api-preview" }
+agent-api-workspace = { path = "../../libraries/agent-api/agent-api-workspace" }
+exec-fs = { path = "../../libraries/agent-api/exec-fs" }
+serde_json = { version = "1", features = ["preserve_order"] }
+getrandom = "0.3"
+
+[dev-dependencies]
+base64 = "0.22"
+t3-serve = { path = ".", features = ["testing"] }
+agent-api-accounts = { path = "../../libraries/agent-api/agent-api-accounts", features = ["testing"] }
+agent-api-agent = { path = "../../libraries/agent-api/agent-api-agent", features = ["testing"] }
+agent-api-service = { path = "../../libraries/agent-api/agent-api-service", features = ["testing"] }
+agent-api-workspace = { path = "../../libraries/agent-api/agent-api-workspace", features = ["testing"] }
+agent-api-terminal = { path = "../../libraries/agent-api/agent-api-terminal", features = ["testing"] }
+agent-api-git = { path = "../../libraries/agent-api/agent-api-git", features = ["testing"] }
+agent-api-hosted = { path = "../../libraries/agent-api/agent-api-hosted", features = ["testing"] }
+agent-api-schedules = { path = "../../libraries/agent-api/agent-api-schedules", features = ["testing"] }
+agent-api-attachments = { path = "../../libraries/agent-api/agent-api-attachments", features = ["testing"] }
+agent-api-preview = { path = "../../libraries/agent-api/agent-api-preview", features = ["testing"] }
+exec-hosted = { path = "../../libraries/agent-api/exec-hosted", features = ["testing"] }
+exec-git = { path = "../../libraries/agent-api/exec-git" }
+exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }
+mimic-core = { path = "../mimic/core" }
+tempfile = "3"
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }

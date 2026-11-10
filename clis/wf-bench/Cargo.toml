@@ -1,0 +1,41 @@
+[package]
+name = "wf-bench"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "`wf bench`: the cold start and footprint of a CLI binary (`cli`), and the app benchmarks (`build`, `memory`, `runtime`, `startup`, `android`, `compare`, `ab`) with their committed scenarios and baselines in clis/app-bench"
+
+# The test kit hides every registry secret from the binary; list, compare and suite read the committed scenarios and baselines
+# (tooling/browser-harness/dist is a build output the flow job lacks, so no input).
+[package.metadata.flow]
+inputs = ["../secrets/src/data/registry.json", "../app-bench/*/*.json"]
+
+# The tests are one flow binary (tests/flow.rs) driving the thin binary below; the lib has no unit tests (plan D3).
+[lib]
+test = false
+doctest = false
+
+# Serves `wf bench` and `browser-daemon`, which the memory, runtime and startup suites start again through the executable.
+[[bin]]
+name = "wf-bench"
+path = "src/bin/wf-bench.rs"
+test = false
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+wf-harness = { path = "../wf-harness" }
+offload = { path = "../offload" }
+rca-core = { version = "0.1", registry = "mla" }
+cli-http = { path = "../http" }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+sourcemap = { version = "9.3.2", default-features = false }
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+nix = { version = "0.31", default-features = false, features = ["signal"] }
+libc = "0.2"
+
+[dev-dependencies]
+wf-testkit = { path = "../wf-testkit" }
+wf-vmops = { path = "../wf-vmops", features = ["testing"] }
+wf-harness = { path = "../wf-harness", features = ["testing"] }
+tempfile = "3"

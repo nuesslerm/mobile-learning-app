@@ -1,0 +1,256 @@
+{
+  "schema": "mimic-rules/1",
+  "rules": [
+    {
+      "kind": "token",
+      "pattern": "\\b[0-9a-f]{32}\\b",
+      "placeholder": "<trace>"
+    },
+    {
+      "kind": "token",
+      "pattern": "t3_session_[0-9]+_[0-9a-f]{12}",
+      "placeholder": "t3_session_<port>_<hash>"
+    },
+    {
+      "kind": "token",
+      "pattern": "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+Z",
+      "placeholder": "<ts>"
+    },
+    {
+      "kind": "token",
+      "pattern": "subject_token=[A-Z2-9]{12}",
+      "placeholder": "subject_token=<pairing-credential>"
+    },
+    {
+      "kind": "token",
+      "pattern": "eyJ[A-Za-z0-9_-]{20,}(\\.[A-Za-z0-9_-]+)?",
+      "placeholder": "<signed-token>"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\b[A-Za-z0-9_-]{24,}\\.[A-Za-z0-9_-]{16,}\\b",
+      "placeholder": "<signed-token>"
+    },
+    {
+      "kind": "uuid-ordinal"
+    },
+    {
+      "kind": "timestamp",
+      "keys": [],
+      "placeholder": "<ts>"
+    },
+    {
+      "kind": "secret-key",
+      "keys": {
+        "access_token": "<access-token>",
+        "credential": "<pairing-credential>",
+        "csrfToken": "<csrf>",
+        "subject_token": "<pairing-credential>",
+        "ticket": "<ws-ticket>",
+        "token": "<pairing-credential>",
+        "wsTicket": "<ws-ticket>"
+      }
+    },
+    {
+      "kind": "sequence",
+      "keys": [
+        "sequence",
+        "snapshotSequence",
+        "afterSequence",
+        "latestSequence"
+      ],
+      "placeholder": "<seq>"
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "expires_in": "<expires-in>",
+        "fiberId": "<fiber>",
+        "pid": "<pid>"
+      }
+    },
+    {
+      "kind": "volatile-string",
+      "keys": {
+        "spanId": "<trace>",
+        "traceId": "<trace>"
+      }
+    },
+    {
+      "kind": "drop-header",
+      "names": [
+        "date",
+        "host",
+        "connection",
+        "keep-alive",
+        "content-length",
+        "etag",
+        "last-modified",
+        "transfer-encoding",
+        "user-agent",
+        "accept-encoding",
+        "accept-language",
+        "sec-websocket-key",
+        "sec-websocket-accept",
+        "sec-websocket-version",
+        "sec-fetch-mode",
+        "sec-fetch-site",
+        "sec-fetch-dest",
+        "upgrade"
+      ]
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/17/payload/code",
+      "placeholder": "<volatile>",
+      "interaction": "t3-rpc-cloud.installRelayClient-valid-min"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "durationMs": "<volatile:durationMs>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "recordCount": "<volatile:recordCount>"
+      }
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}/userdata/logs/server\\.trace\\.ndjson\\.10\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}/userdata/logs/server\\.trace\\.ndjson\\.9\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}/userdata/logs/server\\.trace\\.ndjson\\.8\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}/userdata/logs/server\\.trace\\.ndjson\\.7\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}/userdata/logs/server\\.trace\\.ndjson\\.6\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}/userdata/logs/server\\.trace\\.ndjson\\.5\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}/userdata/logs/server\\.trace\\.ndjson\\.4\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}/userdata/logs/server\\.trace\\.ndjson\\.3\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}/userdata/logs/server\\.trace\\.ndjson\\.2\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}/userdata/logs/server\\.trace\\.ndjson\\.1\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "token",
+      "pattern": "\\btmp/t3\\-home\\-[A-Za-z0-9]{6}/userdata/logs/server\\.trace\\.ndjson\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "averageDurationMs": "<volatile:averageDurationMs>"
+      }
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/10/payload/exit/value/topSpansByCount/0/count",
+      "placeholder": "<volatile>",
+      "interaction": "t3-rpc-server.getTraceDiagnostics-invalid-no-payload"
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "maxDurationMs": "<volatile:maxDurationMs>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "totalDurationMs": "<volatile:totalDurationMs>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "logicalWriteBytes": "<volatile:logicalWriteBytes>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "value": "<volatile:value>"
+      }
+    },
+    {
+      "kind": "token",
+      "pattern": "\\bt3\\-workspace\\-[A-Za-z0-9]{6}\\b",
+      "placeholder": "<volatile:alnum6>"
+    },
+    {
+      "kind": "token",
+      "pattern": "/tmp/r[0-9a-z]+/stage/clis/[a-z0-9-]+/cassettes/[a-z0-9-]+",
+      "placeholder": "<set-dir>"
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "avgCpuPercent": "<volatile:avgCpuPercent>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "maxCpuPercent": "<volatile:maxCpuPercent>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "maxRssBytes": "<volatile:maxRssBytes>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "totalCpuSecondsApprox": "<volatile:totalCpuSecondsApprox>"
+      }
+    },
+    {
+      "kind": "token",
+      "pattern": "\\b[0-9a-f]{16}\\-FRA\\b",
+      "placeholder": "<volatile:hex16>"
+    }
+  ]
+}

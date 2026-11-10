@@ -1,0 +1,417 @@
+{
+  "schema": "mimic-corpus/1",
+  "seed": 0,
+  "generators": [
+    {
+      "kind": "corpus",
+      "name": "descriptor",
+      "op": "script",
+      "cases": [
+        {
+          "id": "descriptor",
+          "input": {
+            "script": [
+              {
+                "http": {
+                  "method": "GET",
+                  "path": "/.well-known/t3/environment",
+                  "headers": {
+                    "accept": "*/*"
+                  },
+                  "body": null
+                }
+              }
+            ],
+            "settle_ms": 250,
+            "scenarios": [
+              [
+                "descriptor",
+                1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "protocol-gate-426",
+      "op": "script",
+      "cases": [
+        {
+          "id": "protocol-gate-426",
+          "input": {
+            "script": [
+              {
+                "http": {
+                  "method": "GET",
+                  "path": "/ws?wsTicket=none",
+                  "headers": {
+                    "accept": "*/*",
+                    "cache-control": "no-cache",
+                    "pragma": "no-cache",
+                    "sec-websocket-extensions": "permessage-deflate; client_max_window_bits"
+                  },
+                  "body": null
+                }
+              }
+            ],
+            "settle_ms": 250,
+            "scenarios": [
+              [
+                "protocol-gate-426",
+                1
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "session",
+      "op": "script",
+      "cases": [
+        {
+          "id": "session",
+          "input": {
+            "script": [
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/oauth/token",
+                  "headers": {
+                    "accept": "*/*",
+                    "content-type": "application/x-www-form-urlencoded"
+                  },
+                  "body": {
+                    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                    "subject_token_type": "urn:t3:params:oauth:token-type:environment-bootstrap",
+                    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "subject_token": "{credential}",
+                    "client_label": "t3-conformance",
+                    "client_device_type": "bot",
+                    "client_os": "linux"
+                  }
+                }
+              },
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/oauth/token",
+                  "headers": {
+                    "accept": "*/*",
+                    "content-type": "application/x-www-form-urlencoded"
+                  },
+                  "body": {
+                    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                    "subject_token_type": "urn:t3:params:oauth:token-type:environment-bootstrap",
+                    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "subject_token": "{credential}",
+                    "client_label": "t3-conformance",
+                    "client_device_type": "bot",
+                    "client_os": "linux"
+                  }
+                }
+              },
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/oauth/token",
+                  "headers": {
+                    "accept": "*/*",
+                    "content-type": "application/x-www-form-urlencoded"
+                  },
+                  "body": {
+                    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                    "subject_token_type": "urn:t3:params:oauth:token-type:environment-bootstrap",
+                    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "subject_token": "{bad-credential}",
+                    "client_label": "t3-conformance",
+                    "client_device_type": "bot",
+                    "client_os": "linux"
+                  }
+                }
+              },
+              {
+                "http": {
+                  "method": "GET",
+                  "path": "/api/auth/session",
+                  "headers": {
+                    "accept": "*/*",
+                    "authorization": "Bearer {access_token}"
+                  },
+                  "body": null
+                }
+              },
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/api/auth/websocket-ticket/rpc",
+                  "headers": {
+                    "accept": "*/*",
+                    "authorization": "Bearer {access_token}"
+                  },
+                  "body": null
+                }
+              },
+              {
+                "ws-open": {
+                  "path": "/ws?orchestrationProtocol=2&wsTicket={ticket}"
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Ping"
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "1",
+                  "tag": "subscribeServerConfig",
+                  "payload": {},
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "2",
+                  "tag": "server.probe",
+                  "payload": {},
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "3",
+                  "tag": "subscribeServerLifecycle",
+                  "payload": {},
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "4",
+                  "tag": "orchestration.subscribeShell",
+                  "payload": {},
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "5",
+                  "tag": "projects.mutate",
+                  "payload": {
+                    "type": "project.create",
+                    "commandId": "conformance-cmd-project-create",
+                    "projectId": "conformance-project",
+                    "title": "Conformance project",
+                    "workspaceRoot": "{workspace}"
+                  },
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "6",
+                  "tag": "orchestration.dispatchCommand",
+                  "payload": {
+                    "type": "thread.create",
+                    "commandId": "conformance-cmd-thread-create",
+                    "threadId": "conformance-thread",
+                    "projectId": "conformance-project",
+                    "title": "Conformance thread",
+                    "modelSelection": {
+                      "instanceId": "codex",
+                      "model": "gpt-5"
+                    },
+                    "runtimeMode": "full-access",
+                    "interactionMode": "default",
+                    "branch": null,
+                    "worktreePath": null,
+                    "createdBy": "user",
+                    "creationSource": "mobile"
+                  },
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "7",
+                  "tag": "orchestration.subscribeThread",
+                  "payload": {
+                    "threadId": "conformance-thread"
+                  },
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "8",
+                  "tag": "orchestration.dispatchCommand",
+                  "payload": {
+                    "type": "thread.archive",
+                    "commandId": "conformance-cmd-thread-archive",
+                    "threadId": "conformance-thread"
+                  },
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Interrupt",
+                  "requestId": "1"
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Interrupt",
+                  "requestId": "3"
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Interrupt",
+                  "requestId": "4"
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Interrupt",
+                  "requestId": "7"
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "9",
+                  "tag": "conformance.noSuchMethod",
+                  "payload": {},
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "10",
+                  "tag": "server.getConfig",
+                  "payload": {},
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "11",
+                  "tag": "orchestration.dispatchCommand",
+                  "payload": {
+                    "type": "thread.archive"
+                  },
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "12",
+                  "tag": "orchestration.dispatchCommand",
+                  "payload": {
+                    "type": "conformance.noSuchCommand",
+                    "commandId": "conformance-cmd-unknown"
+                  },
+                  "headers": []
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Eof"
+                }
+              },
+              {
+                "ws-close": {
+                  "code": 1000,
+                  "reason": "done"
+                }
+              }
+            ],
+            "settle_ms": 250,
+            "scenarios": [
+              [
+                "auth",
+                5
+              ],
+              [
+                "rpc-phase1",
+                41
+              ],
+              [
+                "rpc-errors",
+                12
+              ]
+            ],
+            "variants": {
+              "order": {
+                "file": "rpc-phase1.variant-order.jsonl",
+                "scenario": "rpc-phase1",
+                "permutation": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  10,
+                  11,
+                  12,
+                  13,
+                  14,
+                  15,
+                  18,
+                  17,
+                  20,
+                  21,
+                  16,
+                  19,
+                  22,
+                  23,
+                  24,
+                  25,
+                  26,
+                  27,
+                  28,
+                  29,
+                  30,
+                  31,
+                  32,
+                  33,
+                  34,
+                  35,
+                  36,
+                  37,
+                  38,
+                  39,
+                  40
+                ]
+              }
+            }
+          },
+          "tags": [
+            "variant:order"
+          ]
+        }
+      ]
+    }
+  ]
+}

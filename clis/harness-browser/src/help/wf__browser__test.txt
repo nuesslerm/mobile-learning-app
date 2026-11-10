@@ -1,0 +1,25 @@
+Usage: wf browser test <script.lua> [--env K=V]... [--publish] [--test-output-dir D] [--no-record] [--update-goldens]
+                       [--goldens-dir D] [--logpoint file:line[:cond]]... [--device D] [--screen-size P] [--frame F]
+                       [--speed N]
+       wf browser test --api [--json]
+
+Runs one Lua script against the browser harness (Maestro's `maestro test`): Chromium framed as the phone preset
+--screen-size (else WF_BROWSER_SCREEN_SIZE, else iphone-15-pro; `wf browser list-devices` lists them), --frame
+screen|bezel|document (else WF_BROWSER_FRAME). The script drives `device` with the command table's methods
+(`wf browser test --api`); --env K=V fills its `env` table. --device names the session the test opens (default
+run-<pid>), marked with the test's pid, so a verb typed by hand never drives it. --logpoint arms a source-mapped
+logpoint before the first page loads; its hits land in <test-output-dir>/debug.jsonl. assert_screenshot compares
+with its golden (docs/runbooks/goldens/browser/, or --goldens-dir) on every run; --update-goldens writes them instead.
+--speed N (else WF_TEST_SPEED; 1 to 4, default 1, anything else is a usage error) runs the user's gestures and typing
+at N times their pace: the swipe verb's default 400 ms, scroll_until_visible's 600 ms drags and the pauses between typed
+keys are divided by N, a swipe never below 250 ms so a drag stays a drag. A duration the script passes, a stroke, a
+sleep, a wait and a timeout keep their own time. The report's speed says which ran; CI runs the browser at 2.
+
+Every run ends with <test-output-dir>/report.{json,html} (default .agents/tmp/runs/<script>-<ms>; schema in
+`wf browser test --api`), timing.jsonl and, unless --no-record, run.mp4; --publish uploads the run as a bundle
+(`wf test publish`) and posts its test_runs row. Output: the script's log lines and its report:, bundle:,
+recording: and goldens: lines.
+
+Removed: --goldens (assert_screenshot always compares).
+
+Exit: 0 pass, 1 the script failed or the harness errored (the report says which), 2 a usage error, 124 stopped by SIGTERM (report written).

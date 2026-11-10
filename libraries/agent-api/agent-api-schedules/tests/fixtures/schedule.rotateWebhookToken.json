@@ -1,0 +1,122 @@
+{
+  "method": "schedule.rotateWebhookToken",
+  "exchanges": [
+    {
+      "name": "gives a webhook schedule a new token, shown once",
+      "before": [
+        {
+          "id": "setup-rot",
+          "method": "schedule.upsert",
+          "params": {
+            "id": "s-rot",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "webhook"
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "schedule.rotateWebhookToken",
+        "params": {
+          "id": "s-rot"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "task": {
+            "id": "s-rot",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "webhook"
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent",
+            "model": null,
+            "thread": null,
+            "runtime_mode": null,
+            "interaction_mode": null,
+            "created_at_ms": 1700000000000,
+            "updated_at_ms": 1700000000000,
+            "next_run_ms": null,
+            "last_run_ms": null,
+            "last_run_status": "never",
+            "last_run_error": null,
+            "run_count": 0,
+            "webhook": {
+              "path": "/hooks/v1/schedules/s-rot",
+              "has_token": true
+            }
+          },
+          "webhook_token": "<volatile>"
+        }
+      },
+      "actions": [],
+      "volatile": [
+        "/result/webhook_token"
+      ]
+    },
+    {
+      "name": "answers NOT_A_WEBHOOK for a schedule that runs by the clock",
+      "before": [
+        {
+          "id": "setup-timer",
+          "method": "schedule.upsert",
+          "params": {
+            "id": "s-timer",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "interval",
+              "every_ms": 60000
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": 2,
+        "method": "schedule.rotateWebhookToken",
+        "params": {
+          "id": "s-timer"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "NOT_A_WEBHOOK",
+          "message": "schedule s-timer is not a webhook schedule"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "answers SCHEDULE_NOT_FOUND for an id no schedule has",
+      "request": {
+        "id": 3,
+        "method": "schedule.rotateWebhookToken",
+        "params": {
+          "id": "nope"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "SCHEDULE_NOT_FOUND",
+          "message": "no schedule has the id nope"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

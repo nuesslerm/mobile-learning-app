@@ -1,0 +1,9 @@
+# How a runner provisions the pinned T3 release for `wf mimic record` (`wf mimic provision --help` documents the schema). The driver downloads the
+# release the pin names into T3_RELEASE_CACHE and refuses it when the pin and the release's SHA256SUMS do not both name the tarball's hash.
+workdir = "t3"
+
+[toolchain]
+node = "24"
+
+[env]
+T3_RELEASE_CACHE = "{work}/release-cache"

@@ -1,0 +1,32 @@
+{
+  "platform": "android",
+  "step": 1,
+  "last_action": "open exp://metro-runner-main:20000/--/tamil/uyir-1",
+  "warnings": [],
+  "summary": null,
+  "screen": {
+    "width": 480,
+    "height": 1040
+  },
+  "timings": {
+    "since_start_ms": 3407,
+    "capture_ms": 212
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.002,
+    "ignore": [
+      [
+        0,
+        0,
+        360,
+        26
+      ]
+    ]
+  },
+  "name": "tamil-uyir-1-open",
+  "image": {
+    "width": 360,
+    "height": 780
+  }
+}

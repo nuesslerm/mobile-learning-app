@@ -1,0 +1,32 @@
+{
+  "suite": "uselivetranscript",
+  "step": "final-given-three-chunks-whose-second-response-arrives-1d64d8",
+  "scheme": "dark",
+  "snapshot": "uselivetranscript/final-given-three-chunks-whose-second-response-arrives-1d64d8.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [],
+    "text": ""
+  },
+  "timings": {
+    "render_ms": 270
+  },
+  "name": "uselivetranscript/final-given-three-chunks-whose-second-response-arrives-1d64d8.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

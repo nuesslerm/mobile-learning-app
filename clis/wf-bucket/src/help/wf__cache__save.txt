@@ -1,0 +1,35 @@
+Usage: wf cache save [options] <kind>
+
+Upload the pnpm store as its one object (store-<layout>.tar.gz, overwritten in
+place, at most 1 GiB) and then the sidecar beside it that records the lockfile.
+Run it right after `pnpm install --frozen-lockfile`. It saves only when all of
+these hold, and asks the bucket nothing until the first three do:
+  the write guard allows it (clean tree, HEAD on origin/dev, pinned node and
+    pnpm; see `wf cache --help`)
+  node_modules/.pnpm/lock.yaml, which pnpm writes when an install completes, is
+    the same file as pnpm-lock.yaml (so the install was a green one of this
+    lockfile)
+  the local store has content
+  the lockfile's sha256 differs from the one in the sidecar, or the object is
+    missing (it expired by lifecycle)
+Needs both links (BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL).
+
+Any problem with the bucket is a cold run: exit 0. Only a step on this machine
+that failed (pnpm missing, tar failed) exits 1.
+
+Output: one JSON object on stdout {ok, kind, saved, bytes, lockfileSha256,
+reason, ms} where bytes is the archive's size and reason says why nothing was
+saved (guard refused, no green install of this lockfile, local store empty,
+lockfile unchanged since the saved object, over the size cap, store not used: no
+link, unreachable, credential, budget or disabled, or the failed step) and null
+when the store was saved.
+
+Kind metro: uploads frontend/mla-tamagui/node_modules/.cache/app-build as app-build.tar.gz (at most 256 MiB,
+overwritten in place) when the write guard allows it, the directory has content and its fingerprint (file names
+and sizes) differs from the saved one.
+
+Arguments:
+  kind        pnpm | metro
+
+Options:
+  -h, --help  display help for command

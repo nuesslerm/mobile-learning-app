@@ -1,0 +1,76 @@
+Usage: wf ci comment [options]
+
+Report on this CI run, most important first, so whoever watches the commit reads
+the verdict and the cause without opening the run. It lists the run's jobs from
+the GitHub API and reports on every run, green or red: a title (verdict, short
+sha, branch, wall time) with links to the commit and the run; when a job failed,
+a block per failed job (the step that failed, how long it took, a link, and the
+log lines that say why) and one line naming the jobs skipped because of it; the
+counts (passed, failed, skipped, build cache hit rate, docker layers cached);
+"Where the time went" (wall time split into jobs running and waiting between them,
+the longest jobs, runner waits from created to started, and the slowest steps,
+tests, test suites and Nx tasks, read from the job logs' timestamps); a
+Jobs table (result, job, time with a bar against the longest job, notes: cache
+hit rate, Nx replays, docker layers cached, EAS export, upload and served
+seconds, the slowest step); the VM during the run (CPU, memory, I/O wait,
+memory pressure, load, swap and the docker call: average, peak and when, and
+whether the VM stopped sampling), read from reporting-service over the tailnet
+(WF_VM_STATS_URL, default http://reporting-service:8791; a line says why when it
+cannot be read), then per job CPU, I/O wait and memory, and the containers that
+used the VM, biggest disk writers first; a Cache section (build cache, Nx replays,
+sccache and docker layers per job and for the run, and the tasks that ran for lack
+of a hit, slowest first); the e2e units of the commit (from the file WF_CI_RESULTS
+names, written by `wf test results --json`); and collapsed blocks with the slowest
+steps per job, slowest tests, test suites, Nx runs (critical path, recoverable
+time), deploy phases, the cache hits, misses, puts and latencies per job and the
+flow tests' crates (replayed or ran).
+
+The report goes in the job summary ($GITHUB_STEP_SUMMARY) and as THE CI comment
+of the pull request of the branch: the only one, last on the page, which is this
+run's own (`wf ci live` keeps it up to date while the run executes, with the
+stats of every stage so far; this is the final report); the CI comments of
+earlier runs are deleted. When a job failed it also goes as a commit comment,
+with a collapsed block per failed job holding up to 40 more log lines. The
+charts are vertical bar charts, which a phone in portrait draws whole.
+
+"What went wrong" is read from the job's log: the ##[error] lines, cargo test
+lines ending FAILED and panicked at, the tasks Nx lists as failed, a flow or e2e
+unit with a fail verdict and its bundle link, docker build lines starting with
+#N ERROR, JSON {ok: false} errors and HTTP errors (`wf ship`'s returned HTTP 502
+with its exitCode and stderr), and `wf: ...` errors; each line loses its
+timestamp and colour and is cut at 300 characters.
+Anything shaped like a token (ghp_, github_pat_), a bearer value or a
+pre-authenticated URL (/p/<id>/n/ paths, signed query values) is redacted. The
+comment stays under 60000 characters (GitHub caps one at 65536): the details are
+cut first.
+
+A re-run of the same run updates its comment in place, found by the marker line
+<!-- ci-live run:<id> -->; the CI comments of other runs on the pull request are
+deleted, and no comment of anyone else is touched. A failure
+to comment never fails or masks the CI result: one stderr line gives the
+reason and the exit code stays 0.
+
+Environment: GITHUB_TOKEN (contents: write to comment, actions: read for the
+jobs and their logs, pull-requests: write and issues: write for the pull
+request comment), GITHUB_REPOSITORY, GITHUB_RUN_ID and GITHUB_SHA; optional
+RUNNER_NAME (the marker and header), GITHUB_STEP_SUMMARY, WF_CI_RESULTS and
+WF_VM_STATS_URL; optional
+GITHUB_API_URL (default https://api.github.com), GITHUB_SERVER_URL (default
+https://github.com) and GITHUB_REF_NAME (the branch in the header). The CI
+workflow's report job sets them.
+
+Output: one JSON line on stdout {ok, posted, commentId?, action?, prComment?,
+summary?, failedJobs, reason?}: posted, action and commentId describe the commit
+comment (only a red run makes one; action is created or updated), prComment is
+{number, action, commentId} or {error} or null without an open pull request,
+summary says whether the job summary was written, failedJobs the names of the
+failed jobs (empty when the run is green); ok is false, with posted false
+and the reason, when an environment variable is missing or the jobs, the comment
+list or the post could not be reached (a log that cannot be read only says so in
+that job's row). With --dry-run, {ok, posted: false, dryRun: true, failedJobs,
+body}.
+
+Options:
+  --dry-run   print the comment as the body field of the JSON line (read it
+              with `jq -r .body`) and post nothing
+  -h, --help  display help for command

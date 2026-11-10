@@ -1,0 +1,74 @@
+{
+  "method": "schedule.delete",
+  "exchanges": [
+    {
+      "name": "deletes a schedule",
+      "before": [
+        {
+          "id": "setup-del",
+          "method": "schedule.upsert",
+          "params": {
+            "id": "s-del",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "interval",
+              "every_ms": 60000
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "schedule.delete",
+        "params": {
+          "id": "s-del"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "id": "s-del"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "answers SCHEDULE_NOT_FOUND for a schedule that was deleted",
+      "request": {
+        "id": 2,
+        "method": "schedule.delete",
+        "params": {
+          "id": "s-del"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "SCHEDULE_NOT_FOUND",
+          "message": "no schedule has the id s-del"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a request with no id",
+      "request": {
+        "id": 3,
+        "method": "schedule.delete",
+        "params": {}
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "id is required"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

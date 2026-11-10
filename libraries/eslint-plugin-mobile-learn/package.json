@@ -1,0 +1,48 @@
+{
+  "name": "@lib/eslint-plugin-mobile-learn",
+  "version": "1.0.0",
+  "description": "Internal oxlint JS-plugin rules for the mobile-learning apps",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.cjs.json && tsc-alias -p tsconfig.cjs.json && tsc -p tsconfig.esm.json && tsc-alias -p tsconfig.esm.json && node -e \"const fs=require('fs');fs.writeFileSync('dist/cjs/package.json','{\\\"type\\\":\\\"commonjs\\\"}\\n');fs.writeFileSync('dist/esm/package.json','{\\\"type\\\":\\\"module\\\"}\\n')\"",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
+    "prepare": "pnpm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:unit": "vitest run"
+  },
+  "peerDependencies": {
+    "oxlint": "catalog:"
+  },
+  "devDependencies": {
+    "@typescript/native": "catalog:",
+    "typescript": "catalog:",
+    "@types/node": "^20.19.25",
+    "@types/estree": "^1.0.9",
+    "oxlint": "catalog:",
+    "tsc-alias": "^1.8.16",
+    "vitest": "catalog:"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

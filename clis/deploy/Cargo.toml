@@ -1,0 +1,47 @@
+[package]
+name = "deploy"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "`wf vm` (the machine's health, logs, recovery, drills, dependency manifest, Oracle credentials, Terraform and tailnet), `wf ship` (build, push and redeploy a service on the VM; `ship eas` publishes the app as an EAS Update; `ship retire`, `--status`, `--changed`, `--wait-serving`) `wf check --deployed`, the verification of a deployed commit, and `wf check --health`"
+
+# The test kit hides every registry secret from the binary; ship.rs compares the desktop leg's Dockerfile and its listener's crate manifests
+# with the leg's trigger paths and runs the app's publish script. The repo copy the leg plans read is pipeline's contract, not listed here.
+[package.metadata.flow]
+inputs = ["../secrets/src/data/registry.json", "../vnc-auth-capture/Dockerfile", "../vnc-auth-capture/listener/Cargo.toml", "../wf-login/Cargo.toml", "../cdp/Cargo.toml", "../telemetry/Cargo.toml", "../../frontend/mla-tamagui/app.config.js", "../../frontend/mla-tamagui/scripts/publish-eas-update.js"]
+
+# The tests are one flow binary (tests/flow.rs) driving the thin binary below; the lib has no unit tests (plan D3).
+[lib]
+test = false
+doctest = false
+
+# Serves `wf ship`, `wf check --deployed|--health`, `wf vm` and `wf secret`, which the health report runs again through the executable.
+[[bin]]
+name = "deploy"
+path = "src/bin/deploy.rs"
+test = false
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+secrets = { path = "../secrets" }
+wf-vmops = { path = "../wf-vmops" }
+wf-bucket = { path = "../wf-bucket" }
+blob-cache = { path = "../blob-cache" }
+sha2 = "0.10"
+hex = "0.4"
+pipeline = { path = "../pipeline" }
+rca-core = { version = "0.1", registry = "mla" }
+cli-http = { path = "../http" }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+libc = "0.2"
+tempfile = "3"
+
+[dev-dependencies]
+wf-testkit = { path = "../wf-testkit", features = ["tls"] }
+base64 = "0.22"
+tempfile = "3"
+# The tests double vm-ops-api with the fake wf-vmops ships.
+wf-vmops = { path = "../wf-vmops", features = ["testing"] }
+# ship.rs reads the desktop listener's manifests to compare its cargo closure with the leg and the Dockerfile.
+toml = { version = "0.8", default-features = false, features = ["parse"] }

@@ -1,0 +1,58 @@
+{
+  "method": "n=5 rounds of the watchdog's cold start and idle RSS, implementations interleaved per round. See the script header.",
+  "host": "x86_64",
+  "implementations": {
+    "node": {
+      "start_ms": 44.574,
+      "idle_rss_kb": 46476,
+      "rounds": [
+        {
+          "start_ms": 44.347,
+          "idle_rss_kb": 46476
+        },
+        {
+          "start_ms": 44.574,
+          "idle_rss_kb": 46484
+        },
+        {
+          "start_ms": 46.182,
+          "idle_rss_kb": 46444
+        },
+        {
+          "start_ms": 47.587,
+          "idle_rss_kb": 46476
+        },
+        {
+          "start_ms": 41.453,
+          "idle_rss_kb": 46480
+        }
+      ]
+    },
+    "rust": {
+      "start_ms": 4.766,
+      "idle_rss_kb": 5320,
+      "rounds": [
+        {
+          "start_ms": 4.858,
+          "idle_rss_kb": 5304
+        },
+        {
+          "start_ms": 4.766,
+          "idle_rss_kb": 5352
+        },
+        {
+          "start_ms": 4.779,
+          "idle_rss_kb": 5348
+        },
+        {
+          "start_ms": 4.726,
+          "idle_rss_kb": 5320
+        },
+        {
+          "start_ms": 4.745,
+          "idle_rss_kb": 5240
+        }
+      ]
+    }
+  }
+}

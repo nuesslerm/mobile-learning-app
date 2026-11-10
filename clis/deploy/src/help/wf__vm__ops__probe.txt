@@ -1,0 +1,22 @@
+Usage: wf vm ops probe [options] <app...>
+
+GET /health of each app on the tailnet, at the name its host answers to now (the
+one a web export bakes in, as `wf vm net resolve` finds it), within 5 s each.
+Exit 1 naming the apps that do not answer 2xx, with their container states from
+vm-ops-api. CI runs it before the e2e tests build or boot anything, so a service
+that is down fails the job in seconds, not after every unit that calls it timed
+out.
+
+Arguments:
+  app         leetcode-backend | remote-chat-agent | reporting-service
+
+Options:
+  --wait <s>  keep probing the apps that do not answer, every 5 s, for up to
+              this many seconds (default 0: one probe each)
+  -h, --help  display help for command
+
+Output: one JSON line {ok, apps: [{app, ok, ms, error?, containers?}],
+unhealthy?, next?} on stdout; on failure the same names on stderr and exit 1.
+
+Example:
+  wf vm ops probe --wait 45 remote-chat-agent leetcode-backend

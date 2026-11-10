@@ -1,0 +1,51 @@
+Usage: wf parity track check|bump --app t3|orca [--root <dir>]
+       wf parity track plan (--message <text> | --file <path|->) [--root <dir>]
+       wf parity track report --plan <plan.json> --inputs <dir> --out <dir> [--run <id>] [--sha <commit>]
+
+Follow the real servers the phone apps are conformed to. T3 is the npm package
+`t3` (pinned in tooling/t3-conformance/t3-pin.json, its release on
+github.com/pingdotgg/t3code); Orca is the newest GitHub release of
+stablyai/orca (tooling/orca-conformance/orca-pin.json). No verb prompts and
+every line on stdout is one JSON object (schema parity-track/1).
+
+check   Compare the pin with the newest release. A pin that is behind is data,
+        not a failure (exit 0):
+        {schema, ok, app, pinned, latest, drifted, next}
+bump    Write the pin at the newest release (a pin already there is left alone).
+        T3: version, commit, release URL, npm integrity and the size and sha256
+        of each pinned platform's tarball (from the release's SHA256SUMS).
+        Orca: version and the commit of the release tag. Reports
+        {schema, ok, app, pinned, latest, drifted, bumped, wrote, commit,
+        rerecord: [cassette sets], stale: [what to regenerate], review: [pin
+        fields only a person can set], next}.
+plan    Read the [track <app>... [chunk=<minutes>] [fresh]] marker of a commit
+        message (a line of its own that begins with `[track `), check each app
+        it names and print {schema, ok, go, apps, chunk, fresh, drifted,
+        verdicts: [the check verdicts], record_marker, next}. record_marker is
+        the [record <set>...] marker of the sets of the drifted apps, for
+        `wf mimic trigger --message`, or null when no pin is behind. sets lists
+        the sets it names.
+report  Fold a tracker run into one drift report. --inputs holds the capture
+        outputs (<set>.record.json and <set>.replay.json of `wf mimic job`,
+        coverage-<app>.json of `wf parity coverage`); --out gets
+        drift-report.json {schema parity-track-report/1, ok, run, sha, apps:
+        [{app, pinned, latest, drifted, status: current|incomplete|
+        discrepancies|needs-work|clean, sets: [{set, recorded, replay}],
+        coverage}], next}, summary.md, and report.json + report.html (a
+        flow-report/1) that `wf test publish <out>` makes a run bundle of.
+        Prints the drift report; ok is false only when a capture did not finish.
+
+The newest release is read from the public services; WF_TRACK_NPM,
+WF_TRACK_GITHUB_API and WF_TRACK_GITHUB_WEB name others, and GITHUB_TOKEN (sent
+to the GitHub API only) lifts its rate limit. A service that cannot be reached
+or answers differently is {ok: false, error, next} and exit 1; a line that
+does not parse exits 2.
+
+Options:
+  --app <name>                t3 or orca (check, bump)
+  --message <text>            the commit message (plan)
+  --file <path>               read it from a file, or - for stdin (plan)
+  --plan, --inputs, --out     the plan.json, the capture outputs and the report dir (report)
+  --run, --sha                the workflow run and the commit the report names (report)
+  --root <dir>                the repository root (default: this checkout)
+  -h, --help                  display help for command

@@ -1,0 +1,95 @@
+{
+  "action": "git_checkpoint",
+  "exchanges": [
+    {
+      "name": "records the tree as it is under the turn's ref, edits and new files included",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "cp1",
+        "tool": "git_checkpoint",
+        "args": {
+          "thread": "t-1",
+          "turn": "u-1"
+        }
+      },
+      "response": {
+        "id": "cp1",
+        "ok": true,
+        "result": {
+          "ref": "refs/rca/checkpoints/t-1/u-1",
+          "commit": "<volatile>",
+          "head": "<volatile>"
+        }
+      },
+      "volatile": [
+        "/result/commit",
+        "/result/head"
+      ]
+    },
+    {
+      "name": "refuses a turn that climbs out of the ref",
+      "request": {
+        "id": "cp3",
+        "tool": "git_checkpoint",
+        "args": {
+          "thread": "t",
+          "turn": "../heads/main"
+        }
+      },
+      "response": {
+        "id": "cp3",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`turn` must be at most 128 letters, digits, `.`, `_` or `-`, not starting with `-` or `.`"
+        }
+      }
+    },
+    {
+      "name": "refuses a thread that is an option",
+      "request": {
+        "id": "cp4",
+        "tool": "git_checkpoint",
+        "args": {
+          "thread": "--output=x",
+          "turn": "u"
+        }
+      },
+      "response": {
+        "id": "cp4",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`thread` must be at most 128 letters, digits, `.`, `_` or `-`, not starting with `-` or `.`"
+        }
+      }
+    },
+    {
+      "name": "refuses a request that names no turn",
+      "request": {
+        "id": "cp5",
+        "tool": "git_checkpoint",
+        "args": {
+          "thread": "t"
+        }
+      },
+      "response": {
+        "id": "cp5",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`turn` must be a string"
+        }
+      }
+    }
+  ]
+}

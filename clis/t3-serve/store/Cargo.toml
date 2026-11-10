@@ -1,0 +1,15 @@
+[package]
+name = "t3-store"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "SQLite adapter of the T3-compatible server's event, auth and meta stores (WAL, one global sequence, command receipts)"
+
+[lib]
+test = false
+doctest = false
+
+[dependencies]
+t3-core = { path = "../core" }
+serde_json = { version = "1", features = ["preserve_order"] }
+rusqlite = { version = "0.37", features = ["bundled"] }

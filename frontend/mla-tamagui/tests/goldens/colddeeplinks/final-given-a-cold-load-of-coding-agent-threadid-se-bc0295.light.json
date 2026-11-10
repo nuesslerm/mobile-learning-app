@@ -1,0 +1,51 @@
+{
+  "suite": "colddeeplinks",
+  "step": "final-given-a-cold-load-of-coding-agent-threadid-se-bc0295",
+  "scheme": "light",
+  "snapshot": "colddeeplinks/final-given-a-cold-load-of-coding-agent-threadid-se-bc0295.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ThreadSettingsSheet",
+      "ThreadSettingsSheetHeader",
+      "ThreadSettingsSheetHeaderClose",
+      "ThreadSettingsModelSection",
+      "ThreadSettingsRuntimeSection",
+      "RuntimeModeOption",
+      "RuntimeModeOption-approval-required",
+      "RuntimeModeOption-auto-accept-edits",
+      "RuntimeModeOption-auto",
+      "RuntimeModeOption-full-access",
+      "ThreadSettingsInteractionSection",
+      "InteractionModeOption",
+      "InteractionModeOption-default",
+      "InteractionModeOption-plan",
+      "ThreadSettingsTokenSection",
+      "ThreadSettingsToken-Field",
+      "ThreadSettingsToken",
+      "ThreadSettingsTokenSave"
+    ],
+    "text": "Thread settings\nModel\nRuntime mode\nSupervised\nAuto-accept edits\nAuto\nFull access\nInteraction mode\nBuild\nPlan\nAPI token\nSave token"
+  },
+  "timings": {
+    "render_ms": 426
+  },
+  "name": "colddeeplinks/final-given-a-cold-load-of-coding-agent-threadid-se-bc0295.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

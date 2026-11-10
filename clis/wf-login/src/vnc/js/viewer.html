@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>Login</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; overscroll-behavior: none; }
+  canvas { display: block; width: 100vw; height: 100dvh; object-fit: contain; touch-action: none; }
+  #status { position: fixed; inset: 0; display: grid; place-items: center; color: #aaa; font: 15px system-ui, sans-serif; pointer-events: none; }
+  #kb { position: fixed; right: 14px; bottom: calc(14px + env(safe-area-inset-bottom)); width: 52px; height: 52px; border: 0; border-radius: 26px;
+        background: #2d6cdf; color: #fff; font-size: 24px; box-shadow: 0 2px 10px #0008; }
+  #paste { position: fixed; right: 14px; bottom: calc(76px + env(safe-area-inset-bottom)); height: 44px; padding: 0 16px; border: 0; border-radius: 22px;
+           background: #444; color: #fff; font-size: 15px; box-shadow: 0 2px 10px #0008; }
+  #box { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 8px; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: #222; }
+  #box[hidden] { display: none; }
+  #box input { flex: 1; min-width: 0; font-size: 16px; padding: 10px; border: 0; border-radius: 8px; }
+  #box button { border: 0; border-radius: 8px; padding: 0 16px; background: #2d6cdf; color: #fff; font-size: 16px; }
+  #kb.hint { animation: pulse 1s ease-in-out infinite; }
+  @keyframes pulse { 50% { transform: scale(1.12); } }
+  #k { position: fixed; left: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; font-size: 16px; }
+</style>
+</head>
+<body>
+<canvas id="screen"></canvas>
+<div id="status">Waiting for the browser…</div>
+<button id="kb" aria-label="Keyboard">⌨</button>
+<button id="paste" aria-label="Paste">Paste</button>
+<form id="box" hidden><input id="t" placeholder="Paste or type here" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"><button>Send</button></form>
+<input id="k" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="go">
+<script>
+(() => {
+  const token = new URLSearchParams(location.search).get('t') || '';
+  const q = '?t=' + encodeURIComponent(token);
+  const canvas = document.getElementById('screen');
+  const ctx = canvas.getContext('2d');
+  const status = document.getElementById('status');
+  const kb = document.getElementById('kb');
+  const k = document.getElementById('k');
+
+  const send = (event) => {
+    return fetch('/input' + q, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(event) }).catch(() => {});
+  };
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+  // Long-poll: the server answers when the page differs from the frame the viewer already has (204 when it held still), so
+  // a still page costs nothing and a change arrives as soon as it is taken.
+  let last = '';
+  async function frames() {
+    for (;;) {
+      try {
+        const reply = await fetch('/frame' + q + (last ? '&after=' + last : ''), { cache: 'no-store' });
+        if (reply.status === 200) {
+          last = reply.headers.get('x-frame-seq') || '';
+          const bitmap = await createImageBitmap(await reply.blob());
+          if (canvas.width !== bitmap.width || canvas.height !== bitmap.height) { canvas.width = bitmap.width; canvas.height = bitmap.height; }
+          ctx.drawImage(bitmap, 0, 0);
+          bitmap.close();
+          status.style.display = 'none';
+          kb.classList.toggle('hint', reply.headers.get('x-editable') === '1' && document.activeElement !== k);
+        } else if (reply.status !== 204) {
+          last = '';
+          status.style.display = 'grid';
+          status.textContent = reply.status === 503 ? 'Waiting for the browser…' : 'Error ' + reply.status;
+          await sleep(800);
+        }
+      } catch (e) {
+        last = '';
+        status.style.display = 'grid';
+        status.textContent = 'Reconnecting…';
+        await sleep(1200);
+      }
+    }
+  }
+
+  const point = (event) => {
+    const box = canvas.getBoundingClientRect();
+    const scale = Math.min(box.width / canvas.width, box.height / canvas.height);
+    const left = box.left + (box.width - canvas.width * scale) / 2;
+    const top = box.top + (box.height - canvas.height * scale) / 2;
+    return { x: (event.clientX - left) / scale, y: (event.clientY - top) / scale, scale };
+  };
+
+  let down = null, lastScroll = 0;
+  canvas.addEventListener('pointerdown', (event) => {
+    canvas.setPointerCapture(event.pointerId);
+    const p = point(event);
+    down = { x: p.x, y: p.y, lastY: p.y, moved: false };
+  });
+  canvas.addEventListener('pointermove', (event) => {
+    if (!down) return;
+    const p = point(event);
+    if (!down.moved && Math.hypot(p.x - down.x, p.y - down.y) > 8) down.moved = true;
+    if (down.moved && Date.now() - lastScroll > 50) {
+      lastScroll = Date.now();
+      send({ type: 'scroll', x: p.x, y: p.y, dy: down.lastY - p.y });
+      down.lastY = p.y;
+    }
+  });
+  canvas.addEventListener('pointerup', (event) => {
+    const p = point(event);
+    if (down && !down.moved) send({ type: 'tap', x: p.x, y: p.y });
+    down = null;
+  });
+  canvas.addEventListener('pointercancel', () => { down = null; });
+
+  kb.addEventListener('click', () => { document.activeElement === k ? k.blur() : k.focus(); });
+  const keys = { Backspace: 1, Enter: 1, Tab: 1, Escape: 1, ArrowLeft: 1, ArrowRight: 1, ArrowUp: 1, ArrowDown: 1 };
+  let composing = false;
+  k.addEventListener('keydown', (event) => {
+    if (keys[event.key]) { event.preventDefault(); send({ type: 'key', key: event.key }); }
+  });
+  k.addEventListener('compositionstart', () => { composing = true; });
+  k.addEventListener('compositionend', () => { composing = false; if (k.value) { send({ type: 'text', text: k.value }); k.value = ''; } });
+  k.addEventListener('input', () => {
+    if (composing || !k.value) return;
+    send({ type: 'text', text: k.value });
+    k.value = '';
+  });
+
+  const box = document.getElementById('box'), t = document.getElementById('t');
+  const typed = (text) => { if (text) send({ type: 'text', text: text.slice(0, 256) }); };
+  document.getElementById('paste').addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) { typed(text); return; }
+    } catch (e) { /* refused or unavailable: the box takes the paste instead */ }
+    box.hidden = false;
+    t.focus();
+  });
+  box.addEventListener('submit', (event) => { event.preventDefault(); typed(t.value); t.value = ''; box.hidden = true; t.blur(); });
+
+  frames();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,20 @@
+Usage: wf parity [options] [command]
+
+How far the agent API mappers are from parity with the pinned phone apps
+(docs/plans/rca-parity/plan.md section 5): every method, command type, HTTP
+call and subscription the phone reaches is a row in a coverage table under
+docs/plans/rca-parity/coverage/, and parity is reached when no row is pending.
+It is also the standalone binary `wf-parity` (`wf-parity parity coverage ...`).
+
+Every line on stdout is one JSON object and no verb prompts. A failed check or
+a refusal prints {ok: false, ...} and exits 1; a malformed line exits 2.
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  coverage [options]          Scan the pinned reference and write, or check,
+                              the app's method list and coverage table
+  track <verb> [options]      Is the pinned reference the newest release of the
+                              real server: check, bump, plan
+  help [command]              display help for command

@@ -1,0 +1,16 @@
+Usage: wf mimic export [options] <format> <set>
+
+Rebuild the legacy files of an imported set from its cassette and compare the
+canonical sha256 of each with the one recorded in provenance.imported_from: the
+proof that the import lost nothing, offline and without the legacy files. Exit 1
+when a file does not rebuild to its recorded hash. With --out the rebuilt files
+(canonical JSON, sorted keys) are written under that directory at their recorded
+paths.
+
+Options:
+  --out <dir>                 also write the rebuilt files here
+  -h, --help                  display help for command
+
+Output (schema mimic-export/1):
+  {schema, ok, format, set, files: [{path, expected, actual?, ok}], wrote,
+  warnings, next}

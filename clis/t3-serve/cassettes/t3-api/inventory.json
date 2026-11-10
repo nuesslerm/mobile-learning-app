@@ -1,0 +1,6441 @@
+{
+  "schema": "mimic-inventory/1",
+  "app": "t3",
+  "pin": {
+    "version": "0.1.6",
+    "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e"
+  },
+  "sources": [
+    {
+      "name": "schema",
+      "available": true,
+      "found": 304,
+      "note": "15 schema constructors read as any"
+    },
+    {
+      "name": "cli-source",
+      "available": true,
+      "found": 49
+    },
+    {
+      "name": "mobile-calls",
+      "available": true,
+      "found": 4,
+      "note": "literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf parity coverage)"
+    },
+    {
+      "name": "catalog",
+      "available": true,
+      "found": 304
+    },
+    {
+      "name": "cli-help",
+      "available": false,
+      "found": 0,
+      "note": "needs the release binary: `t3 --help` of every subcommand, captured on the VM"
+    },
+    {
+      "name": "runtime",
+      "available": false,
+      "found": 0,
+      "note": "needs a running server"
+    }
+  ],
+  "endpoints": [
+    {
+      "id": "command:checkpoint.rollback",
+      "kind": "command",
+      "name": "checkpoint.rollback",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:delegated_task.completion-delivery.acknowledge",
+      "kind": "command",
+      "name": "delegated_task.completion-delivery.acknowledge",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:delegated_task.completion-delivery.dispose",
+      "kind": "command",
+      "name": "delegated_task.completion-delivery.dispose",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:delegated_task.request",
+      "kind": "command",
+      "name": "delegated_task.request",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:delegated_task.wake-policy",
+      "kind": "command",
+      "name": "delegated_task.wake-policy",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:message.dispatch",
+      "kind": "command",
+      "name": "message.dispatch",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:notification.delivery.accept",
+      "kind": "command",
+      "name": "notification.delivery.accept",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:prepared-run.fail",
+      "kind": "command",
+      "name": "prepared-run.fail",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:prepared-run.progress",
+      "kind": "command",
+      "name": "prepared-run.progress",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:prepared-run.release",
+      "kind": "command",
+      "name": "prepared-run.release",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:prepared-run.retry",
+      "kind": "command",
+      "name": "prepared-run.retry",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:provider-session.detach",
+      "kind": "command",
+      "name": "provider-session.detach",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:provider.switch",
+      "kind": "command",
+      "name": "provider.switch",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:queue.resume",
+      "kind": "command",
+      "name": "queue.resume",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:queued-message.promote-to-steer",
+      "kind": "command",
+      "name": "queued-message.promote-to-steer",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:queued-run.cancel",
+      "kind": "command",
+      "name": "queued-run.cancel",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:queued-run.edit",
+      "kind": "command",
+      "name": "queued-run.edit",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:queued-run.reorder",
+      "kind": "command",
+      "name": "queued-run.reorder",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:queued-run.start",
+      "kind": "command",
+      "name": "queued-run.start",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:run.interrupt",
+      "kind": "command",
+      "name": "run.interrupt",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:runtime-request.respond",
+      "kind": "command",
+      "name": "runtime-request.respond",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:subagent.stop",
+      "kind": "command",
+      "name": "subagent.stop",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.active.reorder",
+      "kind": "command",
+      "name": "thread.active.reorder",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.archive",
+      "kind": "command",
+      "name": "thread.archive",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "golden",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.auto-settle",
+      "kind": "command",
+      "name": "thread.auto-settle",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.auto-settle.set",
+      "kind": "command",
+      "name": "thread.auto-settle.set",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.create",
+      "kind": "command",
+      "name": "thread.create",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "golden",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.created.record",
+      "kind": "command",
+      "name": "thread.created.record",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.delete",
+      "kind": "command",
+      "name": "thread.delete",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.fork",
+      "kind": "command",
+      "name": "thread.fork",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.guest-message.dismiss",
+      "kind": "command",
+      "name": "thread.guest-message.dismiss",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.guest-share.close",
+      "kind": "command",
+      "name": "thread.guest-share.close",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.interaction-mode.set",
+      "kind": "command",
+      "name": "thread.interaction-mode.set",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.mark-unread",
+      "kind": "command",
+      "name": "thread.mark-unread",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.merge_back",
+      "kind": "command",
+      "name": "thread.merge_back",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.metadata.update",
+      "kind": "command",
+      "name": "thread.metadata.update",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.model-selection.set",
+      "kind": "command",
+      "name": "thread.model-selection.set",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.pin",
+      "kind": "command",
+      "name": "thread.pin",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.pin.reorder",
+      "kind": "command",
+      "name": "thread.pin.reorder",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.pull-request-link.sync",
+      "kind": "command",
+      "name": "thread.pull-request-link.sync",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.pull-request.link",
+      "kind": "command",
+      "name": "thread.pull-request.link",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog",
+        "mobile-calls"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.pull-request.sync",
+      "kind": "command",
+      "name": "thread.pull-request.sync",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.pull-request.unlink",
+      "kind": "command",
+      "name": "thread.pull-request.unlink",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.pull-request.watch",
+      "kind": "command",
+      "name": "thread.pull-request.watch",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.runtime-mode.set",
+      "kind": "command",
+      "name": "thread.runtime-mode.set",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.settle",
+      "kind": "command",
+      "name": "thread.settle",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.snooze",
+      "kind": "command",
+      "name": "thread.snooze",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.stop",
+      "kind": "command",
+      "name": "thread.stop",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.title.regeneration.complete",
+      "kind": "command",
+      "name": "thread.title.regeneration.complete",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.unarchive",
+      "kind": "command",
+      "name": "thread.unarchive",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.unpin",
+      "kind": "command",
+      "name": "thread.unpin",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.unsettle",
+      "kind": "command",
+      "name": "thread.unsettle",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.unsnooze",
+      "kind": "command",
+      "name": "thread.unsnooze",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.user-input.dismiss",
+      "kind": "command",
+      "name": "thread.user-input.dismiss",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "command:thread.visit",
+      "kind": "command",
+      "name": "thread.visit",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:auth.browserSession",
+      "kind": "http",
+      "name": "auth.browserSession",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/auth/browser-session",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:auth.pairingCredential",
+      "kind": "http",
+      "name": "auth.pairingCredential",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/auth/pairing-token",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:auth.revokeClient",
+      "kind": "http",
+      "name": "auth.revokeClient",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/auth/clients/revoke",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:auth.revokeOtherClients",
+      "kind": "http",
+      "name": "auth.revokeOtherClients",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/auth/clients/revoke-others",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:auth.revokePairingLink",
+      "kind": "http",
+      "name": "auth.revokePairingLink",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/auth/pairing-links/revoke",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:auth.session",
+      "kind": "http",
+      "name": "auth.session",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/auth/session",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:auth.token",
+      "kind": "http",
+      "name": "auth.token",
+      "transport": "http",
+      "method": "POST",
+      "path": "/oauth/token",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:auth.webSocketTicket",
+      "kind": "http",
+      "name": "auth.webSocketTicket",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/auth/websocket-ticket",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:auth.webSocketTicketFor",
+      "kind": "http",
+      "name": "auth.webSocketTicketFor",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/auth/websocket-ticket/:use",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:connect.checkReachability",
+      "kind": "http",
+      "name": "connect.checkReachability",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/connect/reachability",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:connect.health",
+      "kind": "http",
+      "name": "connect.health",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/t3-connect/health",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:connect.linkProof",
+      "kind": "http",
+      "name": "connect.linkProof",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/connect/link-proof",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:connect.linkState",
+      "kind": "http",
+      "name": "connect.linkState",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/connect/link-state",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:connect.preferences",
+      "kind": "http",
+      "name": "connect.preferences",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/connect/preferences",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:connect.relayConfig",
+      "kind": "http",
+      "name": "connect.relayConfig",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/connect/relay-config",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:connect.t3MintCredential",
+      "kind": "http",
+      "name": "connect.t3MintCredential",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/t3-connect/mint-credential",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:connect.unlink",
+      "kind": "http",
+      "name": "connect.unlink",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/connect/unlink",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:mcpOAuth.approval",
+      "kind": "http",
+      "name": "mcpOAuth.approval",
+      "transport": "http",
+      "method": "POST",
+      "path": "/oauth/mcp/approval",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:mcpOAuth.authorizationServer",
+      "kind": "http",
+      "name": "mcpOAuth.authorizationServer",
+      "transport": "http",
+      "method": "GET",
+      "path": "/.well-known/oauth-authorization-server",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:mcpOAuth.authorize",
+      "kind": "http",
+      "name": "mcpOAuth.authorize",
+      "transport": "http",
+      "method": "GET",
+      "path": "/oauth/mcp/authorize",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:mcpOAuth.decision",
+      "kind": "http",
+      "name": "mcpOAuth.decision",
+      "transport": "http",
+      "method": "POST",
+      "path": "/oauth/mcp/decision",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:mcpOAuth.mcpProtectedResource",
+      "kind": "http",
+      "name": "mcpOAuth.mcpProtectedResource",
+      "transport": "http",
+      "method": "GET",
+      "path": "/.well-known/oauth-protected-resource/mcp",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:mcpOAuth.protectedResource",
+      "kind": "http",
+      "name": "mcpOAuth.protectedResource",
+      "transport": "http",
+      "method": "GET",
+      "path": "/.well-known/oauth-protected-resource",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:mcpOAuth.register",
+      "kind": "http",
+      "name": "mcpOAuth.register",
+      "transport": "http",
+      "method": "POST",
+      "path": "/oauth/mcp/register",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:mcpOAuth.token",
+      "kind": "http",
+      "name": "mcpOAuth.token",
+      "transport": "http",
+      "method": "POST",
+      "path": "/oauth/mcp/token",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:metadata.descriptor",
+      "kind": "http",
+      "name": "metadata.descriptor",
+      "transport": "http",
+      "method": "GET",
+      "path": "/.well-known/t3/environment",
+      "streaming": false,
+      "users": [
+        "mobile",
+        "cli"
+      ],
+      "sources": [
+        "schema",
+        "catalog",
+        "cli-source"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:orchestration.shellSnapshot",
+      "kind": "http",
+      "name": "orchestration.shellSnapshot",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/orchestration/shell",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:orchestration.threadBoundedSnapshot",
+      "kind": "http",
+      "name": "orchestration.threadBoundedSnapshot",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/orchestration/threads/:threadId/bounded",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:orchestration.threadHistoryPage",
+      "kind": "http",
+      "name": "orchestration.threadHistoryPage",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/orchestration/threads/:threadId/history",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:orchestration.threadSnapshot",
+      "kind": "http",
+      "name": "orchestration.threadSnapshot",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/orchestration/threads/:threadId",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:orchestration.threadTranscript",
+      "kind": "http",
+      "name": "orchestration.threadTranscript",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/orchestration/threads/:threadId/transcript",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:projects.mutate",
+      "kind": "http",
+      "name": "projects.mutate",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/projects/mutate",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:projects.snapshot",
+      "kind": "http",
+      "name": "projects.snapshot",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/projects",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:pullRequests.diff",
+      "kind": "http",
+      "name": "pullRequests.diff",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/pull-requests/diff",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "http:webhooks.webhookGet",
+      "kind": "http",
+      "name": "webhooks.webhookGet",
+      "transport": "http",
+      "method": "GET",
+      "path": "/api/hooks/:hookId/:token",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:webhooks.webhookPatch",
+      "kind": "http",
+      "name": "webhooks.webhookPatch",
+      "transport": "http",
+      "method": "PATCH",
+      "path": "/api/hooks/:hookId/:token",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:webhooks.webhookPost",
+      "kind": "http",
+      "name": "webhooks.webhookPost",
+      "transport": "http",
+      "method": "POST",
+      "path": "/api/hooks/:hookId/:token",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "http:webhooks.webhookPut",
+      "kind": "http",
+      "name": "webhooks.webhookPut",
+      "transport": "http",
+      "method": "PUT",
+      "path": "/api/hooks/:hookId/:token",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "mutation:project.create",
+      "kind": "mutation",
+      "name": "project.create",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile",
+        "cli"
+      ],
+      "sources": [
+        "schema",
+        "catalog",
+        "cli-source"
+      ],
+      "input": "golden",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "mutation:project.delete",
+      "kind": "mutation",
+      "name": "project.delete",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile",
+        "cli"
+      ],
+      "sources": [
+        "schema",
+        "catalog",
+        "cli-source"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "mutation:project.update",
+      "kind": "mutation",
+      "name": "project.update",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile",
+        "cli"
+      ],
+      "sources": [
+        "schema",
+        "catalog",
+        "cli-source"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:agentSessions.import",
+      "kind": "rpc",
+      "name": "agentSessions.import",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:agentSessions.scan",
+      "kind": "rpc",
+      "name": "agentSessions.scan",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:assets.createUrl",
+      "kind": "rpc",
+      "name": "assets.createUrl",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:assets.persistChatAttachments",
+      "kind": "rpc",
+      "name": "assets.persistChatAttachments",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:attachments.createUploadUrl",
+      "kind": "rpc",
+      "name": "attachments.createUploadUrl",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:attachments.delete",
+      "kind": "rpc",
+      "name": "attachments.delete",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:cloud.getRelayClientStatus",
+      "kind": "rpc",
+      "name": "cloud.getRelayClientStatus",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:cloud.installRelayClient",
+      "kind": "rpc",
+      "name": "cloud.installRelayClient",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:device.action",
+      "kind": "rpc",
+      "name": "device.action",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:device.close",
+      "kind": "rpc",
+      "name": "device.close",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:device.configure",
+      "kind": "rpc",
+      "name": "device.configure",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:device.detail",
+      "kind": "rpc",
+      "name": "device.detail",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:device.easAccount",
+      "kind": "rpc",
+      "name": "device.easAccount",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:device.list",
+      "kind": "rpc",
+      "name": "device.list",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:device.open",
+      "kind": "rpc",
+      "name": "device.open",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:device.shutdown",
+      "kind": "rpc",
+      "name": "device.shutdown",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:device.simlockIdentity",
+      "kind": "rpc",
+      "name": "device.simlockIdentity",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:device.testHost",
+      "kind": "rpc",
+      "name": "device.testHost",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:filesystem.browse",
+      "kind": "rpc",
+      "name": "filesystem.browse",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:filesystem.getMetadata",
+      "kind": "rpc",
+      "name": "filesystem.getMetadata",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:git.preparePullRequestThread",
+      "kind": "rpc",
+      "name": "git.preparePullRequestThread",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:git.resolvePullRequest",
+      "kind": "rpc",
+      "name": "git.resolvePullRequest",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:git.runStackedAction",
+      "kind": "rpc",
+      "name": "git.runStackedAction",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:guestShare.create",
+      "kind": "rpc",
+      "name": "guestShare.create",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:mcpApps.callTool",
+      "kind": "rpc",
+      "name": "mcpApps.callTool",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:mcpApps.readResource",
+      "kind": "rpc",
+      "name": "mcpApps.readResource",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:mcpApps.toolInfo",
+      "kind": "rpc",
+      "name": "mcpApps.toolInfo",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:mcpApps.updateModelContext",
+      "kind": "rpc",
+      "name": "mcpApps.updateModelContext",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.dispatchCommand",
+      "kind": "rpc",
+      "name": "orchestration.dispatchCommand",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.forceStopThread",
+      "kind": "rpc",
+      "name": "orchestration.forceStopThread",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.getArchivedShellSnapshot",
+      "kind": "rpc",
+      "name": "orchestration.getArchivedShellSnapshot",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.getFullThreadDiff",
+      "kind": "rpc",
+      "name": "orchestration.getFullThreadDiff",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.getOlderSettledThreads",
+      "kind": "rpc",
+      "name": "orchestration.getOlderSettledThreads",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.getThreadFamily",
+      "kind": "rpc",
+      "name": "orchestration.getThreadFamily",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.getThreadProjection",
+      "kind": "rpc",
+      "name": "orchestration.getThreadProjection",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.getTurnDiff",
+      "kind": "rpc",
+      "name": "orchestration.getTurnDiff",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.getTurnItem",
+      "kind": "rpc",
+      "name": "orchestration.getTurnItem",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.getWorkflowScript",
+      "kind": "rpc",
+      "name": "orchestration.getWorkflowScript",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.getWorktreeThreadIds",
+      "kind": "rpc",
+      "name": "orchestration.getWorktreeThreadIds",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.launchThread",
+      "kind": "rpc",
+      "name": "orchestration.launchThread",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.searchThread",
+      "kind": "rpc",
+      "name": "orchestration.searchThread",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.searchThreads",
+      "kind": "rpc",
+      "name": "orchestration.searchThreads",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.searchThreadStream",
+      "kind": "rpc",
+      "name": "orchestration.searchThreadStream",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.stopWorkflow",
+      "kind": "rpc",
+      "name": "orchestration.stopWorkflow",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.subscribeCommandOutput",
+      "kind": "rpc",
+      "name": "orchestration.subscribeCommandOutput",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.subscribeShell",
+      "kind": "rpc",
+      "name": "orchestration.subscribeShell",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.subscribeThread",
+      "kind": "rpc",
+      "name": "orchestration.subscribeThread",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "golden",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:peerLinks.answerRequest",
+      "kind": "rpc",
+      "name": "peerLinks.answerRequest",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:peerLinks.link",
+      "kind": "rpc",
+      "name": "peerLinks.link",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:peerLinks.list",
+      "kind": "rpc",
+      "name": "peerLinks.list",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:peerLinks.unlink",
+      "kind": "rpc",
+      "name": "peerLinks.unlink",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:preview.adjust",
+      "kind": "rpc",
+      "name": "preview.adjust",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:preview.clearProfile",
+      "kind": "rpc",
+      "name": "preview.clearProfile",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:preview.close",
+      "kind": "rpc",
+      "name": "preview.close",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:preview.list",
+      "kind": "rpc",
+      "name": "preview.list",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:preview.open",
+      "kind": "rpc",
+      "name": "preview.open",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:preview.reportProfiles",
+      "kind": "rpc",
+      "name": "preview.reportProfiles",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:preview.reportStatus",
+      "kind": "rpc",
+      "name": "preview.reportStatus",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:preview.resize",
+      "kind": "rpc",
+      "name": "preview.resize",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:preview.stopLocalServer",
+      "kind": "rpc",
+      "name": "preview.stopLocalServer",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projectClone.cancel",
+      "kind": "rpc",
+      "name": "projectClone.cancel",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projectClone.retry",
+      "kind": "rpc",
+      "name": "projectClone.retry",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projectClone.start",
+      "kind": "rpc",
+      "name": "projectClone.start",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projects.createFromThread",
+      "kind": "rpc",
+      "name": "projects.createFromThread",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projects.createNew",
+      "kind": "rpc",
+      "name": "projects.createNew",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projects.ensureScratch",
+      "kind": "rpc",
+      "name": "projects.ensureScratch",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projects.listEntries",
+      "kind": "rpc",
+      "name": "projects.listEntries",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projects.listIgnoredFiles",
+      "kind": "rpc",
+      "name": "projects.listIgnoredFiles",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projects.mutate",
+      "kind": "rpc",
+      "name": "projects.mutate",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projects.readFile",
+      "kind": "rpc",
+      "name": "projects.readFile",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projects.searchContents",
+      "kind": "rpc",
+      "name": "projects.searchContents",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projects.searchEntries",
+      "kind": "rpc",
+      "name": "projects.searchEntries",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:projects.writeFile",
+      "kind": "rpc",
+      "name": "projects.writeFile",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.auth.cancel",
+      "kind": "rpc",
+      "name": "provider.auth.cancel",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.auth.complete",
+      "kind": "rpc",
+      "name": "provider.auth.complete",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.auth.logout",
+      "kind": "rpc",
+      "name": "provider.auth.logout",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.auth.respond",
+      "kind": "rpc",
+      "name": "provider.auth.respond",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.auth.start",
+      "kind": "rpc",
+      "name": "provider.auth.start",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.auth.subscribe",
+      "kind": "rpc",
+      "name": "provider.auth.subscribe",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.chatgpt.handoff.subscribe",
+      "kind": "rpc",
+      "name": "provider.chatgpt.handoff.subscribe",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.chatgpt.import-profile",
+      "kind": "rpc",
+      "name": "provider.chatgpt.import-profile",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.chatgpt.reconnect-profile",
+      "kind": "rpc",
+      "name": "provider.chatgpt.reconnect-profile",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.consumeResetCredit",
+      "kind": "rpc",
+      "name": "provider.consumeResetCredit",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.install.cancel",
+      "kind": "rpc",
+      "name": "provider.install.cancel",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.install.remove",
+      "kind": "rpc",
+      "name": "provider.install.remove",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.install.start",
+      "kind": "rpc",
+      "name": "provider.install.start",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.install.subscribe",
+      "kind": "rpc",
+      "name": "provider.install.subscribe",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:provider.uploadFeedback",
+      "kind": "rpc",
+      "name": "provider.uploadFeedback",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.activity",
+      "kind": "rpc",
+      "name": "pullRequests.activity",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.changeBreakdown",
+      "kind": "rpc",
+      "name": "pullRequests.changeBreakdown",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.checks",
+      "kind": "rpc",
+      "name": "pullRequests.checks",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.comment",
+      "kind": "rpc",
+      "name": "pullRequests.comment",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.detail",
+      "kind": "rpc",
+      "name": "pullRequests.detail",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.diffFileContents",
+      "kind": "rpc",
+      "name": "pullRequests.diffFileContents",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.filesViewed",
+      "kind": "rpc",
+      "name": "pullRequests.filesViewed",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.filterOptions",
+      "kind": "rpc",
+      "name": "pullRequests.filterOptions",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.generateReviewGuide",
+      "kind": "rpc",
+      "name": "pullRequests.generateReviewGuide",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.invalidate",
+      "kind": "rpc",
+      "name": "pullRequests.invalidate",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.labelCandidates",
+      "kind": "rpc",
+      "name": "pullRequests.labelCandidates",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.linkedThreads",
+      "kind": "rpc",
+      "name": "pullRequests.linkedThreads",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.list",
+      "kind": "rpc",
+      "name": "pullRequests.list",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.listStats",
+      "kind": "rpc",
+      "name": "pullRequests.listStats",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.preview",
+      "kind": "rpc",
+      "name": "pullRequests.preview",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.replyToThread",
+      "kind": "rpc",
+      "name": "pullRequests.replyToThread",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.reportState",
+      "kind": "rpc",
+      "name": "pullRequests.reportState",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.requestReviewers",
+      "kind": "rpc",
+      "name": "pullRequests.requestReviewers",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.reviewerCandidates",
+      "kind": "rpc",
+      "name": "pullRequests.reviewerCandidates",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.reviewGuide",
+      "kind": "rpc",
+      "name": "pullRequests.reviewGuide",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.routing",
+      "kind": "rpc",
+      "name": "pullRequests.routing",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.routingIdentity",
+      "kind": "rpc",
+      "name": "pullRequests.routingIdentity",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.runAction",
+      "kind": "rpc",
+      "name": "pullRequests.runAction",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.setFilesViewed",
+      "kind": "rpc",
+      "name": "pullRequests.setFilesViewed",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.setLabels",
+      "kind": "rpc",
+      "name": "pullRequests.setLabels",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.setReaction",
+      "kind": "rpc",
+      "name": "pullRequests.setReaction",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.setThreadResolution",
+      "kind": "rpc",
+      "name": "pullRequests.setThreadResolution",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.stack",
+      "kind": "rpc",
+      "name": "pullRequests.stack",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.submitReview",
+      "kind": "rpc",
+      "name": "pullRequests.submitReview",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.subscribeRefreshes",
+      "kind": "rpc",
+      "name": "pullRequests.subscribeRefreshes",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.summary",
+      "kind": "rpc",
+      "name": "pullRequests.summary",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.threadComments",
+      "kind": "rpc",
+      "name": "pullRequests.threadComments",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.update",
+      "kind": "rpc",
+      "name": "pullRequests.update",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:pullRequests.updateComment",
+      "kind": "rpc",
+      "name": "pullRequests.updateComment",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:review.getBranchCommits",
+      "kind": "rpc",
+      "name": "review.getBranchCommits",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:review.getDiffFileContents",
+      "kind": "rpc",
+      "name": "review.getDiffFileContents",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:review.getDiffPreview",
+      "kind": "rpc",
+      "name": "review.getDiffPreview",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.delete",
+      "kind": "rpc",
+      "name": "scheduledTasks.delete",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.getWebhookDelivery",
+      "kind": "rpc",
+      "name": "scheduledTasks.getWebhookDelivery",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.listWebhookDeliveries",
+      "kind": "rpc",
+      "name": "scheduledTasks.listWebhookDeliveries",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.rotateWebhookToken",
+      "kind": "rpc",
+      "name": "scheduledTasks.rotateWebhookToken",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.runNow",
+      "kind": "rpc",
+      "name": "scheduledTasks.runNow",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.setEnabled",
+      "kind": "rpc",
+      "name": "scheduledTasks.setEnabled",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.subscribe",
+      "kind": "rpc",
+      "name": "scheduledTasks.subscribe",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:scheduledTasks.upsert",
+      "kind": "rpc",
+      "name": "scheduledTasks.upsert",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:secrets.answerRequest",
+      "kind": "rpc",
+      "name": "secrets.answerRequest",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.acceptAcpRegistryUrlAuth",
+      "kind": "rpc",
+      "name": "server.acceptAcpRegistryUrlAuth",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.checkOtlpEndpoint",
+      "kind": "rpc",
+      "name": "server.checkOtlpEndpoint",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.commitDesktopUpdate",
+      "kind": "rpc",
+      "name": "server.commitDesktopUpdate",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {},
+      "skipped": "commits a desktop app update; there is no desktop"
+    },
+    {
+      "id": "rpc:server.deleteAcpRegistrySession",
+      "kind": "rpc",
+      "name": "server.deleteAcpRegistrySession",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.disableAcpRegistryProvider",
+      "kind": "rpc",
+      "name": "server.disableAcpRegistryProvider",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.discoverSourceControl",
+      "kind": "rpc",
+      "name": "server.discoverSourceControl",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.getConfig",
+      "kind": "rpc",
+      "name": "server.getConfig",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.getDatabaseStorage",
+      "kind": "rpc",
+      "name": "server.getDatabaseStorage",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.getHostResources",
+      "kind": "rpc",
+      "name": "server.getHostResources",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.getNpmRelease",
+      "kind": "rpc",
+      "name": "server.getNpmRelease",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.getProcessDiagnostics",
+      "kind": "rpc",
+      "name": "server.getProcessDiagnostics",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.getProcessResourceHistory",
+      "kind": "rpc",
+      "name": "server.getProcessResourceHistory",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.getResourceTelemetryHistory",
+      "kind": "rpc",
+      "name": "server.getResourceTelemetryHistory",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.getStorageCleanupReport",
+      "kind": "rpc",
+      "name": "server.getStorageCleanupReport",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.getTraceDiagnostics",
+      "kind": "rpc",
+      "name": "server.getTraceDiagnostics",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.getUsageSummary",
+      "kind": "rpc",
+      "name": "server.getUsageSummary",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.importAcpRegistrySession",
+      "kind": "rpc",
+      "name": "server.importAcpRegistrySession",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.listAcpRegistryProviders",
+      "kind": "rpc",
+      "name": "server.listAcpRegistryProviders",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.listAcpRegistrySessions",
+      "kind": "rpc",
+      "name": "server.listAcpRegistrySessions",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.logoutAcpRegistry",
+      "kind": "rpc",
+      "name": "server.logoutAcpRegistry",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.prepareAcpRegistryAgent",
+      "kind": "rpc",
+      "name": "server.prepareAcpRegistryAgent",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.prepareTriage",
+      "kind": "rpc",
+      "name": "server.prepareTriage",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.probe",
+      "kind": "rpc",
+      "name": "server.probe",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.refreshProviders",
+      "kind": "rpc",
+      "name": "server.refreshProviders",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.refreshUsageRates",
+      "kind": "rpc",
+      "name": "server.refreshUsageRates",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.removeKeybinding",
+      "kind": "rpc",
+      "name": "server.removeKeybinding",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.reportClientActivity",
+      "kind": "rpc",
+      "name": "server.reportClientActivity",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog",
+        "mobile-calls"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.retryResourceTelemetry",
+      "kind": "rpc",
+      "name": "server.retryResourceTelemetry",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.runStorageCleanup",
+      "kind": "rpc",
+      "name": "server.runStorageCleanup",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.searchAcpRegistry",
+      "kind": "rpc",
+      "name": "server.searchAcpRegistry",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.setAcpRegistryProvider",
+      "kind": "rpc",
+      "name": "server.setAcpRegistryProvider",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.signalProcess",
+      "kind": "rpc",
+      "name": "server.signalProcess",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.uninstallAcpRegistryManagedBinary",
+      "kind": "rpc",
+      "name": "server.uninstallAcpRegistryManagedBinary",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.updateProvider",
+      "kind": "rpc",
+      "name": "server.updateProvider",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.updateServer",
+      "kind": "rpc",
+      "name": "server.updateServer",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {},
+      "skipped": "replaces the installed server binary"
+    },
+    {
+      "id": "rpc:server.updateServerWithProgress",
+      "kind": "rpc",
+      "name": "server.updateServerWithProgress",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {},
+      "skipped": "replaces the installed server binary"
+    },
+    {
+      "id": "rpc:server.updateSettings",
+      "kind": "rpc",
+      "name": "server.updateSettings",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:server.upsertKeybinding",
+      "kind": "rpc",
+      "name": "server.upsertKeybinding",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:shell.openInEditor",
+      "kind": "rpc",
+      "name": "shell.openInEditor",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:sourceControl.appAccess",
+      "kind": "rpc",
+      "name": "sourceControl.appAccess",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:sourceControl.cloneRepository",
+      "kind": "rpc",
+      "name": "sourceControl.cloneRepository",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:sourceControl.lookupRepository",
+      "kind": "rpc",
+      "name": "sourceControl.lookupRepository",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:sourceControl.publishRepository",
+      "kind": "rpc",
+      "name": "sourceControl.publishRepository",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:sourceControl.signInCancel",
+      "kind": "rpc",
+      "name": "sourceControl.signInCancel",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:sourceControl.signInStart",
+      "kind": "rpc",
+      "name": "sourceControl.signInStart",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:sourceControl.signInWait",
+      "kind": "rpc",
+      "name": "sourceControl.signInWait",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:sourceControl.starred",
+      "kind": "rpc",
+      "name": "sourceControl.starred",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribeAuthAccess",
+      "kind": "rpc",
+      "name": "subscribeAuthAccess",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribeDeviceState",
+      "kind": "rpc",
+      "name": "subscribeDeviceState",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribeDiscoveredLocalServers",
+      "kind": "rpc",
+      "name": "subscribeDiscoveredLocalServers",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribePreviewEvents",
+      "kind": "rpc",
+      "name": "subscribePreviewEvents",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribeProjectClones",
+      "kind": "rpc",
+      "name": "subscribeProjectClones",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribeResourceTelemetry",
+      "kind": "rpc",
+      "name": "subscribeResourceTelemetry",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog",
+        "mobile-calls"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribeServerConfig",
+      "kind": "rpc",
+      "name": "subscribeServerConfig",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribeServerLifecycle",
+      "kind": "rpc",
+      "name": "subscribeServerLifecycle",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribeTerminalMetadata",
+      "kind": "rpc",
+      "name": "subscribeTerminalMetadata",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribeVcsStatus",
+      "kind": "rpc",
+      "name": "subscribeVcsStatus",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog",
+        "mobile-calls"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:subscribeWorktreeSetup",
+      "kind": "rpc",
+      "name": "subscribeWorktreeSetup",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:terminal.attach",
+      "kind": "rpc",
+      "name": "terminal.attach",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:terminal.clear",
+      "kind": "rpc",
+      "name": "terminal.clear",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:terminal.close",
+      "kind": "rpc",
+      "name": "terminal.close",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:terminal.observe",
+      "kind": "rpc",
+      "name": "terminal.observe",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:terminal.open",
+      "kind": "rpc",
+      "name": "terminal.open",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:terminal.resize",
+      "kind": "rpc",
+      "name": "terminal.resize",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:terminal.write",
+      "kind": "rpc",
+      "name": "terminal.write",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:vcs.createRef",
+      "kind": "rpc",
+      "name": "vcs.createRef",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:vcs.createWorktree",
+      "kind": "rpc",
+      "name": "vcs.createWorktree",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:vcs.init",
+      "kind": "rpc",
+      "name": "vcs.init",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:vcs.listRefs",
+      "kind": "rpc",
+      "name": "vcs.listRefs",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:vcs.pull",
+      "kind": "rpc",
+      "name": "vcs.pull",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:vcs.refreshStatus",
+      "kind": "rpc",
+      "name": "vcs.refreshStatus",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:vcs.removeWorktree",
+      "kind": "rpc",
+      "name": "vcs.removeWorktree",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:vcs.switchRef",
+      "kind": "rpc",
+      "name": "vcs.switchRef",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:worktreeSetup.cancel",
+      "kind": "rpc",
+      "name": "worktreeSetup.cancel",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    }
+  ],
+  "cli_commands": [
+    {
+      "path": [
+        "acp-mcp-bridge"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "acp-mcp-call"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "app"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "create"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "list"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "revoke"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "pairing"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "issue"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "session"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "auth"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "setup"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "browser"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "login"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "link"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "status"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "publish"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "unlink"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "logout"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "doctor"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "environment"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "pair"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "add"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "remove"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "rename"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "project"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "start"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "serve"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "install"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "update"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "restart"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "uninstall"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "protect"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "service"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "pick-port"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "wait-ready"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "runtime-port"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "set"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "clear"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "show"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "theme"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "send"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "thread"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "summary"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "trace"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "triage"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "up"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "connect"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "t3"
+      ],
+      "source": "cli-source"
+    },
+    {
+      "path": [
+        "help"
+      ],
+      "source": "cli-source"
+    }
+  ],
+  "blind": [
+    {
+      "class": "handlers registered without a schema",
+      "missing_source": "a running t3 server (RPC introspection is not exposed)",
+      "detail": "a method the server implements that no contract declares cannot be seen from the source"
+    },
+    {
+      "class": "runtime self-description",
+      "missing_source": "a running t3 server",
+      "detail": "/.well-known/t3/environment answers only on a live server: capture it on the VM with `wf mimic crawl t3 --runtime <dir>`"
+    }
+  ],
+  "counts": {
+    "app": "t3",
+    "pin": {
+      "version": "0.1.6",
+      "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e"
+    },
+    "endpoints": 304,
+    "by_kind": {
+      "command": 55,
+      "http": 38,
+      "mutation": 3,
+      "rpc": 208
+    },
+    "by_user": {
+      "cli": 4,
+      "internal": 99,
+      "mobile": 205
+    },
+    "by_source": {
+      "catalog": 304,
+      "cli-source": 4,
+      "mobile-calls": 4,
+      "schema": 304
+    },
+    "by_input": {
+      "empty": 25,
+      "golden": 4,
+      "schema": 275
+    },
+    "by_class": {
+      "boundary": 168,
+      "empty": 22,
+      "invalid": 779,
+      "valid": 279
+    },
+    "cases": 1248,
+    "skipped": 3,
+    "streaming": 27,
+    "cli_commands": 49,
+    "sources": [
+      {
+        "name": "schema",
+        "available": true,
+        "found": 304,
+        "note": "15 schema constructors read as any"
+      },
+      {
+        "name": "cli-source",
+        "available": true,
+        "found": 49
+      },
+      {
+        "name": "mobile-calls",
+        "available": true,
+        "found": 4,
+        "note": "literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf parity coverage)"
+      },
+      {
+        "name": "catalog",
+        "available": true,
+        "found": 304
+      },
+      {
+        "name": "cli-help",
+        "available": false,
+        "found": 0,
+        "note": "needs the release binary: `t3 --help` of every subcommand, captured on the VM"
+      },
+      {
+        "name": "runtime",
+        "available": false,
+        "found": 0,
+        "note": "needs a running server"
+      }
+    ],
+    "blind": [
+      {
+        "class": "handlers registered without a schema",
+        "missing_source": "a running t3 server (RPC introspection is not exposed)",
+        "detail": "a method the server implements that no contract declares cannot be seen from the source"
+      },
+      {
+        "class": "runtime self-description",
+        "missing_source": "a running t3 server",
+        "detail": "/.well-known/t3/environment answers only on a live server: capture it on the VM with `wf mimic crawl t3 --runtime <dir>`"
+      }
+    ]
+  }
+}

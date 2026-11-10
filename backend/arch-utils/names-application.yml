@@ -1,0 +1,21 @@
+id: names-application
+language: rust
+# A path or a `use` that reaches the crate's `application` layer, spelled as `names-infrastructure` spells its layer.
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: '^(crate|super)(::super)*::application\b'
+    - kind: scoped_use_list
+      regex: '^(crate|super)(::super)*::\{'
+      has:
+        kind: use_list
+        has:
+          any:
+            - kind: identifier
+              regex: '^application$'
+            - kind: scoped_identifier
+              regex: '^application::'
+            - kind: scoped_use_list
+              regex: '^application::'
+            - kind: use_as_clause
+              regex: '^application\b'

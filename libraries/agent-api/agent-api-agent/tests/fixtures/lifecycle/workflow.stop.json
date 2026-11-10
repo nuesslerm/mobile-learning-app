@@ -1,0 +1,53 @@
+{
+  "method": "workflow.stop",
+  "exchanges": [
+    {
+      "name": "refuses a turn that is not the running one",
+      "before": [
+        {
+          "id": "setup-create-t-ws",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-ws",
+            "title": "Thread t-ws",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "workflow.stop",
+        "params": {
+          "thread": "t-ws",
+          "turn": "u1"
+        }
+      },
+      "response": {
+        "id": "1",
+        "error": {
+          "code": "NO_TURN",
+          "message": "thread t-ws is not running turn u1"
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "workflow.stop",
+        "params": {
+          "thread": "nope",
+          "turn": "u1"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

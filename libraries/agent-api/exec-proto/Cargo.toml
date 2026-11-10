@@ -1,0 +1,18 @@
+[package]
+name = "exec-proto"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The executor channel's wire (`docs/plans/rca-client/protocol.md`): request, result, output and subscribe frames, the error codes, the close code of a replaced channel, and the shape of an action"
+
+[lib]
+doctest = false
+
+[features]
+# Loads the recorded exchanges under each contract crate's `tests/fixtures`
+testing = ["dep:agent-api-proto", "agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto", optional = true }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }

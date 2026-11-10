@@ -1,0 +1,73 @@
+{
+  "method": "thread.rollback",
+  "exchanges": [
+    {
+      "name": "refuses a turn the thread never ran when the files would be restored",
+      "before": [
+        {
+          "id": "setup-create-t-rb",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-rb",
+            "title": "Thread t-rb",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.rollback",
+        "params": {
+          "thread": "t-rb",
+          "turn": "u9"
+        }
+      },
+      "response": {
+        "id": "1",
+        "error": {
+          "code": "TURN_NOT_FOUND",
+          "message": "thread t-rb has no turn u9"
+        }
+      }
+    },
+    {
+      "name": "refuses a turn the thread never ran",
+      "request": {
+        "id": "2",
+        "method": "thread.rollback",
+        "params": {
+          "thread": "t-rb",
+          "turn": "u9",
+          "restore_files": false
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "TURN_NOT_FOUND",
+          "message": "thread t-rb has no turn u9"
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "3",
+        "method": "thread.rollback",
+        "params": {
+          "thread": "nope",
+          "turn": "u1",
+          "restore_files": false
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

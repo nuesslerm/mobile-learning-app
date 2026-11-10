@@ -1,0 +1,14 @@
+[
+  [
+    "run",
+    "--pull",
+    "missing",
+    "--rm",
+    "-v",
+    "/var/run/docker.sock:/var/run/docker.sock",
+    "<image>",
+    "sh",
+    "-c",
+    "docker exec orca-serve orca-serve pair --endpoint ws://orca-serve:6768"
+  ]
+]

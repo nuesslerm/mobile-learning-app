@@ -1,0 +1,18 @@
+Usage: wf vm deps [options] [command]
+
+Declarative dependency manifest for the shared agent workspace, replayed at
+container boot.
+
+Options:
+  -h, --help                display help for command
+
+Commands:
+  install <manager> <name>  Install a dependency inside agent-shell now AND
+                            record it in the manifest so it survives a redeploy
+  add <manager> <name>      Record a dependency in the manifest. Idempotent --
+                            adding an existing entry is a no-op.
+  remove <manager> <name>   Remove a dependency from the manifest.
+  list                      List every entry currently in the manifest.
+  replay [options]          Install every manifest entry not already present. A
+                            failing entry is reported, not fatal.
+  help [command]            display help for command

@@ -1,0 +1,67 @@
+# Pre-commit is the docs/plans/greenfield/requirements.md §2.8 budget (<= 5 jobs: `wf check --staged`, secrets).
+# Every other check lives in the `post-land` hook: `pnpm run checks:post-land` (lefthook run post-land --all-files).
+# Lefthook configuration
+# https://lefthook.dev/configuration/
+#
+# After the app-move (PR 2) + tooling split (PR 3), all app-targeted gates
+# run via the `mla-tamagui` workspace member so they pick up the
+# right `node_modules` and operate on the moved source dirs. Root tooling
+# only handles `packages/` (not linted/checked by these hooks — see the
+# `packages/*` workflows and CI for that).
+#
+# KILL-SWITCH (humans only): set LEFTHOOK=0 to skip all hooks:
+#   LEFTHOOK=0 git commit
+# Or skip a single commit with:
+#   git commit --no-verify
+#
+# NOTE: for the Claude Code agent these bypasses are blocked — the approve
+# guard (libraries/hook-runtime/src/deny.json, run by the PreToolUse
+# dispatcher) denies `git commit --no-verify`/`-n`, and a
+# permissions deny entry blocks the `LEFTHOOK=0` env-prefix form — so the agent
+# always runs this hook.
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: verify
+      # ESLint per owning package, simplicity budget, wf bundle freshness, affected typecheck/test:unit/test:flow (use-cases/verify/gate.ts).
+      # 8GB heap: type-aware linting of a huge staged set OOMs at Node's default; it is a limit, not a reservation.
+      run: NODE_OPTIONS=--max-old-space-size=8192 wf check --staged
+
+    - name: secrets
+      # Registry drift and a scope on every key (the secrets flow tests `secrets::registry_scope_...`), plus guard coverage and no vault key in .env.defaults (the secrets flow test `secrets::the_value_revealing_subcommands_...`); each half runs only when its own files are staged.
+      glob: '{clis/secrets/src/data/registry.json,libraries/hook-runtime/src/deny.json,scripts/guards/block-secret-exposure.mjs,**/.env.defaults,.env.defaults}'
+      run: >-
+        staged="$(printf '%s\n' {staged_files})" &&
+        { ! printf '%s\n' "$staged" | grep -qx 'clis/secrets/src/data/registry.json' ||
+          { wf secret doctor --backend bitwarden --if-available &&
+            WF_BIN="$(command -v wf)" cargo test --manifest-path clis/Cargo.toml -p secrets --test flow secrets::registry_scope; }; } &&
+        { ! printf '%s\n' "$staged" | grep -qxE 'libraries/hook-runtime/src/deny\.json|scripts/guards/block-secret-exposure\.mjs|(.*/)?\.env\.defaults' ||
+          WF_BIN="$(command -v wf)" cargo test --manifest-path clis/Cargo.toml -p secrets --test flow secrets::the_value_revealing; }
+
+    - name: service-architecture
+      # Folder layout (ls-lint) and the direction of imports between the layers (ast-grep) of the Rust services, and the purity of the wire-contract
+      # crates and of rca-exec's domain module (their rules and rule tests); well under a second.
+      glob: '{backend/**/*.rs,libraries/agent-api/**/*.rs,clis/rca-exec/src/domain.rs,.ls-lint.yml,backend/sgconfig.yml,backend/arch-rules/**,backend/arch-utils/**,backend/arch-tests/**}'
+      run: pnpm run arch:services
+
+post-land:
+  parallel: true
+  jobs:
+    - name: agent-config-sync
+      glob: '{.agents/**,**/AGENTS.md,**/CLAUDE.md,AGENTS.md,CLAUDE.md,.claude/**,.codex/**,.opencode/**}'
+      # The `.agents/` contract renders every per-tool file (`pnpm run sync:agent-config`). A drifted,
+      # stale or symlinked output exits 1 with "drift: <path> (run `pnpm run sync:agent-config`)".
+      run: pnpm run sync:check
+
+    - name: rust-clis
+      glob: '{clis/**/*.rs,clis/**/Cargo.toml,clis/Cargo.lock}'
+      # Every Rust CLI in the clis/ workspace: each crate's own tests, then every flow suite again against the installed full `wf`
+      # (the parity oracle: a crate's thin binary must serve its commands the way the real router does).
+      run: >-
+        cargo test --manifest-path clis/Cargo.toml --workspace &&
+        WF_BIN="$(command -v wf)" cargo test --manifest-path clis/Cargo.toml --workspace --test flow
+
+    - name: actionlint
+      glob: '.github/workflows/*.{yml,yaml}'
+      run: actionlint {staged_files}

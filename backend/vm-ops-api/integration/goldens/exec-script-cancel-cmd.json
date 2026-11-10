@@ -1,0 +1,8 @@
+[
+  "sh",
+  "-c",
+  "pgid=$(cat \"$1/pid\" 2>/dev/null) || exit 0; [ -n \"$pgid\" ] || exit 0; kill -TERM \"-$pgid\" 2>/dev/null || exit 0; waited=0; while [ \"$waited\" -lt \"$2\" ] && kill -0 \"-$pgid\" 2>/dev/null; do sleep 1; waited=$((waited + 1)); done; if kill -0 \"-$pgid\" 2>/dev/null; then kill -KILL \"-$pgid\" 2>/dev/null; fi; exit 0",
+  "sh",
+  "/tmp/exec-jobs/0b9f5c2e-8a1d-4c3e-9f7a-1234567890ab",
+  "10"
+]

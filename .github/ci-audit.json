@@ -1,0 +1,15 @@
+{
+  "slowerPercent": 50,
+  "slowerSeconds": 30,
+  "slackPercent": 25,
+  "slackSeconds": 60,
+  "floorSeconds": 120,
+  "waitSeconds": 600,
+  "idlePercent": 5,
+  "idleSeconds": 120,
+  "ioWaitPeak": 60,
+  "cpuIowaitPeak": 15,
+  "cpuSecondsThreshold": 1000,
+  "cpuSecondsPerExtraDeploy": 500,
+  "hitRatioFloorPercent": 0
+}

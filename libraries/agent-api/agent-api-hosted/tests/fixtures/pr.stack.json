@@ -1,0 +1,26 @@
+{
+  "method": "pr.stack",
+  "exchanges": [
+    {
+      "name": "the executor refuses a request that names no pull request, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "pr.stack",
+        "params": {
+          "workspace": "w1",
+          "provider": "github"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`number` must be a positive integer"
+        }
+      },
+      "actions": [
+        "hosted_pr_stack"
+      ]
+    }
+  ]
+}

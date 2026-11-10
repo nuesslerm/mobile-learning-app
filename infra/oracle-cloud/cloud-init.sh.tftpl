@@ -1,0 +1,755 @@
+#!/bin/bash
+# Cloud-init bootstrap for the mobile-learning backend VMs (Ubuntu aarch64).
+# Installs the exact toolchain the deploy scripts assume on the VM:
+#   - Docker + compose plugin  (runs the shipped images)
+#   - Node 22                  (runs the provisioning scripts)
+#   - bws CLI (aarch64)        (the Bitwarden Secrets Manager backend)
+#   - claude/codex/opencode CLIs (interactive use only, human over Termius/SSH),
+#     each pre-warmed in its own detached tmux session (`tmux attach -t claude`
+#     etc.) -- still needs its own login before it's actually usable
+#   - wf CLI at /usr/local/bin/wf (the Rust binary; run `wf ...` directly in the shell)
+# and seeds each app dir's .env.local with the Bitwarden bootstrap creds so
+# `wf secret sync-env --backend bitwarden` can reach the vault.
+#
+# Rendered by Terraform (templatefile): $${...} are literal shell; $${bws_*}
+# with no leading escape are Terraform-injected values.
+set -euxo pipefail
+export DEBIAN_FRONTEND=noninteractive
+
+# --- Docker (official convenience script) + ubuntu in the docker group --------
+curl -fsSL https://get.docker.com | sh
+usermod -aG docker ubuntu
+systemctl enable --now docker
+
+# --- Node 22 (NodeSource) -----------------------------------------------------
+curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+apt-get install -y nodejs
+
+# --- Interactive coding CLIs for the ubuntu user (Termius/SSH use only) ------
+# Not used by any app or deploy script on this host -- purely for a human
+# SSHed in over Termius to run `claude`/`codex`/`opencode` directly.
+# Best-effort: a registry hiccup here must never fail the rest of provisioning.
+npm install -g @anthropic-ai/claude-code @openai/codex opencode-ai || echo "[cloud-init] claude-code/codex/opencode CLI install failed -- install by hand later" >&2
+
+# --- tmux (persistent, attachable sessions for the CLIs above) ---------------
+apt-get install -y tmux || echo "[cloud-init] tmux install failed -- install by hand later" >&2
+# restic and rclone read the VM state backup (restore-state.js below); sqlite3 lets a restored database be checked. Without restic the restore
+# fails loudly for every app that has state, it never starts one empty. Ubuntu's rclone is built without the oracleobjectstorage backend
+# (confirmed live: "didn't find backend called oracleobjectstorage"), so rclone is the pinned upstream binary.
+apt-get install -y restic unzip sqlite3 || echo "[cloud-init] restic install failed -- the state restore will fail loudly" >&2
+curl -fsSL -o /tmp/rclone.zip https://downloads.rclone.org/v1.68.2/rclone-v1.68.2-linux-arm64.zip \
+  && echo "c6e9d4cf9c88b279f6ad80cd5675daebc068e404890fa7e191412c1bc7a4ac5f  /tmp/rclone.zip" | sha256sum -c - \
+  && unzip -p /tmp/rclone.zip '*/rclone' > /usr/local/bin/rclone && chmod 0755 /usr/local/bin/rclone \
+  || echo "[cloud-init] rclone install failed -- the state restore will fail loudly" >&2
+rm -f /tmp/rclone.zip
+
+# --- bws CLI (Bitwarden Secrets Manager), aarch64 ----------------------------
+# The version is rendered in by Terraform from the repo's own mise.toml pin (see
+# main.tf's `bws_tag` local) -- the same pin clis/env-bootstrap's mise step and
+# the agent-base image use. No discovery at boot: nothing to be blocked, rate
+# limited, or resolve empty.
+#
+# This replaced a call to api.github.com/repos/bitwarden/sdk-sm/releases, which
+# had two problems. It drifts -- whatever shipped most recently, never the pin
+# every other surface uses. And it cannot work from an agent sandbox at all: the
+# egress proxy scopes api.github.com/repos/* to session-enabled repositories and
+# 403s every other repo, which is precisely how the identical step in
+# agent-shell's Dockerfile shipped no bws for weeks while printing a warning
+# nobody read.
+#
+# GitHub's own /releases/latest is NOT the alternative: bitwarden/sdk-sm is a
+# monorepo releasing bws/Python/Rust builds on independent trains, so
+# /releases/latest is almost never the bws-v* train and resolves an empty
+# version silently. Neither is fetching mise.toml from raw.githubusercontent at
+# boot -- this repo is private, so an unauthenticated fetch 404s and the step
+# would resolve empty on every boot. Both were checked against the live hosts.
+#
+# Verified with `bws --version` so a truncated or wrong-arch download is caught
+# here rather than surfacing much later as "secret not set".
+#
+# Deliberately still non-fatal to the boot, unlike the image builds sharing this
+# pin, and this is the one place that difference is right: `exit 1` here aborts
+# cloud-init, so no vm-ops-api comes up and the only way back is
+# terminate-and-recreate. A VM that finishes booting with a loud marker can be
+# fixed over SSH or redeployed. It is not silent either way -- the sentinel file
+# below, the final status line's `bws=missing`, and provision-apps.js (which
+# spawns this exact binary and aborts without it) all report the same thing.
+apt-get install -y unzip || true
+BWS_TAG="${bws_tag}"
+BWS_VERSION="$${BWS_TAG#bws-v}"
+BWS_URL="https://github.com/bitwarden/sdk-sm/releases/download/$${BWS_TAG}/bws-aarch64-unknown-linux-gnu-$${BWS_VERSION}.zip"
+if curl -fsSL "$${BWS_URL}" -o /tmp/bws.zip \
+   && unzip -o /tmp/bws.zip -d /usr/local/bin \
+   && chmod +x /usr/local/bin/bws \
+   && bws --version; then
+  rm -f /tmp/bws.zip
+  echo "[cloud-init] bws $${BWS_VERSION} installed (pinned by mise.toml)"
+else
+  echo "[cloud-init] BWS INSTALL FAILED for $${BWS_URL} -- until this is fixed every secret lookup on this VM reports \"not set\" rather than \"could not check\"" \
+    | tee /home/ubuntu/BWS-INSTALL-FAILED >&2
+fi
+
+# --- binder for the Android device (redroid) ---------------------------------
+# rdl, the one Android device, runs on this host's Docker and needs the kernel's binder_linux module. The 6.8 kernels ship it only in
+# linux-modules-extra; the 7.0 kernels (the image's current one, 7.0.0-1013-oracle) have no such package (confirmed live: "Unable to
+# locate package") and carry the module in linux-modules itself. So: configure it, try to load it, and install the extra package only
+# when the module is missing. Loaded now and at every boot. Non-fatal: without it only the Android e2e job fails.
+echo 'options binder_linux devices=binder,hwbinder,vndbinder' > /etc/modprobe.d/binder.conf
+echo binder_linux > /etc/modules-load.d/binder.conf
+if modprobe binder_linux || { apt-get install -y "linux-modules-extra-$(uname -r)" && modprobe binder_linux; }; then
+  echo "[cloud-init] binder_linux loaded"
+else
+  echo "[cloud-init] binder_linux NOT loaded -- the Android device cannot boot" >&2
+fi
+
+# --- Seed each app dir's .env.local with the vault bootstrap creds ------------
+# The deploy scripts source ~/<app>/.env.local before `sync-env`, so this is how
+# the READ-ONLY deploy token + region reach the resolver. Non-secret
+# overrides (tailnet URLs, INSTANCES JSON, etc.) get appended here later, by hand.
+# NEVER write BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN here — the write-capable token
+# stays on a laptop; a VM only ever needs read.
+# xtrace OFF for this loop, and this loop only. The script runs under
+# `set -euxo pipefail`, so tracing echoes the interpolated token verbatim -- and
+# that trace goes to the serial console, which OCI persists as console history
+# retrievable by anything with compartment read. Found by actually reading a
+# boot log rather than reasoning about it: the read token appeared in plaintext
+# 8 times. The .env.local files themselves were always chmod 600; the leak was
+# entirely in the trace.
+set +x
+for APP in ${apps}; do
+  mkdir -p "/home/ubuntu/$${APP}"
+  # NOTE: only the vault bootstrap creds go here — NOT SECRETS_BACKEND, which the
+  # deploy script owns (sourcing it here would clobber a SECRETS_BACKEND override).
+  {
+    if [ -n "${bws_read_access_token}" ]; then echo "BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN=${bws_read_access_token}"; fi
+    # Region — EU accounts need https://vault.bitwarden.eu or bws returns invalid_client.
+    if [ -n "${bws_server_url}" ]; then echo "BWS_SERVER_URL=${bws_server_url}"; fi
+  } > "/home/ubuntu/$${APP}/.env.local"
+  chmod 600 "/home/ubuntu/$${APP}/.env.local"
+done
+set -x
+
+# --- Restore the state volumes from the backup repository, before any app starts ------------------------------
+# provision-apps.js runs this once, ahead of every `docker compose up`, so no app is running (and none writes its starter files) while the
+# volumes are filled. Per volume: the newest snapshot `wf vm state verify` tagged `verified` (and, for a volume with SQLite databases, the
+# sqlite snapshot of the same run) is restored into the volume; a volume that already holds data is left alone; a repository or a volume
+# that was never backed up (the first boot ever) continues without error and says so; anything else (the repository unreadable, no
+# verified snapshot, a restore that fails) exits 1 and names the volume, and the app that owns it is not started.
+# Transient failures are retried with a doubling pause, every attempt one JSON line on stderr: a restic snapshot listing or restore up to
+# ATTEMPTS times, and the first read of the bucket for up to 15 minutes, because the dynamic group and policy that let this instance read
+# the bucket (vm-state.tf) are created in the same apply as the instance and need minutes to propagate. A bucket that says "no repository
+# there" is a first boot only when rclone can also list it: an instance principal that is not authorized yet gets the same "not found".
+# A wrong password is never retried. Configuration is the environment (RESTIC_REPOSITORY, RESTIC_PASSWORD, the rclone remote) and argv[2],
+# a JSON list of {app, volume, docker}; the password never touches a file or a command line.
+cat > /home/ubuntu/restore-state.js <<'RESTORESTATEJS'
+'use strict';
+const { spawnSync } = require('child_process');
+const fs = require('fs');
+
+const NO_REPOSITORY = 'Is there a repository at the following location?';
+const PAUSE_MS = Number(process.env.VM_STATE_RESTORE_PAUSE_MS || 20000);
+const MAX_PAUSE_MS = Number(process.env.VM_STATE_RESTORE_MAX_PAUSE_MS || 120000);
+const IAM_WAIT_MS = Number(process.env.VM_STATE_RESTORE_IAM_WAIT_MS || 15 * 60000);
+const ATTEMPTS = Number(process.env.VM_STATE_RESTORE_ATTEMPTS || 6);
+const volumes = JSON.parse(process.argv[2] || '[]');
+
+function say(fields) {
+  console.log(JSON.stringify(Object.assign({ event: 'vm-state-restore' }, fields)));
+}
+
+function attempted(fields) {
+  console.error(JSON.stringify(Object.assign({ event: 'vm-state-restore-attempt' }, fields)));
+}
+
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+const backoff = (attempt) => Math.min(PAUSE_MS * Math.pow(2, attempt - 1), MAX_PAUSE_MS);
+
+function run(program, args) {
+  const r = spawnSync(program, args, { env: process.env, encoding: 'utf8', timeout: 45 * 60000, maxBuffer: 64 * 1024 * 1024 });
+  return { code: r.status === null ? -1 : r.status, out: r.stdout || '', err: ((r.stderr || '') + (r.error ? String(r.error.message) : '')).replace(/\s+/g, ' ').trim().slice(0, 400) };
+}
+
+const restic = (args) => run('restic', args);
+const wrongPassword = (r) => r.code === 12 || /wrong password/i.test(r.err);
+
+// A restic call that must succeed: a transient failure (the network, the object store, a policy still propagating) is retried with a
+// doubling pause and every attempt said; a wrong password is final at once. `before` runs ahead of each retry.
+function resticRetried(step, args, before) {
+  let last;
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    last = restic(args);
+    if (last.code === 0) return last;
+    const final = attempt === ATTEMPTS || wrongPassword(last);
+    attempted({ step: step, attempt: attempt, of: ATTEMPTS, code: last.code, error: last.err, retrying: !final });
+    if (final) break;
+    if (before) before();
+    sleep(backoff(attempt));
+  }
+  return last;
+}
+
+// Whether the bucket can be listed at all with this instance's identity. OCI answers "not found" to a caller that is not authorized yet, so
+// restic's "no repository" proves a first boot only when this listing works.
+function bucketListable() {
+  const repo = process.env.RESTIC_REPOSITORY || '';
+  if (repo.indexOf('rclone:') !== 0) return { ok: true, err: '' };
+  const r = run('rclone', ['lsf', repo.slice('rclone:'.length), '--max-depth', '1']);
+  return { ok: r.code === 0, err: r.err };
+}
+
+// The repository's existence is never guessed: only restic's own "no repository there" (asked twice, with the bucket listable) is a first
+// boot. An unreachable bucket or a policy that has not propagated yet is retried for IAM_WAIT_MS, then fails.
+function repositoryExists() {
+  const deadline = Date.now() + IAM_WAIT_MS;
+  let missing = 0;
+  for (let attempt = 1; ; attempt++) {
+    const r = restic(['cat', 'config']);
+    if (r.code === 0) return { exists: true };
+    if (wrongPassword(r)) return { error: 'the backup repository could not be read: wrong password or no key found (' + r.err + ')' };
+    let why = r.err;
+    if (r.code === 10 || r.err.includes(NO_REPOSITORY)) {
+      missing += 1;
+      if (missing >= 2) {
+        const listing = bucketListable();
+        if (listing.ok) return { exists: false };
+        missing = 0;
+        why = 'restic found no repository and the bucket cannot be listed (not authorized yet?): ' + listing.err;
+      }
+    } else {
+      missing = 0;
+    }
+    if (Date.now() >= deadline) {
+      return { error: 'the backup repository could not be read after waiting ' + Math.round(IAM_WAIT_MS / 60000) + ' minutes for the instance principal policy (vm-state.tf) to take effect: ' + why };
+    }
+    attempted({ step: 'repository', attempt: attempt, code: r.code, error: why, retrying: true });
+    sleep(backoff(attempt));
+  }
+}
+
+function snapshots(host) {
+  const r = resticRetried('snapshots ' + host, ['snapshots', '--json', '--host', host]);
+  if (r.code !== 0) throw new Error('restic snapshots ' + host + ' exited ' + r.code + ' after ' + ATTEMPTS + ' attempts: ' + r.err);
+  return JSON.parse(r.out || '[]');
+}
+
+const tagOf = (snap, key) => ((snap.tags || []).find((t) => t.startsWith(key + ':')) || '').slice(key.length + 1);
+
+function restoreInto(snap, target) {
+  const r = resticRetried('restore ' + snap.id, ['restore', snap.id + ':' + snap.paths[0], '--target', target, '--verify'], () => emptyOut(target));
+  if (r.code !== 0) throw new Error('restic restore ' + snap.id + ' exited ' + r.code + ' after ' + ATTEMPTS + ' attempts: ' + r.err);
+}
+
+function emptyOut(dir) {
+  for (const name of fs.readdirSync(dir)) fs.rmSync(dir + '/' + name, { recursive: true, force: true });
+}
+
+function restoreVolume(v) {
+  const created = run('docker', ['volume', 'create', v.docker]);
+  if (created.code !== 0) throw new Error('docker volume create ' + v.docker + ': ' + created.err);
+  const found = run('docker', ['volume', 'inspect', '-f', '{{.Mountpoint}}', v.docker]);
+  const target = found.out.trim();
+  if (found.code !== 0 || !target) throw new Error('docker volume inspect ' + v.docker + ': ' + found.err);
+  const present = fs.readdirSync(target).filter((n) => n !== 'lost+found');
+  if (present.length > 0) return { status: 'kept', note: 'the volume already holds ' + present.length + ' entries: not restoring over them' };
+  const all = snapshots(v.app + '.' + v.volume + '.files');
+  if (all.length === 0) return { status: 'none', note: 'no snapshot of this volume exists (never backed up): continuing with it empty' };
+  const verified = all.filter((s) => (s.tags || []).includes('verified'));
+  if (verified.length === 0) throw new Error(all.length + ' snapshots exist and none is verified (wf vm state verify tags the ones it restored)');
+  const ms = (s) => Number(tagOf(s, 'ms')) || 0;
+  const newest = verified.reduce((a, b) => (ms(b) >= ms(a) ? b : a));
+  try {
+    restoreInto(newest, target);
+    if ((newest.tags || []).includes('sqlite')) {
+      const run_ = tagOf(newest, 'run');
+      const copies = snapshots(v.app + '.' + v.volume + '.sqlite').find((s) => tagOf(s, 'run') === run_);
+      if (!copies) throw new Error('the snapshot of run ' + run_ + ' has SQLite databases and the repository holds no sqlite snapshot of that run');
+      restoreInto(copies, target);
+    }
+  } catch (e) {
+    emptyOut(target);
+    throw e;
+  }
+  return { status: 'restored', snapshot: newest.id, run: tagOf(newest, 'run') };
+}
+
+if (volumes.length === 0) process.exit(0);
+const failed = [];
+const fail = (v, message) => {
+  failed.push(v.docker);
+  say({ ok: false, app: v.app, volume: v.volume, docker: v.docker, error: message });
+};
+if (!process.env.RESTIC_PASSWORD) {
+  volumes.forEach((v) => fail(v, 'VM_STATE_RESTIC_PASSWORD is not in the vault: the backup cannot be read'));
+} else {
+  const repo = repositoryExists();
+  if (repo.error) {
+    volumes.forEach((v) => fail(v, repo.error));
+  } else if (!repo.exists) {
+    volumes.forEach((v) => say({ ok: true, app: v.app, volume: v.volume, docker: v.docker, status: 'none', note: 'no backup repository exists yet (first boot): continuing with empty state' }));
+  } else {
+    for (const v of volumes) {
+      try {
+        say(Object.assign({ ok: true, app: v.app, volume: v.volume, docker: v.docker }, restoreVolume(v)));
+      } catch (e) {
+        fail(v, e.message);
+      }
+    }
+  }
+}
+process.exit(failed.length === 0 ? 0 : 1);
+RESTORESTATEJS
+chown ubuntu:ubuntu /home/ubuntu/restore-state.js
+
+# --- Bootstrap vm-ops-api directly, no SSH ever needed -----------------------
+# Every other app's first-ever deploy is triggered over HTTPS via
+# vm-ops-api's own /services/:app/redeploy once vm-ops-api itself exists --
+# see server.js's buildAppRedeploySiblingArgs. But something has to get
+# vm-ops-api running in the first place, and vm-ops-api obviously can't
+# redeploy itself into existence. That used to mean a human SSH session
+# running deploy.sh by hand on every fresh VM (and every VM recreate).
+# Doing it here means cloud-init IS that first bootstrap: a VM recreate is
+# fully unattended end-to-end, straight through to a working vm-ops-api.
+cat > /home/ubuntu/provision-apps.js <<'PROVISIONAPPSJS'
+const { execFileSync } = require('child_process');
+const fs = require('fs');
+const https = require('https');
+
+function readEnvFile(path) {
+  const env = {};
+  if (fs.existsSync(path)) {
+    for (const line of fs.readFileSync(path, 'utf8').split('\n')) {
+      const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+      if (m) env[m[1]] = m[2];
+    }
+  }
+  return env;
+}
+
+// vm-ops-api's own .env.local (already seeded above, same as every other
+// app dir) is the one source of the read-only Bitwarden bootstrap creds --
+// borrowed here rather than duplicated, same fallback-copy idea
+// buildAppRedeploySiblingArgs already uses for a brand-new app dir.
+const bootstrapEnv = readEnvFile('/home/ubuntu/vm-ops-api/.env.local');
+if (!bootstrapEnv.BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN) {
+  console.error('[provision] no BWS read token in vm-ops-api/.env.local -- aborting');
+  process.exit(1);
+}
+
+const secretsList = JSON.parse(
+  execFileSync('bws', ['secret', 'list', '--output', 'json'], {
+    env: {
+      ...process.env,
+      BWS_ACCESS_TOKEN: bootstrapEnv.BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN,
+      ...(bootstrapEnv.BWS_SERVER_URL ? { BWS_SERVER_URL: bootstrapEnv.BWS_SERVER_URL } : {}),
+    },
+    maxBuffer: 1024 * 1024 * 20,
+    timeout: 30_000,
+  }).toString(),
+);
+const byKey = new Map(secretsList.map((s) => [s.key, s.value]));
+
+// Forwards this script's own progress to BetterStack via the compiled
+// `logger` CLI (clis/logger) -- the single canonical BetterStack emitter
+// for infra/bash contexts, extracted onto this host by extractLoggerBinary()
+// below rather than hand-rolled here. Cloud-init output otherwise has NO
+// remote visibility at all until an app's own tailnet path comes up --
+// exactly the gap that made a previous broken boot undiagnosable without
+// SSH.
+//
+// BETTERSTACK_OTLP_HOST is non-secret config (same value vm-ops-api's own
+// committed .env.defaults carries -- one shared backend/CLI OTLP source,
+// KTD9), so it's a literal constant here, NOT a vault lookup -- keep it in
+// sync with that file's value. This used to read
+// byKey.get('BETTERSTACK_OTLP_HOST'), which could never resolve to
+// anything: that key was never actually a vault secret, so every log()
+// call had been silently no-op-ing since this was written (it fails soft
+// by design, so nothing ever surfaced the mistake).
+const BETTERSTACK_OTLP_HOST = '<betterstack-otlp-host>.betterstackdata.com';
+const BETTERSTACK_OTLP_TOKEN = byKey.get('BETTERSTACK_OTLP_TOKEN') || '';
+
+// Extracted onto the host by extractLoggerBinary(), called once from the
+// main IIFE right after Docker is confirmed ready. log() falls back to
+// console-only for the handful of calls that happen before that (there's
+// nothing to shell out to yet); OCI console-history still captures those.
+const LOGGER_BIN = '/usr/local/bin/logger';
+function log(message, attributes) {
+  console.log('[provision] ' + message, attributes || '');
+  if (!fs.existsSync(LOGGER_BIN)) return;
+  const args = ['emit', '--service', 'cloud-init', '--level', 'info', '--message', message, '--host-label', HOST_LABEL];
+  for (const [key, value] of Object.entries(attributes || {})) {
+    args.push('--attr', `$${key}=$${value}`);
+  }
+  try {
+    execFileSync(LOGGER_BIN, args, {
+      env: { ...process.env, BETTERSTACK_OTLP_HOST, BETTERSTACK_OTLP_TOKEN },
+      stdio: 'ignore',
+      timeout: 10_000,
+    });
+  } catch {
+    // `logger emit` itself never exits non-zero on a delivery failure --
+    // a thrown error here means the exec/binary itself is broken, not
+    // that BetterStack is unreachable. Swallow either way: logging must
+    // never block provisioning.
+  }
+}
+
+// Pulls the dedicated logger-cli carrier image (clis/logger/Dockerfile)
+// and extracts its one binary onto the host filesystem -- the only thing
+// that has to happen before log() can use the real emitter instead of
+// console-only. A tiny, purpose-built image rather than reusing
+// vm-ops-api's own (much larger) image, so this doesn't couple to that
+// image's tag scheme and is ready before vm-ops-api has even started
+// pulling.
+function extractLoggerBinary() {
+  try {
+    execFileSync('docker', ['pull', 'nuesslerm/logger-cli:latest'], { stdio: 'inherit', timeout: 60_000 });
+    try {
+      execFileSync('docker', ['rm', '-f', 'logger-extract'], { stdio: 'ignore' });
+    } catch {
+      // fine -- there was nothing to remove
+    }
+    execFileSync('docker', ['create', '--name', 'logger-extract', 'nuesslerm/logger-cli:latest'], {
+      stdio: 'inherit',
+      timeout: 15_000,
+    });
+    execFileSync('docker', ['cp', 'logger-extract:/logger-bin', LOGGER_BIN], { stdio: 'inherit', timeout: 15_000 });
+    execFileSync('docker', ['rm', 'logger-extract'], { stdio: 'ignore' });
+    fs.chmodSync(LOGGER_BIN, 0o755);
+    console.log('[provision] logger binary extracted to ' + LOGGER_BIN);
+  } catch (e) {
+    // Never fatal -- provisioning must proceed console-only if this fails
+    // for any reason (registry hiccup, image not yet pushed).
+    console.error('[provision] logger binary extraction failed (continuing console-only): ' + e.message);
+  }
+}
+
+// Pinned, same as server.js's own PROVISION_REPO/PROVISION_REF.
+//
+// PROVISION_REF is a Terraform variable rather than the hardcoded 'main' it used
+// to be. It was hardcoded, which made any change to an app's compose file
+// UNVERIFIABLE before merge: cloud-init would fetch that file from main no
+// matter what branch you were on, so the only way to test a compose change on a
+// real VM was to merge it first and hope. Defaults to 'main', so normal
+// provisioning is unchanged; point it at a branch to validate a compose change
+// on a throwaway recreate.
+const PROVISION_REPO = 'nuesslerm/mobile-learning-app';
+const PROVISION_REF = '${provision_ref}';
+const githubToken = byKey.get('VM_PROVISION_GITHUB_TOKEN') || '';
+
+// app name -> image tag. Empty means "use each compose file's own default"
+// (`latest`). Rendered from Terraform's var.image_tag_overrides.
+const IMAGE_TAG_OVERRIDES = JSON.parse('${image_tag_overrides_json}');
+
+function fetchRaw(repoPath) {
+  return new Promise((resolve, reject) => {
+    const url = `https://raw.githubusercontent.com/$${PROVISION_REPO}/$${PROVISION_REF}/$${repoPath}`;
+    const headers = githubToken ? { Authorization: 'token ' + githubToken } : {};
+    // Cloud-init has no external watchdog on this script -- an unbounded
+    // https.get with no timeout that never gets a response (early-boot
+    // network flakiness, a stalled TLS handshake) hangs this whole script,
+    // and therefore the rest of cloud-init, forever. 20s is generous for a
+    // raw.githubusercontent.com GET; failing loudly beats hanging silently.
+    const req = https
+      .get(url, { headers, timeout: 20_000 }, (res) => {
+        if (res.statusCode !== 200) {
+          reject(new Error('GET ' + url + ' -> ' + res.statusCode));
+          return;
+        }
+        const chunks = [];
+        res.on('data', (c) => chunks.push(c));
+        res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+      })
+      .on('error', reject)
+      .on('timeout', () => {
+        req.destroy(new Error('timed out after 20s: ' + url));
+      });
+  });
+}
+
+// Puts the Rust `wf` on PATH for a human SSHed in over Termius and for the redeploy sibling's secrets sync: a link to the
+// VM's one build on the `clis` volume, which the runner's clis workflow fills (/opt/clis/current in the containers). Until
+// the first Deploy fills it the link dangles; it resolves at each exec, so nothing needs reinstalling. Best-effort: a
+// failure here must never fail the rest of provisioning.
+function installGlobalWf() {
+  try {
+    execFileSync('docker', ['volume', 'create', 'clis'], { stdio: 'ignore', timeout: 15_000 });
+    const mount = execFileSync('docker', ['volume', 'inspect', '-f', '{{.Mountpoint}}', 'clis'], { timeout: 15_000 }).toString().trim();
+    fs.rmSync('/usr/local/bin/wf', { force: true });
+    fs.symlinkSync(mount + '/current/wf', '/usr/local/bin/wf');
+    log('wf CLI linked at /usr/local/bin/wf -> ' + mount + '/current/wf');
+  } catch (e) {
+    log('wf CLI NOT linked (' + e.message + ')');
+  }
+}
+
+const HOST_LABEL = process.env.HOST_LABEL;
+// what cloud-init ran: the restore keeps every volume that already holds data, so running it again only fills the ones that failed and starts the apps
+const RERUN_COMMAND = 'HOST_LABEL=' + HOST_LABEL + ' node /home/ubuntu/provision-apps.js';
+
+// The state volumes of every app (`stateVolumes` of vm-apps.json), restored from the backup repository before any app starts. The
+// instance principal reads the bucket (vm-state.tf); the restic password is the one vault secret involved, handed to the child by
+// environment only. A volume that fails to restore is returned, and its app is not started: an app must never start on empty state
+// when a snapshot of it exists.
+const STATE_VOLUMES = ${vm_apps_json}.flatMap((app) =>
+  (app.stateVolumes || []).map((v) => ({ app: app.name, volume: v.name, docker: app.name === 'agent-shell' && v.name === 'agent-workspace' ? 'agent-workspace' : app.name + '_' + v.name })),
+);
+
+function restoreState() {
+  if (STATE_VOLUMES.length === 0) return [];
+  const env = {
+    ...process.env,
+    RESTIC_PASSWORD: byKey.get('VM_STATE_RESTIC_PASSWORD') || '',
+    RESTIC_REPOSITORY: 'rclone:oos:${vm_state_bucket}',
+    RESTIC_CACHE_DIR: '/var/cache/restic-vm-state',
+    RCLONE_CONFIG_OOS_TYPE: 'oracleobjectstorage',
+    RCLONE_CONFIG_OOS_PROVIDER: 'instance_principal_auth',
+    RCLONE_CONFIG_OOS_NAMESPACE: '${vm_state_namespace}',
+    RCLONE_CONFIG_OOS_REGION: '${vm_state_region}',
+    RCLONE_CONFIG_OOS_NO_CHECK_BUCKET: 'true',
+  };
+  log('restoring ' + STATE_VOLUMES.length + ' state volumes from the backup repository before any app starts');
+  // stderr is inherited so every retry of the restore reaches this log as it happens, not after the last one
+  const r = require('child_process').spawnSync('node', ['/home/ubuntu/restore-state.js', JSON.stringify(STATE_VOLUMES)], { env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'], timeout: 150 * 60000, maxBuffer: 16 * 1024 * 1024 });
+  const failed = [];
+  for (const line of (r.stdout || '').split('\n')) {
+    let row;
+    try { row = JSON.parse(line); } catch { continue; }
+    if (row.event !== 'vm-state-restore') continue;
+    log('state ' + row.docker + ': ' + (row.ok ? (row.status || 'ok') + (row.note ? ' (' + row.note + ')' : '') : 'FAILED: ' + row.error), { snapshot: row.snapshot || '' });
+    if (!row.ok) failed.push(row);
+  }
+  if (failed.length === 0 && r.status !== 0) {
+    // the script died before it could say which volume: every volume is suspect
+    log('state restore FAILED without a verdict (exit ' + r.status + '): ' + String(r.stderr || r.error || '').slice(0, 300));
+    return STATE_VOLUMES.map((v) => ({ ...v, error: 'the restore script did not finish' }));
+  }
+  return failed;
+}
+
+// Every app of infra/oracle-cloud/vm-apps.json, in order (vm-ops-api first), each with the secret set wf's own
+// `sync-env --for <app>` delivers (clis/secrets/src/secrets/groups.json): one list and one set of groups for Terraform, this
+// script and every later redeploy, so a fresh VM's env cannot drift from what a redeploy would write.
+const SECRET_GROUPS = ${secret_groups_json};
+const APPS = ${vm_apps_json}.map((app) => {
+  const group = SECRET_GROUPS.find((g) => g.app === app.name);
+  if (!group) throw new Error(`$${app.name} has no secret group in clis/secrets/src/secrets/groups.json`);
+  return { ...app, dir: `/home/ubuntu/$${app.name}`, required: group.required, optional: group.optional };
+});
+
+async function provisionApp(app, failedState) {
+  fs.mkdirSync(app.dir, { recursive: true });
+  const [compose, envDefaults] = await Promise.all([
+    fetchRaw(`$${app.repoPath}/$${app.composeFile}`),
+    fetchRaw(`$${app.repoPath}/.env.defaults`),
+  ]);
+  const blocked = failedState.find((f) => f.app === app.name || compose.includes(f.docker));
+  if (blocked) throw new Error('not starting ' + app.name + ': its state volume ' + blocked.docker + ' was not restored (' + blocked.error + '). Fix the cause, then rerun on this VM: ' + RERUN_COMMAND);
+  fs.writeFileSync(`$${app.dir}/$${app.composeFile}`, compose);
+  fs.writeFileSync(`$${app.dir}/.env.defaults`, envDefaults);
+
+  const lines = [envDefaults.trim()];
+  for (const k of app.required) {
+    const v = byKey.get(k);
+    if (!v) throw new Error(`$${app.name}: missing required secret $${k}`);
+    lines.push(`$${k}=$${JSON.stringify(v)}`);
+  }
+  for (const k of app.optional) {
+    const v = byKey.get(k);
+    if (v) lines.push(`$${k}=$${JSON.stringify(v)}`);
+  }
+  lines.push(`HOST_LABEL=$${JSON.stringify(HOST_LABEL)}`);
+  // .env.local last, as every redeploy appends it: it carries the vault token and region the runner and wf need.
+  const local = `$${app.dir}/.env.local`;
+  if (fs.existsSync(local)) lines.push(fs.readFileSync(local, 'utf8').trim());
+  // Per-app image tag override. Every compose file resolves
+  // `$${IMAGE_NAMESPACE}/<app>:$${IMAGE_TAG:-latest}`, and nothing here used to set
+  // IMAGE_TAG, so every app always ran `latest` -- which is only ever built from
+  // the default branch. That made a branch-built image impossible to run on a
+  // VM, the other half of the same pre-merge-verification hole PROVISION_REF
+  // above closes.
+  const tagOverride = IMAGE_TAG_OVERRIDES[app.name];
+  if (tagOverride) lines.push(`IMAGE_TAG=$${JSON.stringify(tagOverride)}`);
+  fs.writeFileSync(`$${app.dir}/.env`, lines.join('\n') + '\n');
+
+  log(`$${app.name}: wrote compose + .env, pulling...`);
+  // Generous timeout on pull specifically -- a completely fresh VM has no
+  // cached layers at all, so this is the one step that can legitimately
+  // take minutes rather than seconds; everything else here gets a much
+  // tighter bound since it should never normally take long.
+  execFileSync('docker', ['compose', '-f', app.composeFile, 'pull'], { cwd: app.dir, stdio: 'inherit', timeout: 5 * 60_000 });
+  log(`$${app.name}: pulled, starting...`);
+  // The shared agent workspace is declared `external: true` by agent-shell and
+  // remote-chat-agent, and the wf build volume `clis` by agent-shell and ci-runner
+  // (which writes it), so both must exist before any can start. Idempotent and
+  // harmless for every other app.
+  for (const volume of ['agent-workspace', 'clis']) {
+    try { execFileSync('docker', ['volume', 'create', volume], { stdio: 'ignore', timeout: 15_000 }); } catch {}
+  }
+  execFileSync('docker', ['compose', '-f', app.composeFile, 'up', '-d'], { cwd: app.dir, stdio: 'inherit', timeout: 60_000 });
+  log(`$${app.name}: started`);
+}
+
+// `systemctl enable --now docker` earlier in this same cloud-init run
+// returns once the unit is started, not once dockerd has actually finished
+// initializing (socket permissions, containerd handshake) -- every prior
+// use of docker after cloud-init had minutes/hours of slack (a human
+// SSHing in later). This script runs docker compose within seconds of
+// that install, the first time that slack hasn't existed -- poll for
+// readiness explicitly rather than assume it.
+function waitForDocker() {
+  const deadline = Date.now() + 60_000;
+  while (Date.now() < deadline) {
+    try {
+      execFileSync('docker', ['info'], { stdio: 'ignore', timeout: 5_000 });
+      return;
+    } catch {
+      execFileSync('sleep', ['2']);
+    }
+  }
+  throw new Error('docker did not become ready within 60s');
+}
+
+(async () => {
+  log('provisioning started');
+  waitForDocker();
+  extractLoggerBinary();
+  log('docker is ready');
+  try {
+    await installGlobalWf();
+  } catch (e) {
+    log('wf CLI install failed (continuing): ' + (e && e.message ? e.message : String(e)));
+  }
+  // Before any app starts: nothing runs while the volumes are filled, so no app can write its starter files over (or race) the restore.
+  let failedState = [];
+  try {
+    failedState = restoreState();
+  } catch (e) {
+    log('state restore FAILED: ' + (e && e.message ? e.message : String(e)));
+    failedState = STATE_VOLUMES.map((v) => ({ ...v, error: 'the restore step threw' }));
+  }
+  // Per-app isolation: one app's failure must not abort later apps, or the
+  // host cannot repair itself over HTTP.
+  const failures = [];
+  for (const app of APPS) {
+    try {
+      await provisionApp(app, failedState);
+    } catch (err) {
+      const m = err && err.message ? err.message : String(err);
+      failures.push({ app: app.name, message: m });
+      log(`$${app.name}: FAILED, continuing: $${m}`);
+    }
+  }
+  // Durable, SSH-less crash visibility: this output lands in `docker
+  // compose ... up -d`'s own console (captured by `oci compute
+  // console-history capture` + `get-content`, no live SSH/agent channel
+  // needed) -- the one diagnostic path this sandbox's egress proxy and
+  // Oracle Cloud Agent version can't break (see
+  // docs/superpowers/plans/2026-08-01-001-feat-ssh-funnel-break-glass-plan.md's
+  // "falsified" section for why those other two paths are dead ends here).
+  // A container silently crash-looping after first boot previously had ZERO
+  // trace anywhere without SSH -- this closes that gap the same way
+  // GET /redeploy/status closes it for a LATER redeploy.
+  // A few seconds' grace before reading logs -- @lib/logging's console
+  // transport buffers for ~1s (see docs/logging.md), so reading
+  // immediately after `up -d` returns can catch a container that's
+  // actually fine mid-flush and misreport it as silent.
+  execFileSync('sleep', ['5']);
+  log('post-start container diagnostics');
+  for (const [label, cwd, composeFile] of [
+    ['vm-ops-api', '/home/ubuntu/vm-ops-api', 'docker-compose.yml'],
+  ]) {
+    try {
+      execFileSync('docker', ['compose', '-f', composeFile, 'ps', '-a'], { cwd, stdio: 'inherit', timeout: 10_000 });
+    } catch (e) {
+      log(`$${label}: 'compose ps' failed: ` + e.message);
+    }
+    for (const service of ['ops-api', 'tailscale']) {
+      try {
+        execFileSync(
+          'docker',
+          [
+            'inspect',
+            '--format',
+            'status={{.State.Status}} exitCode={{.State.ExitCode}} restarts={{.RestartCount}} error={{.State.Error}} startedAt={{.State.StartedAt}} finishedAt={{.State.FinishedAt}}',
+            service === 'tailscale' ? 'vm-ops-api-tailscale' : 'vm-ops-api-ops-api-1',
+          ],
+          { stdio: 'inherit', timeout: 10_000 },
+        );
+      } catch (e) {
+        log(`$${label}/$${service}: 'docker inspect' failed: ` + e.message);
+      }
+      try {
+        log(`$${label}/$${service} logs:`);
+        execFileSync('docker', ['compose', '-f', composeFile, 'logs', '--no-color', '--tail', '80', service], {
+          cwd,
+          stdio: 'inherit',
+          timeout: 10_000,
+        });
+      } catch (e) {
+        log(`$${label}/$${service}: 'compose logs' failed: ` + e.message);
+      }
+    }
+  }
+  if (failures.length > 0) {
+    // Isolation changes the blast radius, not whether it is reported.
+    log(`provisioning completed WITH FAILURES: $${failures.map((f) => `$${f.app} ($${f.message})`).join('; ')}`);
+    process.exit(1);
+  }
+  log('provisioning complete');
+})().catch((e) => {
+  log('provisioning FAILED: ' + (e && e.message ? e.message : String(e)));
+  process.exit(1);
+});
+PROVISIONAPPSJS
+chown ubuntu:ubuntu /home/ubuntu/provision-apps.js
+HOST_LABEL=${host_label} node /home/ubuntu/provision-apps.js 2>&1 | tee /home/ubuntu/provision-apps.log || echo "[cloud-init] provision-apps.js failed -- see /home/ubuntu/provision-apps.log" >&2
+
+# --- Git commit identity -----------------------------------------------------
+# remote-chat-agent commits from worktrees it creates; without a global identity
+# `git commit` fails outright with "Author identity unknown". Set it for the
+# `ubuntu` user (the one the agent + any self-hosted runner execute as).
+sudo -u ubuntu git config --global user.name "${git_user_name}"
+sudo -u ubuntu git config --global user.email "${git_user_email}"
+# Worktrees live under paths the agent owns; mark them safe so git does not
+# refuse with "detected dubious ownership" when uid/gid differ in a container.
+sudo -u ubuntu git config --global --add safe.directory '*'
+
+# --- Termius/interactive-session logging -------------------------------------
+# Wraps every interactive login shell in `script`, so a human working over
+# their own SSH session (Termius) gets a durable, continuously-flushed
+# transcript an agent can read or live-follow via vm-ops-api's
+# GET /session-log (see server.js) without the human needing to redirect
+# each command's output by hand. /etc/profile.d (not ~/.bashrc) so it
+# applies to any login shell regardless of which dotfile gets sourced. The
+# IN_SESSION_LOG guard stops `script` from re-wrapping the shell it itself
+# spawns; `[ -t 0 ]` scopes this to interactive sessions only (not
+# non-interactive SSH commands, scp, cron, etc).
+mkdir -p /home/ubuntu/session-logs
+cat > /etc/profile.d/session-logging.sh <<'PROFILE_EOF'
+if [ -z "$IN_SESSION_LOG" ] && [ -t 0 ]; then
+  export IN_SESSION_LOG=1
+  exec script -qfa /home/ubuntu/session-logs/current.log
+fi
+PROFILE_EOF
+chmod 644 /etc/profile.d/session-logging.sh
+
+# --- Pre-warmed tmux sessions for the interactive CLIs above ------------------
+# One detached, attachable tmux session per CLI (claude/codex/opencode), so a
+# human SSHing in over Termius later can `tmux attach -t claude` (etc.)
+# straight into a running session instead of having to invoke the CLI
+# themselves first. None of these are authenticated by cloud-init -- each
+# still needs its own login (`wf secret login <tool>`, or interactively once
+# attached) before it's actually usable; this only pre-warms the session
+# itself. Best-effort and independent per CLI: one crashing/missing must not
+# stop the others or the rest of provisioning.
+for CLI_SESSION in claude codex opencode; do
+  sudo -u ubuntu -i tmux new-session -d -s "$${CLI_SESSION}" "$${CLI_SESSION}" \
+    || echo "[cloud-init] tmux session for $${CLI_SESSION} failed to start -- run it by hand later" >&2
+done
+
+chown -R ubuntu:ubuntu /home/ubuntu
+
+echo "[cloud-init] done: docker=$(docker --version 2>/dev/null), node=$(node --version 2>/dev/null), bws=$(bws --version 2>/dev/null || echo missing)"

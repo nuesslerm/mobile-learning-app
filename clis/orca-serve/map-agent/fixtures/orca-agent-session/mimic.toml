@@ -1,0 +1,13 @@
+# The set of the Orca agent-session body fingerprint (the hash a queued card is compared by), over a few sessions and texts.
+# Re-record with: wf mimic record clis/orca-serve/map-agent/fixtures/orca-agent-session
+rules = "rules.json"
+corpus = "corpus.json"
+
+[reference]
+driver = "stdio"
+name = "orca"
+command = ["node", "../../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca-lib"]
+env = { NODE_NO_WARNINGS = "1" }
+pin = "../../../../../tooling/orca-conformance/orca-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"

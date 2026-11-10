@@ -1,0 +1,19 @@
+Usage: wf vm ops pair [options] <app>
+
+Mints a pairing link in the deployed orca-serve container (vm-ops-api runs
+`orca-serve pair` there; no SSH) and prints it. The link is a CREDENTIAL: it is
+the only thing on stdout, so pipe it and never paste it. Any app but orca-serve
+is refused before a request is made.
+
+Arguments:
+  app         orca-serve
+
+Options:
+  -h, --help  display help for command
+
+Output: the raw orca://pair link and a newline on stdout, one human line on
+stderr. On failure nothing on stdout, one JSON line {ok:false, error, next?} on
+stderr and exit 1; a reply without a link is a failure.
+
+Example:
+  wf vm ops pair orca-serve | wf secret update ORCA_VERIFY_PAIR_URL --value-stdin --apply

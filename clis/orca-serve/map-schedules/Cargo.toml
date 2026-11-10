@@ -1,0 +1,26 @@
+[package]
+name = "orca-map-schedules"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Orca mapping crate for the phone's automation rows (list, show, create, update, delete, runNow) over rca's schedules group, behind the AgentApi port of orca-core"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["orca-core/testing"]
+
+[dependencies]
+orca-core = { path = "../core" }
+orca-map-workspace = { path = "../map-workspace" }
+orca-map-agent = { path = "../map-agent" }
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-schedules = { path = "../../../libraries/agent-api/agent-api-schedules" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+orca-core = { path = "../core", features = ["testing"] }
+orca-map-workspace = { path = "../map-workspace", features = ["testing"] }
+orca-map-schedules = { path = ".", features = ["testing"] }

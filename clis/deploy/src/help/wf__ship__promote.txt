@@ -1,0 +1,15 @@
+Usage: wf ship promote [options] <app>
+
+Point `latest` of every image of an app (the same list `wf ship build` pushes) at
+--tag, registry to registry: `docker buildx imagetools create -t
+docker.io/nuesslerm/<image>:latest docker.io/nuesslerm/<image>:<tag>`, against
+whatever DOCKER_HOST names. It never touches the VM or vm-ops-api, so it runs from
+a CI job on the CI port. CI calls it after a deploy leg served the commit, for
+vm-ops-api (vm-ops-api-rs and watchdog), whose `latest` a recreated VM pulls.
+Prints one JSON line: {"app","tag","images":[{"image","latest","from"}]}.
+DOCKERHUB_TOKEN (and DOCKERHUB_USERNAME, default nuesslerm) are read from the
+environment and given to `docker login` on stdin; they are never printed.
+
+Options:
+  --tag <tag>        Tag whose manifest `latest` gets (required), e.g. sha-<8>
+  -h, --help         display help for command

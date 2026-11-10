@@ -1,0 +1,34 @@
+[package]
+name = "rca-group-accounts"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The accounts and git.ai groups of the service's agent API: which provider CLIs hold a login (each in a directory of its own, through ProviderDirs), their login sessions (through ProviderLogin), usage and commit messages from a model (through ModelApi)"
+
+[lib]
+name = "rca_group_accounts"
+path = "src/lib.rs"
+doctest = false
+
+[dependencies]
+async-trait.workspace = true
+futures-util.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-accounts = { path = "../../../libraries/agent-api/agent-api-accounts" }
+agent-api-git = { path = "../../../libraries/agent-api/agent-api-git" }
+rca-agent-core = { path = "../agent-core" }
+rca-cli-driver = { path = "../cli-driver" }
+rca-exec-channel = { path = "../exec-channel" }
+exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
+exec-git = { path = "../../../libraries/agent-api/exec-git" }
+
+[dev-dependencies]
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto", features = ["testing"] }
+agent-api-accounts = { path = "../../../libraries/agent-api/agent-api-accounts", features = ["testing"] }
+agent-api-git = { path = "../../../libraries/agent-api/agent-api-git", features = ["testing"] }
+rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
+
+[features]
+testing = ["agent-api-git/testing", "agent-api-accounts/testing"]

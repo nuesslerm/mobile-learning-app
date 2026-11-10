@@ -1,0 +1,131 @@
+packages:
+  - backend/*
+  - clis/*
+  - tooling/browser-harness/*
+  - frontend/mla-tamagui
+  - frontend/mla-tamagui/features/coding-agent
+  - frontend/mla-tamagui/features/service-report
+  - frontend/mla-tamagui/features/settings
+  - infra/oracle-cloud/watchdog
+  - frontend/libraries/app-config
+  - frontend/libraries/app-di
+  - libraries/browser-client
+  - libraries/eslint-plugin-mobile-learn
+  - frontend/libraries/flow-test-harness
+  - frontend/libraries/gesture-geometry
+  - libraries/hook-runtime
+  - frontend/libraries/logging
+  - frontend/libraries/rn-agentation
+  - frontend/libraries/tamagui-design-system
+  - frontend/libraries/voice-edit-dsl
+  - tooling/*
+
+catalog:
+  '@types/node': ^22.14.0
+  # TypeScript 7 (typescript-go) is the compiler; 7.0 ships no JS API, so `typescript` stays the 6.0 API package that
+  # Nx's project graph, dependency-cruiser and Tamagui's babel/metro plugin require. It goes once 7.1 ships an API they use.
+  typescript: npm:@typescript/typescript6@6.0.2
+  '@typescript/native': npm:typescript@7.0.2
+  vitest: ^3.2.6
+  oxlint: 1.87.0
+  # oxlint 1.87 needs >=7.0.2003 for its type-aware rules; 7.0.2004 is newer than two weeks until 24 Oct
+  oxlint-tsgolint: 7.0.2003
+  prettier: ^3.6.2
+  prettier-plugin-tailwindcss: ^0.5.11
+  '@babel/core': ^7.26.0
+  # react-native-worklets' babel plugin requires @babel/traverse without
+  # declaring it, and babel-preset-expo loads that plugin -- so every web
+  # export died on "Cannot find module '@babel/traverse'" the moment a
+  # reinstall stopped hoisting it to the root by luck. Declared here so the
+  # resolution is a fact rather than a side effect of pnpm's hoist heuristics.
+  '@babel/traverse': ^7.26.0
+  vite-plugin-babel: ^1.7.3
+  '@storybook/react-native': ^10.4.4
+  '@types/react': ~19.2.0
+  '@types/react-dom': ~19.2.0
+  react: 19.2.3
+  react-dom: 19.2.3
+  react-native: 0.86.3
+  react-native-css-interop: 0.2.5
+  tailwindcss: ^3.4.17
+  playwright: ^1.62.1
+  'react-device-frameset': ^1.3.4
+  vite: ^7.0.3
+  '@vitejs/plugin-react': ^4.4.1
+
+# Supply-chain security
+# minimumReleaseAge is minutes as a bare number — NOT a duration string
+# ("1440 minutes" resolves to NaN arithmetic in pnpm and crashes every
+# install with "Invalid time value").
+minimumReleaseAge: 1440
+blockExoticSubdeps: true
+
+allowBuilds:
+  # SDK 57 bumped skia to a version whose postinstall downloads prebuilt
+  # native Skia libraries. Nothing here consumes them: a native build would,
+  # while this repo bundles through Metro and exports web. Denied rather than
+  # granted, so the script never runs and `pnpm install` stops asking.
+  '@ast-grep/cli': false
+  '@shopify/react-native-skia': false
+  bufferutil: true
+  esbuild: false
+  lefthook: false
+  # nx's postinstall only warms its daemon and checks the native binary, which loads lazily anyway
+  nx: false
+  utf-8-validate: true
+
+overrides:
+  zod: '^4.4.3'
+  # the Orca goldens were recorded with zod 4.6.7 (tooling/mimic-drivers), which the workspace-wide range does not pick
+  'mimic-drivers>zod': 4.6.7
+  # Expo SDK 57's React Native renderer runs only on React 19.2.3. Packages whose react peer was auto-installed
+  # (vaul, react-remove-scroll, react-native-worklets, ...) resolved 19.2.7, and the hoisted react-native then
+  # flipped to that copy between installs, which broke the app typecheck. One React for the whole workspace.
+  react: 19.2.3
+patchedDependencies:
+  '@storybook/react-native-ui@10.4.4': patches/@storybook__react-native-ui@10.4.4.patch
+  react-native-css-interop@0.2.5: patches/react-native-css-interop@0.2.5.patch
+  # lucide-react-native's exports map stops at `.` and `./icons`, both of which
+  # are barrels. Metro does not tree-shake them, so importing one icon pulled all
+  # 1,713 -- 3.4 MB, 16% of the dev bundle. This exposes the per-icon files the
+  # package already ships, so the deep import resolves without Metro's
+  # "not listed in exports, falling back" warning on every one of them.
+  lucide-react-native@1.17.0: patches/lucide-react-native@1.17.0.patch
+  skills@1.5.13: patches/skills@1.5.13.patch
+  # sonner-native, the wheel picker, gluestack's overlay and the bottom sheet pass pointerEvents as a View prop, and sonner's toast uses the
+  # shadow* style props; react-native-web warns about both (the browser e2e tests' zero-warnings gate). The patches move
+  # pointerEvents into style and give the toast a boxShadow, the same on native. The wheel picker also asks for the native
+  # animated driver, which react-native-web lacks and warns about; on web it now asks for the JS one.
+  sonner-native@0.26.4: patches/sonner-native@0.26.4.patch
+  '@quidone/react-native-wheel-picker@1.7.1': patches/@quidone__react-native-wheel-picker@1.7.1.patch
+  # react-native-svg's web shapes hand a pressable shape's responder props to a DOM element, which ignores them with a
+  # warning, through a mixin react-native-web calls deprecated; on web a press is the onClick it already sets.
+  react-native-svg@15.15.4: patches/react-native-svg@15.15.4.patch
+  '@gluestack-ui/core@5.0.15': patches/@gluestack-ui__core@5.0.15.patch
+  '@gorhom/bottom-sheet@5.2.14': patches/@gorhom__bottom-sheet@5.2.14.patch
+
+# ---------------------------------------------------------------------------
+# Hoisting. THIS is where pnpm 11 reads it -- `.npmrc` is not consulted for
+# pnpm-specific settings any more (`pnpm config get shamefully-hoist` returns
+# undefined with the .npmrc entry present). The .npmrc block had therefore been
+# inert for a while; installs only kept working because an older node_modules
+# still carried the hoisted tree. Rebuilding it surfaced the truth: an export
+# died on `Cannot find module '@babel/traverse'`, which babel-preset-expo
+# requires WITHOUT declaring, and which only ever resolved because of hoisting.
+#
+# Metro and the web bundlers do not understand pnpm's strict layout, which is
+# the whole reason for the blanket hoist.
+shamefullyHoist: true
+
+publicHoistPattern:
+  - '*react-native-css-interop*'
+  # merge-options is a transitive of @react-native-async-storage; pnpm's strict
+  # mode hides it and Metro's static resolve fails.
+  - 'merge-options*'
+
+# dependency timing run 1512
+# dependency timing rerun 1548
+
+supportedArchitectures:
+  os: [linux, darwin]
+  cpu: [x64, arm64]

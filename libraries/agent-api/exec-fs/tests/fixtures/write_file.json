@@ -1,0 +1,26 @@
+{
+  "action": "write_file",
+  "exchanges": [
+    {
+      "name": "writes a file and creates its parent directories",
+      "request": {"id": "w1", "tool": "write_file", "args": {"path": "n/x.txt", "content": "hi", "create_dirs": true}},
+      "response": {"id": "w1", "ok": true, "result": {"bytes": 2}}
+    },
+    {
+      "name": "replaces a file that exists",
+      "setup": {"files": {"a.txt": "old content\n"}},
+      "request": {"id": "w2", "tool": "write_file", "args": {"path": "a.txt", "content": "new\n"}},
+      "response": {"id": "w2", "ok": true, "result": {"bytes": 4}}
+    },
+    {
+      "name": "refuses a path outside the root",
+      "request": {"id": "w3", "tool": "write_file", "args": {"path": "../outside.txt", "content": "x"}},
+      "response": {"id": "w3", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../outside.txt is outside the root"}}
+    },
+    {
+      "name": "refuses content that is not a string",
+      "request": {"id": "w4", "tool": "write_file", "args": {"path": "a.txt", "content": 5}},
+      "response": {"id": "w4", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`content` must be a string"}}
+    }
+  ]
+}

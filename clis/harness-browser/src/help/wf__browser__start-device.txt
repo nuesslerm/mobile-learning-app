@@ -1,0 +1,10 @@
+Usage: wf browser start-device --device N [--screen-size P] [--frame screen|bezel|document] [--color-scheme light|dark|system] [--tailnet] [--plain] [--headless]
+
+Opens browser session N, framed as the phone preset P (default WF_BROWSER_SCREEN_SIZE, else iphone-15-pro;
+`wf browser list-devices` lists the presets), and starts the daemon when none runs (not under WF_BROWSER_NO_START).
+--frame screen (default, or WF_BROWSER_FRAME) overlays the status bar and home indicator as iOS does; bezel draws the
+phone; document gives the chrome its own rows, for a page that is not the app. --tailnet (or WF_BROWSER_TAILNET) routes
+the page through the tailnet; --plain opens a plain page with no device frame. A preset given to --device exits 2 and
+names --screen-size. Record with start-recording and stop-recording.
+
+Result: the session's summary {name, engine, renderMode, devicePreset, orientation, keyboardMode, colorScheme, ...}

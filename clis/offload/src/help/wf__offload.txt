@@ -1,0 +1,18 @@
+Usage: wf offload [options] [command]
+
+Work on the cheap-model ladder, and the ladder's administration
+
+Options:
+  -h, --help       display help for command
+
+Commands:
+  ask [options] [prompt]   Run one prompt on the cheap-model ladder; --batch,
+                           --runbook, --stats, --savings
+  stats [options]          The run-log summary of the ladder (ask --stats)
+  plan [options] <slug>    Run docs/plans/<slug>/units.jsonl on git-leased
+                           worktrees; --check, --status
+  worker                   The git-state worker: check, status
+  ladder                   The ladder's administration: clear-cooldown,
+                           sync-pricing
+  sessions                 The sessions the rca service keeps: rm
+  bearers                  The rca service's device bearers: mint, list, revoke

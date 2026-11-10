@@ -1,0 +1,95 @@
+{
+  "name": "@feature/coding-agent",
+  "version": "0.0.0",
+  "private": true,
+  "main": "src/index.tsx",
+  "types": "src/index.tsx",
+  "exports": {
+    ".": "./src/index.tsx",
+    "./package.json": "./package.json",
+    "./routes/*": "./src/routes/*.tsx",
+    "./testing": "./src/testing/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs",
+    "test": "vitest run --passWithNoTests",
+    "test:unit": "vitest run --passWithNoTests",
+    "test:flow": "vitest run --config vitest.flow.config.ts --configLoader runner"
+  },
+  "dependencies": {
+    "@app/remote-chat-agent-contracts": "workspace:*",
+    "@lib/app-config": "workspace:*",
+    "@lib/app-di": "workspace:*",
+    "@lib/logging": "workspace:*",
+    "@lib/tamagui-design-system": "workspace:*",
+    "@react-native-async-storage/async-storage": "2.2.0",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@typescript/native": "catalog:",
+    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@lib/flow-test-harness": "workspace:*",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/react-native": "^13.3.3",
+    "dependency-cruiser": "^17.4.3",
+    "jsdom": "^30.0.1",
+    "oxlint": "catalog:",
+    "react-dom": "catalog:",
+    "tsx": "^4.22.4",
+    "ws": "^8.21.3"
+  },
+  "peerDependencies": {
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "expo-router": "~6.0.23",
+    "prettier": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "react-native": "catalog:",
+    "react-native-css-interop": "catalog:",
+    "tailwindcss": "catalog:",
+    "typescript": "catalog:",
+    "vite-plugin-babel": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    },
+    "prettier": {
+      "optional": true
+    },
+    "expo-router": {
+      "optional": true
+    },
+    "vite-plugin-babel": {
+      "optional": true
+    },
+    "@types/react": {
+      "optional": true
+    },
+    "@types/react-dom": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
+    "react-native": {
+      "optional": true
+    },
+    "react-native-css-interop": {
+      "optional": true
+    },
+    "tailwindcss": {
+      "optional": true
+    }
+  }
+}

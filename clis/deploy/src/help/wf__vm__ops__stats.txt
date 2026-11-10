@@ -1,0 +1,9 @@
+Usage: wf vm ops stats [options]
+
+GET /stats -- what holds the VM's memory and CPU. JSON: host {memTotalMb,
+memAvailableMb, swapTotalMb, load [1m, 5m, 15m]}, containers [{name, memMb
+(working set, as docker stats), memLimitMb (null: unlimited), cpuPct (of one
+CPU)}] biggest first, containersMb (their sum)
+
+Options:
+  -h, --help  display help for command

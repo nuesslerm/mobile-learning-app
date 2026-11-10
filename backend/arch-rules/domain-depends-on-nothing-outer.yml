@@ -1,0 +1,12 @@
+id: domain-depends-on-nothing-outer
+language: rust
+severity: error
+message: A domain module may not use the application, infrastructure or api layer.
+note: Dependencies point inward only (api -> application -> domain; infrastructure -> application). See docs/plans/rust-services/standard-crates.md.
+files:
+  - "**/domain/**/*.rs"
+rule:
+  any:
+    - matches: names-application
+    - matches: names-infrastructure
+    - matches: names-api

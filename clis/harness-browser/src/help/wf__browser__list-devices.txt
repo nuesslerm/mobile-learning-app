@@ -1,0 +1,7 @@
+Usage: wf browser list-devices
+
+What a verb can drive, without starting anything: the daemon, its open sessions (owner is the pid of the test that opened
+one; a verb drives that session only when --device names it) and the screen presets start-device takes.
+
+Result: {daemon: {running, url}, devices: [{name, renderMode, devicePreset, orientation, colorScheme, owner, ...}],
+screens: [{id, label, viewport: {width, height}, dpr, ...}]}

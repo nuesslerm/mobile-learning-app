@@ -1,0 +1,115 @@
+{
+ "opencodeVersion": "1.19.0",
+ "commands": [
+  {
+   "name": "run",
+   "status": "same",
+   "note": "`wf offload ask` runs one message on the rca service with the options of `opencode run` (opencode-run-options.json); the e2e parity tests hold the two to the same results"
+  },
+  {
+   "name": "[project]",
+   "status": "not-applicable",
+   "note": "the TUI is interactive; a run is one request"
+  },
+  {
+   "name": "attach",
+   "status": "not-applicable",
+   "note": "every run is attached to the rca service already"
+  },
+  {
+   "name": "serve",
+   "status": "not-applicable",
+   "note": "the server is the service's opencode container, started by its compose project"
+  },
+  {
+   "name": "web",
+   "status": "not-applicable",
+   "note": "the server is the service's opencode container"
+  },
+  {
+   "name": "acp",
+   "status": "not-applicable",
+   "note": "no editor protocol: a run is one request"
+  },
+  {
+   "name": "agent",
+   "status": "not-applicable",
+   "note": "agents are files of the project (.opencode/agents), sent with each run; `opencode agent list` lists them where opencode runs"
+  },
+  {
+   "name": "providers",
+   "status": "not-applicable",
+   "note": "credentials are the service's, from its vault (`wf secret`); alias auth"
+  },
+  {
+   "name": "mcp",
+   "status": "not-applicable",
+   "note": "MCP servers are config of the project, sent with each run; their credentials are the service's"
+  },
+  {
+   "name": "models",
+   "status": "not-applicable",
+   "note": "the models a run may use are the ladder's (`wf offload ask --stats`) or pinned with -m"
+  },
+  {
+   "name": "session",
+   "status": "not-applicable",
+   "note": "sessions live on the service for a day (`-s`, `-c` continue them); list and delete are not exposed"
+  },
+  {
+   "name": "stats",
+   "status": "not-applicable",
+   "note": "`wf offload ask --stats` and `--savings` read the service's run log"
+  },
+  {
+   "name": "export",
+   "status": "not-applicable",
+   "note": "sessions stay on the service"
+  },
+  {
+   "name": "import",
+   "status": "not-applicable",
+   "note": "sessions stay on the service"
+  },
+  {
+   "name": "github",
+   "status": "not-applicable",
+   "note": "GitHub automation runs in GitHub Actions with its own opencode"
+  },
+  {
+   "name": "pr",
+   "status": "not-applicable",
+   "note": "checks out a pull request locally; the service has no checkout"
+  },
+  {
+   "name": "plugin",
+   "status": "not-applicable",
+   "note": "plugins are files of the project or packages in its config, sent with each run"
+  },
+  {
+   "name": "db",
+   "status": "not-applicable",
+   "note": "the database is the service's"
+  },
+  {
+   "name": "debug",
+   "status": "not-applicable",
+   "note": "debugging tools of a local opencode"
+  },
+  {
+   "name": "completion",
+   "status": "not-applicable",
+   "note": "shell completion of opencode itself"
+  },
+  {
+   "name": "upgrade",
+   "status": "not-applicable",
+   "note": "the service's opencode version is its image's (backend/remote-chat-agent/opencode-server/Dockerfile)"
+  },
+  {
+   "name": "uninstall",
+   "status": "not-applicable",
+   "note": "removes a local opencode"
+  }
+ ]
+}

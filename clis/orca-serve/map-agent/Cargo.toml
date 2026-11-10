@@ -1,0 +1,29 @@
+[package]
+name = "orca-map-agent"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Orca mapping crate for the phone's agent sessions: agentSession.*, agent.launch*, nativeChat.* over rca's agent.threads, agent.queue, agent.requests and agent.lifecycle methods, behind the AgentApi port of orca-core"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["orca-core/testing"]
+
+[dependencies]
+orca-core = { path = "../core" }
+orca-map-workspace = { path = "../map-workspace" }
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent" }
+agent-api-state = { path = "../../../libraries/agent-api/agent-api-state" }
+agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments" }
+agent-api-catalog = { path = "../../../libraries/agent-api/agent-api-catalog" }
+base64 = "0.22"
+serde_json = { version = "1", features = ["preserve_order"] }
+sha2 = "0.10"
+
+[dev-dependencies]
+orca-core = { path = "../core", features = ["testing"] }
+orca-map-workspace = { path = "../map-workspace", features = ["testing"] }
+orca-map-agent = { path = ".", features = ["testing"] }

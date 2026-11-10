@@ -1,0 +1,191 @@
+{
+  "suite": "memory",
+  "description": "JS heap, DOM nodes and listeners of the lab web export at iPhone 15 Pro size, sampled after a forced GC: cold start, each main route, and the growth over a 30-loop open/close of one screen. Lab-only: Chromium's V8 heap, not Hermes or native memory. The harness shell (the device frame page, about 2.7 MB) shares the isolate, so every heap, DOM node and listener number also has an app-only value with the shell taken off, and the app-only values are the ones compared.",
+  "runs": 3,
+  "params": {
+    "device": "iphone-15-pro",
+    "port": 8801,
+    "baseUrl": "/mla-tamagui",
+    "settleMs": 1500,
+    "start": "/",
+    "routes": [
+      {
+        "id": "tamil",
+        "path": "/tamil"
+      },
+      {
+        "id": "tamil-lesson",
+        "path": "/tamil/uyir-1"
+      },
+      {
+        "id": "tamil-write",
+        "path": "/tamil/write/uyir-a"
+      },
+      {
+        "id": "leetcode",
+        "path": "/leetcode/valid-palindrome"
+      },
+      {
+        "id": "settings",
+        "path": "/settings"
+      },
+      {
+        "id": "dashboards",
+        "path": "/dashboards"
+      }
+    ],
+    "loop": {
+      "a": "/leetcode/valid-palindrome",
+      "b": "/tamil/write/uyir-a",
+      "cycles": 30,
+      "warmup": 3
+    },
+    "shellProbe": "data:text/html,<title>shell</title><p>no app</p>"
+  },
+  "metrics": {
+    "coldStartHeapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "coldStartAppDomNodes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "loopGrowthBytes": {
+      "better": "lower",
+      "tolerance": 0.5,
+      "scope": "lab-only"
+    },
+    "coldStartAppListeners": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "loopGrowthDomNodes": {
+      "better": "lower",
+      "tolerance": 0.5,
+      "scope": "lab-only"
+    },
+    "loopGrowthListeners": {
+      "better": "lower",
+      "tolerance": 0.5,
+      "scope": "lab-only"
+    },
+    "route.tamil.heapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "route.tamil.appDomNodes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "route.tamil-lesson.heapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "route.tamil-lesson.appDomNodes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "route.tamil-write.heapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "route.tamil-write.appDomNodes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "route.leetcode.heapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "route.leetcode.appDomNodes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "route.settings.heapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "route.settings.appDomNodes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "route.dashboards.heapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "route.dashboards.appDomNodes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only"
+    },
+    "harnessShellHeapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "scope": "lab-only",
+      "gate": false,
+      "gateNote": "the device-frame page, not the app; its initial (713,096 B) was an earlier, smaller shell, and every app reading already has it taken off"
+    },
+    "coldStartAppHeapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "maxRatioOfInitial": 0.5,
+      "scope": "lab-only"
+    },
+    "route.tamil.appHeapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "maxRatioOfInitial": 0.5,
+      "scope": "lab-only"
+    },
+    "route.tamil-lesson.appHeapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "maxRatioOfInitial": 0.5,
+      "scope": "lab-only"
+    },
+    "route.tamil-write.appHeapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "maxRatioOfInitial": 0.5,
+      "scope": "lab-only"
+    },
+    "route.leetcode.appHeapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "maxRatioOfInitial": 0.5,
+      "scope": "lab-only"
+    },
+    "route.settings.appHeapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "maxRatioOfInitial": 0.5,
+      "scope": "lab-only"
+    },
+    "route.dashboards.appHeapBytes": {
+      "better": "lower",
+      "tolerance": 0.1,
+      "maxRatioOfInitial": 0.5,
+      "scope": "lab-only"
+    },
+    "loopSteadyGrowthBytes": {
+      "better": "lower",
+      "tolerance": 0.5,
+      "scope": "lab-only"
+    }
+  }
+}

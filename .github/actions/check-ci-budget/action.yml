@@ -1,0 +1,187 @@
+name: Check CI budget
+description: >
+  Query this month's completed action-run durations, and flip the `CI_BUDGET_LOW`
+  repository Actions Variable to `true` once consumed minutes are within
+  `safety-threshold-minutes` of `monthly-budget-minutes`. Wired as the last step
+  in every expensive workflow (`ci.yml`, `architecture.yml`, `build-images.yml`)
+  so the flag is pre-emptively set BEFORE the account hits zero -- once it does,
+  GitHub refuses to provision any runner at all, and any check inside an
+  affected workflow (including a "do we have minutes left?" step) cannot run.
+
+  # Why a per-repo proxy and not the real billing API
+
+  The exact "minutes remaining this month" number lives at the
+  `GET /users/{username}/settings/billing/usage` (or org equivalent) endpoint,
+  which requires a token with `plan:read` / `user` scope. The `GITHUB_TOKEN`
+  handed to workflow runs is repo-scoped -- it CANNOT read the user's billing
+  summary, only what happens in this repo. A PAT with billing scope would be
+  one answer, but is also a credential this repo otherwise doesn't carry.
+
+  So this action approximates: it sums `updated_at - run_started_at` over every
+  completed run of THIS repo created since the 1st of the UTC month. For a
+  single-repo account this matches actual consumption exactly; for multi-repo
+  accounts it under-counts by whatever the other repos spent, which is the
+  safe direction -- the threshold triggers slightly early rather than late.
+  The monthly-budget input lets you set the actual ceiling for your plan
+  (free = 2000, Pro = 30000, etc.) without code changes.
+
+  # Why an explicit safety threshold and not "flip at zero"
+
+  Two reasons. First, the gate that consumes the flag -- `if:
+  vars.CI_BUDGET_LOW != 'true'` in `ci-gate.yml` / `ci.yml` -- is evaluated
+  by GitHub's orchestrator before any runner is requested, so it still works
+  at zero minutes. The job then shows as SKIPPED, not FAILED, with zero
+  consumption. Second, the action itself runs ON A RUNNER, so it needs at
+  least a sliver of budget to execute; a threshold of 0 wouldn't help if the
+  very run meant to flip the flag is the one that exhausts the last minute.
+  The default 100-minute cushion covers a few more lint runs even if the
+  flip somehow doesn't land on the first try.
+
+inputs:
+  monthly-budget-minutes:
+    description: >
+      Linux runner minute ceiling for this account. Free = 2000, Pro = 30000.
+      Lower if a paid add-on is in use. This is the actual ceiling, not the
+      "remaining" target -- the action flips the flag when REMAINING is
+      below the threshold, not when consumed reaches the ceiling.
+    required: false
+    default: '2000'
+  safety-threshold-minutes:
+    description: >
+      Flip CI_BUDGET_LOW when remaining minutes are at or below this. Sized so
+      a couple of `fast` runs (~10 min each) still fit even if the flip
+      itself fails to land on the first try -- a 0 threshold would not be
+      safe because this step itself needs a runner to run on.
+    required: false
+    default: '100'
+  skip-when-ci-budget-low-already-true:
+    description: >
+      When 'true' (default), no-op if the variable is already true. Set to
+      'false' to force a re-evaluation -- useful in ci-budget.yml itself,
+      which has to read the current value and would otherwise short-circuit
+      on its own previous output.
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Read current value, skip if already silenced
+      id: read
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        SKIP_IF_TRUE: ${{ inputs.skip-when-ci-budget-low-already-true }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        CURRENT=$(gh variable get CI_BUDGET_LOW --repo "$REPO" 2>/dev/null | tr -d '\r\n' || true)
+        if [ -z "$CURRENT" ]; then
+          # `gh variable get` fails with a non-zero exit when the variable is
+          # unset. Treat unset as the default "false" -- the very first run on
+          # a fresh repo can't reach this through the gate, so the action only
+          # sees unset when something is genuinely misconfigured, which we want
+          # to act on, not silently ignore.
+          CURRENT=false
+        fi
+        echo "current=$CURRENT"
+
+        if [ "$CURRENT" = "true" ] && [ "$SKIP_IF_TRUE" = "true" ]; then
+          echo "skip=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Sum this month's completed run durations
+      id: sum
+      if: steps.read.outputs.skip != 'true'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # First day of the current UTC month at 00:00:00. GitHub's
+        # `created=>` filter is inclusive at the second -- the extra `Z`
+        # makes it unambiguous.
+        SINCE=$(date -u -d "$(date -u +%Y-%m-01)T00:00:00Z" +%Y-%m-%dT%H:%M:%SZ)
+        echo "Window start: $SINCE"
+
+        # Per_page=100 is GitHub's max; ~50 pages is plausible for this repo
+        # (5K+ historical runs spread over many months -- only the current
+        # month's matter and that's typically a few hundred at most). Stop
+        # on empty page or non-100-count page; --paginate handles the loop.
+        #
+        # Sum (updated_at - run_started_at) per run. run_started_at is the
+        # queue-time-aware start (NOT created_at, which includes queue wait);
+        # updated_at is the terminal timestamp, which for completed runs is
+        # the end of the last job. The difference is wall-clock billable
+        # minutes, which is what the user is paying for.
+        USED_MS=0
+        PAGE_COUNT=0
+        while IFS= read -r line; do
+          PAGE_COUNT=$((PAGE_COUNT+1))
+          START_MS=$(date -u -d "$(echo "$line" | awk '{print $1}')" +%s%3N 2>/dev/null || echo 0)
+          END_MS=$(date -u -d "$(echo "$line" | awk '{print $2}')" +%s%3N 2>/dev/null || echo 0)
+          if [ "$START_MS" -gt 0 ] && [ "$END_MS" -gt "$START_MS" ]; then
+            USED_MS=$((USED_MS + END_MS - START_MS))
+          fi
+        done < <(gh api \
+          --paginate \
+          --jq '.workflow_runs[] | select(.status == "completed") | "\(.run_started_at) \(.updated_at)"' \
+          "/repos/$REPO/actions/runs?per_page=100&created=>$SINCE&exclude_pull_requests=false")
+
+        # Round up to whole minutes -- sub-minute precision is noise the
+        # threshold doesn't need, and `expr` doesn't do fractional math.
+        USED_MIN=$(( (USED_MS + 59999) / 60000 ))
+        echo "pages=$PAGE_COUNT used_ms=$USED_MS used_min=$USED_MIN"
+
+        echo "used_min=$USED_MIN" >> "$GITHUB_OUTPUT"
+
+    - name: Flip CI_BUDGET_LOW if remaining is below threshold
+      id: flip
+      if: steps.read.outputs.skip != 'true'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+        USED_MIN: ${{ steps.sum.outputs.used_min }}
+        MONTHLY_BUDGET: ${{ inputs.monthly-budget-minutes }}
+        THRESHOLD: ${{ inputs.safety-threshold-minutes }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        REMAINING=$((MONTHLY_BUDGET - USED_MIN))
+        echo "used=${USED_MIN}m budget=${MONTHLY_BUDGET}m remaining=${REMAINING}m threshold=${THRESHOLD}m"
+
+        # Defensive: clamp a negative remaining to 0 -- shouldn't happen
+        # because we round up, but a stale $MONTHLY_BUDGET input or a long
+        # past month with no reset shouldn't make the comparison nonsense.
+        if [ "$REMAINING" -lt 0 ]; then
+          REMAINING=0
+        fi
+
+        if [ "$REMAINING" -le "$THRESHOLD" ]; then
+          gh variable set CI_BUDGET_LOW --body "true" --repo "$REPO"
+          {
+            echo "**CI_BUDGET_LOW flipped to \`true\`**"
+            echo ""
+            echo "- consumed: \`${USED_MIN}m\` / \`${MONTHLY_BUDGET}m\` budget"
+            echo "- remaining: \`${REMAINING}m\` <= \`${THRESHOLD}m\` threshold"
+            echo "- reason: enough buffer that future jobs should skip rather than burn the last sliver"
+            echo ""
+            echo "Reset it via the **CI budget** workflow's \`workflow_dispatch\` button (value false) once the new billing cycle starts: there is no scheduled reset."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "flipped=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "Remaining ${REMAINING}m is above the ${THRESHOLD}m threshold -- no flip needed."
+          {
+            echo "**CI_BUDGET_LOW left at \`false\`**"
+            echo ""
+            echo "- consumed: \`${USED_MIN}m\` / \`${MONTHLY_BUDGET}m\` budget"
+            echo "- remaining: \`${REMAINING}m\` (threshold \`${THRESHOLD}m\`)"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "flipped=false" >> "$GITHUB_OUTPUT"
+        fi

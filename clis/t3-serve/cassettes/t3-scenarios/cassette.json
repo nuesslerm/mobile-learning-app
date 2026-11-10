@@ -1,0 +1,37 @@
+{
+  "content_hash": "sha256:8514daaa394b7f9df1d33bf094f2e9f8004e49154a6536b57bd2345930f67dec",
+  "corpus": {
+    "hash": "sha256:0137602fb368e37e94bfa3b9e6eeefed06daa84892fa49341f9e699c3eb48b23",
+    "path": "corpus.json"
+  },
+  "interactions": 140,
+  "provenance": {
+    "corpus_hash": "sha256:0137602fb368e37e94bfa3b9e6eeefed06daa84892fa49341f9e699c3eb48b23",
+    "driver": {
+      "name": "t3",
+      "protocol": "mimic-driver/1",
+      "version": "0.1.0"
+    },
+    "kind": "recorded",
+    "recorded_at": "2026-11-07T03:44:22.968Z",
+    "recorded_on": "vm",
+    "rules_hash": "sha256:fe13f177df5e4711109d7719454a3ccbe62656f75d8ec8142fe34d95a35d2103",
+    "seed": 0,
+    "source": "R2c: t3 scenarios",
+    "target": {
+      "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e",
+      "name": "t3",
+      "pin_file": "../../../../tooling/t3-conformance/t3-pin.json",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0",
+      "version": "0.1.6"
+    },
+    "tool": {
+      "mimic": "0.1.0"
+    }
+  },
+  "rules": {
+    "hash": "sha256:fe13f177df5e4711109d7719454a3ccbe62656f75d8ec8142fe34d95a35d2103",
+    "path": "rules.json"
+  },
+  "schema": "mimic-cassette/1"
+}

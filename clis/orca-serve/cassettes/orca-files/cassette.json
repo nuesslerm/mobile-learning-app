@@ -1,0 +1,36 @@
+{
+  "content_hash": "sha256:c0d81313bcb7e0018729ea8248bb95b2d309387387c23a5153086f8ff73c3a2e",
+  "corpus": {
+    "hash": "sha256:75ddcf15e40a7caa6db374cdf12265af6988838f450f0dbfea92034b526048f3",
+    "path": "corpus.json"
+  },
+  "interactions": 4,
+  "provenance": {
+    "corpus_hash": "sha256:75ddcf15e40a7caa6db374cdf12265af6988838f450f0dbfea92034b526048f3",
+    "driver": {
+      "name": "mimic-drivers/orca",
+      "protocol": "mimic-driver/1",
+      "toolchain_lock_hash": "sha256:4c806ef5145e3de231789ae3728af4e4ad5050bc4150cbb8f01c57c5addc382a",
+      "version": "1"
+    },
+    "kind": "authored",
+    "recorded_at": "2026-11-06T11:35:30.321Z",
+    "rules_hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
+    "seed": 0,
+    "source": "stand-in: scripted Orca host double (tooling/mimic-drivers/src/orca/host-double.ts, answers from double.json), not orcad at the pin",
+    "target": {
+      "commit": "dc7cd7bebbf9eb45d79edc89f3f836c75be78dea",
+      "name": "orca",
+      "pin_file": "../../../../tooling/orca-conformance/orca-pin.json",
+      "version": "1.4.214"
+    },
+    "tool": {
+      "mimic": "0.1.0"
+    }
+  },
+  "rules": {
+    "hash": "sha256:4a5289b7c8ac55bb06d31b884b22dd52eed96339c97a62716c6f066c34c2fb83",
+    "path": "rules.json"
+  },
+  "schema": "mimic-cassette/1"
+}

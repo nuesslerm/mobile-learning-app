@@ -1,0 +1,60 @@
+{
+  "suite": "roottheme",
+  "step": "final-given-a-preset-set-in-the-store-when-the-root-l-998465",
+  "scheme": "light",
+  "snapshot": "roottheme/final-given-a-preset-set-in-the-store-when-the-root-l-998465.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1704,
+    "page_height": 5228
+  },
+  "summary": {
+    "testids": [
+      "LeetcodeListScreen",
+      "LeetcodeListHeader",
+      "LeetcodeListScroll",
+      "LeetcodeListHero",
+      "LeetcodeListMenuButton",
+      "LeetcodeListHeroLive",
+      "LeetcodeListHeroLiveText",
+      "LeetcodeListHeroCount",
+      "LeetcodeListHeroCountText",
+      "LeetcodeListHeroTitle",
+      "LeetcodeListHeroSubtitle",
+      "LeetcodeListAuthRow",
+      "LeetcodeListAuthLabel",
+      "LeetcodeListAuthValue",
+      "LeetcodeListSignIn",
+      "LeetcodeListSectionTitle",
+      "LeetcodeListSection",
+      "LeetcodeListItem",
+      "LeetcodeListItemTitle",
+      "LeetcodeListItemDifficulty",
+      "LeetcodeListCompactBar",
+      "LeetcodeListMenuButtonCompact",
+      "LeetcodeListCompactTitle",
+      "LeetcodeListCompactCount",
+      "LeetcodeListCompactCountText",
+      "DebugFabWrap",
+      "DebugFab"
+    ],
+    "text": "🟢 LIVE\n72 PROBLEMS\nBlind 75\nMaster the patterns. Ace the interview. 🚀\nNot signed in\nSign in to LeetCode to unlock account features.\nSign in\nArray & Hashing\n1. Two Sum\nEASY\n217. Contains Duplicate\nEASY\n242. Valid Anagram\nEASY\n49. Group Anagrams\nMEDIUM\n347. Top K Frequent Elements\nMEDIUM\n271. Encode and Decode Strings\nMEDIUM\n238. Product of Array Except Self\nMEDIUM\n128. Longest Consecutive Sequenc"
+  },
+  "timings": {
+    "render_ms": 398
+  },
+  "name": "roottheme/final-given-a-preset-set-in-the-store-when-the-root-l-998465.light",
+  "image": {
+    "width": 360,
+    "height": 1623
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

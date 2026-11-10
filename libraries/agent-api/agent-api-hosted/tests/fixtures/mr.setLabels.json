@@ -1,0 +1,29 @@
+{
+  "method": "mr.setLabels",
+  "exchanges": [
+    {
+      "name": "the mr spelling reaches the same action and defaults to gitlab",
+      "request": {
+        "id": 1,
+        "method": "mr.setLabels",
+        "params": {
+          "number": 1,
+          "add": [
+            "a,b"
+          ],
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`add`: a label must be 1-50 printable characters with no comma and no leading `-`"
+        }
+      },
+      "actions": [
+        "hosted_pr_labels"
+      ]
+    }
+  ]
+}

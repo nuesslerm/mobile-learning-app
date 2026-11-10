@@ -1,0 +1,15 @@
+{
+  "files.stat": [
+    { "when": { "relativePath": "README.md" }, "result": { "size": 14, "isDirectory": false, "mtime": 1700000000000 } },
+    { "when": { "relativePath": "src/main.rs" }, "result": { "size": 13, "isDirectory": false, "mtime": 1700000000000 } }
+  ],
+  "files.readDir": {
+    "result": [
+      { "name": "src", "isDirectory": true, "isSymlink": false },
+      { "name": "README.md", "isDirectory": false, "isSymlink": false }
+    ]
+  },
+  "files.read": {
+    "result": { "worktree": "repo-a::/work/repo-a", "relativePath": "README.md", "content": "# hello\nworld\n", "truncated": false, "byteLength": 14 }
+  }
+}

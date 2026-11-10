@@ -1,0 +1,85 @@
+{
+  "action": "git_pull",
+  "exchanges": [
+    {
+      "name": "pulls what the remote has: nothing new",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "pull44",
+        "tool": "git_pull",
+        "args": {}
+      },
+      "response": {
+        "id": "pull44",
+        "ok": true,
+        "result": {
+          "ok": true,
+          "head": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+          "updated": false,
+          "conflicted": false,
+          "conflicts": [],
+          "output": "<volatile>"
+        }
+      },
+      "volatile": [
+        "/result/output"
+      ]
+    },
+    {
+      "name": "refuses a remote the repository does not have",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "pull45",
+        "tool": "git_pull",
+        "args": {
+          "remote": "nope"
+        }
+      },
+      "response": {
+        "id": "pull45",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`remote` nope is not a configured remote of this repository"
+        }
+      }
+    },
+    {
+      "name": "refuses an unknown strategy",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "pull46",
+        "tool": "git_pull",
+        "args": {
+          "strategy": "squash"
+        }
+      },
+      "response": {
+        "id": "pull46",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`strategy` must be one of ff_only, merge, rebase"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "method": "thread.launch",
+  "exchanges": [
+    {
+      "name": "refuses a launch into a workspace no executor serves",
+      "request": {
+        "id": "1",
+        "method": "thread.launch",
+        "params": {
+          "workspace": "w-none",
+          "driver": "claudeAgent",
+          "prompt": "hi"
+        }
+      },
+      "response": {
+        "id": "1",
+        "error": {
+          "code": "NO_EXECUTOR",
+          "message": "no executor is attached for workspace w-none"
+        }
+      }
+    },
+    {
+      "name": "refuses a launch with no prompt",
+      "request": {
+        "id": "2",
+        "method": "thread.launch",
+        "params": {
+          "workspace": "w1",
+          "driver": "claudeAgent"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "prompt is required"
+        }
+      }
+    }
+  ]
+}

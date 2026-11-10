@@ -1,0 +1,14 @@
+name: Install sccache
+description: sccache at the version mise.toml pins, so the build-cache shim can serve Rust compiles from the bucket.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        command -v sccache >/dev/null && exit 0
+        tag=$(grep -o 'sccache"\? *= *"v[0-9][0-9.]*' mise.toml | grep -o 'v[0-9][0-9.]*' | head -1)
+        arch=$(uname -m)
+        curl -fsSL "https://github.com/mozilla/sccache/releases/download/${tag}/sccache-${tag}-${arch}-unknown-linux-musl.tar.gz" -o /tmp/sccache.tgz
+        tar -xzf /tmp/sccache.tgz -C /tmp
+        install -m 0755 "/tmp/sccache-${tag}-${arch}-unknown-linux-musl/sccache" /usr/local/bin/sccache
+        sccache --version

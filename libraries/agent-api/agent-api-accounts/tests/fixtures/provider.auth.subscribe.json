@@ -1,0 +1,32 @@
+{
+  "method": "provider.auth.subscribe",
+  "exchanges": [
+    {
+      "name": "opens the stream of a session and says where its numbering stands",
+      "before": [
+        {
+          "id": 1,
+          "method": "provider.auth.start",
+          "params": {
+            "provider": "codex"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "provider.auth.subscribe",
+        "params": {
+          "auth": "auth-1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "auth": "auth-1",
+          "topic": "provider.auth/auth-1",
+          "seq": 3
+        }
+      }
+    }
+  ]
+}

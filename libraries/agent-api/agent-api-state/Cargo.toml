@@ -1,0 +1,17 @@
+[package]
+name = "agent-api-state"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's state group (`state.get`, `state.set`; `state.subscribe` in `watch`): small per-device values a mapper keeps for its app, by scope and key"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }

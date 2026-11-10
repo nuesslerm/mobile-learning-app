@@ -1,0 +1,68 @@
+name: Rotate Tailscale VM auth key
+
+# Tailscale caps auth keys at 90 days. Expiry does NOT break running nodes --
+# their state lives in each sidecar's `tailscale-state` volume -- it breaks the
+# NEXT join. So the failure is invisible until a rebuild, which is exactly when
+# you can least afford it. This mints a fresh tagged key off-VM and writes it
+# back to the vault under the SAME name (TS_VM_AUTH_KEY), so nothing on any host
+# changes.
+#
+# DELIBERATELY manual-only for now (`workflow_dispatch`, no `schedule:`).
+# Automating it needs a deploy-project WRITE token as a GitHub secret
+# (BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN), and today CI only ever holds the
+# read-only gh-ci token. That is a real privilege increase for CI, so it is an
+# explicit decision rather than a side effect of landing this file. Until it is
+# made, run the rotation locally instead:
+#
+#     wf vm net auth-key rotate --apply
+#
+# To automate, add that secret and uncomment the schedule below. Monthly, not
+# every 90 days, so a single failed run cannot let the key lapse.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Actually mint and store the key (unchecked = dry run, mints nothing)'
+        type: boolean
+        default: false
+  # schedule:
+  #   - cron: '0 4 1 * *'
+
+jobs:
+  rotate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: ./.github/actions/install-wf
+
+      - name: Resolve vault credentials
+        uses: bitwarden/sm-action@f1de238fc00c738c56140796018be9084c2b5d21 # v2
+        with:
+          access_token: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+          base_url: https://vault.bitwarden.eu
+          api_url: https://vault.bitwarden.eu/api
+          identity_url: https://vault.bitwarden.eu/identity
+          secrets: |
+            8869f954-47e1-4759-b101-b4fd00af9640 > TS_TAILNET_ID
+            58f92d7b-87c0-444e-be2f-b4fd00af96ec > TS_VM_OAUTH_CLIENT_ID
+            e4633ebc-26a1-4879-b471-b4fd00af9792 > TS_VM_OAUTH_CLIENT_SECRET
+
+      - name: Rotate
+        env:
+          SECRETS_BACKEND: bitwarden
+          BWS_SERVER_URL: https://vault.bitwarden.eu
+          # Writing the new key back needs the deploy-project EDIT token. Absent
+          # by design right now (see the header): a dry run still works and
+          # reports what it would do, and an --apply run fails loudly at the
+          # write rather than silently minting an orphan key.
+          BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN: ${{ secrets.BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN }}
+          TS_TAILNET_ID: ${{ env.TS_TAILNET_ID }}
+          TS_VM_OAUTH_CLIENT_ID: ${{ env.TS_VM_OAUTH_CLIENT_ID }}
+          TS_VM_OAUTH_CLIENT_SECRET: ${{ env.TS_VM_OAUTH_CLIENT_SECRET }}
+        run: |
+          if [ "${{ inputs.apply }}" = "true" ]; then
+            wf vm net auth-key rotate --apply
+          else
+            wf vm net auth-key rotate
+          fi

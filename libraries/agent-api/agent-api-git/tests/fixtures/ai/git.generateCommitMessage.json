@@ -1,0 +1,43 @@
+{
+  "method": "git.generateCommitMessage",
+  "exchanges": [
+    {
+      "name": "writes a message for the staged change",
+      "request": {
+        "id": 1,
+        "method": "git.generateCommitMessage",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "message": "docs: describe the temp repo",
+          "model": "double-model"
+        }
+      },
+      "actions": [
+        "git_diff"
+      ]
+    },
+    {
+      "name": "a style that is not offered is refused before the executor is asked",
+      "request": {
+        "id": 1,
+        "method": "git.generateCommitMessage",
+        "params": {
+          "workspace": "w1",
+          "style": "haiku"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "style must be conventional or plain"
+        }
+      }
+    }
+  ]
+}

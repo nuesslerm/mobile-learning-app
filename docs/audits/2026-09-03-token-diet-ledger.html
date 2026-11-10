@@ -1,0 +1,194 @@
+<title>Token Diet Ledger</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  :root {
+    --paper: #F4F6F8;
+    --surface: #FFFFFF;
+    --ink: #17212B;
+    --muted: #5B6873;
+    --rule: #D5DBE0;
+    --accent: #0E6B6D;
+    --accent-soft: #DCEEEE;
+    --saved: #1F7A4D;
+    --cost: #B23A3A;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0F1519; --surface: #16202A; --ink: #E6EBEF; --muted: #93A1AD;
+      --rule: #2A3640; --accent: #4FB3B5; --accent-soft: #143638; --saved: #5CC08C; --cost: #E07A7A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #0F1519; --surface: #16202A; --ink: #E6EBEF; --muted: #93A1AD;
+    --rule: #2A3640; --accent: #4FB3B5; --accent-soft: #143638; --saved: #5CC08C; --cost: #E07A7A;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 16px; line-height: 1.55; }
+  main { max-width: 76rem; margin: 0 auto; padding: 2.5rem 1.25rem 4rem; }
+  header.top { display: grid; gap: .75rem; padding-bottom: 1.5rem; border-bottom: 2px solid var(--ink); }
+  .eyebrow { font-family: var(--mono); font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-size: clamp(2rem, 4vw, 2.75rem); line-height: 1.05; margin: 0; font-weight: 800; letter-spacing: -.02em; text-wrap: balance; }
+  .lede { max-width: 68ch; margin: 0; color: var(--muted); font-size: 1.05rem; }
+  h2 { font-size: 1.35rem; margin: 3rem 0 .75rem; font-weight: 800; letter-spacing: -.01em; text-wrap: balance; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
+  h3 { font-size: 1rem; margin: 1.75rem 0 .5rem; font-weight: 600; }
+  p, li { max-width: 68ch; }
+  ul { padding-left: 1.2rem; }
+  li { margin: .3rem 0; }
+  a { color: var(--accent); }
+  code { font-family: var(--mono); font-size: .88em; background: var(--accent-soft); padding: .05em .3em; border-radius: 3px; }
+  .figures { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); margin: 1.75rem 0 0; }
+  .figure { background: var(--surface); padding: 1rem 1.1rem; display: grid; gap: .25rem; }
+  .figure .n { font-family: var(--mono); font-size: 1.9rem; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+  .figure .n.saved { color: var(--saved); }
+  .figure .n.cost { color: var(--cost); }
+  .figure .l { font-size: .85rem; color: var(--muted); }
+  .tablewrap { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--rule); background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; }
+  th, td { text-align: left; padding: .5rem .75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th { font-family: var(--mono); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--paper); }
+  td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.saved { color: var(--saved); font-weight: 600; }
+  td.cost { color: var(--cost); font-weight: 600; }
+  tr.total td { font-weight: 600; border-top: 2px solid var(--ink); }
+  .verdict { border-left: 4px solid var(--accent); background: var(--surface); padding: 1rem 1.25rem; margin: 1.25rem 0; }
+  .verdict p { margin: .35rem 0; }
+  .note { color: var(--muted); font-size: .9rem; }
+  .decisions { font-family: var(--mono); font-size: .82rem; }
+  .decisions td:first-child { color: var(--muted); }
+  footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: .85rem; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<main>
+  <header class="top">
+    <div class="eyebrow">expo-hello-world-app-2 · PR #236 · 2026-09-02 → 2026-09-03</div>
+    <h1>Token Diet Ledger</h1>
+    <p class="lede">What it costs to run Claude in this repo, which levers moved the bill, and what a cheap model can take over. Every figure below comes from a committed csv or the decision log; nothing is from memory.</p>
+    <div class="figures">
+      <div class="figure"><div class="n">81%</div><div class="l">of one long session's cost was cache reads. Output tokens: 7%.</div></div>
+      <div class="figure"><div class="n saved">−32%</div><div class="l">whole-conversation cost on a 30-turn chain after the diet (hard style + quiet hooks + prefix diet)</div></div>
+      <div class="figure"><div class="n saved">$0.061</div><div class="l">deepseek-v4-flash doing all 7 benchmark tasks, 7/7 gates. Sonnet alone: $1.844</div></div>
+      <div class="figure"><div class="n cost">0.36</div><div class="l">first-call delegation rate with the best nudge (L3 reminder). Eagerness is still the bottleneck.</div></div>
+    </div>
+  </header>
+
+  <h2>1. Where the money goes</h2>
+  <p>One remote session, 4,231 API calls over 524 turns, read from its own transcript. Median context per call 442 K tokens, p90 695 K; 74% of calls ran with more than 300 K in the window. Tool results totalled 7.5 MB and were re-read on every later call.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>bucket</th><th class="num">tokens</th><th class="num">share of cost</th></tr></thead>
+    <tbody>
+      <tr><td>cache reads</td><td class="num">1,839 M</td><td class="num">81%</td></tr>
+      <tr><td>cache writes</td><td class="num">22.1 M</td><td class="num">12%</td></tr>
+      <tr><td>output (incl. thinking)</td><td class="num">3.15 M</td><td class="num">7%</td></tr>
+      <tr><td>uncached input</td><td class="num">0.2 M</td><td class="num">0%</td></tr>
+    </tbody>
+  </table></div>
+  <p>So terse prose can move at most the 7%. Fewer tokens per call, fewer calls per turn and a smaller fixed prefix (about 50 K tokens per session start) move the rest. Independent benchmarks agree: JetBrains measured caveman at −8.5% output tokens (advertised −65%), rtk at +7.6% cost, and Max Taylor found "Be brief." ties caveman on 24 chat prompts.</p>
+
+  <h2>2. The lever ladder (Sonnet, real sessions)</h2>
+  <p>Each arm adds one lever to the previous one. Scored on <code>total_cost_usd</code>, an opencode judge rubric for chat (required key points, forbidden claims), and the task gate for agentic cases. Ladder 1: 384 sessions, $34.16. Ladder 3 re-measured the add-ons on the shipped config: 77 sessions, $5.99.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>lever</th><th class="num">chat $/turn</th><th class="num">agentic $/task</th><th class="num">judge</th><th>verdict</th></tr></thead>
+    <tbody>
+      <tr><td>T0 baseline (caveman hook, 40 skills, 11.7 KB CLAUDE.md)</td><td class="num">$0.0886</td><td class="num">$0.1379</td><td class="num">0.80</td><td>reference</td></tr>
+      <tr><td>+ output style (soft, 5 lines)</td><td class="num">≈ flat</td><td class="num">≈ flat</td><td class="num">0.80</td><td>saves calls over a conversation, not words per turn; decays past ~20 turns</td></tr>
+      <tr><td>+ quiet hooks</td><td class="num">≈ flat</td><td class="num">≈ flat</td><td class="num">—</td><td>shipped for the reader, not the bill</td></tr>
+      <tr><td>+ prefix diet (26 skills gone, CLAUDE.md 5.9 KB, MCP off)</td><td class="num saved">−27%</td><td class="num saved">−12%</td><td class="num">0.77</td><td>the money rung, shipped</td></tr>
+      <tr><td>+ squeez (tool-output compressor)</td><td class="num cost">+11%</td><td class="num cost">+2%</td><td class="num">—</td><td>not shipped; agentic output 2.8×</td></tr>
+      <tr><td>+ effort medium</td><td class="num">—</td><td class="num">—</td><td class="num cost">0.78</td><td>judge drop, not shipped</td></tr>
+      <tr><td>+ code diet (ponytail-style rules)</td><td class="num">—</td><td class="num cost">+1%</td><td class="num cost">0.72</td><td>not shipped</td></tr>
+      <tr><td>hard style (3 lines, bullets, 🪨) + quiet hooks + prefix diet</td><td class="num">$0.0650</td><td class="num">$0.111</td><td class="num">0.78</td><td>equal cost to the prefix diet, canary held 30/30 turns: <strong>shipped</strong></td></tr>
+      <tr><td>shipped + Read/Bash masker (800 B, <code>updatedToolOutput</code>)</td><td class="num saved">−18%</td><td class="num saved">−14%</td><td class="num">0.81</td><td><strong>shipped</strong></td></tr>
+      <tr><td>shipped + rtk 0.47.0 (PreToolUse rewrite)</td><td class="num saved">−19%</td><td class="num saved">−4%</td><td class="num">0.82</td><td><strong>shipped</strong>; JetBrains' +7.6% not reproduced</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Does it hold over a conversation?</h3>
+  <p>Scripted chains replayed into one session with <code>--resume</code>, so context growth and compaction are real. Whole-conversation cost on the 30-turn mixed chain: baseline $0.899 → soft style $0.655 (🪨 fell to 8 of 23 turns on the second run) → prefix diet $0.664 → hard style + quiet hooks + prefix diet <strong>$0.612 (−32%, 🪨 on 30/30 turns)</strong>. The soft style decays; the hard one does not.</p>
+
+  <h2>3. What a cheap model can take over (benchmark B1)</h2>
+  <p>7 tasks (4 in-repo, 3 thrifty greenfield specs), 4 arms, n=3, 84 cells, 0 errors. Cell = mean <code>total_cost_usd</code> / mean seconds / gate pass rate.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>task</th><th>size</th><th class="num">A Sonnet</th><th class="num">H Haiku</th><th class="num">S Sonnet + in-session dispatch</th><th class="num">W deepseek-v4-flash only</th></tr></thead>
+    <tbody>
+      <tr><td>add-validation-feature</td><td>medium ts</td><td class="num">$0.179 / 51s / 100%</td><td class="num">$0.083 / 44s / 100%</td><td class="num">$0.099 / 103s / 67%</td><td class="num">$0.004 / 49s / 100%</td></tr>
+      <tr><td>multi-file-rename</td><td>small ts</td><td class="num">$0.097 / 21s / 100%</td><td class="num">$0.047 / 27s / 100%</td><td class="num">$0.211 / 146s / 100%</td><td class="num">$0.004 / 37s / 100%</td></tr>
+      <tr><td>research-report</td><td>small ts</td><td class="num">$0.141 / 43s / 100%</td><td class="num">$0.032 / 18s / 100%</td><td class="num">$0.120 / 69s / 100%</td><td class="num">$0.003 / 15s / 100%</td></tr>
+      <tr><td>index-generation</td><td>medium ts</td><td class="num">$0.097 / 20s / 100%</td><td class="num">$0.038 / 22s / 100%</td><td class="num">$0.165 / 214s / 100%</td><td class="num">$0.004 / 29s / 100%</td></tr>
+      <tr><td>thrifty-01-wordfreq</td><td>small js</td><td class="num">$0.241 / 62s / 100%</td><td class="num">$0.133 / 80s / 100%</td><td class="num">$0.307 / 412s / 100%</td><td class="num">$0.006 / 47s / 100%</td></tr>
+      <tr><td>thrifty-03-jqlite</td><td>medium js</td><td class="num">$0.472 / 144s / 100%</td><td class="num">$0.289 / 186s / 100%</td><td class="num">$0.275 / 102s / 67%</td><td class="num">$0.026 / 181s / 100%</td></tr>
+      <tr><td>thrifty-07-taskgraph</td><td>large go</td><td class="num">$0.617 / 193s / 100%</td><td class="num">$0.228 / 143s / 100%</td><td class="num">$0.457 / 450s / 67%</td><td class="num">$0.015 / 122s / 100%</td></tr>
+      <tr class="total"><td>sum of task means</td><td></td><td class="num">$1.844 / 535s</td><td class="num">$0.850 / 520s</td><td class="num">$1.635 / 1496s</td><td class="num saved">$0.061 / 481s</td></tr>
+    </tbody>
+  </table></div>
+  <p>The whole task on deepseek-v4-flash passes every gate at 1/30 of Sonnet's cost and 10% less wall-clock in total. Haiku halves cost at equal gates. In-session dispatch is a wash on cost, 2.8× slower and drops 3 gates: the mechanics and the eagerness, not the cheap model, are the problem.</p>
+
+  <h2>4. The tree, headless (benchmark B2, arm T)</h2>
+  <p>Arm T is the <code>cheap-flow</code> pipeline without a human: a Sonnet session writes <code>contract.md</code> and <code>units.jsonl</code> (plan only; the task gate is pinned as the last unit's gate), then <code>cheap-flow work</code> runs every unit on the opencode implementer agent. One task per size, n=1, against B1's arm A means.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>task</th><th>size</th><th class="num">A Sonnet alone</th><th class="num">T Claude plan</th><th class="num">T opencode</th><th class="num">T total</th><th class="num">units</th><th>result</th></tr></thead>
+    <tbody>
+      <tr><td>multi-file-rename</td><td>small</td><td class="num">$0.097 / 21s</td><td class="num">$0.257</td><td class="num">$0.006</td><td class="num cost">$0.263 / 132s</td><td class="num">4</td><td>success</td></tr>
+      <tr><td>add-validation-feature</td><td>medium</td><td class="num">$0.179 / 51s</td><td class="num">$0.263</td><td class="num">$0.004</td><td class="num cost">$0.267 / 103s</td><td class="num">1</td><td>success</td></tr>
+      <tr><td>thrifty-07-taskgraph</td><td>large</td><td class="num">$0.617 / 193s</td><td class="num">$0.260</td><td class="num">$0.021</td><td class="num saved">$0.282 / 255s</td><td class="num">5</td><td><code>go test ./...</code> green</td></tr>
+      <tr class="total"><td>sum</td><td></td><td class="num">$0.893 / 265s</td><td class="num">$0.780</td><td class="num">$0.031</td><td class="num">$0.811 / 490s</td><td class="num">10</td><td>3/3</td></tr>
+    </tbody>
+  </table></div>
+  <div class="verdict">
+    <p><strong>Reading.</strong> The plan step costs about $0.26 of Sonnet whatever the task size ($0.257, $0.263, $0.260), and the implementation $0.004–$0.021 of opencode. The headless tree therefore loses on small (2.7×) and medium (1.5×) tasks and wins on the large one (−54%). The crossover sits where Sonnet alone would spend more than about $0.30. Below it, the whole task on opencode (arm W, $0.004–$0.026, 7/7 gates) or Sonnet alone is cheaper; the plan's adoption rule (≥40% saved on ≥5/7 tasks) is not met for small and medium work. n=1 per task.</p>
+    <p>Where the tree earns its keep is the interactive flow measured live on a real feature (section 6): Claude spends three short documents and one adjudication, and the implementation, research, review and documentation cost about $0.07 of opencode.</p>
+  </div>
+
+  <h2>5. Making Claude delegate (eagerness sweep, stage 1b)</h2>
+  <p>Sonnet sessions on the shipped config, opencode replaced by a replay stub so each cell costs only the decision. 402 completed sessions, $104, then cut for cost. Positives are tasks the routing table says to delegate; controls are trivial tasks that must stay direct.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>lever</th><th class="num">first call delegates</th><th class="num">delegates at all</th><th class="num">control false positive</th><th class="num">$/session</th></tr></thead>
+    <tbody>
+      <tr><td>L0 baseline</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">0.00</td><td class="num">—</td></tr>
+      <tr><td>L1 skill / L2 rules file</td><td class="num">≈ 0</td><td class="num">0.20</td><td class="num">0.00</td><td class="num">—</td></tr>
+      <tr><td><strong>L3 reminder (UserPromptSubmit)</strong></td><td class="num">0.36</td><td class="num">0.76</td><td class="num">0.06</td><td class="num">$0.230</td></tr>
+      <tr><td>L5 output style</td><td class="num">tracks L3</td><td class="num">n=9</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td>L6 session agent / L7 soft gate / L8 prompt rewrite</td><td class="num">0.00</td><td class="num">—</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td>L9 cost facts / L10 fork skill / L11 pre-dispatch</td><td colspan="4">not run (decision 24)</td></tr>
+    </tbody>
+  </table></div>
+  <p>The L3 reminder stays the shipped nudge. No lever reached the 80% first-call target; the honest conclusion is that the cheap model is best reached by choosing it up front (<code>/cheap</code>, <code>/cf-*</code>, <code>wf opencode batch</code>) rather than by persuading a running Sonnet session.</p>
+
+  <h2>6. The cheap-flow tree, live on a real feature</h2>
+  <p>Feature: <code>cheap-flow check &lt;slug&gt;</code>, static validation of a plan before the first paid dispatch. Claude wrote <code>requirements.md</code>, <code>contract.md</code>, <code>units.jsonl</code> and read only the printed briefs.</p>
+  <div class="tablewrap"><table>
+    <thead><tr><th>step</th><th>agent</th><th>result</th><th class="num">opencode $</th><th class="num">seconds</th></tr></thead>
+    <tbody>
+      <tr><td>research (4 questions)</td><td>researcher</td><td>57-line brief with file:line evidence; found an uncaught throw in <code>work</code></td><td class="num">0.0078</td><td class="num">48</td></tr>
+      <tr><td>work u1 domain + unit tests</td><td>implementer</td><td>gate green, attempt 1</td><td class="num">0.0052</td><td class="num">100</td></tr>
+      <tr><td>work u2 CLI subcommand + barrel</td><td>implementer</td><td>gate green, attempt 1</td><td class="num">0.0067</td><td class="num">58</td></tr>
+      <tr><td>work u3 integration test</td><td>implementer</td><td>gate green, attempt 1</td><td class="num">0.0061</td><td class="num">99</td></tr>
+      <tr><td>review</td><td>reviewer</td><td>0 blockers, 2 risks (both became tests), 3 nits</td><td class="num">0.0412</td><td class="num">572</td></tr>
+      <tr><td>compound (docs/solutions entry)</td><td>researcher</td><td>97-line entry after one re-ask</td><td class="num">0.0187</td><td class="num">163</td></tr>
+    </tbody>
+  </table></div>
+  <p>Two harness bugs surfaced and were fixed the same hour: the model rotation overrode an agent's pinned model after a timeout (the review ran on MiniMax), and a read-only agent narrated "I wrote the draft" instead of printing it, so the six-line narration was saved as the document. <code>opencodeDispatch</code> now takes <code>models</code>, and <code>runProse</code> rejects a reply that is not the document and asks once more.</p>
+
+  <h2>7. What is on now</h2>
+  <ul>
+    <li><strong>Output style</strong> <code>token-diet</code> from <code>.agents/config/claude-settings.json</code>: at most 3 lines, bullets, answer first, no code unless asked, 🪨 canary on every reply.</li>
+    <li><strong>Prefix diet</strong>: 26 skills removed (caveman among them), CLAUDE.md 11.7 → 5.9 KB, <code>workflow-cli</code> gated to <code>frontend/**</code>, <code>agentation</code> MCP off by default.</li>
+    <li><strong>Quiet hooks</strong>: nothing printed on a healthy turn; two Stop hooks that had crashed on every turn fixed.</li>
+    <li><strong>Tool output on a diet</strong>: rtk 0.47.0 installed by <code>env-bootstrap run --step rtk</code> (pinned, checksummed) behind the PreToolUse Bash hook; Bash|Read results over 800 B enter context as a head plus a pointer.</li>
+    <li><strong>Delegation</strong>: the L3 reminder, <code>/cheap</code>, and the <code>cheap-flow</code> plugin (<code>/cf-brainstorm → /cf-plan → /cf-work → /cf-review → /cf-compound</code>) on three opencode agents pinned to deepseek-v4-flash; <code>wf opencode savings</code> prices runs with the B1 ratios.</li>
+  </ul>
+
+  <h2>8. Caveats</h2>
+  <ul>
+    <li>B2 is n=1 per task; identical runs vary by about 20%. B1 is n=3.</li>
+    <li>The judge is a cheap model scoring a rubric; it caught dropped facts, not subtle quality loss.</li>
+    <li>Eagerness cells used a replay stub for opencode; the eagerness numbers measure routing, not delivered work.</li>
+    <li>rtk's saving here is chat-shaped (−19%) and near neutral on agentic tasks (−4%); JetBrains' +7.6% cost was not reproduced, but the agentic effect is within run-to-run variance.</li>
+    <li>The Guard e2e CI job on PR #236 is red for a missing <code>ANTHROPIC_API_KEY</code> (OAuth-only policy), unrelated to any of this.</li>
+  </ul>
+
+  <footer>
+    Sources: <code>docs/audits/2026-09-02-token-diet-decision-log.md</code> (30 decisions, append-only), <code>docs/audits/2026-09-02-cheap-model-delegation-report.md</code>, <code>docs/solutions/workflow/token-diet-context-not-prose.md</code>, csvs under <code>.agents/tmp/token-diet/</code>, <code>.agents/tmp/delegation-benchmark/{b1,b2}/</code>, <code>.agents/tmp/delegation-eagerness/stage1b/</code>. Branch <code>claude/caveman-ultra-3eer49</code>, PR #236.
+  </footer>
+</main>

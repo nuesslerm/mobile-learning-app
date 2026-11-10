@@ -1,0 +1,17 @@
+[package]
+name = "agent-api-git"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's git group (`git.status`, `git.commit`, `git.subscribe`, ...): the methods, the executor action each is answered by, which params it forwards, and the status event of its stream"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+exec-git = { path = "../exec-git" }
+serde_json = { version = "1", features = ["preserve_order"] }

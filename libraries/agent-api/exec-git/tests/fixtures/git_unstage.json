@@ -1,0 +1,64 @@
+{
+  "action": "git_unstage",
+  "exchanges": [
+    {
+      "name": "unstages the paths named",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "unst23",
+        "tool": "git_unstage",
+        "args": {
+          "paths": [
+            "a.txt"
+          ]
+        }
+      },
+      "response": {
+        "id": "unst23",
+        "ok": true,
+        "result": {
+          "paths": 1
+        }
+      }
+    },
+    {
+      "name": "refuses an absolute path",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "unst24",
+        "tool": "git_unstage",
+        "args": {
+          "paths": [
+            "/etc/passwd"
+          ]
+        }
+      },
+      "response": {
+        "id": "unst24",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`path` must be a path inside the repository's working tree"
+        }
+      }
+    }
+  ]
+}

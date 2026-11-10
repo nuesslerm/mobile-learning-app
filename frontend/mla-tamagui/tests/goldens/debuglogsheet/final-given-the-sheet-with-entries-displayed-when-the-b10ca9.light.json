@@ -1,0 +1,93 @@
+{
+  "suite": "debuglogsheet",
+  "step": "final-given-the-sheet-with-entries-displayed-when-the-b10ca9",
+  "scheme": "light",
+  "snapshot": "debuglogsheet/final-given-the-sheet-with-entries-displayed-when-the-b10ca9.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1704,
+    "page_height": 2551
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ShowcaseHeading",
+      "ShowcaseSubtitle",
+      "BadgeDefault",
+      "BadgePrimary",
+      "BadgeSuccess",
+      "BadgeDestructive",
+      "BadgeOutline",
+      "ButtonDefault",
+      "ButtonSecondary",
+      "ButtonOutline",
+      "ButtonGhost",
+      "ShowcaseNameField-Field",
+      "ShowcaseNameField",
+      "ShowcaseNameField-Help",
+      "GroupLabel",
+      "ShowcaseGroup",
+      "RowSettings",
+      "RowSettingsLabel",
+      "RowSecond",
+      "RowSecondLabel",
+      "RowThird",
+      "RowThirdLabel",
+      "ShowcaseCodingAgentHeading",
+      "ShowcaseCodingAgentSubtitle",
+      "Showcase-CodingAgent-CardDefault",
+      "Showcase-CodingAgent-CardAccent",
+      "Showcase-CodingAgent-CardDanger",
+      "Showcase-CodingAgent-CardWarning",
+      "Showcase-CodingAgent-ChipBuild",
+      "Showcase-CodingAgent-ChipPlan",
+      "Showcase-CodingAgent-ChipDisabled",
+      "Showcase-CodingAgent-Segmented",
+      "Showcase-CodingAgent-Segmented-build",
+      "Showcase-CodingAgent-Segmented-plan",
+      "Showcase-CodingAgent-CodeBlock",
+      "Showcase-CodingAgent-Markdown",
+      "Showcase-CodingAgent-DiffView",
+      "DiffFile-0-Toggle",
+      "DiffFile-1-Toggle",
+      "Showcase-CodingAgent-Composer",
+      "Showcase-CodingAgent-ComposerInput",
+      "Showcase-CodingAgent-ComposerSendButton",
+      "Showcase-CodingAgent-ToggleRunning",
+      "ShowcaseDestructive",
+      "DebugFabWrap"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nDesign system\nTamagui components, same names as app #1\ndefault\nprimary\nsuccess\ndestructive\noutline\nDefault\nSecondary\nOutline\nGhost\nYour name\nRendered by the DS TextField\nGROUPED LIST\nSettings\nSecond row\nNo chevron, not pressable\nCoding agent\nDS primitives the coding-agent feature is built on.\nCARDS\nd"
+  },
+  "timings": {
+    "render_ms": 308
+  },
+  "name": "debuglogsheet/final-given-the-sheet-with-entries-displayed-when-the-b10ca9.light",
+  "image": {
+    "width": 360,
+    "height": 1623
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

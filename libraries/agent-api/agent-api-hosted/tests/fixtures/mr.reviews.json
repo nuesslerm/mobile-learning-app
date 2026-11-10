@@ -1,0 +1,26 @@
+{
+  "method": "mr.reviews",
+  "exchanges": [
+    {
+      "name": "the mr spelling reaches the same action and defaults to gitlab",
+      "request": {
+        "id": 1,
+        "method": "mr.reviews",
+        "params": {
+          "number": 0,
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`number` must be a positive integer"
+        }
+      },
+      "actions": [
+        "hosted_pr_reviews"
+      ]
+    }
+  ]
+}

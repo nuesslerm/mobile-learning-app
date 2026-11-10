@@ -1,0 +1,5 @@
+[
+  "bash",
+  "-c",
+  "F=\"/home/agent/e2e-artifacts/runs/r1/shot.png\"\nREAL=$(readlink -f \"$F\" 2>/dev/null)\ncase \"$REAL\" in /home/agent/e2e-artifacts/*) ;; *) echo NOT_ALLOWED; exit 1;; esac\n[ -f \"$F\" ] || { echo NOT_FOUND; exit 1; }\nbase64 -w0 \"$F\""
+]

@@ -1,0 +1,86 @@
+{
+  "action": "git_compare",
+  "exchanges": [
+    {
+      "name": "compares a revision with itself: no commits, no files",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "comp14",
+        "tool": "git_compare",
+        "args": {
+          "base": "HEAD",
+          "head": "HEAD"
+        }
+      },
+      "response": {
+        "id": "comp14",
+        "ok": true,
+        "result": {
+          "base": "HEAD",
+          "head": "HEAD",
+          "merge_base": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+          "ahead": 0,
+          "behind": 0,
+          "commits": [],
+          "files": [],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "refuses a revision that is no commit",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "comp15",
+        "tool": "git_compare",
+        "args": {
+          "base": "nope",
+          "head": "HEAD"
+        }
+      },
+      "response": {
+        "id": "comp15",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "git compare: nope is not a commit"
+        }
+      }
+    },
+    {
+      "name": "refuses an option given as the head",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "comp16",
+        "tool": "git_compare",
+        "args": {
+          "base": "HEAD",
+          "head": "--output=x"
+        }
+      },
+      "response": {
+        "id": "comp16",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`head` must be a revision"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+Usage: wf mimic remask [options] <set>
+
+Apply the current rules.json of a set to its committed interactions and re-seal its
+rules hash. A rules change makes every committed set stale (`wf mimic verify`, and the
+pre-commit hook that runs it, fail on rules_hash); this is the offline way to land new
+masks together with the set they were written for, until the next record replaces it.
+Masking a masked value again changes nothing but what a new rule reaches, a `pointer`
+rule only touches a pointer the interaction has, and the tags, the stability allowlist,
+the corpus and the provenance (but the rules hash) are kept. Nothing is recorded or run.
+
+Options:
+  -h, --help           display help for command
+
+Output (schema mimic-remask/1):
+  {schema, ok, set, rules_hash: {before, after}, changed: [interaction ids whose
+   masked text differs], warnings, next}
+Exit 0, 2 on an unreadable set or invalid rules.

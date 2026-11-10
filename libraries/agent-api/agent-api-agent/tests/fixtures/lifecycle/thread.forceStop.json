@@ -1,0 +1,51 @@
+{
+  "method": "thread.forceStop",
+  "exchanges": [
+    {
+      "name": "refuses a thread that runs no turn",
+      "before": [
+        {
+          "id": "setup-create-t-fs",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-fs",
+            "title": "Thread t-fs",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.forceStop",
+        "params": {
+          "thread": "t-fs"
+        }
+      },
+      "response": {
+        "id": "1",
+        "error": {
+          "code": "NO_TURN",
+          "message": "thread t-fs has no running turn"
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "thread.forceStop",
+        "params": {
+          "thread": "nope"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

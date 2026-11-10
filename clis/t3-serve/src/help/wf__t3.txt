@@ -1,0 +1,29 @@
+Usage: wf t3 [options] [command]
+
+A server that speaks the T3 Code client protocol (orchestration protocol 2, T3
+Code v0.1.6), so the T3 apps can pair with it. Phase 1 of
+docs/plans/t3-parity/plan.md: pairing, the environment and config, the shell and
+thread streams, and thread and project lifecycle commands. Every other RPC
+answers a declared failure {_tag: "UnsupportedOperationError", method}.
+
+This is the separate binary t3-serve: `wf t3 ...` runs `t3-serve t3 ...` in its place,
+found beside wf, else on PATH, so a change here rebuilds t3-serve and not wf.
+
+State lives in --state-dir (SQLite, mode 0600): the event log with one global
+sequence, command receipts, and the pairing codes, bearer tokens and tickets,
+each stored only as a SHA-256 hash. A secret is never logged; the only place one
+is printed is the code `wf t3 pair` mints. Two `serve` on one state directory
+are not supported; `pair` may run while `serve` does.
+
+Every verb prints one JSON object on stdout and never prompts. A failure prints
+{ok: false, error, next} and exits 1; a malformed line exits 2. Server events go
+to stderr as logfmt lines with static names (oauth.exchange.ok|refused,
+ws.upgrade.refused, ws.opened, rpc.denied, rpc.unsupported, rpc.command.refused).
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  serve [options]             Run the server (default 127.0.0.1:3774)
+  pair [options]              Mint a one-time pairing code and its URL
+  help [command]              display help for command

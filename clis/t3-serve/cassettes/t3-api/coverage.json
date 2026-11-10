@@ -1,0 +1,3172 @@
+{
+  "schema": "mimic-coverage/1",
+  "app": "t3",
+  "rows": [
+    {
+      "row": "command:checkpoint.rollback",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:delegated_task.completion-delivery.acknowledge",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:delegated_task.completion-delivery.dispose",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:delegated_task.request",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:delegated_task.wake-policy",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:message.dispatch",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:notification.delivery.accept",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:prepared-run.fail",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:prepared-run.progress",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:prepared-run.release",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:prepared-run.retry",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:provider-session.detach",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:provider.switch",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:queue.resume",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:queued-message.promote-to-steer",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:queued-run.cancel",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:queued-run.edit",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:queued-run.reorder",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:queued-run.start",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:run.interrupt",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:runtime-request.respond",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:subagent.stop",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.active.reorder",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.archive",
+      "status": "case",
+      "input": "golden",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.auto-settle",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.auto-settle.set",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.create",
+      "status": "case",
+      "input": "golden",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.created.record",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.delete",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.fork",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.guest-message.dismiss",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.guest-share.close",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.interaction-mode.set",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.mark-unread",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.merge_back",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.metadata.update",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.model-selection.set",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.pin",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.pin.reorder",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.pull-request-link.sync",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.pull-request.link",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.pull-request.sync",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.pull-request.unlink",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.pull-request.watch",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.runtime-mode.set",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.settle",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.snooze",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.stop",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.title.regeneration.complete",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.unarchive",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.unpin",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.unsettle",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.unsnooze",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.user-input.dismiss",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "command:thread.visit",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:auth.browserSession",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:auth.pairingCredential",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:auth.revokeClient",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:auth.revokeOtherClients",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:auth.revokePairingLink",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:auth.session",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:auth.token",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:auth.webSocketTicket",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:auth.webSocketTicketFor",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:connect.checkReachability",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:connect.health",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:connect.linkProof",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:connect.linkState",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:connect.preferences",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:connect.relayConfig",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:connect.t3MintCredential",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:connect.unlink",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:mcpOAuth.approval",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:mcpOAuth.authorizationServer",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:mcpOAuth.authorize",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:mcpOAuth.decision",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:mcpOAuth.mcpProtectedResource",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:mcpOAuth.protectedResource",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:mcpOAuth.register",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:mcpOAuth.token",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:metadata.descriptor",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:orchestration.shellSnapshot",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:orchestration.threadBoundedSnapshot",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:orchestration.threadHistoryPage",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:orchestration.threadSnapshot",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:orchestration.threadTranscript",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:projects.mutate",
+      "status": "case",
+      "input": "schema",
+      "cases": 3,
+      "classes": {
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:projects.snapshot",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:pullRequests.diff",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "http:webhooks.webhookGet",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:webhooks.webhookPatch",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:webhooks.webhookPost",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "http:webhooks.webhookPut",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "mutation:project.create",
+      "status": "case",
+      "input": "golden",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "mutation:project.delete",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "mutation:project.update",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:agentSessions.import",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:agentSessions.scan",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:assets.createUrl",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:assets.persistChatAttachments",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:attachments.createUploadUrl",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:attachments.delete",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:cloud.getRelayClientStatus",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:cloud.installRelayClient",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:device.action",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:device.close",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:device.configure",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:device.detail",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:device.easAccount",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:device.list",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:device.open",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:device.shutdown",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:device.simlockIdentity",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:device.testHost",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:filesystem.browse",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:filesystem.getMetadata",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:git.preparePullRequestThread",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:git.resolvePullRequest",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:git.runStackedAction",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:guestShare.create",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:mcpApps.callTool",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:mcpApps.readResource",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:mcpApps.toolInfo",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:mcpApps.updateModelContext",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.dispatchCommand",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.forceStopThread",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.getArchivedShellSnapshot",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.getFullThreadDiff",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.getOlderSettledThreads",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.getThreadFamily",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.getThreadProjection",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.getTurnDiff",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.getTurnItem",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.getWorkflowScript",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.getWorktreeThreadIds",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.launchThread",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.searchThread",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.searchThreads",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.searchThreadStream",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.stopWorkflow",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.subscribeCommandOutput",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.subscribeShell",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 2,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.subscribeThread",
+      "status": "case",
+      "input": "golden",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:peerLinks.answerRequest",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:peerLinks.link",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:peerLinks.list",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:peerLinks.unlink",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:preview.adjust",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:preview.clearProfile",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:preview.close",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:preview.list",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:preview.open",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:preview.reportProfiles",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:preview.reportStatus",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:preview.resize",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:preview.stopLocalServer",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projectClone.cancel",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projectClone.retry",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projectClone.start",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projects.createFromThread",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projects.createNew",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projects.ensureScratch",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projects.listEntries",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projects.listIgnoredFiles",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projects.mutate",
+      "status": "case",
+      "input": "schema",
+      "cases": 3,
+      "classes": {
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projects.readFile",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projects.searchContents",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projects.searchEntries",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projects.writeFile",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.auth.cancel",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.auth.complete",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.auth.logout",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.auth.respond",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.auth.start",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.auth.subscribe",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.chatgpt.handoff.subscribe",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.chatgpt.import-profile",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.chatgpt.reconnect-profile",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.consumeResetCredit",
+      "status": "case",
+      "input": "schema",
+      "cases": 3,
+      "classes": {
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.install.cancel",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.install.remove",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.install.start",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.install.subscribe",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:provider.uploadFeedback",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.activity",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.changeBreakdown",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.checks",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.comment",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.detail",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.diffFileContents",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.filesViewed",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.filterOptions",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.generateReviewGuide",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.invalidate",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.labelCandidates",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.linkedThreads",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.list",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.listStats",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.preview",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.replyToThread",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.reportState",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.requestReviewers",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.reviewerCandidates",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.reviewGuide",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.routing",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.routingIdentity",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.runAction",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.setFilesViewed",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.setLabels",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.setReaction",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.setThreadResolution",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.stack",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.submitReview",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.subscribeRefreshes",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.summary",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.threadComments",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.update",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pullRequests.updateComment",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:review.getBranchCommits",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:review.getDiffFileContents",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:review.getDiffPreview",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:scheduledTasks.delete",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:scheduledTasks.getWebhookDelivery",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:scheduledTasks.listWebhookDeliveries",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:scheduledTasks.rotateWebhookToken",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:scheduledTasks.runNow",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:scheduledTasks.setEnabled",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:scheduledTasks.subscribe",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:scheduledTasks.upsert",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:secrets.answerRequest",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.acceptAcpRegistryUrlAuth",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.checkOtlpEndpoint",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.commitDesktopUpdate",
+      "status": "skipped",
+      "reason": "commits a desktop app update; there is no desktop"
+    },
+    {
+      "row": "rpc:server.deleteAcpRegistrySession",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.disableAcpRegistryProvider",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.discoverSourceControl",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.getConfig",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.getDatabaseStorage",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.getHostResources",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.getNpmRelease",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.getProcessDiagnostics",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.getProcessResourceHistory",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.getResourceTelemetryHistory",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.getStorageCleanupReport",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.getTraceDiagnostics",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.getUsageSummary",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.importAcpRegistrySession",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.listAcpRegistryProviders",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.listAcpRegistrySessions",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.logoutAcpRegistry",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.prepareAcpRegistryAgent",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.prepareTriage",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.probe",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.refreshProviders",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.refreshUsageRates",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.removeKeybinding",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.reportClientActivity",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.retryResourceTelemetry",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.runStorageCleanup",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.searchAcpRegistry",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.setAcpRegistryProvider",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.signalProcess",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.uninstallAcpRegistryManagedBinary",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.updateProvider",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.updateServer",
+      "status": "skipped",
+      "reason": "replaces the installed server binary"
+    },
+    {
+      "row": "rpc:server.updateServerWithProgress",
+      "status": "skipped",
+      "reason": "replaces the installed server binary"
+    },
+    {
+      "row": "rpc:server.updateSettings",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:server.upsertKeybinding",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:shell.openInEditor",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:sourceControl.appAccess",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:sourceControl.cloneRepository",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:sourceControl.lookupRepository",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:sourceControl.publishRepository",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:sourceControl.signInCancel",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:sourceControl.signInStart",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:sourceControl.signInWait",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:sourceControl.starred",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribeAuthAccess",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribeDeviceState",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribeDiscoveredLocalServers",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribePreviewEvents",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribeProjectClones",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribeResourceTelemetry",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribeServerConfig",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribeServerLifecycle",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribeTerminalMetadata",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribeVcsStatus",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:subscribeWorktreeSetup",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:terminal.attach",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 2,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:terminal.clear",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:terminal.close",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:terminal.observe",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:terminal.open",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:terminal.resize",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:terminal.write",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:vcs.createRef",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:vcs.createWorktree",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:vcs.init",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:vcs.listRefs",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:vcs.pull",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:vcs.refreshStatus",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:vcs.removeWorktree",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:vcs.switchRef",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:worktreeSetup.cancel",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    }
+  ]
+}

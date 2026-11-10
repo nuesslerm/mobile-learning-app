@@ -1,0 +1,6 @@
+Usage: wf vm deps remove [options] <manager> <name>
+
+Remove a dependency from the manifest.
+
+Options:
+  -h, --help  display help for command

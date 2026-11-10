@@ -1,0 +1,93 @@
+{
+  "method": "commands.list",
+  "exchanges": [
+    {
+      "name": "adds the workspace's skills the driver reads, as commands named by their skill, and leaves out the ones it does not read",
+      "before": [
+        {
+          "id": "setup-1",
+          "method": "file.create",
+          "params": {
+            "workspace": "w1",
+            "path": ".claude/skills/review/SKILL.md",
+            "content": "---\nname: review\ndescription: Reviews a diff\n---\nBody\n",
+            "create_dirs": true
+          }
+        },
+        {
+          "id": "setup-2",
+          "method": "file.create",
+          "params": {
+            "workspace": "w1",
+            "path": ".codex/skills/lint/SKILL.md",
+            "content": "---\nname: lint\ndescription: Runs the linter\n---\n",
+            "create_dirs": true
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "commands.list",
+        "params": {
+          "driver": "claudeAgent",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "driver": "claudeAgent",
+          "commands": [
+            {
+              "name": "review",
+              "kind": "skill",
+              "description": "Reviews a diff",
+              "builtin": false,
+              "path": ".claude/skills/review/SKILL.md"
+            }
+          ]
+        }
+      },
+      "actions": [
+        "skill_scan"
+      ]
+    },
+    {
+      "name": "offers a driver with no workspace only its own commands, which a headless CLI has none of, and asks no executor",
+      "request": {
+        "id": 2,
+        "method": "commands.list",
+        "params": {
+          "driver": "codex"
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "driver": "codex",
+          "commands": []
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a driver that is not one of the table",
+      "request": {
+        "id": 3,
+        "method": "commands.list",
+        "params": {
+          "driver": "gemini",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "driver is one of opencode, claudeAgent, codex"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

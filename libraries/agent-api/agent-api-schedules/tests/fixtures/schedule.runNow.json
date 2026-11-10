@@ -1,0 +1,134 @@
+{
+  "method": "schedule.runNow",
+  "exchanges": [
+    {
+      "name": "starts the schedule's turn on a new thread and answers the run",
+      "before": [
+        {
+          "id": "setup-run",
+          "method": "schedule.upsert",
+          "params": {
+            "id": "s-run",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "interval",
+              "every_ms": 60000
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "schedule.runNow",
+        "params": {
+          "id": "s-run"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "task": {
+            "id": "s-run",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "interval",
+              "every_ms": 60000
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent",
+            "model": null,
+            "thread": null,
+            "runtime_mode": null,
+            "interaction_mode": null,
+            "created_at_ms": 1700000000000,
+            "updated_at_ms": 1700000000000,
+            "next_run_ms": 1700000060000,
+            "last_run_ms": 1700000000000,
+            "last_run_status": "running",
+            "last_run_error": null,
+            "run_count": 1,
+            "webhook": null
+          },
+          "run": {
+            "run": "run-1",
+            "schedule": "s-run",
+            "source": "manual",
+            "at_ms": 1700000000000,
+            "state": "started",
+            "thread": "<volatile>",
+            "turn": "<volatile>",
+            "error": null
+          }
+        }
+      },
+      "actions": [
+        "git_checkpoint"
+      ],
+      "volatile": [
+        "/result/run/thread",
+        "/result/run/turn"
+      ]
+    },
+    {
+      "name": "answers SCHEDULE_NOT_FOUND for an id no schedule has",
+      "request": {
+        "id": 2,
+        "method": "schedule.runNow",
+        "params": {
+          "id": "nope"
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "SCHEDULE_NOT_FOUND",
+          "message": "no schedule has the id nope"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "answers the agent group's refusal when the schedule's thread is not there",
+      "before": [
+        {
+          "id": "setup-lost",
+          "method": "schedule.upsert",
+          "params": {
+            "id": "s-lost",
+            "title": "Nightly",
+            "prompt": "run the checks",
+            "enabled": true,
+            "schedule": {
+              "type": "interval",
+              "every_ms": 60000
+            },
+            "workspace": "w1",
+            "driver": "claudeAgent",
+            "thread": "t-lost"
+          }
+        }
+      ],
+      "request": {
+        "id": 3,
+        "method": "schedule.runNow",
+        "params": {
+          "id": "s-lost"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id t-lost"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

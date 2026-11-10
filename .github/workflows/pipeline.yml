@@ -1,0 +1,1101 @@
+name: Pipeline
+
+# The one CI pipeline, called by deploy.yml (flavor vm, production) and ci-hosted.yml (flavor hosted, GitHub-hosted runners). The job graph is
+# static and the VM's order: wf-build, preflight, plan, flow-tests and typecheck-lint-unit-tests, clis (vm) or the arm64 wf-build leg (hosted), deploy,
+# integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, the e2e suites, report. Policy is an input, never a branch on the flavor:
+# `ship` publishes (latest images, the EAS Update), `deploy` runs the deploy legs, `e2e` runs the device suites.
+# Rules: docs/solutions/ci/ci-pipeline-on-the-vm.md
+on:
+  workflow_call:
+    inputs:
+      flavor:
+        description: vm (self-hosted runner, the production CI) or hosted (GitHub-hosted runners)
+        type: string
+        required: true
+      runner:
+        description: The runs-on of every job but deploy, as JSON
+        type: string
+        required: true
+      deploy_runner:
+        description: The runs-on of the deploy legs and the arm64 wf-build leg, as JSON (an arm64 machine builds the images the VM runs)
+        type: string
+        required: true
+      shards:
+        description: Machines per test stage (1 to 6)
+        type: number
+        default: 1
+      ship:
+        description: Publish the verified images as latest and the EAS Update, and publish the clis build to /opt/clis (vm only)
+        type: boolean
+        default: false
+      deploy:
+        description: Run the deploy legs
+        type: boolean
+        default: false
+      e2e:
+        description: Run the browser and Android e2e suites
+        type: boolean
+        default: false
+      label:
+        description: Names a second pipeline next to the CI, so it has its own pull request comment (WF_CI_LABEL)
+        type: string
+        default: ""
+      concurrency_prefix:
+        description: Prefix of the VM job concurrency groups, so a run that is not production never queues behind or replaces a production job
+        type: string
+        default: ""
+    secrets:
+      BWS_CI_OPEN_ACCESS_TOKEN:
+        required: false
+      BWS_CI_DEPLOY_ACCESS_TOKEN:
+        required: false
+      TS_HOSTED_OAUTH_CLIENT_ID:
+        required: false
+      TS_HOSTED_OAUTH_CLIENT_SECRET:
+        required: false
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: write
+
+env:
+  WF_CI_LABEL: ${{ inputs.label }}
+  npm_config_manage_package_manager_versions: "false"
+  WF_PNPM_SAVE_JOB: flow-tests
+  WF_VM_CI_PORT: "8081"
+  BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+  BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+
+jobs:
+  # This commit's wf, built once for each kind of machine that runs it: x64 for the jobs, arm64 for the deploy legs (the images the VM runs are arm64).
+  wf-build:
+    name: wf-build${{ matrix.arch == 'arm64' && ' (arm64)' || '' }}
+    runs-on: ${{ matrix.arch == 'arm64' && fromJSON(inputs.deploy_runner) || fromJSON(inputs.runner) }}
+    # a recreated VM has an empty wf volume: the first run cold-builds wf here (up to an hour)
+    timeout-minutes: 70
+    concurrency:
+      group: ${{ inputs.flavor == 'vm' && format('{0}clis', inputs.concurrency_prefix) || format('hosted-wf-build-{0}-{1}', github.run_id, matrix.arch) }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: ${{ fromJSON(inputs.flavor == 'hosted' && inputs.deploy && '["x64","arm64"]' || '["x64"]') }}
+    steps:
+      - name: Reference trees left by an earlier run
+        if: ${{ inputs.flavor == 'vm' }}
+        run: git -C "$GITHUB_WORKSPACE" submodule deinit -f references/orca references/t3code 2>/dev/null || true
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: ${{ inputs.flavor == 'vm' && 1 || 0 }}
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: none
+          job: wf-build
+          install: "false"
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - name: This commit's wf
+        timeout-minutes: 65
+        uses: ./.github/actions/build-wf
+        with:
+          flavor: ${{ inputs.flavor }}
+          name: ${{ matrix.arch == 'arm64' && 'clis-arm' || 'clis' }}
+          upload: ${{ inputs.flavor == 'hosted' }}
+      - name: Free the runner's disk when it is filling
+        if: ${{ inputs.flavor == 'vm' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        run: wf ci tidy || true
+      - name: Start the comment on the pull request
+        if: ${{ matrix.arch == 'x64' }}
+        continue-on-error: true
+        timeout-minutes: 2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: wf ci live start > /dev/null 2>&1 || true
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() && inputs.flavor == 'hosted' }}
+        with:
+          mode: upload
+          job: ${{ matrix.arch == 'arm64' && 'clis-arm' || 'wf-build' }}
+
+  preflight:
+    name: preflight
+    needs: wf-build
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 30
+    steps:
+      - name: Reference trees left by an earlier run
+        if: ${{ inputs.flavor == 'vm' }}
+        run: git -C "$GITHUB_WORKSPACE" submodule deinit -f references/orca references/t3code 2>/dev/null || true
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: ${{ inputs.flavor == 'vm' && 1 || 0 }}
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          job: preflight
+          install: "false"
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - name: Preflight
+        # some checks look at the VM runner itself: the report shows which ones a hosted runner cannot answer
+        continue-on-error: ${{ inputs.flavor == 'hosted' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          if ! wf ci --help | grep -q preflight; then
+            echo "::warning::the published wf predates 'wf ci preflight'; skipped this once"
+            exit 0
+          fi
+          wf ci preflight
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() && inputs.flavor == 'hosted' }}
+        with:
+          mode: upload
+          job: preflight
+
+  plan:
+    name: plan
+    needs: wf-build
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 10
+    outputs:
+      plan: ${{ steps.plan.outputs.plan }}
+      flow_tests: ${{ steps.plan.outputs.flow_tests }}
+      typecheck_lint_unit_tests: ${{ steps.plan.outputs.typecheck_lint_unit_tests }}
+      deployment_verification_tests: ${{ steps.plan.outputs.deployment_verification_tests }}
+      integration_tests: ${{ steps.plan.outputs.integration_tests }}
+      cli_e2e_tests: ${{ steps.plan.outputs.cli_e2e_tests }}
+      browser_e2e_tests: ${{ steps.plan.outputs.browser_e2e_tests }}
+      android_e2e_tests: ${{ steps.plan.outputs.android_e2e_tests }}
+      shards: ${{ steps.shards.outputs.list }}
+      shard_count: ${{ steps.shards.outputs.count }}
+      legs: ${{ steps.legs.outputs.legs }}
+      eas_update: ${{ steps.legs.outputs.eas_update }}
+      fresh: ${{ steps.tags.outputs.fresh }}
+      run_flow: ${{ steps.tags.outputs.run_flow }}
+      run_unit: ${{ steps.tags.outputs.run_unit }}
+      run_service: ${{ steps.tags.outputs.run_service }}
+      run_browser: ${{ steps.tags.outputs.run_browser }}
+      run_android: ${{ steps.tags.outputs.run_android }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          job: plan
+          install: "false"
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - name: Storage guard (started)
+        if: ${{ inputs.flavor == 'vm' }}
+        id: guard
+        continue-on-error: true
+        run: |
+          out="$RUNNER_TEMP/storage-guard"
+          rm -f "$out.json" "$out.done"
+          # the runner kills what still carries the step's tracking id when the step ends, which setsid does not clear
+          # shellcheck disable=SC2016
+          OUT="$out" env -u RUNNER_TRACKING_ID setsid nohup bash -c 'timeout 60 wf cache guard > "$OUT.json" 2> "$OUT.err" || true; touch "$OUT.done"' > /dev/null 2>&1 &
+          echo "$!" > "$out.pid"
+      - name: Commit tags
+        id: tags
+        run: |
+          tag() { git log -1 --format=%B "$GITHUB_SHA" | grep -oiE "\[$1:[^]]*\]" | tail -1 | cut -d: -f2- | tr -d '[]' | tr ',' ' '; }
+          ci=$(tag ci)
+          for job in flow unit service browser android; do
+            run=true
+            if [ -n "$ci" ]; then run=false; for w in $ci; do [ "$w" = "$job" ] && run=true; done; fi
+            echo "run_$job=$run" >> "$GITHUB_OUTPUT"
+          done
+          echo "test jobs: ${ci:-every planned one}"
+          # [services:changed] (default) plans what the push changed; [services:all] every test and every service; [services:a,b] also the tests and the
+          # deploy legs of the named packages, crates and services. [cache:no] runs every test and builds every image without the Nx and layer caches.
+          read -ra words <<< "$(tag services)"
+          names=""
+          for w in "${words[@]}"; do
+            if printf '%s' "$w" | grep -Eq '^[A-Za-z0-9_@][A-Za-z0-9_@/.:-]*$'; then names="${names:+$names,}$w"; else echo "::warning::[services:] ignores the name '$w'"; fi
+          done
+          force_tests=""; force_ship=""
+          case ",$names," in
+            *,all,*) force_tests=all; force_ship="--force" ;;
+            ,,|,changed,) ;;
+            *) force_tests=${names//changed,/}; force_tests=${force_tests%,changed}; force_ship="--also $force_tests" ;;
+          esac
+          fresh=false
+          case "$(tag cache)" in no|false|off) fresh=true ;; esac
+          { echo "force_tests=$force_tests"; echo "force_ship=$force_ship"; echo "fresh=$fresh"; } >> "$GITHUB_OUTPUT"
+          echo "services: ${names:-changed}, cache: $([ $fresh = true ] && echo no || echo yes)"
+      # Changed since the newest commit whose CI passed, not since the push before: GitHub cancels a run that is still
+      # queued when the next push comes, and a red run's tests must run again.
+      - name: Which tests, by stage
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FORCE_TESTS: ${{ steps.tags.outputs.force_tests }}
+        run: |
+          args=(--changed --base last-green --sha "$GITHUB_SHA" --github-output)
+          [ -z "$FORCE_TESTS" ] || args+=(--force "$FORCE_TESTS")
+          wf test plan "${args[@]}" > "$RUNNER_TEMP/plan.json"
+          jq -r '.stages | to_entries[] | "\(.key): \(.value | length) test(s)"' "$RUNNER_TEMP/plan.json"
+      # Each test stage runs as this many machines side by side (1 to 6): a package and all its kinds on one of them
+      - name: How many machines per test stage
+        id: shards
+        env:
+          WANT: ${{ inputs.shards }}
+        run: |
+          n=${WANT%%.*}
+          [ "${n:-0}" -ge 1 ] 2>/dev/null || n=1
+          [ "$n" -le 6 ] || n=6
+          echo "count=$n" >> "$GITHUB_OUTPUT"
+          echo "list=$(jq -cn --argjson n "$n" '[range(1; $n + 1)]')" >> "$GITHUB_OUTPUT"
+          echo "$n machine(s) per test stage"
+      # What is deployed is what runs: a service's own container image tag (sha-<short>) names the commit it was built
+      # from, so there is no record to keep in sync. This also fails in seconds if the runner cannot reach the vault or vm-ops-api.
+      - name: Which services changed since the commit they run?
+        id: legs
+        timeout-minutes: 3
+        env:
+          FORCE_SHIP: ${{ steps.tags.outputs.force_ship }}
+        run: |
+          args=(--github-output)
+          read -ra extra <<< "$FORCE_SHIP"
+          args+=("${extra[@]}")
+          # The published wf predates a change that moves a path it knows (a rename) and then fails here, which skips the clis job that
+          # would publish the new one: retry with this commit's wf, which wf-build already installed on this runner.
+          wf ship --changed "${args[@]}" || {
+            this="/opt/clis/$(git rev-parse HEAD:clis)/wf"
+            [ -x "$this" ] || exit 1
+            echo "the published wf failed; retrying with this commit's wf" >&2
+            "$this" ship --changed "${args[@]}"
+          }
+      - name: Storage guard (result)
+        if: ${{ always() && inputs.flavor == 'vm' }}
+        continue-on-error: true
+        timeout-minutes: 1
+        run: |
+          out="$RUNNER_TEMP/storage-guard"
+          # the guard has run beside the whole plan and bounds itself at 60 s: wait only a moment for a straggler
+          for _ in $(seq 5); do [ -e "$out.done" ] && break; sleep 1; done
+          line="$(grep -E '^\{"event":"storage-guard"' "$out.json" 2> /dev/null | tail -n 1 || true)"
+          # shellcheck disable=SC2016
+          if [ -z "$line" ]; then
+            line='{"event":"storage-guard","ok":false,"action":"skipped","skip":"no result: the guard did not finish or this wf has no `cache guard`"}'
+          fi
+          echo "wf: storage guard $line"
+          {
+            echo "### Storage guard"
+            echo
+            echo "$line" | jq -r '"action **\(.action)**: \((.usedBytes // 0) / 1e9 * 100 | round / 100) GB of \((.capBytes // 0) / 1e9) GB used, \(.deletedObjects // 0) object(s) deleted, \((.freedBytes // 0) / 1e9 * 100 | round / 100) GB freed" + (if .skip then " (skip: \(.skip))" else "" end)'
+          } >> "$GITHUB_STEP_SUMMARY"
+          action="$(echo "$line" | jq -r '.action')"
+          [ "$action" = none ] || echo "::warning title=Object Storage guard::$(echo "$line" | jq -r '"\(.action): used \(.usedBytes) of \(.capBytes) bytes, freed \(.freedBytes)" + (if .skip then ", " + .skip else "" end)')"
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() && inputs.flavor == 'hosted' }}
+        with:
+          mode: upload
+          job: plan
+
+  flow-tests:
+    name: flow-tests${{ needs.plan.outputs.shard_count > 1 && format(' ({0}/{1})', matrix.shard, needs.plan.outputs.shard_count) || '' }}
+    needs: plan
+    if: ${{ needs.plan.outputs.flow_tests != '0' && needs.plan.outputs.run_flow == 'true' }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: ${{ inputs.flavor == 'vm' && 80 || 40 }}
+    concurrency:
+      group: ${{ inputs.flavor == 'vm' && format('{0}flow-tests', inputs.concurrency_prefix) || format('hosted-flow-tests-{0}-{1}', github.run_id, matrix.shard) }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - name: The commit is already here
+        id: tree
+        if: ${{ inputs.flavor == 'vm' }}
+        run: |
+          if git cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then git checkout -q --detach -f "$GITHUB_SHA" && echo "here=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.tree.outputs.here != 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          job: flow-tests-${{ matrix.shard }}
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - name: Save the pnpm store
+        if: ${{ matrix.shard == 1 }}
+        continue-on-error: true
+        timeout-minutes: 15
+        run: wf cache save pnpm
+      - uses: ./.github/actions/install-test-deps
+        with:
+          playwright: "true"
+          ffmpeg: "true"
+          restic-sqlite: "true"
+          bun: "true"
+          java: "true"
+          rust: "true"
+          references: "true"
+      - name: The test plan
+        env:
+          PLAN: ${{ needs.plan.outputs.plan }}
+        run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      # A push that changes a crate every service builds runs everything cold on the VM's 2 OCPUs (10 to 24 minutes); a pass is cached, so the next push replays it
+      - name: Flow tests
+        timeout-minutes: ${{ inputs.flavor == 'vm' && 75 || 30 }}
+        # two tasks at a time on 2 OCPUs: four cold builds at once stalled the whole VM for 20 minutes
+        run: wf test run --stage flow-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
+      - name: Publish the flow run bundle
+        if: always()
+        timeout-minutes: 5
+        run: |
+          if [ -f frontend/mla-tamagui/.flow-report/report.json ]; then
+            WF_SITE=ci wf test publish frontend/mla-tamagui/.flow-report
+          else
+            echo "no flow report this run (the app's package graph did not change)"
+          fi
+      - name: Deinitialize the reference trees
+        if: always()
+        run: git submodule deinit -f references/orca references/t3code || true
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() && inputs.flavor == 'hosted' }}
+        with:
+          mode: upload
+          job: flow-tests-${{ matrix.shard }}
+
+  typecheck-lint-unit-tests:
+    name: typecheck-lint-unit-tests${{ needs.plan.outputs.shard_count > 1 && format(' ({0}/{1})', matrix.shard, needs.plan.outputs.shard_count) || '' }}
+    needs: plan
+    if: ${{ needs.plan.outputs.typecheck_lint_unit_tests != '0' && needs.plan.outputs.run_unit == 'true' }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 25
+    concurrency:
+      group: ${{ inputs.flavor == 'vm' && format('{0}typecheck-lint-unit-tests', inputs.concurrency_prefix) || format('hosted-typecheck-lint-unit-tests-{0}-{1}', github.run_id, matrix.shard) }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - name: The commit is already here
+        id: tree
+        if: ${{ inputs.flavor == 'vm' }}
+        run: |
+          if git cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then git checkout -q --detach -f "$GITHUB_SHA" && echo "here=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.tree.outputs.here != 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          job: typecheck-lint-unit-tests-${{ matrix.shard }}
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - uses: ./.github/actions/install-test-deps
+        with:
+          playwright: "true"
+          bun: "true"
+          rust: "true"
+      - name: The test plan
+        env:
+          PLAN: ${{ needs.plan.outputs.plan }}
+        run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      - name: Restore the app build state
+        continue-on-error: true
+        timeout-minutes: 5
+        run: wf cache restore metro
+      - name: Nx hash table of two tasks (sandbox replay drift)
+        if: ${{ inputs.flavor == 'vm' }}
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          wf test drift --projects @lib/hook-runtime,crate-harness-core,e2e-tamil-writing,mla-tamagui --targets test:unit,cargo-unit,e2e-browser,export:web --save "$RUNNER_TEMP/nx-hashes.json" >/dev/null
+          echo "NXHASH $(jq -c . "$RUNNER_TEMP/nx-hashes.json")"
+          uname -m
+          echo "PNPMDIAG jsdom=$(readlink node_modules/jsdom | cut -c1-60) mdn=$(readlink node_modules/mdn-data | cut -c1-60)"
+          echo "PNPMDIAG config=$(pnpm config list 2>&1 | tr '\n' ';' | cut -c1-600)"
+          echo "PNPMDIAG modules=$(sed -n '1,12p' node_modules/.modules.yaml | tr '\n' ';' | cut -c1-500)"
+      - name: Typecheck, lint and unit tests
+        if: ${{ inputs.flavor == 'vm' }}
+        timeout-minutes: 20
+        env:
+          # Nx says what it does between a target's banner and its first task: the clippy call is silent for minutes there
+          WF_NX_TRACE: "1"
+        run: wf test run --stage typecheck-lint-unit-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
+      - name: Typecheck, lint and unit tests
+        if: ${{ inputs.flavor != 'vm' }}
+        timeout-minutes: 20
+        run: wf test run --stage typecheck-lint-unit-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
+      - name: Save the app build state
+        continue-on-error: true
+        timeout-minutes: 5
+        run: wf cache save metro
+      - name: Compile cache measurement (cold and warm target)
+        if: ${{ inputs.flavor == 'vm' && contains(github.event.head_commit.message, '[bench-cache]') }}
+        continue-on-error: true
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          t() { local s; s=$(date +%s); "$@" > "$RUNNER_TEMP/bench.log" 2>&1; echo "exit $? $(( $(date +%s) - s )) s"; grep -E "wf: (sccache|compile cache)" "$RUNNER_TEMP/bench.log" || true; }
+          export CARGO_TARGET_DIR="$RUNNER_TEMP/bench-target" CARGO_INCREMENTAL=0
+          unset RUSTC_WRAPPER
+          rm -rf "$CARGO_TARGET_DIR"; echo -n "A no cache, cold target: "; t cargo test --locked --manifest-path clis/Cargo.toml -p wf-bucket --no-run
+          rm -rf "$CARGO_TARGET_DIR"; echo -n "B sccache, cold bucket prefix, cold target: "; t wf cache sccache -- cargo test --locked --manifest-path clis/Cargo.toml -p wf-bucket --no-run
+          rm -rf "$CARGO_TARGET_DIR"; echo -n "C sccache, warm bucket prefix, cold target: "; t wf cache sccache -- cargo test --locked --manifest-path clis/Cargo.toml -p wf-bucket --no-run
+          rm -rf "$CARGO_TARGET_DIR"
+      - name: Export measurement (Metro cold and warm, Nx miss and replay)
+        if: ${{ inputs.flavor == 'vm' && contains(github.event.head_commit.message, '[bench-export]') }}
+        continue-on-error: true
+        timeout-minutes: 20
+        shell: bash
+        env:
+          NX_DAEMON: "false"
+        run: |
+          for _ in $(seq 20); do
+            wf vm ops stats > "$RUNNER_TEMP/vm-stats.json"
+            jq -e '.host.memAvailableMb >= 3000' "$RUNNER_TEMP/vm-stats.json" >/dev/null && break
+            sleep 15
+          done
+          t() { local s; s=$(date +%s); "$@" > "$RUNNER_TEMP/bench-export.log" 2>&1; echo "exit $? $(( $(date +%s) - s )) s"; grep -E "wf: build cache" "$RUNNER_TEMP/bench-export.log" | cut -c1-260 || true; }
+          app=frontend/mla-tamagui
+          rm -rf "$app/node_modules/.cache/app-build/metro" "$app/dist"; echo -n "A cold Metro cache, no Nx cache: "; t pnpm exec nx run mla-tamagui:export:web --skip-nx-cache
+          du -sh "$app/node_modules/.cache/app-build/metro" "$app/dist"
+          rm -rf "$app/dist"; echo -n "B warm Metro cache, no Nx cache: "; t pnpm exec nx run mla-tamagui:export:web --skip-nx-cache
+          rm -rf "$app/dist"; echo -n "C Nx miss (fills the Nx cache): "; t wf cache nx -- pnpm exec nx run mla-tamagui:export:web
+          rm -rf "$app/dist"; echo -n "D Nx replay (dist restored): "; t wf cache nx -- pnpm exec nx run mla-tamagui:export:web
+          find "$app/dist" -maxdepth 1 -name index.html
+          rm -rf "$app/dist"
+      - name: EAS export measurement (Metro cold, Nx miss and replay)
+        if: ${{ inputs.flavor == 'vm' && contains(github.event.head_commit.message, '[bench-eas]') }}
+        continue-on-error: true
+        timeout-minutes: 25
+        shell: bash
+        env:
+          NX_DAEMON: "false"
+          EXPO_PUBLIC_INITIAL_ROUTE: /
+          EXPO_PUBLIC_APP_ENV: staging
+          EXPO_EXPORT_PLATFORM_FLAGS: --platform ios --platform android
+          EXPO_EXPORT_FLAGS: --no-bytecode
+        run: |
+          for _ in $(seq 20); do
+            wf vm ops stats > "$RUNNER_TEMP/vm-stats.json"
+            jq -e '.host.memAvailableMb >= 3000' "$RUNNER_TEMP/vm-stats.json" >/dev/null && break
+            sleep 15
+          done
+          t() { local s; s=$(date +%s); "$@" > "$RUNNER_TEMP/bench-eas.log" 2>&1; echo "exit $? $(( $(date +%s) - s )) s"; grep -E "wf: build cache" "$RUNNER_TEMP/bench-eas.log" | cut -c1-260 || true; }
+          app=frontend/mla-tamagui
+          rm -rf "$app/node_modules/.cache/app-build/metro" "$app/dist"; echo -n "A cold Metro cache, no Nx cache: "; t pnpm exec nx run mla-tamagui:export:eas --skip-nx-cache
+          rm -rf "$app/dist"; echo -n "B Nx miss (fills the Nx cache): "; t wf cache nx -- pnpm exec nx run mla-tamagui:export:eas
+          rm -rf "$app/dist"; echo -n "C Nx replay (dist restored): "; t wf cache nx -- pnpm exec nx run mla-tamagui:export:eas
+          find "$app/dist" -maxdepth 2 -name metadata.json
+          rm -rf "$app/dist"
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() && inputs.flavor == 'hosted' }}
+        with:
+          mode: upload
+          job: typecheck-lint-unit-tests-${{ matrix.shard }}
+
+  clis:
+    needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests]
+    if: ${{ !cancelled() && inputs.flavor == 'vm' && inputs.ship && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' }}
+    uses: ./.github/workflows/clis.yml
+    secrets:
+      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+
+  # The images are built and pushed under the commit's tag with the first wave: nothing serves them yet, so a red test later just leaves them unused.
+  deploy-build:
+    name: build (${{ matrix.app }})
+    needs: [plan, wf-build]
+    if: ${{ !cancelled() && inputs.deploy && needs.plan.result == 'success' && needs.plan.outputs.legs != '[]' && needs.wf-build.result == 'success' }}
+    runs-on: ${{ fromJSON(inputs.deploy_runner) }}
+    timeout-minutes: 100
+    concurrency:
+      group: ${{ inputs.flavor == 'vm' && format('{0}deploy-build-{1}', inputs.concurrency_prefix, matrix.app) || format('hosted-deploy-build-{0}', matrix.app) }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.flavor == 'vm' && 1 || 20 }}
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.legs) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: ${{ inputs.flavor == 'vm' && 1 || 0 }}
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          artifact: clis-arm
+          job: build-${{ matrix.app }}
+          install: "false"
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      # What the app builds: an imageless app has none and redeploys as before.
+      - name: Which images does the app build?
+        id: images
+        if: ${{ matrix.app != 'mla-tamagui' }}
+        env:
+          APP: ${{ matrix.app }}
+        run: |
+          count=$(wf ship build "$APP" --images | jq '.images | length')
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+          echo "$APP builds $count image(s)"
+      - name: Build and push the images
+        id: image
+        if: ${{ matrix.app != 'mla-tamagui' && steps.images.outputs.count != '0' }}
+        timeout-minutes: 90
+        uses: ./.github/actions/build-image
+        with:
+          app: ${{ matrix.app }}
+          tag: ${{ steps.images.outputs.tag }}
+          fresh: ${{ needs.plan.outputs.fresh }}
+      - name: Report the failure on the PR
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP: ${{ matrix.app }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          STEP: ${{ steps.image.outcome == 'failure' && 'building the images on the runner' || 'an earlier step (see the run)' }}
+        run: |
+          log="$RUNNER_TEMP/deploy.log"
+          jobid=$(grep -o 'jobId: [0-9a-f-]*' "$log" 2>/dev/null | head -1 | cut -d' ' -f2 || true)
+          detail=""
+          if [ -n "$jobid" ]; then
+            detail=$(wf vm exec --status "$jobid" 2>&1 | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let o="";try{o=JSON.parse(s.slice(s.indexOf("{"))).output||""}catch{o=s}console.log(o.split("\n").filter(l=>/^#[0-9]+ ERROR|ERR_|error:|did not complete|exit code|ERROR:/i.test(l)).slice(-12).join("\n"))})' || true)
+          fi
+          [ -n "$detail" ] || detail=$(grep -E '^wf:|^error|returned HTTP' "$log" 2>/dev/null | tail -6 | cut -c1-300 || true)
+          [ -n "$detail" ] || detail="no error line captured; see the run"
+          api="https://api.github.com/repos/${{ github.repository }}"
+          pr=$(curl -s -H "Authorization: Bearer $GH_TOKEN" "$api/pulls?head=${{ github.repository_owner }}:${GITHUB_REF_NAME}&state=open" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const a=JSON.parse(s);console.log(a[0]?a[0].number:"")})')
+          [ -n "$pr" ] || exit 0
+          # shellcheck disable=SC2016
+          body=$(APP="$APP" STEP="$STEP" RUN_URL="$RUN_URL" SHA="$GITHUB_SHA" DETAIL="$detail" node -e 'console.log(JSON.stringify({body:`deploy (${process.env.APP}) failed in ${process.env.STEP} at ${process.env.SHA.slice(0,8)}: ${process.env.RUN_URL}\n\n\`\`\`\n${process.env.DETAIL}\n\`\`\``}))')
+          curl -s -o /dev/null -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$api/issues/$pr/comments" -d "$body"
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() && inputs.flavor == 'hosted' }}
+        with:
+          mode: upload
+          job: build-${{ matrix.app }}
+
+  # The redeploy is the step that cannot be undone: it waits for every check and test, and for the images.
+  deploy:
+    name: deploy (${{ matrix.app }})
+    needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deploy-build, clis, wf-build]
+    # a red test deploys nothing; a stage the plan left empty is skipped, not failed
+    if: ${{ !cancelled() && inputs.deploy && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && needs.deploy-build.result == 'success' && (needs.clis.result == 'success' || (inputs.flavor == 'hosted' && needs.wf-build.result == 'success')) && needs.plan.outputs.legs != '[]' }}
+    runs-on: ${{ fromJSON(inputs.deploy_runner) }}
+    timeout-minutes: 100
+    concurrency:
+      group: ${{ inputs.flavor == 'vm' && format('{0}deploy-{1}', inputs.concurrency_prefix, matrix.app) || format('hosted-deploy-{0}', matrix.app) }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      max-parallel: ${{ inputs.flavor == 'vm' && 1 || 20 }}
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.legs) }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: ${{ inputs.flavor == 'vm' && 1 || 0 }}
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          artifact: clis-arm
+          job: deploy-${{ matrix.app }}
+          install: "false"
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      # What the app builds: an imageless app has none and redeploys as before.
+      - name: Which images does the app build?
+        id: images
+        if: ${{ matrix.app != 'mla-tamagui' }}
+        env:
+          APP: ${{ matrix.app }}
+        run: |
+          count=$(wf ship build "$APP" --images | jq '.images | length')
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "tag=sha-${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+          echo "$APP builds $count image(s)"
+      # vm-ops-api is the first leg because the others redeploy through it, and its swap drops their in-flight requests: they build in parallel and
+      # wait here, just before the redeploy. On the VM it has already finished (one leg at a time); an app that is no leg of this run is no wait.
+      - name: Wait for the vm-ops-api leg to finish
+        if: ${{ matrix.app != 'vm-ops-api' && matrix.app != 'mla-tamagui' }}
+        timeout-minutes: 40
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          for _ in $(seq 1 240); do
+            state=$(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID/jobs?per_page=100" | jq -r '[.jobs[] | select(.name | endswith("deploy (vm-ops-api)")) | .status] | first // "absent"')
+            case "$state" in completed|absent) echo "vm-ops-api leg: $state"; break ;; esac
+            sleep 10
+          done
+      - name: Redeploy the pushed tag and wait until it serves the commit
+        id: redeploy
+        if: ${{ matrix.app != 'mla-tamagui' && steps.images.outputs.count != '0' }}
+        timeout-minutes: 30
+        env:
+          APP: ${{ matrix.app }}
+        run: |
+          set -o pipefail
+          wf ship --redeploy-only --smoke "$APP" --ref "$GITHUB_SHA" --tag "sha-${GITHUB_SHA::8}" --wait-serving 2>&1 | tee "$RUNNER_TEMP/deploy.log"
+      # The plan can run the previous push's wf, which can still list the retired mla-tamagui leg: it has no service to ship.
+      - name: Redeploy an app with no image and wait until it serves the commit
+        id: imageless
+        if: ${{ matrix.app != 'mla-tamagui' && steps.images.outputs.count == '0' }}
+        timeout-minutes: 30
+        env:
+          APP: ${{ matrix.app }}
+        run: |
+          set -o pipefail
+          wf ship "$APP" --ref "$GITHUB_SHA" --wait-serving 2>&1 | tee "$RUNNER_TEMP/deploy.log"
+      # CI pushes only the commit's tag; `latest`, which a recreated VM pulls, moves here once the leg serves, on the trunk only.
+      - name: Promote the verified images to latest
+        id: promote
+        if: ${{ inputs.ship && matrix.app == 'vm-ops-api' && github.ref == 'refs/heads/dev' && steps.redeploy.outcome == 'success' }}
+        timeout-minutes: 5
+        run: |
+          set -o pipefail
+          DOCKERHUB_TOKEN=$(wf secret get DOCKERHUB_TOKEN)
+          export DOCKERHUB_TOKEN
+          wf ship promote vm-ops-api --tag "sha-${GITHUB_SHA::8}" 2>&1 | tee -a "$RUNNER_TEMP/deploy.log"
+      - name: Report the failure on the PR
+        if: ${{ failure() }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP: ${{ matrix.app }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          STEP: ${{ steps.imageless.outcome == 'failure' && 'redeploying an app with no image' || steps.redeploy.outcome == 'failure' && 'redeploying the pushed tag' || steps.promote.outcome == 'failure' && 'promoting the images to latest' || 'an earlier step (see the run)' }}
+        run: |
+          log="$RUNNER_TEMP/deploy.log"
+          jobid=$(grep -o 'jobId: [0-9a-f-]*' "$log" 2>/dev/null | head -1 | cut -d' ' -f2 || true)
+          detail=""
+          if [ -n "$jobid" ]; then
+            detail=$(wf vm exec --status "$jobid" 2>&1 | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{let o="";try{o=JSON.parse(s.slice(s.indexOf("{"))).output||""}catch{o=s}console.log(o.split("\n").filter(l=>/^#[0-9]+ ERROR|ERR_|error:|did not complete|exit code|ERROR:/i.test(l)).slice(-12).join("\n"))})' || true)
+          fi
+          [ -n "$detail" ] || detail=$(grep -E '^wf:|^error|returned HTTP' "$log" 2>/dev/null | tail -6 | cut -c1-300 || true)
+          [ -n "$detail" ] || detail="no error line captured; see the run"
+          api="https://api.github.com/repos/${{ github.repository }}"
+          pr=$(curl -s -H "Authorization: Bearer $GH_TOKEN" "$api/pulls?head=${{ github.repository_owner }}:${GITHUB_REF_NAME}&state=open" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const a=JSON.parse(s);console.log(a[0]?a[0].number:"")})')
+          [ -n "$pr" ] || exit 0
+          # shellcheck disable=SC2016
+          body=$(APP="$APP" STEP="$STEP" RUN_URL="$RUN_URL" SHA="$GITHUB_SHA" DETAIL="$detail" node -e 'console.log(JSON.stringify({body:`deploy (${process.env.APP}) failed in ${process.env.STEP} at ${process.env.SHA.slice(0,8)}: ${process.env.RUN_URL}\n\n\`\`\`\n${process.env.DETAIL}\n\`\`\``}))')
+          curl -s -o /dev/null -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "$api/issues/$pr/comments" -d "$body"
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() && inputs.flavor == 'hosted' }}
+        with:
+          mode: upload
+          job: deploy-${{ matrix.app }}
+
+  integration-tests:
+    name: integration-tests${{ needs.plan.outputs.shard_count > 1 && format(' ({0}/{1})', matrix.shard, needs.plan.outputs.shard_count) || '' }}
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.integration_tests != '0' && needs.plan.outputs.run_service == 'true' }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 40
+    concurrency:
+      group: ${{ inputs.flavor == 'vm' && format('{0}integration-tests', inputs.concurrency_prefix) || format('hosted-integration-tests-{0}-{1}', github.run_id, matrix.shard) }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - name: The commit is already here
+        id: tree
+        if: ${{ inputs.flavor == 'vm' }}
+        run: |
+          if git cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then git checkout -q --detach -f "$GITHUB_SHA" && echo "here=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.tree.outputs.here != 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          job: integration-tests-${{ matrix.shard }}
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - uses: ./.github/actions/install-test-deps
+        with:
+          rust: "true"
+          references: "true"
+      - name: The test plan
+        env:
+          PLAN: ${{ needs.plan.outputs.plan }}
+        run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      # Each built binary run as a black box (vm-ops-api's suite, the services') with every dependency a fake, through the Nx cache;
+      # a suite writes its run record to $WF_TEST_OUTPUT_DIR/<suite>/report.json
+      - name: Integration tests
+        timeout-minutes: 38
+        env:
+          WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
+        run: wf test run --stage integration-tests --plan "$RUNNER_TEMP/plan.json" --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
+      - name: Publish the integration run bundles
+        if: always()
+        timeout-minutes: 5
+        env:
+          WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
+        run: |
+          found=0
+          # a chain's run record (t3-serve-integration, orca-serve-integration) and a mimic replay's (wf-mimic-*) carry their method-hit trace (trace.json) into the bundle `wf parity coverage --traces` reads
+          for dir in "$WF_TEST_OUTPUT_DIR"/vm-ops-api-*/ "$WF_TEST_OUTPUT_DIR"/t3-serve-*/ "$WF_TEST_OUTPUT_DIR"/wf-mimic-*/ "$WF_TEST_OUTPUT_DIR"/orca-serve-*/; do
+            [ -f "${dir}report.json" ] || continue
+            found=1
+            if ! out=$(WF_SITE=ci wf test publish "$dir"); then
+              printf '%s\n' "$out"
+              # the wf this job runs is the previous push's; one from before the integration platform refuses the record
+              case "$out" in *"not a test harness platform: 'integration'"*) echo "::warning::$dir not published: this push's clis build adds the integration platform" ;; *) exit 1 ;; esac
+            else
+              printf '%s\n' "$out"
+            fi
+          done
+          [ "$found" = 1 ] || echo "no integration report this run (no suite changed, or Nx replayed the run)"
+      - name: Deinitialize the reference trees
+        if: always()
+        run: git submodule deinit -f references/orca references/t3code || true
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() && inputs.flavor == 'hosted' }}
+        with:
+          mode: upload
+          job: integration-tests-${{ matrix.shard }}
+
+  cli-e2e-tests:
+    name: cli-e2e-tests${{ needs.plan.outputs.shard_count > 1 && format(' ({0}/{1})', matrix.shard, needs.plan.outputs.shard_count) || '' }}
+    needs: [plan]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.cli_e2e_tests != '0' && needs.plan.outputs.run_service == 'true' }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 65
+    concurrency:
+      group: ${{ inputs.flavor == 'vm' && format('{0}cli-e2e-tests', inputs.concurrency_prefix) || format('hosted-cli-e2e-tests-{0}-{1}', github.run_id, matrix.shard) }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - name: The commit is already here
+        id: tree
+        if: ${{ inputs.flavor == 'vm' }}
+        run: |
+          if git cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then git checkout -q --detach -f "$GITHUB_SHA" && echo "here=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.tree.outputs.here != 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          job: cli-e2e-tests-${{ matrix.shard }}
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - uses: ./.github/actions/install-test-deps
+        with:
+          playwright: "true"
+          ffmpeg: "true"
+          opencode: "true"
+          rust: "true"
+          browser-harness: "true"
+      - name: The test plan
+        env:
+          PLAN: ${{ needs.plan.outputs.plan }}
+        run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      # A real Chromium and ffmpeg driven through each CLI binary, network peers on loopback, with the freshly built CLIs
+      - name: CLI e2e tests
+        timeout-minutes: 60
+        env:
+          WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
+        run: wf test run --stage cli-e2e-tests --plan "$RUNNER_TEMP/plan.json" --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}"
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() && inputs.flavor == 'hosted' }}
+        with:
+          mode: upload
+          job: cli-e2e-tests-${{ matrix.shard }}
+
+  deployment-verification-tests:
+    name: deployment-verification-tests
+    needs: [plan, flow-tests, typecheck-lint-unit-tests, clis, deploy, cli-e2e-tests, eas-update]
+    # a leg that was planned but did not run (deploy off) leaves a service the tests would find at an older commit
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && (needs.clis.result == 'success' || !inputs.ship) && needs.deploy.result != 'failure' && needs.deploy.result != 'cancelled' && (needs.plan.outputs.deployment_verification_tests != '0' || needs.plan.outputs.legs != '[]') && needs.plan.outputs.run_service == 'true' && (inputs.deploy || needs.plan.outputs.legs == '[]') }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 20
+    concurrency:
+      group: ${{ inputs.flavor == 'vm' && format('{0}deployment-verification-tests', inputs.concurrency_prefix) || format('hosted-deployment-verification-tests-{0}', github.run_id) }}
+      cancel-in-progress: false
+    steps:
+      - name: The commit is already here
+        id: tree
+        if: ${{ inputs.flavor == 'vm' }}
+        run: |
+          if git cat-file -e "$GITHUB_SHA^{commit}" 2>/dev/null; then git checkout -q --detach -f "$GITHUB_SHA" && echo "here=true" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.tree.outputs.here != 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          job: deployment-verification-tests
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - uses: ./.github/actions/install-test-deps
+        with:
+          rust: "true"
+      - name: The test plan
+        env:
+          PLAN: ${{ needs.plan.outputs.plan }}
+        run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      # The port this job's deploys went through is the narrow one: /health answers with the CI seed, and a route only the admin port serves is a 404.
+      - name: vm-ops-api's CI port answers health and refuses an admin route
+        timeout-minutes: 2
+        run: wf vm ops ci-port
+      # The job has the builder sidecar and nothing of the host: DOCKER_HOST answers, no host docker socket, no vault or provision variable in PID 1.
+      - name: The runner holds nothing of the host
+        if: ${{ runner.environment == 'self-hosted' }}
+        timeout-minutes: 2
+        # the admin port of vm-ops-api and agent-shell's ssh must stay out of reach of the runner's tag (infra/tailscale/policy.hujson)
+        env:
+          RUNNER_CHECK_MUST_NOT_REACH: vm-ops-api-main:8080,agent-shell-main:22,agent-shell-main:2375,agent-shell-main:2376
+        run: wf vm ops runner-check --json
+      # Each backend's test:verify:deployed runs against the deployed service over its real interface.
+      - name: Deployment verification tests
+        timeout-minutes: 15
+        run: wf test run --stage deployment-verification-tests --plan "$RUNNER_TEMP/plan.json" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() && inputs.flavor == 'hosted' }}
+        with:
+          mode: upload
+          job: deployment-verification-tests
+
+  # When the app changed since the update the branch pointer names (the plan's eas_update), one EAS Update group for iOS and Android on branch dev
+  # from this commit, so a failed publish is repaired by the next push. Without `ship` the bundle is exported and nothing is uploaded.
+  eas-update:
+    name: eas-update
+    needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, clis]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && (needs.clis.result == 'success' || !inputs.ship) && needs.plan.outputs.eas_update == 'true' }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 25
+    concurrency:
+      group: ${{ inputs.flavor == 'vm' && format('{0}eas-update', inputs.concurrency_prefix) || format('hosted-eas-update-{0}', github.run_id) }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: ${{ inputs.flavor == 'vm' && 1 || 0 }}
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          job: eas-update
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - name: The VM has room for the export
+        if: ${{ inputs.flavor == 'vm' }}
+        timeout-minutes: 6
+        shell: bash
+        run: |
+          for _ in $(seq 20); do
+            wf vm ops stats > "$RUNNER_TEMP/vm-stats.json"
+            jq -e '.host.memAvailableMb >= 3000' "$RUNNER_TEMP/vm-stats.json" >/dev/null && exit 0
+            sleep 15
+          done
+          jq -c '{host, containersMb, top: [.containers[:6][] | {name, memMb}]}' "$RUNNER_TEMP/vm-stats.json"
+          echo "::error::the export needs about 3000 MB and the VM has $(jq .host.memAvailableMb "$RUNNER_TEMP/vm-stats.json") MB available after 5 min; the line above says what holds the rest"
+          exit 1
+      - name: Restore the app build state
+        continue-on-error: true
+        timeout-minutes: 5
+        run: wf cache restore metro
+      - name: Publish the EAS Update
+        if: ${{ inputs.ship }}
+        timeout-minutes: 20
+        env:
+          EXPO_PUBLIC_DEVICE_LAB: "1"
+          WF_VM_SAMPLE_SECS: "5"
+          EXPO_PUBLIC_BETTERSTACK_TOKEN: ${{ vars.EXPO_PUBLIC_BETTERSTACK_TOKEN }}
+          EXPO_PUBLIC_BETTERSTACK_HOST: ${{ vars.EXPO_PUBLIC_BETTERSTACK_HOST }}
+        run: |
+          set -o pipefail
+          # the backend hosts the app dials, under the tailnet names the backends answer to now
+          hosts=$(wf vm net resolve leetcode-backend-prod remote-chat-agent-prod)
+          EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL="http://$(jq -r '."leetcode-backend-prod"' <<<"$hosts"):8789"
+          EXPO_PUBLIC_AGENT_BASE_URL="http://$(jq -r '."remote-chat-agent-prod"' <<<"$hosts"):8787"
+          export EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL EXPO_PUBLIC_AGENT_BASE_URL
+          # from the vault at step time (the runner's container env no longer holds it), never the step's env:, which the log header prints
+          EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN=$(wf secret get VM_GATEWAY_AUTH_SEED --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no VM_GATEWAY_AUTH_SEED to bake in as the backend token"; exit 1; }
+          echo "::add-mask::$EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN"
+          export EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN
+          # the app's BetterStack forwarder: the mobile source's ingest pair, from the vault at job time (the runner's bws
+          # token); half a pair bakes in neither
+          # the repository variables of the step's env; the vault is read only for a value that is still empty
+          [ -n "${EXPO_PUBLIC_BETTERSTACK_TOKEN:-}" ] || EXPO_PUBLIC_BETTERSTACK_TOKEN=$(wf secret get EXPO_PUBLIC_BETTERSTACK_TOKEN --backend bitwarden 2>/dev/null) || EXPO_PUBLIC_BETTERSTACK_TOKEN=""
+          [ -n "${EXPO_PUBLIC_BETTERSTACK_HOST:-}" ] || EXPO_PUBLIC_BETTERSTACK_HOST=$(wf secret get BETTERSTACK_INGEST_HOST --backend bitwarden 2>/dev/null) || EXPO_PUBLIC_BETTERSTACK_HOST=""
+          if [ -n "$EXPO_PUBLIC_BETTERSTACK_TOKEN" ]; then echo "::add-mask::$EXPO_PUBLIC_BETTERSTACK_TOKEN"; fi
+          if [ -n "$EXPO_PUBLIC_BETTERSTACK_TOKEN" ] && [ -n "$EXPO_PUBLIC_BETTERSTACK_HOST" ]; then
+            export EXPO_PUBLIC_BETTERSTACK_TOKEN EXPO_PUBLIC_BETTERSTACK_HOST
+            forwarder="on"
+          else
+            missing=""
+            [ -n "$EXPO_PUBLIC_BETTERSTACK_TOKEN" ] || missing="$missing EXPO_PUBLIC_BETTERSTACK_TOKEN"
+            [ -n "$EXPO_PUBLIC_BETTERSTACK_HOST" ] || missing="$missing BETTERSTACK_INGEST_HOST"
+            echo "::warning::the vault gave no${missing}, so this update ships without the BetterStack forwarder"
+            unset EXPO_PUBLIC_BETTERSTACK_TOKEN EXPO_PUBLIC_BETTERSTACK_HOST
+            forwarder="off (the vault gave no${missing})"
+          fi
+          wf ship eas --platform all --branch dev --pointer --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas.log"
+          summary=$(tail -1 "$RUNNER_TEMP/eas.log")
+          {
+            echo "### EAS Update"
+            echo "[Open the update]($(jq -r '.link // empty' <<<"$summary")) on branch dev for $(jq -r '.platforms | join(", ")' <<<"$summary"), group \`$(jq -r '.group' <<<"$summary")\`, commit \`${GITHUB_SHA::9}\`"
+            echo "Export $(jq -r '.timing.exportS // "-"' <<<"$summary") s, upload $(jq -r '.timing.uploadS // "-"' <<<"$summary") s, $(jq -r 'if .timing.servedS then "served \(.timing.servedS) s after the upload" else "not served: \(.served.error // "-")" end' <<<"$summary")"
+            echo "Memory: largest process $(jq -r '.memory.peakRssMb // "-"' <<<"$summary") MB, VM MemAvailable low $(jq -r '.memory.vm.memAvailableMinMb // "-"' <<<"$summary") MB"
+            echo "Source maps: $(jq -r '.maps.uploaded // .maps.error' <<<"$summary") under $(jq -r '.maps.base // "-"' <<<"$summary"); latest-dev pointer: $(jq -r '.pointers.latest // .pointers.error // "-"' <<<"$summary")"
+            echo "BetterStack forwarder: $forwarder"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Export the EAS bundle (not published)
+        if: ${{ !inputs.ship }}
+        timeout-minutes: 20
+        env:
+          EXPO_PUBLIC_DEVICE_LAB: "1"
+          NX_DAEMON: "false"
+        run: pnpm exec nx run mla-tamagui:export:eas --skip-nx-cache
+      - name: Save the app build state
+        if: ${{ inputs.ship }}
+        continue-on-error: true
+        timeout-minutes: 5
+        run: wf cache save metro
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() && inputs.flavor == 'hosted' }}
+        with:
+          mode: upload
+          job: eas-update
+
+  # The focused browser e2e tests the push reaches, against a web export of this commit built and served on the runner.
+  browser-e2e-tests:
+    needs: [plan, flow-tests, typecheck-lint-unit-tests, clis, deploy, cli-e2e-tests, eas-update]
+    if: ${{ !cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && (needs.clis.result == 'success' || !inputs.ship) && needs.deploy.result != 'failure' && needs.plan.outputs.browser_e2e_tests != '0' && needs.plan.outputs.run_browser == 'true' }}
+    uses: ./.github/workflows/e2e-tests.yml
+    secrets:
+      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+    with:
+      platform: browser
+      plan: ${{ needs.plan.outputs.plan }}
+      sha: ${{ github.sha }}
+      base: ${{ github.event.before }}
+
+  # The focused Android e2e tests, last: the device boots once, cold, and every test runs on it warm, one after another.
+  android-e2e-tests:
+    needs: [plan, flow-tests, typecheck-lint-unit-tests, clis, deploy, cli-e2e-tests, eas-update]
+    if: ${{ !cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && (needs.clis.result == 'success' || !inputs.ship) && needs.deploy.result != 'failure' && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true' }}
+    uses: ./.github/workflows/e2e-tests.yml
+    secrets:
+      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+    with:
+      platform: android
+      plan: ${{ needs.plan.outputs.plan }}
+      sha: ${{ github.sha }}
+      base: ${{ github.event.before }}
+      # update units load this push's update, error when its publish failed, and after a skipped one load the pointer's only if it is this commit's app
+      eas_update: ${{ needs.eas-update.result }}
+
+  # Every run reports where it is read (`wf ci comment`): a table of the jobs with their cache hits and latency, Nx replays, docker layers, EAS
+  # seconds and the e2e units, in the job summary and as a comment on the open PR; a red run also gets the cause of each failure as a comment on
+  # the pushed commit. A failure to report never turns the run's result into the report's; a cache that degraded, lost or refused a write does.
+  report:
+    name: report
+    needs: [wf-build, preflight, plan, flow-tests, typecheck-lint-unit-tests, clis, deploy-build, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, browser-e2e-tests, android-e2e-tests]
+    if: ${{ always() }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Reference trees left by an earlier run
+        if: ${{ inputs.flavor == 'vm' }}
+        run: git -C "$GITHUB_WORKSPACE" submodule deinit -f references/orca references/t3code 2>/dev/null || true
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: ${{ inputs.flavor == 'vm' && 1 || 0 }}
+      # a failed wf-build leaves no artifact on a hosted run: the report still goes out with what is there
+      - uses: ./.github/actions/setup-job
+        continue-on-error: true
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          job: report
+          install: "false"
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        if: ${{ inputs.flavor == 'hosted' }}
+        continue-on-error: true
+        with:
+          pattern: stats-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/runner-stats
+      - name: The e2e units this commit published
+        continue-on-error: true
+        timeout-minutes: 3
+        run: wf test results --query "since=1d" --json > "$RUNNER_TEMP/e2e-results.json"
+      - name: Report the run
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          WF_CI_RESULTS: ${{ runner.temp }}/e2e-results.json
+          WF_CI_RUNNER_STATS_DIR: ${{ runner.temp }}/runner-stats
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: wf ci comment
+      - name: Cache health
+        timeout-minutes: 5
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          WF_CI_PUSH_GATE: "off"
+        run: wf ci cache-health

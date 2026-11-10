@@ -1,0 +1,22 @@
+# R1: every phone rpc row of orca-methods.json answered by the real headless orcad built at the pin (the VM). Inputs:
+# `node tooling/mimic-drivers/src/cli.ts corpus orca <this dir>`. One driver command for both targets; ORCA_ORCAD_CHECKOUT (the VM) or ORCA_PAIRING_URI picks the host.
+corpus = "corpus.json"
+rules = "rules.json"
+allowlist = "allowlist.json"
+provision_file = "//tooling/mimic-drivers/provision/orca.toml"
+
+[reference]
+name = "orca"
+command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca"]
+pin = "../../../../tooling/orca-conformance/orca-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"
+timeout_ms = 3600000
+live_when_named = "orcad is built at the pin on the VM (arm64): verify <set> --live runs it, --all --live never does"
+
+[candidate.orca-serve]
+command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca"]
+
+[record]
+# the pinned reference is a live server whose ids and timestamps move between two records
+allow_nondeterministic = true

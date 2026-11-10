@@ -1,0 +1,137 @@
+{
+  "suite": "runtime",
+  "initial": {
+    "recordedAt": "2026-10-06T10:31:51.422Z",
+    "commit": "16f242a1d5aac8db6ffd2990cac26c76e79b549c",
+    "runs": 3,
+    "env": {
+      "device": "iphone-15-pro",
+      "settleMs": "400",
+      "scope": "lab-only (Chromium V8, headless)"
+    },
+    "metrics": {
+      "tapLatencyMs": {
+        "unit": "ms",
+        "median": 32.6,
+        "min": 32.5,
+        "max": 32.6,
+        "values": [
+          32.6,
+          32.5,
+          32.6
+        ]
+      },
+      "variantUpdateMs": {
+        "unit": "ms",
+        "median": 27.5,
+        "min": 25.4,
+        "max": 27.6,
+        "values": [
+          25.4,
+          27.6,
+          27.5
+        ]
+      },
+      "deepTreeMountMs": {
+        "unit": "ms",
+        "median": 91,
+        "min": 86.8,
+        "max": 98.4,
+        "values": [
+          86.8,
+          98.4,
+          91
+        ]
+      },
+      "longTasks": {
+        "unit": "tasks",
+        "median": 12,
+        "min": 10,
+        "max": 12,
+        "values": [
+          10,
+          12,
+          12
+        ]
+      },
+      "longTaskMs": {
+        "unit": "ms",
+        "median": 1310,
+        "min": 1185,
+        "max": 1402,
+        "values": [
+          1185,
+          1310,
+          1402
+        ]
+      }
+    }
+  },
+  "current": {
+    "recordedAt": "2026-10-13T17:31:31.253Z",
+    "commit": "3e9bdb9e86067bf24200e71ee23e7f07055ed4b2",
+    "runs": 3,
+    "env": {
+      "device": "iphone-15-pro",
+      "settleMs": "400",
+      "scope": "lab-only (Chromium V8, headless)"
+    },
+    "metrics": {
+      "tapLatencyMs": {
+        "unit": "ms",
+        "median": 32.2,
+        "min": 32.2,
+        "max": 32.2,
+        "values": [
+          32.2,
+          32.2,
+          32.2
+        ]
+      },
+      "variantUpdateMs": {
+        "unit": "ms",
+        "median": 25.5,
+        "min": 24.3,
+        "max": 26.7,
+        "values": [
+          25.5,
+          24.3,
+          26.7
+        ]
+      },
+      "deepTreeMountMs": {
+        "unit": "ms",
+        "median": 117.1,
+        "min": 116.2,
+        "max": 133.3,
+        "values": [
+          117.1,
+          116.2,
+          133.3
+        ]
+      },
+      "longTasks": {
+        "unit": "tasks",
+        "median": 12,
+        "min": 12,
+        "max": 13,
+        "values": [
+          13,
+          12,
+          12
+        ]
+      },
+      "longTaskMs": {
+        "unit": "ms",
+        "median": 1364,
+        "min": 1272,
+        "max": 1395,
+        "values": [
+          1395,
+          1272,
+          1364
+        ]
+      }
+    }
+  }
+}

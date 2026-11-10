@@ -1,0 +1,24 @@
+Usage: wf ci [options] [command]
+
+What a workflow tells people about its own run: `wf ci comment` posts what
+failed in a red CI run on the pushed commit, `wf ci live` keeps the run's one pull
+request comment up to date, `wf ci tidy` frees the runner's disk, `wf ci preflight` checks first that
+everything the run needs is live, `wf ci audit` is the nightly audit of CI on dev
+(never a gate) and `wf ci cache-health` fails a run whose cache layers broke.
+
+Options:
+  -h, --help           display help for command
+
+Commands:
+  live [start]         Update the run's one comment on the pull request.
+  tidy [options]       Free the runner's disk when it is filling.
+  preflight [options]  Check at the start that the cache, secrets, services and
+                       runner are live and valid.
+  audit [options]      Nightly audit of CI on dev: one JSON verdict with the
+                       findings and their next steps; never fails a push.
+  cache-health [options]
+                       Fail the run when a cache layer degraded, lost or
+                       refused a write.
+  comment [options]    Comment on the pushed commit what failed in this CI run,
+                       with the cause from each failed job's log.
+  help [command]       display help for command

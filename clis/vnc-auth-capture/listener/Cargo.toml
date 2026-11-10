@@ -1,0 +1,21 @@
+[package]
+name = "vnc-auth-listener"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "`wf secret login listener` built alone for the login-browser image: the wf-login crate and what it builds on, without the rest of the CLI"
+
+# Its own workspace and lockfile, so the images that build the clis workspace with a partial copy of it never need this
+# directory, and this image never needs the rest of wf.
+[workspace]
+
+[dependencies]
+wf-kit = { path = "../../wf-kit" }
+wf-login = { path = "../../wf-login" }
+
+# wf's deploy profile (clis/Cargo.toml).
+[profile.release]
+opt-level = "z"
+codegen-units = 16
+panic = "abort"
+strip = true

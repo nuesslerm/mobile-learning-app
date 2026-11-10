@@ -1,0 +1,17 @@
+[package]
+name = "exec-preview"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The executor's preview actions (preview_start, preview_stop, preview_list): the workspace's dev server run where the workspace is, its arguments validated here (a bounded port, a confined directory, an environment that inherits no secret)"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["exec-proto/testing"]
+
+[dependencies]
+exec-proto = { path = "../exec-proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }

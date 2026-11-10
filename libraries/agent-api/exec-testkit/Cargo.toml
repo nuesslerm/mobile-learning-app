@@ -1,0 +1,19 @@
+[package]
+name = "exec-testkit"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The test kit for what the rca service and rca-exec run against: a scripted program that stands in for the claude, codex and opencode CLIs and replays recorded stream-json, and a temporary git repository. A dev-dependency only"
+
+[lib]
+doctest = false
+
+# The flow tests run the scripted program as the process it is, and read the cassette set of the recordings.
+[package.metadata.flow]
+inputs = ["cassettes/**", "../../../docs/gaps/exec-testkit-recordings-not-from-real-clis.md"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tempfile = "3"
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }

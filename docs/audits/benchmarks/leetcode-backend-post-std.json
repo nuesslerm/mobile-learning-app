@@ -1,0 +1,16 @@
+{
+  "label": "post",
+  "binary": "/home/user/expo-hello-world-app-2/backend/target/release/leetcode-backend-rs",
+  "binaryMb": 4.1,
+  "runs": 5,
+  "medians": {
+    "coldStartMs": 12.1,
+    "idleRssMb": 6.42,
+    "rssAfter60HealthMb": 6.49,
+    "peakRssMb": 6.85,
+    "healthMs": 0.46,
+    "userStatusMs": 1.08,
+    "runMs": 33.27,
+    "formatMs": 35.42
+  }
+}

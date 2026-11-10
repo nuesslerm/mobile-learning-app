@@ -1,0 +1,28 @@
+Usage: wf ci live [start] [options]
+
+Brings up to date the one comment a CI run keeps on its pull request: the run's
+report as it stands, the same text `wf ci comment` leaves when the run ends, with
+the stats of every stage done (jobs with their state, time and the step a running
+job is in, the minutes per job as a vertical bar chart, what the cache hit, the
+slowest tests and steps, the VM's numbers). The logs of finished jobs are kept on
+the runner for the run, so an update downloads each only once.
+
+The comment is the last on the page: the CI comments of other runs are deleted,
+this run's is edited in place and made when the run has none. Every job of the CI
+calls it when it starts, the preflight job first (`start` is the same, spelled for
+that job), and the report job ends the run with `wf ci comment`.
+
+Nothing is posted when the branch has no open pull request. A failure to comment
+is reported on stderr and never fails the step: exit 0 either way.
+
+Environment: GITHUB_TOKEN (actions: read, pull-requests: write),
+GITHUB_REPOSITORY, GITHUB_RUN_ID and GITHUB_SHA; optional GITHUB_API_URL,
+GITHUB_SERVER_URL, GITHUB_REF_NAME (the branch whose pull request it is),
+WF_VM_STATS_URL and WF_CI_LOG_CACHE (the directory finished jobs' logs are kept
+in, default ~/.cache/wf/ci-logs).
+
+Output: one JSON line {ok, posted, action?, commentId?, reason?}; action is
+created or updated.
+
+Options:
+  -h, --help  display help for command

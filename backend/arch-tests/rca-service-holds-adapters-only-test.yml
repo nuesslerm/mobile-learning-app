@@ -1,0 +1,21 @@
+id: rca-service-holds-adapters-only
+valid:
+  - pub mod api;
+  - mod infrastructure;
+  - use rca_service_core::application::ports::Ports;
+  - use rca_service_core::{application, domain::util};
+  - use crate::api::app::App;
+  - use crate::{api, infrastructure::env::ProcessEnv};
+invalid:
+  - pub mod domain;
+  - mod application;
+  - pub(crate) mod application;
+  - mod domain { pub fn f() {} }
+  - use crate::domain::util::uuid_v4;
+  - use crate::application::log;
+  - use super::application::log;
+  - use super::super::domain::clis;
+  - use crate::{api, application::log};
+  - use crate::{domain};
+  - use super::{domain as d};
+  - 'fn f() { crate::domain::util::now_ms(); }'

@@ -1,0 +1,15 @@
+{
+  "action": "pty_resize",
+  "exchanges": [
+    {
+      "name": "refuses a pty that does not exist",
+      "request": {"id": "z1", "tool": "pty_resize", "args": {"pty": "never-opened", "cols": 90, "rows": 20}},
+      "response": {"id": "z1", "ok": false, "error": {"code": "NOT_FOUND", "message": "pty never-opened does not exist"}}
+    },
+    {
+      "name": "refuses a size of zero",
+      "request": {"id": "z2", "tool": "pty_resize", "args": {"pty": "never-opened", "cols": 0, "rows": 20}},
+      "response": {"id": "z2", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`cols` must be 1-1000"}}
+    }
+  ]
+}

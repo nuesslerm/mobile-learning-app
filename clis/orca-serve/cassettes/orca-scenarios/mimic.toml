@@ -1,0 +1,21 @@
+# R2 scenarios: stateful sequences of the Orca API (a repository, a worktree, files, git, a terminal made first, then the method asked about them). Inputs: `node tooling/mimic-drivers/src/cli.ts scenarios orca` from the committed crawl (orca-api). One fresh orcad, user data and HOME per scenario.
+corpus = "corpus.json"
+rules = "rules.json"
+allowlist = "allowlist.json"
+provision_file = "//tooling/mimic-drivers/provision/orca.toml"
+
+[reference]
+name = "orca"
+command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca"]
+pin = "../../../../tooling/orca-conformance/orca-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"
+timeout_ms = 3600000
+live_when_named = "orcad is built at the pin on the VM (arm64): verify <set> --live runs it, --all --live never does"
+
+[candidate.orca-serve]
+command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca"]
+
+[record]
+# the pinned reference is a live server whose ids and timestamps move between two records
+allow_nondeterministic = true

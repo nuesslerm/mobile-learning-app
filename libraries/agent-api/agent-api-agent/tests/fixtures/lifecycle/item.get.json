@@ -1,0 +1,53 @@
+{
+  "method": "item.get",
+  "exchanges": [
+    {
+      "name": "refuses an item no event opened",
+      "before": [
+        {
+          "id": "setup-create-t-ig",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-ig",
+            "title": "Thread t-ig",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "item.get",
+        "params": {
+          "thread": "t-ig",
+          "seq": 99
+        }
+      },
+      "response": {
+        "id": "1",
+        "error": {
+          "code": "ITEM_NOT_FOUND",
+          "message": "thread t-ig has no item opened at seq 99"
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "item.get",
+        "params": {
+          "thread": "nope",
+          "seq": 1
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

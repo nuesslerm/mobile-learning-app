@@ -1,0 +1,13 @@
+Usage: wf offload sessions rm --caller <name>
+
+Drops every session the caller `<name>` made on the rca service (the `--caller`
+of `wf offload ask`): each is deleted from opencode, which gives its memory
+back, and its kept directory is removed. A test that is done with its sessions
+says so instead of leaving them to the service's expiry (three hours idle).
+
+Prints one JSON line {dropped: n}; exit 0, 1 when the service refuses or cannot
+be reached, 2 without --caller.
+
+Options:
+  --caller <name>  the caller whose sessions to drop (required)
+  -h, --help       display help for command

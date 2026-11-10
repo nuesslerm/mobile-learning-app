@@ -1,0 +1,11 @@
+Usage: wf offload bearers revoke <id>
+
+Revokes the device bearer with that id (from `wf offload bearers list`): its token
+opens the agent API socket no longer, from the next connection on. A socket that
+is open stays open until it closes.
+
+Prints one JSON line {ok, revoked: <id>}; exit 0, 1 when the service refuses, has
+no such bearer or cannot be reached ({ok: false, error, status, next}).
+
+Options:
+  -h, --help  display help for command

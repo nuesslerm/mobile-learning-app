@@ -1,0 +1,24 @@
+id: rca-core-crate-does-no-io
+language: rust
+severity: error
+message: "A core crate of the remote-chat-agent workspace (core, cli-driver, exec-channel, agent-core, group-agent, group-workspace, group-state, group-accounts, group-terminal, group-git, group-hosted, group-schedules, group-attachments, group-catalog, group-preview, service-core) is pure; it does no file, socket, process or environment access. The service crate (rs) implements the ports it declares."
+note: "`wf check --budget` reads the globs below to check these crates' manifests too (core_purity, `backend-core-io-violations`), so keep one glob per line."
+files:
+  - "**/remote-chat-agent/core/src/**/*.rs"
+  - "**/remote-chat-agent/cli-driver/src/**/*.rs"
+  - "**/remote-chat-agent/exec-channel/src/**/*.rs"
+  - "**/remote-chat-agent/agent-core/src/**/*.rs"
+  - "**/remote-chat-agent/group-agent/src/**/*.rs"
+  - "**/remote-chat-agent/group-workspace/src/**/*.rs"
+  - "**/remote-chat-agent/group-state/src/**/*.rs"
+  - "**/remote-chat-agent/group-accounts/src/**/*.rs"
+  - "**/remote-chat-agent/group-terminal/src/**/*.rs"
+  - "**/remote-chat-agent/group-git/src/**/*.rs"
+  - "**/remote-chat-agent/group-hosted/src/**/*.rs"
+  - "**/remote-chat-agent/group-schedules/src/**/*.rs"
+  - "**/remote-chat-agent/group-attachments/src/**/*.rs"
+  - "**/remote-chat-agent/group-catalog/src/**/*.rs"
+  - "**/remote-chat-agent/group-preview/src/**/*.rs"
+  - "**/remote-chat-agent/service-core/src/**/*.rs"
+rule:
+  matches: does-io

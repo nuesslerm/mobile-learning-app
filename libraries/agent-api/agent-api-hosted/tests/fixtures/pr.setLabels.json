@@ -1,0 +1,30 @@
+{
+  "method": "pr.setLabels",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "pr.setLabels",
+        "params": {
+          "number": 1,
+          "add": [
+            "a,b"
+          ],
+          "provider": "github",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`add`: a label must be 1-50 printable characters with no comma and no leading `-`"
+        }
+      },
+      "actions": [
+        "hosted_pr_labels"
+      ]
+    }
+  ]
+}

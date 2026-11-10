@@ -1,0 +1,63 @@
+{
+  "method": "file.browse",
+  "exchanges": [
+    {
+      "name": "lists a directory, directories first",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "."
+        },
+        "id": 1,
+        "method": "file.browse"
+      },
+      "response": {
+        "result": {
+          "path": "/root",
+          "entries": [
+            {
+              "name": "docs",
+              "kind": "dir",
+              "path": "/root/docs"
+            },
+            {
+              "name": "src",
+              "kind": "dir",
+              "path": "/root/src"
+            },
+            {
+              "name": "b.txt",
+              "kind": "file",
+              "path": "/root/b.txt"
+            }
+          ]
+        },
+        "id": 1
+      },
+      "actions": [
+        "browse"
+      ]
+    },
+    {
+      "name": "relays the executor's refusal of a directory it may not show",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "/etc"
+        },
+        "id": 2,
+        "method": "file.browse"
+      },
+      "response": {
+        "error": {
+          "code": "PATH_OUTSIDE_ROOT",
+          "message": "/etc is outside the root"
+        },
+        "id": 2
+      },
+      "actions": [
+        "browse"
+      ]
+    }
+  ]
+}

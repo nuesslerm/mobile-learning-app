@@ -1,0 +1,19 @@
+[package]
+name = "orca-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Orca-compatible server's pure core: the wire envelope, the Area trait each mapping crate implements, the assembled method table and the per-connection dispatcher, behind the AgentApi port"
+
+[lib]
+doctest = false
+
+[features]
+# In-memory doubles of every port.
+testing = []
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+orca-core = { path = ".", features = ["testing"] }

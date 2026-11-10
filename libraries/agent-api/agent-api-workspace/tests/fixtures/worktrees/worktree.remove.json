@@ -1,0 +1,73 @@
+{
+  "method": "worktree.remove",
+  "exchanges": [
+    {
+      "name": "removes a worktree through its executor and forgets its workspace",
+      "before": [
+        {
+          "method": "worktree.create",
+          "params": {
+            "workspace": "w1",
+            "worktree": "wt1",
+            "branch": "feature/x",
+            "base": "HEAD"
+          },
+          "id": "b10"
+        }
+      ],
+      "request": {
+        "params": {
+          "workspace": "wt1"
+        },
+        "id": 1,
+        "method": "worktree.remove"
+      },
+      "response": {
+        "result": {
+          "workspace": "wt1",
+          "removed": true
+        },
+        "id": 1
+      },
+      "actions": [
+        "git_worktree_remove"
+      ]
+    },
+    {
+      "name": "refuses a workspace that is not a worktree",
+      "request": {
+        "params": {
+          "workspace": "w1"
+        },
+        "id": 2,
+        "method": "worktree.remove"
+      },
+      "response": {
+        "error": {
+          "code": "NOT_A_WORKTREE",
+          "message": "w1 is not a worktree"
+        },
+        "id": 2
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a workspace nobody knows",
+      "request": {
+        "params": {
+          "workspace": "zz"
+        },
+        "id": 3,
+        "method": "worktree.remove"
+      },
+      "response": {
+        "error": {
+          "code": "UNKNOWN_WORKSPACE",
+          "message": "no workspace zz"
+        },
+        "id": 3
+      },
+      "actions": []
+    }
+  ]
+}

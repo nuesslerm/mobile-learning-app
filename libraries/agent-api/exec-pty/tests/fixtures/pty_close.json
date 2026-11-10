@@ -1,0 +1,15 @@
+{
+  "action": "pty_close",
+  "exchanges": [
+    {
+      "name": "closing a pty that does not exist is answered, not refused",
+      "request": {"id": "c1", "tool": "pty_close", "args": {"pty": "never-opened"}},
+      "response": {"id": "c1", "ok": true, "result": {"closed": false, "exit_code": null}}
+    },
+    {
+      "name": "refuses a name with a path in it",
+      "request": {"id": "c2", "tool": "pty_close", "args": {"pty": "../x"}},
+      "response": {"id": "c2", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`pty` must be 1-64 of letters, digits, `_`, `-`, `.` and not start with `.`"}}
+    }
+  ]
+}

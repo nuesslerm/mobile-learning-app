@@ -1,0 +1,16 @@
+[package]
+name = "libs-proxy-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "libs_proxy_core"
+path = "src/lib.rs"
+
+[features]
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+serde_json.workspace = true

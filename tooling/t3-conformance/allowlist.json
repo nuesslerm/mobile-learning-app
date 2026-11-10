@@ -1,0 +1,68 @@
+{
+  "ignored": [
+    { "path": "label", "reason": "the host name of the machine", "phase": "1" },
+    { "path": "platform.os", "reason": "the machine", "phase": "1" },
+    { "path": "platform.arch", "reason": "the machine", "phase": "1" },
+    {
+      "path": "serverVersion",
+      "reason": "this server's own version",
+      "phase": "1"
+    },
+    { "path": "cwd", "reason": "the server's working directory", "phase": "1" },
+    {
+      "path": "projectName",
+      "reason": "the basename of the working directory",
+      "phase": "1"
+    },
+    {
+      "path": "keybindingsConfigPath",
+      "reason": "the server's home",
+      "phase": "1"
+    },
+    {
+      "path": "scratchWorkspaceRoot",
+      "reason": "the server's home",
+      "phase": "1"
+    },
+    { "path": "newProjectsRoot", "reason": "the server's home", "phase": "1" },
+    {
+      "path": "logsDirectoryPath",
+      "reason": "the server's home",
+      "phase": "1"
+    },
+    {
+      "path": "auth.policy",
+      "reason": "this server is reachable beyond loopback",
+      "phase": "1"
+    },
+    {
+      "path": "localTracingEnabled",
+      "reason": "this server does not trace locally",
+      "phase": "1"
+    }
+  ],
+  "omitted": [
+    {
+      "path": "capabilities.fileAttachments",
+      "reason": "the feature is not built, and an absent flag is how a client hides it",
+      "phase": "5"
+    }
+  ],
+  "shapeOnly": [
+    {
+      "path": "providers",
+      "reason": "the provider list is this server's own",
+      "phase": "3"
+    },
+    {
+      "path": "sessionCookieName",
+      "reason": "embeds a port and a hash",
+      "phase": "1"
+    },
+    {
+      "path": "sessionMethods",
+      "reason": "compared by presence only",
+      "phase": "1"
+    }
+  ]
+}

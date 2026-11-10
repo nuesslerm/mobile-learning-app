@@ -1,0 +1,61 @@
+{
+  "name": "@app/leetcode-backend",
+  "description": "LeetCode practice backend: problems, submissions and the code assist routes (cold). The service is Rust (rs/) with its flow tests in rs/tests/flow.rs; the TypeScript here is its benchmark.",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "cargo run --release --locked -p leetcode-backend-rs --manifest-path Cargo.toml",
+    "build": "cargo build --release --locked -p leetcode-backend-rs --manifest-path Cargo.toml",
+    "typecheck": "tsc --noEmit",
+    "test:flow": "cargo test --locked -p leetcode-backend-rs --test flow --manifest-path Cargo.toml",
+    "test:integration": "cargo test --locked -p leetcode-backend-rs --test integration --manifest-path Cargo.toml",
+    "test:verify:deployed": "cargo test --locked -p leetcode-backend-rs --test deployed_verification --manifest-path Cargo.toml -- --ignored",
+    "bench:service": "vitest run --config vitest.bench.config.ts",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f app"
+  },
+  "devDependencies": {
+    "@typescript/native": "catalog:",
+    "@types/node": "^22.13.1",
+    "oxlint": "catalog:"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    }
+  },
+  "nx": {
+    "targets": {
+      "test:flow": {
+        "inputs": [
+          "default",
+          "^production",
+          "^native",
+          {
+            "externalDependencies": []
+          }
+        ]
+      },
+      "test:integration": {
+        "inputs": [
+          "default",
+          "^production",
+          "^native",
+          {
+            "externalDependencies": []
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+id: names-api
+language: rust
+# A path or a `use` that reaches the crate's `api` layer, spelled as `names-infrastructure` spells its layer.
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: '^(crate|super)(::super)*::api\b'
+    - kind: scoped_use_list
+      regex: '^(crate|super)(::super)*::\{'
+      has:
+        kind: use_list
+        has:
+          any:
+            - kind: identifier
+              regex: '^api$'
+            - kind: scoped_identifier
+              regex: '^api::'
+            - kind: scoped_use_list
+              regex: '^api::'
+            - kind: use_as_clause
+              regex: '^api\b'

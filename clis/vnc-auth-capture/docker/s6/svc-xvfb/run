@@ -1,0 +1,4 @@
+#!/usr/bin/with-contenv bash
+# s6 longrun: the virtual screen the login browser draws on, exactly the phone viewport. Chromium runs headed (a real browser,
+# not headless: Google refuses sign-in from a headless one) in kiosk mode, so its page fills this screen with no window chrome.
+exec Xvfb :99 -screen 0 393x852x24 -nolisten tcp

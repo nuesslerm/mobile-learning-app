@@ -1,0 +1,5304 @@
+{
+  "schema": "mimic-corpus/1",
+  "seed": 0,
+  "generators": [
+    {
+      "kind": "corpus",
+      "name": "orca-rows",
+      "op": "script",
+      "cases": [
+        {
+          "id": "orca-accounts.consumeCodexResetCredit",
+          "row": "rpc:accounts.consumeCodexResetCredit",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "accounts.consumeCodexResetCredit",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-accounts.list",
+          "row": "rpc:accounts.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "accounts.list",
+                "params": {
+                  "refreshUsage": true
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-accounts.selectClaude",
+          "row": "rpc:accounts.selectClaude",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "accounts.selectClaude",
+                "params": {
+                  "accountId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-accounts.selectCodex",
+          "row": "rpc:accounts.selectCodex",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "accounts.selectCodex",
+                "params": {
+                  "accountId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-accounts.selectCodexForTarget",
+          "row": "rpc:accounts.selectCodexForTarget",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "accounts.selectCodexForTarget",
+                "params": {
+                  "accountId": "a",
+                  "target": {
+                    "runtime": "wsl",
+                    "wslDistro": "a"
+                  }
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-accounts.unsubscribe",
+          "row": "rpc:accounts.unsubscribe",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "accounts.unsubscribe",
+                "params": {
+                  "subscriptionId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agent.launch",
+          "row": "rpc:agent.launch",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agent.launch",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agent.launchReplay",
+          "row": "rpc:agent.launchReplay",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agent.launchReplay",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.cancel",
+          "row": "rpc:agentSession.cancel",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.cancel",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.commands",
+          "row": "rpc:agentSession.commands",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.commands",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.conversationCommand",
+          "row": "rpc:agentSession.conversationCommand",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.conversationCommand",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.create",
+          "row": "rpc:agentSession.create",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.create",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.createSupport",
+          "row": "rpc:agentSession.createSupport",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.createSupport",
+                "params": {
+                  "worktree": "a",
+                  "agent": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentSession.currentRequests",
+          "row": "rpc:agentSession.currentRequests",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.currentRequests",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.history",
+          "row": "rpc:agentSession.history",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.history",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.hold",
+          "row": "rpc:agentSession.hold",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.hold",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.item",
+          "row": "rpc:agentSession.item",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.item",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.modelCatalog",
+          "row": "rpc:agentSession.modelCatalog",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.modelCatalog",
+                "params": {
+                  "agent": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentSession.options",
+          "row": "rpc:agentSession.options",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.options",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.queuedMessageDelete",
+          "row": "rpc:agentSession.queuedMessageDelete",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.queuedMessageDelete",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.queuedMessageEditHold",
+          "row": "rpc:agentSession.queuedMessageEditHold",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.queuedMessageEditHold",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.queuedMessageMove",
+          "row": "rpc:agentSession.queuedMessageMove",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.queuedMessageMove",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.queuedMessageSend",
+          "row": "rpc:agentSession.queuedMessageSend",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.queuedMessageSend",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.queuedMessagesResume",
+          "row": "rpc:agentSession.queuedMessagesResume",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.queuedMessagesResume",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.queuedMessageUpdate",
+          "row": "rpc:agentSession.queuedMessageUpdate",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.queuedMessageUpdate",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.readVisual",
+          "row": "rpc:agentSession.readVisual",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.readVisual",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.release",
+          "row": "rpc:agentSession.release",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.release",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.respondToApproval",
+          "row": "rpc:agentSession.respondToApproval",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.respondToApproval",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.respondToQuestion",
+          "row": "rpc:agentSession.respondToQuestion",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.respondToQuestion",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.reveal",
+          "row": "rpc:agentSession.reveal",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.reveal",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.send",
+          "row": "rpc:agentSession.send",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.send",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.setOption",
+          "row": "rpc:agentSession.setOption",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.setOption",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.threadGoal",
+          "row": "rpc:agentSession.threadGoal",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.threadGoal",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.unsubscribe",
+          "row": "rpc:agentSession.unsubscribe",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.unsubscribe",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSessionAttachment.read",
+          "row": "rpc:agentSessionAttachment.read",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSessionAttachment.read",
+                "params": {
+                  "path": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentSessionAttachment.readTextChunk",
+          "row": "rpc:agentSessionAttachment.readTextChunk",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSessionAttachment.readTextChunk",
+                "params": {
+                  "path": "a",
+                  "offset": 0,
+                  "length": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentSessionAttachment.uploadAbort",
+          "row": "rpc:agentSessionAttachment.uploadAbort",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSessionAttachment.uploadAbort",
+                "params": {
+                  "uploadId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentSessionAttachment.uploadAppend",
+          "row": "rpc:agentSessionAttachment.uploadAppend",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSessionAttachment.uploadAppend",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSessionAttachment.uploadCommit",
+          "row": "rpc:agentSessionAttachment.uploadCommit",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSessionAttachment.uploadCommit",
+                "params": {
+                  "uploadId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentSessionAttachment.uploadStart",
+          "row": "rpc:agentSessionAttachment.uploadStart",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSessionAttachment.uploadStart",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-aiVault.listSessions",
+          "row": "rpc:aiVault.listSessions",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "aiVault.listSessions",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-aiVault.prepareSessionResume",
+          "row": "rpc:aiVault.prepareSessionResume",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "aiVault.prepareSessionResume",
+                "params": {
+                  "agent": "claude",
+                  "filePath": "a",
+                  "codexHome": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-automation.create",
+          "row": "rpc:automation.create",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "automation.create",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-automation.delete",
+          "row": "rpc:automation.delete",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "automation.delete",
+                "params": {
+                  "id": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-automation.list",
+          "row": "rpc:automation.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "automation.list",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-automation.runNow",
+          "row": "rpc:automation.runNow",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "automation.runNow",
+                "params": {
+                  "id": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-automation.runs",
+          "row": "rpc:automation.runs",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "automation.runs",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-automation.show",
+          "row": "rpc:automation.show",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "automation.show",
+                "params": {
+                  "id": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-automation.update",
+          "row": "rpc:automation.update",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "automation.update",
+                "params": {
+                  "id": "a",
+                  "updates": {}
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.back",
+          "row": "rpc:browser.back",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.back",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.dialogAccept",
+          "row": "rpc:browser.dialogAccept",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.dialogAccept",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.dialogDismiss",
+          "row": "rpc:browser.dialogDismiss",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.dialogDismiss",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.forward",
+          "row": "rpc:browser.forward",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.forward",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.goto",
+          "row": "rpc:browser.goto",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.goto",
+                "params": {
+                  "url": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.keyboardInsertText",
+          "row": "rpc:browser.keyboardInsertText",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.keyboardInsertText",
+                "params": {
+                  "text": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.keypress",
+          "row": "rpc:browser.keypress",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.keypress",
+                "params": {
+                  "key": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.mouseClick",
+          "row": "rpc:browser.mouseClick",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.mouseClick",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-browser.mouseDown",
+          "row": "rpc:browser.mouseDown",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.mouseDown",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.mouseMove",
+          "row": "rpc:browser.mouseMove",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.mouseMove",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-browser.mouseUp",
+          "row": "rpc:browser.mouseUp",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.mouseUp",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.mouseWheel",
+          "row": "rpc:browser.mouseWheel",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.mouseWheel",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-browser.reload",
+          "row": "rpc:browser.reload",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.reload",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.screencast.unsubscribe",
+          "row": "rpc:browser.screencast.unsubscribe",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.screencast.unsubscribe",
+                "params": {
+                  "subscriptionId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-browser.tabCreate",
+          "row": "rpc:browser.tabCreate",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.tabCreate",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-clipboard.abortImageUpload",
+          "row": "rpc:clipboard.abortImageUpload",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "clipboard.abortImageUpload",
+                "params": {
+                  "uploadId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-clipboard.appendImageUploadChunk",
+          "row": "rpc:clipboard.appendImageUploadChunk",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "clipboard.appendImageUploadChunk",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-clipboard.commitImageUpload",
+          "row": "rpc:clipboard.commitImageUpload",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "clipboard.commitImageUpload",
+                "params": {
+                  "uploadId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-clipboard.saveImageAsTempFile",
+          "row": "rpc:clipboard.saveImageAsTempFile",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "clipboard.saveImageAsTempFile",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-clipboard.startImageUpload",
+          "row": "rpc:clipboard.startImageUpload",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "clipboard.startImageUpload",
+                "params": {
+                  "expectedBase64Length": 0
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.createFile",
+          "row": "rpc:files.createFile",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.createFile",
+                "params": {
+                  "worktree": "a",
+                  "relativePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.list",
+          "row": "rpc:files.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.list",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.open",
+          "row": "rpc:files.open",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.open",
+                "params": {
+                  "worktree": "a",
+                  "relativePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.openDiff",
+          "row": "rpc:files.openDiff",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.openDiff",
+                "params": {
+                  "worktree": "a",
+                  "relativePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.read",
+          "row": "rpc:files.read",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.read",
+                "params": {
+                  "worktree": "a",
+                  "relativePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.readChatImage",
+          "row": "rpc:files.readChatImage",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.readChatImage",
+                "params": {
+                  "worktree": "a",
+                  "path": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.readChunk",
+          "row": "rpc:files.readChunk",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.readChunk",
+                "params": {
+                  "worktree": "a",
+                  "relativePath": "a",
+                  "offset": 0,
+                  "length": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.readDir",
+          "row": "rpc:files.readDir",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.readDir",
+                "params": {
+                  "worktree": "a",
+                  "relativePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.readPreview",
+          "row": "rpc:files.readPreview",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.readPreview",
+                "params": {
+                  "worktree": "a",
+                  "relativePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.readTerminalArtifact",
+          "row": "rpc:files.readTerminalArtifact",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.readTerminalArtifact",
+                "params": {
+                  "worktree": "a",
+                  "grantId": "a",
+                  "absolutePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.readTerminalArtifactPreview",
+          "row": "rpc:files.readTerminalArtifactPreview",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.readTerminalArtifactPreview",
+                "params": {
+                  "worktree": "a",
+                  "grantId": "a",
+                  "absolutePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.resolveTerminalPath",
+          "row": "rpc:files.resolveTerminalPath",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.resolveTerminalPath",
+                "params": {
+                  "worktree": "a",
+                  "pathText": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.searchPaths",
+          "row": "rpc:files.searchPaths",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.searchPaths",
+                "params": {
+                  "worktree": "a",
+                  "query": "a",
+                  "limit": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.stat",
+          "row": "rpc:files.stat",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.stat",
+                "params": {
+                  "worktree": "a",
+                  "relativePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.writeTerminalArtifact",
+          "row": "rpc:files.writeTerminalArtifact",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.writeTerminalArtifact",
+                "params": {
+                  "worktree": "a",
+                  "grantId": "a",
+                  "absolutePath": "a",
+                  "content": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-folderWorkspace.list",
+          "row": "rpc:folderWorkspace.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "folderWorkspace.list",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-git.abortMerge",
+          "row": "rpc:git.abortMerge",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.abortMerge",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.abortRebase",
+          "row": "rpc:git.abortRebase",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.abortRebase",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.branchCompare",
+          "row": "rpc:git.branchCompare",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.branchCompare",
+                "params": {
+                  "worktree": "a",
+                  "baseRef": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.branchDiff",
+          "row": "rpc:git.branchDiff",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.branchDiff",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-git.bulkStage",
+          "row": "rpc:git.bulkStage",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.bulkStage",
+                "params": {
+                  "worktree": "a",
+                  "filePaths": []
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.bulkUnstage",
+          "row": "rpc:git.bulkUnstage",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.bulkUnstage",
+                "params": {
+                  "worktree": "a",
+                  "filePaths": []
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.cancelGenerateCommitMessage",
+          "row": "rpc:git.cancelGenerateCommitMessage",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.cancelGenerateCommitMessage",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.cancelGeneratePullRequestFields",
+          "row": "rpc:git.cancelGeneratePullRequestFields",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.cancelGeneratePullRequestFields",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.checkout",
+          "row": "rpc:git.checkout",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.checkout",
+                "params": {
+                  "worktree": "a",
+                  "branch": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.commit",
+          "row": "rpc:git.commit",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.commit",
+                "params": {
+                  "worktree": "a",
+                  "message": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.commitCompare",
+          "row": "rpc:git.commitCompare",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.commitCompare",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-git.commitDiff",
+          "row": "rpc:git.commitDiff",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.commitDiff",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-git.completeMerge",
+          "row": "rpc:git.completeMerge",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.completeMerge",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.diff",
+          "row": "rpc:git.diff",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.diff",
+                "params": {
+                  "worktree": "a",
+                  "filePath": "a",
+                  "staged": true
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.discard",
+          "row": "rpc:git.discard",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.discard",
+                "params": {
+                  "worktree": "a",
+                  "filePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.discoverCommitMessageModels",
+          "row": "rpc:git.discoverCommitMessageModels",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.discoverCommitMessageModels",
+                "params": {
+                  "worktree": "a",
+                  "agentId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.fastForward",
+          "row": "rpc:git.fastForward",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.fastForward",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.fetch",
+          "row": "rpc:git.fetch",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.fetch",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.generateCommitMessage",
+          "row": "rpc:git.generateCommitMessage",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.generateCommitMessage",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.generatePullRequestFields",
+          "row": "rpc:git.generatePullRequestFields",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.generatePullRequestFields",
+                "params": {
+                  "worktree": "a",
+                  "base": "a",
+                  "title": "a",
+                  "body": "a",
+                  "draft": true
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.history",
+          "row": "rpc:git.history",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.history",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.localBranches",
+          "row": "rpc:git.localBranches",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.localBranches",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.pull",
+          "row": "rpc:git.pull",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.pull",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.push",
+          "row": "rpc:git.push",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.push",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.rebaseFromBase",
+          "row": "rpc:git.rebaseFromBase",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.rebaseFromBase",
+                "params": {
+                  "worktree": "a",
+                  "baseRef": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.remoteCommitUrl",
+          "row": "rpc:git.remoteCommitUrl",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.remoteCommitUrl",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-git.resolveConflict",
+          "row": "rpc:git.resolveConflict",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.resolveConflict",
+                "params": {
+                  "worktree": "a",
+                  "filePath": "a",
+                  "resolution": "mark_resolved"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.stage",
+          "row": "rpc:git.stage",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.stage",
+                "params": {
+                  "worktree": "a",
+                  "filePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.status",
+          "row": "rpc:git.status",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.status",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.unstage",
+          "row": "rpc:git.unstage",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.unstage",
+                "params": {
+                  "worktree": "a",
+                  "filePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-git.upstreamStatus",
+          "row": "rpc:git.upstreamStatus",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "git.upstreamStatus",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.addIssueComment",
+          "row": "rpc:github.addIssueComment",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.addIssueComment",
+                "params": {
+                  "repo": "a",
+                  "number": 1,
+                  "body": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.addPRReviewComment",
+          "row": "rpc:github.addPRReviewComment",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.addPRReviewComment",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1,
+                  "commitId": "a",
+                  "path": "a",
+                  "line": 1,
+                  "body": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.addPRReviewCommentReply",
+          "row": "rpc:github.addPRReviewCommentReply",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.addPRReviewCommentReply",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1,
+                  "commentId": 1,
+                  "body": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.countWorkItems",
+          "row": "rpc:github.countWorkItems",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.countWorkItems",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.createIssue",
+          "row": "rpc:github.createIssue",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.createIssue",
+                "params": {
+                  "repo": "a",
+                  "title": "a",
+                  "body": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.listAssignableUsers",
+          "row": "rpc:github.listAssignableUsers",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.listAssignableUsers",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.listLabels",
+          "row": "rpc:github.listLabels",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.listLabels",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.listWorkItems",
+          "row": "rpc:github.listWorkItems",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.listWorkItems",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.markPRDraft",
+          "row": "rpc:github.markPRDraft",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.markPRDraft",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.markPRReadyForReview",
+          "row": "rpc:github.markPRReadyForReview",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.markPRReadyForReview",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.mergePR",
+          "row": "rpc:github.mergePR",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.mergePR",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.prCheckDetails",
+          "row": "rpc:github.prCheckDetails",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.prCheckDetails",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.prChecks",
+          "row": "rpc:github.prChecks",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.prChecks",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.prComments",
+          "row": "rpc:github.prComments",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.prComments",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.prFileContents",
+          "row": "rpc:github.prFileContents",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.prFileContents",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1,
+                  "path": "a",
+                  "status": "added",
+                  "headSha": "a",
+                  "baseSha": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.prForBranch",
+          "row": "rpc:github.prForBranch",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.prForBranch",
+                "params": {
+                  "repo": "a",
+                  "branch": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.addIssueCommentBySlug",
+          "row": "rpc:github.project.addIssueCommentBySlug",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.addIssueCommentBySlug",
+                "params": {
+                  "owner": "a",
+                  "repo": "a",
+                  "number": 1,
+                  "body": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.clearItemField",
+          "row": "rpc:github.project.clearItemField",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.clearItemField",
+                "params": {
+                  "projectId": "a",
+                  "itemId": "a",
+                  "fieldId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.deleteIssueCommentBySlug",
+          "row": "rpc:github.project.deleteIssueCommentBySlug",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.deleteIssueCommentBySlug",
+                "params": {
+                  "owner": "a",
+                  "repo": "a",
+                  "commentId": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.listAccessible",
+          "row": "rpc:github.project.listAccessible",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.listAccessible",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.listAssignableUsersBySlug",
+          "row": "rpc:github.project.listAssignableUsersBySlug",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.listAssignableUsersBySlug",
+                "params": {
+                  "owner": "a",
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.listIssueTypesBySlug",
+          "row": "rpc:github.project.listIssueTypesBySlug",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.listIssueTypesBySlug",
+                "params": {
+                  "owner": "a",
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.listLabelsBySlug",
+          "row": "rpc:github.project.listLabelsBySlug",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.listLabelsBySlug",
+                "params": {
+                  "owner": "a",
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.listViews",
+          "row": "rpc:github.project.listViews",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.listViews",
+                "params": {
+                  "owner": "a",
+                  "ownerType": "organization",
+                  "projectNumber": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.resolveRef",
+          "row": "rpc:github.project.resolveRef",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.resolveRef",
+                "params": {
+                  "input": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.updateIssueBySlug",
+          "row": "rpc:github.project.updateIssueBySlug",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.updateIssueBySlug",
+                "params": {
+                  "owner": "a",
+                  "repo": "a",
+                  "number": 1,
+                  "updates": {}
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.updateIssueCommentBySlug",
+          "row": "rpc:github.project.updateIssueCommentBySlug",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.updateIssueCommentBySlug",
+                "params": {
+                  "owner": "a",
+                  "repo": "a",
+                  "commentId": 1,
+                  "body": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.updateIssueTypeBySlug",
+          "row": "rpc:github.project.updateIssueTypeBySlug",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.updateIssueTypeBySlug",
+                "params": {
+                  "owner": "a",
+                  "repo": "a",
+                  "number": 1,
+                  "issueTypeId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.updateItemField",
+          "row": "rpc:github.project.updateItemField",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.updateItemField",
+                "params": {
+                  "projectId": "a",
+                  "itemId": "a",
+                  "fieldId": "a",
+                  "value": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.updatePullRequestBySlug",
+          "row": "rpc:github.project.updatePullRequestBySlug",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.updatePullRequestBySlug",
+                "params": {
+                  "owner": "a",
+                  "repo": "a",
+                  "number": 1,
+                  "updates": {}
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.viewTable",
+          "row": "rpc:github.project.viewTable",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.viewTable",
+                "params": {
+                  "owner": "a",
+                  "ownerType": "organization",
+                  "projectNumber": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.project.workItemDetailsBySlug",
+          "row": "rpc:github.project.workItemDetailsBySlug",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.project.workItemDetailsBySlug",
+                "params": {
+                  "owner": "a",
+                  "repo": "a",
+                  "number": 1,
+                  "type": "issue"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.removePRReviewers",
+          "row": "rpc:github.removePRReviewers",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.removePRReviewers",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1,
+                  "reviewers": [
+                    "a"
+                  ]
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.repoSlug",
+          "row": "rpc:github.repoSlug",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.repoSlug",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.requestPRReviewers",
+          "row": "rpc:github.requestPRReviewers",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.requestPRReviewers",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1,
+                  "reviewers": [
+                    "a"
+                  ]
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.rerunPRChecks",
+          "row": "rpc:github.rerunPRChecks",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.rerunPRChecks",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.resolveReviewThread",
+          "row": "rpc:github.resolveReviewThread",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.resolveReviewThread",
+                "params": {
+                  "repo": "a",
+                  "threadId": "a",
+                  "resolve": true
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.setPRAutoMerge",
+          "row": "rpc:github.setPRAutoMerge",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.setPRAutoMerge",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1,
+                  "enabled": true
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.setPRFileViewed",
+          "row": "rpc:github.setPRFileViewed",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.setPRFileViewed",
+                "params": {
+                  "repo": "a",
+                  "pullRequestId": "a",
+                  "path": "a",
+                  "viewed": true
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.updateIssue",
+          "row": "rpc:github.updateIssue",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.updateIssue",
+                "params": {
+                  "repo": "a",
+                  "number": 1,
+                  "updates": {}
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.updatePR",
+          "row": "rpc:github.updatePR",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.updatePR",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1,
+                  "updates": {}
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.updatePRState",
+          "row": "rpc:github.updatePRState",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.updatePRState",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1,
+                  "updates": {
+                    "state": "open"
+                  }
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.updatePRTitle",
+          "row": "rpc:github.updatePRTitle",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.updatePRTitle",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1,
+                  "title": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.workItem",
+          "row": "rpc:github.workItem",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.workItem",
+                "params": {
+                  "repo": "a",
+                  "number": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.workItemByOwnerRepo",
+          "row": "rpc:github.workItemByOwnerRepo",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.workItemByOwnerRepo",
+                "params": {
+                  "repo": "a",
+                  "owner": "a",
+                  "ownerRepo": "a",
+                  "number": 1,
+                  "type": "issue"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-github.workItemDetails",
+          "row": "rpc:github.workItemDetails",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "github.workItemDetails",
+                "params": {
+                  "repo": "a",
+                  "number": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-gitlab.addIssueComment",
+          "row": "rpc:gitlab.addIssueComment",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "gitlab.addIssueComment",
+                "params": {
+                  "repo": "a",
+                  "number": 1,
+                  "body": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-gitlab.addMRComment",
+          "row": "rpc:gitlab.addMRComment",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "gitlab.addMRComment",
+                "params": {
+                  "repo": "a",
+                  "iid": 1,
+                  "body": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-gitlab.createIssue",
+          "row": "rpc:gitlab.createIssue",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "gitlab.createIssue",
+                "params": {
+                  "repo": "a",
+                  "title": "a",
+                  "body": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-gitlab.listWorkItems",
+          "row": "rpc:gitlab.listWorkItems",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "gitlab.listWorkItems",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-gitlab.mergeMR",
+          "row": "rpc:gitlab.mergeMR",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "gitlab.mergeMR",
+                "params": {
+                  "repo": "a",
+                  "iid": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-gitlab.todos",
+          "row": "rpc:gitlab.todos",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "gitlab.todos",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-gitlab.updateIssue",
+          "row": "rpc:gitlab.updateIssue",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "gitlab.updateIssue",
+                "params": {
+                  "repo": "a",
+                  "number": 1,
+                  "updates": {}
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-gitlab.updateMR",
+          "row": "rpc:gitlab.updateMR",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "gitlab.updateMR",
+                "params": {
+                  "repo": "a",
+                  "iid": 1,
+                  "updates": {}
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-gitlab.updateMRState",
+          "row": "rpc:gitlab.updateMRState",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "gitlab.updateMRState",
+                "params": {
+                  "repo": "a",
+                  "iid": 1,
+                  "state": "opened"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-gitlab.workItemByPath",
+          "row": "rpc:gitlab.workItemByPath",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "gitlab.workItemByPath",
+                "params": {
+                  "repo": "a",
+                  "host": "a",
+                  "path": "a",
+                  "iid": 1,
+                  "type": "issue"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-gitlab.workItemDetails",
+          "row": "rpc:gitlab.workItemDetails",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "gitlab.workItemDetails",
+                "params": {
+                  "repo": "a",
+                  "iid": 1,
+                  "type": "issue"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-host.platform",
+          "row": "rpc:host.platform",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "host.platform",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-hostedReview.create",
+          "row": "rpc:hostedReview.create",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "hostedReview.create",
+                "params": {
+                  "repo": "a",
+                  "provider": "a",
+                  "base": "a",
+                  "title": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-hostedReview.forBranch",
+          "row": "rpc:hostedReview.forBranch",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "hostedReview.forBranch",
+                "params": {
+                  "repo": "a",
+                  "branch": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-hostedReview.getCreationEligibility",
+          "row": "rpc:hostedReview.getCreationEligibility",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "hostedReview.getCreationEligibility",
+                "params": {
+                  "repo": "a",
+                  "branch": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-jira.getIssue",
+          "row": "rpc:jira.getIssue",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "jira.getIssue",
+                "params": {
+                  "key": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-jira.issueComments",
+          "row": "rpc:jira.issueComments",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "jira.issueComments",
+                "params": {
+                  "key": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-jira.listIssues",
+          "row": "rpc:jira.listIssues",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "jira.listIssues",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-jira.searchIssues",
+          "row": "rpc:jira.searchIssues",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "jira.searchIssues",
+                "params": {
+                  "jql": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-jira.status",
+          "row": "rpc:jira.status",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "jira.status",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-linear.addIssueComment",
+          "row": "rpc:linear.addIssueComment",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.addIssueComment",
+                "params": {
+                  "issueId": "a",
+                  "body": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-linear.connect",
+          "row": "rpc:linear.connect",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.connect",
+                "params": {
+                  "apiKey": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-linear.createIssue",
+          "row": "rpc:linear.createIssue",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.createIssue",
+                "params": {
+                  "teamId": "a",
+                  "title": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-linear.getIssue",
+          "row": "rpc:linear.getIssue",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.getIssue",
+                "params": {
+                  "id": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-linear.issueComments",
+          "row": "rpc:linear.issueComments",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.issueComments",
+                "params": {
+                  "issueId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-linear.listIssues",
+          "row": "rpc:linear.listIssues",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.listIssues",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-linear.listTeams",
+          "row": "rpc:linear.listTeams",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.listTeams",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-linear.searchIssues",
+          "row": "rpc:linear.searchIssues",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.searchIssues",
+                "params": {
+                  "query": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-linear.selectWorkspace",
+          "row": "rpc:linear.selectWorkspace",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.selectWorkspace",
+                "params": {
+                  "workspaceId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-linear.status",
+          "row": "rpc:linear.status",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.status",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-linear.teamStates",
+          "row": "rpc:linear.teamStates",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.teamStates",
+                "params": {
+                  "teamId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-linear.updateIssue",
+          "row": "rpc:linear.updateIssue",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "linear.updateIssue",
+                "params": {
+                  "id": "a",
+                  "updates": {}
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-markdown.readTab",
+          "row": "rpc:markdown.readTab",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "markdown.readTab",
+                "params": {
+                  "worktree": "a",
+                  "tabId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-markdown.saveTab",
+          "row": "rpc:markdown.saveTab",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "markdown.saveTab",
+                "params": {
+                  "worktree": "a",
+                  "tabId": "a",
+                  "baseVersion": "a",
+                  "content": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-nativeChat.readSession",
+          "row": "rpc:nativeChat.readSession",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "nativeChat.readSession",
+                "params": {
+                  "agent": "a",
+                  "sessionId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-nativeChat.unsubscribe",
+          "row": "rpc:nativeChat.unsubscribe",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "nativeChat.unsubscribe",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-notifications.getMissedSince",
+          "row": "rpc:notifications.getMissedSince",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "notifications.getMissedSince",
+                "params": {
+                  "lastSeenSeq": 0
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-notifications.registerPush",
+          "row": "rpc:notifications.registerPush",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "notifications.registerPush",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-notifications.testPush",
+          "row": "rpc:notifications.testPush",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "notifications.testPush",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-notifications.unregisterPush",
+          "row": "rpc:notifications.unregisterPush",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "notifications.unregisterPush",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-notifications.unsubscribe",
+          "row": "rpc:notifications.unsubscribe",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "notifications.unsubscribe",
+                "params": {
+                  "subscriptionId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-orchestration.partyLocation",
+          "row": "rpc:orchestration.partyLocation",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "orchestration.partyLocation",
+                "params": {
+                  "address": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-orchestration.partyOpen",
+          "row": "rpc:orchestration.partyOpen",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "orchestration.partyOpen",
+                "params": {
+                  "address": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-orchestration.workerAutoClose",
+          "row": "rpc:orchestration.workerAutoClose",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "orchestration.workerAutoClose",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-orchestration.workerKeepOpen",
+          "row": "rpc:orchestration.workerKeepOpen",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "orchestration.workerKeepOpen",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-pairing.getEndpoints",
+          "row": "rpc:pairing.getEndpoints",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "pairing.getEndpoints",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-pairing.provisionRelay",
+          "row": "rpc:pairing.provisionRelay",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "pairing.provisionRelay",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-plugins.panelAction",
+          "row": "rpc:plugins.panelAction",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "plugins.panelAction",
+                "params": "a",
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-preflight.check",
+          "row": "rpc:preflight.check",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "preflight.check",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-preflight.detectAgents",
+          "row": "rpc:preflight.detectAgents",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "preflight.detectAgents",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-preflight.detectRemoteAgents",
+          "row": "rpc:preflight.detectRemoteAgents",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "preflight.detectRemoteAgents",
+                "params": {
+                  "connectionId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-preflight.refreshAgents",
+          "row": "rpc:preflight.refreshAgents",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "preflight.refreshAgents",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-project.list",
+          "row": "rpc:project.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "project.list",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-projectGroup.list",
+          "row": "rpc:projectGroup.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "projectGroup.list",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-projectHostSetup.list",
+          "row": "rpc:projectHostSetup.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "projectHostSetup.list",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-repo.baseRefDefault",
+          "row": "rpc:repo.baseRefDefault",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "repo.baseRefDefault",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-repo.hooks",
+          "row": "rpc:repo.hooks",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "repo.hooks",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-repo.list",
+          "row": "rpc:repo.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "repo.list",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-repo.saveSparsePreset",
+          "row": "rpc:repo.saveSparsePreset",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "repo.saveSparsePreset",
+                "params": {
+                  "repo": "a",
+                  "name": "a",
+                  "directories": []
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-repo.searchRefs",
+          "row": "rpc:repo.searchRefs",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "repo.searchRefs",
+                "params": {
+                  "repo": "a",
+                  "query": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-repo.sparsePresets",
+          "row": "rpc:repo.sparsePresets",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "repo.sparsePresets",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-repo.update",
+          "row": "rpc:repo.update",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "repo.update",
+                "params": {
+                  "repo": "a",
+                  "updates": {}
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-runtime.clientCapabilities.update",
+          "row": "rpc:runtime.clientCapabilities.update",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "runtime.clientCapabilities.update",
+                "params": {
+                  "clientCapabilities": []
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-runtime.clientEvents.unsubscribe",
+          "row": "rpc:runtime.clientEvents.unsubscribe",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "runtime.clientEvents.unsubscribe",
+                "params": {
+                  "subscriptionId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-session.tabs.activate",
+          "row": "rpc:session.tabs.activate",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "session.tabs.activate",
+                "params": {
+                  "worktree": "a",
+                  "tabId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-session.tabs.close",
+          "row": "rpc:session.tabs.close",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "session.tabs.close",
+                "params": {
+                  "worktree": "a",
+                  "tabId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-session.tabs.createTerminal",
+          "row": "rpc:session.tabs.createTerminal",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "session.tabs.createTerminal",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-session.tabs.list",
+          "row": "rpc:session.tabs.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "session.tabs.list",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-session.tabs.unsubscribe",
+          "row": "rpc:session.tabs.unsubscribe",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "session.tabs.unsubscribe",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-settings.get",
+          "row": "rpc:settings.get",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "settings.get",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-settings.getAgentLaunch",
+          "row": "rpc:settings.getAgentLaunch",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "settings.getAgentLaunch",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-settings.getTerminalQuickCommands",
+          "row": "rpc:settings.getTerminalQuickCommands",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "settings.getTerminalQuickCommands",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-settings.mutateNativeChatSessionOptions",
+          "row": "rpc:settings.mutateNativeChatSessionOptions",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "settings.mutateNativeChatSessionOptions",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-settings.update",
+          "row": "rpc:settings.update",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "settings.update",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-settings.updateTerminalQuickCommands",
+          "row": "rpc:settings.updateTerminalQuickCommands",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "settings.updateTerminalQuickCommands",
+                "params": {
+                  "mutation": {
+                    "type": "delete",
+                    "id": "a"
+                  }
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-sidebarInputs.read",
+          "row": "rpc:sidebarInputs.read",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "sidebarInputs.read",
+                "params": {
+                  "maxBytes": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-sidebarInputs.repoIcons",
+          "row": "rpc:sidebarInputs.repoIcons",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "sidebarInputs.repoIcons",
+                "params": {
+                  "ids": []
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-skills.discover",
+          "row": "rpc:skills.discover",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "skills.discover",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-speech.dictation.cancel",
+          "row": "rpc:speech.dictation.cancel",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "speech.dictation.cancel",
+                "params": {
+                  "dictationId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-speech.dictation.chunk",
+          "row": "rpc:speech.dictation.chunk",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "speech.dictation.chunk",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-speech.dictation.finish",
+          "row": "rpc:speech.dictation.finish",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "speech.dictation.finish",
+                "params": {
+                  "dictationId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-speech.dictation.setup",
+          "row": "rpc:speech.dictation.setup",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "speech.dictation.setup",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-speech.dictation.start",
+          "row": "rpc:speech.dictation.start",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "speech.dictation.start",
+                "params": {
+                  "dictationId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-speech.models.delete",
+          "row": "rpc:speech.models.delete",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "speech.models.delete",
+                "params": {
+                  "modelId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-speech.models.download",
+          "row": "rpc:speech.models.download",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "speech.models.download",
+                "params": {
+                  "modelId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-speech.models.list",
+          "row": "rpc:speech.models.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "speech.models.list",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-ssh.connect",
+          "row": "rpc:ssh.connect",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "ssh.connect",
+                "params": {
+                  "targetId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-ssh.getState",
+          "row": "rpc:ssh.getState",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "ssh.getState",
+                "params": {
+                  "targetId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-ssh.listTargetSummaries",
+          "row": "rpc:ssh.listTargetSummaries",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "ssh.listTargetSummaries",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-status.get",
+          "row": "rpc:status.get",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "status.get",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.clearBuffer",
+          "row": "rpc:terminal.clearBuffer",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.clearBuffer",
+                "params": {
+                  "terminal": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.close",
+          "row": "rpc:terminal.close",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.close",
+                "params": {
+                  "terminal": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.focus",
+          "row": "rpc:terminal.focus",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.focus",
+                "params": {
+                  "terminal": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.getAutoRestoreFit",
+          "row": "rpc:terminal.getAutoRestoreFit",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.getAutoRestoreFit",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.list",
+          "row": "rpc:terminal.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.list",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.rename",
+          "row": "rpc:terminal.rename",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.rename",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-terminal.send",
+          "row": "rpc:terminal.send",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.send",
+                "params": {
+                  "terminal": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.setAutoRestoreFit",
+          "row": "rpc:terminal.setAutoRestoreFit",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.setAutoRestoreFit",
+                "params": {
+                  "ms": 0
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.setDisplayMode",
+          "row": "rpc:terminal.setDisplayMode",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.setDisplayMode",
+                "params": {
+                  "terminal": "a",
+                  "mode": "auto"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.unsubscribe",
+          "row": "rpc:terminal.unsubscribe",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.unsubscribe",
+                "params": {
+                  "subscriptionId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.updateViewport",
+          "row": "rpc:terminal.updateViewport",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.updateViewport",
+                "params": {
+                  "terminal": "a",
+                  "client": {
+                    "id": "a",
+                    "type": "mobile"
+                  },
+                  "viewport": {
+                    "cols": 20,
+                    "rows": 8
+                  }
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-ui.get",
+          "row": "rpc:ui.get",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "ui.get",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-ui.set",
+          "row": "rpc:ui.set",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "ui.set",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-ui.setCollapsed",
+          "row": "rpc:ui.setCollapsed",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "ui.setCollapsed",
+                "params": {
+                  "key": "a",
+                  "collapsed": true,
+                  "opId": {
+                    "writer": "a",
+                    "seq": 0
+                  }
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.activate",
+          "row": "rpc:worktree.activate",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.activate",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.create",
+          "row": "rpc:worktree.create",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.create",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.list",
+          "row": "rpc:worktree.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.list",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.listRetiredNames",
+          "row": "rpc:worktree.listRetiredNames",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.listRetiredNames",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.prefetchCreateBase",
+          "row": "rpc:worktree.prefetchCreateBase",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.prefetchCreateBase",
+                "params": {
+                  "repo": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.ps",
+          "row": "rpc:worktree.ps",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.ps",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.resolveMrBase",
+          "row": "rpc:worktree.resolveMrBase",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.resolveMrBase",
+                "params": {
+                  "repo": "a",
+                  "mrIid": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.resolvePrBase",
+          "row": "rpc:worktree.resolvePrBase",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.resolvePrBase",
+                "params": {
+                  "repo": "a",
+                  "prNumber": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.rm",
+          "row": "rpc:worktree.rm",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.rm",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.set",
+          "row": "rpc:worktree.set",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.set",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.show",
+          "row": "rpc:worktree.show",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.show",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-worktree.sleep",
+          "row": "rpc:worktree.sleep",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "worktree.sleep",
+                "params": {
+                  "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        }
+      ]
+    }
+  ]
+}

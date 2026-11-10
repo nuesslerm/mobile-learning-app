@@ -1,0 +1,26 @@
+id: rca-service-holds-adapters-only
+language: rust
+severity: error
+message: "The service crate (rs) holds adapters (infrastructure), the front door (api) and main. A rule or a use case belongs to a core crate (service-core, core), so rs declares no domain or application module and names none."
+files:
+  - "**/remote-chat-agent/rs/src/**/*.rs"
+rule:
+  any:
+    - kind: mod_item
+      regex: '^(pub(\([a-z: ]+\))? )?mod (domain|application)\b'
+    - kind: scoped_identifier
+      regex: '^(crate|super)(::super)*::(domain|application)\b'
+    - kind: scoped_use_list
+      regex: '^(crate|super)(::super)*::\{'
+      has:
+        kind: use_list
+        has:
+          any:
+            - kind: identifier
+              regex: '^(domain|application)$'
+            - kind: scoped_identifier
+              regex: '^(domain|application)::'
+            - kind: scoped_use_list
+              regex: '^(domain|application)::'
+            - kind: use_as_clause
+              regex: '^(domain|application)\b'

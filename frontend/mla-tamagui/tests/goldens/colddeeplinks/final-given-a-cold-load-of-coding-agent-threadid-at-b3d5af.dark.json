@@ -1,0 +1,66 @@
+{
+  "suite": "colddeeplinks",
+  "step": "final-given-a-cold-load-of-coding-agent-threadid-at-b3d5af",
+  "scheme": "dark",
+  "snapshot": "colddeeplinks/final-given-a-cold-load-of-coding-agent-threadid-at-b3d5af.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "ThreadScreen",
+      "ThreadScreenHeader",
+      "ThreadScreenHeaderBack",
+      "ThreadScreenHeaderTitle",
+      "ThreadScreenHeaderSubtitle",
+      "ThreadScreenHeaderActions",
+      "ThreadSettingsButton",
+      "ConnectionBanner",
+      "ConnectionBannerRetry",
+      "ThreadFeed",
+      "ThreadComposer",
+      "ModelChip",
+      "RuntimeModeChip",
+      "InteractionModeSegment",
+      "InteractionModeSegment-default",
+      "InteractionModeSegment-plan",
+      "ThreadComposerInput",
+      "ThreadComposerSendButton"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nCoding agent\nthread-1\nReconnecting to the coding agent…\nRetry\nModel\nSupervised\nBuild\nPlan"
+  },
+  "timings": {
+    "render_ms": 563
+  },
+  "name": "colddeeplinks/final-given-a-cold-load-of-coding-agent-threadid-at-b3d5af.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

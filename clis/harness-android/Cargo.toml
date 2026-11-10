@@ -1,0 +1,19 @@
+[package]
+name = "harness-android"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The Android harness: `wf android` (adb, the on-device UI server, the device lease, the lab on the VM) and the Android driver of the device command table"
+
+[lib]
+doctest = false
+
+[dependencies]
+harness-core = { path = "../harness-core" }
+wf-kit = { path = "../wf-kit" }
+wf-vmops = { path = "../wf-vmops" }
+cdp = { path = "../cdp" }
+rca-core = { version = "0.1", registry = "mla" }
+cli-http = { path = "../http" }
+serde_json = { version = "1", features = ["preserve_order"] }
+libc = "0.2"

@@ -1,0 +1,123 @@
+{
+  "action": "git_stage",
+  "exchanges": [
+    {
+      "name": "stages the paths named",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "stag19",
+        "tool": "git_stage",
+        "args": {
+          "paths": [
+            "a.txt",
+            "new.txt"
+          ]
+        }
+      },
+      "response": {
+        "id": "stag19",
+        "ok": true,
+        "result": {
+          "paths": 2
+        }
+      }
+    },
+    {
+      "name": "refuses a path that leaves the tree",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "stag20",
+        "tool": "git_stage",
+        "args": {
+          "paths": [
+            "../x"
+          ]
+        }
+      },
+      "response": {
+        "id": "stag20",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`path` must be a path inside the repository's working tree"
+        }
+      }
+    },
+    {
+      "name": "refuses a request that names no path",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "stag21",
+        "tool": "git_stage",
+        "args": {
+          "paths": []
+        }
+      },
+      "response": {
+        "id": "stag21",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`paths` must name at least one path (`.` is the whole tree)"
+        }
+      }
+    },
+    {
+      "name": "refuses a path inside .git",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "stag22",
+        "tool": "git_stage",
+        "args": {
+          "paths": [
+            ".git/config"
+          ]
+        }
+      },
+      "response": {
+        "id": "stag22",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`path` must be a path inside the repository's working tree"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{REL}}</title>
+<style>
+:root {
+  --bg: #fff; --fg: #1a1a1a; --muted: #656d76; --border: #d0d7de;
+  --code-bg: #f6f8fa; --accent: #0969da; --h-border: #e1e4e8;
+  --ann-bg: #fffbe6; --ann-border: #f0c040; --sidebar-w: 320px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  line-height: 1.65; color: var(--fg); background: var(--bg);
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#0d1117;--fg:#c9d1d9;--muted:#8b949e;--border:#30363d;
+          --code-bg:#161b22;--accent:#58a6ff;--h-border:#21262d;
+          --ann-bg:#1c1a00;--ann-border:#9b7a00; }
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; display: flex; min-height: 100vh; }
+#content {
+  flex: 1; padding: 2rem 2.5rem; max-width: 860px;
+  overflow-x: hidden; transition: margin-right 0.2s;
+}
+body.sidebar-open #content { margin-right: var(--sidebar-w); }
+
+/* typography */
+h1 { font-size:1.9em;border-bottom:2px solid var(--h-border);padding-bottom:.3em;margin-top:1.6em; }
+h2 { font-size:1.5em;border-bottom:1px solid var(--h-border);padding-bottom:.2em;margin-top:1.6em; }
+h3 { font-size:1.2em;margin-top:1.4em; }
+h1,h2,h3,h4 { margin-bottom:.4em;font-weight:600; }
+code { background:var(--code-bg);border-radius:4px;padding:.15em .4em;
+       font-family:'SF Mono',Consolas,monospace;font-size:.88em; }
+pre  { background:var(--code-bg);border-radius:6px;padding:1em 1.2em;
+       overflow-x:auto;font-size:.88em;border:1px solid var(--border); }
+pre code { background:none;padding:0; }
+blockquote { border-left:4px solid var(--border);margin:0;padding:0 1em;color:var(--muted); }
+table { border-collapse:collapse;width:100%;margin:1em 0; }
+th,td { border:1px solid var(--border);padding:6px 13px;text-align:left; }
+th { background:var(--code-bg);font-weight:600; }
+tr:nth-child(even) td { background:var(--code-bg); }
+a { color:var(--accent); }
+.filename { font-size:.85em;color:var(--muted);margin-bottom:1em;font-family:monospace; }
+p { margin:.6em 0; }
+
+/* highlights */
+.ann-highlight { background: rgba(255,230,0,.35); border-radius:2px; cursor:pointer; }
+.ann-highlight:hover { background: rgba(255,200,0,.55); }
+
+/* floating toolbar */
+#toolbar {
+  position: fixed; display: none; z-index: 100;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  padding: 8px 12px; gap: 6px; flex-direction: column; min-width: 240px;
+}
+#toolbar.visible { display: flex; }
+#toolbar textarea {
+  width: 100%; min-height: 64px; resize: vertical; font-size: .85em;
+  border: 1px solid var(--border); border-radius: 6px; padding: 6px;
+  background: var(--code-bg); color: var(--fg); font-family: inherit;
+}
+#toolbar-buttons { display:flex; gap:6px; }
+#toolbar-add {
+  flex: 1; padding: 6px 10px; background: var(--accent); color: #fff;
+  border: none; border-radius: 6px; cursor: pointer; font-size: .85em;
+  font-weight: 600;
+}
+#toolbar-cancel {
+  padding: 6px 10px; background: transparent; color: var(--muted);
+  border: 1px solid var(--border); border-radius: 6px; cursor: pointer;
+  font-size: .85em;
+}
+
+/* sidebar */
+#sidebar {
+  position: fixed; top: 0; right: -var(--sidebar-w); width: var(--sidebar-w);
+  height: 100vh; border-left: 1px solid var(--border); background: var(--bg);
+  overflow-y: auto; transition: right 0.2s; z-index: 50;
+  display: flex; flex-direction: column;
+}
+body.sidebar-open #sidebar { right: 0; }
+#sidebar-header {
+  padding: 1rem; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+  font-weight: 600; font-size: .95em; position: sticky; top: 0;
+  background: var(--bg); z-index: 1;
+}
+#sidebar-header button {
+  background: none; border: none; cursor: pointer; color: var(--muted);
+  font-size: 1.1em; padding: 2px 6px; border-radius: 4px;
+}
+#sidebar-header button:hover { background: var(--code-bg); }
+#annotations-list { flex: 1; padding: .75rem; display: flex; flex-direction: column; gap: .75rem; }
+.ann-card {
+  background: var(--ann-bg); border: 1px solid var(--ann-border);
+  border-radius: 8px; padding: .75rem; font-size: .85em;
+}
+.ann-quote {
+  font-style: italic; color: var(--muted); border-left: 3px solid var(--ann-border);
+  padding-left: .5em; margin-bottom: .4em; word-break: break-word;
+}
+.ann-comment { word-break: break-word; }
+.ann-del { float: right; background: none; border: none; cursor: pointer;
+           color: var(--muted); font-size: .9em; padding: 0 4px; }
+#sidebar-footer {
+  padding: .75rem; border-top: 1px solid var(--border); display: flex; flex-direction: column; gap: .5rem;
+}
+#send-btn {
+  width: 100%; padding: 10px; background: var(--accent); color: #fff;
+  border: none; border-radius: 8px; cursor: pointer; font-weight: 600;
+  font-size: .9em;
+}
+#send-btn:disabled { opacity: .5; cursor: default; }
+#send-status { font-size: .8em; color: var(--muted); text-align: center; }
+#toggle-sidebar {
+  position: fixed; top: 12px; right: 12px; z-index: 200;
+  background: var(--accent); color: #fff; border: none;
+  border-radius: 50%; width: 40px; height: 40px; cursor: pointer;
+  font-size: 1.1em; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  display: flex; align-items: center; justify-content: center;
+}
+#ann-count {
+  position: absolute; top: -4px; right: -4px; background: #e63946;
+  color: #fff; border-radius: 50%; width: 18px; height: 18px;
+  font-size: .7em; font-weight: 700; display: flex; align-items: center;
+  justify-content: center;
+}
+</style>
+</head>
+<body>
+<button id="toggle-sidebar" title="Annotations" aria-label="Toggle annotations panel">
+  💬<span id="ann-count" style="display:none">0</span>
+</button>
+
+<div id="content">
+  <p class="filename">{{REL}}</p>
+  {{BODY}}
+</div>
+
+<!-- Floating annotation toolbar -->
+<div id="toolbar">
+  <textarea id="toolbar-input" placeholder="Add a comment about the selection…"></textarea>
+  <div id="toolbar-buttons">
+    <button id="toolbar-add">Add annotation</button>
+    <button id="toolbar-cancel">Cancel</button>
+  </div>
+</div>
+
+<!-- Annotation sidebar -->
+<div id="sidebar">
+  <div id="sidebar-header">
+    <span>Annotations</span>
+    <button id="sidebar-close" aria-label="Close">✕</button>
+  </div>
+  <div id="annotations-list"></div>
+  <div id="sidebar-footer">
+    <button id="send-btn" {{DISABLED}}>
+      {{SEND_LABEL}}
+    </button>
+    <div id="send-status"></div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const FILE_PATH = {{PATH_JSON}};
+  const CHAT_ID   = {{CHAT_JSON}};
+  const THREAD_ID = {{THREAD_JSON}};
+  const API_BASE  = window.location.origin;
+
+  let annotations = [];
+  let pendingRange = null;
+  let pendingText  = '';
+
+  // ── toolbar ──────────────────────────────────────────────────────────────
+  const toolbar = document.getElementById('toolbar');
+  const toolbarInput = document.getElementById('toolbar-input');
+  const annCount = document.getElementById('ann-count');
+
+  function positionToolbar(x, y) {
+    toolbar.style.left = Math.min(x, window.innerWidth - 260) + 'px';
+    toolbar.style.top  = (y + window.scrollY + 8) + 'px';
+    toolbar.classList.add('visible');
+    toolbarInput.value = '';
+    setTimeout(() => toolbarInput.focus(), 0);
+  }
+
+  document.addEventListener('mouseup', (e) => {
+    if (toolbar.contains(e.target)) return;
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return;
+    const text = sel.toString().trim();
+    if (!text) return;
+    pendingRange = sel.getRangeAt(0).cloneRange();
+    pendingText  = text;
+    const rect = sel.getRangeAt(0).getBoundingClientRect();
+    positionToolbar(rect.left, rect.bottom);
+  });
+
+  document.getElementById('toolbar-cancel').addEventListener('click', () => {
+    toolbar.classList.remove('visible');
+    pendingRange = null;
+    pendingText  = '';
+  });
+
+  document.getElementById('toolbar-add').addEventListener('click', () => {
+    const comment = toolbarInput.value.trim();
+    if (!pendingText || !comment) return;
+    addAnnotation(pendingText, comment, pendingRange);
+    toolbar.classList.remove('visible');
+    pendingRange = null;
+    pendingText  = '';
+    window.getSelection().removeAllRanges();
+  });
+
+  // ── annotations ──────────────────────────────────────────────────────────
+  function addAnnotation(selection, comment, range) {
+    const id = Date.now().toString(36);
+    annotations.push({ id, selection, comment });
+    if (range) highlightRange(range, id);
+    renderSidebar();
+    openSidebar();
+  }
+
+  function highlightRange(range, id) {
+    const span = document.createElement('span');
+    span.className = 'ann-highlight';
+    span.dataset.annId = id;
+    span.title = 'Click to view annotation';
+    span.addEventListener('click', () => {
+      openSidebar();
+      const card = document.querySelector('[data-card-id="' + id + '"]');
+      if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    try { range.surroundContents(span); } catch { /* partial selections — skip */ }
+  }
+
+  function removeAnnotation(id) {
+    annotations = annotations.filter(a => a.id !== id);
+    const hl = document.querySelector('[data-ann-id="' + id + '"]');
+    if (hl) {
+      const parent = hl.parentNode;
+      while (hl.firstChild) parent.insertBefore(hl.firstChild, hl);
+      parent.removeChild(hl);
+    }
+    renderSidebar();
+  }
+
+  function renderSidebar() {
+    const list = document.getElementById('annotations-list');
+    if (annotations.length === 0) {
+      list.innerHTML = '<p style="color:var(--muted);font-size:.85em;padding:.5rem">No annotations yet. Select text and add a comment.</p>';
+      annCount.style.display = 'none';
+    } else {
+      list.innerHTML = annotations.map(a => `
+        <div class="ann-card" data-card-id="${a.id}">
+          <button class="ann-del" data-id="${a.id}" title="Remove">✕</button>
+          <div class="ann-quote">&ldquo;${escHtml(a.selection.slice(0, 120))}&hellip;&rdquo;</div>
+          <div class="ann-comment">${escHtml(a.comment)}</div>
+        </div>`).join('');
+      annCount.textContent = annotations.length;
+      annCount.style.display = 'flex';
+    }
+    list.querySelectorAll('.ann-del').forEach(btn =>
+      btn.addEventListener('click', () => removeAnnotation(btn.dataset.id)));
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── sidebar toggle ───────────────────────────────────────────────────────
+  function openSidebar() { document.body.classList.add('sidebar-open'); }
+  function closeSidebar() { document.body.classList.remove('sidebar-open'); }
+  document.getElementById('toggle-sidebar').addEventListener('click', () =>
+    document.body.classList.toggle('sidebar-open'));
+  document.getElementById('sidebar-close').addEventListener('click', closeSidebar);
+
+  // ── send to telegram ─────────────────────────────────────────────────────
+  document.getElementById('send-btn').addEventListener('click', async () => {
+    if (!annotations.length) return;
+    const btn = document.getElementById('send-btn');
+    const status = document.getElementById('send-status');
+    btn.disabled = true;
+    status.textContent = 'Sending…';
+    try {
+      const res = await fetch(API_BASE + '/api/file/' + FILE_PATH + '/annotate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ annotations, chatId: CHAT_ID, threadId: THREAD_ID }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        status.textContent = '✅ Sent to Telegram!';
+        annotations = [];
+        document.querySelectorAll('.ann-highlight').forEach(el => {
+          const p = el.parentNode;
+          while (el.firstChild) p.insertBefore(el.firstChild, el);
+          p.removeChild(el);
+        });
+        renderSidebar();
+      } else {
+        status.textContent = '❌ ' + (json.error || 'Failed');
+        btn.disabled = false;
+      }
+    } catch (e) {
+      status.textContent = '❌ ' + e.message;
+      btn.disabled = false;
+    }
+  });
+
+  // ── init ─────────────────────────────────────────────────────────────────
+  renderSidebar();
+})();
+</script>
+</body>
+</html>

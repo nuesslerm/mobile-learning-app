@@ -1,0 +1,20 @@
+{
+  "schema": "mimic-stability-allowlist/1",
+  "entries": [
+    {
+      "id": "t3-scn-command-message.dispatch",
+      "cause": "short-value",
+      "reason": "the scenario runs a scripted turn whose completion is asynchronous: the thread projection read after the settle window holds one or two turn items and an attempt with or without its native thread id, by how loaded the host is"
+    },
+    {
+      "id": "t3-scn-command-queued-run.cancel",
+      "cause": "short-value",
+      "reason": "the scenario runs a scripted turn whose completion is asynchronous: the thread projection read after the settle window holds one or two turn items and an attempt with or without its native thread id, by how loaded the host is"
+    },
+    {
+      "id": "t3-scn-rpc-assets.persistChatAttachments",
+      "cause": "short-value",
+      "reason": "the scenario runs a scripted turn whose completion is asynchronous: the thread projection read after the settle window holds one or two turn items and an attempt with or without its native thread id, by how loaded the host is"
+    }
+  ]
+}

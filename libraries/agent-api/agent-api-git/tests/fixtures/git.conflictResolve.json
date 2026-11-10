@@ -1,0 +1,136 @@
+{
+  "method": "git.conflictResolve",
+  "exchanges": [
+    {
+      "name": "takes our side of a conflicted file",
+      "before": [
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "c.txt",
+            "content": "base\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "c.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "base"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.createRef",
+          "params": {
+            "workspace": "w1",
+            "name": "topic",
+            "checkout": true
+          }
+        },
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "c.txt",
+            "content": "topic\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "c.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "topic"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.checkout",
+          "params": {
+            "workspace": "w1",
+            "ref": "main"
+          }
+        },
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "c.txt",
+            "content": "main\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "c.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "main"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.merge",
+          "params": {
+            "workspace": "w1",
+            "op": "start",
+            "ref": "topic"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.conflictResolve",
+        "params": {
+          "workspace": "w1",
+          "path": "c.txt",
+          "resolution": "ours"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "path": "c.txt",
+          "remaining": []
+        }
+      },
+      "actions": [
+        "git_conflict_resolve"
+      ]
+    }
+  ]
+}

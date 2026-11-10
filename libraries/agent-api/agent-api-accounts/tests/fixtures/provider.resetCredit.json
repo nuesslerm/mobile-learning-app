@@ -1,0 +1,42 @@
+{
+  "method": "provider.resetCredit",
+  "exchanges": [
+    {
+      "name": "gives back the credit the model API reset",
+      "request": {
+        "id": 1,
+        "method": "provider.resetCredit",
+        "params": {
+          "provider": "codex"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "provider": "codex",
+          "credit": {
+            "remaining": 3,
+            "unit": "resets"
+          }
+        }
+      }
+    },
+    {
+      "name": "a provider that is none is refused",
+      "request": {
+        "id": 1,
+        "method": "provider.resetCredit",
+        "params": {
+          "provider": "gemini"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "UNKNOWN_PROVIDER",
+          "message": "gemini is not a provider; the providers are opencode, claudeAgent, codex"
+        }
+      }
+    }
+  ]
+}

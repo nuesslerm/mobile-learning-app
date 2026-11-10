@@ -1,0 +1,16 @@
+[package]
+name = "watchdog-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "watchdog_core"
+path = "src/lib.rs"
+
+[dependencies]
+async-trait.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["rt", "time", "macros"] }
+

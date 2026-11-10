@@ -1,0 +1,44 @@
+{
+  "method": "provider.logout",
+  "exchanges": [
+    {
+      "name": "signs a provider out and deselects it",
+      "before": [
+        {
+          "id": 1,
+          "method": "provider.auth.start",
+          "params": {
+            "provider": "codex"
+          }
+        },
+        {
+          "id": 2,
+          "method": "provider.auth.complete",
+          "params": {
+            "auth": "auth-1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "provider.logout",
+        "params": {
+          "provider": "codex"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "provider": {
+            "provider": "codex",
+            "status": "signed_out",
+            "selected": false,
+            "auth_methods": [
+              "device_code"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

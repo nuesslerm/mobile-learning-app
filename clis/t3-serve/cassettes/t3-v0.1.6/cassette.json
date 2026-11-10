@@ -1,0 +1,56 @@
+{
+  "content_hash": "sha256:dc4b8e07973734174a8a3d22375115c5bd7aeefcb24e5b04b0ad8f8092eb93db",
+  "corpus": {
+    "hash": "sha256:24f03ab6d7b2540c30dc0e117d20e14c4ccf75be75a183e6cf870b2ab0fd46d5",
+    "path": "corpus.json"
+  },
+  "interactions": 3,
+  "provenance": {
+    "corpus_hash": "sha256:24f03ab6d7b2540c30dc0e117d20e14c4ccf75be75a183e6cf870b2ab0fd46d5",
+    "imported_from": [
+      {
+        "hash": "sha256:dc95277f28ca03d3a8706d6d6662880908b5d21482633f355d63d59726ea520d",
+        "path": "tooling/t3-conformance/goldens/v0.1.6/descriptor.jsonl"
+      },
+      {
+        "hash": "sha256:871993dde11effb7ebb7a7412ca777a17bff46a96aa1aa46c407c39aee3c655d",
+        "path": "tooling/t3-conformance/goldens/v0.1.6/protocol-gate-426.jsonl"
+      },
+      {
+        "hash": "sha256:fee371477033cc63cd96efcb3659637dfd52c9d381c2b3302659e9c336e8b668",
+        "path": "tooling/t3-conformance/goldens/v0.1.6/auth.jsonl"
+      },
+      {
+        "hash": "sha256:b78ff7d952d666ac33bf3db557949e08886eb72bde656681a52bde2c548260b9",
+        "path": "tooling/t3-conformance/goldens/v0.1.6/rpc-phase1.jsonl"
+      },
+      {
+        "hash": "sha256:586bfb3766fda1cf2c96a52fd2a8e6cd864510ac016054d52779244cc8f5f139",
+        "path": "tooling/t3-conformance/goldens/v0.1.6/rpc-errors.jsonl"
+      },
+      {
+        "hash": "sha256:cfa8fa534d76713e6f21c53cdfb345cf9e45fdb9a36278fc47b74dcd946d3b70",
+        "path": "tooling/t3-conformance/goldens/v0.1.6/rpc-phase1.variant-order.jsonl"
+      }
+    ],
+    "kind": "imported",
+    "note": "imported without a run: the transcripts are what the old recorder wrote, converted line for line, and the owner or the VM re-records them against the pinned server with `wf mimic verify --live`; manifest.json, a summary of them, is not carried",
+    "rules_hash": "sha256:7f6a78b06504e5e72462ba03910ad748023f04fb36f2316830ad2c35d322c9c7",
+    "source": "the goldens of tooling/t3-conformance recorded from the pinned t3 release by its own recorder; allowlist tooling/t3-conformance/allowlist.json sha256:7a4a0b235bb4b2711040880e8570a9a433a4fecdbe2a104e9c818e01938b9272",
+    "target": {
+      "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e",
+      "name": "t3",
+      "pin_file": "tooling/t3-conformance/t3-pin.json",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0",
+      "version": "0.1.6"
+    },
+    "tool": {
+      "mimic": "0.1.0"
+    }
+  },
+  "rules": {
+    "hash": "sha256:7f6a78b06504e5e72462ba03910ad748023f04fb36f2316830ad2c35d322c9c7",
+    "path": "rules.json"
+  },
+  "schema": "mimic-cassette/1"
+}

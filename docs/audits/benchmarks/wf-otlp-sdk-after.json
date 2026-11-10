@@ -1,0 +1,130 @@
+{
+  "method": "5 rounds x 10 runs of `wf log emit --service bench --message bench.event --attr a=b --attr k=v` against a local HTTPS OTLP ingest; binaries interleaved per round; value = median of the round medians",
+  "server": {
+    "requests": 204,
+    "malformed": 0
+  },
+  "host": "x86_64",
+  "binaries": {
+    "before-release": {
+      "size_bytes": 8381240,
+      "emit_ms_median": 7.3,
+      "emit_ms_min": 6.99,
+      "emit_ms_max": 7.84,
+      "peak_rss_kb_median": 22560,
+      "failures": 0,
+      "rounds": [
+        {
+          "median_ms": 7.84,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 7.56,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 7.14,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 6.99,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 7.3,
+          "median_peak_rss_kb": 22560
+        }
+      ]
+    },
+    "after-release": {
+      "size_bytes": 8457848,
+      "emit_ms_median": 7.19,
+      "emit_ms_min": 6.96,
+      "emit_ms_max": 8.73,
+      "peak_rss_kb_median": 22560,
+      "failures": 0,
+      "rounds": [
+        {
+          "median_ms": 7.14,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 7.19,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 8.73,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 6.96,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 7.77,
+          "median_peak_rss_kb": 22560
+        }
+      ]
+    },
+    "before-deploy": {
+      "size_bytes": 10957440,
+      "emit_ms_median": 8.07,
+      "emit_ms_min": 7.85,
+      "emit_ms_max": 9.27,
+      "peak_rss_kb_median": 22560,
+      "failures": 0,
+      "rounds": [
+        {
+          "median_ms": 8.18,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 7.85,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 9.27,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 8.0,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 8.07,
+          "median_peak_rss_kb": 22560
+        }
+      ]
+    },
+    "after-deploy": {
+      "size_bytes": 11111448,
+      "emit_ms_median": 8.02,
+      "emit_ms_min": 7.65,
+      "emit_ms_max": 8.64,
+      "peak_rss_kb_median": 22560,
+      "failures": 0,
+      "rounds": [
+        {
+          "median_ms": 7.85,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 7.65,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 8.64,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 8.64,
+          "median_peak_rss_kb": 22560
+        },
+        {
+          "median_ms": 8.02,
+          "median_peak_rss_kb": 22560
+        }
+      ]
+    }
+  }
+}

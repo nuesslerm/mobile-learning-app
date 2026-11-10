@@ -1,0 +1,80 @@
+{
+  "method": "provider.select",
+  "exchanges": [
+    {
+      "name": "a provider that holds no login cannot be chosen",
+      "request": {
+        "id": 1,
+        "method": "provider.select",
+        "params": {
+          "provider": "codex"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "SIGNED_OUT",
+          "message": "codex holds no login; sign it in first"
+        }
+      }
+    },
+    {
+      "name": "the provider that signed in is the one chosen",
+      "before": [
+        {
+          "id": 1,
+          "method": "provider.auth.start",
+          "params": {
+            "provider": "codex"
+          }
+        },
+        {
+          "id": 2,
+          "method": "provider.auth.complete",
+          "params": {
+            "auth": "auth-1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "provider.select",
+        "params": {
+          "provider": "codex"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "providers": [
+            {
+              "provider": "opencode",
+              "status": "signed_out",
+              "selected": false,
+              "auth_methods": [
+                "paste"
+              ]
+            },
+            {
+              "provider": "claudeAgent",
+              "status": "signed_out",
+              "selected": false,
+              "auth_methods": [
+                "paste"
+              ]
+            },
+            {
+              "provider": "codex",
+              "status": "signed_in",
+              "selected": true,
+              "auth_methods": [
+                "device_code"
+              ]
+            }
+          ],
+          "selected": "codex"
+        }
+      }
+    }
+  ]
+}

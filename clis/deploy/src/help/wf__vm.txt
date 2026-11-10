@@ -1,0 +1,27 @@
+Usage: wf vm [options] [command]
+
+The VM: run a script in agent-shell, read logs, recover, and its sub-areas
+
+Options:
+  -h, --help             display help for command
+
+Commands:
+  exec [options] [file]  Run a local script inside agent-shell on the VM; by
+                         default streams output until it finishes and exits with
+                         its exit code
+  logs [options]         Recent BetterStack log lines (default: last 10m of the
+                         backend source), optionally for one service
+  ledger                 Read one of the VM ledger files (allowlist:
+                         opencode-dispatch-runs.jsonl, pool-cooldowns.json)
+  recover [options]      Health-sweep every app via vm-ops-api and redeploy
+                         unhealthy ones with recreate=all; if vm-ops-api stays
+                         unreachable, OCI soft reboot, then hard reset, then
+                         re-verify
+  deps                   Dependency manifest of the shared agent workspace,
+                         replayed at container start
+  creds                  OCI credentials for Terraform
+  terraform              Terraform for infra/oracle-cloud
+  state                  Back up and restore the VM's sensitive state volumes
+  net                    Tailnet devices and the auth key
+  ops                    Operate vm-ops-api itself (health, self-redeploy)
+  help [command]         display help for command

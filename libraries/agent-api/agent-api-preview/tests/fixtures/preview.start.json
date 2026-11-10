@@ -1,0 +1,52 @@
+{
+  "method": "preview.start",
+  "exchanges": [
+    {
+      "name": "refuses a port outside the dev server range, as the executor does",
+      "request": {
+        "id": 1,
+        "method": "preview.start",
+        "params": {
+          "workspace": "w1",
+          "command": "true",
+          "port": 80
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`port` must be between 3000 and 9999"
+        }
+      },
+      "actions": [
+        "preview_start"
+      ]
+    },
+    {
+      "name": "refuses an environment that sets the port, as the executor does",
+      "request": {
+        "id": 1,
+        "method": "preview.start",
+        "params": {
+          "workspace": "w1",
+          "command": "true",
+          "port": 4000,
+          "env": {
+            "PORT": "1"
+          }
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`env` may not set PORT"
+        }
+      },
+      "actions": [
+        "preview_start"
+      ]
+    }
+  ]
+}

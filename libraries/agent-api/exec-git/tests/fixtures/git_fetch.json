@@ -1,0 +1,204 @@
+{
+  "action": "git_fetch",
+  "exchanges": [
+    {
+      "name": "fetches the branch's upstream remote",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "fetc40",
+        "tool": "git_fetch",
+        "args": {}
+      },
+      "response": {
+        "id": "fetc40",
+        "ok": true,
+        "result": {
+          "remote": "origin",
+          "output": ""
+        }
+      }
+    },
+    {
+      "name": "refuses a remote the repository does not have",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "fetc41",
+        "tool": "git_fetch",
+        "args": {
+          "remote": "nope"
+        }
+      },
+      "response": {
+        "id": "fetc41",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`remote` nope is not a configured remote of this repository"
+        }
+      }
+    },
+    {
+      "name": "refuses a URL given as the remote",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "fetc42",
+        "tool": "git_fetch",
+        "args": {
+          "remote": "https://example.com/x.git"
+        }
+      },
+      "response": {
+        "id": "fetc42",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`remote` nope is not a configured remote of this repository"
+        }
+      },
+      "volatile": [
+        "/error/message"
+      ]
+    },
+    {
+      "name": "refuses a repository with no remote",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "fetc43",
+        "tool": "git_fetch",
+        "args": {}
+      },
+      "response": {
+        "id": "fetc43",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "this repository has no remote configured"
+        }
+      }
+    },
+    {
+      "name": "fetches a pull request's head and its base branch into the rca namespace",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true,
+        "remote_pulls": [
+          7
+        ]
+      },
+      "request": {
+        "id": "fetc45",
+        "tool": "git_fetch",
+        "args": {
+          "refspecs": [
+            "+refs/pull/7/head:refs/rca/pr/7/head",
+            "+refs/heads/main:refs/rca/pr/7/base"
+          ]
+        }
+      },
+      "response": {
+        "id": "fetc45",
+        "ok": true,
+        "result": {
+          "remote": "origin",
+          "output": "",
+          "refs": [
+            {
+              "ref": "refs/rca/pr/7/head",
+              "sha": "c6e5bb0685be41ca17f3b89783b2f2cd1ab4561e"
+            },
+            {
+              "ref": "refs/rca/pr/7/base",
+              "sha": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "refuses a destination that would move a branch",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true,
+        "remote_pulls": [
+          7
+        ]
+      },
+      "request": {
+        "id": "fetc46",
+        "tool": "git_fetch",
+        "args": {
+          "refspecs": [
+            "+refs/pull/7/head:refs/heads/main"
+          ]
+        }
+      },
+      "response": {
+        "id": "fetc46",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`refspecs` must be `+<source>:refs/rca/<name>`, the source a pull request's head or `refs/heads/<branch>`"
+        }
+      }
+    },
+    {
+      "name": "refuses a pull request the remote does not have",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true,
+        "remote_pulls": [
+          7
+        ]
+      },
+      "request": {
+        "id": "fetc47",
+        "tool": "git_fetch",
+        "args": {
+          "refspecs": [
+            "+refs/pull/99/head:refs/rca/pr/99/head"
+          ]
+        }
+      },
+      "response": {
+        "id": "fetc47",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "git fetch: fatal: couldn't find remote ref refs/pull/99/head"
+        }
+      }
+    }
+  ]
+}

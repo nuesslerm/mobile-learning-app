@@ -1,0 +1,18 @@
+{
+  "schema": "mimic-corpus/1",
+  "seed": 0,
+  "generators": [
+    {
+      "kind": "corpus",
+      "name": "body-fingerprint",
+      "op": "agent-session.body-fingerprint",
+      "cases": [
+        { "id": "plain", "input": { "sessionId": "claude_s1", "texts": ["fix the login"] } },
+        { "id": "other-session", "input": { "sessionId": "codex_s2", "texts": ["fix the login"] } },
+        { "id": "two-blocks", "input": { "sessionId": "claude_s1", "texts": ["first", "second"] } },
+        { "id": "quotes-newline-control", "input": { "sessionId": "claude_s1", "texts": ["say \"hi\"\nthen\ttab \\ slash \u0001"] } },
+        { "id": "unicode", "input": { "sessionId": "opencode_s3", "texts": ["caf\u00e9 \u65e5\u672c\u8a9e \ud83d\ude00 \u2028"] } }
+      ]
+    }
+  ]
+}

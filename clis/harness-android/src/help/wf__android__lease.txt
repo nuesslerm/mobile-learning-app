@@ -1,0 +1,33 @@
+Usage: wf android lease [options] [acquire|heartbeat|release|status]
+
+One holder at a time on the device, a FIFO line behind it, and a TTL so a crashed
+holder frees it. The state lives on the VM; a sandbox reaches it through
+`wf vm exec`. The verbs that change the device (tap-on, swipe, scroll-until-visible,
+input-text, press-key, back, open-link, draw-strokes-on, set-microphone-input,
+run-shell, start-recording, stop-recording, clear-logs and adb) exit 3, naming the
+holder, while someone else holds the lease (checked where the state is local, on
+the VM). Reads, start-device and stop-device do not need it.
+
+Actions:
+  acquire (default)      take the device or wait in line; exit 3 when it is busy
+  heartbeat --id <id>    keep the lease past its TTL
+  release --id <id>      give it up (stops user apps, clears logcat); a waiting id leaves the line
+  status                 who holds it and who is waiting
+
+Result: acquire {granted: true, leaseId, who, ttlSeconds}; heartbeat and release
+{action, leaseId}; status {holder: {id, who, heldMs, expiresInMs} | null, queue: [...]}.
+Busy: {ok:false, error: "device busy: held by <who> (position <n>)", next}, exit 3.
+
+Options:
+  --wait <seconds>       how long to wait in line (default 600)
+  --no-wait              fail at once when the device is busy
+  --ttl <seconds>        lease length without a heartbeat (default 600)
+  --who <name>           holder name (default: WF_LEASE_WHO or host:pid)
+  --id <leaseId>         the lease to heartbeat or release
+  --clean-package <pkg>  with release: also `pm clear` this app
+  --name <container>     container (default: WF_ANDROID_NAME, else rdl; was --device)
+  --local                run on this machine instead of through the VM
+  -h, --help             display help for command
+
+Environment: WF_ANDROID_LEASE_ID (the lease a verb runs under), WF_ANDROID_LEASE=none
+(skip the check).

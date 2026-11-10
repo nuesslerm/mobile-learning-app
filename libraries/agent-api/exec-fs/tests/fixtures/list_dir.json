@@ -1,0 +1,28 @@
+{
+  "action": "list_dir",
+  "exchanges": [
+    {
+      "name": "lists the files of one directory with their sizes",
+      "setup": {"files": {"src/a.txt": "one\ntwo\n", "src/b.rs": "fn main() {}\n"}},
+      "request": {"id": "l1", "tool": "list_dir", "args": {"path": "src"}},
+      "response": {"id": "l1", "ok": true, "result": {"entries": [{"name": "a.txt", "kind": "file", "size": 8}, {"name": "b.rs", "kind": "file", "size": 13}]}}
+    },
+    {
+      "name": "lists a nested directory when a depth is asked",
+      "setup": {"files": {"src/a.txt": "one\n", "top.md": "x"}},
+      "request": {"id": "l2", "tool": "list_dir", "args": {"path": ".", "depth": 2}},
+      "response": {"id": "l2", "ok": true, "result": {"entries": [{"name": "src", "kind": "dir", "size": 4096}, {"name": "src/a.txt", "kind": "file", "size": 4}, {"name": "top.md", "kind": "file", "size": 1}]}},
+      "volatile": ["/result/entries/0/size"]
+    },
+    {
+      "name": "refuses a directory that does not exist",
+      "request": {"id": "l3", "tool": "list_dir", "args": {"path": "nope"}},
+      "response": {"id": "l3", "ok": false, "error": {"code": "NOT_FOUND", "message": "nope does not exist"}}
+    },
+    {
+      "name": "refuses a path outside the root",
+      "request": {"id": "l4", "tool": "list_dir", "args": {"path": ".."}},
+      "response": {"id": "l4", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": ".. is outside the root"}}
+    }
+  ]
+}

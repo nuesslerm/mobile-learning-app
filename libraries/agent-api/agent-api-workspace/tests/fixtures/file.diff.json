@@ -1,0 +1,104 @@
+{
+  "method": "file.diff",
+  "exchanges": [
+    {
+      "name": "diffs the whole tree against a revision when no path is given",
+      "request": {
+        "id": 10,
+        "method": "file.diff",
+        "params": {
+          "workspace": "w1",
+          "base": "HEAD"
+        }
+      },
+      "response": {
+        "id": 10,
+        "result": {
+          "diff": "diff --git a/a.txt b/a.txt\nindex 5626abf..9a72323 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1 +1,2 @@\n one\n+more\ndiff --git a/b.txt b/b.txt\nindex f719efd..5ea2ed4 100644\n--- a/b.txt\n+++ b/b.txt\n@@ -1 +1 @@\n-two\n+changed\n"
+        }
+      },
+      "actions": [
+        "git_diff"
+      ]
+    },
+    {
+      "name": "diffs one path",
+      "request": {
+        "id": 11,
+        "method": "file.diff",
+        "params": {
+          "workspace": "w1",
+          "path": "a.txt"
+        }
+      },
+      "response": {
+        "id": 11,
+        "result": {
+          "diff": "diff --git a/a.txt b/a.txt\nindex 5626abf..9a72323 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1 +1,2 @@\n one\n+more\n"
+        }
+      },
+      "actions": [
+        "git_diff"
+      ]
+    },
+    {
+      "name": "relays the executor's refusal of a base that is not a revision",
+      "request": {
+        "id": 12,
+        "method": "file.diff",
+        "params": {
+          "workspace": "w1",
+          "base": "--output=/tmp/x"
+        }
+      },
+      "response": {
+        "id": 12,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`base` must be a revision"
+        }
+      },
+      "actions": [
+        "git_diff"
+      ]
+    },
+    {
+      "name": "refuses a workspace with no executor attached",
+      "request": {
+        "id": 13,
+        "method": "file.diff",
+        "params": {
+          "workspace": "w2"
+        }
+      },
+      "response": {
+        "id": 13,
+        "error": {
+          "code": "NO_EXECUTOR",
+          "message": "no executor is attached for workspace w2"
+        }
+      }
+    },
+    {
+      "name": "takes a path that is not a string as no path, the whole tree",
+      "request": {
+        "id": 14,
+        "method": "file.diff",
+        "params": {
+          "workspace": "w1",
+          "path": 5,
+          "base": "HEAD"
+        }
+      },
+      "response": {
+        "id": 14,
+        "result": {
+          "diff": "diff --git a/a.txt b/a.txt\nindex 5626abf..9a72323 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1 +1,2 @@\n one\n+more\ndiff --git a/b.txt b/b.txt\nindex f719efd..5ea2ed4 100644\n--- a/b.txt\n+++ b/b.txt\n@@ -1 +1 @@\n-two\n+changed\n"
+        }
+      },
+      "actions": [
+        "git_diff"
+      ]
+    }
+  ]
+}

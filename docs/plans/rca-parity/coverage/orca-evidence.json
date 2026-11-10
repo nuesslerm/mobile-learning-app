@@ -1,0 +1,1415 @@
+{
+  "schema": 1,
+  "app": "orca",
+  "generatedBy": "wf parity coverage --app orca --traces <dir|bundle>",
+  "source": {
+    "runs": [
+      {
+        "suite": "orca-serve-integration",
+        "sha": "54a1277e3edb23192cd036b66d1325f0ed61149c",
+        "complete": true,
+        "tests": 35,
+        "passed": 35
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": null,
+        "complete": true,
+        "tests": 3682,
+        "passed": 451
+      },
+      {
+        "suite": "wf-mimic-orca-files",
+        "sha": null,
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-orca-mobile-bundle",
+        "sha": null,
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 275,
+        "passed": 81
+      }
+    ]
+  },
+  "rows": {
+    "rpc:accounts.list": {
+      "suite": "orca-serve-integration",
+      "test": "settings_m10::the_accounts_screen_lists_the_signed_in_providers_and_selecting_one_changes_the_provider_rca_uses",
+      "agent": [
+        "provider.list"
+      ],
+      "executor": []
+    },
+    "rpc:accounts.selectClaude": {
+      "suite": "orca-serve-integration",
+      "test": "settings_m10::the_accounts_screen_lists_the_signed_in_providers_and_selecting_one_changes_the_provider_rca_uses",
+      "agent": [
+        "provider.list",
+        "provider.select"
+      ],
+      "executor": []
+    },
+    "rpc:accounts.selectCodex": {
+      "suite": "orca-serve-integration",
+      "test": "settings_m10::the_accounts_screen_lists_the_signed_in_providers_and_selecting_one_changes_the_provider_rca_uses",
+      "agent": [
+        "provider.list",
+        "provider.select"
+      ],
+      "executor": []
+    },
+    "rpc:accounts.selectCodexForTarget": {
+      "suite": "orca-serve-integration",
+      "test": "settings_m10::the_accounts_screen_lists_the_signed_in_providers_and_selecting_one_changes_the_provider_rca_uses",
+      "agent": [
+        "provider.list",
+        "provider.select"
+      ],
+      "executor": []
+    },
+    "rpc:agent.launch": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_chat_created_with_a_message_and_a_launch_each_run_a_turn_once_and_a_retry_of_either_runs_nothing_again",
+      "agent": [
+        "repo.list",
+        "state.get",
+        "state.set",
+        "thread.create",
+        "thread.get",
+        "turn.start"
+      ],
+      "executor": [
+        "git_checkpoint",
+        "write_file"
+      ]
+    },
+    "rpc:agent.launchReplay": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_chat_created_with_a_message_and_a_launch_each_run_a_turn_once_and_a_retry_of_either_runs_nothing_again",
+      "agent": [
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.cancel": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
+      "agent": [
+        "state.get",
+        "state.set",
+        "thread.forceStop",
+        "thread.get"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.commands": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog_m7b::the_phone_lists_the_models_of_an_agent_reads_a_chats_options_and_sets_one_and_its_commands_come_from_the_executors_skills",
+      "agent": [
+        "commands.list",
+        "thread.get"
+      ],
+      "executor": [
+        "skill_scan"
+      ]
+    },
+    "rpc:agentSession.conversationCommand": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_conversation_command_reaches_the_cli_as_the_prompt_it_reads_and_runs_as_a_turn_of_the_chat",
+      "agent": [
+        "state.get",
+        "state.set",
+        "thread.get",
+        "turn.start"
+      ],
+      "executor": [
+        "git_checkpoint"
+      ]
+    },
+    "rpc:agentSession.create": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog_m7b::the_phone_lists_the_models_of_an_agent_reads_a_chats_options_and_sets_one_and_its_commands_come_from_the_executors_skills",
+      "agent": [
+        "queue.list",
+        "repo.list",
+        "state.get",
+        "state.set",
+        "thread.create",
+        "thread.get",
+        "thread.history"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.createSupport": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
+      "agent": [
+        "agents.detect",
+        "repo.list"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.currentRequests": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+      "agent": [
+        "thread.get",
+        "thread.history"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.history": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+      "agent": [
+        "queue.list",
+        "thread.get",
+        "thread.history"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.hold": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+      "agent": [
+        "thread.get"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.item": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+      "agent": [
+        "thread.get",
+        "thread.history"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.modelCatalog": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog_m7b::the_phone_lists_the_models_of_an_agent_reads_a_chats_options_and_sets_one_and_its_commands_come_from_the_executors_skills",
+      "agent": [
+        "models.list"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.options": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog_m7b::the_phone_lists_the_models_of_an_agent_reads_a_chats_options_and_sets_one_and_its_commands_come_from_the_executors_skills",
+      "agent": [
+        "models.list",
+        "state.get",
+        "thread.get"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.queuedMessageDelete": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
+      "agent": [
+        "queue.delete",
+        "state.get",
+        "state.set",
+        "thread.get"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.queuedMessageEditHold": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
+      "agent": [
+        "queue.list",
+        "state.get",
+        "state.set"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.queuedMessageMove": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
+      "agent": [
+        "queue.list",
+        "queue.move",
+        "state.get",
+        "state.set",
+        "thread.get"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.queuedMessageSend": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
+      "agent": [
+        "queue.resume",
+        "state.get",
+        "state.set",
+        "thread.get"
+      ],
+      "executor": [
+        "git_checkpoint"
+      ]
+    },
+    "rpc:agentSession.queuedMessageUpdate": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
+      "agent": [
+        "queue.edit",
+        "queue.list",
+        "thread.get"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.queuedMessagesResume": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
+      "agent": [
+        "queue.list",
+        "queue.resume",
+        "state.get",
+        "state.set",
+        "thread.get"
+      ],
+      "executor": [
+        "git_checkpoint"
+      ]
+    },
+    "rpc:agentSession.release": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:agentSession.respondToApproval": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_turn_that_asks_for_approval_and_a_question_waits_until_the_phone_answers_and_a_stale_answer_asks_rca_nothing",
+      "agent": [
+        "state.get",
+        "thread.get",
+        "thread.history"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.respondToQuestion": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_turn_that_asks_for_approval_and_a_question_waits_until_the_phone_answers_and_a_stale_answer_asks_rca_nothing",
+      "agent": [
+        "input.answer",
+        "state.get",
+        "state.set",
+        "thread.get",
+        "thread.history"
+      ],
+      "executor": [
+        "write_file"
+      ]
+    },
+    "rpc:agentSession.send": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+      "agent": [
+        "state.get",
+        "state.set",
+        "thread.get",
+        "turn.start"
+      ],
+      "executor": [
+        "git_checkpoint",
+        "write_file"
+      ]
+    },
+    "rpc:agentSession.setOption": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog_m7b::the_phone_lists_the_models_of_an_agent_reads_a_chats_options_and_sets_one_and_its_commands_come_from_the_executors_skills",
+      "agent": [
+        "models.list",
+        "state.get",
+        "state.set",
+        "thread.get"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.subscribe": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+      "agent": [
+        "queue.list",
+        "thread.get",
+        "thread.history"
+      ],
+      "executor": []
+    },
+    "rpc:agentSession.unsubscribe": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:agentSessionAttachment.read": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
+      "agent": [
+        "attachment.get"
+      ],
+      "executor": []
+    },
+    "rpc:agentSessionAttachment.readTextChunk": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
+      "agent": [
+        "attachment.get"
+      ],
+      "executor": []
+    },
+    "rpc:agentSessionAttachment.uploadAbort": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:agentSessionAttachment.uploadAppend": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:agentSessionAttachment.uploadCommit": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
+      "agent": [
+        "upload.put"
+      ],
+      "executor": []
+    },
+    "rpc:agentSessionAttachment.uploadStart": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
+      "agent": [
+        "thread.get"
+      ],
+      "executor": []
+    },
+    "rpc:automation.create": {
+      "suite": "orca-serve-integration",
+      "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
+      "agent": [
+        "repo.list",
+        "schedule.upsert"
+      ],
+      "executor": []
+    },
+    "rpc:automation.delete": {
+      "suite": "orca-serve-integration",
+      "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
+      "agent": [
+        "schedule.delete",
+        "schedule.list"
+      ],
+      "executor": []
+    },
+    "rpc:automation.list": {
+      "suite": "orca-serve-integration",
+      "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
+      "agent": [
+        "schedule.list"
+      ],
+      "executor": []
+    },
+    "rpc:automation.runNow": {
+      "suite": "orca-serve-integration",
+      "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
+      "agent": [
+        "schedule.list",
+        "schedule.runNow"
+      ],
+      "executor": [
+        "git_checkpoint",
+        "write_file"
+      ]
+    },
+    "rpc:automation.show": {
+      "suite": "orca-serve-integration",
+      "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
+      "agent": [
+        "schedule.list"
+      ],
+      "executor": []
+    },
+    "rpc:automation.update": {
+      "suite": "orca-serve-integration",
+      "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
+      "agent": [
+        "schedule.list",
+        "schedule.upsert"
+      ],
+      "executor": []
+    },
+    "rpc:files.createFile": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_creates_a_file_that_is_then_on_the_executors_disk_and_a_name_that_is_taken_is_refused_by_the_executor",
+      "agent": [
+        "file.create",
+        "repo.list"
+      ],
+      "executor": [
+        "create_file"
+      ]
+    },
+    "rpc:files.list": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
+      "agent": [
+        "file.list",
+        "repo.list"
+      ],
+      "executor": [
+        "list_dir"
+      ]
+    },
+    "rpc:files.read": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_path_that_leaves_the_workspace_is_refused_on_the_phone_and_the_executor_refuses_it_too_so_nothing_outside_is_read_or_written",
+      "agent": [
+        "file.readChunk",
+        "repo.list"
+      ],
+      "executor": [
+        "read_chunk"
+      ]
+    },
+    "rpc:files.readChatImage": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
+      "agent": [
+        "attachment.get",
+        "repo.list"
+      ],
+      "executor": []
+    },
+    "rpc:files.readChunk": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_lists_reads_and_previews_the_files_the_executor_holds_and_every_byte_it_gets_is_the_disks",
+      "agent": [
+        "file.readChunk",
+        "repo.list"
+      ],
+      "executor": [
+        "read_chunk"
+      ]
+    },
+    "rpc:files.readDir": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_lists_reads_and_previews_the_files_the_executor_holds_and_every_byte_it_gets_is_the_disks",
+      "agent": [
+        "file.list",
+        "repo.list"
+      ],
+      "executor": [
+        "list_dir"
+      ]
+    },
+    "rpc:files.readPreview": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_lists_reads_and_previews_the_files_the_executor_holds_and_every_byte_it_gets_is_the_disks",
+      "agent": [
+        "file.readChunk",
+        "repo.list"
+      ],
+      "executor": [
+        "read_chunk"
+      ]
+    },
+    "rpc:files.searchPaths": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_lists_reads_and_previews_the_files_the_executor_holds_and_every_byte_it_gets_is_the_disks",
+      "agent": [
+        "file.search",
+        "repo.list"
+      ],
+      "executor": [
+        "search_entries"
+      ]
+    },
+    "rpc:files.stat": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_lists_reads_and_previews_the_files_the_executor_holds_and_every_byte_it_gets_is_the_disks",
+      "agent": [
+        "file.stat",
+        "repo.list"
+      ],
+      "executor": [
+        "stat"
+      ]
+    },
+    "rpc:folderWorkspace.list": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-crawl::orca-folderWorkspace.list-empty-empty-object",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:git.abortMerge": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_merge_stopped_on_conflicts_is_read_resolved_completed_and_aborted_and_the_repository_ends_as_git_would_leave_it",
+      "agent": [
+        "git.merge",
+        "repo.list"
+      ],
+      "executor": [
+        "git_merge"
+      ]
+    },
+    "rpc:git.abortRebase": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_rebase_from_a_base_is_applied_and_one_that_stops_on_conflicts_is_aborted_and_the_branch_is_as_it_was",
+      "agent": [
+        "git.rebase",
+        "repo.list"
+      ],
+      "executor": [
+        "git_rebase"
+      ]
+    },
+    "rpc:git.branchCompare": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
+      "agent": [
+        "git.compare",
+        "git.history",
+        "git.status",
+        "repo.list"
+      ],
+      "executor": [
+        "git_compare",
+        "git_log",
+        "git_status"
+      ]
+    },
+    "rpc:git.bulkStage": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
+      "agent": [
+        "git.stage",
+        "repo.list"
+      ],
+      "executor": [
+        "git_stage"
+      ]
+    },
+    "rpc:git.bulkUnstage": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
+      "agent": [
+        "git.unstage",
+        "repo.list"
+      ],
+      "executor": [
+        "git_unstage"
+      ]
+    },
+    "rpc:git.checkout": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
+      "agent": [
+        "git.checkout",
+        "repo.list"
+      ],
+      "executor": [
+        "git_checkout"
+      ]
+    },
+    "rpc:git.commit": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
+      "agent": [
+        "git.commit",
+        "repo.list"
+      ],
+      "executor": [
+        "git_commit"
+      ]
+    },
+    "rpc:git.commitCompare": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
+      "agent": [
+        "git.compare",
+        "git.history",
+        "repo.list"
+      ],
+      "executor": [
+        "git_compare",
+        "git_log"
+      ]
+    },
+    "rpc:git.completeMerge": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_merge_stopped_on_conflicts_is_read_resolved_completed_and_aborted_and_the_repository_ends_as_git_would_leave_it",
+      "agent": [
+        "git.merge",
+        "repo.list"
+      ],
+      "executor": [
+        "git_merge"
+      ]
+    },
+    "rpc:git.discard": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
+      "agent": [
+        "git.discard",
+        "repo.list"
+      ],
+      "executor": [
+        "git_discard"
+      ]
+    },
+    "rpc:git.fastForward": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::commits_are_published_fetched_pulled_and_fast_forwarded_against_a_bare_remote_and_the_repository_holds_what_the_phone_moved",
+      "agent": [
+        "git.fastForward",
+        "repo.list"
+      ],
+      "executor": [
+        "git_fast_forward"
+      ]
+    },
+    "rpc:git.fetch": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::commits_are_published_fetched_pulled_and_fast_forwarded_against_a_bare_remote_and_the_repository_holds_what_the_phone_moved",
+      "agent": [
+        "git.fetch",
+        "repo.list"
+      ],
+      "executor": [
+        "git_fetch"
+      ]
+    },
+    "rpc:git.generateCommitMessage": {
+      "suite": "orca-serve-integration",
+      "test": "settings_m10::a_commit_message_is_written_by_the_service_s_model_from_the_staged_diff_alone_and_nothing_is_committed",
+      "agent": [
+        "git.generateCommitMessage",
+        "repo.list"
+      ],
+      "executor": [
+        "git_diff"
+      ]
+    },
+    "rpc:git.history": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
+      "agent": [
+        "git.history",
+        "git.status",
+        "repo.list"
+      ],
+      "executor": [
+        "git_log",
+        "git_status"
+      ]
+    },
+    "rpc:git.localBranches": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
+      "agent": [
+        "git.refs",
+        "repo.list"
+      ],
+      "executor": [
+        "git_refs"
+      ]
+    },
+    "rpc:git.pull": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::commits_are_published_fetched_pulled_and_fast_forwarded_against_a_bare_remote_and_the_repository_holds_what_the_phone_moved",
+      "agent": [
+        "git.pull",
+        "repo.list"
+      ],
+      "executor": [
+        "git_pull"
+      ]
+    },
+    "rpc:git.push": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::commits_are_published_fetched_pulled_and_fast_forwarded_against_a_bare_remote_and_the_repository_holds_what_the_phone_moved",
+      "agent": [
+        "git.push",
+        "repo.list"
+      ],
+      "executor": [
+        "git_push"
+      ]
+    },
+    "rpc:git.rebaseFromBase": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_rebase_from_a_base_is_applied_and_one_that_stops_on_conflicts_is_aborted_and_the_branch_is_as_it_was",
+      "agent": [
+        "git.rebase",
+        "repo.list"
+      ],
+      "executor": [
+        "git_rebase"
+      ]
+    },
+    "rpc:git.resolveConflict": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_merge_stopped_on_conflicts_is_read_resolved_completed_and_aborted_and_the_repository_ends_as_git_would_leave_it",
+      "agent": [
+        "git.conflictResolve",
+        "repo.list"
+      ],
+      "executor": [
+        "git_conflict_resolve"
+      ]
+    },
+    "rpc:git.stage": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
+      "agent": [
+        "git.stage",
+        "repo.list"
+      ],
+      "executor": [
+        "git_stage"
+      ]
+    },
+    "rpc:git.status": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_merge_stopped_on_conflicts_is_read_resolved_completed_and_aborted_and_the_repository_ends_as_git_would_leave_it",
+      "agent": [
+        "git.status",
+        "repo.list"
+      ],
+      "executor": [
+        "git_status"
+      ]
+    },
+    "rpc:git.unstage": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
+      "agent": [
+        "git.unstage",
+        "repo.list"
+      ],
+      "executor": [
+        "git_unstage"
+      ]
+    },
+    "rpc:git.upstreamStatus": {
+      "suite": "orca-serve-integration",
+      "test": "git_m9::commits_are_published_fetched_pulled_and_fast_forwarded_against_a_bare_remote_and_the_repository_holds_what_the_phone_moved",
+      "agent": [
+        "git.upstreamStatus",
+        "repo.list"
+      ],
+      "executor": [
+        "git_upstream"
+      ]
+    },
+    "rpc:github.markPRDraft": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
+      "agent": [
+        "pr.ready",
+        "repo.list"
+      ],
+      "executor": [
+        "hosted_pr_ready"
+      ]
+    },
+    "rpc:github.markPRReadyForReview": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
+      "agent": [
+        "pr.ready",
+        "repo.list"
+      ],
+      "executor": [
+        "hosted_pr_ready"
+      ]
+    },
+    "rpc:github.mergePR": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
+      "agent": [
+        "pr.merge",
+        "repo.list"
+      ],
+      "executor": [
+        "hosted_pr_merge"
+      ]
+    },
+    "rpc:github.prChecks": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
+      "agent": [
+        "pr.checks",
+        "repo.list"
+      ],
+      "executor": [
+        "hosted_pr_checks"
+      ]
+    },
+    "rpc:github.prForBranch": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
+      "agent": [
+        "pr.checks",
+        "pr.list",
+        "pr.view",
+        "repo.list"
+      ],
+      "executor": [
+        "hosted_pr_checks",
+        "hosted_pr_list",
+        "hosted_pr_view"
+      ]
+    },
+    "rpc:github.removePRReviewers": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
+      "agent": [
+        "pr.requestReviewers",
+        "repo.list"
+      ],
+      "executor": [
+        "hosted_pr_request_reviewers"
+      ]
+    },
+    "rpc:github.requestPRReviewers": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
+      "agent": [
+        "pr.requestReviewers",
+        "repo.list"
+      ],
+      "executor": [
+        "hosted_pr_request_reviewers"
+      ]
+    },
+    "rpc:github.updatePR": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
+      "agent": [
+        "pr.edit",
+        "repo.list"
+      ],
+      "executor": [
+        "hosted_pr_edit"
+      ]
+    },
+    "rpc:github.updatePRTitle": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
+      "agent": [
+        "pr.edit",
+        "repo.list"
+      ],
+      "executor": [
+        "hosted_pr_edit"
+      ]
+    },
+    "rpc:gitlab.mergeMR": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_merge_requests_merge_and_update_are_what_glab_was_asked_to_do_and_a_rebase_merge_is_refused_before_glab_starts",
+      "agent": [
+        "mr.merge",
+        "repo.list"
+      ],
+      "executor": [
+        "hosted_pr_merge"
+      ]
+    },
+    "rpc:gitlab.updateMR": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_merge_requests_merge_and_update_are_what_glab_was_asked_to_do_and_a_rebase_merge_is_refused_before_glab_starts",
+      "agent": [
+        "mr.edit",
+        "mr.ready",
+        "mr.setLabels",
+        "repo.list"
+      ],
+      "executor": [
+        "hosted_pr_edit",
+        "hosted_pr_labels",
+        "hosted_pr_ready"
+      ]
+    },
+    "rpc:host.platform": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-crawl::orca-host.platform-empty-empty-object",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:mobileRelay.hosts.list": {
+      "suite": "orca-serve-integration",
+      "test": "web_m5::a_phone_lists_the_hosts_this_host_relays_to_and_there_are_none",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:mobileRelay.hosts.worktrees": {
+      "suite": "orca-serve-integration",
+      "test": "web_m5::a_phone_lists_the_hosts_this_host_relays_to_and_there_are_none",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:mobileRelay.projectSections": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_reads_the_project_catalog_and_folder_workspaces_rca_holds_and_a_workspace_made_by_another_device_appears",
+      "agent": [
+        "repo.list",
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:mobileWeb.bundle.chunk": {
+      "suite": "wf-mimic-orca-mobile-bundle",
+      "test": "orca-mobile-bundle::windows",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:mobileWeb.bundle.manifest": {
+      "suite": "orca-serve-integration",
+      "test": "web_m5::a_phone_fetches_the_manifest_and_every_asset_in_chunks_and_ranges_and_the_bytes_are_the_hosts_files",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:mobileWeb.bundle.range": {
+      "suite": "orca-serve-integration",
+      "test": "web_m5::a_phone_fetches_the_manifest_and_every_asset_in_chunks_and_ranges_and_the_bytes_are_the_hosts_files",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:nativeChat.readSession": {
+      "suite": "orca-serve-integration",
+      "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+      "agent": [
+        "thread.get",
+        "thread.history"
+      ],
+      "executor": []
+    },
+    "rpc:nativeChat.unsubscribe": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-crawl::orca-nativeChat.unsubscribe-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:preflight.detectAgents": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
+      "agent": [
+        "agents.detect"
+      ],
+      "executor": [
+        "cli_detect"
+      ]
+    },
+    "rpc:preflight.detectRemoteAgents": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
+      "agent": [
+        "agents.detect"
+      ],
+      "executor": []
+    },
+    "rpc:preflight.refreshAgents": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
+      "agent": [
+        "agents.detect"
+      ],
+      "executor": [
+        "cli_detect"
+      ]
+    },
+    "rpc:project.list": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
+      "agent": [
+        "repo.list",
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:projectGroup.list": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-crawl::orca-projectGroup.list-empty-empty-object",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:projectHostSetup.list": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
+      "agent": [
+        "repo.list",
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:repo.baseRefDefault": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
+      "agent": [
+        "git.refs",
+        "repo.list"
+      ],
+      "executor": [
+        "git_refs"
+      ]
+    },
+    "rpc:repo.hooks": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
+      "agent": [
+        "file.readChunk",
+        "file.stat",
+        "repo.list"
+      ],
+      "executor": [
+        "read_chunk",
+        "stat"
+      ]
+    },
+    "rpc:repo.list": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
+      "agent": [
+        "repo.list",
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:repo.saveSparsePreset": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
+      "agent": [
+        "repo.list",
+        "state.get",
+        "state.set"
+      ],
+      "executor": []
+    },
+    "rpc:repo.searchRefs": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
+      "agent": [
+        "git.refs",
+        "repo.list"
+      ],
+      "executor": [
+        "git_refs"
+      ]
+    },
+    "rpc:repo.sparsePresets": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
+      "agent": [
+        "repo.list",
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:repo.update": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
+      "agent": [
+        "repo.list",
+        "state.get",
+        "state.set"
+      ],
+      "executor": []
+    },
+    "rpc:runtime.clientCapabilities.update": {
+      "suite": "orca-serve-integration",
+      "test": "transport_m5::a_paired_phone_handshakes_and_asks_the_host_what_it_is_and_the_status_comes_from_the_real_service",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:runtime.clientEvents.subscribe": {
+      "suite": "orca-serve-integration",
+      "test": "transport_m5::a_phone_opens_the_client_events_stream_and_ends_it",
+      "agent": [
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:runtime.clientEvents.unsubscribe": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-crawl::orca-runtime.clientEvents.unsubscribe-invalid-drop-subscriptionId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:settings.get": {
+      "suite": "orca-serve-integration",
+      "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
+      "agent": [
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:settings.getTerminalQuickCommands": {
+      "suite": "orca-serve-integration",
+      "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
+      "agent": [
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:settings.update": {
+      "suite": "orca-serve-integration",
+      "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
+      "agent": [
+        "state.get",
+        "state.set"
+      ],
+      "executor": []
+    },
+    "rpc:settings.updateTerminalQuickCommands": {
+      "suite": "orca-serve-integration",
+      "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
+      "agent": [
+        "state.get",
+        "state.set"
+      ],
+      "executor": []
+    },
+    "rpc:skills.discover": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
+      "agent": [
+        "repo.list",
+        "skills.list"
+      ],
+      "executor": [
+        "skill_scan"
+      ]
+    },
+    "rpc:status.get": {
+      "suite": "orca-serve-integration",
+      "test": "transport_m5::a_paired_phone_handshakes_and_asks_the_host_what_it_is_and_the_status_comes_from_the_real_service",
+      "agent": [
+        "service.status"
+      ],
+      "executor": []
+    },
+    "rpc:terminal.clearBuffer": {
+      "suite": "orca-serve-integration",
+      "test": "terminal_m8::a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
+      "agent": [
+        "terminal.clear"
+      ],
+      "executor": [
+        "pty_write"
+      ]
+    },
+    "rpc:terminal.close": {
+      "suite": "orca-serve-integration",
+      "test": "terminal_m8::a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
+      "agent": [
+        "terminal.close"
+      ],
+      "executor": [
+        "pty_attach",
+        "pty_close"
+      ]
+    },
+    "rpc:terminal.list": {
+      "suite": "orca-serve-integration",
+      "test": "terminal_m8::a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
+      "agent": [
+        "repo.list",
+        "terminal.list"
+      ],
+      "executor": [
+        "pty_list"
+      ]
+    },
+    "rpc:terminal.rename": {
+      "suite": "orca-serve-integration",
+      "test": "terminal_m8::a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
+      "agent": [
+        "terminal.rename"
+      ],
+      "executor": []
+    },
+    "rpc:terminal.send": {
+      "suite": "orca-serve-integration",
+      "test": "terminal_m8::a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
+      "agent": [
+        "terminal.write"
+      ],
+      "executor": [
+        "pty_write"
+      ]
+    },
+    "rpc:terminal.unsubscribe": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-crawl::orca-terminal.unsubscribe-boundary-full",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:ui.get": {
+      "suite": "orca-serve-integration",
+      "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
+      "agent": [
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:ui.set": {
+      "suite": "orca-serve-integration",
+      "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
+      "agent": [
+        "state.get",
+        "state.set"
+      ],
+      "executor": []
+    },
+    "rpc:worktree.create": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_pull_requests_worktree_starts_at_its_head_fetched_into_a_ref_of_its_own_and_no_branch_or_checkout_moves",
+      "agent": [
+        "repo.list",
+        "state.get",
+        "worktree.create"
+      ],
+      "executor": [
+        "git_worktree_add"
+      ]
+    },
+    "rpc:worktree.list": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
+      "agent": [
+        "repo.list",
+        "state.get",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list"
+      ]
+    },
+    "rpc:worktree.listRetiredNames": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
+      "agent": [
+        "repo.list",
+        "state.get"
+      ],
+      "executor": []
+    },
+    "rpc:worktree.prefetchCreateBase": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
+      "agent": [
+        "git.fetch",
+        "repo.list"
+      ],
+      "executor": [
+        "git_fetch"
+      ]
+    },
+    "rpc:worktree.resolveMrBase": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_pull_requests_worktree_starts_at_its_head_fetched_into_a_ref_of_its_own_and_no_branch_or_checkout_moves",
+      "agent": [
+        "git.fetch",
+        "mr.view",
+        "repo.list"
+      ],
+      "executor": [
+        "git_fetch",
+        "hosted_pr_view"
+      ]
+    },
+    "rpc:worktree.resolvePrBase": {
+      "suite": "orca-serve-integration",
+      "test": "hosted_m11::a_pull_requests_worktree_starts_at_its_head_fetched_into_a_ref_of_its_own_and_no_branch_or_checkout_moves",
+      "agent": [
+        "git.fetch",
+        "pr.view",
+        "repo.list"
+      ],
+      "executor": [
+        "git_fetch",
+        "hosted_pr_view"
+      ]
+    },
+    "rpc:worktree.rm": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
+      "agent": [
+        "repo.list",
+        "state.get",
+        "state.set",
+        "worktree.list",
+        "worktree.remove"
+      ],
+      "executor": [
+        "git_worktree_list",
+        "git_worktree_remove"
+      ]
+    },
+    "rpc:worktree.set": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
+      "agent": [
+        "repo.list",
+        "state.get",
+        "state.set",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list"
+      ]
+    },
+    "rpc:worktree.show": {
+      "suite": "orca-serve-integration",
+      "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
+      "agent": [
+        "repo.list",
+        "state.get",
+        "worktree.list"
+      ],
+      "executor": [
+        "git_worktree_list"
+      ]
+    },
+    "transport:e2ee.handshake": {
+      "suite": "orca-serve-integration",
+      "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
+      "agent": [],
+      "executor": []
+    }
+  }
+}

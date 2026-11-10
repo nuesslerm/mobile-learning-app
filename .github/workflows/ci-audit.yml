@@ -1,0 +1,201 @@
+name: CI audit
+
+# The one nightly audit of CI on dev (`wf ci audit`, thresholds in .github/ci-audit.json, procedure docs/runbooks/nightly-audit.md): the VM's
+# CPU-seconds per run against its threshold, the cache layers' health (`wf ci cache-health`'s findings), the pnpm store packed only by
+# flow-tests, the hit ratio of each Nx stage, hash drift, runner waits and idle gaps, over every completed run of the last 24 hours; then
+# the Nx cache replay check (the two package stages on dev's head, through the cache and with --fresh: a kind that passes cached and fails
+# fresh is a stale or poisoned entry, so the cache moves to a new generation, `wf cache purge nx`, and the verdict names it). The job
+# prints one JSON verdict (schema in `wf ci audit --help`) with the findings and the next step of each, uploads it as the artifact
+# ci-audit.json and writes it to the job summary. It never gates or fails a push, and it does not fail itself on a finding: the scheduled
+# Claude session that follows (nightly-audit.md) reads the verdict, fixes what it can through the normal gate and records the rest in #365.
+#
+# WHEN. 04:00 Europe/Berlin. GitHub's `schedule` is UTC only and Berlin moves between UTC+1 (CET, end of October to end of March) and UTC+2
+# (CEST), so there are two cron entries, 02:00 and 03:00 UTC, and the first step lets through only the one that falls in the 04:xx hour in
+# Berlin: 03:00 UTC in winter, 02:00 UTC in summer. A run that GitHub starts after 04:59 Berlin time is skipped by that step, never run
+# twice. The same job also runs by hand (Actions, Run workflow) and when scheduled-triggers.yml dispatches it for an EMPTY commit to dev tagged
+# [ci-audit]; this workflow never listens to `push` itself. Two in one night are harmless (a run is judged against the runs before it, never
+# against itself).
+on:
+  schedule:
+    - cron: '0 2,3 * * *'
+  workflow_dispatch:
+    inputs:
+      since:
+        description: 'Audit the runs that started at or after this epoch time (default: the last 24 hours)'
+        required: false
+        default: ''
+      message:
+        description: 'Commit message that started this run (set by scheduled-triggers.yml)'
+        type: string
+        required: false
+        default: ''
+      sha:
+        description: 'Commit sha that started this run (set by scheduled-triggers.yml)'
+        type: string
+        required: false
+        default: ''
+
+concurrency:
+  group: ci-audit
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit:
+    name: audit
+    if: ${{ github.event_name == 'schedule' || github.ref == 'refs/heads/dev' }}
+    runs-on: [self-hosted, vm]
+    timeout-minutes: 150
+    steps:
+      - name: Is it the 04:xx hour in Berlin (scheduled runs only)
+        id: hour
+        run: |
+          berlin=$(TZ=Europe/Berlin date +%H)
+          if [ "${{ github.event_name }}" = schedule ] && [ "$berlin" != 04 ]; then
+            echo "::notice::scheduled at hour $berlin Berlin time, not 04: the other cron entry (or the clock commit) runs tonight's audit"
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        with:
+          ref: dev
+          clean: false
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        with:
+          node-version: 22.22.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        with:
+          run_install: false
+      - uses: ./.github/actions/install-bws
+        if: ${{ steps.hour.outputs.run == 'true' }}
+      - uses: ./.github/actions/install-wf
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        with:
+          current: "true"
+      - run: pnpm install --frozen-lockfile
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        timeout-minutes: 10
+      - name: Audit the runs of the last day
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+          SINCE: ${{ github.event.inputs.since }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/ci-audit" "$RUNNER_TEMP/audit"
+          wf ci audit ${SINCE:+--since "$SINCE"} > "$RUNNER_TEMP/ci-audit/ci-audit.json"
+          jq -c '{ok, runs: (.runs | length), findings: (.findings | length)}' "$RUNNER_TEMP/ci-audit/ci-audit.json"
+      # The Nx cache replay check: what the toolchain below needs is what the package tests need.
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        if: ${{ steps.hour.outputs.run == 'true' }}
+      - run: pnpm --filter @lib/browser-client exec playwright install --with-deps chromium
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        timeout-minutes: 5
+      # the selector flow test runs Android's UiSelector patterns through Java's own regex engine
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Rust toolchain on PATH
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        run: |
+          [ -x "$HOME/.cargo/bin/cargo" ] || curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          export PATH="$HOME/.cargo/bin:$PATH"
+          pin=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' rust-toolchain.toml)
+          cargo --version >/dev/null 2>&1 || { rustup toolchain uninstall "$pin" || true; rustup toolchain install --profile minimal; }
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      # Nx hashes `node --version` and `pnpm --version`: a step on other versions than mise.toml pins audits entries nobody replays.
+      - name: Toolchain is the pinned one
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        run: wf test drift --pins
+      - name: Every package test of dev's head
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        run: |
+          out="$RUNNER_TEMP/audit"
+          date +%s > "$out/started"
+          wf test plan --all --sha "$(git rev-parse HEAD)" --json > "$out/plan.json"
+          jq -r '.stages | to_entries[] | select(.key == "flow-tests" or .key == "typecheck-lint-unit-tests") | "\(.key): \(.value | length) test(s)"' "$out/plan.json"
+      # Once through the cache (a replay where an entry exists), once with --fresh. Each prints {ok, stage, kinds:[{kind, projects, verdict}]}.
+      - name: Both stages, cached and fresh
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        timeout-minutes: 100
+        run: |
+          out="$RUNNER_TEMP/audit"
+          for stage in flow-tests typecheck-lint-unit-tests; do
+            wf test run --stage "$stage" --plan "$out/plan.json" --parallel 2 > "$out/$stage.cached.json" || true
+            wf test run --stage "$stage" --plan "$out/plan.json" --parallel 2 --fresh > "$out/$stage.fresh.json" || true
+          done
+      # A kind that passed cached and did not pass fresh. A stage whose fresh run printed no kinds did not run: that is a finding too.
+      - name: Compare, kind by kind
+        id: compare
+        if: ${{ steps.hour.outputs.run == 'true' }}
+        run: |
+          out="$RUNNER_TEMP/audit"
+          : > "$out/poisoned.txt"
+          for stage in flow-tests typecheck-lint-unit-tests; do
+            if ! jq -e '.kinds' "$out/$stage.fresh.json" > /dev/null 2>&1; then
+              echo "$stage: the --fresh run printed no kinds ($(head -c 300 "$out/$stage.fresh.json"))" >> "$out/poisoned.txt"
+              continue
+            fi
+            jq -r -n --arg stage "$stage" --slurpfile c "$out/$stage.cached.json" --slurpfile f "$out/$stage.fresh.json" '
+              ($f[0].kinds // []) as $fresh
+              | ($c[0].kinds // [])[] | select(.verdict == "pass") as $k
+              | select((($fresh | map(select(.kind == $k.kind)) | .[0].verdict) // "missing") != "pass")
+              | "\($stage) \($k.kind): passed through the cache, not fresh (\($k.projects | join(", ")))"' >> "$out/poisoned.txt"
+          done
+          started=$(cat "$out/started"); now=$(date +%s)
+          verdict=pass; [ ! -s "$out/poisoned.txt" ] || verdict=fail
+          jq -n --arg verdict "$verdict" --arg sha "$(git rev-parse HEAD)" --arg dir "$out" --argjson started "$((started * 1000))" --argjson finished "$((now * 1000))" \
+            --arg message "$(head -c 400 "$out/poisoned.txt")" '{
+              schema: 1, verdict: $verdict, ok: ($verdict == "pass"), exitCode: (if $verdict == "pass" then 0 else 1 end),
+              message: (if $verdict == "pass" then null else $message end), script: "nx-cache-audit", platform: "integration", sha: $sha,
+              startedMs: $started, finishedMs: $finished, started: ($started / 1000 | todate), finished: ($finished / 1000 | todate),
+              durationS: (($finished - $started) / 1000), recordDir: $dir, warnings: []
+            }' > "$out/report.json"
+          cat "$out/poisoned.txt"
+          echo "verdict=$verdict" >> "$GITHUB_OUTPUT"
+      - name: Purge the Nx cache
+        if: ${{ steps.compare.outputs.verdict == 'fail' }}
+        run: wf cache purge nx
+      - name: Publish the replay check's run bundle
+        if: ${{ !cancelled() && steps.hour.outputs.run == 'true' }}
+        timeout-minutes: 5
+        run: |
+          [ -f "$RUNNER_TEMP/audit/report.json" ] || { echo "no replay report: the run stopped before the comparison"; exit 0; }
+          rm -f "$RUNNER_TEMP/audit/started"
+          WF_SITE=ci wf test publish "$RUNNER_TEMP/audit"
+      # One verdict: the replay check's lines join the findings, then the summary and the artifact.
+      - name: The verdict
+        if: ${{ !cancelled() && steps.hour.outputs.run == 'true' }}
+        run: |
+          f="$RUNNER_TEMP/ci-audit/ci-audit.json"
+          [ -s "$f" ] || echo '{"schema":1,"ok":null,"reason":"wf ci audit printed nothing","findings":[]}' > "$f"
+          if [ -s "$RUNNER_TEMP/audit/poisoned.txt" ]; then
+            next='The Nx cache served a pass that fails fresh and was moved to a new generation (wf cache purge nx). Find the nondeterministic test or the input missing from its key, fix it through the normal gate; a flaky test costs one cold run.'
+            jq --rawfile lines "$RUNNER_TEMP/audit/poisoned.txt" --arg next "$next" '
+              .findings += [$lines | split("\n") | map(select(length > 0))[] | {kind: "cache-poisoned", run: null, subject: ., hard: true, wasteSeconds: 0, message: ., next: $next}] | .ok = false' "$f" > "$f.new" && mv "$f.new" "$f"
+          fi
+          {
+            echo "### CI audit"
+            jq -r '"\(.findings | length) finding(s) over \(.runs | length) run(s)", (.findings[] | "- **\(.kind)** \(.subject): \(.message) -- next: \(.next)")' "$f"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ !cancelled() && steps.hour.outputs.run == 'true' }}
+        with:
+          name: ci-audit
+          path: ${{ runner.temp }}/ci-audit/ci-audit.json
+          retention-days: 14
+          if-no-files-found: ignore

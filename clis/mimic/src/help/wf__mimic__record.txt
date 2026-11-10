@@ -1,0 +1,43 @@
+Usage: wf mimic record [options] <set>
+
+Run the [reference] of <set>/mimic.toml over every case of its corpus, twice (a
+big set: once, and a sample twice, --stability), and write the set: the masked first run is the cassette, kind "recorded", with the
+pin hash, driver, rules hash, corpus hash and seed. If the two runs of any case
+differ after masking nothing is written (exit 1): mask what varies with a rule in
+rules.json, or record it flagged with --allow-nondeterministic. A reference with
+no pin cannot be recorded (exit 2), unless --stand-in says the target is a double.
+
+Options:
+  --target <file>             mimic.toml to use (default <set>/mimic.toml)
+  --seed <n>                  replace the corpus seed
+  --recorded-on <where>       vm, sandbox or owner-paired (provenance, informational)
+  --source <text>             a note for the provenance
+  --stand-in <what>           the reference command runs a double (a scripted host), not the pinned
+                              reference: the set is kind "authored", claims no pin hash, notes
+                              <what> in its source, and so can never serve a parity row
+  --keep-raw                  also write raw/capture.jsonl, the un-normalised first run
+  --allow-nondeterministic    write the set with the unstable cases tagged "nondeterministic"
+  --stability <pct>           run only this percent of the cases twice, the stability study (default 100,
+                              or [record] stability_pct): chosen by a hash of seed and case id
+  --batch <n>                 send n state-free cases at once (the driver answers them concurrently,
+                              MIMIC_DRIVER_CONCURRENCY=n; default 1, or [record] batch)
+  --write-chunk <n>           cases tagged "state:write" run after the others, n to a state of the
+                              reference, which is reset between chunks; "state:fresh" cases get a
+                              reset of their own (default: one state, or [record] write_chunk)
+  --chunk <n>                 stop at the first chunk boundary after n newly recorded cases (ok, done
+                              false, next); the progress is saved under <set>/raw/checkpoint (never committed)
+  --max-minutes <n>           stop cleanly after n minutes (a decimal is fine) at the first batch boundary, with
+                              the checkpoint written, and print complete false; a killed call loses at most its
+                              current batch. Every call records at least one batch, so repeated calls finish
+  --resume                    carry on from the checkpoint of an interrupted, chunked or timed recording; a
+                              checkpoint of another corpus, rules, seed or batching refuses (exit 2): --fresh
+  --fresh                     drop the checkpoint and record from the start
+  -h, --help                  display help for command
+
+Output (schema mimic-record/1):
+  {schema, ok, done, complete, set, interactions, provenance: {kind, target: {name, version?,
+  commit?, pin_file?, pin_hash}, driver, tool, seed, rules_hash, corpus_hash,
+  recorded_at}, nondeterministic: [ids], wrote: [paths], evidence?: {raw},
+  warnings, next}
+  while a chunked or timed recording is unfinished: {schema, ok: true, done: false, complete: false, set, recorded,
+  total, remaining, checkpoint, wrote: [], warnings, next}

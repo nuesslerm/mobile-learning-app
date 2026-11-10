@@ -1,0 +1,57 @@
+{
+  "method": "terminal.close",
+  "exchanges": [
+    {
+      "name": "closes a terminal",
+      "before": [
+        {
+          "id": 1,
+          "method": "terminal.open",
+          "params": {
+            "workspace": "w1",
+            "terminal": "t1"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "terminal.close",
+        "params": {
+          "workspace": "w1",
+          "terminal": "t1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "workspace": "w1",
+          "terminal": "t1"
+        }
+      },
+      "actions": [
+        "pty_close"
+      ]
+    },
+    {
+      "name": "closing one that is not there is unknown",
+      "request": {
+        "id": 1,
+        "method": "terminal.close",
+        "params": {
+          "workspace": "w1",
+          "terminal": "ghost"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "UNKNOWN_TERMINAL",
+          "message": "no terminal ghost in workspace w1"
+        }
+      },
+      "actions": [
+        "pty_list"
+      ]
+    }
+  ]
+}

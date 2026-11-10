@@ -1,0 +1,38 @@
+{
+  "action": "read_file",
+  "exchanges": [
+    {
+      "name": "reads a window of lines",
+      "setup": {"files": {"notes.txt": "one\ntwo\nthree\nfour\n"}},
+      "request": {"id": "a1", "tool": "read_file", "args": {"path": "notes.txt", "offset": 1, "limit": 2}},
+      "response": {"id": "a1", "ok": true, "result": {"content": "two\nthree\n", "total_lines": 4, "truncated": false}}
+    },
+    {
+      "name": "reads the whole file when no window is asked",
+      "setup": {"files": {"notes.txt": "one\ntwo\n"}},
+      "request": {"id": "a2", "tool": "read_file", "args": {"path": "notes.txt"}},
+      "response": {"id": "a2", "ok": true, "result": {"content": "one\ntwo\n", "total_lines": 2, "truncated": false}}
+    },
+    {
+      "name": "refuses a file that does not exist",
+      "request": {"id": "a3", "tool": "read_file", "args": {"path": "missing.txt"}},
+      "response": {"id": "a3", "ok": false, "error": {"code": "NOT_FOUND", "message": "missing.txt does not exist"}}
+    },
+    {
+      "name": "refuses a path outside the root",
+      "request": {"id": "a4", "tool": "read_file", "args": {"path": "../etc/passwd"}},
+      "response": {"id": "a4", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../etc/passwd is outside the root"}}
+    },
+    {
+      "name": "refuses a directory",
+      "setup": {"files": {"src/a.txt": "x"}},
+      "request": {"id": "a5", "tool": "read_file", "args": {"path": "src"}},
+      "response": {"id": "a5", "ok": false, "error": {"code": "NOT_A_FILE", "message": "src is a directory"}}
+    },
+    {
+      "name": "refuses a limit that is not a number",
+      "request": {"id": "a6", "tool": "read_file", "args": {"path": "notes.txt", "limit": "ten"}},
+      "response": {"id": "a6", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`limit` must be a non-negative integer"}}
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "action": "pty_list",
+  "exchanges": [
+    {
+      "name": "lists no ptys on a fresh executor",
+      "request": {"id": "l1", "tool": "pty_list", "args": {}},
+      "response": {"id": "l1", "ok": true, "result": {"ptys": []}}
+    }
+  ]
+}

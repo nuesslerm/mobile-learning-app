@@ -1,0 +1,19 @@
+[package]
+name = "reporting-service-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "reporting_core"
+path = "src/lib.rs"
+
+[dependencies]
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+futures-util.workspace = true
+time.workspace = true
+tracing.workspace = true
+tokio = { workspace = true, features = ["rt", "time", "sync", "macros"] }

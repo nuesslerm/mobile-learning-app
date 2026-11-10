@@ -1,0 +1,150 @@
+{
+ "opencodeVersion": "1.19.0",
+ "source": "opencode run --help",
+ "options": [
+  {
+   "long": "help",
+   "short": "h",
+   "status": "same",
+   "note": "wf offload ask --help"
+  },
+  {
+   "long": "version",
+   "short": "v",
+   "status": "not-applicable",
+   "note": "wf has its own `wf --version`"
+  },
+  {
+   "long": "print-logs",
+   "short": null,
+   "status": "not-applicable",
+   "note": "opencode runs on the service; read its logs with `wf vm ops logs remote-chat-agent`"
+  },
+  {
+   "long": "log-level",
+   "short": null,
+   "status": "not-applicable",
+   "note": "opencode runs on the service"
+  },
+  {
+   "long": "pure",
+   "short": null,
+   "status": "not-applicable",
+   "note": "plugins are the service's opencode config"
+  },
+  {
+   "long": "command",
+   "short": null,
+   "status": "same",
+   "note": "a project command (.opencode/command/<name>.md) runs with the message as its arguments; its file travels with the project config"
+  },
+  {
+   "long": "continue",
+   "short": "c",
+   "status": "same",
+   "note": "continues the last session this checkout made"
+  },
+  {
+   "long": "session",
+   "short": "s",
+   "status": "same",
+   "note": "continues the named session"
+  },
+  {
+   "long": "fork",
+   "short": null,
+   "status": "unsupported",
+   "note": "accepted and refused: the service does not fork sessions yet"
+  },
+  {
+   "long": "share",
+   "short": null,
+   "status": "not-applicable",
+   "note": "sessions stay on the service"
+  },
+  {
+   "long": "model",
+   "short": "m",
+   "status": "same",
+   "note": "pins the ladder to the model (repeatable)"
+  },
+  {
+   "long": "agent",
+   "short": null,
+   "status": "same",
+   "note": "the agent; its .opencode/agents file is sent along"
+  },
+  {
+   "long": "format",
+   "short": null,
+   "status": "same",
+   "note": "json prints the turn as opencode run does: one event per line (step_start, tool_use, text, step_finish)"
+  },
+  {
+   "long": "file",
+   "short": "f",
+   "status": "same",
+   "note": "a file sent with the prompt (repeatable), carried by the message as a file part like opencode run; the run sees only the files it is sent, since the service has no checkout"
+  },
+  {
+   "long": "title",
+   "short": null,
+   "status": "same",
+   "note": "title of the session (bare: the prompt's first line)"
+  },
+  {
+   "long": "attach",
+   "short": null,
+   "status": "not-applicable",
+   "note": "every run is attached to the rca service"
+  },
+  {
+   "long": "password",
+   "short": "p",
+   "status": "not-applicable",
+   "note": "the service secret is CHAT_AGENT_API_SECRET from the vault"
+  },
+  {
+   "long": "username",
+   "short": "u",
+   "status": "not-applicable",
+   "note": "the service secret is CHAT_AGENT_API_SECRET from the vault"
+  },
+  {
+   "long": "dir",
+   "short": null,
+   "status": "same",
+   "note": "the directory the files are read from (default: the checkout root)"
+  },
+  {
+   "long": "port",
+   "short": null,
+   "status": "not-applicable",
+   "note": "there is no local server"
+  },
+  {
+   "long": "variant",
+   "short": null,
+   "status": "same",
+   "note": "model variant (reasoning effort)"
+  },
+  {
+   "long": "thinking",
+   "short": null,
+   "status": "not-applicable",
+   "note": "the service returns the answer, not thinking blocks"
+  },
+  {
+   "long": "interactive",
+   "short": "i",
+   "status": "not-applicable",
+   "note": "a run is one request"
+  },
+  {
+   "long": "auto",
+   "short": null,
+   "status": "same",
+   "note": "approves what opencode would ask (env files, other directories, repeated calls); without it those are rejected. Edits and commands are allowed either way, as in opencode run"
+  }
+ ]
+}

@@ -1,0 +1,107 @@
+[
+ {
+  "id": "normalize-00",
+  "input": {
+   "input": {
+    "transcript": "t",
+    "alternatives": [
+     {
+      "commands": [
+       {
+        "type": "insertAfterLine",
+        "line": 1,
+        "newText": "x"
+       },
+       {
+        "type": "replaceLines",
+        "startLine": 1,
+        "endLine": 1,
+        "text": "y"
+       }
+      ]
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "normalize-01",
+  "input": {
+   "input": {
+    "transcript": "t",
+    "alternatives": [
+     {
+      "commands": [
+       {
+        "type": "insertAfterLine",
+        "line": 1,
+        "text": "x",
+        "newText": "z"
+       },
+       {
+        "type": "replaceLines",
+        "startLine": 1,
+        "endLine": 1,
+        "text": "y",
+        "newText": "w"
+       }
+      ]
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "normalize-02",
+  "input": {
+   "input": {
+    "transcript": "t",
+    "alternatives": [
+     "x",
+     {
+      "commands": 3
+     },
+     {
+      "commands": [
+       null,
+       4,
+       {
+        "type": "insertAfterLine",
+        "newText": 5
+       }
+      ]
+     }
+    ]
+   }
+  }
+ },
+ {
+  "id": "normalize-03",
+  "input": {
+   "input": {
+    "alternatives": "no"
+   }
+  }
+ },
+ {
+  "id": "normalize-04",
+  "input": {
+   "input": 3
+  }
+ },
+ {
+  "id": "normalize-05",
+  "input": {
+   "input": null
+  }
+ },
+ {
+  "id": "normalize-06",
+  "input": {
+   "input": [
+    1,
+    2
+   ]
+  }
+ }
+]

@@ -1,0 +1,1 @@
+export { default } from '@feature/settings/routes/storage';

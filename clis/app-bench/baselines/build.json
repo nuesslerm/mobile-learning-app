@@ -1,0 +1,295 @@
+{
+  "suite": "build",
+  "initial": {
+    "recordedAt": "2026-10-06T10:00:58.865Z",
+    "commit": "5a8a89c3fb611e78aa7a8b548f50560f3a6e85de",
+    "runs": 3,
+    "env": {
+      "node": "v22.22.0",
+      "os": "linux 6.18.44-fc-v70",
+      "cpus": "4",
+      "platform": "web",
+      "deviceLabFlag": "1"
+    },
+    "metrics": {
+      "coldExportMs": {
+        "unit": "ms",
+        "median": 120645,
+        "min": 114025,
+        "max": 122381,
+        "values": [
+          122381,
+          120645,
+          114025
+        ]
+      },
+      "warmExportMs": {
+        "unit": "ms",
+        "median": 18616,
+        "min": 17734,
+        "max": 18743,
+        "values": [
+          18743,
+          18616,
+          17734
+        ]
+      },
+      "tamaguiPluginMs": {
+        "unit": "ms",
+        "median": 1440,
+        "min": 1348,
+        "max": 1516,
+        "values": [
+          1440,
+          1516,
+          1348
+        ]
+      },
+      "metroBundleMs": {
+        "unit": "ms",
+        "median": 218549,
+        "min": 208309,
+        "max": 219448,
+        "values": [
+          218549,
+          219448,
+          208309
+        ]
+      },
+      "jsBytesRaw": {
+        "unit": "bytes",
+        "median": 9196176,
+        "min": 9196176,
+        "max": 9196176,
+        "values": [
+          9196176,
+          9196176,
+          9196176
+        ]
+      },
+      "jsBytesGzip": {
+        "unit": "bytes",
+        "median": 1940745,
+        "min": 1940745,
+        "max": 1940745,
+        "values": [
+          1940745,
+          1940745,
+          1940745
+        ]
+      },
+      "webModuleCount": {
+        "unit": "modules",
+        "median": 4033,
+        "min": 4033,
+        "max": 4033,
+        "values": [
+          4033,
+          4033,
+          4033
+        ]
+      },
+      "iosColdExportMs": {
+        "unit": "ms",
+        "median": 62720,
+        "min": 60596,
+        "max": 66464,
+        "values": [
+          60596,
+          62720,
+          66464
+        ]
+      },
+      "iosModuleCount": {
+        "unit": "modules",
+        "median": 4228,
+        "min": 4228,
+        "max": 4228,
+        "values": [
+          4228,
+          4228,
+          4228
+        ]
+      },
+      "iosBundleMs": {
+        "unit": "ms",
+        "median": 58849,
+        "min": 57003,
+        "max": 62271,
+        "values": [
+          57003,
+          58849,
+          62271
+        ]
+      },
+      "iosBundleBytes": {
+        "unit": "bytes",
+        "median": 11080730,
+        "min": 11080728,
+        "max": 11080730,
+        "values": [
+          11080730,
+          11080730,
+          11080728
+        ]
+      },
+      "iosWarmExportMs": {
+        "unit": "ms",
+        "median": 34277,
+        "min": 34183,
+        "max": 34989,
+        "values": [
+          34183,
+          34277,
+          34989
+        ]
+      }
+    }
+  },
+  "current": {
+    "recordedAt": "2026-10-13T20:26:45.982Z",
+    "commit": "6535ce447eb8be4e8bf124494303da9ccaa7da59",
+    "runs": 3,
+    "env": {
+      "node": "v22.22.0",
+      "os": "linux 6.18.44-fc-v114",
+      "cpus": "4",
+      "platforms": "web,ios",
+      "deviceLabFlag": "1"
+    },
+    "metrics": {
+      "coldExportMs": {
+        "unit": "ms",
+        "median": 116514,
+        "min": 115274,
+        "max": 117674,
+        "values": [
+          116514,
+          117674,
+          115274
+        ]
+      },
+      "webModuleCount": {
+        "unit": "modules",
+        "median": 3539,
+        "min": 3539,
+        "max": 3539,
+        "values": [
+          3539,
+          3539,
+          3539
+        ]
+      },
+      "tamaguiPluginMs": {
+        "unit": "ms",
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      },
+      "metroBundleMs": {
+        "unit": "ms",
+        "median": 205815,
+        "min": 203604,
+        "max": 208700,
+        "values": [
+          205815,
+          208700,
+          203604
+        ]
+      },
+      "jsBytesRaw": {
+        "unit": "bytes",
+        "median": 6872150,
+        "min": 6872150,
+        "max": 6872150,
+        "values": [
+          6872150,
+          6872150,
+          6872150
+        ]
+      },
+      "jsBytesGzip": {
+        "unit": "bytes",
+        "median": 1609838,
+        "min": 1609838,
+        "max": 1609838,
+        "values": [
+          1609838,
+          1609838,
+          1609838
+        ]
+      },
+      "warmExportMs": {
+        "unit": "ms",
+        "median": 18230,
+        "min": 18047,
+        "max": 18933,
+        "values": [
+          18047,
+          18933,
+          18230
+        ]
+      },
+      "iosColdExportMs": {
+        "unit": "ms",
+        "median": 68963,
+        "min": 67119,
+        "max": 70038,
+        "values": [
+          70038,
+          68963,
+          67119
+        ]
+      },
+      "iosModuleCount": {
+        "unit": "modules",
+        "median": 3731,
+        "min": 3731,
+        "max": 3731,
+        "values": [
+          3731,
+          3731,
+          3731
+        ]
+      },
+      "iosBundleMs": {
+        "unit": "ms",
+        "median": 64143,
+        "min": 62396,
+        "max": 65000,
+        "values": [
+          65000,
+          64143,
+          62396
+        ]
+      },
+      "iosBundleBytes": {
+        "unit": "bytes",
+        "median": 10264639,
+        "min": 10264639,
+        "max": 10264640,
+        "values": [
+          10264640,
+          10264639,
+          10264639
+        ]
+      },
+      "iosWarmExportMs": {
+        "unit": "ms",
+        "median": 36900,
+        "min": 36426,
+        "max": 38852,
+        "values": [
+          38852,
+          36426,
+          36900
+        ]
+      }
+    }
+  }
+}

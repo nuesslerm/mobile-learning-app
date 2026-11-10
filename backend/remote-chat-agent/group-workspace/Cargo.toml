@@ -1,0 +1,27 @@
+[package]
+name = "rca-group-workspace"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The workspace, workspace.worktrees, files and files.edit groups of the service's agent API: workspaces and worktrees, and the files and diffs of a workspace, each performed by the executor that owns it"
+
+[lib]
+name = "rca_group_workspace"
+path = "src/lib.rs"
+doctest = false
+
+[dependencies]
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-workspace = { path = "../../../libraries/agent-api/agent-api-workspace" }
+rca-agent-core = { path = "../agent-core" }
+rca-exec-channel = { path = "../exec-channel" }
+exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
+exec-fs = { path = "../../../libraries/agent-api/exec-fs" }
+exec-git = { path = "../../../libraries/agent-api/exec-git" }
+
+[dev-dependencies]
+rca-exec-channel = { path = "../exec-channel", features = ["testing"] }

@@ -1,0 +1,132 @@
+{
+  "method": "agents.detect",
+  "exchanges": [
+    {
+      "name": "asks the only executor which agent CLIs it has and what version each is, a driver whose CLI is missing not installed",
+      "request": {
+        "id": 1,
+        "method": "agents.detect",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "executor": "w1",
+          "agents": [
+            {
+              "driver": "opencode",
+              "program": "opencode",
+              "installed": false
+            },
+            {
+              "driver": "claudeAgent",
+              "program": "claude",
+              "installed": true,
+              "path": "/executor/bin/claude",
+              "version": "2.1.7 (Claude Code)"
+            },
+            {
+              "driver": "codex",
+              "program": "codex",
+              "installed": true,
+              "path": "/executor/bin/codex",
+              "version": "codex-cli 0.9.1"
+            }
+          ],
+          "checked_at_ms": 1700000000000
+        }
+      },
+      "actions": [
+        "cli_detect"
+      ],
+      "volatile": [
+        "/result/checked_at_ms",
+        "/result/agents/1/path",
+        "/result/agents/2/path"
+      ]
+    },
+    {
+      "name": "names the executor and asks it again",
+      "request": {
+        "id": 2,
+        "method": "agents.detect",
+        "params": {
+          "executor": "w1",
+          "refresh": true
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "executor": "w1",
+          "agents": [
+            {
+              "driver": "opencode",
+              "program": "opencode",
+              "installed": false
+            },
+            {
+              "driver": "claudeAgent",
+              "program": "claude",
+              "installed": true,
+              "path": "/executor/bin/claude",
+              "version": "2.1.7 (Claude Code)"
+            },
+            {
+              "driver": "codex",
+              "program": "codex",
+              "installed": true,
+              "path": "/executor/bin/codex",
+              "version": "codex-cli 0.9.1"
+            }
+          ],
+          "checked_at_ms": 1700000000000
+        }
+      },
+      "actions": [
+        "cli_detect"
+      ],
+      "volatile": [
+        "/result/checked_at_ms",
+        "/result/agents/1/path",
+        "/result/agents/2/path"
+      ]
+    },
+    {
+      "name": "refuses an executor that is not attached",
+      "request": {
+        "id": 3,
+        "method": "agents.detect",
+        "params": {
+          "executor": "w9"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "UNKNOWN_EXECUTOR",
+          "message": "no executor named w9 is attached"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a blank executor",
+      "request": {
+        "id": 4,
+        "method": "agents.detect",
+        "params": {
+          "executor": " "
+        }
+      },
+      "response": {
+        "id": 4,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "executor is required"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

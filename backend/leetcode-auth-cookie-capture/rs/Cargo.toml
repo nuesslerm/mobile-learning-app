@@ -1,0 +1,34 @@
+[package]
+name = "leetcode-auth-cookie-capture-rs"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "capture_service"
+path = "src/lib.rs"
+
+[[bin]]
+name = "leetcode-auth-cookie-capture-rs"
+path = "src/main.rs"
+
+[dependencies]
+async-trait.workspace = true
+axum.workspace = true
+clap.workspace = true
+leetcode-auth-cookie-capture-core = { path = "../core" }
+nix.workspace = true
+reqwest.workspace = true
+secrecy.workspace = true
+serde_json.workspace = true
+service-kit = { version = "0.1", registry = "mla" }
+subtle.workspace = true
+tokio = { workspace = true, features = ["fs", "io-util", "net", "process", "rt-multi-thread", "signal"] }
+tracing.workspace = true
+
+[dev-dependencies]
+service-kit = { version = "0.1", registry = "mla", features = ["e2e", "blackbox"] }
+http-body-util.workspace = true
+leetcode-auth-cookie-capture-core = { path = "../core", features = ["testing"] }
+tempfile.workspace = true
+tower = { workspace = true, features = ["util"] }

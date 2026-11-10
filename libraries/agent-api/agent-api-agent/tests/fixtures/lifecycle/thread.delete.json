@@ -1,0 +1,56 @@
+{
+  "method": "thread.delete",
+  "exchanges": [
+    {
+      "name": "deletes a thread that has had no turn when asked to only if unused",
+      "before": [
+        {
+          "id": "setup-create-t-de",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-de",
+            "title": "Thread t-de",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.delete",
+        "params": {
+          "thread": "t-de",
+          "only_if_unused": true
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": "t-de",
+          "deleted": true,
+          "seq": 1
+        }
+      },
+      "volatile": [
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "thread.delete",
+        "params": {
+          "thread": "nope"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+ruleDirs:
+  - arch-rules
+utilDirs:
+  - arch-utils
+testConfigs:
+  - testDir: arch-tests

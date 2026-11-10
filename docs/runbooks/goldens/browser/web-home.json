@@ -1,0 +1,73 @@
+{
+  "platform": "browser",
+  "step": 1,
+  "last_action": "open http://127.0.0.1:8080/",
+  "warnings": [],
+  "summary": {
+    "url": "http://127.0.0.1:8080/",
+    "title": "",
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "LeetcodeListScreen",
+      "LeetcodeListHeader",
+      "LeetcodeListScroll",
+      "LeetcodeListHero",
+      "LeetcodeListMenuButton",
+      "LeetcodeListHeroLive",
+      "LeetcodeListHeroLiveText",
+      "LeetcodeListHeroCount",
+      "LeetcodeListHeroCountText",
+      "LeetcodeListHeroTitle",
+      "LeetcodeListHeroSubtitle",
+      "LeetcodeListAuthRow",
+      "LeetcodeListAuthLabel",
+      "LeetcodeListAuthValue",
+      "LeetcodeListSignIn",
+      "LeetcodeListSectionTitle",
+      "LeetcodeListSection",
+      "LeetcodeListItem",
+      "LeetcodeListItemTitle",
+      "LeetcodeListItemDifficulty",
+      "LeetcodeListCompactBar",
+      "LeetcodeListMenuButtonCompact",
+      "LeetcodeListCompactTitle",
+      "LeetcodeListCompactCount",
+      "LeetcodeListCompactCountText",
+      "DebugFabWrap",
+      "DebugFab"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\n🟢 LIVE\n72 PROBLEMS\nBlind 75\nMaster the patterns. Ace the interview. 🚀\nNot signed in\nSign in to LeetCode to unlock account features.\nSign in\nArray & Hashing\n1. Two Sum\nEASY\n217. Contains Duplicate\nEASY\n242. Valid Anagram\nEASY\n49. Group Anagrams\nMEDIUM\n347. Top K Frequent Elements\nMEDIUM\n271. Encode "
+  },
+  "screen": {
+    "width": 1254,
+    "height": 2748
+  },
+  "timings": {
+    "since_start_ms": 1847,
+    "capture_ms": 332
+  },
+  "name": "web-home",
+  "image": {
+    "width": 360,
+    "height": 789
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.002,
+    "ignore": []
+  }
+}

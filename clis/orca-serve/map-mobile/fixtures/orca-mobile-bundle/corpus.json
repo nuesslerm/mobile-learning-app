@@ -1,0 +1,395 @@
+{
+  "schema": "mimic-corpus/1",
+  "seed": 0,
+  "generators": [
+    {
+      "kind": "corpus",
+      "name": "manifest",
+      "op": "bundle.manifest",
+      "cases": [
+        {
+          "id": "manifest",
+          "input": {
+            "files": [
+              {
+                "path": "index.html",
+                "type": "text/html; charset=utf-8",
+                "gen": {
+                  "kind": "literal",
+                  "text": "<!doctype html><title>rca</title><script src=\"assets/app.js\"></script>\n"
+                }
+              },
+              {
+                "path": "assets/app.js",
+                "type": "text/javascript; charset=utf-8",
+                "gen": {
+                  "kind": "text",
+                  "bytes": 133120,
+                  "seed": 7
+                }
+              },
+              {
+                "path": "assets/blob.bin",
+                "type": "application/octet-stream",
+                "gen": {
+                  "kind": "noise",
+                  "bytes": 61440
+                }
+              },
+              {
+                "path": "assets/empty.txt",
+                "type": "text/plain; charset=utf-8",
+                "gen": {
+                  "kind": "empty"
+                }
+              }
+            ],
+            "entrypoint": "index.html",
+            "minCompatibleRuntimeProtocolVersion": 2,
+            "runtimeProtocolVersion": 3,
+            "routes": [
+              {
+                "pathname": "/",
+                "grants": []
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "windows",
+      "op": "bundle.windows",
+      "cases": [
+        {
+          "id": "windows",
+          "input": {
+            "files": [
+              {
+                "path": "index.html",
+                "type": "text/html; charset=utf-8",
+                "gen": {
+                  "kind": "literal",
+                  "text": "<!doctype html><title>rca</title><script src=\"assets/app.js\"></script>\n"
+                }
+              },
+              {
+                "path": "assets/app.js",
+                "type": "text/javascript; charset=utf-8",
+                "gen": {
+                  "kind": "text",
+                  "bytes": 133120,
+                  "seed": 7
+                }
+              },
+              {
+                "path": "assets/blob.bin",
+                "type": "application/octet-stream",
+                "gen": {
+                  "kind": "noise",
+                  "bytes": 61440
+                }
+              },
+              {
+                "path": "assets/empty.txt",
+                "type": "text/plain; charset=utf-8",
+                "gen": {
+                  "kind": "empty"
+                }
+              }
+            ],
+            "entrypoint": "index.html",
+            "minCompatibleRuntimeProtocolVersion": 2,
+            "runtimeProtocolVersion": 3,
+            "routes": [
+              {
+                "pathname": "/",
+                "grants": []
+              }
+            ]
+          },
+          "row": "rpc:mobileWeb.bundle.chunk"
+        }
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "error-codes",
+      "op": "bundle.error-codes",
+      "cases": [
+        {
+          "id": "error-codes",
+          "input": {}
+        }
+      ]
+    },
+    {
+      "kind": "corpus",
+      "name": "probes",
+      "op": "bundle.probe",
+      "cases": [
+        {
+          "id": "probe-total-bytes-negative",
+          "input": {
+            "files": [
+              {
+                "path": "index.html",
+                "type": "text/html; charset=utf-8",
+                "gen": {
+                  "kind": "literal",
+                  "text": "<!doctype html><title>rca</title><script src=\"assets/app.js\"></script>\n"
+                }
+              },
+              {
+                "path": "assets/app.js",
+                "type": "text/javascript; charset=utf-8",
+                "gen": {
+                  "kind": "text",
+                  "bytes": 133120,
+                  "seed": 7
+                }
+              },
+              {
+                "path": "assets/blob.bin",
+                "type": "application/octet-stream",
+                "gen": {
+                  "kind": "noise",
+                  "bytes": 61440
+                }
+              },
+              {
+                "path": "assets/empty.txt",
+                "type": "text/plain; charset=utf-8",
+                "gen": {
+                  "kind": "empty"
+                }
+              }
+            ],
+            "entrypoint": "index.html",
+            "minCompatibleRuntimeProtocolVersion": 2,
+            "runtimeProtocolVersion": 3,
+            "routes": [
+              {
+                "pathname": "/",
+                "grants": []
+              }
+            ],
+            "schema": "manifest",
+            "set": {
+              "/totalBytes": -1
+            }
+          }
+        },
+        {
+          "id": "probe-sha256-short",
+          "input": {
+            "files": [
+              {
+                "path": "index.html",
+                "type": "text/html; charset=utf-8",
+                "gen": {
+                  "kind": "literal",
+                  "text": "<!doctype html><title>rca</title><script src=\"assets/app.js\"></script>\n"
+                }
+              },
+              {
+                "path": "assets/app.js",
+                "type": "text/javascript; charset=utf-8",
+                "gen": {
+                  "kind": "text",
+                  "bytes": 133120,
+                  "seed": 7
+                }
+              },
+              {
+                "path": "assets/blob.bin",
+                "type": "application/octet-stream",
+                "gen": {
+                  "kind": "noise",
+                  "bytes": 61440
+                }
+              },
+              {
+                "path": "assets/empty.txt",
+                "type": "text/plain; charset=utf-8",
+                "gen": {
+                  "kind": "empty"
+                }
+              }
+            ],
+            "entrypoint": "index.html",
+            "minCompatibleRuntimeProtocolVersion": 2,
+            "runtimeProtocolVersion": 3,
+            "routes": [
+              {
+                "pathname": "/",
+                "grants": []
+              }
+            ],
+            "schema": "manifest",
+            "set": {
+              "/assets/0/sha256": "abc"
+            }
+          }
+        },
+        {
+          "id": "probe-entrypoint-missing",
+          "input": {
+            "files": [
+              {
+                "path": "index.html",
+                "type": "text/html; charset=utf-8",
+                "gen": {
+                  "kind": "literal",
+                  "text": "<!doctype html><title>rca</title><script src=\"assets/app.js\"></script>\n"
+                }
+              },
+              {
+                "path": "assets/app.js",
+                "type": "text/javascript; charset=utf-8",
+                "gen": {
+                  "kind": "text",
+                  "bytes": 133120,
+                  "seed": 7
+                }
+              },
+              {
+                "path": "assets/blob.bin",
+                "type": "application/octet-stream",
+                "gen": {
+                  "kind": "noise",
+                  "bytes": 61440
+                }
+              },
+              {
+                "path": "assets/empty.txt",
+                "type": "text/plain; charset=utf-8",
+                "gen": {
+                  "kind": "empty"
+                }
+              }
+            ],
+            "entrypoint": "index.html",
+            "minCompatibleRuntimeProtocolVersion": 2,
+            "runtimeProtocolVersion": 3,
+            "routes": [
+              {
+                "pathname": "/",
+                "grants": []
+              }
+            ],
+            "schema": "manifest",
+            "remove": [
+              "/entrypoint"
+            ]
+          }
+        },
+        {
+          "id": "probe-unknown-key",
+          "input": {
+            "files": [
+              {
+                "path": "index.html",
+                "type": "text/html; charset=utf-8",
+                "gen": {
+                  "kind": "literal",
+                  "text": "<!doctype html><title>rca</title><script src=\"assets/app.js\"></script>\n"
+                }
+              },
+              {
+                "path": "assets/app.js",
+                "type": "text/javascript; charset=utf-8",
+                "gen": {
+                  "kind": "text",
+                  "bytes": 133120,
+                  "seed": 7
+                }
+              },
+              {
+                "path": "assets/blob.bin",
+                "type": "application/octet-stream",
+                "gen": {
+                  "kind": "noise",
+                  "bytes": 61440
+                }
+              },
+              {
+                "path": "assets/empty.txt",
+                "type": "text/plain; charset=utf-8",
+                "gen": {
+                  "kind": "empty"
+                }
+              }
+            ],
+            "entrypoint": "index.html",
+            "minCompatibleRuntimeProtocolVersion": 2,
+            "runtimeProtocolVersion": 3,
+            "routes": [
+              {
+                "pathname": "/",
+                "grants": []
+              }
+            ],
+            "schema": "manifest",
+            "set": {
+              "/unexpected": true
+            }
+          }
+        },
+        {
+          "id": "probe-chunk-bytes-over-grid",
+          "input": {
+            "files": [
+              {
+                "path": "index.html",
+                "type": "text/html; charset=utf-8",
+                "gen": {
+                  "kind": "literal",
+                  "text": "<!doctype html><title>rca</title><script src=\"assets/app.js\"></script>\n"
+                }
+              },
+              {
+                "path": "assets/app.js",
+                "type": "text/javascript; charset=utf-8",
+                "gen": {
+                  "kind": "text",
+                  "bytes": 133120,
+                  "seed": 7
+                }
+              },
+              {
+                "path": "assets/blob.bin",
+                "type": "application/octet-stream",
+                "gen": {
+                  "kind": "noise",
+                  "bytes": 61440
+                }
+              },
+              {
+                "path": "assets/empty.txt",
+                "type": "text/plain; charset=utf-8",
+                "gen": {
+                  "kind": "empty"
+                }
+              }
+            ],
+            "entrypoint": "index.html",
+            "minCompatibleRuntimeProtocolVersion": 2,
+            "runtimeProtocolVersion": 3,
+            "routes": [
+              {
+                "pathname": "/",
+                "grants": []
+              }
+            ],
+            "schema": "manifest-result",
+            "set": {
+              "/chunkBytes": 49153
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

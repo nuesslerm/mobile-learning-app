@@ -1,0 +1,231 @@
+{
+ "settings": {
+  "agentCmdOverrides": {},
+  "agentDefaultArgs": {
+   "aider": "--yes-always",
+   "amp": "--dangerously-allow-all",
+   "ante": "--yolo",
+   "antigravity": "--dangerously-skip-permissions",
+   "autohand": "--unrestricted",
+   "claude": "--dangerously-skip-permissions",
+   "claude-agent-teams": "--dangerously-skip-permissions",
+   "cline": "--auto-approve true",
+   "codebuddy": "--dangerously-skip-permissions",
+   "codex": "--dangerously-bypass-approvals-and-sandbox",
+   "command-code": "--yolo",
+   "continue": "--allow \"*\"",
+   "copilot": "--yolo",
+   "crush": "--yolo",
+   "cursor": "--yolo",
+   "devin": "--permission-mode bypass --respect-workspace-trust false",
+   "droid": "--auto high",
+   "gemini": "--yolo",
+   "goose": "",
+   "grok": "--permission-mode bypassPermissions",
+   "hermes": "--yolo",
+   "kimi": "--yolo",
+   "kiro": "--trust-all-tools",
+   "mistral-vibe": "--agent auto-approve",
+   "muse": "--yolo",
+   "omp": "",
+   "openclaude": "--dangerously-skip-permissions",
+   "opencode": "",
+   "opencode2": "",
+   "qoder": "--dangerously-skip-permissions",
+   "qoder-cn": "--dangerously-skip-permissions",
+   "qwen-code": "--approval-mode yolo",
+   "rovo": "--yolo",
+   "trae": "--yolo",
+   "zcode": "--mode yolo"
+  },
+  "agentDefaultEnv": {
+   "goose": {
+    "GOOSE_MODE": "auto"
+   }
+  },
+  "agentStatusHooksEnabled": true,
+  "claudeSubagentNavigationEnabled": true,
+  "codexShareHistoryAcrossAccounts": true,
+  "compactWorktreeCards": false,
+  "defaultLinearTeamSelection": null,
+  "defaultRepoSelection": null,
+  "defaultTaskSource": "github",
+  "defaultTaskViewPreset": "all",
+  "defaultTuiAgent": null,
+  "diffShowWhitespace": false,
+  "disabledTuiAgents": [],
+  "experimentalNewWorktreeCardStyle": false,
+  "githubProjects": {
+   "activeProject": null,
+   "lastViewByProject": {},
+   "pinned": [],
+   "recent": []
+  },
+  "hostSettingOverrides": {},
+  "machineName": "",
+  "minimaxEndpoint": "overseas",
+  "minimaxGroupId": "",
+  "minimaxUsageModels": "general",
+  "nativeChatAutoContinueAfterUsageLimit": false,
+  "nativeChatPermissionMode": "full-access",
+  "nativeChatQueueFollowUps": true,
+  "newWorkspaceSetupOnly": false,
+  "prBotAuthorOverrides": [],
+  "sourceControlAi": {
+   "actions": {
+    "fixChecks": {
+     "commandInputTemplate": "{basePrompt}"
+    },
+    "fixCommitFailure": {
+     "commandInputTemplate": "{basePrompt}"
+    },
+    "fixPushFailure": {
+     "commandInputTemplate": "{basePrompt}"
+    },
+    "resolveComments": {
+     "commandInputTemplate": "{basePrompt}"
+    },
+    "resolveConflicts": {
+     "commandInputTemplate": "{basePrompt}"
+    }
+   }
+  },
+  "sourceControlCompareAgainstUpstream": false,
+  "sourceControlGroupOrder": "changes-first",
+  "terminalCopyTrimsGutter": true,
+  "visibleTaskProviders": [
+   "github",
+   "gitlab",
+   "linear",
+   "jira"
+  ],
+  "worktreeVisibilityDefaults": {
+   "external": "hide"
+  },
+  "zcodePlanSite": "zai"
+ },
+ "ui": {
+  "_explorerDisplayRootMigrated": true,
+  "_workspaceStatusesDefaultOrderMigrated": true,
+  "_workspaceStatusesDefaultVisualsMigrated": true,
+  "_workspaceStatusesDefaultWorkflowMigrated": true,
+  "_workspaceStatusesReorderedDefaultRepaired": true,
+  "_worktreeCardModeDefaulted": true,
+  "acknowledgedAgentsByPaneKey": {},
+  "activeView": "terminal",
+  "agentActivityDisplayMode": "compact",
+  "alwaysShowDefaultBranchWorkspace": true,
+  "browserDefaultZoomLevel": 0,
+  "browserImportHintHidden": false,
+  "collapsedGroups": [],
+  "combinedDiffFileTreeWidth": 256,
+  "contextualToursSeenIds": [],
+  "dismissedUnexpectedSignoutVersion": null,
+  "dismissedUpdateVersion": null,
+  "editorFontZoomLevel": 0,
+  "explorerDisplayRootByWorktree": {},
+  "featureInteractions": {},
+  "featureTipsSeenIds": [],
+  "filterRepoIds": [],
+  "groupBy": "repo",
+  "hideAutomationGeneratedWorkspaces": false,
+  "hideCliCreatedWorkspaces": false,
+  "hideDefaultBranchWorkspace": false,
+  "hideDetachedHeadWorkspaces": false,
+  "hideSleepingWorkspaces": false,
+  "lastActiveRepoId": null,
+  "lastActiveWorktreeId": null,
+  "lastUpdateCheckAt": null,
+  "markdownTocPanelWidth": 240,
+  "mobileEmulatorAgentSetupDismissed": false,
+  "mobileEmulatorTabIntroDismissed": false,
+  "osc52ClipboardDefaultOnNoticePending": false,
+  "pluginsAlphaNoticeDismissed": false,
+  "projectOrderBy": "manual",
+  "projectOrderManualDefaultNoticeDismissed": true,
+  "rightSidebarExplorerView": "files",
+  "rightSidebarOpen": true,
+  "rightSidebarTab": "explorer",
+  "rightSidebarWidth": 350,
+  "setupGuideBrowserMilestoneLegacyComplete": false,
+  "setupGuideBrowserMilestoneMigrated": true,
+  "setupGuideSidebarDismissed": false,
+  "setupScriptPromptDismissedRepoIds": [],
+  "showActiveOnly": false,
+  "showDotfilesByWorktree": {},
+  "showSleepingWorkspaces": true,
+  "sidebarWidth": 280,
+  "sortBy": "recent",
+  "statusBarCompactChangeNoticeDismissed": true,
+  "statusBarItems": [
+   "claude",
+   "codex",
+   "gemini",
+   "antigravity",
+   "opencode-go",
+   "kimi",
+   "minimax",
+   "grok",
+   "cursor",
+   "zcode",
+   "ssh",
+   "resource-usage",
+   "ports"
+  ],
+  "statusBarUsageMode": "compact",
+  "statusBarVisible": true,
+  "syncTaskStatusFromWorkspaceBoard": false,
+  "trayMinimizeNoticeShown": false,
+  "trustedOrcaHooks": {},
+  "uiZoomLevel": 0,
+  "usagePercentageDisplay": "used",
+  "usagePercentageDisplayChangeNoticeDismissed": true,
+  "visibleWorkspaceHostIds": null,
+  "workspaceBoardColumnWidth": 308,
+  "workspaceBoardOpacity": 1,
+  "workspaceCleanup": {
+   "dismissals": {}
+  },
+  "workspaceHostScope": "all",
+  "workspaceStatuses": [
+   {
+    "color": "neutral",
+    "icon": "circle",
+    "id": "todo",
+    "label": "Todo"
+   },
+   {
+    "color": "conductor-progress",
+    "icon": "conductor-progress",
+    "id": "in-progress",
+    "label": "In progress"
+   },
+   {
+    "color": "conductor-review",
+    "icon": "conductor-review",
+    "id": "in-review",
+    "label": "In review"
+   },
+   {
+    "color": "conductor-done",
+    "icon": "conductor-done",
+    "id": "completed",
+    "label": "Done"
+   }
+  ],
+  "worktreeCardProperties": [
+   "status",
+   "unread",
+   "issue",
+   "linear-issue",
+   "jira-issue",
+   "pr",
+   "automation",
+   "cli",
+   "comment",
+   "ports",
+   "inline-agents",
+   "host"
+  ]
+ }
+}

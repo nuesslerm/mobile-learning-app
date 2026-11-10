@@ -1,0 +1,15 @@
+Usage: wf vm net resolve [options] <name...>
+
+The name each tailnet host answers to now: the base name, else the first of
+<name>-1 .. <name>-5 that resolves (a name drifts to a suffix while a stale
+record holds it). Resolves through this machine's resolver, so run it where
+MagicDNS answers (the VM's runner, a machine on the tailnet).
+
+Options:
+  -h, --help  display help for command
+
+Output: one JSON line {"<name>": "<the name that resolves>" | null, ...}.
+Exit 1 when a name has none (named on stderr), 0 otherwise.
+
+Example:
+  wf vm net resolve leetcode-backend-prod remote-chat-agent-prod

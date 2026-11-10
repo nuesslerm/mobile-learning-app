@@ -1,0 +1,50 @@
+{
+  "method": "git.stage",
+  "exchanges": [
+    {
+      "name": "stages a path",
+      "request": {
+        "id": 1,
+        "method": "git.stage",
+        "params": {
+          "workspace": "w1",
+          "paths": [
+            "README.md"
+          ]
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "paths": 1
+        }
+      },
+      "actions": [
+        "git_stage"
+      ]
+    },
+    {
+      "name": "a path that climbs out is refused",
+      "request": {
+        "id": 1,
+        "method": "git.stage",
+        "params": {
+          "workspace": "w1",
+          "paths": [
+            "../x"
+          ]
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`path` must be a path inside the repository's working tree"
+        }
+      },
+      "actions": [
+        "git_stage"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "method": "worktree.setup.cancel",
+  "exchanges": [
+    {
+      "name": "stops a setup, or says it had finished",
+      "before": [
+        {
+          "method": "worktree.create",
+          "params": {
+            "workspace": "w1",
+            "worktree": "wt",
+            "branch": "feature/setup",
+            "base": "HEAD",
+            "setup": [
+              "echo hi",
+              "basename \"$PWD\""
+            ]
+          },
+          "id": "b10"
+        }
+      ],
+      "request": {
+        "params": {
+          "workspace": "wt"
+        },
+        "id": 1,
+        "method": "worktree.setup.cancel"
+      },
+      "response": {
+        "result": {
+          "workspace": "wt",
+          "cancelled": false
+        },
+        "id": 1
+      },
+      "actions": [],
+      "volatile": [
+        "/result/cancelled"
+      ]
+    },
+    {
+      "name": "refuses a workspace nobody knows",
+      "request": {
+        "params": {
+          "workspace": "zz"
+        },
+        "id": 2,
+        "method": "worktree.setup.cancel"
+      },
+      "response": {
+        "error": {
+          "code": "UNKNOWN_WORKSPACE",
+          "message": "no workspace zz"
+        },
+        "id": 2
+      },
+      "actions": []
+    }
+  ]
+}

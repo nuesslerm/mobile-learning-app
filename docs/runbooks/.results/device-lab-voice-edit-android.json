@@ -1,0 +1,94 @@
+{
+  "runbook": "device-lab-voice-edit.md",
+  "gate": "G1 voice edit",
+  "sha": "18e8db0197a4c12cbf3451de78904e4bcfcb0c3b",
+  "platform": "android",
+  "ranAt": "2026-10-19T23:35:26.376Z",
+  "ranOn": "ci",
+  "verdict": "pass",
+  "recordingsReadBack": true,
+  "criteria": {
+    "all_units_pass": "pass (8 of 8 units)",
+    "zero_warnings": "pass (0 warnings)",
+    "recorded_and_read_back": "pass (one recording per unit, read back after upload and decoded again for the report)",
+    "unit_under_60s": "pass (longest 32.4 s, median 31.7 s)",
+    "vm_sampled": "pass (16 samples every 20 s over 8 units; load peaked at 4.75, MemAvailable fell to 2918 MB)"
+  },
+  "notes": "CI on the VM, e2e/voice-edit.lua, one unit per job step, screen 127.0.0.1:5555 480x1040@213. Replaces the hand-run record of mid-October; the units, timings and recordings are in the report page.",
+  "evidence": {
+    "page": "https://claude.ai/artifact/A949abTVxxhtbsRf3Qg6hx",
+    "recordingsReadBack": true,
+    "runs": [
+      "run-49c2850fefc58344",
+      "run-7eca745c731c702a",
+      "run-db3a8fbd2f08016a",
+      "run-4ddd68bdaaf72c1e",
+      "run-965d4384d12aae46",
+      "run-7abc5d456b6ab7b6",
+      "run-5c5802895772bf29",
+      "run-129b9301291df6c7"
+    ],
+    "units": {
+      "chunk=1": {
+        "runId": "run-49c2850fefc58344",
+        "durationS": 32.4,
+        "verdict": "pass"
+      },
+      "chunk=2": {
+        "runId": "run-7eca745c731c702a",
+        "durationS": 32.2,
+        "verdict": "pass"
+      },
+      "chunk=3": {
+        "runId": "run-db3a8fbd2f08016a",
+        "durationS": 31.7,
+        "verdict": "pass"
+      },
+      "chunk=4": {
+        "runId": "run-4ddd68bdaaf72c1e",
+        "durationS": 29.1,
+        "verdict": "pass"
+      },
+      "chunk=5": {
+        "runId": "run-965d4384d12aae46",
+        "durationS": 27.8,
+        "verdict": "pass"
+      },
+      "chunk=6": {
+        "runId": "run-7abc5d456b6ab7b6",
+        "durationS": 30.8,
+        "verdict": "pass"
+      },
+      "chunk=7": {
+        "runId": "run-5c5802895772bf29",
+        "durationS": 32.3,
+        "verdict": "pass"
+      },
+      "chunk=8": {
+        "runId": "run-129b9301291df6c7",
+        "durationS": 30.3,
+        "verdict": "pass"
+      }
+    },
+    "recordings": [
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-49c2850fefc58344/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-7eca745c731c702a/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-db3a8fbd2f08016a/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-4ddd68bdaaf72c1e/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-965d4384d12aae46/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-7abc5d456b6ab7b6/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-5c5802895772bf29/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-129b9301291df6c7/run.mp4"
+    ],
+    "vm": {
+      "everyS": 20,
+      "units": 8,
+      "samples": 16,
+      "failedSamples": 8,
+      "load1Max": 4.75,
+      "memAvailableMinMb": 2918,
+      "device": "not captured in this run: the sampler looked for the rdl container, which lives inside agent-shell-dind; fixed for the next runs"
+    },
+    "agent": "the remote-chat-agent the dev Metro build points at (the deployed service), as CI runs it; no checkout agent"
+  }
+}

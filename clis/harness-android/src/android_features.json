@@ -1,0 +1,224 @@
+{
+  "_about": "Every package of the stock redroid 14 image is core (kept), in one feature (kept only with --with <feature>) or removed (never kept). The unit test fails on an unclassified or duplicated package. Core also holds packages the system refuses to boot without (android.ext.services is kept as a suspected one; com.android.sdksandbox: the package manager throws unless exactly one SDK sandbox package exists, so the system server loops on its next start). The launcher is core too: sys.boot_completed is only set once a home activity is idle, so without it the device never finishes booting after a restart. Settings is core as well: it holds FallbackHome, the home activity used during direct boot before the launcher can start.",
+  "core": [
+    "android",
+    "android.ext.services",
+    "android.ext.shared",
+    "com.android.backupconfirm",
+    "com.android.captiveportallogin",
+    "com.android.certinstaller",
+    "com.android.connectivity.resources",
+    "com.android.credentialmanager",
+    "com.android.cts.ctsshim",
+    "com.android.cts.priv.ctsshim",
+    "com.android.externalstorage",
+    "com.android.inputdevices",
+    "com.android.inputmethod.latin",
+    "com.android.intentresolver",
+    "com.android.internal.display.cutout.emulation.corner",
+    "com.android.internal.display.cutout.emulation.double",
+    "com.android.internal.display.cutout.emulation.hole",
+    "com.android.internal.display.cutout.emulation.tall",
+    "com.android.internal.display.cutout.emulation.waterfall",
+    "com.android.internal.systemui.navbar.gestural",
+    "com.android.internal.systemui.navbar.gestural_extra_wide_back",
+    "com.android.internal.systemui.navbar.gestural_narrow_back",
+    "com.android.internal.systemui.navbar.gestural_wide_back",
+    "com.android.internal.systemui.navbar.threebutton",
+    "com.android.internal.systemui.navbar.transparent",
+    "com.android.keychain",
+    "com.android.launcher3",
+    "com.android.localtransport",
+    "com.android.location.fused",
+    "com.android.modulemetadata",
+    "com.android.networkstack",
+    "com.android.networkstack.tethering",
+    "com.android.packageinstaller",
+    "com.android.pacprocessor",
+    "com.android.permissioncontroller",
+    "com.android.providers.downloads",
+    "com.android.providers.media",
+    "com.android.providers.media.module",
+    "com.android.providers.settings",
+    "com.android.providers.userdictionary",
+    "com.android.provision",
+    "com.android.proxyhandler",
+    "com.android.safetycenter.resources",
+    "com.android.sdksandbox",
+    "com.android.settings",
+    "com.android.shell",
+    "com.android.systemui",
+    "com.android.theme.font.notoserifsource",
+    "com.android.uwb.resources",
+    "com.android.webview",
+    "com.android.wifi.resources"
+  ],
+  "features": [
+    {
+      "name": "search",
+      "what": "Quick search box",
+      "packages": [
+        "com.android.quicksearchbox"
+      ]
+    },
+    {
+      "name": "settings-extras",
+      "what": "Settings search index and storage manager",
+      "packages": [
+        "com.android.settings.intelligence",
+        "com.android.storagemanager"
+      ]
+    },
+    {
+      "name": "files",
+      "what": "System file picker, sound picker, download list, HTML viewer, MTP; apps that open a document or file chooser",
+      "packages": [
+        "com.android.documentsui",
+        "com.android.soundpicker",
+        "com.android.providers.downloads.ui",
+        "com.android.htmlviewer",
+        "com.android.mtp"
+      ]
+    },
+    {
+      "name": "camera",
+      "what": "Camera app, camera extensions, webcam mode and gallery",
+      "packages": [
+        "com.android.camera2",
+        "com.android.cameraextensions",
+        "com.android.DeviceAsWebcam",
+        "com.android.gallery3d"
+      ]
+    },
+    {
+      "name": "contacts",
+      "what": "Contacts app and provider, blocked numbers",
+      "packages": [
+        "com.android.contacts",
+        "com.android.providers.contacts",
+        "com.android.providers.blockednumber"
+      ]
+    },
+    {
+      "name": "calendar",
+      "what": "Calendar, its provider and the clock app",
+      "packages": [
+        "com.android.calendar",
+        "com.android.providers.calendar",
+        "com.android.deskclock"
+      ]
+    },
+    {
+      "name": "telephony",
+      "what": "Phone, SMS/MMS, telecom and SIM services",
+      "packages": [
+        "com.android.phone",
+        "com.android.providers.telephony",
+        "com.android.mms.service",
+        "com.android.server.telecom",
+        "com.android.smspush",
+        "com.android.simappdialog",
+        "com.android.se"
+      ]
+    },
+    {
+      "name": "bluetooth",
+      "what": "Bluetooth stack, MIDI and companion-device pairing",
+      "packages": [
+        "com.android.bluetooth",
+        "com.android.bluetoothmidiservice",
+        "com.android.companiondevicemanager"
+      ]
+    },
+    {
+      "name": "nfc",
+      "what": "NFC and nearby sharing",
+      "packages": [
+        "com.android.nfc",
+        "com.android.nearby.halfsheet"
+      ]
+    },
+    {
+      "name": "print",
+      "what": "Printing: spooler, built-in print service, recommendations",
+      "packages": [
+        "com.android.bips",
+        "com.android.printspooler",
+        "com.android.printservice.recommendation"
+      ]
+    },
+    {
+      "name": "wallpaper",
+      "what": "Wallpaper picker, cropper, backup and screensavers",
+      "packages": [
+        "com.android.wallpaper.livepicker",
+        "com.android.wallpaperbackup",
+        "com.android.wallpapercropper",
+        "com.android.dreams.basic",
+        "com.android.dreams.phototable"
+      ]
+    },
+    {
+      "name": "health",
+      "what": "Health Connect and its controller",
+      "packages": [
+        "com.android.health.connect.backuprestore",
+        "com.android.healthconnect.controller"
+      ]
+    },
+    {
+      "name": "music",
+      "what": "Music player and audio effects",
+      "packages": [
+        "com.android.music",
+        "com.android.musicfx"
+      ]
+    },
+    {
+      "name": "adservices",
+      "what": "Ad services, federated compute and on-device personalization",
+      "packages": [
+        "com.android.adservices.api",
+        "com.android.ext.adservices.api",
+        "com.android.federatedcompute.services",
+        "com.android.ondevicepersonalization.services"
+      ]
+    },
+    {
+      "name": "wifi-ui",
+      "what": "Wi-Fi dialogs and Hotspot 2.0 sign-in",
+      "packages": [
+        "com.android.wifi.dialog",
+        "com.android.hotspot2.osulogin"
+      ]
+    },
+    {
+      "name": "accessibility",
+      "what": "Accessibility menu",
+      "packages": [
+        "com.android.systemui.accessibility.accessibilitymenu"
+      ]
+    },
+    {
+      "name": "vpn",
+      "what": "VPN consent dialog",
+      "packages": [
+        "com.android.vpndialogs"
+      ]
+    }
+  ],
+  "removed": [
+    "com.android.bookmarkprovider",
+    "com.android.devicelockcontroller",
+    "com.android.dynsystem",
+    "com.android.egg",
+    "com.android.managedprovisioning",
+    "com.android.rkpdapp",
+    "com.android.role.notes.enabled",
+    "com.android.sharedstoragebackup",
+    "com.android.statementservice",
+    "com.android.traceur",
+    "com.android.virtualmachine.res",
+    "org.chromium.webview_shell"
+  ]
+}

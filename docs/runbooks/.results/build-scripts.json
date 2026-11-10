@@ -1,0 +1,7 @@
+{
+  "runbook": "build-scripts.md",
+  "sha": "24f73e1d39e9bc1415a1ddb4911ccc264b90beb6",
+  "ranAt": "2026-08-22",
+  "verdict": "pass",
+  "notes": "pnpm --filter mobile-learning-app run build:cm6 regenerated cm6Bundle.ts successfully. Found and fixed stale features/leetcode/src paths in the doc (real location is features/leetcode-impl/src after the feature-triad split)."
+}

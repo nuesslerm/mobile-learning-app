@@ -1,0 +1,16 @@
+Usage: wf knowledge [options] [command]
+
+docs/solutions knowledge index (rank, index, stale) and the Gemini Gem context
+bundle (index --gemini)
+
+Options:
+  -h, --help                display help for command
+
+Commands:
+  rank [options] <files...>  Rank docs/solutions learnings relevant to these
+                             files
+  stale [options]           List learnings not touched in --days
+  index [options]           Rebuild the docs/solutions index; with --gemini, build
+                            ARCHITECTURE.md + repomix pack as Google Docs and upload them
+                            over one Drive file for the Gemini Gem
+  help [command]            display help for command

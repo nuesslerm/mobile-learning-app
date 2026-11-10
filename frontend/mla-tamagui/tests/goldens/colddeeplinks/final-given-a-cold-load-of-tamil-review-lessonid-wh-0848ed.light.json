@@ -1,0 +1,73 @@
+{
+  "suite": "colddeeplinks",
+  "step": "final-given-a-cold-load-of-tamil-review-lessonid-wh-0848ed",
+  "scheme": "light",
+  "snapshot": "colddeeplinks/final-given-a-cold-load-of-tamil-review-lessonid-wh-0848ed.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "TamilReviewScreen",
+      "TamilReviewHeader",
+      "TamilReviewHeaderBack",
+      "TamilReviewHeaderTitle",
+      "TamilReviewHeaderSubtitle",
+      "TamilReviewScroll",
+      "TamilReviewKnownCount",
+      "TamilReviewLearningCount",
+      "TamilReviewRemainingCount",
+      "TamilReviewBar",
+      "TamilReviewBarFill",
+      "TamilReviewBarTrack",
+      "TamilReviewPromptCard",
+      "TamilReviewPrompt",
+      "TamilReviewSound",
+      "TamilReviewExample",
+      "TamilReviewCanvas",
+      "TamilReviewCanvasSurface",
+      "TamilReviewFeedback",
+      "TamilReviewReveal",
+      "TamilReviewClear",
+      "TamilReviewUndo",
+      "TamilReviewAgain",
+      "TamilReviewGotIt",
+      "TamilReviewAnsweredCount"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nWrite from memory\nThis lesson\n0 GOT IT\n0 AGAIN\n6 TO GO\nWrite this letter\na\nshort \"a\", as in about\nas in ammā — mother\nWrite it with your finger.\nNot yet\nGot it\n0 answered · missed letters come back sooner"
+  },
+  "timings": {
+    "render_ms": 523
+  },
+  "name": "colddeeplinks/final-given-a-cold-load-of-tamil-review-lessonid-wh-0848ed.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

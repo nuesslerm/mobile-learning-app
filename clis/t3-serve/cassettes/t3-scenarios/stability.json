@@ -1,0 +1,238 @@
+{
+  "runs": [
+    "t3-scenarios",
+    "t3-ss1",
+    "t3-ss2",
+    "t3-ss3"
+  ],
+  "compared": 25,
+  "unobserved": [
+    "t3-scn-command-delegated_task.completion-delivery.acknowledge",
+    "t3-scn-command-delegated_task.completion-delivery.dispose",
+    "t3-scn-command-delegated_task.request",
+    "t3-scn-command-delegated_task.wake-policy",
+    "t3-scn-command-notification.delivery.accept",
+    "t3-scn-command-prepared-run.fail",
+    "t3-scn-command-prepared-run.progress",
+    "t3-scn-command-prepared-run.release",
+    "t3-scn-command-prepared-run.retry",
+    "t3-scn-command-provider-session.detach",
+    "t3-scn-command-queue.resume",
+    "t3-scn-command-queued-message.promote-to-steer",
+    "t3-scn-command-queued-run.edit",
+    "t3-scn-command-queued-run.reorder",
+    "t3-scn-command-queued-run.start",
+    "t3-scn-command-run.interrupt",
+    "t3-scn-command-runtime-request.respond",
+    "t3-scn-command-subagent.stop",
+    "t3-scn-command-thread.active.reorder",
+    "t3-scn-command-thread.auto-settle",
+    "t3-scn-command-thread.created.record",
+    "t3-scn-command-thread.delete",
+    "t3-scn-command-thread.fork",
+    "t3-scn-command-thread.guest-message.dismiss",
+    "t3-scn-command-thread.guest-share.close",
+    "t3-scn-command-thread.mark-unread",
+    "t3-scn-command-thread.merge_back",
+    "t3-scn-command-thread.metadata.update",
+    "t3-scn-command-thread.model-selection.set",
+    "t3-scn-command-thread.pin",
+    "t3-scn-command-thread.pull-request-link.sync",
+    "t3-scn-command-thread.pull-request.link",
+    "t3-scn-command-thread.pull-request.sync",
+    "t3-scn-command-thread.pull-request.unlink",
+    "t3-scn-command-thread.pull-request.watch",
+    "t3-scn-command-thread.settle",
+    "t3-scn-command-thread.snooze",
+    "t3-scn-command-thread.stop",
+    "t3-scn-command-thread.title.regeneration.complete",
+    "t3-scn-command-thread.unarchive",
+    "t3-scn-command-thread.unsettle",
+    "t3-scn-command-thread.unsnooze",
+    "t3-scn-command-thread.user-input.dismiss",
+    "t3-scn-command-thread.visit",
+    "t3-scn-mutation-project.delete",
+    "t3-scn-rpc-agentSessions.import",
+    "t3-scn-rpc-device.close",
+    "t3-scn-rpc-device.open",
+    "t3-scn-rpc-git.preparePullRequestThread",
+    "t3-scn-rpc-git.resolvePullRequest",
+    "t3-scn-rpc-guestShare.create",
+    "t3-scn-rpc-mcpApps.callTool",
+    "t3-scn-rpc-mcpApps.readResource",
+    "t3-scn-rpc-mcpApps.toolInfo",
+    "t3-scn-rpc-mcpApps.updateModelContext",
+    "t3-scn-rpc-orchestration.forceStopThread",
+    "t3-scn-rpc-orchestration.getFullThreadDiff",
+    "t3-scn-rpc-orchestration.getThreadFamily",
+    "t3-scn-rpc-orchestration.getThreadProjection",
+    "t3-scn-rpc-orchestration.getTurnItem",
+    "t3-scn-rpc-orchestration.launchThread",
+    "t3-scn-rpc-orchestration.searchThread",
+    "t3-scn-rpc-orchestration.searchThreadStream",
+    "t3-scn-rpc-orchestration.stopWorkflow",
+    "t3-scn-rpc-orchestration.subscribeCommandOutput",
+    "t3-scn-rpc-preview.adjust",
+    "t3-scn-rpc-preview.close",
+    "t3-scn-rpc-preview.list",
+    "t3-scn-rpc-preview.open",
+    "t3-scn-rpc-preview.reportStatus",
+    "t3-scn-rpc-projectClone.cancel",
+    "t3-scn-rpc-projectClone.retry",
+    "t3-scn-rpc-projectClone.start",
+    "t3-scn-rpc-projects.createFromThread",
+    "t3-scn-rpc-projects.listEntries",
+    "t3-scn-rpc-projects.mutate",
+    "t3-scn-rpc-projects.readFile",
+    "t3-scn-rpc-projects.searchContents",
+    "t3-scn-rpc-projects.searchEntries",
+    "t3-scn-rpc-projects.writeFile",
+    "t3-scn-rpc-pullRequests.activity",
+    "t3-scn-rpc-pullRequests.changeBreakdown",
+    "t3-scn-rpc-pullRequests.checks",
+    "t3-scn-rpc-pullRequests.detail",
+    "t3-scn-rpc-pullRequests.filesViewed",
+    "t3-scn-rpc-pullRequests.labelCandidates",
+    "t3-scn-rpc-pullRequests.linkedThreads",
+    "t3-scn-rpc-pullRequests.preview",
+    "t3-scn-rpc-pullRequests.replyToThread",
+    "t3-scn-rpc-pullRequests.reviewGuide",
+    "t3-scn-rpc-pullRequests.routing",
+    "t3-scn-rpc-pullRequests.setThreadResolution",
+    "t3-scn-rpc-pullRequests.stack",
+    "t3-scn-rpc-pullRequests.summary",
+    "t3-scn-rpc-pullRequests.threadComments",
+    "t3-scn-rpc-review.getDiffFileContents",
+    "t3-scn-rpc-review.getDiffPreview",
+    "t3-scn-rpc-scheduledTasks.upsert",
+    "t3-scn-rpc-secrets.answerRequest",
+    "t3-scn-rpc-server.deleteAcpRegistrySession",
+    "t3-scn-rpc-server.importAcpRegistrySession",
+    "t3-scn-rpc-server.listAcpRegistryProviders",
+    "t3-scn-rpc-server.listAcpRegistrySessions",
+    "t3-scn-rpc-server.setAcpRegistryProvider",
+    "t3-scn-rpc-shell.openInEditor",
+    "t3-scn-rpc-subscribeWorktreeSetup",
+    "t3-scn-rpc-terminal.open",
+    "t3-scn-rpc-vcs.createRef",
+    "t3-scn-rpc-vcs.init",
+    "t3-scn-rpc-vcs.listRefs",
+    "t3-scn-rpc-vcs.removeWorktree",
+    "t3-scn-rpc-vcs.switchRef",
+    "t3-scn-rpc-worktreeSetup.cancel",
+    "t3-story-thread-lifecycle",
+    "t3-story-turn-and-history"
+  ],
+  "stable_before": 22,
+  "stable_after": 22,
+  "stable_pct": 88.0,
+  "causes": {
+    "short-value": 3
+  },
+  "proposals": [
+    {
+      "rule": {
+        "kind": "token",
+        "pattern": "\\b[0-9a-f]{16}\\-FRA\\b",
+        "placeholder": "<volatile:hex16>"
+      },
+      "why": "`a5692f3d6e28e864-FRA` and `a5692dd33d60d295-FRA` differ and share the shape \\b[0-9a-f]{16}\\-FRA\\b",
+      "scope": "global",
+      "seen_in": [
+        "t3-scn-command-message.dispatch",
+        "t3-scn-command-queued-run.cancel",
+        "t3-scn-rpc-assets.persistChatAttachments"
+      ]
+    }
+  ],
+  "unstable": [
+    {
+      "id": "t3-scn-command-message.dispatch",
+      "row": "command:message.dispatch",
+      "cause": "short-value",
+      "reason": "a short value differs between runs; masking it would hide the answer",
+      "samples": [
+        {
+          "pointer": "/steps/12/payload/exit/value/attempts/0",
+          "cause": "key-set",
+          "a": "+nativeThreadId",
+          "b": "+"
+        },
+        {
+          "pointer": "/steps/12/payload/exit/value/attempts/0/startedAt",
+          "cause": "type-change",
+          "a": "<ts>",
+          "b": "null"
+        },
+        {
+          "pointer": "/steps/12/payload/exit/value/attempts/0/status",
+          "cause": "text-change",
+          "a": "running",
+          "b": "pending"
+        }
+      ]
+    },
+    {
+      "id": "t3-scn-command-queued-run.cancel",
+      "row": "command:queued-run.cancel",
+      "cause": "short-value",
+      "reason": "a short value differs between runs; masking it would hide the answer",
+      "samples": [
+        {
+          "pointer": "/steps/12/payload/exit/value/turnItems",
+          "cause": "array-length",
+          "a": "2 items",
+          "b": "1 items"
+        },
+        {
+          "pointer": "/steps/12/payload/exit/value/visibleTurnItems",
+          "cause": "array-length",
+          "a": "2 items",
+          "b": "1 items"
+        },
+        {
+          "pointer": "/steps/16/payload/exit/value/turnItems/1/retry/attempt",
+          "cause": "short-value",
+          "a": "5",
+          "b": "4"
+        }
+      ]
+    },
+    {
+      "id": "t3-scn-rpc-assets.persistChatAttachments",
+      "row": "rpc:assets.persistChatAttachments",
+      "cause": "short-value",
+      "reason": "a short value differs between runs; masking it would hide the answer",
+      "samples": [
+        {
+          "pointer": "/steps/12/payload/exit/value/turnItems/1/retry/attempt",
+          "cause": "short-value",
+          "a": "3",
+          "b": "2"
+        },
+        {
+          "pointer": "/steps/12/payload/exit/value/visibleTurnItems/1/item/retry/attempt",
+          "cause": "short-value",
+          "a": "3",
+          "b": "2"
+        },
+        {
+          "pointer": "/steps/12/payload/exit/value/turnItems",
+          "cause": "array-length",
+          "a": "2 items",
+          "b": "1 items"
+        }
+      ]
+    }
+  ],
+  "accounting": {
+    "allowlisted": [
+      "t3-scn-command-message.dispatch",
+      "t3-scn-command-queued-run.cancel",
+      "t3-scn-rpc-assets.persistChatAttachments"
+    ],
+    "unlisted": [],
+    "stale": [],
+    "wrong_cause": []
+  }
+}

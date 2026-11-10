@@ -1,0 +1,30 @@
+[package]
+name = "vm-ops-api-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "vm_ops_api_core"
+path = "src/lib.rs"
+
+[features]
+# The in-memory doubles of the ports, for the service crate's flow tests.
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+ed25519-dalek.workspace = true
+futures-util.workspace = true
+hex.workspace = true
+hmac.workspace = true
+secrecy.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sha2.workspace = true
+subtle.workspace = true
+url.workspace = true
+
+[dev-dependencies]
+base64.workspace = true
+tokio = { workspace = true, features = ["rt", "macros"] }

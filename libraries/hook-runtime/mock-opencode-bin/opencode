@@ -1,0 +1,156 @@
+#!/bin/sh
+# Fake `opencode` binary, put first on PATH by tests:
+#   1. `backend/remote-chat-agent/tests/integration/dispatch/opencode-dispatch-against-stub.integration.test.ts`
+#      points `opencodeDispatch()` (the real dispatch.ts code, unmocked)
+#      directly at this binary via PATH, to prove OUR OWN parsing/rotation
+#      logic reacts correctly to both a success and a failure response --
+#      independent of, and much faster than, a full outer claude -p session.
+#   2. `clis/caveat-guard/tests/integration/caveat-guard.integration.test.ts` points
+#      `askJudge`'s real (in-process) `opencodeDispatch()` call at this
+#      binary the same way, to inject a specific verdict per test via
+#      `MOCK_OPENCODE_OUTPUT_FILE` -- see that below.
+#
+# `MOCK_OPENCODE_MODE` selects the response shape (default: success):
+#   success -- exit 0, realistic stdout (or MOCK_OPENCODE_OUTPUT_FILE's
+#              content -- see below).
+#   replay  -- exit 0. Applies `MOCK_OPENCODE_REPLAY_PATCH` (a `git diff`
+#              style patch, binary allowed) to the `--dir <cwd>` argument
+#              (falling back to $PWD) and prints the NDJSON a real
+#              `--format json` run would: one `tool_use` edit event per file
+#              the patch touches, a `text` part, and a `step_finish` with
+#              tokens/cost. `MOCK_OPENCODE_REPLAY_SUMMARY` (a text file)
+#              is printed as the text part when there is no patch, for
+#              research-shaped cases. This is what the eagerness eval uses so the
+#              delegated work is visibly DONE and the outer Claude session
+#              does not redo it (known-gaps #51: with the plain success stub
+#              the model correctly redid the missing work, which made every
+#              delegating session look more expensive than it is). Without a
+#              patch it degrades to `success`.
+#   fail    -- exit 1, a real non-cap/non-crash-shaped error (the exact
+#              "UnknownError...Unexpected server error" shape observed live
+#              from the real opencode CLI, 2026-08-31) -- dispatch.ts should
+#              NOT rotate to the next model on this.
+#   cap     -- exit 1, a rate-limit-shaped error -- dispatch.ts SHOULD rotate.
+#   slow    -- exit 0, but print one line every second for
+#              MOCK_OPENCODE_SLOW_SECONDS (default 90) before finishing --
+#              deterministic, opencode-outage-independent way to exercise
+#              wf offload ask's progress heartbeat (dispatch.ts's
+#              onEvent option), instead of depending on a real dispatch
+#              happening to run long enough (real opencode is flaky/fast-
+#              failing in a way a mock can't be, see known-gaps.md #37).
+#
+# `MOCK_OPENCODE_CALL_LOG`, if set, gets one JSON line appended per
+# invocation (argv + mode), so a test can assert not just the response but
+# that the call actually happened, with what arguments -- independent of
+# parsing a claude transcript.
+#
+# `MOCK_OPENCODE_OUTPUT_FILE`, if set, has its content printed to stdout
+# instead of the canned "task acknowledged" line on a `success`-mode run --
+# lets a caller (e.g. a judge test) inject an arbitrary verdict JSON as the
+# response, the way a real `opencode run` call's stdout would carry it.
+#
+# `MOCK_OPENCODE_PROMPT_DUMP`, if set, has the LAST argv element (the raw
+# prompt string -- `opencodeDispatch()` invokes `opencode run [--auto]
+# --format json --dir <cwd> --model <m> <prompt>`, so the prompt is always
+# the final arg, never a file path) written to it, so a test can assert on
+# exactly what the judge/caller sent.
+#
+# Output of the non-replay modes is plain text, not the NDJSON a real
+# `--format json` run emits; dispatch.ts's parser treats lines that are not
+# JSON events as prose, so `result.output` still carries this text verbatim
+# (see events.ts).
+
+# Portable "last positional arg" (works under plain POSIX sh, no arrays/${!#}).
+last_arg=''
+dir_arg=''
+auto_flag=''
+prev=''
+for a in "$@"; do
+  if [ "$prev" = "--dir" ]; then dir_arg="$a"; fi
+  if [ "$a" = "--auto" ]; then auto_flag=1; fi
+  prev="$a"
+  last_arg="$a"
+done
+
+if [ -n "$MOCK_OPENCODE_PROMPT_DUMP" ]; then
+  printf '%s' "$last_arg" > "$MOCK_OPENCODE_PROMPT_DUMP"
+fi
+
+if [ -n "$MOCK_OPENCODE_CALL_LOG" ]; then
+  args_json=$(printf '%s\n' "$@" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read().splitlines()))" 2>/dev/null || echo "[]")
+  printf '{"ts":"%s","mode":"%s","args":%s}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${MOCK_OPENCODE_MODE:-success}" "$args_json" >> "$MOCK_OPENCODE_CALL_LOG"
+fi
+
+json_escape() {
+  printf '%s' "$1" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'
+}
+
+case "${MOCK_OPENCODE_MODE:-success}" in
+  fail)
+    echo '{"name":"UnknownError","data":{"message":"Unexpected server error. Check server logs for details.","ref":"err_mock0000"}}' >&2
+    exit 1
+    ;;
+  cap)
+    echo 'Error: rate limit exceeded, try again later' >&2
+    exit 1
+    ;;
+  crash)
+    echo 'sysdeps/nptl/libc_start_call_main.h:58: mock crash trace' >&2
+    exit 1
+    ;;
+  slow)
+    seconds="${MOCK_OPENCODE_SLOW_SECONDS:-90}"
+    i=1
+    while [ "$i" -le "$seconds" ]; do
+      echo "mock-opencode: still working, tick $i/$seconds"
+      sleep 1
+      i=$((i + 1))
+    done
+    echo "mock-opencode: task acknowledged and completed."
+    exit 0
+    ;;
+  replay)
+    target="${dir_arg:-$PWD}"
+    patch_file="$MOCK_OPENCODE_REPLAY_PATCH"
+    summary_file="$MOCK_OPENCODE_REPLAY_SUMMARY"
+    # Only an edit-capable dispatch (`--auto`, the implementer) applies the
+    # patch; a read-only dispatch (research, learnings, review, compound) gets
+    # the summary text, so a prose call never consumes the patch.
+    if [ -z "$auto_flag" ] || [ -z "$patch_file" ] || [ ! -f "$patch_file" ]; then
+      # Research-shaped cases ship no patch, only the answer text
+      # (`MOCK_OPENCODE_REPLAY_SUMMARY`): print it as the model's text part.
+      if [ -n "$summary_file" ] && [ -f "$summary_file" ]; then
+        printf '{"type":"text","sessionID":"ses_mock_replay","part":{"text":%s}}\n' "$(python3 -c 'import json,sys; print(json.dumps(open(sys.argv[1]).read()))' "$summary_file")"
+        printf '{"type":"step_finish","sessionID":"ses_mock_replay","part":{"tokens":{"input":22000,"output":1200,"reasoning":0,"total":23200,"cache":{"read":0,"write":0}},"cost":0.0038}}\n'
+        exit 0
+      fi
+      echo "mock-opencode: task acknowledged and completed (replay requested, no patch at '${patch_file}')."
+      exit 0
+    fi
+    # A `git diff` patch applies relative to cwd when run outside a repository
+    # and relative to the repo root inside one; the scratch dirs are either.
+    if ! (cd "$target" && git apply --whitespace=nowarn "$patch_file") 2>"$target/.mock-opencode-apply.err"; then
+      echo '{"type":"error","error":{"name":"ReplayError","data":{"message":"mock-opencode: git apply failed, see .mock-opencode-apply.err"}}}'
+      exit 1
+    fi
+    rm -f "$target/.mock-opencode-apply.err"
+    files=$(grep -E '^\+\+\+ b/' "$patch_file" | sed 's#^+++ b/##')
+    n=0
+    for f in $files; do
+      n=$((n + 1))
+      printf '{"type":"tool_use","sessionID":"ses_mock_replay","part":{"tool":"edit","state":{"status":"completed","input":{"filePath":%s}}}}\n' "$(json_escape "$target/$f")"
+    done
+    printf '{"type":"text","sessionID":"ses_mock_replay","part":{"text":%s}}\n' "$(json_escape "Done. Applied the requested change to ${n} file(s): $(printf '%s ' $files | sed 's/ $//'). Verify with the project's tests.")"
+    out_tokens=$((n * 900 + 400))
+    printf '{"type":"step_finish","sessionID":"ses_mock_replay","part":{"tokens":{"input":18000,"output":%s,"reasoning":0,"total":%s,"cache":{"read":0,"write":0}},"cost":0.0041}}\n' "$out_tokens" "$((18000 + out_tokens))"
+    exit 0
+    ;;
+  *)
+    if [ -n "$MOCK_OPENCODE_OUTPUT_FILE" ]; then
+      cat "$MOCK_OPENCODE_OUTPUT_FILE"
+    else
+      echo "mock-opencode: task acknowledged and completed."
+    fi
+    exit 0
+    ;;
+esac

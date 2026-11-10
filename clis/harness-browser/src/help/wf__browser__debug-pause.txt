@@ -1,0 +1,7 @@
+Usage: wf browser debug-pause [--device N] [--timeout ms]
+
+Holds the page at the next statement it runs. While paused the page runs nothing, so waits block: resume first. Browser
+only, as set-breakpoint.
+
+Result: {paused: true, reason, function, file, line, column, frames: [...], locals: {...}, action}, or, when no
+JavaScript ran within the timeout (default 5000): {paused: false, pending: true, waitedMs, hint}

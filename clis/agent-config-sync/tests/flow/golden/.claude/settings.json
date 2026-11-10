@@ -1,0 +1,29 @@
+{
+  "outputStyle": "terse",
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "deny": [
+      "Bash(gh pr merge:*)"
+    ],
+    "allow": [
+      "Bash(git:*)",
+      "mcp__demo",
+      "mcp__Claude_Code_Remote",
+      "mcp__github",
+      "mcp__ccd_session",
+      "mcp__Claude_Docs"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.agents/hooks/start.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

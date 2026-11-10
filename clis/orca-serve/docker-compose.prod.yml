@@ -1,0 +1,63 @@
+# Docker's json-file log driver keeps every line of a container forever unless told otherwise, so each service rotates its own
+# log (three files of 20 MB) instead of filling the host disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.2
+    container_name: orca-serve-tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_VM_AUTH_KEY}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_HOSTNAME: orca-serve
+      # orca-serve reaches rca by its tailnet name (remote-chat-agent-prod), which only resolves with MagicDNS accepted
+      TS_ACCEPT_DNS: "true"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging: *logging
+
+  app:
+    # Built in CI (repo-root context); deployed via vm-ops-api /services/orca-serve/redeploy.
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/orca-serve:${IMAGE_TAG:-latest}
+    container_name: orca-serve
+    # Tailnet only, no published port: a phone pairs over the tailnet (docker exec orca-serve orca-serve pair), and the tailnet ACL is the first authorization.
+    network_mode: service:tailscale
+    volumes:
+      - orca-state:/data
+    environment:
+      ORCA_PORT: ${ORCA_PORT:-6768}
+      ORCA_LABEL: ${ORCA_LABEL:-rca}
+      ORCA_RCA_URL: ${ORCA_RCA_URL:-}
+      # The one credential orca-serve holds for rca: a device bearer (sync-env --for orca-serve), never the service secret.
+      ORCA_RCA_BEARER: ${ORCA_RCA_BEARER:-}
+    healthcheck:
+      test: ["CMD", "orca-serve", "serve", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    depends_on:
+      - tailscale
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  tailscale-state:
+  orca-state:

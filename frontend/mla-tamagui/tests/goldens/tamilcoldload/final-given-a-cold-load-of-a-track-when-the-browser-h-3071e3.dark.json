@@ -1,0 +1,58 @@
+{
+  "suite": "tamilcoldload",
+  "step": "final-given-a-cold-load-of-a-track-when-the-browser-h-3071e3",
+  "scheme": "dark",
+  "snapshot": "tamilcoldload/final-given-a-cold-load-of-a-track-when-the-browser-h-3071e3.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "TamilTrackScreen",
+      "TamilTrackHeader",
+      "TamilTrackHeaderBack",
+      "TamilTrackHeaderTitle",
+      "TamilTrackHeaderSubtitle",
+      "TamilTrackScroll",
+      "TamilTrackGrid",
+      "TamilTrackTile",
+      "TamilTrackTileGlyph",
+      "TamilTrackTileLabel"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nஉயிர் எழுத்து\nThe twelve vowels\nஅ\na\nஆ\nā\nஇ\ni\nஈ\nī\nஉ\nu\nஊ\nū\nஎ\ne\nஏ\nē\nஐ\nai\nஒ\no\nஓ\nō\nஔ\nau"
+  },
+  "timings": {
+    "render_ms": 489
+  },
+  "name": "tamilcoldload/final-given-a-cold-load-of-a-track-when-the-browser-h-3071e3.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

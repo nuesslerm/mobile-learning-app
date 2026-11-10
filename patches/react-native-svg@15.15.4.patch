@@ -1,0 +1,112 @@
+diff --git a/lib/commonjs/web/WebShape.js b/lib/commonjs/web/WebShape.js
+index bb7c1e4..33dc044 100644
+--- a/lib/commonjs/web/WebShape.js
++++ b/lib/commonjs/web/WebShape.js
+@@ -65,10 +65,7 @@ class WebShape extends _react.default.Component {
+   constructor(props) {
+     super(props);
+ 
+-    // Do not attach touchable mixin handlers if SVG element doesn't have a touchable prop
+-    if ((0, _hasProperty.hasTouchableProperty)(props)) {
+-      (0, _SvgTouchableMixin.default)(this);
+-    }
++    // no touchable mixin on web: it only fed the responder props a DOM element ignores (prepare maps onPress to onClick)
+     this._remeasureMetricsOnActivation = _utils.remeasure.bind(this);
+   }
+   render() {
+diff --git a/lib/commonjs/web/utils/prepare.js b/lib/commonjs/web/utils/prepare.js
+index d57e7c8..a757827 100644
+--- a/lib/commonjs/web/utils/prepare.js
++++ b/lib/commonjs/web/utils/prepare.js
+@@ -35,14 +35,7 @@ const prepare = (self, props = self.props) => {
+     ...rest
+   } = props;
+   const clean = {
+-    ...((0, _hasProperty.hasTouchableProperty)(props) ? {
+-      onStartShouldSetResponder: self.touchableHandleStartShouldSetResponder,
+-      onResponderTerminationRequest: self.touchableHandleResponderTerminationRequest,
+-      onResponderGrant: self.touchableHandleResponderGrant,
+-      onResponderMove: self.touchableHandleResponderMove,
+-      onResponderRelease: self.touchableHandleResponderRelease,
+-      onResponderTerminate: self.touchableHandleResponderTerminate
+-    } : null),
++    // react-native-web's DOM elements have no responder system: a press is the onClick set below
+     ...rest
+   };
+   if (origin != null) {
+diff --git a/lib/module/web/WebShape.js b/lib/module/web/WebShape.js
+index b22a769..a750740 100644
+--- a/lib/module/web/WebShape.js
++++ b/lib/module/web/WebShape.js
+@@ -60,10 +60,7 @@ export class WebShape extends React.Component {
+   constructor(props) {
+     super(props);
+ 
+-    // Do not attach touchable mixin handlers if SVG element doesn't have a touchable prop
+-    if (hasTouchableProperty(props)) {
+-      SvgTouchableMixin(this);
+-    }
++    // no touchable mixin on web: it only fed the responder props a DOM element ignores (prepare maps onPress to onClick)
+     this._remeasureMetricsOnActivation = remeasure.bind(this);
+   }
+   render() {
+diff --git a/lib/module/web/utils/prepare.js b/lib/module/web/utils/prepare.js
+index 113eb2b..d0c922d 100644
+--- a/lib/module/web/utils/prepare.js
++++ b/lib/module/web/utils/prepare.js
+@@ -29,14 +29,7 @@ export const prepare = (self, props = self.props) => {
+     ...rest
+   } = props;
+   const clean = {
+-    ...(hasTouchableProperty(props) ? {
+-      onStartShouldSetResponder: self.touchableHandleStartShouldSetResponder,
+-      onResponderTerminationRequest: self.touchableHandleResponderTerminationRequest,
+-      onResponderGrant: self.touchableHandleResponderGrant,
+-      onResponderMove: self.touchableHandleResponderMove,
+-      onResponderRelease: self.touchableHandleResponderRelease,
+-      onResponderTerminate: self.touchableHandleResponderTerminate
+-    } : null),
++    // react-native-web's DOM elements have no responder system: a press is the onClick set below
+     ...rest
+   };
+   if (origin != null) {
+diff --git a/src/web/WebShape.ts b/src/web/WebShape.ts
+index d76a6be..886aa0c 100644
+--- a/src/web/WebShape.ts
++++ b/src/web/WebShape.ts
+@@ -99,10 +99,7 @@ export class WebShape<
+   constructor(props: P) {
+     super(props);
+ 
+-    // Do not attach touchable mixin handlers if SVG element doesn't have a touchable prop
+-    if (hasTouchableProperty(props)) {
+-      SvgTouchableMixin(this);
+-    }
++    // no touchable mixin on web: it only fed the responder props a DOM element ignores (prepare maps onPress to onClick)
+ 
+     this._remeasureMetricsOnActivation = remeasure.bind(this);
+   }
+diff --git a/src/web/utils/prepare.ts b/src/web/utils/prepare.ts
+index 4106784..f2bff96 100644
+--- a/src/web/utils/prepare.ts
++++ b/src/web/utils/prepare.ts
+@@ -55,18 +55,7 @@ export const prepare = <T extends BaseProps>(
+     style?: object;
+     ref?: unknown;
+   } = {
+-    ...(hasTouchableProperty(props)
+-      ? {
+-          onStartShouldSetResponder:
+-            self.touchableHandleStartShouldSetResponder,
+-          onResponderTerminationRequest:
+-            self.touchableHandleResponderTerminationRequest,
+-          onResponderGrant: self.touchableHandleResponderGrant,
+-          onResponderMove: self.touchableHandleResponderMove,
+-          onResponderRelease: self.touchableHandleResponderRelease,
+-          onResponderTerminate: self.touchableHandleResponderTerminate,
+-        }
+-      : null),
++    // react-native-web's DOM elements have no responder system: a press is the onClick set below
+     ...rest,
+   };
+ 

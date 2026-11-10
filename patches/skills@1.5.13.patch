@@ -1,0 +1,30 @@
+diff --git a/dist/cli.mjs b/dist/cli.mjs
+index c7c830d6d291e1306e9648ca11a293344fd55f08..44d9b05d1dfbd56d4666f9d958f18db1aec59762 100755
+--- a/dist/cli.mjs
++++ b/dist/cli.mjs
+@@ -619,8 +619,14 @@ function parseFrontmatter(raw) {
+ 		data: {},
+ 		content: raw
+ 	};
++	// Quote unquoted scalar values that contain ": " so YAML doesn't treat
++	// them as nested mappings (e.g. "description: improve foo: bar").
++	const safeFm = match[1].replace(/^(\w[\w-]*):\s+([^|>'"{\[].+)$/gm, (_, key, val) => {
++		if (val.includes(": ")) return `${key}: "${val.replace(/"/g, '\\"')}"`;
++		return `${key}: ${val}`;
++	});
+ 	return {
+-		data: parse(match[1]) ?? {},
++		data: parse(safeFm) ?? {},
+ 		content: match[2] ?? ""
+ 	};
+ }
+@@ -4982,7 +4988,8 @@ async function runInstallFromLock(args) {
+ 		await runAdd([source], {
+ 			skill: skills,
+ 			agent: universalAgentNames,
+-			yes: true
++			yes: true,
++			fullDepth: true
+ 		});
+ 	} catch (error) {
+ 		M.error(`Failed to install from ${import_picocolors.default.cyan(source)}: ${error instanceof Error ? error.message : "Unknown error"}`);

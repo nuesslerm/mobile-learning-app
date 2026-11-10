@@ -1,0 +1,75 @@
+# Docker's json-file log driver keeps every line of a container forever unless told otherwise; the CI runner and the model services print
+# a lot, so each service rotates its own log (three files of 20 MB) instead of filling the host disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.2
+    container_name: reporting-service-tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_VM_AUTH_KEY}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_HOSTNAME: reporting-service
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging: *logging
+
+  app:
+    # Built in CI (repo-root context); deployed via vm-ops-api /services/reporting-service/redeploy.
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/reporting-service:${IMAGE_TAG:-latest}
+    container_name: reporting-service
+    # Join the tailnet — the read API is tailnet-only (no auth, no CORS), same
+    # pattern as every other app on this host.
+    network_mode: service:tailscale
+    environment:
+      PORT: 8791
+      # Telemetry → BetterStack through the OpenTelemetry exporter once this pair reaches the container (delivered to the host `.env`
+      # by `sync-env --for reporting-service`; empty = console only).
+      BETTERSTACK_OTLP_TOKEN: ${BETTERSTACK_OTLP_TOKEN:-}
+      BETTERSTACK_OTLP_HOST: ${BETTERSTACK_OTLP_HOST:-}
+      # The metrics live in the Always Free Autonomous Database (HEALTH_RPT.HOST_SAMPLES), through ORDS; both keys come from
+      # `sync-env --for reporting-service`.
+      HEALTH_REPORTS_ORDS_BASE_URL: ${HEALTH_REPORTS_ORDS_BASE_URL:-}
+      HEALTH_REPORTS_ORDS_PASSWORD: ${HEALTH_REPORTS_ORDS_PASSWORD:-}
+      # Pinged after every host sweep; BetterStack alerts when the pings stop (empty = no heartbeat).
+      BETTERSTACK_HEARTBEAT_URL: ${BETTERSTACK_HEARTBEAT_URL:-}
+      # Health gauges to a BetterStack metrics source, and the CI runner as GitHub sees it (each empty = off).
+      BETTERSTACK_METRICS_HOST: ${BETTERSTACK_METRICS_HOST:-}
+      BETTERSTACK_METRICS_TOKEN: ${BETTERSTACK_METRICS_TOKEN:-}
+      CI_RUNNER_GITHUB_READ_TOKEN: ${VM_PROVISION_GITHUB_TOKEN:-}
+      REPORTING_GITHUB_REPO: ${REPORTING_GITHUB_REPO:-}
+      REPORTING_RUNNER_NAME: ${REPORTING_RUNNER_NAME:-}
+    volumes:
+      # Read-only, exactly how vm-ops-api mounts it: the service samples
+      # container stats via the Docker Engine API and never shells out.
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    healthcheck:
+      test: ["CMD", "reporting-service-rs", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      - tailscale
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  tailscale-state:

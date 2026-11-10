@@ -1,0 +1,89 @@
+{
+  "action": "git_rebase",
+  "exchanges": [
+    {
+      "name": "rebases onto a revision that is already the base",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "reba58",
+        "tool": "git_rebase",
+        "args": {
+          "op": "start",
+          "ref": "HEAD"
+        }
+      },
+      "response": {
+        "id": "reba58",
+        "ok": true,
+        "result": {
+          "ok": true,
+          "head": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+          "updated": false,
+          "conflicted": false,
+          "conflicts": [],
+          "output": "<volatile>"
+        }
+      },
+      "volatile": [
+        "/result/output"
+      ]
+    },
+    {
+      "name": "refuses to abort when no rebase is under way",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "reba59",
+        "tool": "git_rebase",
+        "args": {
+          "op": "abort"
+        }
+      },
+      "response": {
+        "id": "reba59",
+        "ok": false,
+        "error": {
+          "code": "IO_ERROR",
+          "message": "git rebase: fatal: No rebase in progress?"
+        }
+      },
+      "volatile": [
+        "/error/message"
+      ]
+    },
+    {
+      "name": "refuses an option given as the base",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "reba60",
+        "tool": "git_rebase",
+        "args": {
+          "op": "start",
+          "ref": "--root"
+        }
+      },
+      "response": {
+        "id": "reba60",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`ref` must be a revision"
+        }
+      }
+    }
+  ]
+}

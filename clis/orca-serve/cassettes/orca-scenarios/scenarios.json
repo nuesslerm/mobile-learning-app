@@ -1,0 +1,6796 @@
+{
+ "schema": "mimic-scenarios/1",
+ "app": "orca",
+ "source": "clis/orca-serve/cassettes/orca-api",
+ "counts": {
+  "endpoints": 832,
+  "scenarios": 213,
+  "populated": 216,
+  "emptyOnly": 616
+ },
+ "scenarios": [
+  {
+   "id": "orca-scn-agentSession.createSupport",
+   "kind": "derived",
+   "rows": [
+    "rpc:agentSession.createSupport"
+   ]
+  },
+  {
+   "id": "orca-scn-files.commitUpload",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.commitUpload"
+   ]
+  },
+  {
+   "id": "orca-scn-files.copy",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.copy"
+   ]
+  },
+  {
+   "id": "orca-scn-files.createDir",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.createDir"
+   ]
+  },
+  {
+   "id": "orca-scn-files.createDirNoClobber",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.createDirNoClobber"
+   ]
+  },
+  {
+   "id": "orca-scn-files.createFile",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.createFile"
+   ]
+  },
+  {
+   "id": "orca-scn-files.delete",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.delete"
+   ]
+  },
+  {
+   "id": "orca-scn-files.list",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.list"
+   ]
+  },
+  {
+   "id": "orca-scn-files.listAll",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.listAll"
+   ]
+  },
+  {
+   "id": "orca-scn-files.listMarkdownDocuments",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.listMarkdownDocuments"
+   ]
+  },
+  {
+   "id": "orca-scn-files.open",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.open"
+   ]
+  },
+  {
+   "id": "orca-scn-files.openDiff",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.openDiff"
+   ]
+  },
+  {
+   "id": "orca-scn-files.pathsExist",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.pathsExist"
+   ]
+  },
+  {
+   "id": "orca-scn-files.read",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.read"
+   ]
+  },
+  {
+   "id": "orca-scn-files.readChatImage",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.readChatImage"
+   ]
+  },
+  {
+   "id": "orca-scn-files.readChunk",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.readChunk"
+   ]
+  },
+  {
+   "id": "orca-scn-files.readDir",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.readDir"
+   ]
+  },
+  {
+   "id": "orca-scn-files.readDocPreview",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.readDocPreview"
+   ]
+  },
+  {
+   "id": "orca-scn-files.readDocPreviewChunk",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.readDocPreviewChunk"
+   ]
+  },
+  {
+   "id": "orca-scn-files.readPreview",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.readPreview"
+   ]
+  },
+  {
+   "id": "orca-scn-files.readTerminalArtifact",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.readTerminalArtifact"
+   ]
+  },
+  {
+   "id": "orca-scn-files.readTerminalArtifactPreview",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.readTerminalArtifactPreview"
+   ]
+  },
+  {
+   "id": "orca-scn-files.rename",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.rename"
+   ]
+  },
+  {
+   "id": "orca-scn-files.replaceWithUpload",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.replaceWithUpload"
+   ]
+  },
+  {
+   "id": "orca-scn-files.resolveTerminalPath",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.resolveTerminalPath"
+   ]
+  },
+  {
+   "id": "orca-scn-files.saveBegin",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.saveBegin"
+   ]
+  },
+  {
+   "id": "orca-scn-files.search",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.search"
+   ]
+  },
+  {
+   "id": "orca-scn-files.searchPaths",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.searchPaths"
+   ]
+  },
+  {
+   "id": "orca-scn-files.stat",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.stat"
+   ]
+  },
+  {
+   "id": "orca-scn-files.write",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.write"
+   ]
+  },
+  {
+   "id": "orca-scn-files.writeIfUnchanged",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.writeIfUnchanged"
+   ]
+  },
+  {
+   "id": "orca-scn-files.writeTerminalArtifact",
+   "kind": "derived",
+   "rows": [
+    "rpc:files.writeTerminalArtifact"
+   ]
+  },
+  {
+   "id": "orca-scn-git.abortMerge",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.abortMerge"
+   ]
+  },
+  {
+   "id": "orca-scn-git.abortRebase",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.abortRebase"
+   ]
+  },
+  {
+   "id": "orca-scn-git.branchCompare",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.branchCompare"
+   ]
+  },
+  {
+   "id": "orca-scn-git.bulkDiscard",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.bulkDiscard"
+   ]
+  },
+  {
+   "id": "orca-scn-git.bulkStage",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.bulkStage"
+   ]
+  },
+  {
+   "id": "orca-scn-git.bulkUnstage",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.bulkUnstage"
+   ]
+  },
+  {
+   "id": "orca-scn-git.cancelGenerateCommitMessage",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.cancelGenerateCommitMessage"
+   ]
+  },
+  {
+   "id": "orca-scn-git.cancelGeneratePullRequestFields",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.cancelGeneratePullRequestFields"
+   ]
+  },
+  {
+   "id": "orca-scn-git.checkIgnored",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.checkIgnored"
+   ]
+  },
+  {
+   "id": "orca-scn-git.checkout",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.checkout"
+   ]
+  },
+  {
+   "id": "orca-scn-git.commit",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.commit"
+   ]
+  },
+  {
+   "id": "orca-scn-git.completeMerge",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.completeMerge"
+   ]
+  },
+  {
+   "id": "orca-scn-git.conflictOperation",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.conflictOperation"
+   ]
+  },
+  {
+   "id": "orca-scn-git.diff",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.diff"
+   ]
+  },
+  {
+   "id": "orca-scn-git.discard",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.discard"
+   ]
+  },
+  {
+   "id": "orca-scn-git.discoverCommitMessageModels",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.discoverCommitMessageModels"
+   ]
+  },
+  {
+   "id": "orca-scn-git.fastForward",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.fastForward"
+   ]
+  },
+  {
+   "id": "orca-scn-git.fetch",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.fetch"
+   ]
+  },
+  {
+   "id": "orca-scn-git.forkSync",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.forkSync"
+   ]
+  },
+  {
+   "id": "orca-scn-git.generateCommitMessage",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.generateCommitMessage"
+   ]
+  },
+  {
+   "id": "orca-scn-git.generatePullRequestFields",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.generatePullRequestFields"
+   ]
+  },
+  {
+   "id": "orca-scn-git.history",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.history"
+   ]
+  },
+  {
+   "id": "orca-scn-git.localBranches",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.localBranches"
+   ]
+  },
+  {
+   "id": "orca-scn-git.mutationInFlight",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.mutationInFlight"
+   ]
+  },
+  {
+   "id": "orca-scn-git.pull",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.pull"
+   ]
+  },
+  {
+   "id": "orca-scn-git.push",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.push"
+   ]
+  },
+  {
+   "id": "orca-scn-git.rebaseFromBase",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.rebaseFromBase"
+   ]
+  },
+  {
+   "id": "orca-scn-git.remoteFileUrl",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.remoteFileUrl"
+   ]
+  },
+  {
+   "id": "orca-scn-git.resolveConflict",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.resolveConflict"
+   ]
+  },
+  {
+   "id": "orca-scn-git.stage",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.stage"
+   ]
+  },
+  {
+   "id": "orca-scn-git.status",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.status"
+   ]
+  },
+  {
+   "id": "orca-scn-git.submoduleStatus",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.submoduleStatus"
+   ]
+  },
+  {
+   "id": "orca-scn-git.unstage",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.unstage"
+   ]
+  },
+  {
+   "id": "orca-scn-git.upstreamStatus",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.upstreamStatus"
+   ]
+  },
+  {
+   "id": "orca-scn-github.addIssueComment",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.addIssueComment"
+   ]
+  },
+  {
+   "id": "orca-scn-github.addPRReviewComment",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.addPRReviewComment"
+   ]
+  },
+  {
+   "id": "orca-scn-github.addPRReviewCommentReply",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.addPRReviewCommentReply"
+   ]
+  },
+  {
+   "id": "orca-scn-github.countWorkItems",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.countWorkItems"
+   ]
+  },
+  {
+   "id": "orca-scn-github.createIssue",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.createIssue"
+   ]
+  },
+  {
+   "id": "orca-scn-github.issue",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.issue"
+   ]
+  },
+  {
+   "id": "orca-scn-github.listAssignableUsers",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.listAssignableUsers"
+   ]
+  },
+  {
+   "id": "orca-scn-github.listBindableAccounts",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.listBindableAccounts"
+   ]
+  },
+  {
+   "id": "orca-scn-github.listIssues",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.listIssues"
+   ]
+  },
+  {
+   "id": "orca-scn-github.listLabels",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.listLabels"
+   ]
+  },
+  {
+   "id": "orca-scn-github.listWorkItems",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.listWorkItems"
+   ]
+  },
+  {
+   "id": "orca-scn-github.markPRDraft",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.markPRDraft"
+   ]
+  },
+  {
+   "id": "orca-scn-github.markPRReadyForReview",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.markPRReadyForReview"
+   ]
+  },
+  {
+   "id": "orca-scn-github.mergePR",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.mergePR"
+   ]
+  },
+  {
+   "id": "orca-scn-github.prCheckDetails",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.prCheckDetails"
+   ]
+  },
+  {
+   "id": "orca-scn-github.prChecks",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.prChecks"
+   ]
+  },
+  {
+   "id": "orca-scn-github.prComments",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.prComments"
+   ]
+  },
+  {
+   "id": "orca-scn-github.prFileContents",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.prFileContents"
+   ]
+  },
+  {
+   "id": "orca-scn-github.prForBranch",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.prForBranch"
+   ]
+  },
+  {
+   "id": "orca-scn-github.project.addIssueCommentBySlug",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.project.addIssueCommentBySlug"
+   ]
+  },
+  {
+   "id": "orca-scn-github.project.deleteIssueCommentBySlug",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.project.deleteIssueCommentBySlug"
+   ]
+  },
+  {
+   "id": "orca-scn-github.project.listAssignableUsersBySlug",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.project.listAssignableUsersBySlug"
+   ]
+  },
+  {
+   "id": "orca-scn-github.project.listIssueTypesBySlug",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.project.listIssueTypesBySlug"
+   ]
+  },
+  {
+   "id": "orca-scn-github.project.listLabelsBySlug",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.project.listLabelsBySlug"
+   ]
+  },
+  {
+   "id": "orca-scn-github.project.updateIssueBySlug",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.project.updateIssueBySlug"
+   ]
+  },
+  {
+   "id": "orca-scn-github.project.updateIssueCommentBySlug",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.project.updateIssueCommentBySlug"
+   ]
+  },
+  {
+   "id": "orca-scn-github.project.updateIssueTypeBySlug",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.project.updateIssueTypeBySlug"
+   ]
+  },
+  {
+   "id": "orca-scn-github.project.updatePullRequestBySlug",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.project.updatePullRequestBySlug"
+   ]
+  },
+  {
+   "id": "orca-scn-github.project.workItemDetailsBySlug",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.project.workItemDetailsBySlug"
+   ]
+  },
+  {
+   "id": "orca-scn-github.removePRReviewers",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.removePRReviewers"
+   ]
+  },
+  {
+   "id": "orca-scn-github.repoSlug",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.repoSlug"
+   ]
+  },
+  {
+   "id": "orca-scn-github.repoUpstream",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.repoUpstream"
+   ]
+  },
+  {
+   "id": "orca-scn-github.requestPRReviewers",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.requestPRReviewers"
+   ]
+  },
+  {
+   "id": "orca-scn-github.rerunPRChecks",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.rerunPRChecks"
+   ]
+  },
+  {
+   "id": "orca-scn-github.resolveReviewThread",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.resolveReviewThread"
+   ]
+  },
+  {
+   "id": "orca-scn-github.setPRAutoMerge",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.setPRAutoMerge"
+   ]
+  },
+  {
+   "id": "orca-scn-github.setPRCommentReaction",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.setPRCommentReaction"
+   ]
+  },
+  {
+   "id": "orca-scn-github.setPRFileViewed",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.setPRFileViewed"
+   ]
+  },
+  {
+   "id": "orca-scn-github.updateIssue",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.updateIssue"
+   ]
+  },
+  {
+   "id": "orca-scn-github.updatePR",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.updatePR"
+   ]
+  },
+  {
+   "id": "orca-scn-github.updatePRState",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.updatePRState"
+   ]
+  },
+  {
+   "id": "orca-scn-github.updatePRTitle",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.updatePRTitle"
+   ]
+  },
+  {
+   "id": "orca-scn-github.validateAccountBinding",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.validateAccountBinding"
+   ]
+  },
+  {
+   "id": "orca-scn-github.workItem",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.workItem"
+   ]
+  },
+  {
+   "id": "orca-scn-github.workItemByOwnerRepo",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.workItemByOwnerRepo"
+   ]
+  },
+  {
+   "id": "orca-scn-github.workItemDetails",
+   "kind": "derived",
+   "rows": [
+    "rpc:github.workItemDetails"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.addIssueComment",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.addIssueComment"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.addMRComment",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.addMRComment"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.addMRInlineComment",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.addMRInlineComment"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.createIssue",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.createIssue"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.jobTrace",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.jobTrace"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.listAssignableUsers",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.listAssignableUsers"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.listIssues",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.listIssues"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.listLabels",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.listLabels"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.listMRs",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.listMRs"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.listWorkItems",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.listWorkItems"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.mergeMR",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.mergeMR"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.resolveMRDiscussion",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.resolveMRDiscussion"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.retryJob",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.retryJob"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.todos",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.todos"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.updateIssue",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.updateIssue"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.updateMR",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.updateMR"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.updateMRReviewers",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.updateMRReviewers"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.updateMRState",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.updateMRState"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.workItemByPath",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.workItemByPath"
+   ]
+  },
+  {
+   "id": "orca-scn-gitlab.workItemDetails",
+   "kind": "derived",
+   "rows": [
+    "rpc:gitlab.workItemDetails"
+   ]
+  },
+  {
+   "id": "orca-scn-hostedReview.create",
+   "kind": "derived",
+   "rows": [
+    "rpc:hostedReview.create"
+   ]
+  },
+  {
+   "id": "orca-scn-hostedReview.createStacked",
+   "kind": "derived",
+   "rows": [
+    "rpc:hostedReview.createStacked"
+   ]
+  },
+  {
+   "id": "orca-scn-hostedReview.forBranch",
+   "kind": "derived",
+   "rows": [
+    "rpc:hostedReview.forBranch"
+   ]
+  },
+  {
+   "id": "orca-scn-hostedReview.getCreationEligibility",
+   "kind": "derived",
+   "rows": [
+    "rpc:hostedReview.getCreationEligibility"
+   ]
+  },
+  {
+   "id": "orca-scn-markdown.readTab",
+   "kind": "derived",
+   "rows": [
+    "rpc:markdown.readTab"
+   ]
+  },
+  {
+   "id": "orca-scn-markdown.saveTab",
+   "kind": "derived",
+   "rows": [
+    "rpc:markdown.saveTab"
+   ]
+  },
+  {
+   "id": "orca-scn-orchestration.federationAttachStart",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.federationAttachStart"
+   ]
+  },
+  {
+   "id": "orca-scn-projectGroup.moveProject",
+   "kind": "derived",
+   "rows": [
+    "rpc:projectGroup.moveProject"
+   ]
+  },
+  {
+   "id": "orca-scn-reference.list",
+   "kind": "derived",
+   "rows": [
+    "rpc:reference.list"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.add",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.add"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.baseRefDefault",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.baseRefDefault"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.hooks",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.hooks"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.hooksCheck",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.hooksCheck"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.issueCommandRead",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.issueCommandRead"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.issueCommandWrite",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.issueCommandWrite"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.rm",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.rm"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.saveSparsePreset",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.saveSparsePreset"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.searchRefs",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.searchRefs"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.setBaseRef",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.setBaseRef"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.setupScriptImports",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.setupScriptImports"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.show",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.show"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.sparsePresets",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.sparsePresets"
+   ]
+  },
+  {
+   "id": "orca-scn-repo.update",
+   "kind": "derived",
+   "rows": [
+    "rpc:repo.update"
+   ]
+  },
+  {
+   "id": "orca-scn-session.tabs.activate",
+   "kind": "derived",
+   "rows": [
+    "rpc:session.tabs.activate"
+   ]
+  },
+  {
+   "id": "orca-scn-session.tabs.close",
+   "kind": "derived",
+   "rows": [
+    "rpc:session.tabs.close"
+   ]
+  },
+  {
+   "id": "orca-scn-session.tabs.closeLifecycle",
+   "kind": "derived",
+   "rows": [
+    "rpc:session.tabs.closeLifecycle"
+   ]
+  },
+  {
+   "id": "orca-scn-session.tabs.createTerminal",
+   "kind": "derived",
+   "rows": [
+    "rpc:session.tabs.createTerminal"
+   ]
+  },
+  {
+   "id": "orca-scn-session.tabs.list",
+   "kind": "derived",
+   "rows": [
+    "rpc:session.tabs.list"
+   ]
+  },
+  {
+   "id": "orca-scn-session.tabs.move",
+   "kind": "derived",
+   "rows": [
+    "rpc:session.tabs.move"
+   ]
+  },
+  {
+   "id": "orca-scn-session.tabs.movePaneToNewTab",
+   "kind": "derived",
+   "rows": [
+    "rpc:session.tabs.movePaneToNewTab"
+   ]
+  },
+  {
+   "id": "orca-scn-session.tabs.setTabProps",
+   "kind": "derived",
+   "rows": [
+    "rpc:session.tabs.setTabProps"
+   ]
+  },
+  {
+   "id": "orca-scn-session.tabs.unsubscribe",
+   "kind": "derived",
+   "rows": [
+    "rpc:session.tabs.unsubscribe"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.adoptOrphans",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.adoptOrphans"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.agentStatus",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.agentStatus"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.clearBuffer",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.clearBuffer"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.close",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.close"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.closeAll",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.closeAll"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.closeTab",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.closeTab"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.focus",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.focus"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.getDisplayMode",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.getDisplayMode"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.inspectProcess",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.inspectProcess"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.isRunningAgent",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.isRunningAgent"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.read",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.read"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.readKittyFile",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.readKittyFile"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.rename",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.rename"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.resetInputModes",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.resetInputModes"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.resizeForClient",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.resizeForClient"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.resolveIdentity",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.resolveIdentity"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.restoreFit",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.restoreFit"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.send",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.send"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.setDisplayMode",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.setDisplayMode"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.setPaneTitle",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.setPaneTitle"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.show",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.show"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.sleep",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.sleep"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.stop",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.stop"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.stopExact",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.stopExact"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.updateViewport",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.updateViewport"
+   ]
+  },
+  {
+   "id": "orca-scn-terminal.viewClaudeAgent",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.viewClaudeAgent"
+   ]
+  },
+  {
+   "id": "orca-scn-workspacePorts.killHost",
+   "kind": "derived",
+   "rows": [
+    "rpc:workspacePorts.killHost"
+   ]
+  },
+  {
+   "id": "orca-scn-workspacePorts.scanHost",
+   "kind": "derived",
+   "rows": [
+    "rpc:workspacePorts.scanHost"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.activate",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.activate"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.adoptProvisionedRoot",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.adoptProvisionedRoot"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.create",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.create"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.detectedList",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.detectedList"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.forceDeleteBranch",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.forceDeleteBranch"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.listRetiredNames",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.listRetiredNames"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.prefetchCreateBase",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.prefetchCreateBase"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.resolveMrBase",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.resolveMrBase"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.resolvePrBase",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.resolvePrBase"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.rm",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.rm"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.set",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.set"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.show",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.show"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.sleep",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.sleep"
+   ]
+  },
+  {
+   "id": "orca-scn-worktree.teardownMissingTerminals",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktree.teardownMissingTerminals"
+   ]
+  },
+  {
+   "id": "orca-story-repo-lifecycle",
+   "kind": "story",
+   "rows": [
+    "rpc:repo.add",
+    "rpc:repo.list",
+    "rpc:repo.show",
+    "rpc:repo.setBaseRef",
+    "rpc:repo.baseRefDefault",
+    "rpc:repo.searchRefs",
+    "rpc:repo.sparsePresets",
+    "rpc:repo.rm"
+   ],
+   "note": "add, inspect, change a base ref and remove a repository"
+  },
+  {
+   "id": "orca-story-worktree-lifecycle",
+   "kind": "story",
+   "rows": [
+    "rpc:repo.add",
+    "rpc:worktree.create",
+    "rpc:worktree.list",
+    "rpc:worktree.show",
+    "rpc:worktree.ps",
+    "rpc:worktree.sleep",
+    "rpc:worktree.rm"
+   ],
+   "note": "create, list, inspect, sleep and remove a worktree"
+  },
+  {
+   "id": "orca-story-files-roundtrip",
+   "kind": "story",
+   "rows": [
+    "rpc:repo.add",
+    "rpc:worktree.create",
+    "rpc:files.createFile",
+    "rpc:files.write",
+    "rpc:files.read",
+    "rpc:files.stat",
+    "rpc:files.list",
+    "rpc:files.delete"
+   ],
+   "note": "create, write, read, rename and delete a file of a worktree"
+  },
+  {
+   "id": "orca-story-git-flow",
+   "kind": "story",
+   "rows": [
+    "rpc:repo.add",
+    "rpc:worktree.create",
+    "rpc:files.createFile",
+    "rpc:git.status",
+    "rpc:git.stage",
+    "rpc:git.commit",
+    "rpc:git.history"
+   ],
+   "note": "write a file, see it as a change, stage, commit and read the history"
+  },
+  {
+   "id": "orca-story-terminal-lifecycle",
+   "kind": "story",
+   "rows": [
+    "rpc:repo.add",
+    "rpc:worktree.create",
+    "rpc:terminal.create",
+    "rpc:terminal.list",
+    "rpc:terminal.show",
+    "rpc:terminal.rename",
+    "rpc:terminal.close"
+   ],
+   "note": "create a terminal, list, show, rename and close it"
+  },
+  {
+   "id": "orca-story-settings-roundtrip",
+   "kind": "story",
+   "rows": [
+    "rpc:settings.get",
+    "rpc:settings.update"
+   ],
+   "note": "read, change and read the settings"
+  },
+  {
+   "id": "orca-story-state-after-repo",
+   "kind": "story",
+   "rows": [
+    "rpc:repo.add",
+    "rpc:worktree.create",
+    "rpc:status.get",
+    "rpc:stats.summary",
+    "rpc:project.list",
+    "rpc:repo.list",
+    "rpc:worktree.list"
+   ],
+   "note": "the host-wide state methods once a repository and a worktree exist"
+  }
+ ],
+ "coverage": [
+  {
+   "row": "rpc:accounts.addClaudeFromConfigDir",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:accounts.addCodexFromHome",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:accounts.addDataFromHome",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:accounts.antigravityAddCurrent",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:accounts.antigravityChatSignInCancel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names flowId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.antigravityChatSignInComplete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names flowId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.antigravityChatSignInStart",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:accounts.antigravityChatSignInSubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:accounts.antigravityList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:accounts.antigravityRemove",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names accountId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.antigravitySelect",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names accountId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.beginClaudeSignIn",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:accounts.cancelClaudeSignIn",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names accountId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.consumeCodexResetCredit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:accounts.finishClaudeSignIn",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names accountId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.hostSignInCancel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names flowId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.hostSignInStart",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:accounts.hostSignInSubmitCode",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names flowId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.hostSignInWait",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names flowId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:accounts.listData",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:accounts.minimaxClearApiKey",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:accounts.minimaxClearSessionCookie",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:accounts.minimaxCredentialsStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:accounts.minimaxSaveApiKey",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:accounts.minimaxSaveSessionCookie",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:accounts.removeClaude",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names accountId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.removeCodex",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names accountId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.removeData",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:accounts.selectClaude",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names accountId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.selectCodex",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names accountId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.selectCodexForTarget",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:accounts.selectData",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:accounts.setHostLaunchEnv",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:accounts.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:accounts.unsubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names subscriptionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:accounts.zcodePlanClearApiKey",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:accounts.zcodePlanCredentialsStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:accounts.zcodePlanSaveApiKey",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:agent.launch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agent.launchReplay",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentHooks.prepareCodexForWslPane",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:agentSession.acknowledgeAttention",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.agents",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:agentSession.cancel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.cancelUsageLimitContinue",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names sessionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:agentSession.close",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.commands",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.continuationContext",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.continueInterrupted",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.conversationCommand",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.conversationOutline",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.create",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.createSupport",
+   "state": "populated",
+   "via": [
+    "orca-scn-agentSession.createSupport"
+   ]
+  },
+  {
+   "row": "rpc:agentSession.currentRequests",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.ensure",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.handoffStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.history",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.hold",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.item",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.modelCatalog",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:agentSession.options",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.queuedMessageDelete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.queuedMessageEditHold",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.queuedMessageMove",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.queuedMessageSend",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.queuedMessagesResume",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.queuedMessageUpdate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.readVisual",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.regenerateName",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.release",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.rename",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.respondToApproval",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.respondToQuestion",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.restartContinue",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:agentSession.restartResumable",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:agentSession.restartResumableDismiss",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:agentSession.restartResume",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:agentSession.reveal",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.rewind",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.send",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.setOption",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.sleepWorkspace",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names workspaceId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:agentSession.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:agentSession.subscribeAvailability",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:agentSession.subscribeStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:agentSession.subscribeTurnCompletions",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:agentSession.threadGoal",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSession.unsubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSessionAttachment.read",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:agentSessionAttachment.readTextChunk",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:agentSessionAttachment.uploadAbort",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names uploadId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:agentSessionAttachment.uploadAppend",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentSessionAttachment.uploadCommit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names uploadId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:agentSessionAttachment.uploadStart",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:agentTeams.prepareLaunch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names paneKey, no provider chain makes it"
+  },
+  {
+   "row": "rpc:agentTeams.tmuxCompat",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names teamId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:aiVault.deleteSession",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:aiVault.listSessions",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:aiVault.prepareSessionResume",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:aiVault.resolveSessionTitles",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:aiVault.searchSessions",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:aiVault.searchStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:aiVault.setSearchEnabled",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:artifacts.delete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:artifacts.getPublishedLink",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:artifacts.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:artifacts.publish",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:artifacts.share",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:artifacts.unshare",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:artifacts.update",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:automation.create",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:automation.delete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:automation.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:automation.runNow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:automation.runs",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:automation.show",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:automation.update",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.back",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.capture.start",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.capture.stop",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.certificate.proceed",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.check",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.clear",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.click",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.clientHost.attach",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:browser.clientHost.commandResult",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.clientHost.fileChannel.abort",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.clientHost.fileChannel.read",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.clientHost.fileChannel.write",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.clientHost.pageMetadata",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.clipboardRead",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.clipboardWrite",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.console",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.cookie.delete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.cookie.get",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.cookie.set",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.dblclick",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.dialogAccept",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.dialogDismiss",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.download",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.drag",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.eval",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.exec",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.fill",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.find",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.focus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.forward",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.fullScreenshot",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.geolocation",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.get",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.goto",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.highlight",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.hover",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.identity.get",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.identity.set",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.intercept.disable",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.intercept.enable",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.intercept.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.is",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.keyboardInsertText",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.keypress",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.mouseClick",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.mouseDown",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.mouseMove",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.mouseUp",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.mouseWheel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.network",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.openUrl",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.pdf",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.profileClearDefaultCookies",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.profileClearGoogleCookies",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names profileId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:browser.profileCreate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.profileDelete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names profileId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:browser.profileDetectBrowsers",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.profileImportFromBrowser",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names profileId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:browser.profileList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.reload",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.screencast",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:browser.screencast.unsubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names subscriptionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:browser.screenshot",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.scroll",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.scrollIntoView",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.select",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.selectAll",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.setCredentials",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.setDevice",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.setHeaders",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.setMedia",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.setOffline",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.snapshot",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.storage.local.clear",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.storage.local.get",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.storage.local.set",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.storage.session.clear",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.storage.session.get",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.storage.session.set",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.tabClose",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.tabCreate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.tabCurrent",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.tabList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.tabProfileClone",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names profileId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:browser.tabProfileShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.tabSetProfile",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names profileId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:browser.tabShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.tabSwitch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.type",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:browser.upload",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.viewport",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:browser.wait",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:clipboard.abortImageUpload",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names uploadId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:clipboard.appendImageUploadChunk",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:clipboard.commitImageUpload",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names uploadId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:clipboard.saveImageAsTempFile",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:clipboard.startImageUpload",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:computer.capabilities",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:computer.click",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:computer.drag",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:computer.getAppState",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:computer.hotkey",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:computer.listApps",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:computer.listWindows",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:computer.pasteText",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:computer.performSecondaryAction",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:computer.permissions",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:computer.permissionsStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:computer.pressKey",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:computer.scroll",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:computer.setValue",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:computer.typeText",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:connector.answer",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:connector.cancel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:connector.pendingPrompt",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:connector.reply",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names paneKey, no provider chain makes it"
+  },
+  {
+   "row": "rpc:connector.send",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:connector.start",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:connector.watch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:desktopBrowserBridge.attach",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:desktopBrowserBridge.result",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:diagnostics.memory",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:emulator.attach",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.availability",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.ax",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.button",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.checkInput",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.exec",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.gesture",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.install",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:emulator.kill",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.launch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.listDevices",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.listSimulators",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.logcat",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.permissions",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:emulator.rotate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.shutdown",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.tap",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.type",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:emulator.unregisterActive",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:files.browseServerDir",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:files.commitUpload",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.commitUpload"
+   ]
+  },
+  {
+   "row": "rpc:files.copy",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.copy"
+   ]
+  },
+  {
+   "row": "rpc:files.createDir",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.createDir"
+   ]
+  },
+  {
+   "row": "rpc:files.createDirNoClobber",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.createDirNoClobber"
+   ]
+  },
+  {
+   "row": "rpc:files.createFile",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.createFile",
+    "orca-story-files-roundtrip",
+    "orca-story-git-flow"
+   ]
+  },
+  {
+   "row": "rpc:files.delete",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.delete",
+    "orca-story-files-roundtrip"
+   ]
+  },
+  {
+   "row": "rpc:files.list",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.list",
+    "orca-story-files-roundtrip"
+   ]
+  },
+  {
+   "row": "rpc:files.listAll",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.listAll"
+   ]
+  },
+  {
+   "row": "rpc:files.listMarkdownDocuments",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.listMarkdownDocuments"
+   ]
+  },
+  {
+   "row": "rpc:files.open",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.open"
+   ]
+  },
+  {
+   "row": "rpc:files.openDiff",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.openDiff"
+   ]
+  },
+  {
+   "row": "rpc:files.pathsExist",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.pathsExist"
+   ]
+  },
+  {
+   "row": "rpc:files.read",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.read",
+    "orca-story-files-roundtrip"
+   ]
+  },
+  {
+   "row": "rpc:files.readChatImage",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.readChatImage"
+   ]
+  },
+  {
+   "row": "rpc:files.readChunk",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.readChunk"
+   ]
+  },
+  {
+   "row": "rpc:files.readDir",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.readDir"
+   ]
+  },
+  {
+   "row": "rpc:files.readDocPreview",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.readDocPreview"
+   ]
+  },
+  {
+   "row": "rpc:files.readDocPreviewChunk",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.readDocPreviewChunk"
+   ]
+  },
+  {
+   "row": "rpc:files.readPreview",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.readPreview"
+   ]
+  },
+  {
+   "row": "rpc:files.readTerminalArtifact",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.readTerminalArtifact"
+   ]
+  },
+  {
+   "row": "rpc:files.readTerminalArtifactPreview",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.readTerminalArtifactPreview"
+   ]
+  },
+  {
+   "row": "rpc:files.rename",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.rename"
+   ]
+  },
+  {
+   "row": "rpc:files.replaceWithUpload",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.replaceWithUpload"
+   ]
+  },
+  {
+   "row": "rpc:files.resolveTerminalPath",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.resolveTerminalPath"
+   ]
+  },
+  {
+   "row": "rpc:files.saveAbort",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:files.saveBegin",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.saveBegin"
+   ]
+  },
+  {
+   "row": "rpc:files.saveChunk",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:files.saveCommit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:files.search",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.search"
+   ]
+  },
+  {
+   "row": "rpc:files.searchPaths",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.searchPaths"
+   ]
+  },
+  {
+   "row": "rpc:files.stat",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.stat",
+    "orca-story-files-roundtrip"
+   ]
+  },
+  {
+   "row": "rpc:files.unwatch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names subscriptionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:files.watch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:files.write",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.write",
+    "orca-story-files-roundtrip"
+   ]
+  },
+  {
+   "row": "rpc:files.writeBase64",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:files.writeBase64Chunk",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:files.writeIfUnchanged",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.writeIfUnchanged"
+   ]
+  },
+  {
+   "row": "rpc:files.writeTerminalArtifact",
+   "state": "populated",
+   "via": [
+    "orca-scn-files.writeTerminalArtifact"
+   ]
+  },
+  {
+   "row": "rpc:folderWorkspace.create",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:folderWorkspace.delete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:folderWorkspace.getPathStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:folderWorkspace.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:folderWorkspace.update",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:git.abortMerge",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.abortMerge"
+   ]
+  },
+  {
+   "row": "rpc:git.abortRebase",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.abortRebase"
+   ]
+  },
+  {
+   "row": "rpc:git.branchCompare",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.branchCompare"
+   ]
+  },
+  {
+   "row": "rpc:git.branchDiff",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:git.bulkDiscard",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.bulkDiscard"
+   ]
+  },
+  {
+   "row": "rpc:git.bulkStage",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.bulkStage"
+   ]
+  },
+  {
+   "row": "rpc:git.bulkUnstage",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.bulkUnstage"
+   ]
+  },
+  {
+   "row": "rpc:git.cancelGenerateCommitMessage",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.cancelGenerateCommitMessage"
+   ]
+  },
+  {
+   "row": "rpc:git.cancelGeneratePullRequestFields",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.cancelGeneratePullRequestFields"
+   ]
+  },
+  {
+   "row": "rpc:git.checkIgnored",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.checkIgnored"
+   ]
+  },
+  {
+   "row": "rpc:git.checkout",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.checkout"
+   ]
+  },
+  {
+   "row": "rpc:git.commit",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.commit",
+    "orca-story-git-flow"
+   ]
+  },
+  {
+   "row": "rpc:git.commitCompare",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:git.commitDiff",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:git.completeMerge",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.completeMerge"
+   ]
+  },
+  {
+   "row": "rpc:git.conflictOperation",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.conflictOperation"
+   ]
+  },
+  {
+   "row": "rpc:git.diff",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.diff"
+   ]
+  },
+  {
+   "row": "rpc:git.discard",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.discard"
+   ]
+  },
+  {
+   "row": "rpc:git.discoverCommitMessageModels",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.discoverCommitMessageModels"
+   ]
+  },
+  {
+   "row": "rpc:git.fastForward",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.fastForward"
+   ]
+  },
+  {
+   "row": "rpc:git.fetch",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.fetch"
+   ]
+  },
+  {
+   "row": "rpc:git.forkSync",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.forkSync"
+   ]
+  },
+  {
+   "row": "rpc:git.generateCommitMessage",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.generateCommitMessage"
+   ]
+  },
+  {
+   "row": "rpc:git.generatePullRequestFields",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.generatePullRequestFields"
+   ]
+  },
+  {
+   "row": "rpc:git.history",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.history",
+    "orca-story-git-flow"
+   ]
+  },
+  {
+   "row": "rpc:git.localBranches",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.localBranches"
+   ]
+  },
+  {
+   "row": "rpc:git.mutationInFlight",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.mutationInFlight"
+   ]
+  },
+  {
+   "row": "rpc:git.pull",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.pull"
+   ]
+  },
+  {
+   "row": "rpc:git.push",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.push"
+   ]
+  },
+  {
+   "row": "rpc:git.rebaseFromBase",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.rebaseFromBase"
+   ]
+  },
+  {
+   "row": "rpc:git.remoteCommitUrl",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:git.remoteFileUrl",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.remoteFileUrl"
+   ]
+  },
+  {
+   "row": "rpc:git.resolveConflict",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.resolveConflict"
+   ]
+  },
+  {
+   "row": "rpc:git.stage",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.stage",
+    "orca-story-git-flow"
+   ]
+  },
+  {
+   "row": "rpc:git.status",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.status",
+    "orca-story-git-flow"
+   ]
+  },
+  {
+   "row": "rpc:git.submoduleStatus",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.submoduleStatus"
+   ]
+  },
+  {
+   "row": "rpc:git.unstage",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.unstage"
+   ]
+  },
+  {
+   "row": "rpc:git.upstreamStatus",
+   "state": "populated",
+   "via": [
+    "orca-scn-git.upstreamStatus"
+   ]
+  },
+  {
+   "row": "rpc:github.addIssueComment",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.addIssueComment"
+   ]
+  },
+  {
+   "row": "rpc:github.addPRReviewComment",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.addPRReviewComment"
+   ]
+  },
+  {
+   "row": "rpc:github.addPRReviewCommentReply",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.addPRReviewCommentReply"
+   ]
+  },
+  {
+   "row": "rpc:github.countWorkItems",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.countWorkItems"
+   ]
+  },
+  {
+   "row": "rpc:github.createIssue",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.createIssue"
+   ]
+  },
+  {
+   "row": "rpc:github.issue",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.issue"
+   ]
+  },
+  {
+   "row": "rpc:github.listAssignableUsers",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.listAssignableUsers"
+   ]
+  },
+  {
+   "row": "rpc:github.listBindableAccounts",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.listBindableAccounts"
+   ]
+  },
+  {
+   "row": "rpc:github.listIssues",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.listIssues"
+   ]
+  },
+  {
+   "row": "rpc:github.listLabels",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.listLabels"
+   ]
+  },
+  {
+   "row": "rpc:github.listWorkItems",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.listWorkItems"
+   ]
+  },
+  {
+   "row": "rpc:github.markPRDraft",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.markPRDraft"
+   ]
+  },
+  {
+   "row": "rpc:github.markPRReadyForReview",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.markPRReadyForReview"
+   ]
+  },
+  {
+   "row": "rpc:github.mergePR",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.mergePR"
+   ]
+  },
+  {
+   "row": "rpc:github.prCheckDetails",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.prCheckDetails"
+   ]
+  },
+  {
+   "row": "rpc:github.prChecks",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.prChecks"
+   ]
+  },
+  {
+   "row": "rpc:github.prComments",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.prComments"
+   ]
+  },
+  {
+   "row": "rpc:github.prFileContents",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.prFileContents"
+   ]
+  },
+  {
+   "row": "rpc:github.prForBranch",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.prForBranch"
+   ]
+  },
+  {
+   "row": "rpc:github.project.addIssueCommentBySlug",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.project.addIssueCommentBySlug"
+   ]
+  },
+  {
+   "row": "rpc:github.project.clearItemField",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names projectId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:github.project.deleteIssueCommentBySlug",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.project.deleteIssueCommentBySlug"
+   ]
+  },
+  {
+   "row": "rpc:github.project.listAccessible",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:github.project.listAssignableUsersBySlug",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.project.listAssignableUsersBySlug"
+   ]
+  },
+  {
+   "row": "rpc:github.project.listIssueTypesBySlug",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.project.listIssueTypesBySlug"
+   ]
+  },
+  {
+   "row": "rpc:github.project.listLabelsBySlug",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.project.listLabelsBySlug"
+   ]
+  },
+  {
+   "row": "rpc:github.project.listViews",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:github.project.resolveRef",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:github.project.updateIssueBySlug",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.project.updateIssueBySlug"
+   ]
+  },
+  {
+   "row": "rpc:github.project.updateIssueCommentBySlug",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.project.updateIssueCommentBySlug"
+   ]
+  },
+  {
+   "row": "rpc:github.project.updateIssueTypeBySlug",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.project.updateIssueTypeBySlug"
+   ]
+  },
+  {
+   "row": "rpc:github.project.updateItemField",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names projectId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:github.project.updatePullRequestBySlug",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.project.updatePullRequestBySlug"
+   ]
+  },
+  {
+   "row": "rpc:github.project.viewTable",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:github.project.workItemDetailsBySlug",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.project.workItemDetailsBySlug"
+   ]
+  },
+  {
+   "row": "rpc:github.rateLimit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:github.removePRReviewers",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.removePRReviewers"
+   ]
+  },
+  {
+   "row": "rpc:github.repoSlug",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.repoSlug"
+   ]
+  },
+  {
+   "row": "rpc:github.repoUpstream",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.repoUpstream"
+   ]
+  },
+  {
+   "row": "rpc:github.requestPRReviewers",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.requestPRReviewers"
+   ]
+  },
+  {
+   "row": "rpc:github.rerunPRChecks",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.rerunPRChecks"
+   ]
+  },
+  {
+   "row": "rpc:github.resolveReviewThread",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.resolveReviewThread"
+   ]
+  },
+  {
+   "row": "rpc:github.setPRAutoMerge",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.setPRAutoMerge"
+   ]
+  },
+  {
+   "row": "rpc:github.setPRCommentReaction",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.setPRCommentReaction"
+   ]
+  },
+  {
+   "row": "rpc:github.setPRFileViewed",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.setPRFileViewed"
+   ]
+  },
+  {
+   "row": "rpc:github.updateIssue",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.updateIssue"
+   ]
+  },
+  {
+   "row": "rpc:github.updatePR",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.updatePR"
+   ]
+  },
+  {
+   "row": "rpc:github.updatePRState",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.updatePRState"
+   ]
+  },
+  {
+   "row": "rpc:github.updatePRTitle",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.updatePRTitle"
+   ]
+  },
+  {
+   "row": "rpc:github.validateAccountBinding",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.validateAccountBinding"
+   ]
+  },
+  {
+   "row": "rpc:github.workItem",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.workItem"
+   ]
+  },
+  {
+   "row": "rpc:github.workItemByOwnerRepo",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.workItemByOwnerRepo"
+   ]
+  },
+  {
+   "row": "rpc:github.workItemDetails",
+   "state": "populated",
+   "via": [
+    "orca-scn-github.workItemDetails"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.addIssueComment",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.addIssueComment"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.addMRComment",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.addMRComment"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.addMRInlineComment",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.addMRInlineComment"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.createIssue",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.createIssue"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.diagnoseAuth",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:gitlab.jobTrace",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.jobTrace"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.listAssignableUsers",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.listAssignableUsers"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.listIssues",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.listIssues"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.listLabels",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.listLabels"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.listMRs",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.listMRs"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.listWorkItems",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.listWorkItems"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.mergeMR",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.mergeMR"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.rateLimit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:gitlab.resolveMRDiscussion",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.resolveMRDiscussion"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.retryJob",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.retryJob"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.todos",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.todos"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.updateIssue",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.updateIssue"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.updateMR",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.updateMR"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.updateMRReviewers",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.updateMRReviewers"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.updateMRState",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.updateMRState"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.workItemByPath",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.workItemByPath"
+   ]
+  },
+  {
+   "row": "rpc:gitlab.workItemDetails",
+   "state": "populated",
+   "via": [
+    "orca-scn-gitlab.workItemDetails"
+   ]
+  },
+  {
+   "row": "rpc:host.declareClient",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:host.gitBash.isAvailable",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:host.peerDesktops",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:host.platform",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:host.pwsh.isAvailable",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:host.wsl.isAvailable",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:host.wsl.listDistros",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:hostedReview.create",
+   "state": "populated",
+   "via": [
+    "orca-scn-hostedReview.create"
+   ]
+  },
+  {
+   "row": "rpc:hostedReview.createStacked",
+   "state": "populated",
+   "via": [
+    "orca-scn-hostedReview.createStacked"
+   ]
+  },
+  {
+   "row": "rpc:hostedReview.forBranch",
+   "state": "populated",
+   "via": [
+    "orca-scn-hostedReview.forBranch"
+   ]
+  },
+  {
+   "row": "rpc:hostedReview.getCreationEligibility",
+   "state": "populated",
+   "via": [
+    "orca-scn-hostedReview.getCreationEligibility"
+   ]
+  },
+  {
+   "row": "rpc:jira.addIssueComment",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.attachmentImage",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:jira.cancelGenerateIssueSummary",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names siteId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:jira.connect",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.createIssue",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names projectId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:jira.disconnect",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.generateIssueSummary",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names siteId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:jira.getIssue",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.getIssueStream",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:jira.getProjectStatusOrder",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.issueComments",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.issueCommentsStream",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:jira.listAssignableUsers",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.listCreateFields",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.listFavouriteFilters",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names siteId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:jira.listIssues",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.listIssueTypes",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.listPriorities",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.listProjects",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.listTransitions",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.lookupIssueSummary",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.readStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:jira.searchIssues",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.searchUsers",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.selectSite",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names siteId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:jira.status",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:jira.testConnection",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:jira.updateIssue",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:layout.apply",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:layout.getRemoteSnapshots",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:layout.reopenHeldPanes",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:layout.reportView",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:layout.startWslHeldPanes",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:layout.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:layout.unsubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names subscriptionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:linear.addIssueComment",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.agentIssueList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.agentProjectList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.agentSearchIssues",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.agentTeamLabels",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.agentTeamList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.agentTeamMembers",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.agentTeamStates",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.commentDelete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.commentEdit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.connect",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.createIssue",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names teamId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:linear.createProject",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.disconnect",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.getCustomView",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names workspaceId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:linear.getIssue",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.getProject",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names workspaceId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:linear.issueAddComment",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.issueAttachLink",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.issueComments",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.issueContext",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.issueCreate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.issueRelationWrite",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.issueSetState",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.issueUpdateTask",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.listCustomViewIssues",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names workspaceId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:linear.listCustomViewProjects",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names workspaceId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:linear.listCustomViews",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.listIssues",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.listProjectIssues",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names projectId, workspaceId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:linear.listProjects",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.listTeams",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.mcpListIssues",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.resolveCurrentIssue",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.saveIssue",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.searchIssues",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.selectWorkspace",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names workspaceId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:linear.status",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:linear.teamLabels",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names teamId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:linear.teamMembers",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names teamId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:linear.teamStates",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names teamId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:linear.testConnection",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linear.updateIssue",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:linkPreview.get",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:managedRuntime.cancel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names operationId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:managedRuntime.install",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:managedRuntime.remove",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:managedRuntime.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:managedServer.cancelStop",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:managedServer.forget",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:managedServer.recover",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:managedServer.rollback",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:managedServer.status",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:managedServer.stop",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:managedServer.update",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:markdown.readTab",
+   "state": "populated",
+   "via": [
+    "orca-scn-markdown.readTab"
+   ]
+  },
+  {
+   "row": "rpc:markdown.saveTab",
+   "state": "populated",
+   "via": [
+    "orca-scn-markdown.saveTab"
+   ]
+  },
+  {
+   "row": "rpc:mobileRelay.hosts.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:mobileRelay.hosts.worktrees",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:mobileRelay.projectSections",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:mobileWeb.bundle.chunk",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:mobileWeb.bundle.manifest",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:mobileWeb.bundle.range",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:nativeChat.readSession",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names sessionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:nativeChat.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:nativeChat.unsubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:network.browserTunnel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:notifications.getMissedSince",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:notifications.registerPush",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:notifications.reportDesktopPresence",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:notifications.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:notifications.testPush",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:notifications.unregisterPush",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:notifications.unsubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names subscriptionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orcad.migration.abortCatalog",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orcad.migration.abortCatalogByReference",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orcad.migration.catalogState",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orcad.migration.commitCatalog",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orcad.migration.stageBlobChunk",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orcad.migration.stageCatalog",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orcad.migration.stageSnapshotChunk",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orcad.terminalCensus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.ask",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.callerShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.check",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.crewSubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:orchestration.dispatch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.dispatchShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.federationAck",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationAttachStart",
+   "state": "populated",
+   "via": [
+    "orca-scn-orchestration.federationAttachStart"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.federationFleetSnapshot",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.federationImport",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationPull",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationRead",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationReadOutput",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationRelease",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationRetain",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationStop",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.gateCreate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.gateList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.gateResolve",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.inbox",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.partyLocation",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.partyOpen",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.reply",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.requestShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.reset",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.run",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runCreate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runCurrent",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runStop",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runUse",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.send",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.sessionAddress",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names sessionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.taskCreate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.taskList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.taskUpdate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerAbandon",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerAutoClose",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.workerChatTouch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.workerKeepOpen",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.workerList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerRead",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerRelease",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerRetain",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerStart",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.workerStop",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerTerminalUserInput",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:pairing.delegatedMobileDevice.sync",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pairing.getEndpoints",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pairing.provisionRelay",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:pairing.registerDeviceKey",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.consent",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:plugins.devEmit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.devHook",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.devInspect",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.devLoad",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:plugins.devRequest",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.devUnload",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.getLogs",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.invokeCommand",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:plugins.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.open",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.panelAction",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:plugins.readPanelEntry",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:plugins.refresh",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.restart",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.setEnabled",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.setSystemEnabled",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:plugins.shot",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.shotChrome",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.shotEditor",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:plugins.shotReplay",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:preflight.check",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:preflight.detectAgents",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:preflight.detectRemoteAgents",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names connectionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:preflight.detectRemoteWindowsTerminalCapabilities",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names connectionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:preflight.refreshAgents",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:project.list",
+   "state": "populated",
+   "via": [
+    "orca-story-state-after-repo"
+   ]
+  },
+  {
+   "row": "rpc:project.update",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names projectId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:projectGroup.create",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:projectGroup.delete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:projectGroup.importNested",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:projectGroup.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:projectGroup.moveProject",
+   "state": "populated",
+   "via": [
+    "orca-scn-projectGroup.moveProject"
+   ]
+  },
+  {
+   "row": "rpc:projectGroup.scanNested",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:projectGroup.update",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:projectHostSetup.clone",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:projectHostSetup.create",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:projectHostSetup.delete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:projectHostSetup.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:projectHostSetup.setupExistingFolder",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:projectHostSetup.update",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:reference.find",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:reference.list",
+   "state": "populated",
+   "via": [
+    "orca-scn-reference.list"
+   ]
+  },
+  {
+   "row": "rpc:repo.add",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.add",
+    "orca-story-repo-lifecycle",
+    "orca-story-worktree-lifecycle",
+    "orca-story-files-roundtrip",
+    "orca-story-git-flow",
+    "orca-story-terminal-lifecycle",
+    "orca-story-state-after-repo"
+   ]
+  },
+  {
+   "row": "rpc:repo.addRemote",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names connectionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:repo.baseRefDefault",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.baseRefDefault",
+    "orca-story-repo-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:repo.clone",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:repo.create",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:repo.gitAvailable",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:repo.hooks",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.hooks"
+   ]
+  },
+  {
+   "row": "rpc:repo.hooksCheck",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.hooksCheck"
+   ]
+  },
+  {
+   "row": "rpc:repo.issueCommandRead",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.issueCommandRead"
+   ]
+  },
+  {
+   "row": "rpc:repo.issueCommandWrite",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.issueCommandWrite"
+   ]
+  },
+  {
+   "row": "rpc:repo.list",
+   "state": "populated",
+   "via": [
+    "orca-story-repo-lifecycle",
+    "orca-story-state-after-repo"
+   ]
+  },
+  {
+   "row": "rpc:repo.reorder",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:repo.rm",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.rm",
+    "orca-story-repo-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:repo.saveSparsePreset",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.saveSparsePreset"
+   ]
+  },
+  {
+   "row": "rpc:repo.searchRefs",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.searchRefs",
+    "orca-story-repo-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:repo.setBaseRef",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.setBaseRef",
+    "orca-story-repo-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:repo.setupScriptImports",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.setupScriptImports"
+   ]
+  },
+  {
+   "row": "rpc:repo.show",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.show",
+    "orca-story-repo-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:repo.sparsePresets",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.sparsePresets",
+    "orca-story-repo-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:repo.update",
+   "state": "populated",
+   "via": [
+    "orca-scn-repo.update"
+   ]
+  },
+  {
+   "row": "rpc:runtime.automaticWork.resume",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:runtime.automaticWork.status",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:runtime.clientCapabilities.update",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:runtime.clientEvents.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:runtime.clientEvents.unsubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names subscriptionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:session.readTerminalScrollback",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:session.tabs.activate",
+   "state": "populated",
+   "via": [
+    "orca-scn-session.tabs.activate"
+   ]
+  },
+  {
+   "row": "rpc:session.tabs.close",
+   "state": "populated",
+   "via": [
+    "orca-scn-session.tabs.close"
+   ]
+  },
+  {
+   "row": "rpc:session.tabs.closeLifecycle",
+   "state": "populated",
+   "via": [
+    "orca-scn-session.tabs.closeLifecycle"
+   ]
+  },
+  {
+   "row": "rpc:session.tabs.createTerminal",
+   "state": "populated",
+   "via": [
+    "orca-scn-session.tabs.createTerminal"
+   ]
+  },
+  {
+   "row": "rpc:session.tabs.list",
+   "state": "populated",
+   "via": [
+    "orca-scn-session.tabs.list"
+   ]
+  },
+  {
+   "row": "rpc:session.tabs.listAll",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:session.tabs.move",
+   "state": "populated",
+   "via": [
+    "orca-scn-session.tabs.move"
+   ]
+  },
+  {
+   "row": "rpc:session.tabs.movePaneToNewTab",
+   "state": "populated",
+   "via": [
+    "orca-scn-session.tabs.movePaneToNewTab"
+   ]
+  },
+  {
+   "row": "rpc:session.tabs.setTabProps",
+   "state": "populated",
+   "via": [
+    "orca-scn-session.tabs.setTabProps"
+   ]
+  },
+  {
+   "row": "rpc:session.tabs.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:session.tabs.subscribeAll",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:session.tabs.unsubscribe",
+   "state": "populated",
+   "via": [
+    "orca-scn-session.tabs.unsubscribe"
+   ]
+  },
+  {
+   "row": "rpc:session.tabs.unsubscribeAll",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:session.tabs.updatePaneLayout",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:settings.get",
+   "state": "populated",
+   "via": [
+    "orca-story-settings-roundtrip"
+   ]
+  },
+  {
+   "row": "rpc:settings.getAgentLaunch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:settings.getTerminalQuickCommands",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:settings.mutateAgentLaunch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:settings.mutateNativeChatSessionOptions",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:settings.update",
+   "state": "populated",
+   "via": [
+    "orca-story-settings-roundtrip"
+   ]
+  },
+  {
+   "row": "rpc:settings.updatePRBotAuthorOverride",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:settings.updateTerminalQuickCommands",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:sidebarInputs.activityFacts",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:sidebarInputs.desktopFacts",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:sidebarInputs.pairedServerRows",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:sidebarInputs.read",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:sidebarInputs.repoIcons",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:sidebarInputs.reportView",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:sidebarInputs.reviewFacts",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:sidebarInputs.temporal",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:sidebarInputs.workspaceCreations",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:sidebarInputs.workspaceRows",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:sidebarSession.begin",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names sessionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:skills.autoUpdateBundledOrca",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:skills.beginUpload",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:skills.cancelInstall",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names operationId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:skills.cancelUpload",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names uploadId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:skills.commitUpload",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names uploadId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:skills.delete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names operationId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:skills.discover",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:skills.executeBundledOrca",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:skills.getInstallProgress",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names operationId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:skills.install",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:skills.installBundle",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:skills.listManagedInstalls",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:skills.planBundledOrca",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:skills.previewDelete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names operationId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:skills.previewInstall",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:skills.removeInstall",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names operationId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:skills.share",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:skills.uploadChunk",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names uploadId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:speech.dictation.cancel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:speech.dictation.chunk",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:speech.dictation.finish",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:speech.dictation.setup",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:speech.dictation.start",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:speech.models.delete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:speech.models.download",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:speech.models.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:speech.openAiKey.clear",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:speech.openAiKey.set",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:speech.openAiKey.status",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:ssh.addTarget",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:ssh.browseDir",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names targetId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:ssh.connect",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names targetId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:ssh.getState",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names targetId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:ssh.listEditableTargets",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:ssh.listRemovedTargetLabels",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:ssh.listTargets",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:ssh.listTargetSummaries",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:ssh.removeTarget",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names targetId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:ssh.updateTarget",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names targetId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:stats.summary",
+   "state": "populated",
+   "via": [
+    "orca-story-state-after-repo"
+   ]
+  },
+  {
+   "row": "rpc:status.get",
+   "state": "populated",
+   "via": [
+    "orca-story-state-after-repo"
+   ]
+  },
+  {
+   "row": "rpc:terminal.adoptOrphans",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.adoptOrphans"
+   ]
+  },
+  {
+   "row": "rpc:terminal.agentStatus",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.agentStatus"
+   ]
+  },
+  {
+   "row": "rpc:terminal.clearBuffer",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.clearBuffer"
+   ]
+  },
+  {
+   "row": "rpc:terminal.close",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.close",
+    "orca-story-terminal-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:terminal.closeAll",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.closeAll"
+   ]
+  },
+  {
+   "row": "rpc:terminal.closeTab",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.closeTab"
+   ]
+  },
+  {
+   "row": "rpc:terminal.create",
+   "state": "populated",
+   "via": [
+    "orca-story-terminal-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:terminal.createAgentSession",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:terminal.ensureAgentSession",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminal.focus",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.focus"
+   ]
+  },
+  {
+   "row": "rpc:terminal.getAutoRestoreFit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminal.getDisplayMode",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.getDisplayMode"
+   ]
+  },
+  {
+   "row": "rpc:terminal.inspectProcess",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.inspectProcess"
+   ]
+  },
+  {
+   "row": "rpc:terminal.isRunningAgent",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.isRunningAgent"
+   ]
+  },
+  {
+   "row": "rpc:terminal.list",
+   "state": "populated",
+   "via": [
+    "orca-story-terminal-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:terminal.multiplex",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:terminal.read",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.read"
+   ]
+  },
+  {
+   "row": "rpc:terminal.readKittyFile",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.readKittyFile"
+   ]
+  },
+  {
+   "row": "rpc:terminal.recoverPane",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names paneKey, no provider chain makes it"
+  },
+  {
+   "row": "rpc:terminal.rename",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.rename",
+    "orca-story-terminal-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:terminal.resetInputModes",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.resetInputModes"
+   ]
+  },
+  {
+   "row": "rpc:terminal.resizeForClient",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.resizeForClient"
+   ]
+  },
+  {
+   "row": "rpc:terminal.resolveActive",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminal.resolveIdentity",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.resolveIdentity"
+   ]
+  },
+  {
+   "row": "rpc:terminal.resolvePane",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names paneKey, no provider chain makes it"
+  },
+  {
+   "row": "rpc:terminal.restoreFit",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.restoreFit"
+   ]
+  },
+  {
+   "row": "rpc:terminal.reveal",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names tabId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:terminal.send",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.send"
+   ]
+  },
+  {
+   "row": "rpc:terminal.setAutoRestoreFit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminal.setDisplayMode",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.setDisplayMode"
+   ]
+  },
+  {
+   "row": "rpc:terminal.setPaneTitle",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.setPaneTitle"
+   ]
+  },
+  {
+   "row": "rpc:terminal.setViewerColors",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminal.show",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.show",
+    "orca-story-terminal-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:terminal.sleep",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.sleep"
+   ]
+  },
+  {
+   "row": "rpc:terminal.split",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:terminal.stop",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.stop"
+   ]
+  },
+  {
+   "row": "rpc:terminal.stopExact",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.stopExact"
+   ]
+  },
+  {
+   "row": "rpc:terminal.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:terminal.subscribeClaudeAgentViews",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:terminal.unsubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names subscriptionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:terminal.updateViewport",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.updateViewport"
+   ]
+  },
+  {
+   "row": "rpc:terminal.viewClaudeAgent",
+   "state": "populated",
+   "via": [
+    "orca-scn-terminal.viewClaudeAgent"
+   ]
+  },
+  {
+   "row": "rpc:terminal.wait",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:terminalDaemon.limit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:terminalDaemon.restartSevered",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminalDaemon.setLimit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminalDaemon.severedStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:ui.get",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:ui.getJiraQuickFilters",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:ui.getJiraSavedFilters",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:ui.mutateJiraSavedFilters",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:ui.recordFeatureInteraction",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:ui.set",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:ui.setCollapsed",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:ui.setJiraQuickFilters",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:updater.check",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:updater.download",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:updater.getStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:updater.install",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:workspacePorts.kill",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:workspacePorts.killHost",
+   "state": "populated",
+   "via": [
+    "orca-scn-workspacePorts.killHost"
+   ]
+  },
+  {
+   "row": "rpc:workspacePorts.probePage",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:workspacePorts.scan",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:workspacePorts.scanHost",
+   "state": "populated",
+   "via": [
+    "orca-scn-workspacePorts.scanHost"
+   ]
+  },
+  {
+   "row": "rpc:worktree.activate",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.activate"
+   ]
+  },
+  {
+   "row": "rpc:worktree.adoptProvisionedRoot",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.adoptProvisionedRoot"
+   ]
+  },
+  {
+   "row": "rpc:worktree.create",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.create",
+    "orca-story-worktree-lifecycle",
+    "orca-story-files-roundtrip",
+    "orca-story-git-flow",
+    "orca-story-terminal-lifecycle",
+    "orca-story-state-after-repo"
+   ]
+  },
+  {
+   "row": "rpc:worktree.detectedList",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.detectedList"
+   ]
+  },
+  {
+   "row": "rpc:worktree.forceDeleteBranch",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.forceDeleteBranch"
+   ]
+  },
+  {
+   "row": "rpc:worktree.lineageList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:worktree.list",
+   "state": "populated",
+   "via": [
+    "orca-story-worktree-lifecycle",
+    "orca-story-state-after-repo"
+   ]
+  },
+  {
+   "row": "rpc:worktree.listRetiredNames",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.listRetiredNames"
+   ]
+  },
+  {
+   "row": "rpc:worktree.persistSortOrder",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:worktree.prefetchCreateBase",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.prefetchCreateBase"
+   ]
+  },
+  {
+   "row": "rpc:worktree.ps",
+   "state": "populated",
+   "via": [
+    "orca-story-worktree-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:worktree.resolveMrBase",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.resolveMrBase"
+   ]
+  },
+  {
+   "row": "rpc:worktree.resolvePrBase",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.resolvePrBase"
+   ]
+  },
+  {
+   "row": "rpc:worktree.rm",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.rm",
+    "orca-story-worktree-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:worktree.set",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.set"
+   ]
+  },
+  {
+   "row": "rpc:worktree.show",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.show",
+    "orca-story-worktree-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:worktree.sleep",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.sleep",
+    "orca-story-worktree-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:worktree.teardownMissingTerminals",
+   "state": "populated",
+   "via": [
+    "orca-scn-worktree.teardownMissingTerminals"
+   ]
+  },
+  {
+   "row": "http:mobile/src/app-update/app-store-update-source.ts#1",
+   "state": "empty-only",
+   "via": [],
+   "reason": "not-recorded: a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+  },
+  {
+   "row": "http:mobile/src/app-update/github-release-update-source.ts#1",
+   "state": "empty-only",
+   "via": [],
+   "reason": "not-recorded: a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+  },
+  {
+   "row": "http:mobile/src/app-update/github-release-update-source.ts#2",
+   "state": "empty-only",
+   "via": [],
+   "reason": "not-recorded: a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+  },
+  {
+   "row": "http:mobile/src/components/MobileAgentIcon.tsx#1",
+   "state": "empty-only",
+   "via": [],
+   "reason": "not-recorded: a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+  },
+  {
+   "row": "http:mobile/src/diagnostics/connection-diagnostics-submission.ts#1",
+   "state": "empty-only",
+   "via": [],
+   "reason": "not-recorded: a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+  },
+  {
+   "row": "http:mobile/src/diagnostics/use-troubleshoot-diagnostics.ts#1",
+   "state": "empty-only",
+   "via": [],
+   "reason": "not-recorded: a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+  },
+  {
+   "row": "http:mobile/src/transport/mobile-relay-resume-director.ts#1",
+   "state": "empty-only",
+   "via": [],
+   "reason": "not-recorded: a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+  },
+  {
+   "row": "transport:e2ee.handshake",
+   "state": "empty-only",
+   "via": [],
+   "reason": "not-recorded: the e2ee handshake is the connection every case opens, answered once per case"
+  }
+ ]
+}

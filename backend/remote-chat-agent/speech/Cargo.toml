@@ -1,0 +1,25 @@
+[package]
+name = "remote-chat-agent-speech"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The speech-to-text adapter of the remote chat agent: `Speech`, the `SpeechToText` port over the faster-whisper sidecar, Groq's hosted whisper, or whisper.cpp behind ffmpeg."
+
+[lib]
+name = "remote_chat_agent_speech"
+path = "src/lib.rs"
+doctest = false
+
+[dependencies]
+async-trait.workspace = true
+rca-service-core = { path = "../service-core" }
+remote-chat-agent-core = { path = "../core" }
+serde_json.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["fs"] }
+
+[dev-dependencies]
+rca-service-core = { path = "../service-core", features = ["testing"] }
+remote-chat-agent-core = { path = "../core", features = ["testing"] }
+tempfile.workspace = true
+tokio = { workspace = true, features = ["fs", "rt-multi-thread"] }

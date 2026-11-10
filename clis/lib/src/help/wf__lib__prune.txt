@@ -1,0 +1,21 @@
+Usage: wf lib prune [options]
+
+Delete released versions from the bucket registry. A version is deleted only if
+no Cargo.lock at origin/dev names it (any lock entry of that crate and version,
+path entries included), it is not the latest version of its crate, and it is
+older than the grace period. Never the latest, never a pinned one. A deleted
+version is first marked yanked in the index, so a new resolution never picks it,
+then its .crate is removed. A registry whose adapter cannot delete (crates.io) is
+skipped and listed with the reason. It runs `git fetch origin dev` first, because
+a stale ref could hide a pin; --no-fetch skips that. Needs the operator's `oci` CLI
+and ~/.oci, and LIBS_WRITE_PAR_URL (the yank is written to libs/index/ through it).
+
+Output: one JSON object on stdout {ok, dryRun, graceDays, deleted | wouldDelete:
+[{crate, version, bytes, ageDays}], freedBytes, kept: [{crate, version, reason}],
+skipped: [{library, registry, why}]}. reason is latest, pinned or grace.
+
+Options:
+  --dry-run           print what would be deleted and delete nothing
+  --grace-days <n>    minimum age in days (default 30)
+  --no-fetch          do not fetch origin/dev first
+  -h, --help          display help for command

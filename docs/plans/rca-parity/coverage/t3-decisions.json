@@ -1,0 +1,353 @@
+{
+  "schema": 1,
+  "app": "t3",
+  "notes": {
+    "milestones": "Row id or `prefix*` to the milestone of docs/plans/rca-parity/plan.md section 6 in which the row becomes served; the longest match wins. A row t3 serve answers today keeps the milestone of its agent method: M3 re-verifies the existing rows through the real chain.",
+    "targets": "Every command and project mutation: `agent:<method>` (forwarded to the agent API), `state:<key>` (device state) or `t3-local` (a projection t3 serve keeps itself), per plan section 2 Commands.",
+    "decisions": "Rows with a state other than pending: not-offered needs a reason and a decidedBy milestone, excluded a reason. No row is marked served here: a row is served by the evidence in t3-evidence.json (a passing test of a complete chain run and its method-hit trace, `wf parity coverage --app t3 --traces`).",
+    "reverify": "Row id to why a trace hit does not serve it yet: the mapper refuses it or answers without doing it. A call that only passes by refusing never counts; remove the note in the commit that makes the answer functional and reverified through the chain.",
+    "proposed": "Decision 4 (hosted credentials) is the proposed default awaiting owner confirmation: the service holds no GitHub or GitLab token and the executor machine's own gh and glab sign-in is used. The pull-request link, unlink and watch commands are kept in the agent API's state (state:thread.pullRequests), a target the owner has not confirmed either. M12 pull request rows, proposed defaults awaiting owner confirmation: a pull request's head is read from the project's own repository (git fetch of refs/pull/N/head or refs/merge-requests/N/head into refs/rca/, never a branch), so diffFileContents and preparePullRequestThread run no host CLI; the branch a pull request gets is always t3code/pr-N/<head> (T3 uses the head's own name for a same-repository pull request, which the CLIs do not say); a review guide is a model turn over the diff on a thread of its own with the model settings name (reviewGuideModelSelection, then textGenerationModelSelection, then defaultModelSelection), kept in the agent API's state, with its run (Running, Failed) in this process only; the thread's pull request links are shown to the phone through pullRequests.linkedThreads, not through the thread shell's pullRequests list."
+  },
+  "milestones": {
+    "rpc:server.probe": "M3",
+    "rpc:subscribeServerConfig": "M3",
+    "rpc:subscribeServerLifecycle": "M3",
+    "rpc:orchestration.subscribeShell": "M3",
+    "rpc:orchestration.subscribeThread": "M3",
+    "rpc:orchestration.getThreadProjection": "M3",
+    "rpc:orchestration.dispatchCommand": "M3",
+    "rpc:orchestration.launchThread": "M3",
+    "rpc:projects.mutate": "M3",
+    "rpc:projects.listEntries": "M3",
+    "rpc:projects.readFile": "M3",
+    "rpc:projects.writeFile": "M6",
+    "rpc:filesystem.browse": "M6",
+    "rpc:orchestration.*": "M4",
+    "rpc:orchestration.getTurnDiff": "M6",
+    "rpc:orchestration.getFullThreadDiff": "M6",
+    "rpc:secrets.answerRequest": "M4",
+    "rpc:peerLinks.*": "M5",
+    "rpc:server.reportClientActivity": "M5",
+    "rpc:projects.*": "M6",
+    "rpc:filesystem.getMetadata": "M6",
+    "rpc:vcs.createWorktree": "M6",
+    "rpc:worktreeSetup.*": "M6",
+    "rpc:subscribeWorktreeSetup": "M6",
+    "rpc:terminal.*": "M8",
+    "rpc:subscribeTerminalMetadata": "M8",
+    "rpc:vcs.*": "M9",
+    "rpc:subscribeVcsStatus": "M9",
+    "rpc:git.runStackedAction": "M9",
+    "rpc:review.*": "M9",
+    "rpc:provider.*": "M10",
+    "rpc:server.refreshProviders": "M10",
+    "rpc:server.updateProvider": "M10",
+    "rpc:server.updateSettings": "M10",
+    "rpc:server.getUsageSummary": "M10",
+    "rpc:server.refreshUsageRates": "M10",
+    "rpc:pullRequests.*": "M11",
+    "rpc:sourceControl.*": "M11",
+    "rpc:projectClone.*": "M11",
+    "rpc:subscribeProjectClones": "M11",
+    "rpc:git.preparePullRequestThread": "M11",
+    "rpc:server.discoverSourceControl": "M11",
+    "rpc:scheduledTasks.*": "M12",
+    "rpc:attachments.*": "M12",
+    "rpc:assets.*": "M12",
+    "rpc:preview.*": "M12",
+    "rpc:subscribePreviewEvents": "M12",
+    "rpc:device.*": "M12",
+    "rpc:subscribeDeviceState": "M12",
+    "rpc:mcpApps.*": "M12",
+    "rpc:provider.uploadFeedback": "M12",
+    "rpc:server.updateServer": "M12",
+    "rpc:server.updateServerWithProgress": "M12",
+    "rpc:server.commitDesktopUpdate": "M12",
+    "rpc:server.getDatabaseStorage": "M10",
+    "rpc:server.prepareTriage": "M12",
+    "rpc:subscribeResourceTelemetry": "M12",
+    "command:thread.create": "M3",
+    "command:message.dispatch": "M3",
+    "command:thread.stop": "M3",
+    "command:run.interrupt": "M3",
+    "command:*": "M4",
+    "command:thread.guest-share.close": "M5",
+    "command:thread.guest-message.dismiss": "M5",
+    "command:checkpoint.rollback": "M9",
+    "command:thread.pull-request.*": "M11",
+    "mutation:*": "M12",
+    "http:metadata.descriptor": "M3",
+    "http:auth.session": "M3",
+    "http:auth.token": "M3",
+    "http:auth.webSocketTicket": "M3",
+    "http:auth.webSocketTicketFor": "M3",
+    "http:orchestration.*": "M3",
+    "http:auth.pairingCredential": "M5",
+    "http:connect.*": "M5",
+    "http:pullRequests.diff": "M11",
+    "rpc:projects.ensureScratch": "M12",
+    "rpc:projects.createNew": "M12",
+    "rpc:projects.createFromThread": "M12"
+  },
+  "targets": {
+    "command:thread.create": "agent:thread.create",
+    "command:message.dispatch": "agent:turn.start",
+    "command:thread.stop": "agent:turn.interrupt",
+    "command:run.interrupt": "agent:turn.interrupt",
+    "command:thread.archive": "agent:thread.archive",
+    "command:thread.unarchive": "agent:thread.archive",
+    "command:thread.delete": "agent:thread.delete",
+    "command:thread.fork": "agent:thread.fork",
+    "command:thread.settle": "agent:thread.settle",
+    "command:thread.unsettle": "agent:thread.settle",
+    "command:thread.snooze": "agent:thread.settle",
+    "command:thread.unsnooze": "agent:thread.settle",
+    "command:thread.metadata.update": "state:thread.settings",
+    "command:thread.runtime-mode.set": "state:thread.settings",
+    "command:thread.interaction-mode.set": "state:thread.settings",
+    "command:thread.model-selection.set": "state:thread.settings",
+    "command:thread.merge_back": "agent:thread.mergeBack",
+    "command:subagent.stop": "agent:workflow.stop",
+    "command:prepared-run.retry": "t3-local",
+    "command:provider-session.detach": "agent:thread.detach",
+    "command:queue.resume": "agent:queue.resume",
+    "command:queued-run.start": "agent:queue.resume",
+    "command:queued-run.edit": "agent:queue.edit",
+    "command:queued-run.cancel": "agent:queue.delete",
+    "command:queued-message.promote-to-steer": "agent:turn.steer",
+    "command:runtime-request.respond": "agent:approval.answer",
+    "command:thread.user-input.dismiss": "agent:input.dismiss",
+    "command:checkpoint.rollback": "agent:thread.rollback",
+    "command:thread.pin": "state:thread.pins",
+    "command:thread.unpin": "state:thread.pins",
+    "command:thread.pin.reorder": "state:thread.pins",
+    "command:thread.active.reorder": "state:thread.activeOrder",
+    "command:thread.auto-settle.set": "state:thread.autoSettle",
+    "command:thread.visit": "state:thread.visits",
+    "command:thread.mark-unread": "state:thread.visits",
+    "command:thread.guest-share.close": "t3-local",
+    "command:thread.guest-message.dismiss": "t3-local",
+    "command:thread.pull-request.link": "state:thread.pullRequests",
+    "command:thread.pull-request.unlink": "state:thread.pullRequests",
+    "command:thread.pull-request.watch": "state:thread.pullRequests",
+    "mutation:project.create": "agent:workspace.create",
+    "mutation:project.update": "state:project.settings",
+    "mutation:project.delete": "agent:workspace.remove"
+  },
+  "decisions": {
+    "rpc:device.action": {
+      "state": "not-offered",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    "rpc:device.close": {
+      "state": "not-offered",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    "rpc:device.configure": {
+      "state": "not-offered",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    "rpc:device.detail": {
+      "state": "not-offered",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    "rpc:device.list": {
+      "state": "not-offered",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    "rpc:device.open": {
+      "state": "not-offered",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    "rpc:device.shutdown": {
+      "state": "not-offered",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    "rpc:subscribeDeviceState": {
+      "state": "not-offered",
+      "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Proposed default awaiting owner confirmation (plan decision 1 lists device as a T3 candidate).",
+      "decidedBy": "M12"
+    },
+    "command:thread.guest-message.dismiss": {
+      "state": "not-offered",
+      "reason": "guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "command:thread.guest-share.close": {
+      "state": "not-offered",
+      "reason": "guest sharing needs a public guest endpoint and a guest identity on the service; rca has no guest concept and no share can exist through the chain, so the dismiss and close commands could only pass on an empty set. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "http:connect.linkProof": {
+      "state": "not-offered",
+      "reason": "T3 Connect and relay need an environment signing key and a hosted relay account (a person's credential); the service holds none and the mapper never mints one. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "http:connect.relayConfig": {
+      "state": "not-offered",
+      "reason": "T3 Connect and relay need an environment signing key and a hosted relay account (a person's credential); the service holds none and the mapper never mints one. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:peerLinks.answerRequest": {
+      "state": "not-offered",
+      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:peerLinks.link": {
+      "state": "not-offered",
+      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:peerLinks.list": {
+      "state": "not-offered",
+      "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:mcpApps.callTool": {
+      "state": "not-offered",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:mcpApps.readResource": {
+      "state": "not-offered",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:mcpApps.toolInfo": {
+      "state": "not-offered",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:mcpApps.updateModelContext": {
+      "state": "not-offered",
+      "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:server.commitDesktopUpdate": {
+      "state": "not-offered",
+      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:server.updateServer": {
+      "state": "not-offered",
+      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:server.updateServerWithProgress": {
+      "state": "not-offered",
+      "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:provider.uploadFeedback": {
+      "state": "not-offered",
+      "reason": "uploading provider feedback sends a transcript to the T3 vendor's endpoint; the owner has not approved sending any thread data off the service. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:provider.chatgpt.import-profile": {
+      "state": "not-offered",
+      "reason": "a ChatGPT profile is a credential: importing or reconnecting one would pass tokens through the mapper, which never holds one, and the Codex CLI behind rca keeps its own login. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:provider.chatgpt.reconnect-profile": {
+      "state": "not-offered",
+      "reason": "a ChatGPT profile is a credential: importing or reconnecting one would pass tokens through the mapper, which never holds one, and the Codex CLI behind rca keeps its own login. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:provider.consumeResetCredit": {
+      "state": "not-offered",
+      "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:server.refreshUsageRates": {
+      "state": "not-offered",
+      "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:server.updateProvider": {
+      "state": "not-offered",
+      "reason": "the provider CLIs ship inside the service's image, so a version is updated by shipping an image, not by an RPC; the row could only pass by refusing. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:secrets.answerRequest": {
+      "state": "not-offered",
+      "reason": "rca never asks for a secret, so there is no request to answer; the call could only get not_found. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "command:prepared-run.retry": {
+      "state": "not-offered",
+      "reason": "rca prepares no workspace for a run, so there is no failed preparation to retry; the call could only get the refusal. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:orchestration.getWorkflowScript": {
+      "state": "not-offered",
+      "reason": "rca starts no Claude workflow scripts of its own, so a thread has none to show; an owner who wants it gets an executor action that reads one file by absolute path under the Claude projects root, with .. and links refused and 1 MiB truncation, outside the workspace confinement. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:pullRequests.invalidate": {
+      "state": "not-offered",
+      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:pullRequests.reportState": {
+      "state": "not-offered",
+      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:pullRequests.subscribeRefreshes": {
+      "state": "not-offered",
+      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:server.prepareTriage": {
+      "state": "not-offered",
+      "reason": "it starts an in-app triage of the T3 Code install itself: the server writes the session files `t3 triage` writes (its own logs, config and version under T3 home) and clones the T3 Code source from github.com/pingdotgg/t3code into its cache, then hands the phone a prompt for a scratch thread. t3-serve is not that server (it has no T3 home, logs or release to diagnose) and rca-exec has nothing of it to read; the feature would be a network clone of a third party's repository with no state of ours to triage, so there is nothing to build and prove on the executor. The phone's own fallback is the `npx t3 triage` command it offers to copy. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "rpc:subscribeResourceTelemetry": {
+      "state": "not-offered",
+      "reason": "the stream is a process monitor of the T3 install itself: samples of the T3 server, its provider and terminal roots and the Electron processes (categories `server`, `provider-root`, `electron-main`, ...) taken by a protocol-3 resource-monitor sidecar, plus update state and host power. t3-serve has no such process tree and rca-exec has no process-sampling action; the one honest part, the executor host's CPU and memory, would ship with an empty process list that the phone's resource view would present as a healthy idle server. Proposed default awaiting owner confirmation.",
+      "decidedBy": "M12"
+    },
+    "http:auth.token": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.subscribeThread": {
+      "oracle": "mimic"
+    },
+    "rpc:subscribePreviewEvents": {
+      "oracle": "mimic"
+    },
+    "command:thread.pin": {
+      "oracle": "mimic"
+    },
+    "http:auth.webSocketTicket": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.subscribe": {
+      "oracle": "mimic"
+    },
+    "http:auth.session": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getArchivedShellSnapshot": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.ensureScratch": {
+      "oracle": "mimic"
+    },
+    "rpc:server.probe": {
+      "oracle": "mimic"
+    },
+    "rpc:subscribeTerminalMetadata": {
+      "oracle": "mimic"
+    }
+  },
+  "reverify": {}
+}

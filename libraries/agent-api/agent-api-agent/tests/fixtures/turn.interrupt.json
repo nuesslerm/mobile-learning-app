@@ -1,0 +1,126 @@
+{
+  "method": "turn.interrupt",
+  "exchanges": [
+    {
+      "name": "stops the running turn and names it",
+      "before": [
+        {
+          "id": "setup-t-stop",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-stop",
+            "workspace": "w1"
+          }
+        },
+        {
+          "id": "setup-turn",
+          "method": "turn.start",
+          "params": {
+            "thread": "t-stop",
+            "workspace": "w1",
+            "driver": "claudeAgent",
+            "prompt": "Say hi"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "turn.interrupt",
+        "params": {
+          "thread": "t-stop"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": "t-stop",
+          "turn": "turn-1"
+        }
+      },
+      "volatile": [
+        "/result/turn"
+      ]
+    },
+    {
+      "name": "answers NO_TURN for a thread that is idle",
+      "before": [
+        {
+          "id": "setup-t-idle",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-idle"
+          }
+        }
+      ],
+      "request": {
+        "id": "2",
+        "method": "turn.interrupt",
+        "params": {
+          "thread": "t-idle"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "NO_TURN",
+          "message": "thread t-idle has no running turn"
+        }
+      }
+    },
+    {
+      "name": "answers NO_TURN for a turn that is not the running one",
+      "before": [
+        {
+          "id": "setup-t-old",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-old",
+            "workspace": "w1"
+          }
+        },
+        {
+          "id": "setup-turn",
+          "method": "turn.start",
+          "params": {
+            "thread": "t-old",
+            "workspace": "w1",
+            "driver": "claudeAgent",
+            "prompt": "Say hi"
+          }
+        }
+      ],
+      "request": {
+        "id": "3",
+        "method": "turn.interrupt",
+        "params": {
+          "thread": "t-old",
+          "turn": "turn-0"
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "NO_TURN",
+          "message": "thread t-old is not running turn turn-0"
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "4",
+        "method": "turn.interrupt",
+        "params": {
+          "thread": "nope"
+        }
+      },
+      "response": {
+        "id": "4",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

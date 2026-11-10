@@ -1,0 +1,16 @@
+Usage: wf offload plan [options] <slug>
+
+Run docs/plans/<slug>/units.jsonl on git-leased worktrees (the git-state
+worker); --check only validates the plan, --status shows each unit.
+
+Options:
+  --check               validate units.jsonl and print the dependency order,
+                        dispatch nothing
+  --status              plan status per unit
+                        (done|leased|failed|blocked|runnable) from git refs
+  --max <n>             max units in flight
+  --site <site>         sandbox|vm (default: "sandbox")
+  --land-ref <ref>      branch units land on (default: "dev")
+  --once                take one unit, then exit
+  --worktree-dir <dir>  worktree root, outside the repo
+  -h, --help            display help for command

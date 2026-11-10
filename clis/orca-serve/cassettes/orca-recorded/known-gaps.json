@@ -1,0 +1,385 @@
+{
+  "schema": "mimic-known-gaps/2",
+  "groups": [
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.error.code",
+      "severity": "drift",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.code changed drift",
+        "steps._:s2c:0.[0].payload.error.message changed drift"
+      ],
+      "ids": [
+        "orca-accounts.consumeCodexResetCredit",
+        "orca-accounts.selectClaude",
+        "orca-accounts.selectCodex",
+        "orca-accounts.selectCodexForTarget",
+        "orca-agentSession.threadGoal",
+        "orca-browser.back",
+        "orca-browser.dialogAccept",
+        "orca-browser.dialogDismiss",
+        "orca-browser.forward",
+        "orca-browser.goto",
+        "orca-browser.keyboardInsertText",
+        "orca-browser.keypress",
+        "orca-browser.mouseClick",
+        "orca-browser.mouseDown",
+        "orca-browser.mouseMove",
+        "orca-browser.mouseUp",
+        "orca-browser.mouseWheel",
+        "orca-browser.reload",
+        "orca-browser.screencast.unsubscribe",
+        "orca-browser.tabCreate",
+        "orca-clipboard.appendImageUploadChunk",
+        "orca-clipboard.commitImageUpload",
+        "orca-clipboard.saveImageAsTempFile",
+        "orca-files.readTerminalArtifact",
+        "orca-files.readTerminalArtifactPreview",
+        "orca-files.resolveTerminalPath",
+        "orca-files.writeTerminalArtifact",
+        "orca-git.branchDiff",
+        "orca-git.cancelGenerateCommitMessage",
+        "orca-git.cancelGeneratePullRequestFields",
+        "orca-git.commitDiff",
+        "orca-git.diff",
+        "orca-git.discoverCommitMessageModels",
+        "orca-git.generatePullRequestFields",
+        "orca-git.remoteCommitUrl",
+        "orca-github.addIssueComment",
+        "orca-github.addPRReviewComment",
+        "orca-github.addPRReviewCommentReply",
+        "orca-github.countWorkItems",
+        "orca-github.createIssue",
+        "orca-github.listAssignableUsers",
+        "orca-github.listLabels",
+        "orca-github.listWorkItems",
+        "orca-github.markPRDraft",
+        "orca-github.markPRReadyForReview",
+        "orca-github.mergePR",
+        "orca-github.prCheckDetails",
+        "orca-github.prChecks",
+        "orca-github.prComments",
+        "orca-github.prFileContents",
+        "orca-github.prForBranch",
+        "orca-github.removePRReviewers",
+        "orca-github.repoSlug",
+        "orca-github.requestPRReviewers",
+        "orca-github.rerunPRChecks",
+        "orca-github.resolveReviewThread",
+        "orca-github.setPRAutoMerge",
+        "orca-github.setPRFileViewed",
+        "orca-github.updateIssue",
+        "orca-github.updatePR",
+        "orca-github.updatePRState",
+        "orca-github.updatePRTitle",
+        "orca-github.workItem",
+        "orca-github.workItemByOwnerRepo",
+        "orca-github.workItemDetails",
+        "orca-gitlab.addIssueComment",
+        "orca-gitlab.addMRComment",
+        "orca-gitlab.createIssue",
+        "orca-gitlab.listWorkItems",
+        "orca-gitlab.mergeMR",
+        "orca-gitlab.todos",
+        "orca-gitlab.updateIssue",
+        "orca-gitlab.updateMR",
+        "orca-gitlab.updateMRState",
+        "orca-gitlab.workItemByPath",
+        "orca-gitlab.workItemDetails",
+        "orca-hostedReview.forBranch",
+        "orca-hostedReview.getCreationEligibility",
+        "orca-notifications.registerPush",
+        "orca-notifications.testPush",
+        "orca-notifications.unregisterPush",
+        "orca-plugins.panelAction",
+        "orca-repo.baseRefDefault",
+        "orca-repo.hooks",
+        "orca-repo.saveSparsePreset",
+        "orca-repo.searchRefs",
+        "orca-repo.sparsePresets",
+        "orca-repo.update",
+        "orca-session.tabs.activate",
+        "orca-session.tabs.close",
+        "orca-session.tabs.createTerminal",
+        "orca-session.tabs.list",
+        "orca-session.tabs.unsubscribe",
+        "orca-settings.mutateNativeChatSessionOptions",
+        "orca-speech.dictation.chunk",
+        "orca-speech.dictation.finish",
+        "orca-speech.dictation.start",
+        "orca-speech.models.delete",
+        "orca-speech.models.download",
+        "orca-ssh.connect",
+        "orca-terminal.focus",
+        "orca-terminal.setDisplayMode",
+        "orca-terminal.updateViewport",
+        "orca-worktree.activate",
+        "orca-worktree.create",
+        "orca-worktree.listRetiredNames",
+        "orca-worktree.prefetchCreateBase",
+        "orca-worktree.sleep"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.result",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.ok changed drift",
+        "steps._:s2c:0.[0].payload.result missing breaking",
+        "steps._:s2c:0.[0].payload.error extra drift"
+      ],
+      "ids": [
+        "orca-aiVault.prepareSessionResume",
+        "orca-automation.runs",
+        "orca-clipboard.abortImageUpload",
+        "orca-github.project.addIssueCommentBySlug",
+        "orca-github.project.clearItemField",
+        "orca-github.project.deleteIssueCommentBySlug",
+        "orca-github.project.listAccessible",
+        "orca-github.project.listAssignableUsersBySlug",
+        "orca-github.project.listIssueTypesBySlug",
+        "orca-github.project.listLabelsBySlug",
+        "orca-github.project.listViews",
+        "orca-github.project.resolveRef",
+        "orca-github.project.updateIssueBySlug",
+        "orca-github.project.updateIssueCommentBySlug",
+        "orca-github.project.updateIssueTypeBySlug",
+        "orca-github.project.updateItemField",
+        "orca-github.project.updatePullRequestBySlug",
+        "orca-github.project.viewTable",
+        "orca-github.project.workItemDetailsBySlug",
+        "orca-hostedReview.create",
+        "orca-linear.connect",
+        "orca-nativeChat.readSession",
+        "orca-orchestration.partyLocation",
+        "orca-orchestration.partyOpen",
+        "orca-preflight.check",
+        "orca-settings.getAgentLaunch",
+        "orca-speech.dictation.cancel",
+        "orca-speech.dictation.setup",
+        "orca-speech.models.list",
+        "orca-ssh.getState",
+        "orca-ssh.listTargetSummaries",
+        "orca-terminal.getAutoRestoreFit",
+        "orca-terminal.setAutoRestoreFit",
+        "orca-worktree.ps",
+        "orca-worktree.resolveMrBase",
+        "orca-worktree.resolvePrBase"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.error.message",
+      "severity": "drift",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.message changed drift"
+      ],
+      "ids": [
+        "orca-agent.launchReplay",
+        "orca-agentSession.cancel",
+        "orca-agentSession.commands",
+        "orca-agentSession.conversationCommand",
+        "orca-agentSession.create",
+        "orca-agentSession.currentRequests",
+        "orca-agentSession.history",
+        "orca-agentSession.hold",
+        "orca-agentSession.item",
+        "orca-agentSession.options",
+        "orca-agentSession.queuedMessageDelete",
+        "orca-agentSession.queuedMessageEditHold",
+        "orca-agentSession.queuedMessageMove",
+        "orca-agentSession.queuedMessageSend",
+        "orca-agentSession.queuedMessageUpdate",
+        "orca-agentSession.queuedMessagesResume",
+        "orca-agentSession.respondToApproval",
+        "orca-agentSession.respondToQuestion",
+        "orca-agentSession.send",
+        "orca-agentSession.setOption",
+        "orca-agentSessionAttachment.uploadAppend",
+        "orca-agentSessionAttachment.uploadStart"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.error.code",
+      "severity": "drift",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.code changed drift",
+        "steps._:s2c:0.[0].payload.error.message changed drift",
+        "steps._:s2c:0.[0].payload.error.data extra drift"
+      ],
+      "ids": [
+        "orca-agentSession.readVisual",
+        "orca-agentSession.reveal",
+        "orca-files.open",
+        "orca-files.openDiff",
+        "orca-markdown.readTab",
+        "orca-markdown.saveTab",
+        "orca-orchestration.workerAutoClose",
+        "orca-orchestration.workerKeepOpen",
+        "orca-pairing.getEndpoints",
+        "orca-pairing.provisionRelay"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error missing breaking",
+        "steps._:s2c:0.[0].payload.ok changed drift",
+        "steps._:s2c:0.[0].payload.result extra drift"
+      ],
+      "ids": [
+        "orca-agentSession.release",
+        "orca-agentSessionAttachment.uploadAbort",
+        "orca-runtime.clientCapabilities.update"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error.data",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.data missing breaking",
+        "steps._:s2c:0.[0].payload.error.message changed drift"
+      ],
+      "ids": [
+        "orca-agentSessionAttachment.read",
+        "orca-agentSessionAttachment.readTextChunk",
+        "orca-agentSessionAttachment.uploadCommit"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.result",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload._meta.runtimeId changed drift",
+        "steps._:s2c:0.[0].payload.ok changed drift",
+        "steps._:s2c:0.[0].payload.result missing breaking",
+        "steps._:s2c:0.[0].payload.error extra drift"
+      ],
+      "ids": [
+        "orca-clipboard.startImageUpload",
+        "orca-notifications.getMissedSince"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error.data",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.code changed drift",
+        "steps._:s2c:0.[0].payload.error.data missing breaking",
+        "steps._:s2c:0.[0].payload.error.message changed drift"
+      ],
+      "ids": [
+        "orca-agentSession.createSupport"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error.data",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.data missing breaking"
+      ],
+      "ids": [
+        "orca-agentSession.modelCatalog"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.result.[*]",
+      "severity": "drift",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.[0] changed drift",
+        "steps._:s2c:0.[0].payload.result.[1] changed drift",
+        "steps._:s2c:0.[0].payload.result.[2] changed drift"
+      ],
+      "ids": [
+        "orca-preflight.detectAgents"
+      ]
+    },
+    {
+      "class": "kind at steps._:s2c:*.[*].payload.result.pathFailureReason",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.agents.[0] changed drift",
+        "steps._:s2c:0.[0].payload.result.agents.[1] changed drift",
+        "steps._:s2c:0.[0].payload.result.agents.[2] changed drift",
+        "steps._:s2c:0.[0].payload.result.pathFailureReason kind breaking",
+        "steps._:s2c:0.[0].payload.result.pathSource changed drift",
+        "steps._:s2c:0.[0].payload.result.shellHydrationOk changed drift"
+      ],
+      "ids": [
+        "orca-preflight.refreshAgents"
+      ]
+    },
+    {
+      "class": "kind at steps._:s2c:*.[*].payload.result.authoritativeWindowId",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.appVersion changed drift",
+        "steps._:s2c:0.[0].payload.result.authoritativeWindowId kind breaking",
+        "steps._:s2c:0.[0].payload.result.capabilities changed breaking",
+        "steps._:s2c:0.[0].payload.result.degradations missing breaking",
+        "steps._:s2c:0.[0].payload.result.desktopWindowStatus missing breaking",
+        "steps._:s2c:0.[0].payload.result.deviceScope changed drift",
+        "steps._:s2c:0.[0].payload.result.hostDescriptor missing breaking",
+        "steps._:s2c:0.[0].payload.result.machineName changed drift",
+        "steps._:s2c:0.[0].payload.result.pairedDeviceId changed drift",
+        "steps._:s2c:0.[0].payload.result.remoteUpdateSupport missing breaking",
+        "steps._:s2c:0.[0].payload.result.terminalWindowsShell kind breaking",
+        "steps._:s2c:0.[0].payload.result.worktreeCreateIdempotency missing breaking"
+      ],
+      "ids": [
+        "orca-status.get"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.result.hostScope",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.hostScope missing breaking",
+        "steps._:s2c:0.[0].payload.result.totalCount changed drift",
+        "steps._:s2c:0.[0].payload.result.worktrees changed breaking"
+      ],
+      "ids": [
+        "orca-worktree.list"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.result.orphanCount",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.orphanCount missing breaking"
+      ],
+      "ids": [
+        "orca-automation.list"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.result.projects",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.projects changed breaking"
+      ],
+      "ids": [
+        "orca-project.list"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.result.repos",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.repos changed breaking"
+      ],
+      "ids": [
+        "orca-repo.list"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.result.setups",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.setups changed breaking"
+      ],
+      "ids": [
+        "orca-projectHostSetup.list"
+      ]
+    }
+  ]
+}

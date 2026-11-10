@@ -1,0 +1,21 @@
+[package]
+name = "rca-cli-driver"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "How the service runs a provider CLI (Claude Code, Codex, opencode): the command of a turn, the translation of its output lines into neutral events, the environment each provider may see, and the turns in flight"
+
+[lib]
+name = "rca_cli_driver"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+# The doubles of the crate's port (`ScriptedSpawner`), for the service crate's tests
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+futures-util.workspace = true
+serde_json.workspace = true
+tokio.workspace = true

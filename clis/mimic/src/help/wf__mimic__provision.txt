@@ -1,0 +1,38 @@
+Usage: wf mimic provision [options] <set>
+
+Install the reference of a set on this machine as the [provision] block of its
+mimic.toml says (or the file its provision_file names, which sets of one app
+share: `//path` is from the repository root, any other path from the mimic.toml): the pinned source fetched at its commit, then each [[step]] in order,
+each bounded by its timeout. Programs run with this environment minus every
+variable that looks like a credential; their output goes to stderr. A work
+directory that holds the same provisioning (same block, same commit) is reused.
+
+Block (paths relative to the file that declares them):
+  [toolchain]                     what the runner sets up first, each checked against the tool:
+    node = "24"                   node, python, go (24, 22.14, 22.14.0) and rust (those or
+                                  stable); a new clone of a Rust, Go or Python program pins its own
+  drivers = true                  install the repository's mimic drivers (pnpm install --filter
+                                  mimic-drivers...) before a record's steps; default: when node is set
+  workdir = "orca"                directory under the work root (default: the set's name)
+  [source]                        optional: the reference's own repository
+    repo = "https://..."          https, no credentials
+    commit = "<40 hex>"           or: pin = "<pin file>", commit_pointer = "/commit"
+  [env]                           NAME = "value" the record sees; no credentials
+  [[step]]                        name, run = ["program", "arg"...] (no shell),
+    cwd, when, timeout_minutes    cwd defaults to {source} (else {work}); when is record
+                                  (default), replay (builds the candidate) or always;
+                                  timeout_minutes 1 to 180, default 30; its own env
+  An env key that changes how programs are found or loaded (PATH, HOME, LD_*, NODE_OPTIONS, *_PROXY ...) is refused.
+  Placeholders in env values, run and cwd: {repo} (the checkout), {work}, {source}, {set}.
+
+Options:
+  --when <record|replay>      which steps run (default record)
+  --work-root <dir>           where work directories live (default $MIMIC_WORK_ROOT, else ~/.cache/mimic-work)
+  --root <dir>                the checkout {repo} names (default: this one)
+  --check                     validate the block and print what would run; install nothing
+  --force                     start the work directory over
+  -h, --help                  display help for command
+
+Output (schema mimic-provision/1):
+  {schema, ok, set, when, work, source?: {repo, commit, dir}, toolchain, env, key,
+  steps: [names], cached?, ran?: [{name, seconds}], checked?, warnings, next}

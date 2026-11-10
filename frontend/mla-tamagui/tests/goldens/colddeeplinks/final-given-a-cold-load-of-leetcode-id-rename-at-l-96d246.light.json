@@ -1,0 +1,38 @@
+{
+  "suite": "colddeeplinks",
+  "step": "final-given-a-cold-load-of-leetcode-id-rename-at-l-96d246",
+  "scheme": "light",
+  "snapshot": "colddeeplinks/final-given-a-cold-load-of-leetcode-id-rename-at-l-96d246.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "RenameSymbolDialog",
+      "RenameSymbolDialog-Title",
+      "RenameSymbolDialog-Input",
+      "RenameSymbolDialog-Cancel",
+      "RenameSymbolDialog-Confirm"
+    ],
+    "text": "Rename symbol\nCancel\nRename"
+  },
+  "timings": {
+    "render_ms": 436
+  },
+  "name": "colddeeplinks/final-given-a-cold-load-of-leetcode-id-rename-at-l-96d246.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

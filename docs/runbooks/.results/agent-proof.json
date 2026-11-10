@@ -1,0 +1,85 @@
+{
+  "task": "open <base>/leetcode/two-sum; wait id:ProblemEditorRunLocalButton; tap it; wait id:ProblemEditorRunOutcomeTotals and assert it contains 'passed' (the autofocused editor's keyboard is lowered with Done first, as a user does: it covers Run Local)",
+  "base": "http://127.0.0.1:8810/mla-tamagui",
+  "served": "local `export:web` of this branch with EXPO_PUBLIC_LEETCODE_FIXTURES=1 (Run Local answered by the fixture ports, no backend), served by frontend/mla-tamagui/e2e/lib/staticServer.mjs under the export's baseUrl; the shared 127.0.0.1:8080 export was not usable (python http.server at the root: /leetcode/two-sum 404s and the /mla-tamagui assets do not resolve)",
+  "ranAt": "2026-10-14",
+  "sha": "37eac510b",
+  "command": "wf bench agent-proof --arm <arm> --base http://127.0.0.1:8810/mla-tamagui --out .agents/tmp/agent-proof/run1",
+  "arms": [
+    {
+      "arm": "scripted",
+      "model": "none",
+      "agentS": 0.0,
+      "runS": 4.1,
+      "wallS": 4.1,
+      "passed": true,
+      "script": "-- Agent proof, the scripted floor: the task `wf bench agent-proof` hands an agent, written by hand.\n-- wf browser run --script docs/runbooks/scripts/agent-proof.lua --arg base=http://127.0.0.1:8810/mla-tamagui\nlocal base = args.base or \"http://127.0.0.1:8810/mla-tamagui\"\n\ndevice:open(base .. \"/leetcode/two-sum\")\ndevice:wait(\"id:ProblemEditorRunLocalButton\")\n-- the editor autofocuses and its keyboard covers Run Local: Done ends the toolbar's action row, off screen until it scrolls\nif device:appears(\"id:EditorHelperRails\", 3) then\n  local rails = device:find(\"id:EditorHelperRails\")\n  local y = rails.bottom - 25\n  for _ = 1, 3 do -- a swipe during the first render is lost\n    device:swipe(303, y, 20, y, 400)\n    if device:appears(\"id:EditorAction-Done\", 1) then break end\n  end\n  device:wait(\"id:EditorAction-Done\")\n  device:tap(\"id:EditorAction-Done\")\n  device:wait_gone(\"id:EditorHelperRails\")\nend\ndevice:tap(\"id:ProblemEditorRunLocalButton\")\ndevice:wait(\"id:ProblemEditorRunOutcomeTotals\")\nlocal totals = device:text(\"id:ProblemEditorRunOutcomeTotals\") or \"\"\nlog(totals)\nassert_that(totals:find(\"passed\", 1, true), \"the outcome totals do not say passed: \" .. totals)\n",
+      "recording": ".agents/tmp/agent-proof/run1/scripted-rec/run.mp4"
+    },
+    {
+      "arm": "sonnet",
+      "model": "sonnet",
+      "agentS": 12.0,
+      "runS": 4.0,
+      "wallS": 16.0,
+      "passed": true,
+      "costUsd": 0.0281004,
+      "tokens": 6114.0,
+      "script": "device:open(args.base .. \"/leetcode/two-sum\")\ndevice:wait(\"id:ProblemEditorRunLocalButton\")\n\nif device:appears(\"id:EditorHelperRails\", 3) then\n  for _ = 1, 3 do\n    local rails = device:find(\"id:EditorHelperRails\")\n    assert_that(rails ~= nil, \"EditorHelperRails disappeared before Done was reached\")\n    device:swipe(303, rails.bottom - 25, 20, rails.bottom - 25)\n    if device:appears(\"id:EditorAction-Done\", 1) then\n      break\n    end\n  end\n  device:wait(\"id:EditorAction-Done\")\n  device:tap(\"id:EditorAction-Done\")\n  device:wait_gone(\"id:EditorHelperRails\")\nend\n\ndevice:tap(\"id:ProblemEditorRunLocalButton\")\n\ndevice:wait(\"id:ProblemEditorRunOutcomeTotals\")\nlocal totals = device:text(\"id:ProblemEditorRunOutcomeTotals\")\nassert_that(totals ~= nil and totals:find(\"passed\", 1, true) ~= nil,\n  \"run outcome does not contain 'passed': \" .. tostring(totals))\n",
+      "recording": ".agents/tmp/agent-proof/run1/sonnet-rec/run.mp4",
+      "modelNote": "claude -p --model sonnet; the first modelUsage key was claude-haiku-5-5 (claude's helper model), so the verb now names the model with the most output tokens"
+    },
+    {
+      "arm": "opencode",
+      "model": "minimax/MiniMax-M3",
+      "agentS": 85.4,
+      "runS": 3.9,
+      "wallS": 89.3,
+      "passed": true,
+      "costUsd": 0.01119078,
+      "tokens": 22249.0,
+      "script": "device:open(args.base .. \"/leetcode/two-sum\")\n\nif device:appears(\"id:EditorHelperRails\", 3) then\n    for _ = 1, 3 do\n        local rails = device:find(\"id:EditorHelperRails\")\n        device:swipe(303, rails.bottom - 25, 20, rails.bottom - 25)\n        if device:appears(\"id:EditorAction-Done\", 1) then\n            break\n        end\n    end\n    device:wait(\"id:EditorAction-Done\")\n    device:tap(\"id:EditorAction-Done\")\n    device:wait_gone(\"id:EditorHelperRails\")\nend\n\ndevice:wait(\"id:ProblemEditorRunLocalButton\")\ndevice:tap(\"id:ProblemEditorRunLocalButton\")\ndevice:wait(\"id:ProblemEditorRunOutcomeTotals\")\nlocal text = device:text(\"id:ProblemEditorRunOutcomeTotals\")\nassert_that(text and text:find(\"passed\"), \"totals missing 'passed': \" .. tostring(text))\n",
+      "recording": ".agents/tmp/agent-proof/run1/opencode-rec/run.mp4"
+    }
+  ],
+  "note": "n=1 per arm, all from the sandbox. A VM opencode arm (opencode on the VM, the 2026-10-12 19-24 s arm) will be added by the main agent later.",
+  "waitBudgetMs": 10000,
+  "waitEvidence": {
+    "rule": "max(2000, round_up_500(p95 of successful budgeted waits * 2)), capped at 10000; nearest-rank percentiles",
+    "n": 18,
+    "p50": 53,
+    "p95": 5187,
+    "p95x2": 10374,
+    "byPlatform": {
+      "browser": {
+        "n": 13,
+        "p50": 34,
+        "p95": 274,
+        "budgetAlone": 2000,
+        "source": "WF_WAIT_LOG lines with ok=true (wait, wait_gone) of this run's arms"
+      },
+      "android": {
+        "n": 5,
+        "p50": 3545,
+        "p95": 5187,
+        "budgetAlone": 10000,
+        "samplesMs": [
+          3215,
+          3545,
+          5187,
+          4213,
+          3237
+        ],
+        "source": "WF_RUN_TIMING verb=wait of the G3 editor-typing Android run 1a1381f38af-5a187 (no ok flag in that log): dropped the first (wait_slow, 240 s budget) and the last two (the EditorAction-Done miss and its late probe, per run.log); the rest may include appears() probes, so it errs long"
+      }
+    },
+    "sourceFiles": [
+      ".agents/tmp/agent-proof/check/scripted-waits.jsonl",
+      ".agents/tmp/agent-proof/run1/opencode-waits.jsonl",
+      ".agents/tmp/agent-proof/run1/scripted-waits.jsonl",
+      ".agents/tmp/agent-proof/run1/sonnet-waits.jsonl",
+      "/home/user/expo-hello-world-app-2/.agents/tmp/runs/q-1a1381f38af-5a187/wf-test/1a1381f38af-5a187/timing.jsonl"
+    ],
+    "decision": "unchanged at 10000: one budget serves both platforms and an Android wait is a uiautomator round trip of 3.2-5.2 s, so 2x its p95 is past the cap; the browser alone would allow 2000 (a per-platform budget is the follow-up)"
+  }
+}

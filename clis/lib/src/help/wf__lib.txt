@@ -1,0 +1,53 @@
+Usage: wf lib [options] [command]
+
+Versioned shared libraries: a service adopts a new version of a library when it is
+ready, so changing a library no longer redeploys every service. libraries.json
+(repo root) names the libraries and the registries they publish to and resolve
+from; a registry is data there, never a code or manifest rewrite:
+  {"registries": [{"alias", "kind", "url", "tokenEnv", "publish", "indexUrl"}],
+   "libraries":  [{"name", "kind", "path", "registry"}]}
+kind is cargo-sparse, crates-io, npm or npm-tarball. url may be `env:NAME`, read
+from that variable (the environment, then the vault), because a pre-authenticated
+link is a credential and is never printed or committed. tokenEnv names the
+variable holding the publish credential. indexUrl (bucket registries) is the literal
+base of the read proxy's sparse index (`http://<proxy>:<port>/index/`), not a secret:
+Cargo records it in Cargo.lock, and the index is read from it with a plain GET. url and
+tokenEnv are then only the bucket's read link and write link. publish names the adapter that releases
+there: bucket-sparse (our bucket: a static Cargo sparse registry under libs/),
+cargo-publish (`cargo publish --registry <alias>`: crates.io and any registry with
+Cargo's publish API), or null for a read-only registry. npm-publish and
+npm-tarball are named but not built yet.
+
+The bucket registry (alias mla) is private and holds everything under its libs/ prefix:
+the index at libs/index/ (config.json and one file per crate) and the .crate files at
+libs/crates/<name>/<version>.crate. Nothing is public. Readers (Cargo, `status`) reach
+it only through the read proxy on the tailnet (indexUrl), which holds the read link
+itself; Cargo's config.json sends downloads to <proxy>/dl/. Writers (`release`,
+`prune`) write straight to the bucket with LIBS_WRITE_PAR_URL (a pre-authenticated
+prefix link ending in /o/libs/) and read the index through the proxy. LIBS_READ_PAR_URL
+(the read link, same shape) is only a fallback for a machine off the tailnet:
+`status` and `release` use it when the proxy does not answer. `prune` also needs the
+operator's `oci` CLI and ~/.oci.
+
+Every service and CLI depends on a library by version and registry (`telemetry = { version =
+"0.1", registry = "mla" }`), never by path; `wf check` refuses a path dependency on a library
+(budget versioned-library-path-deps). Only a library's own manifest names a sibling by path,
+beside its version and registry. A service adopts a release by raising that version and
+committing its Cargo.lock, so a library edit with no release moves no image. To edit a
+library against a service without a release, patch it for one cargo call and do not commit the
+lockfile change: `cargo test --config 'patch.mla.service-kit.path="../service-kit"'` run in the
+service's workspace. Release in dependency order (telemetry, then service-kit).
+
+Every verb prints one JSON object on stdout and never prompts. A failure prints
+{ok: false, error, next} and exits 1; a malformed line exits 2.
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  release <library> <bump>    Bump the crate, publish it, write its index
+  status                      Per library: the latest release and the version
+                              each service pins
+  prune [options]             Delete released versions nothing on dev pins
+  retarget <library> <alias>  Point every consumer of a library at a registry
+  help [command]              display help for command

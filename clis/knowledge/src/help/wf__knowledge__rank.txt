@@ -1,0 +1,7 @@
+Usage: wf knowledge rank [options] <files...>
+
+Rank docs/solutions learnings relevant to these files
+
+Options:
+  --limit <n>  max hits
+  -h, --help   display help for command

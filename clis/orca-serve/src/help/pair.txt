@@ -1,0 +1,13 @@
+Usage: orca-serve pair --endpoint <ws-url> [options]
+
+Mint a paired device and print the orca://pair link a phone scans. The link carries the endpoint,
+the device token and the host's public key; the token is written only to devices.json in the state
+directory (mode 0600) and to this output, and cannot be read back. A running `serve` knows the
+device at once.
+
+Output: one JSON object on stdout: {ok, url, deviceId, endpoint}. ok is false, with exit 1, when
+the state directory cannot be written.
+
+Options:
+  --endpoint <url>     the ws:// address the phone reaches the server at (ORCA_ENDPOINT; required)
+  --state-dir <dir>    where the key and devices live (ORCA_STATE_DIR; default ~/.local/share/orca-serve)

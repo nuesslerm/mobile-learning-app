@@ -1,0 +1,20 @@
+# R2c crawl: every case of orca-api (valid, boundary, invalid inputs of every endpoint), recorded on the VM against the real pinned server in chunks. Inputs: `wf mimic crawl` of $1-api.
+corpus = "corpus.json"
+rules = "rules.json"
+allowlist = "allowlist.json"
+
+[reference]
+name = "orca"
+command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca"]
+pin = "../../../../tooling/orca-conformance/orca-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"
+timeout_ms = 3600000
+live_when_named = "orcad is built at the pin on the VM (arm64): verify <set> --live runs it, --all --live never does"
+
+[candidate.orca-serve]
+command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca"]
+
+[record]
+write_chunk = 40
+stability_pct = 8

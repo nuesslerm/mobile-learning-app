@@ -1,0 +1,70 @@
+{
+  "method": "preview.list",
+  "exchanges": [
+    {
+      "name": "lists the thread's tabs with the epoch and the revision of the stream",
+      "before": [
+        {
+          "id": "o",
+          "method": "preview.open",
+          "params": {
+            "thread": "t1",
+            "url": "http://127.0.0.1:3000/"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "preview.list",
+        "params": {
+          "thread": "t1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "sessions": [
+            {
+              "thread": "t1",
+              "tab": "tab-2",
+              "nav": {
+                "state": "loading",
+                "url": "http://127.0.0.1:3000/",
+                "title": ""
+              },
+              "can_go_back": false,
+              "can_go_forward": false,
+              "viewport": {
+                "mode": "fill"
+              },
+              "updated_ms": 1
+            }
+          ],
+          "epoch": "epoch-1",
+          "revision": 1
+        }
+      },
+      "volatile": [
+        "/result/sessions/0/updated_ms"
+      ]
+    },
+    {
+      "name": "lists nothing for a thread with no tab",
+      "request": {
+        "id": 1,
+        "method": "preview.list",
+        "params": {
+          "thread": "t9"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "sessions": [],
+          "epoch": "epoch-1",
+          "revision": 0
+        }
+      }
+    }
+  ]
+}

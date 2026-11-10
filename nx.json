@@ -1,0 +1,180 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "neverConnectToCloud": true,
+  "useDaemonProcess": false,
+  "maxCacheSize": "4GB",
+  "namedInputs": {
+    "toolchain": [
+      {
+        "runtime": "node --version"
+      },
+      {
+        "runtime": "pnpm --version"
+      }
+    ],
+    "browser": [
+      {
+        "runtime": "node tooling/nx/chromium-build.js"
+      }
+    ],
+    "nativeToolchain": [
+      {
+        "runtime": "rustc --version"
+      }
+    ],
+    "platform": [
+      {
+        "runtime": "node -p \"process.platform+'-'+process.arch\""
+      }
+    ],
+    "native": [],
+    "sharedGlobals": [
+      "{workspaceRoot}/pnpm-workspace.yaml",
+      "{workspaceRoot}/tsconfig.json",
+      "{workspaceRoot}/.oxlintrc.json",
+      "{workspaceRoot}/frontend/.oxlintrc.json",
+      "{workspaceRoot}/frontend/feature-kit/depcruise.feature.cjs",
+      "{workspaceRoot}/mise.toml",
+      "toolchain"
+    ],
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ],
+    "production": [
+      "{projectRoot}/**/*",
+      "!{projectRoot}/**/*.test.*",
+      "!{projectRoot}/**/__tests__/**",
+      "!{projectRoot}/tests/**",
+      "!{projectRoot}/src/testing/**",
+      "!{projectRoot}/**/*.stories.*",
+      "!{projectRoot}/**/*.md",
+      "!{projectRoot}/vitest*.ts",
+      "!{projectRoot}/.dependency-cruiser.cjs",
+      "!{projectRoot}/.flow-goldens*/**"
+    ],
+    "rust": [
+      "{projectRoot}/**/*",
+      "!{projectRoot}/target/**",
+      "!{projectRoot}/**/*.md",
+      "nativeToolchain"
+    ],
+    "rustProduction": [
+      "rust",
+      "!{projectRoot}/tests/**",
+      "!{projectRoot}/benches/**"
+    ]
+  },
+  "plugins": [
+    "./tooling/nx/e2e-tests.js",
+    "./tooling/nx/cargo-crates.js"
+  ],
+  "targetDefaults": {
+    "lint": {
+      "cache": true,
+      "inputs": [
+        "default"
+      ]
+    },
+    "typecheck": {
+      "cache": true,
+      "inputs": [
+        "default",
+        "^production"
+      ],
+      "outputs": [
+        "{projectRoot}/node_modules/.cache/app-build/tsc"
+      ]
+    },
+    "export:web": {
+      "cache": true,
+      "inputs": [
+        "production",
+        "^production",
+        "{workspaceRoot}/tsconfig.json",
+        "{workspaceRoot}/pnpm-workspace.yaml",
+        { "env": "EXPO_PUBLIC_BETTERSTACK_TOKEN" },
+        { "env": "EXPO_PUBLIC_BETTERSTACK_HOST" },
+        { "env": "EXPO_PUBLIC_DEVICE_LAB" },
+        { "env": "EXPO_PUBLIC_TAMIL_CANVAS" },
+        { "env": "EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL" },
+        { "env": "EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN" },
+        { "env": "EXPO_PUBLIC_AGENT_BASE_URL" },
+        { "env": "EXPO_PUBLIC_VM_OPS_API_BASE_URL" },
+        { "env": "EXPO_EXPORT_FLAGS" }
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
+    },
+    "export:eas": {
+      "cache": true,
+      "inputs": [
+        "default",
+        "^production",
+        { "env": "EXPO_PUBLIC_DEVICE_LAB" },
+        { "env": "EXPO_PUBLIC_TAMIL_CANVAS" },
+        { "env": "EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL" },
+        { "env": "EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN" },
+        { "env": "EXPO_PUBLIC_AGENT_BASE_URL" },
+        { "env": "EXPO_PUBLIC_VM_OPS_API_BASE_URL" },
+        { "env": "EXPO_PUBLIC_BETTERSTACK_TOKEN" },
+        { "env": "EXPO_PUBLIC_BETTERSTACK_HOST" },
+        { "env": "EXPO_EXPORT_FLAGS" },
+        { "env": "EXPO_EXPORT_PLATFORM_FLAGS" },
+        { "env": "EXPO_PUBLIC_INITIAL_ROUTE" },
+        { "env": "EXPO_PUBLIC_APP_ENV" }
+      ],
+      "outputs": [
+        "{projectRoot}/dist"
+      ]
+    },
+    "test:unit": {
+      "cache": true,
+      "inputs": [
+        "default",
+        "^production"
+      ]
+    },
+    "test:flow": {
+      "cache": true,
+      "inputs": [
+        "default",
+        "^production",
+        "^native"
+      ]
+    },
+    "test:integration": {
+      "cache": true,
+      "inputs": [
+        "default",
+        "^production",
+        "^native"
+      ]
+    },
+    "check:editor-bundle": {
+      "cache": true,
+      "inputs": [
+        {
+          "fileset": "{projectRoot}/features/leetcode/code-editor/core/cm6Bundle*.ts"
+        },
+        {
+          "fileset": "{projectRoot}/scripts/cm6-bundle.mjs"
+        },
+        {
+          "fileset": "{projectRoot}/package.json"
+        },
+        {
+          "externalDependencies": [
+            "esbuild"
+          ]
+        }
+      ]
+    }
+  },
+  "pluginsConfig": {
+    "@nx/js": {
+      "analyzeSourceFiles": true
+    }
+  }
+}

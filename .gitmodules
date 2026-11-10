@@ -1,0 +1,9 @@
+# Public reference trees the parity tests compare against (fetched shallow at test time).
+[submodule "references/orca"]
+	path = references/orca
+	url = https://github.com/stablyai/orca.git
+	shallow = true
+[submodule "references/t3code"]
+	path = references/t3code
+	url = https://github.com/pingdotgg/t3code.git
+	shallow = true

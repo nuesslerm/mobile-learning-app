@@ -1,0 +1,88 @@
+{
+  "method": "preview.close",
+  "exchanges": [
+    {
+      "name": "closes the named tab and says which",
+      "before": [
+        {
+          "id": "o",
+          "method": "preview.open",
+          "params": {
+            "thread": "t1",
+            "url": "http://127.0.0.1:3000/"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "preview.close",
+        "params": {
+          "thread": "t1",
+          "tab": "tab-2"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "closed": [
+            "tab-2"
+          ]
+        }
+      }
+    },
+    {
+      "name": "closes every tab of the thread when none is named",
+      "before": [
+        {
+          "id": "o",
+          "method": "preview.open",
+          "params": {
+            "thread": "t1",
+            "url": "http://127.0.0.1:3000/"
+          }
+        },
+        {
+          "id": "o",
+          "method": "preview.open",
+          "params": {
+            "thread": "t1",
+            "url": "http://127.0.0.1:3000/"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "preview.close",
+        "params": {
+          "thread": "t1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "closed": [
+            "tab-2",
+            "tab-3"
+          ]
+        }
+      }
+    },
+    {
+      "name": "closes nothing, and does not fail, for a tab that is not there",
+      "request": {
+        "id": 1,
+        "method": "preview.close",
+        "params": {
+          "thread": "t1",
+          "tab": "tab-2"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "closed": []
+        }
+      }
+    }
+  ]
+}

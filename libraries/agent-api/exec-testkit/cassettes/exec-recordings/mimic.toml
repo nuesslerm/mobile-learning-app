@@ -1,0 +1,2 @@
+# An imported set: converted from legacy files, never recorded from a reference, so it has no [reference] and no pin.
+rules = "rules.json"

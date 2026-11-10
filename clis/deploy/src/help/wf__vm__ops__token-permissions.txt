@@ -1,0 +1,22 @@
+Usage: wf vm ops token-permissions [options]
+
+Asks GitHub, with read-only GETs, what VM_PROVISION_GITHUB_TOKEN may do on
+nuesslerm/mobile-learning-app: /user (is the token accepted, when does it
+expire), /repos/{repo} (Metadata and the permissions block), /actions/runners
+(a 200 proves Administration: read) and /contents/README.md (Contents: read).
+Nothing is created. Run it on agent-shell, which holds the token; it is the
+VM-side check that replaced the runner's verify of this key.
+
+Options:
+  -h, --help  display help for command
+
+Output: one JSON line on stdout {ok, repo, expires, repoPermissions: {admin,
+push, pull}, probes: [{probe, needs, granted: "yes"|"no", status}]}; never the
+token or a reply body. Exit 0 when the token is accepted and reads contents and
+runners, else 1. Administration: write (runner registration) is not provable
+without creating a token, so it is not probed.
+
+Environment: WF_GITHUB_API (default https://api.github.com).
+
+Example (from anywhere on the tailnet; the script is one line):
+  echo 'wf vm ops token-permissions' > /tmp/token-permissions.sh && wf vm exec /tmp/token-permissions.sh

@@ -1,0 +1,13 @@
+Usage: wf log emit [options]
+
+Print one structured log line (stderr for warn and error) and send it to
+BetterStack; the last stdout line is {"sent":...}, and it exits 1 with the
+reason when the line could not be sent.
+
+Options:
+  --service <name>      BetterStack app / OTel service.name, e.g. cloud-init
+  --message <message>   static event name, e.g. redeploy.started
+  --level <level>       log level (info|debug|warn|error) (default: "info")
+  --host-label <label>  VM host label (light/heavy), attached as metadata
+  --attr <key=value>    repeatable structured metadata field (default: {})
+  -h, --help            display help for command

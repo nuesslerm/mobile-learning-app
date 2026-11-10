@@ -1,0 +1,90 @@
+{
+  "suite": "tamilwriting",
+  "step": "final-given-a-letter-on-the-pad-when-graded-got-it-t-8abe66",
+  "scheme": "light",
+  "snapshot": "tamilwriting/final-given-a-letter-on-the-pad-when-graded-got-it-t-8abe66.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 378,
+    "height": 1143,
+    "page_height": 1143
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "TamilLessonScreen",
+      "TamilLessonHeader",
+      "TamilLessonHeaderBack",
+      "TamilLessonHeaderTitle",
+      "TamilLessonHeaderSubtitle",
+      "TamilLessonHeaderActions",
+      "TamilLessonReset",
+      "TamilLessonScroll",
+      "TamilPracticePosition",
+      "TamilPracticeMasteryDots",
+      "TamilPracticeMasteryDot0",
+      "TamilPracticeMasteryDot1",
+      "TamilPracticeMasteryDot2",
+      "TamilPracticePrevious",
+      "TamilPracticeLessonBar",
+      "TamilPracticeLessonBarFill",
+      "TamilPracticeLessonBarTrack",
+      "TamilPracticeNext",
+      "TamilPracticeCharacterCard",
+      "TamilPracticeGlyph",
+      "TamilPracticeTransliteration",
+      "TamilPracticeTamilName",
+      "TamilPracticeSound",
+      "TamilPracticeStrokeHint",
+      "TamilPracticeExample",
+      "TamilPracticeStrokeCoach",
+      "TamilPracticeStrokeStep",
+      "TamilPracticeStrokeGuideHint",
+      "TamilPracticeCanvas",
+      "TamilPracticeCanvasSurface",
+      "TamilPracticeCanvasOutline",
+      "TamilPracticeCanvasActiveGuide",
+      "TamilPracticeCanvasStartDot",
+      "TamilPracticeCanvasDirectionArrow",
+      "TamilPracticeFeedback",
+      "TamilPracticeToggleGuide",
+      "TamilPracticeUndo",
+      "TamilPracticeClear",
+      "TamilPracticeWriteBig",
+      "TamilPracticeAgain",
+      "TamilPracticeGotIt",
+      "TamilLessonDescription"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nஉயிர் எழுத்து I\nVowels: அ to ஊ\nLetter 2 of 6\nஆ\nā\nஆகாரம்\nlong \"aa\", as in father\nWrite அ, then add the tall lengthening stroke on the right.\nஆடு · āṭu · goat\nStroke 1 of 3\nFrom the top centre, across to the right, curving clockwise.\nWrite it large, with instructions\nPractise again\nGot it\nThe first six"
+  },
+  "timings": {
+    "render_ms": 550
+  },
+  "name": "tamilwriting/final-given-a-letter-on-the-pad-when-graded-got-it-t-8abe66.light",
+  "image": {
+    "width": 360,
+    "height": 1089
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

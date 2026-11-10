@@ -1,0 +1,27 @@
+{
+  "method": "mr.create",
+  "exchanges": [
+    {
+      "name": "the mr spelling reaches the same action and defaults to gitlab",
+      "request": {
+        "id": 1,
+        "method": "mr.create",
+        "params": {
+          "title": "",
+          "head": "feat/x",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`title` must be one line of 1-256 characters"
+        }
+      },
+      "actions": [
+        "hosted_pr_create"
+      ]
+    }
+  ]
+}

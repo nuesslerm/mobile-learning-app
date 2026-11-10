@@ -1,0 +1,62 @@
+{
+  "suite": "voiceeditflow",
+  "step": "final-given-the-problem-editor-with-a-failing-voice-tr-7c25ed",
+  "scheme": "dark",
+  "snapshot": "voiceeditflow/final-given-the-problem-editor-with-a-failing-voice-tr-7c25ed.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ProblemWorkspaceTabs",
+      "ProblemWorkspaceTab-plan",
+      "ProblemWorkspaceTab-code",
+      "ProblemEditorScreen",
+      "ProblemEditorToolbarTarget",
+      "ProblemEditorScroll",
+      "ProblemEditorEditorZone",
+      "ProblemEditorInput",
+      "CodeEditorInput",
+      "ProblemEditorDiffRow",
+      "ProblemEditorLanguagePicker-Trigger",
+      "ProblemEditorActions",
+      "ProblemEditorFormatButton",
+      "ProblemEditorRunLocalButton",
+      "ProblemEditorRunButton",
+      "ProblemEditorResetButton",
+      "ProblemEditorTextEditStartButton",
+      "ProblemEditorVoiceStartButton",
+      "ProblemEditorTestInputZone",
+      "ProblemEditorTestInput",
+      "ProblemEditorVoiceErrorBanner",
+      "ProblemEditorVoiceErrorText",
+      "ProblemEditorVoiceErrorHint",
+      "ProblemPlanTab",
+      "ProblemPlanSteps",
+      "ProblemPlanComposer",
+      "ProblemPlanMicButton",
+      "ProblemPlanTextInput",
+      "ProblemPlanAddButton"
+    ],
+    "text": "Plan\nCode\nPython\nFormat\nRun Local\nRun\nReset\nplanner exploded while planning\nTap to dismiss"
+  },
+  "timings": {
+    "render_ms": 249
+  },
+  "name": "voiceeditflow/final-given-the-problem-editor-with-a-failing-voice-tr-7c25ed.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

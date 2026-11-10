@@ -1,0 +1,44 @@
+Usage: wf mimic verify [options] [set...]
+       wf mimic verify --fixtures <dir> [--rules <file>] [--files]
+
+Freshness and integrity of cassette sets. Offline by default: the cassette's
+content hash and count, the provenance its kind must carry (a recorded set names
+a pin hash, a version or commit and a driver; an authored one claims no pin), and
+the pin file, rules file and expanded corpus of mimic.toml against the hashes the
+cassette recorded ("ok", "stale" or "missing" each). A set whose mimic.toml is
+gone is checked for integrity only, with a warning; one that exists but does not
+load (bad TOML, unknown key) is a failed set with its error. Every interaction tagged
+`nondeterministic` must be listed in <set>/stability-allowlist.json with its cause and a
+reason, and every entry must name one (`wf mimic stabilize`): a problem otherwise.
+
+Options:
+  --all                       every set under --root (a directory with mimic.toml and cassette.json)
+  --root <dir>                where --all looks (default the git top level)
+  --fixtures <dir>            provenance scan of a fixture tree instead of sets (see below)
+  --rules <file>              the classification rules of --fixtures (default <dir>/fixture-provenance.json)
+  --files                     with --fixtures, also list every file with its kind, rule and exchange counts
+  --live                      also re-record the reference into memory and diff with the
+                              committed cassette (needs the reference; never cached); with
+                              --all a set whose [reference] says live_when_named is skipped
+                              (live.skipped names why), a named set always runs
+  -h, --help                  display help for command
+
+Output (schema mimic-verify/1):
+  {schema, ok, sets: [{set, dir, ok, kind, interactions, checks: [{name: pin_hash|
+  rules_hash|corpus_hash, status, recorded?, current?}], problems: [{field,
+  message}], live?: {ok, severity, summary, results, nondeterministic} | {ok, skipped}, warnings,
+  error?}], warnings, next}
+
+Provenance scan (--fixtures <dir>, offline, exit 0 clean, 1 a file is unclassified, 2 usage):
+every file under the rules file's "include" globs is classified by the first rule whose
+"match" glob fits its path relative to <dir> (`*` and `?` stay in a segment, `**` spans
+segments). kind: authored (our own contract), mirrors-reference (a claimed copy of
+reference behaviour, to be re-recorded as a recorded cassette; the rule names the
+parity "row") or cli (output of a real CLI, an X3 cassette). Every rule has a "reason".
+A file no rule fits is a finding; a rule that fits no file is a warning.
+Rules file (schema mimic-fixture-rules/1): {schema, include: [glob], rules: [{match,
+kind, reason, row?}]}.
+Output (schema mimic-fixtures/1): {ok, dir, rules, total: {files, authored,
+mirrors_reference, cli, unclassified, with_volatile, exchanges}, groups: {<first path
+segment>: <same counts>}, unclassified: [path], unused_rules: [glob], files?: [{path,
+kind, rule, exchanges, volatile_pointers}], warnings, next}

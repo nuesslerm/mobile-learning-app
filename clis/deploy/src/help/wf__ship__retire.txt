@@ -1,0 +1,7 @@
+Usage: wf ship retire [options] <service>
+
+Take down the compose project of a service that was removed from the service
+list (refused for a live service)
+
+Options:
+  -h, --help  display help for command

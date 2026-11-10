@@ -1,0 +1,1 @@
+docker rm -f remote-chat-agent-smoke >/dev/null 2>&1 || true; echo '[smoke] remote-chat-agent stopped'

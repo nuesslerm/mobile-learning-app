@@ -1,0 +1,47 @@
+{
+  "method": "provider.auth.start",
+  "exchanges": [
+    {
+      "name": "starts a device login and answers with the address and code the CLI printed",
+      "request": {
+        "id": 1,
+        "method": "provider.auth.start",
+        "params": {
+          "provider": "codex"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "auth": {
+            "auth": "auth-1",
+            "provider": "codex",
+            "method": "device_code",
+            "status": "pending",
+            "url": "https://login.example.test/device",
+            "code": "ABCD-1234",
+            "error": null
+          }
+        }
+      }
+    },
+    {
+      "name": "a method the CLI lacks is refused",
+      "request": {
+        "id": 1,
+        "method": "provider.auth.start",
+        "params": {
+          "provider": "codex",
+          "method": "paste"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "UNSUPPORTED_METHOD",
+          "message": "codex signs in by device_code; paste is not one of them"
+        }
+      }
+    }
+  ]
+}

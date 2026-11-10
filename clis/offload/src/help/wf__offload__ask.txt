@@ -1,0 +1,41 @@
+Usage: wf offload ask [options] [prompt]
+
+Run one prompt on the cheap-model ladder (rca): an argument, --prompt,
+--prompt-file, or - for stdin. The run is the rca service's (remote-chat-agent,
+over the tailnet), which owns opencode, the model keys, the ladder and the
+shared pool cooldowns; an unreachable service is an error, there is no local
+fallback. The service has no checkout: --files sends the files the prompt reads
+and what a writing run changed comes back into the repository. (--runbook is
+the one mode that still drives a local opencode: its agent needs a checkout, a
+browser and a device.)
+
+Options (opencode run's own names and short forms; the others of `opencode run`
+are refused, see tests/flow/fixtures/opencode-run-options.json):
+  --auto            approve what opencode would ask (env files, other directories,
+                    repeated calls); without it those are rejected. Edits and
+                    commands are allowed either way, and a run's changes come
+                    back into the working directory. For a run that must not
+                    change files use --agent read-only
+  -f, --file <path>  a file sent with the prompt (repeatable): inside the
+                    working directory, or `source=staged/path`; binary as base64.
+                    --files takes a comma-separated list
+  --dir <path>      the working directory: files are read from it and a run's
+                    changes are written into it (default: the current one)
+  -s, --session <id>  continue an opencode session (the service keeps its files
+                    for a day); each answer prints `session <id>`
+  -c, --continue    continue the session this checkout's last run made
+  --fork            refused: the service does not fork sessions yet
+  --agent <name>    an opencode agent; its `.opencode/agents/<name>.md` in the
+                    repository is sent along
+  --variant <v>     model variant (reasoning effort: high, max, minimal)
+  --title [text]    title of the session (bare: the prompt's first line)
+  --format <f>      default (the text of each answer on stdout, the trace on
+                    stderr), or json: one event per line, as opencode run prints
+  -m, --model <id>  pin a model (repeatable)
+  --shape <shape>   the ladder shape (default: document; implementer:unit also
+                    rotates away from a model that wrote nothing)
+  --stats           ok rate, p50 and cost per shape, tier, model and pool
+  --savings         what delegation saved
+  --batch           run a prompt template over a glob
+  --runbook         run a runbook
+  -h, --help        display help for command

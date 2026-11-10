@@ -1,0 +1,20 @@
+{
+  "platform": "android",
+  "step": 14,
+  "last_action": "tap id:ProblemEditorRunLocalButton",
+  "warnings": [],
+  "summary": null,
+  "screen": {
+    "width": 480,
+    "height": 1040
+  },
+  "timings": {
+    "since_start_ms": 19993,
+    "capture_ms": 191
+  },
+  "name": "editor-two-sum-result",
+  "image": {
+    "width": 360,
+    "height": 780
+  }
+}

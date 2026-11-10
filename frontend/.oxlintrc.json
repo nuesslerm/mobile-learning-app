@@ -1,0 +1,137 @@
+{
+  "$schema": "../node_modules/oxlint/configuration_schema.json",
+  // The React Native app, its feature packages and the frontend libraries. A rule is here only when it catches a defect
+  // the typecheck, the tests and review do not, mostly one that shows only on a device. Everything is an error or off.
+  "plugins": ["typescript", "react"],
+  "jsPlugins": [{ "name": "mobile-learn", "specifier": "../libraries/eslint-plugin-mobile-learn/dist/esm/index.js" }],
+  "categories": { "correctness": "error" },
+  // type-aware rules run through oxlint-tsgolint (typescript-go) with each file's nearest tsconfig
+  "options": { "typeAware": true },
+  "env": { "browser": true, "node": true, "es2024": true },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/dist-ios/**",
+    "**/.expo/**",
+    "**/.serve-tmp*/**",
+    "**/.screenshots/**",
+    "**/.report/**",
+    "**/.flow-report/**",
+    "**/.flow-goldens/**",
+    "**/fixtures/**"
+  ],
+  "rules": {
+    // a promise nobody awaits loses its rejection, and on a device that is a silent failure
+    "typescript/no-floating-promises": [
+      "error",
+      // node:test returns a promise from describe/it/test that the runner itself awaits
+      { "allowForKnownSafeCalls": [{ "from": "package", "package": "node:test", "name": ["describe", "it", "test", "suite"] }] }
+    ],
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    // the other type-aware correctness rules: reviewed 20 Oct (spec D4b), none of their 66 findings was a real defect
+    "typescript/no-array-delete": "off",
+    "typescript/no-base-to-string": "off",
+    "typescript/no-duplicate-type-constituents": "off",
+    "typescript/no-for-in-array": "off",
+    "typescript/no-implied-eval": "off",
+    "typescript/no-meaningless-void-operator": "off",
+    "typescript/no-misused-spread": "off",
+    "typescript/no-redundant-type-constituents": "off",
+    "typescript/no-unsafe-unary-minus": "off",
+    "typescript/no-useless-default-assignment": "off",
+    "typescript/require-array-sort-compare": "off",
+    "typescript/restrict-template-expressions": "off",
+    "typescript/unbound-method": "off",
+    // the Logger is the only sink
+    "no-console": "error",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_", "ignoreRestSiblings": true }],
+    "react/rules-of-hooks": "error",
+    // was a warning nobody acted on; the hooks that matter are covered by the flow tests
+    "react/exhaustive-deps": "off",
+    "typescript/triple-slash-reference": "off",
+    // the React Compiler's own checks; the app does not run the compiler
+    "react/refs": "off",
+    "react/immutability": "off",
+    "react/set-state-in-effect": "off",
+    "react/purity": "off",
+    "react/globals": "off",
+    "no-restricted-imports": [
+      "error",
+      {
+        "paths": [
+          {
+            "name": "tamagui",
+            "allowTypeImports": true,
+            "message": "Import from @lib/tamagui-design-system/primitives, not the tamagui barrel: it is `export *` over about fifty component packages Metro cannot drop (191 modules, 5.5% of the JS, a tenth of what start-up executes). Spinner is styled(ActivityIndicator), which crashes on a real device under the New Architecture and web never shows it: use the design system Spinner."
+          },
+          {
+            "name": "lucide-react-native",
+            "allowTypeImports": true,
+            "message": "Import icons from @lib/tamagui-design-system/icons. The barrel pulls all 1,713 icon modules into the bundle -- 3.4 MB, 16% of it -- because Metro does not tree-shake ESM re-exports."
+          },
+          {
+            "name": "react-native",
+            "importNames": ["Alert", "RefreshControl", "KeyboardAvoidingView"],
+            "message": "react-native-web renders Alert.alert as a no-op and RefreshControl / KeyboardAvoidingView as plain Views, so the browser render does not behave like a phone. Use them only through lib/device-lab (device-lab spec S5, U6), which mocks them."
+          },
+          {
+            "name": "react-native-reanimated",
+            "importNames": ["useScrollViewOffset", "useAnimatedScrollHandler"],
+            "message": "Never fires on iOS in this app (verified on-device): drive scrollY from a plain JS onScroll callback."
+          }
+        ]
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": ["**/*.{ts,tsx}"],
+      "rules": {
+        // AbortSignal.timeout() typechecks and works in every browser check, but Hermes lacks it: it crashed a real device
+        "mobile-learn/no-hermes-unsupported-api": "error",
+        // a catch block logs or rethrows: a swallowed error is a silent failure on a device
+        "mobile-learn/no-unhandled-catch": "error"
+      }
+    },
+    {
+      // test infrastructure: its catches report through the test run
+      "files": ["**/flow-test-harness/**"],
+      "rules": { "mobile-learn/no-unhandled-catch": "off" }
+    },
+    {
+      // the lab module is where Alert, RefreshControl and KeyboardAvoidingView are mocked, so it is the one place that imports them
+      "files": [
+        "mla-tamagui/lib/device-lab/**",
+        "mla-tamagui/tests/flow/deviceLabAlert.flow.test.ts",
+        "mla-tamagui/tests/flow/inspectorBreakpoint.flow.test.ts"
+      ],
+      "rules": { "no-restricted-imports": "off" }
+    },
+    {
+      // the logger's host adapter snapshots console before the capture patches it, and its own failures have no sink
+      "files": ["mla-tamagui/lib/logger.ts", "**/libraries/logging/**"],
+      "rules": { "no-console": "off", "mobile-learn/no-unhandled-catch": "off" }
+    },
+    {
+      // Node scripts and verification drivers report to a terminal
+      "files": ["mla-tamagui/e2e/**/*.mjs", "mla-tamagui/scripts/**", "**/*.config.{js,cjs,mjs,ts}", "**/scripts/**"],
+      "rules": { "no-console": "off" }
+    },
+    {
+      // tests run under node or jsdom, never in a native bundle
+      "files": ["**/*.test.{ts,tsx}", "**/__tests__/**", "**/tests/**", "**/e2e/**", "**/testing/**", "**/vitest*.ts"],
+      "rules": { "mobile-learn/no-hermes-unsupported-api": "off" }
+    },
+    {
+      // flow tests render the real component tree; a mocked module is a screen nobody ships
+      "files": ["**/*.flow.test.{ts,tsx}"],
+      "rules": {
+        "no-restricted-properties": [
+          "error",
+          { "object": "vi", "property": "mock", "message": "No vi.mock in flow tests: render the real module; replace I/O through a port override or a @lib/flow-test-harness stub." },
+          { "object": "vi", "property": "doMock", "message": "No vi.doMock in flow tests: render the real module; replace I/O through a port override or a @lib/flow-test-harness stub." }
+        ]
+      }
+    }
+  ]
+}

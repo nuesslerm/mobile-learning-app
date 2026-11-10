@@ -1,0 +1,31 @@
+[package]
+name = "rca-group-preview"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The preview groups of the service's agent API (preview, preview.sessions, preview.watch): a workspace's dev server run by the executor that owns it, and the preview tabs of a thread with the numbered stream of their changes; the service starts no browser"
+
+[lib]
+name = "rca_group_preview"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+# The doubles of the ports, for the service crate's tests
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-preview = { path = "../../../libraries/agent-api/agent-api-preview" }
+rca-agent-core = { path = "../agent-core" }
+rca-exec-channel = { path = "../exec-channel" }
+exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
+exec-preview = { path = "../../../libraries/agent-api/exec-preview" }
+
+[dev-dependencies]
+agent-api-preview = { path = "../../../libraries/agent-api/agent-api-preview", features = ["testing"] }
+rca-exec-channel = { path = "../exec-channel", features = ["testing"] }

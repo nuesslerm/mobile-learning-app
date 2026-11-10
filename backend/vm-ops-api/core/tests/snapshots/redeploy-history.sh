@@ -1,0 +1,1 @@
+printf '%s\n' '{"ts":"2026-10-21T00:00:00.000Z","key":"service-leetcode-backend","requestedBy":"wf ship","tag":"t1","ref":"dev","outcome":"redeploy.triggered","exitCode":null}' >> redeploy-history.jsonl && tail -n 200 redeploy-history.jsonl > redeploy-history.jsonl.tmp && mv redeploy-history.jsonl.tmp redeploy-history.jsonl

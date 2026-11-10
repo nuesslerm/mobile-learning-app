@@ -1,0 +1,20 @@
+Usage: wf vm ops ci-port [options]
+
+Checks, as a CI job, that vm-ops-api's CI port is the one this process uses and
+that it is the narrow one: GET /health answers 200 on the CI port with the CI
+seed (VM_OPS_API_CI_AUTH_TOKEN), and GET /services/agent-shell/logs?tail=1, a
+route only the admin port serves, answers 404 there. Both calls are read-only.
+Needs WF_VM_CI_PORT (the port number, 8081); without it every call goes to the
+admin port and the verb exits 1 saying so.
+
+Options:
+  -h, --help  display help for command
+
+Output: one JSON line on stdout {ok, port, checks: [{route, expects, status,
+ok, error?}]}; never a reply body. Exit 0 when both checks hold, else 1.
+
+Environment: WF_VM_CI_PORT, VM_OPS_API_CI_AUTH_TOKEN (read from the vault when
+unset).
+
+Example:
+  WF_VM_CI_PORT=8081 wf vm ops ci-port

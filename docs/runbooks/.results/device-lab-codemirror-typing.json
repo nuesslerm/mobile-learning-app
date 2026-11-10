@@ -1,0 +1,62 @@
+{
+  "runbook": "device-lab-codemirror-typing.md",
+  "gate": "G3 CodeMirror typing",
+  "sha": "dbea00703b8dc15b52083c3ffe544c0919aded00",
+  "platform": "browser",
+  "ranAt": "2026-10-19T20:31:57.443Z",
+  "ranOn": "ci",
+  "verdict": "pass",
+  "recordingsReadBack": true,
+  "criteria": {
+    "all_units_pass": "pass (5 of 5 units)",
+    "zero_warnings": "pass (0 warnings)",
+    "recorded_and_read_back": "pass (one recording per unit, read back after upload and decoded again for the report)",
+    "unit_under_60s": "pass (longest 37.0 s, median 35.2 s)"
+  },
+  "notes": "CI on the VM, e2e/editor-typing.lua, one unit per job step, screen iphone-15-pro 1254x2748. Replaces the hand-run record of mid-October; the units, timings and recordings are in the report page.",
+  "evidence": {
+    "page": "https://claude.ai/artifact/Gs665MsAYg5xfUMEWfnM2L",
+    "recordingsReadBack": true,
+    "runs": [
+      "run-8e3bcaa9092e5c88",
+      "run-3067fa20a833a06d",
+      "run-b9370dd0233f4b59",
+      "run-d56cd21aaa50096d",
+      "run-362c45c53416d965"
+    ],
+    "units": {
+      "part=1 problem=two-sum": {
+        "runId": "run-8e3bcaa9092e5c88",
+        "durationS": 36.7,
+        "verdict": "pass"
+      },
+      "part=1 problem=valid-palindrome": {
+        "runId": "run-3067fa20a833a06d",
+        "durationS": 37.0,
+        "verdict": "pass"
+      },
+      "part=2 problem=two-sum": {
+        "runId": "run-b9370dd0233f4b59",
+        "durationS": 18.9,
+        "verdict": "pass"
+      },
+      "part=2 problem=valid-palindrome": {
+        "runId": "run-d56cd21aaa50096d",
+        "durationS": 35.2,
+        "verdict": "pass"
+      },
+      "part=3 problem=valid-palindrome": {
+        "runId": "run-362c45c53416d965",
+        "durationS": 21.9,
+        "verdict": "pass"
+      }
+    },
+    "recordings": [
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-8e3bcaa9092e5c88/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-3067fa20a833a06d/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-b9370dd0233f4b59/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-d56cd21aaa50096d/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-362c45c53416d965/run.mp4"
+    ]
+  }
+}

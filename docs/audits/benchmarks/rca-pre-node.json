@@ -1,0 +1,52 @@
+{
+  "label": "pre",
+  "date": "2026-10-08T19:34:25.716Z",
+  "command": "node dist/bundle/index.mjs",
+  "runs": 5,
+  "artifactBytes": 14869215,
+  "coldStartMs": 503.414632,
+  "idleRssMb": 133.55078125,
+  "rssAfterHealthMb": 139.4609375,
+  "healthP50Ms": 0.9548485000013898,
+  "scenarios": {
+    "chat turn": {
+      "p50Ms": 121.63163450000002,
+      "rssAfterMb": 178.4765625
+    },
+    "convert pdf": {
+      "p50Ms": 12.421133499999996,
+      "rssAfterMb": 228.26953125
+    },
+    "convert pdf (chromium)": {
+      "p50Ms": 15.961429499999213,
+      "rssAfterMb": 232.703125
+    },
+    "convert docx": {
+      "p50Ms": 61.67432699999881,
+      "rssAfterMb": 293.7890625
+    },
+    "diff register and page": {
+      "p50Ms": 39.45647749999989,
+      "rssAfterMb": 326.8046875
+    },
+    "file preview (markdown)": {
+      "p50Ms": 1.1793275000018184,
+      "rssAfterMb": 326.90234375
+    },
+    "file preview (typescript)": {
+      "p50Ms": 1.2079084999986662,
+      "rssAfterMb": 326.921875
+    },
+    "tamil check": {
+      "p50Ms": 479.8677895000001,
+      "rssAfterMb": 491.2109375
+    },
+    "voice transcribe": {
+      "p50Ms": 6.639766000000236,
+      "rssAfterMb": 491.55859375
+    }
+  },
+  "finalRssMb": 491.55859375,
+  "peakRssMb": 491.55859375,
+  "peakRssMaxMb": 497.09375
+}

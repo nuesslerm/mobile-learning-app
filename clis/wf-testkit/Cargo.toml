@@ -1,0 +1,27 @@
+[package]
+name = "wf-testkit"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The doubles the flow tests of the wf crates share: the binary runner, stub tools, a mock HTTP server, a mock tailnet, a throwaway PKI"
+
+# A dev-dependency of every crate with flow tests. Its code is under src, not tests, so Nx hashes it as a dependency's production
+# input and a change to a double reruns the tests that use it.
+[lib]
+test = false
+doctest = false
+
+[features]
+# A mock HTTPS endpoint and the certificates for it: only the crates whose tests talk TLS pay for rcgen and rustls.
+tls = ["dep:rcgen", "tiny_http/ssl-rustls"]
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+tempfile = "3"
+tiny_http = "0.12"
+ed25519-dalek = { version = "2", default-features = false, features = ["std", "pkcs8", "pem"] }
+hmac = "0.12"
+sha2 = "0.10"
+getrandom = "0.4"
+rcgen = { version = "0.14.10", default-features = false, features = ["ring", "pem"], optional = true }

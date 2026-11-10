@@ -1,0 +1,142 @@
+name: ci-runner
+
+# The GitHub Actions runner (label `vm`) in its own compose project and its own tailnet node, `ci-runner-${HOST_LABEL}`. It used to
+# share agent-shell's project and tailscale sidecar, so every agent-shell deploy recreated the runner and killed the CI job running on
+# it, including the job that shipped agent-shell. Now `docker compose` on agent-shell never sees these containers.
+#
+# Builds: the runner mounts no docker socket. Its DOCKER_HOST is the `builder` sidecar, a docker-in-docker daemon of this project with its
+# own layer-cache volume, reached over mutual TLS on localhost (both share the tailscale container's network). The `build-image` action
+# (`wf ship build`) builds and pushes there. vm-ops-api only pulls and swaps an image CI already pushed.
+#
+# Registration: the container holds no PAT. `wf ship ci-runner` (by hand, from agent-shell) mints a one-hour registration token and
+# passes it as RUNNER_TOKEN; the registration is kept in a volume so a plain restart needs no new token.
+#
+# Deployed by hand (`wf ship ci-runner --ref dev`): a redeploy recreates the runner, which kills the job running on it.
+
+# Docker's json-file log driver keeps every line of a container forever unless told otherwise; the runner prints a lot.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.2
+    container_name: ci-runner-tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      # The runner's own one-hour key (tag:ci-self-hosted), minted by `wf ship ci-runner`; the shared key only when none was minted.
+      TS_AUTHKEY: ${TS_CI_RUNNER_AUTH_KEY:-${TS_VM_AUTH_KEY}}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_HOSTNAME: ci-runner-${HOST_LABEL}
+      # Without this the runner never resolves vm-ops-api-${HOST_LABEL}.
+      TS_ACCEPT_DNS: "true"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging: *logging
+
+  # Docker-in-docker for the CI jobs' image builds: TLS only (client certificates in the builder-certs volume), no published port, no host
+  # docker socket. It shares the tailscale container's network, so the runner reaches it on 127.0.0.1:2376; the tailnet ACL never opens 2376.
+  builder:
+    image: docker:27.5.1-dind
+    container_name: ci-runner-builder
+    privileged: true
+    network_mode: service:tailscale
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+    volumes:
+      - builder-certs:/certs
+      - builder-data:/var/lib/docker
+    depends_on:
+      - tailscale
+    healthcheck:
+      test: ["CMD-SHELL", "docker --tlsverify --tlscacert /certs/client/ca.pem --tlscert /certs/client/cert.pem --tlskey /certs/client/key.pem -H tcp://127.0.0.1:2376 info >/dev/null"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    logging: *logging
+
+  # GitHub's own runner image: the CI workflow (.github/workflows/deploy.yml) executes here. It shares the tailscale sidecar's network so
+  # `wf` reaches vm-ops-api and the builder.
+  # GitHub moved the runner to 2.338.x on 31 Oct 00:12 UTC: the runner pinned at 2.337.0 restarted five times trying to update, and every job since
+  # has run with no log stored (the job log API answers BlobNotFound, the run's log zip is empty). Keep the pin at the version GitHub is on.
+  gh-runner:
+    image: myoung34/github-runner:2.338.2-ubuntu-noble
+    container_name: ci-runner-gh-runner
+    # CI jobs yield the cores to Metro, the device and the services under contention
+    cpu_shares: 256
+    # A build that grows without bound is killed here, not on the host: the VM's other apps keep their memory (peak seen: 4.3 GB of 12.6)
+    mem_limit: 8g
+    memswap_limit: 8g
+    network_mode: service:tailscale
+    environment:
+      REPO_URL: https://github.com/nuesslerm/mobile-learning-app
+      RUNNER_NAME: vm-${HOST_LABEL}
+      RUNNER_SCOPE: repo
+      LABELS: vm
+      # A one-hour registration token minted by `wf ship ci-runner`; the PAT never enters this container.
+      RUNNER_TOKEN: ${RUNNER_TOKEN:-}
+      # The image stores .runner and the credentials here and skips registration when they exist, so a restart needs no token.
+      CONFIGURED_ACTIONS_RUNNER_FILES_DIR: /runner-config
+      DISABLE_AUTOMATIC_DEREGISTRATION: "true"
+      DOCKER_HOST: tcp://127.0.0.1:2376
+      DOCKER_TLS_VERIFY: "1"
+      DOCKER_CERT_PATH: /certs/client
+      RUNNER_WORKDIR: /runner-work
+      HOST_LABEL: ${HOST_LABEL}
+      # Already on the tailnet through the sidecar, so `wf` connects directly instead of via a SOCKS proxy.
+      WF_TAILNET_SOCKS: ""
+      # No vm-ops-api seed and no gateway seed here: `wf` resolves the CI seed, the request-signing key and every other secret from the
+      # vault with bws at job time from the two job tokens the workflow passes (BWS_CI_OPEN_ACCESS_TOKEN, BWS_CI_DEPLOY_ACCESS_TOKEN), so a step holds only what it asks for
+      # and the runner itself holds no vault token.
+      BWS_SERVER_URL: ${BWS_SERVER_URL:-}
+    volumes:
+      - gh-runner-work:/runner-work
+      - gh-runner-config-3:/runner-config
+      - builder-certs:/certs:ro
+      # Keeps the pnpm package store across jobs and container recreates, so installs reuse downloads.
+      - gh-runner-pnpm-store:/root/.local/share/pnpm
+      # The one build of the CLIs (clis.yml writes /opt/clis/<tree>/ and flips current); the other projects mount it read-only.
+      - clis:/opt/clis
+    depends_on:
+      - tailscale
+      - builder
+    # The runner shares the tailscale container's network: when that container restarts, the runner is left on a dead network, stops
+    # taking jobs and still looks up. Listener alive and GitHub reachable from inside that network; the watchdog recreates it when unhealthy.
+    # A runner with a job running (a Runner.Worker) is healthy: a build starves the 8 s probe and the recreate kills the job.
+    healthcheck:
+      test: ["CMD-SHELL", "pgrep -f Runner.Listener >/dev/null && { pgrep -f Runner.Worker >/dev/null || curl -fsS --max-time 8 -o /dev/null https://api.github.com/zen; }"]
+      interval: 15s
+      timeout: 12s
+      retries: 6
+      start_period: 120s
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  gh-runner-work:
+  gh-runner-config-3:
+  gh-runner-pnpm-store:
+  builder-certs:
+  builder-data:
+  tailscale-state:
+  # Shared with every project that runs `wf` (agent-shell, vm-ops-api mount it read-only). External: no project owns its lifecycle, and
+  # cloud-init and vm-ops-api's redeploy create it (`docker volume create clis`, idempotent) before any project starts.
+  clis:
+    external: true
+    name: clis

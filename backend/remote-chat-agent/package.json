@@ -1,0 +1,65 @@
+{
+  "name": "@app/remote-chat-agent",
+  "description": "The remote chat agent service: one Rust binary (rs/, crate rca-service: the adapters and the front door; the use cases and ports in service-core/, the thread domain in core/, the CLI driver, the executor channel and the agent API dispatch in cli-driver/, exec-channel/ and agent-core/) and its flow tests (rs/tests/flow.rs). The TypeScript here is its e2e and benchmark suites; nothing of the service itself.",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "dev": "cargo run --release --locked -p rca-service --manifest-path Cargo.toml",
+    "build": "cargo build --release --locked -p rca-service --manifest-path Cargo.toml",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "cargo test --locked -p remote-chat-agent-render -p remote-chat-agent-opencode -p remote-chat-agent-speech -p remote-chat-agent-host -p remote-chat-agent-core -p rca-cli-driver -p rca-exec-channel -p rca-agent-core -p rca-group-agent -p rca-group-workspace -p rca-group-state -p rca-group-accounts -p rca-group-terminal -p rca-group-git -p rca-group-hosted -p rca-group-schedules -p rca-group-attachments -p rca-group-catalog -p rca-group-preview -p rca-service-core --lib --manifest-path Cargo.toml",
+    "test:flow": "cargo test --locked -p rca-service --test flow --manifest-path Cargo.toml",
+    "test:integration": "cargo test --locked -p rca-service --test integration --manifest-path Cargo.toml",
+    "test:e2e": "vitest run tests/e2e --config vitest.e2e.config.ts",
+    "test:verify:deployed": "REMOTE_CHAT_AGENT_BASE_URL=${REMOTE_CHAT_AGENT_BASE_URL:-http://remote-chat-agent-prod:8787} vitest run tests/e2e --config vitest.e2e.config.ts && cargo test --locked -p rca-service --test deployed_verification --manifest-path Cargo.toml -- --ignored",
+    "bench:service": "vitest run --config vitest.bench.config.ts",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings"
+  },
+  "nx": {
+    "cargoCrates": true,
+    "targets": {
+      "test:flow": {
+        "inputs": [
+          "cargoFlow",
+          "^rustProduction",
+          {
+            "externalDependencies": []
+          }
+        ]
+      },
+      "test:integration": {
+        "inputs": [
+          "cargoIntegration",
+          "^rustProduction",
+          {
+            "externalDependencies": []
+          }
+        ]
+      }
+    }
+  },
+  "devDependencies": {
+    "@typescript/native": "catalog:",
+    "@types/node": "^22.13.1",
+    "@types/ws": "^8.18.1",
+    "jszip": "^3.10.1",
+    "oxlint": "catalog:",
+    "ws": "^8.21.3"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "typescript": {
+      "optional": true
+    },
+    "vitest": {
+      "optional": true
+    }
+  }
+}

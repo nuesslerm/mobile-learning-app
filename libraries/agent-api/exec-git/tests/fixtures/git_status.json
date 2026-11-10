@@ -1,0 +1,140 @@
+{
+  "action": "git_status",
+  "exchanges": [
+    {
+      "name": "lists a modified and an untracked file with their columns",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "stat1",
+        "tool": "git_status",
+        "args": {}
+      },
+      "response": {
+        "id": "stat1",
+        "ok": true,
+        "result": {
+          "branch": "main",
+          "head": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+          "detached": false,
+          "ahead": 0,
+          "behind": 0,
+          "files": [
+            {
+              "path": "a.txt",
+              "index": ".",
+              "worktree": "M",
+              "conflicted": false
+            },
+            {
+              "path": "new.txt",
+              "index": "?",
+              "worktree": "?",
+              "conflicted": false
+            }
+          ],
+          "truncated": false,
+          "clean": false
+        }
+      }
+    },
+    {
+      "name": "names the upstream a pushed branch follows",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "stat2",
+        "tool": "git_status",
+        "args": {}
+      },
+      "response": {
+        "id": "stat2",
+        "ok": true,
+        "result": {
+          "branch": "main",
+          "head": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+          "detached": false,
+          "upstream": "origin/main",
+          "ahead": 0,
+          "behind": 0,
+          "files": [],
+          "truncated": false,
+          "clean": true
+        }
+      }
+    },
+    {
+      "name": "shows a merge stopped on a conflict, the file unmerged",
+      "setup": {
+        "files": {
+          "a.txt": "base\n"
+        },
+        "commit": true,
+        "conflict": {
+          "path": "a.txt",
+          "ours": "ours\n",
+          "theirs": "theirs\n"
+        }
+      },
+      "request": {
+        "id": "stat3",
+        "tool": "git_status",
+        "args": {}
+      },
+      "response": {
+        "id": "stat3",
+        "ok": true,
+        "result": {
+          "branch": "main",
+          "head": "1b344f06d4dcec6c2a6d488206a07c7a5bff5365",
+          "detached": false,
+          "ahead": 0,
+          "behind": 0,
+          "operation": "merge",
+          "files": [
+            {
+              "path": "a.txt",
+              "index": "U",
+              "worktree": "U",
+              "conflicted": true
+            }
+          ],
+          "truncated": false,
+          "clean": false
+        }
+      }
+    },
+    {
+      "name": "refuses a directory that is no repository",
+      "request": {
+        "id": "stat4",
+        "tool": "git_status",
+        "args": {}
+      },
+      "response": {
+        "id": "stat4",
+        "ok": false,
+        "error": {
+          "code": "IO_ERROR",
+          "message": "git status: fatal: not a git repository"
+        }
+      },
+      "volatile": [
+        "/error/message"
+      ]
+    }
+  ]
+}

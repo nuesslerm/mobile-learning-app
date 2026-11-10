@@ -1,0 +1,149 @@
+Usage: wf test [options] <plan|run|prepare|drift|publish|results|goldens> [args]
+
+The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`).
+A runbook is something else: plain text an agent drives. There is no queue: CI's plan job writes the plan once and
+each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deployment-verification-tests, browser-e2e-tests, android-e2e-tests) runs its part
+with `wf test run --stage`.
+
+Actions:
+  plan                   every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
+                         HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
+                         test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's
+                         dependency graph from the changed files; flow and integration run in the flow-tests stage. The
+                         workspace root gets a typecheck when a file outside every package changed. Every focused e2e test is
+                         planned, whatever changed (`platform: android, browser` makes it a test on each harness);
+                         --platform android|browser keeps one harness's. --force all|<a,b>: also plans every test (all), or
+                         the tests of the named packages, crates and e2e tests, whatever changed (why: forced). --json
+                         prints {sha, base, stages: {<stage>: [{kind: flow|integration|typecheck|lint|unit|deployment-verification,
+                         package, dir, script, command, why[]} | {kind: flow, crate, dir, manifest, command, why[]} | {kind: e2e,
+                         platform, name, script, against, units[], why[]}]}, tests[]}; `why` says what picked it ("focused",
+                         "changed", "depends on lib (pnpm)"). --github-output also appends
+                         plan=<json> and <stage_with_underscores>=<count> to $GITHUB_OUTPUT
+  run --stage <stage> [--plan <file>] [--parallel <n>] [--shard <i>/<n>] [--probe] [--fresh]
+                         run one stage of a plan (default: plan HEAD~1..HEAD) through the workspace's Nx cache: a task whose
+                         inputs hash the same as an earlier pass is replayed, the rest run. A package stage runs each kind's
+                         target over its packages (`nx run-many -t <script> -p a,b --parallel <n>`, default 4; the flow call also runs
+                         the crates' `cargo-flow`; the integration-tests stage runs test:integration and a crate's `cargo-integration`, the cli-e2e-tests stage the crates' `cargo-e2e` (a crate reached only through a dependency runs `cargo-e2e-smoke`: the same suite without its parity tests, or nothing when its suite is the live-model parity one, `tests/e2e/parity.rs`), one project at a time),
+                         every kind even after a red one, and prints {ok, stage, kinds:[{kind, target, projects, verdict,
+                         durationS}], expectedRevisions}; the deployment-verification-tests stage also hands its tests WF_EXPECTED_REVISIONS
+                         ({service: commit}) and lists them as expectedRevisions [{app, commit, why}]: the pushed commit, or the
+                         commit the service's running image was built from while the push left its package graph alone (the rule
+                         of `wf ship --changed`), and the pushed one when the service cannot be asked. An e2e stage hands its
+                         focused tests to `nx run-many -t e2e-<platform>`: a test runs
+                         when its script, goldens, features (header `features:`, their libraries), the app shell,
+                         lockfile or patches changed (a service has its own deployment verification), and otherwise replays its last pass with that
+                         pass's runs; it prints a line per test {test, cached, ok, units, fromSha} and then {ok, stage, ran,
+                         cached, units, warms}. --probe only prints {ok, stage, ran, cached, why} (nothing runs; why holds, per missing test, the nearest earlier run and the inputs that differ, `expired` or `never-stored`: schema in `wf cache nx --help`), so the job boots
+                         the device only when a test runs; test flags after `--` always run fresh, and so does --fresh (every
+                         task of the stage again whatever Nx cached: the nightly CI audit's second pass, .github/workflows/
+                         ci-audit.yml). --shard <i>/<n> runs the i-th of n parts of a package stage (a package or crate with all its kinds
+                         goes to one part; the parts are dealt out by sorted name, so the n machines of a stage agree and together run each once). Nx also reads and writes the shared build cache through a loopback shim
+                         this command starts (`wf cache --help`); --fresh never starts it. No nx in the workspace is
+                         an error (pnpm install). Exit 0 only when everything passed
+  run [test...]          run the named tests, --all, or those a change reaches (--changed [--base <ref>]), one after another
+                         in this process; [--platform android|browser] [--sha S] [--out DIR] [--serial S] [-- <test flags>]. A test whose header has
+                         `units: k=v; k=v k2=v2` runs once per unit, its pairs handed to the script as --env (keeps each run
+                         short). An Android run takes the device lease and loads the EAS Update CI published on branch dev (`against: update`;
+                         latest-dev.json in the verification bucket; base exp://u.expo.dev/<projectId>/group/<group>/--, which a cold
+                         start opens bare). A test whose `against:` is not its harness's target is refused before anything runs,
+                         naming the header line that fixes it. An Android run is an error, never a fall back to a dev server, when
+                         WF_EAS_UPDATE_RESULT
+                         (how this push's eas-update job ended) says failure or cancelled, when the pointer does not name this
+                         push's commit after a success, or, when this push published none (skipped, or empty on a dispatch), when the
+                         app's package graph changed since the pointer's commit (the rule `wf ship --changed` decides to publish by), or
+                         when the update has no Android build, does not open on /, or lacks the baked lab flag, backend and agent
+                         hosts and backend token, or when EAS does not serve its group to an Android device (the manifest is asked
+                         when the pointer saw no 200), or when a tailnet name it baked in is no longer what `wf vm net resolve`
+                         answers; each error names the next step (re-run the CI run so its eas-update job publishes: a `wf ship eas`
+                         by hand lacks what CI bakes in). The app is started cold once per update group,
+                         again when the group changes and after a unit that did not pass. A browser run
+                         (`against: export`) gets the web export of the tree, served on loopback by this
+                         command at /mla-tamagui (`wf test prepare --web` builds it; one that is missing or older than the tree is an error that
+                         names it). Each run is under the test's `timeout:` (SIGTERM, a 60 s grace for the
+                         report and the recording, then SIGKILL). Each run is
+                         `wf <platform> test <script>`; the flags after `--` go to every one as given (--update-goldens,
+                         --logpoint file:line[:condition], which is browser only: an Android run refuses it);
+                         WF_TEST_PUBLISH=1 publishes each run as a bundle. Prints one line per run and then the summary;
+                         exit 0 only when every run passed.
+  prepare --web [--force]
+                         build the web export the browser e2e tests run against, from the tree as it is: `pnpm --filter
+                         mla-tamagui run export:web` in frontend/mla-tamagui/dist with source maps (the debugger's logpoints and stacks
+                         resolve to original lines) and the EXPO_PUBLIC_* values of the environment baked in (CI sets the backend hosts and
+                         token), stamped with a hash of the app inputs it was built from: the app, its libraries and
+                         every workspace package the lockfile links it to, tests and docs aside (wf-export.json). An export in place with
+                         the same inputs, baked values and flags is kept (an EAS Update exports into the same dist and replaces it);
+                         --force builds anyway. Prints {ok, reused, dir, sha, inputs, builtAt, buildS, baked, flags, memory}: baked shows
+                         plain URLs and flags as they are and anything else as set:<8 hex of its hash>, memory is the build's largest
+                         process and, with WF_VM_SAMPLE_SECS, the VM's low MemAvailable; or {ok: false, error, next}. `wf test run` refuses
+                         an export whose inputs differ from the tree's; a run's result names the baked keys and a digest, never the values.
+  drift [--save <file> | --against <file> [--blocking] | --pins] [--targets t,t] [--projects p,p]
+                         the Nx task hashes of this checkout, which decide whether a sandbox pass replays on CI; runs nothing.
+                         Bare: {ok, tasks, runtime, hashes}. --save writes this side's table ({runtime, tasks: {<project>:<target>:
+                         {hash, inputs}}}); --against compares it with a table the other side saved and prints {ok, compared, same,
+                         drifted:[{task, inputs[]}], causes: {<input>: {kind: runtime|platform|files|env|config|dependencies, mine, theirs,
+                         tasks}}, onlyHere[], onlyThere[], blocking[], next}, exit 1 on any difference; --blocking exits 1 only
+                         when a cause other than the platform is named in blocking[] (a task only one side hashes is reported, not blocking). Checkout path, HOME, PATH and the browsers'
+                         directory never enter a hash; the platform only the tasks of a crate in the platform tier (below), the Node, pnpm and
+                         Rust versions only the tasks that run them, the Chromium build only a browser test. A platform tier crate
+                         (`[package.metadata.flow] platform = true`, or CPU-dependent code found by the scan; `platform = false` overrides it) hashes
+                         its own cargo tasks on the platform alone, a dependent never inherits it. --pins checks node,
+                         pnpm and rustc against what mise.toml pins, and every `node-version:` of .github/workflows and
+                         .github/actions and the root packageManager against the same pins: {ok, pins:[{tool, pinned, actual, ok}],
+                         declared:{checked, off:[{file, line, tool, version, pinned}]}, next}; the weekly audit runs it
+  publish <dir>          upload one run as a run bundle to the verification-artifacts bucket under
+                         verification/test-runs/<runId>/ and post its test_runs row with the bundle's report as report_path:
+                         <dir> is a harness run's test output dir (report.json), a flow report dir (.flow-report) or an e2e run dir
+                         (result.json). bundle.json (schema 1) lists every file's public URL, report {html,json},
+                         screenshots[], recordings[], debug, timing, traces[] (the method-hit traces, trace.json, of an
+                         integration chain: `wf parity coverage --traces` reads them), metrics, and the run's screen, warning
+                         count and timingSummary; every recording and the report page are read back from the bucket (readBack). `cache`
+                         is what the build-cache shim did in the runs that stopped in the last 15 minutes and no bundle carried yet:
+                         {runs, hits, misses, puts, skipped, requests, bytes, degraded, latencyMs: {get, put, exists: {n, sumMs, avgMs, maxMs}}}, null when none did.
+                         verification/test-runs/index.json lists the newest 500 runs (read through the public URL and merged,
+                         never replaced). --no-record skips the row; --ran-on <host> names the runner (default WF_SITE or the
+                         hostname). Needs VERIFICATION_ARTIFACTS_PAR_URL (env or vault). Prints {runId, base, bundle, report, cache,
+                         files, bytes, index, recorded}.
+  results                read what publish wrote; runs nothing. --query "<terms>" filters the test_runs table and the bundle
+                         index, joined on runId (index runs first, completed from their row; table runs the index no longer
+                         holds follow). Terms, space-separated: test=<name> unit=<k=v pairs> platform= sha=<prefix> verdict=
+                         screen= runId=, any other key=value matches that --env (chunk=3), comparisons on numbers
+                         (durationS>60, warnings>0, wallS<=60, timing.setup>10, timing.get_element.p95>1 in seconds, where find reads the
+                         same row; = != > >= < <=),
+                         a comma lists alternatives (test=editor-typing,voice-edit), newest (one run per test, unit and
+                         platform), units (keeps only the runs of the current units of the focused tests the test and platform terms
+                         reach, and adds {test, unit, platform, missing: true} for each such unit no selected run covers), since=<30m|6h|2d|1w|2026-10-16>, limit=<n>.
+                         Equality terms on verdict, platform, sha, test and the since window go to the table as its filter.
+                         --json prints {query, sources {index: ok|absent|failed: .., table: ok|disabled: ..|failed: ..},
+                         runs:[{runId, test, unit, platform, sha, verdict, durationS, publishedAt, screen, warnings,
+                         recordings, screenshots, readBack, wallS, phases, byVerb, timing, report, bundle, args, inIndex,
+                         inTable, ts?, ranOn?}]}, newest first; without it one line per run. Exit 1 only when the index read
+                         failed and the table gave nothing.
+  goldens <runId|bundle URL> [--goldens-dir DIR]
+                         make a published run's named screenshots (its shots/<name>.png and sidecar .json) the goldens of its
+                         harness, in DIR (default docs/runbooks/goldens/<harness>/): --update-goldens for a run that happened on
+                         CI, to review and commit. Prints {ok, run, platform, dir, goldens[], written[]}; exit 1 with error and
+                         next when the bundle cannot be read or holds no named screenshot.
+
+Test-run rows: publish is the only writer. Each published run posts one row to TEST_RUNS_ORDS_BASE_URL as health_rpt
+(HEALTH_REPORTS_ORDS_PASSWORD, user HEALTH_REPORTS_ORDS_USER), read from the environment and wf's .env files only.
+Posting never changes an exit code: an unset URL or a failed post is one `source=test-metrics msg="test run row not
+posted" reason=disabled|failed` log line. `wf test device`, `wf test metrics` and `wf test record` are gone and say so.
+
+An e2e test is a Lua file whose first lines are a header:
+  --[[---
+  platform: android            (or browser)
+  against: update              (the EAS Update CI published: android) | export (a web export: browser) |
+                               android=update, browser=export (none: update for android, export for browser)
+  timeout: 180                 (seconds, default 180)
+  units: problem=two-sum; problem=valid-palindrome
+  focus: true
+  ---]]
+A Lua file without one is a helper. Focus alone decides what CI runs: every focused test runs on every push (--changed),
+and only focused tests run at all (--all, or by name); focus the tests you work on and unfocus the rest.
+
+JSON: plan {"sha","tests":[{"name","script","platform","against","focus","selected"}]};
+run: one {"unit","verdict","durationS","bundle","note"} per run, then {"ok","sha","out","units":[{test, args, verdict,
+note, next?, durationS, timing {wallS, byVerb}, report, recording[], bundle, base,
+updateGroup, updateCommit (update units), export {dir, sha, inputs, builtAt, buildS, baked} (browser units), attempt, dir,
+logTail}], "warms":[{the cold starts, one run each, with the same target fields}]}
+(also written to <out>/summary.json).

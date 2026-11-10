@@ -1,0 +1,49 @@
+{
+  "action": "make_dir",
+  "exchanges": [
+    {
+      "name": "makes a directory and the parents it lacks when asked to",
+      "request": {"id": "m1", "tool": "make_dir", "args": {"path": ".rca/projects/a", "parents": true}},
+      "response": {"id": "m1", "ok": true, "result": {"path": ".rca/projects/a", "created": true}}
+    },
+    {
+      "name": "claims a name below a parent that exists",
+      "setup": {"files": {"projects/keep.txt": "x"}},
+      "request": {"id": "m2", "tool": "make_dir", "args": {"path": "projects/b"}},
+      "response": {"id": "m2", "ok": true, "result": {"path": "projects/b", "created": true}}
+    },
+    {
+      "name": "refuses a name that is taken and leaves what is in it",
+      "setup": {"files": {"projects/taken/f.txt": "keep"}},
+      "request": {"id": "m3", "tool": "make_dir", "args": {"path": "projects/taken"}},
+      "response": {"id": "m3", "ok": false, "error": {"code": "ALREADY_EXISTS", "message": "projects/taken already exists"}}
+    },
+    {
+      "name": "accepts a directory that exists when the parents are asked for",
+      "setup": {"files": {"projects/taken/f.txt": "keep"}},
+      "request": {"id": "m4", "tool": "make_dir", "args": {"path": "projects/taken", "parents": true}},
+      "response": {"id": "m4", "ok": true, "result": {"path": "projects/taken", "created": false}}
+    },
+    {
+      "name": "refuses a file in the way even when the parents are asked for",
+      "setup": {"files": {"a.txt": "not a directory"}},
+      "request": {"id": "m5", "tool": "make_dir", "args": {"path": "a.txt", "parents": true}},
+      "response": {"id": "m5", "ok": false, "error": {"code": "ALREADY_EXISTS", "message": "a.txt already exists"}}
+    },
+    {
+      "name": "refuses a missing parent unless the parents are asked for",
+      "request": {"id": "m6", "tool": "make_dir", "args": {"path": "no/such/dir"}},
+      "response": {"id": "m6", "ok": false, "error": {"code": "NOT_FOUND", "message": "no/such/dir does not exist"}}
+    },
+    {
+      "name": "refuses a path outside the root",
+      "request": {"id": "m7", "tool": "make_dir", "args": {"path": "../escape", "parents": true}},
+      "response": {"id": "m7", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../escape is outside the root"}}
+    },
+    {
+      "name": "refuses a path that is not a string",
+      "request": {"id": "m8", "tool": "make_dir", "args": {"path": 5}},
+      "response": {"id": "m8", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`path` must be a string"}}
+    }
+  ]
+}

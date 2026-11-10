@@ -1,0 +1,17 @@
+{
+  "enabled": true,
+  "storedBytes": 8000000000,
+  "tenancyStoredBytes": 20000000000,
+  "vmStateBytes": 5200000000,
+  "vmStateRepositoryBytes": 2600000000,
+  "requestsPerMonth": 50000,
+  "requestsPerRun": 400,
+  "bytesPerRun": 268435456,
+  "kinds": {
+    "nx": { "ttlDays": 14, "maxEntryBytes": 524288000, "bytesPerRun": 1610612736 },
+    "pnpm": { "ttlDays": 60, "maxEntryBytes": 1073741824 },
+    "probe": { "ttlDays": 1, "maxEntryBytes": 1048576 },
+    "sccache": { "ttlDays": 7, "maxEntryBytes": 134217728, "requestsPerRun": 5000, "bytesPerRun": 2147483648 },
+    "metro": { "ttlDays": 14, "maxEntryBytes": 268435456 }
+  }
+}

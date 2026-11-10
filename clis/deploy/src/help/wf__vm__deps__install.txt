@@ -1,0 +1,7 @@
+Usage: wf vm deps install [options] <manager> <name>
+
+Install a dependency inside agent-shell now AND record it in the manifest so it
+survives a redeploy
+
+Options:
+  -h, --help  display help for command

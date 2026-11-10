@@ -1,0 +1,94 @@
+{
+  "action": "git_commit",
+  "exchanges": [
+    {
+      "name": "commits every tracked change with the message",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "comm30",
+        "tool": "git_commit",
+        "args": {
+          "message": "second",
+          "all": true
+        }
+      },
+      "response": {
+        "id": "comm30",
+        "ok": true,
+        "result": {
+          "sha": "<volatile>",
+          "short": "<volatile>",
+          "subject": "second"
+        }
+      },
+      "volatile": [
+        "/result/sha",
+        "/result/short"
+      ]
+    },
+    {
+      "name": "refuses to commit nothing",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "comm31",
+        "tool": "git_commit",
+        "args": {
+          "message": "empty"
+        }
+      },
+      "response": {
+        "id": "comm31",
+        "ok": false,
+        "error": {
+          "code": "IO_ERROR",
+          "message": "git commit: nothing to commit"
+        }
+      },
+      "volatile": [
+        "/error/message"
+      ]
+    },
+    {
+      "name": "refuses an empty message",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n",
+          "new.txt": "n\n"
+        }
+      },
+      "request": {
+        "id": "comm32",
+        "tool": "git_commit",
+        "args": {
+          "message": " "
+        }
+      },
+      "response": {
+        "id": "comm32",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`message` must not be empty"
+        }
+      }
+    }
+  ]
+}

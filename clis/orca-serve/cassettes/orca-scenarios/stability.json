@@ -1,0 +1,102 @@
+{
+  "runs": [
+    "orca-ss1",
+    "orca-ss2",
+    "orca-ss3"
+  ],
+  "compared": 39,
+  "unobserved": [],
+  "stable_before": 0,
+  "stable_after": 39,
+  "stable_pct": 100.0,
+  "causes": {},
+  "proposals": [
+    {
+      "rule": {
+        "kind": "volatile-number",
+        "keys": {
+          "addedAt": "<volatile:addedAt>"
+        }
+      },
+      "why": "the number under `addedAt` differed in every recording that carried it (42 places)",
+      "scope": "global",
+      "seen_in": [
+        "orca-scn-agentSession.createSupport",
+        "orca-scn-files.delete",
+        "orca-scn-files.pathsExist",
+        "orca-scn-files.readDocPreviewChunk",
+        "orca-scn-files.resolveTerminalPath",
+        "orca-scn-files.writeIfUnchanged",
+        "orca-scn-git.bulkStage",
+        "orca-scn-git.commit",
+        "orca-scn-git.fastForward",
+        "orca-scn-git.localBranches",
+        "orca-scn-git.resolveConflict",
+        "orca-scn-github.addIssueComment",
+        "orca-scn-github.listAssignableUsers",
+        "orca-scn-github.markPRReadyForReview",
+        "orca-scn-github.prForBranch",
+        "orca-scn-github.project.updateIssueBySlug",
+        "orca-scn-github.repoSlug",
+        "orca-scn-github.setPRCommentReaction",
+        "orca-scn-github.validateAccountBinding",
+        "orca-scn-gitlab.addMRInlineComment",
+        "orca-scn-gitlab.listMRs",
+        "orca-scn-gitlab.updateIssue",
+        "orca-scn-hostedReview.create",
+        "orca-scn-markdown.readTab",
+        "orca-scn-repo.add",
+        "orca-scn-repo.hooks",
+        "orca-scn-repo.searchRefs",
+        "orca-scn-session.tabs.closeLifecycle",
+        "orca-scn-session.tabs.createTerminal",
+        "orca-scn-terminal.adoptOrphans",
+        "orca-scn-terminal.getDisplayMode",
+        "orca-scn-terminal.resetInputModes",
+        "orca-scn-terminal.setPaneTitle",
+        "orca-scn-workspacePorts.scanHost",
+        "orca-scn-worktree.adoptProvisionedRoot",
+        "orca-scn-worktree.resolvePrBase",
+        "orca-scn-worktree.sleep",
+        "orca-story-worktree-lifecycle",
+        "orca-story-files-roundtrip"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "volatile-number",
+        "keys": {
+          "fetchedAt": "<volatile:fetchedAt>"
+        }
+      },
+      "why": "the number under `fetchedAt` differed in every recording that carried it (1 places)",
+      "scope": "global",
+      "seen_in": [
+        "orca-scn-github.prForBranch"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "volatile-number",
+        "keys": {
+          "sortOrder": "<volatile:sortOrder>"
+        }
+      },
+      "why": "the number under `sortOrder` differed in every recording that carried it (6 places)",
+      "scope": "global",
+      "seen_in": [
+        "orca-scn-worktree.adoptProvisionedRoot",
+        "orca-scn-worktree.resolvePrBase",
+        "orca-scn-worktree.sleep",
+        "orca-story-worktree-lifecycle"
+      ]
+    }
+  ],
+  "unstable": [],
+  "accounting": {
+    "allowlisted": [],
+    "unlisted": [],
+    "stale": [],
+    "wrong_cause": []
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "method": "input.answer",
+  "exchanges": [
+    {
+      "name": "refuses a question that is not open",
+      "before": [
+        {
+          "id": "setup-create-t-in",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-in",
+            "title": "Thread t-in",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "input.answer",
+        "params": {
+          "thread": "t-in",
+          "request": "rq-none",
+          "answer": "yes"
+        }
+      },
+      "response": {
+        "id": "1",
+        "error": {
+          "code": "REQUEST_NOT_OPEN",
+          "message": "request rq-none is not open on thread t-in"
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "2",
+        "method": "input.answer",
+        "params": {
+          "thread": "nope",
+          "request": "rq1",
+          "answer": "yes"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    },
+    {
+      "name": "refuses an answer with no text field",
+      "request": {
+        "id": "3",
+        "method": "input.answer",
+        "params": {
+          "thread": "t-in",
+          "request": "rq1"
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "missing field `answer`"
+        }
+      }
+    }
+  ]
+}

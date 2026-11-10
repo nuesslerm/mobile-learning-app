@@ -1,0 +1,70 @@
+{
+  "method": "n=5 rounds of the capture listener's cold start, idle RSS and refusal latency, implementations interleaved per round.\n\nusage: capture-listener-bench.py OUT.json label=cwd::command [label=cwd::command ...]\nPer run: spawn the listener with a complete configuration (nothing is triggered), wait until the port accepts (start-up ms), wait 1 s,\nread VmRSS from /proc (idle RSS), then send 200 `POST /trigger` with a wrong secret and take the median latency of the 401 (hot route).\nA round's value is the median of its RUNS runs; the result is the median of the round medians.\n",
+  "host": "x86_64",
+  "implementations": {
+    "node": {
+      "start_ms": 1022.7,
+      "idle_rss_kb": 137788,
+      "refusal_p50_ms": 0.659,
+      "rounds": [
+        {
+          "start_ms": 1029.1,
+          "idle_rss_kb": 137472,
+          "refusal_p50_ms": 0.616
+        },
+        {
+          "start_ms": 999.6,
+          "idle_rss_kb": 137636,
+          "refusal_p50_ms": 0.659
+        },
+        {
+          "start_ms": 1022.7,
+          "idle_rss_kb": 137788,
+          "refusal_p50_ms": 0.667
+        },
+        {
+          "start_ms": 1049.9,
+          "idle_rss_kb": 138760,
+          "refusal_p50_ms": 0.606
+        },
+        {
+          "start_ms": 1017.9,
+          "idle_rss_kb": 138088,
+          "refusal_p50_ms": 0.685
+        }
+      ]
+    },
+    "rust": {
+      "start_ms": 14.2,
+      "idle_rss_kb": 6572,
+      "refusal_p50_ms": 0.52,
+      "rounds": [
+        {
+          "start_ms": 14.2,
+          "idle_rss_kb": 6648,
+          "refusal_p50_ms": 0.511
+        },
+        {
+          "start_ms": 14.0,
+          "idle_rss_kb": 6552,
+          "refusal_p50_ms": 0.538
+        },
+        {
+          "start_ms": 14.2,
+          "idle_rss_kb": 6580,
+          "refusal_p50_ms": 0.52
+        },
+        {
+          "start_ms": 14.3,
+          "idle_rss_kb": 6568,
+          "refusal_p50_ms": 0.498
+        },
+        {
+          "start_ms": 14.1,
+          "idle_rss_kb": 6572,
+          "refusal_p50_ms": 0.589
+        }
+      ]
+    }
+  }
+}

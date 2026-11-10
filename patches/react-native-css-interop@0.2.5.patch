@@ -1,0 +1,61 @@
+diff --git a/dist/runtime/native/render-component.js b/dist/runtime/native/render-component.js
+index eba25ece1cf3fe3170cd55134df6b70c7aabd70e..c4d3069b48d7a209a2cd3d695f59ae7eeeb63dd2 100644
+--- a/dist/runtime/native/render-component.js
++++ b/dist/runtime/native/render-component.js
+@@ -122,21 +122,41 @@ function printUpgradeWarning(warning, originalProps) {
+ }
+ function stringify(object) {
+     const seen = new WeakSet();
+-    return JSON.stringify(object, function replace(_, value) {
+-        if (!(value !== null && typeof value === "object")) {
+-            return value;
+-        }
+-        if (seen.has(value)) {
+-            return "[Circular]";
+-        }
+-        seen.add(value);
+-        const newValue = Array.isArray(value) ? [] : {};
+-        for (const entry of Object.entries(value)) {
+-            newValue[entry[0]] = replace(entry[0], entry[1]);
+-        }
+-        seen.delete(value);
+-        return newValue;
+-    }, 2);
++    try {
++        return JSON.stringify(object, function replace(_, value) {
++            if (!(value !== null && typeof value === "object")) {
++                return value;
++            }
++            if (seen.has(value)) {
++                return "[Circular]";
++            }
++            // React elements drag in dev-only fibers and context objects whose
++            // property getters can throw (e.g. react-navigation's
++            // out-of-container guards). A diagnostic printer must never crash
++            // the render, so summarize elements instead of walking them.
++            if (value.$$typeof) {
++                return "[ReactElement]";
++            }
++            seen.add(value);
++            const newValue = Array.isArray(value) ? [] : {};
++            for (const key of Object.keys(value)) {
++                let entryValue;
++                try {
++                    entryValue = value[key];
++                }
++                catch {
++                    newValue[key] = "[Throws]";
++                    continue;
++                }
++                newValue[key] = replace(key, entryValue);
++            }
++            seen.delete(value);
++            return newValue;
++        }, 2);
++    }
++    catch {
++        return "[unserializable props]";
++    }
+ }
+ function getDebugReplacer() {
+     const seen = new WeakSet();

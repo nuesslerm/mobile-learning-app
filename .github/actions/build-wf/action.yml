@@ -1,0 +1,43 @@
+name: Build wf
+description: >-
+  Builds this commit's wf and the binaries it runs beside it (install-wf, without publishing). With `upload: true` they go to the
+  artifact `name` for the jobs of a hosted run. On the VM a build that fails falls back to the wf the previous push published, so the
+  checks that would fix the build still run.
+inputs:
+  flavor:
+    description: vm or hosted
+    required: true
+  name:
+    description: The artifact's name (clis for x64, clis-arm for arm64)
+    default: clis
+  upload:
+    description: Hand the binaries to the other jobs as an artifact
+    default: "false"
+runs:
+  using: composite
+  steps:
+    - name: This commit's wf
+      id: wf
+      continue-on-error: ${{ inputs.flavor == 'vm' }}
+      uses: ./.github/actions/install-wf
+      with:
+        live: "false"
+    - name: The published wf, when this commit's did not build
+      if: ${{ inputs.flavor == 'vm' && steps.wf.outcome == 'failure' }}
+      uses: ./.github/actions/install-wf
+      with:
+        current: "true"
+        live: "false"
+    - name: The binaries as one artifact
+      if: ${{ inputs.upload == 'true' }}
+      shell: bash
+      run: |
+        mkdir -p "$RUNNER_TEMP/clis-bin"
+        cp "$(dirname "$(command -v wf)")"/* "$RUNNER_TEMP/clis-bin/"
+        ls -l "$RUNNER_TEMP/clis-bin"
+    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      if: ${{ inputs.upload == 'true' }}
+      with:
+        name: ${{ inputs.name }}
+        path: ${{ runner.temp }}/clis-bin
+        retention-days: 1

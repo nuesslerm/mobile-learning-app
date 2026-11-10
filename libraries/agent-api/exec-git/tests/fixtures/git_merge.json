@@ -1,0 +1,163 @@
+{
+  "action": "git_merge",
+  "exchanges": [
+    {
+      "name": "merges a revision that is already contained",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "merg53",
+        "tool": "git_merge",
+        "args": {
+          "op": "start",
+          "ref": "HEAD"
+        }
+      },
+      "response": {
+        "id": "merg53",
+        "ok": true,
+        "result": {
+          "ok": true,
+          "head": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+          "updated": false,
+          "conflicted": false,
+          "conflicts": [],
+          "output": "<volatile>"
+        }
+      },
+      "volatile": [
+        "/result/output"
+      ]
+    },
+    {
+      "name": "lists the conflicts of a merge that cannot continue",
+      "setup": {
+        "files": {
+          "a.txt": "base\n"
+        },
+        "commit": true,
+        "conflict": {
+          "path": "a.txt",
+          "ours": "ours\n",
+          "theirs": "theirs\n"
+        }
+      },
+      "request": {
+        "id": "merg54",
+        "tool": "git_merge",
+        "args": {
+          "op": "continue"
+        }
+      },
+      "response": {
+        "id": "merg54",
+        "ok": true,
+        "result": {
+          "ok": false,
+          "head": "1b344f06d4dcec6c2a6d488206a07c7a5bff5365",
+          "updated": false,
+          "conflicted": true,
+          "conflicts": [
+            "a.txt"
+          ],
+          "output": "<volatile>",
+          "operation": "merge"
+        }
+      },
+      "volatile": [
+        "/result/output"
+      ]
+    },
+    {
+      "name": "aborts a merge stopped on conflicts",
+      "setup": {
+        "files": {
+          "a.txt": "base\n"
+        },
+        "commit": true,
+        "conflict": {
+          "path": "a.txt",
+          "ours": "ours\n",
+          "theirs": "theirs\n"
+        }
+      },
+      "request": {
+        "id": "merg55",
+        "tool": "git_merge",
+        "args": {
+          "op": "abort"
+        }
+      },
+      "response": {
+        "id": "merg55",
+        "ok": true,
+        "result": {
+          "ok": true,
+          "head": "1b344f06d4dcec6c2a6d488206a07c7a5bff5365",
+          "updated": false,
+          "conflicted": false,
+          "conflicts": [],
+          "output": "<volatile>"
+        }
+      },
+      "volatile": [
+        "/result/output"
+      ]
+    },
+    {
+      "name": "refuses to abort when no merge is under way",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "merg56",
+        "tool": "git_merge",
+        "args": {
+          "op": "abort"
+        }
+      },
+      "response": {
+        "id": "merg56",
+        "ok": false,
+        "error": {
+          "code": "IO_ERROR",
+          "message": "git merge: fatal: There is no merge to abort"
+        }
+      },
+      "volatile": [
+        "/error/message"
+      ]
+    },
+    {
+      "name": "refuses to start without a ref",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "merg57",
+        "tool": "git_merge",
+        "args": {
+          "op": "start"
+        }
+      },
+      "response": {
+        "id": "merg57",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`ref` is required to start a merge"
+        }
+      }
+    }
+  ]
+}

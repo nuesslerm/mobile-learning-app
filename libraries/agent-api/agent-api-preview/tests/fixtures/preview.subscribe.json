@@ -1,0 +1,79 @@
+{
+  "method": "preview.subscribe",
+  "exchanges": [
+    {
+      "name": "answers where the stream stands and no reset for a caller that has none",
+      "before": [
+        {
+          "id": "o",
+          "method": "preview.open",
+          "params": {
+            "thread": "t1",
+            "url": "http://127.0.0.1:3000/"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "preview.subscribe",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "topic": "preview",
+          "epoch": "epoch-1",
+          "seq": 1,
+          "reset": false
+        }
+      }
+    },
+    {
+      "name": "resets a caller that names another run of the service",
+      "before": [
+        {
+          "id": "o",
+          "method": "preview.open",
+          "params": {
+            "thread": "t1",
+            "url": "http://127.0.0.1:3000/"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "preview.subscribe",
+        "params": {
+          "epoch": "epoch-0",
+          "after_seq": 1
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "topic": "preview",
+          "epoch": "epoch-1",
+          "seq": 1,
+          "reset": true
+        }
+      }
+    },
+    {
+      "name": "refuses a field it does not know",
+      "request": {
+        "id": 1,
+        "method": "preview.subscribe",
+        "params": {
+          "scope": "x"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "unknown field `scope`"
+        }
+      }
+    }
+  ]
+}

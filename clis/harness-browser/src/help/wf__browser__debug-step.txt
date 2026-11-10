@@ -1,0 +1,5 @@
+Usage: wf browser debug-step [over|into|out] [--device N] [--timeout ms]
+
+One step from the pause (default over). Browser only, as set-breakpoint.
+
+Result: the new location, as debug-pause answers it

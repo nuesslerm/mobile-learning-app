@@ -1,0 +1,30 @@
+[
+  [
+    "run",
+    "--pull",
+    "missing",
+    "--rm",
+    "-v",
+    "/var/run/docker.sock:/var/run/docker.sock",
+    "-v",
+    "/home/ubuntu/remote-chat-agent:/home/ubuntu/remote-chat-agent",
+    "-v",
+    "/home/ubuntu/vm-ops-api:/home/ubuntu/vm-ops-api:ro",
+    "-v",
+    "/usr/local/bin/bws:/usr/local/bin/bws:ro",
+    "-v",
+    "clis:/opt/clis:ro",
+    "-w",
+    "/home/ubuntu/remote-chat-agent",
+    "-e",
+    "IMAGE_TAG=latest",
+    "-e",
+    "IMAGE_NAMESPACE=ns",
+    "-e",
+    "GITHUB_RAW_TOKEN=tok",
+    "<image>",
+    "sh",
+    "-c",
+    "set -e\necho \"[redeploy] start $(date +%s)\"\nmkdir -p /home/ubuntu/remote-chat-agent\necho '[provision] refreshing remote-chat-agent'\"'\"'s compose file and .env.defaults from dev'\n<helper:provision> 'https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/backend/remote-chat-agent/docker-compose.prod.yml' '/home/ubuntu/remote-chat-agent/docker-compose.prod.yml' 'https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/backend/remote-chat-agent/.env.defaults' '/home/ubuntu/remote-chat-agent/.env.defaults'\necho \"[redeploy] provisioned $(date +%s)\"\nif [ ! -f /home/ubuntu/remote-chat-agent/.env.local ] && [ -f /home/ubuntu/vm-ops-api/.env.local ]; then cp /home/ubuntu/vm-ops-api/.env.local /home/ubuntu/remote-chat-agent/.env.local; fi\nif [ -f /home/ubuntu/remote-chat-agent/.env.local ]; then grep -E '^(BWS_[A-Z0-9_]+|SECRETS_BACKEND)=' /home/ubuntu/remote-chat-agent/.env.local > /home/ubuntu/remote-chat-agent/.env.bootstrap || true; if sh -n /home/ubuntu/remote-chat-agent/.env.bootstrap; then set -a; . /home/ubuntu/remote-chat-agent/.env.bootstrap; set +a; rm -f /home/ubuntu/remote-chat-agent/.env.bootstrap; else rm -f /home/ubuntu/remote-chat-agent/.env.bootstrap; echo '[env] .env.local has a BWS_ or SECRETS_BACKEND line that does not parse' >&2; false; fi; fi\nunset BETTERSTACK_OTLP_TOKEN BETTERSTACK_OTLP_HOST EXPO_PUBLIC_BETTERSTACK_TOKEN\n( cd /home/ubuntu/remote-chat-agent && wf secret sync-env --for remote-chat-agent --backend bitwarden --base .env.defaults --out .env )\ncp /home/ubuntu/remote-chat-agent/.env /home/ubuntu/remote-chat-agent/.env.synced\necho \"HOST_LABEL=main\" >> /home/ubuntu/remote-chat-agent/.env\n<helper:appendEnvLocal> /home/ubuntu/remote-chat-agent/.env /home/ubuntu/remote-chat-agent/.env.local\n<helper:verifyEnv> /home/ubuntu/remote-chat-agent/.env.synced /home/ubuntu/remote-chat-agent/.env\necho \"[redeploy] env synced $(date +%s)\"\nflock -s /home/ubuntu/vm-ops-api sh -c 'cd /home/ubuntu/remote-chat-agent && docker compose -f docker-compose.prod.yml pull agent'\necho \"[redeploy] pulled $(date +%s)\"\ndocker volume create agent-workspace >/dev/null 2>&1 || true ; docker volume create clis >/dev/null 2>&1 || true ; cd /home/ubuntu/remote-chat-agent && docker compose -f docker-compose.prod.yml up -d --no-deps $(docker compose -f docker-compose.prod.yml config --services | grep -vxE 'agent') ; docker compose -f docker-compose.prod.yml up -d --no-deps agent\nif cp -p /home/ubuntu/remote-chat-agent/.env /home/ubuntu/remote-chat-agent/.env.tmp && echo \"IMAGE_TAG=latest\" >> /home/ubuntu/remote-chat-agent/.env.tmp && mv -f /home/ubuntu/remote-chat-agent/.env.tmp /home/ubuntu/remote-chat-agent/.env; then :; else rm -f /home/ubuntu/remote-chat-agent/.env.tmp; false; fi\necho \"[redeploy] compose done $(date +%s)\"\nflock -x /home/ubuntu/vm-ops-api sh -c '[ \"$(df --output=pcent / | tail -1 | tr -dc 0-9)\" -lt 70 ] || { docker image prune -af --filter until=1h; docker builder prune -f --keep-storage 6GB; docker container prune -f --filter until=1h; }' >/dev/null 2>&1 || true"
+  ]
+]

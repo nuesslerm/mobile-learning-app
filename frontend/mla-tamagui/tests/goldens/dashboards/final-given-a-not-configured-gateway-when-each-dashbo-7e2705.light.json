@@ -1,0 +1,73 @@
+{
+  "suite": "dashboards",
+  "step": "final-given-a-not-configured-gateway-when-each-dashbo-7e2705",
+  "scheme": "light",
+  "snapshot": "dashboards/final-given-a-not-configured-gateway-when-each-dashbo-7e2705.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "AgentsDashboardScreen",
+      "AgentsDashboardScreenHeader",
+      "AgentsDashboardScreenHeaderBack",
+      "AgentsDashboardScreenHeaderTitle",
+      "AgentsDashboardScreen-ScrollView",
+      "AgentsMeasureSelector",
+      "AgentsMeasureSelectorControl",
+      "AgentsMeasureSelectorControl-tokens",
+      "AgentsMeasureSelectorControl-cost",
+      "AgentsMeasureSelectorControl-notional",
+      "AgentsBreadcrumb",
+      "AgentsBreadcrumb-0",
+      "AgentsDashboardScreen-NotConfigured",
+      "InfraDashboardScreen",
+      "InfraDashboardScreenHeader",
+      "InfraDashboardScreenHeaderBack",
+      "InfraDashboardScreenHeaderTitle",
+      "InfraDashboardScreen-ScrollView",
+      "InfraWindowSelector",
+      "InfraWindowSelectorControl",
+      "InfraWindowSelectorControl-1h",
+      "InfraWindowSelectorControl-24h",
+      "InfraWindowSelectorControl-7d",
+      "InfraWindowSelectorControl-30d",
+      "InfraDashboardScreen-NotConfigured"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nAgents\nTokens\nCost\nNotional\nAll plans\nReporting service is not configured, so there is nothing to chart.\nmla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nInfrastructure\n1h\n24h\n7d\n30d\nReporting service is not configured, so there is nothing to chart."
+  },
+  "timings": {
+    "render_ms": 244
+  },
+  "name": "dashboards/final-given-a-not-configured-gateway-when-each-dashbo-7e2705.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

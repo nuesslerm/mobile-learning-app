@@ -1,0 +1,17 @@
+[package]
+name = "agent-api-service"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's service group (`service.status`): the status a mapper reads at startup to refuse a service it cannot work with"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }

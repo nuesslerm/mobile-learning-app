@@ -1,0 +1,11 @@
+Usage: wf offload ladder [options] [command]
+
+The cheap-model ladder's administration
+
+Options:
+  -h, --help       display help for command
+
+Commands:
+  clear-cooldown <pool>  Drop a pool from the cooldown list
+  sync-pricing           Refresh the pricing table from the OpenRouter model list
+  help [command]         display help for command

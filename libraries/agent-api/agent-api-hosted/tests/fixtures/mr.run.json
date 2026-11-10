@@ -1,0 +1,26 @@
+{
+  "method": "mr.run",
+  "exchanges": [
+    {
+      "name": "the mr spelling reaches the same action and defaults to gitlab",
+      "request": {
+        "id": 1,
+        "method": "mr.run",
+        "params": {
+          "run": 0,
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`run` must be a positive integer"
+        }
+      },
+      "actions": [
+        "hosted_run_view"
+      ]
+    }
+  ]
+}

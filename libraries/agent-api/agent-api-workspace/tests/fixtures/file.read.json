@@ -1,0 +1,124 @@
+{
+  "method": "file.read",
+  "exchanges": [
+    {
+      "name": "reads a window of a file in an attached workspace",
+      "request": {
+        "id": 2,
+        "method": "file.read",
+        "params": {
+          "workspace": "w1",
+          "path": "notes.txt",
+          "offset": 1,
+          "limit": 2
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "content": "two\nthree\n",
+          "total_lines": 4,
+          "truncated": false
+        }
+      },
+      "actions": [
+        "read_file"
+      ]
+    },
+    {
+      "name": "relays the executor's refusal with its own code",
+      "request": {
+        "id": 3,
+        "method": "file.read",
+        "params": {
+          "workspace": "w1",
+          "path": "missing.txt"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "missing.txt does not exist"
+        }
+      },
+      "actions": [
+        "read_file"
+      ]
+    },
+    {
+      "name": "refuses a workspace with no executor attached",
+      "request": {
+        "id": 4,
+        "method": "file.read",
+        "params": {
+          "workspace": "w2",
+          "path": "notes.txt"
+        }
+      },
+      "response": {
+        "id": 4,
+        "error": {
+          "code": "NO_EXECUTOR",
+          "message": "no executor is attached for workspace w2"
+        }
+      }
+    },
+    {
+      "name": "refuses a request that names no workspace",
+      "request": {
+        "id": 5,
+        "method": "file.read",
+        "params": {
+          "path": "notes.txt"
+        }
+      },
+      "response": {
+        "id": 5,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "workspace is required"
+        }
+      }
+    },
+    {
+      "name": "refuses a request that names no path",
+      "request": {
+        "id": 6,
+        "method": "file.read",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 6,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "path is required"
+        }
+      }
+    },
+    {
+      "name": "forwards a limit that is not a number to the executor, which refuses it",
+      "request": {
+        "id": 7,
+        "method": "file.read",
+        "params": {
+          "workspace": "w1",
+          "path": "notes.txt",
+          "limit": "ten"
+        }
+      },
+      "response": {
+        "id": 7,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`limit` must be a non-negative integer"
+        }
+      },
+      "actions": [
+        "read_file"
+      ]
+    }
+  ]
+}

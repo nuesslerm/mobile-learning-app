@@ -1,0 +1,8 @@
+Usage: wf offload stats [options]
+
+The run-log summary of the cheap-model ladder: okRate, p50 and cost per shape,
+tier, model and pool (the same as `wf offload ask --stats`)
+
+Options:
+  --json      output machine-readable JSON lines
+  -h, --help  display help for command

@@ -1,0 +1,14 @@
+diff --git a/lib/esm/overlay/aria/Portal.jsx b/lib/esm/overlay/aria/Portal.jsx
+index 8db16bfe81e9f88467e4a2bc52f8f4075ce4bfd1..c0deeee6b5ea473dddc33c24dd65a4163e836834 100644
+--- a/lib/esm/overlay/aria/Portal.jsx
++++ b/lib/esm/overlay/aria/Portal.jsx
+@@ -59,7 +59,8 @@ export function PortalProvider(props) {
+ }
+ function OverlayView(_a) {
+     var { style } = _a, props = __rest(_a, ["style"]);
+-    return (<View pointerEvents="box-none" style={[StyleSheet.absoluteFill, style]} collapsable={false} {...props}/>);
++    // pointerEvents as a style: react-native-web warns on the prop
++    return (<View style={[StyleSheet.absoluteFill, { pointerEvents: 'box-none' }, style]} collapsable={false} {...props}/>);
+ }
+ export const OverlayProvider = PortalProvider;
+ export function OverlayContainer(props) {

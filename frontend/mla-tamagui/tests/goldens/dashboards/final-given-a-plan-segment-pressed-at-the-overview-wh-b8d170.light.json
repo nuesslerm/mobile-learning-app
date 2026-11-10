@@ -1,0 +1,76 @@
+{
+  "suite": "dashboards",
+  "step": "final-given-a-plan-segment-pressed-at-the-overview-wh-b8d170",
+  "scheme": "light",
+  "snapshot": "dashboards/final-given-a-plan-segment-pressed-at-the-overview-wh-b8d170.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "AgentsDashboardScreen",
+      "AgentsDashboardScreenHeader",
+      "AgentsDashboardScreenHeaderBack",
+      "AgentsDashboardScreenHeaderTitle",
+      "AgentsDashboardScreen-ScrollView",
+      "AgentsMeasureSelector",
+      "AgentsMeasureSelectorControl",
+      "AgentsMeasureSelectorControl-tokens",
+      "AgentsMeasureSelectorControl-cost",
+      "AgentsMeasureSelectorControl-notional",
+      "AgentsBreadcrumb",
+      "AgentsBreadcrumb-0",
+      "AgentsBreadcrumbSeparator",
+      "AgentsBreadcrumb-1",
+      "AgentsDashboardScreen-DetailContent",
+      "AgentsDashboardScreen-DetailSummary",
+      "AgentsDetailCard",
+      "AgentsDetailTitle",
+      "AgentsPlanChart",
+      "AgentsPlanChart-Canvas",
+      "AgentsPlanChart-Segments",
+      "AgentsPlanChart-Bar-0",
+      "AgentsPlanChart-Bar-0-Label",
+      "AgentsPlanChart-Bar-0-Segment-0",
+      "AgentsPlanChart-Bar-0-Segment-1",
+      "AgentsPlanChart-Bar-1",
+      "AgentsPlanChart-Bar-1-Label",
+      "AgentsPlanChart-Bar-1-Segment-0"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nAgents\nTokens\nCost\nNotional\nAll plans\n›\n09-12 · coding-agent\n2 of 4 runIds joined to a run record · 0 unpriced runs\nTokens · units\nThe gateway to the reporting service\nrun-001\n2 unresolved\nThe plan bars join the unresolved count\nrun-004"
+  },
+  "timings": {
+    "render_ms": 284
+  },
+  "name": "dashboards/final-given-a-plan-segment-pressed-at-the-overview-wh-b8d170.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

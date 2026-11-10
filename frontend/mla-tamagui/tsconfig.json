@@ -1,0 +1,58 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "incremental": true,
+    "tsBuildInfoFile": "./node_modules/.cache/app-build/tsc/tsbuildinfo",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "@lib/app-config": [
+        "../libraries/app-config/src/index.ts"
+      ],
+      "@lib/app-config/*": [
+        "../libraries/app-config/src/*"
+      ],
+      "@lib/logging": [
+        "../libraries/logging/src/index.ts"
+      ],
+      "@lib/logging/*": [
+        "../libraries/logging/src/*"
+      ],
+      "@lib/tamagui-design-system": [
+        "../libraries/tamagui-design-system/index.ts"
+      ],
+      "@lib/tamagui-design-system/*": [
+        "../libraries/tamagui-design-system/*"
+      ],
+      "@lib/voice-edit-dsl": [
+        "../libraries/voice-edit-dsl/src/index.ts"
+      ],
+      "@app/remote-chat-agent-contracts": [
+        "../../backend/remote-chat-agent-contracts/src/index.ts"
+      ],
+      "@app/remote-chat-agent-contracts/orchestration": [
+        "../../backend/remote-chat-agent-contracts/src/orchestration/index.ts"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "ios",
+    "android",
+    "dist",
+    "dist-ios",
+    // feature packages nested here check themselves with their own tsconfig
+    "features/coding-agent",
+    "features/service-report",
+    "features/settings"
+  ]
+}

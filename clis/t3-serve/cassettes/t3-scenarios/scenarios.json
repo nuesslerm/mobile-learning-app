@@ -1,0 +1,2984 @@
+{
+ "schema": "mimic-scenarios/1",
+ "app": "t3",
+ "source": "clis/t3-serve/cassettes/t3-api",
+ "counts": {
+  "endpoints": 304,
+  "scenarios": 140,
+  "populated": 138,
+  "emptyOnly": 166
+ },
+ "scenarios": [
+  {
+   "id": "t3-scn-command-checkpoint.rollback",
+   "kind": "derived",
+   "rows": [
+    "command:checkpoint.rollback"
+   ]
+  },
+  {
+   "id": "t3-scn-command-delegated_task.completion-delivery.acknowledge",
+   "kind": "derived",
+   "rows": [
+    "command:delegated_task.completion-delivery.acknowledge"
+   ]
+  },
+  {
+   "id": "t3-scn-command-delegated_task.completion-delivery.dispose",
+   "kind": "derived",
+   "rows": [
+    "command:delegated_task.completion-delivery.dispose"
+   ]
+  },
+  {
+   "id": "t3-scn-command-delegated_task.request",
+   "kind": "derived",
+   "rows": [
+    "command:delegated_task.request"
+   ]
+  },
+  {
+   "id": "t3-scn-command-delegated_task.wake-policy",
+   "kind": "derived",
+   "rows": [
+    "command:delegated_task.wake-policy"
+   ]
+  },
+  {
+   "id": "t3-scn-command-message.dispatch",
+   "kind": "derived",
+   "rows": [
+    "command:message.dispatch"
+   ]
+  },
+  {
+   "id": "t3-scn-command-notification.delivery.accept",
+   "kind": "derived",
+   "rows": [
+    "command:notification.delivery.accept"
+   ]
+  },
+  {
+   "id": "t3-scn-command-prepared-run.fail",
+   "kind": "derived",
+   "rows": [
+    "command:prepared-run.fail"
+   ]
+  },
+  {
+   "id": "t3-scn-command-prepared-run.progress",
+   "kind": "derived",
+   "rows": [
+    "command:prepared-run.progress"
+   ]
+  },
+  {
+   "id": "t3-scn-command-prepared-run.release",
+   "kind": "derived",
+   "rows": [
+    "command:prepared-run.release"
+   ]
+  },
+  {
+   "id": "t3-scn-command-prepared-run.retry",
+   "kind": "derived",
+   "rows": [
+    "command:prepared-run.retry"
+   ]
+  },
+  {
+   "id": "t3-scn-command-provider-session.detach",
+   "kind": "derived",
+   "rows": [
+    "command:provider-session.detach"
+   ]
+  },
+  {
+   "id": "t3-scn-command-provider.switch",
+   "kind": "derived",
+   "rows": [
+    "command:provider.switch"
+   ]
+  },
+  {
+   "id": "t3-scn-command-queue.resume",
+   "kind": "derived",
+   "rows": [
+    "command:queue.resume"
+   ]
+  },
+  {
+   "id": "t3-scn-command-queued-message.promote-to-steer",
+   "kind": "derived",
+   "rows": [
+    "command:queued-message.promote-to-steer"
+   ]
+  },
+  {
+   "id": "t3-scn-command-queued-run.cancel",
+   "kind": "derived",
+   "rows": [
+    "command:queued-run.cancel"
+   ]
+  },
+  {
+   "id": "t3-scn-command-queued-run.edit",
+   "kind": "derived",
+   "rows": [
+    "command:queued-run.edit"
+   ]
+  },
+  {
+   "id": "t3-scn-command-queued-run.reorder",
+   "kind": "derived",
+   "rows": [
+    "command:queued-run.reorder"
+   ]
+  },
+  {
+   "id": "t3-scn-command-queued-run.start",
+   "kind": "derived",
+   "rows": [
+    "command:queued-run.start"
+   ]
+  },
+  {
+   "id": "t3-scn-command-run.interrupt",
+   "kind": "derived",
+   "rows": [
+    "command:run.interrupt"
+   ]
+  },
+  {
+   "id": "t3-scn-command-runtime-request.respond",
+   "kind": "derived",
+   "rows": [
+    "command:runtime-request.respond"
+   ]
+  },
+  {
+   "id": "t3-scn-command-subagent.stop",
+   "kind": "derived",
+   "rows": [
+    "command:subagent.stop"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.active.reorder",
+   "kind": "derived",
+   "rows": [
+    "command:thread.active.reorder"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.auto-settle",
+   "kind": "derived",
+   "rows": [
+    "command:thread.auto-settle"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.auto-settle.set",
+   "kind": "derived",
+   "rows": [
+    "command:thread.auto-settle.set"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.created.record",
+   "kind": "derived",
+   "rows": [
+    "command:thread.created.record"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.delete",
+   "kind": "derived",
+   "rows": [
+    "command:thread.delete"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.fork",
+   "kind": "derived",
+   "rows": [
+    "command:thread.fork"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.guest-message.dismiss",
+   "kind": "derived",
+   "rows": [
+    "command:thread.guest-message.dismiss"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.guest-share.close",
+   "kind": "derived",
+   "rows": [
+    "command:thread.guest-share.close"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.interaction-mode.set",
+   "kind": "derived",
+   "rows": [
+    "command:thread.interaction-mode.set"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.mark-unread",
+   "kind": "derived",
+   "rows": [
+    "command:thread.mark-unread"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.merge_back",
+   "kind": "derived",
+   "rows": [
+    "command:thread.merge_back"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.metadata.update",
+   "kind": "derived",
+   "rows": [
+    "command:thread.metadata.update"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.model-selection.set",
+   "kind": "derived",
+   "rows": [
+    "command:thread.model-selection.set"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.pin",
+   "kind": "derived",
+   "rows": [
+    "command:thread.pin"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.pin.reorder",
+   "kind": "derived",
+   "rows": [
+    "command:thread.pin.reorder"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.pull-request-link.sync",
+   "kind": "derived",
+   "rows": [
+    "command:thread.pull-request-link.sync"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.pull-request.link",
+   "kind": "derived",
+   "rows": [
+    "command:thread.pull-request.link"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.pull-request.sync",
+   "kind": "derived",
+   "rows": [
+    "command:thread.pull-request.sync"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.pull-request.unlink",
+   "kind": "derived",
+   "rows": [
+    "command:thread.pull-request.unlink"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.pull-request.watch",
+   "kind": "derived",
+   "rows": [
+    "command:thread.pull-request.watch"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.runtime-mode.set",
+   "kind": "derived",
+   "rows": [
+    "command:thread.runtime-mode.set"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.settle",
+   "kind": "derived",
+   "rows": [
+    "command:thread.settle"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.snooze",
+   "kind": "derived",
+   "rows": [
+    "command:thread.snooze"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.stop",
+   "kind": "derived",
+   "rows": [
+    "command:thread.stop"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.title.regeneration.complete",
+   "kind": "derived",
+   "rows": [
+    "command:thread.title.regeneration.complete"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.unarchive",
+   "kind": "derived",
+   "rows": [
+    "command:thread.unarchive"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.unpin",
+   "kind": "derived",
+   "rows": [
+    "command:thread.unpin"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.unsettle",
+   "kind": "derived",
+   "rows": [
+    "command:thread.unsettle"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.unsnooze",
+   "kind": "derived",
+   "rows": [
+    "command:thread.unsnooze"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.user-input.dismiss",
+   "kind": "derived",
+   "rows": [
+    "command:thread.user-input.dismiss"
+   ]
+  },
+  {
+   "id": "t3-scn-command-thread.visit",
+   "kind": "derived",
+   "rows": [
+    "command:thread.visit"
+   ]
+  },
+  {
+   "id": "t3-scn-mutation-project.delete",
+   "kind": "derived",
+   "rows": [
+    "mutation:project.delete"
+   ]
+  },
+  {
+   "id": "t3-scn-mutation-project.update",
+   "kind": "derived",
+   "rows": [
+    "mutation:project.update"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-agentSessions.import",
+   "kind": "derived",
+   "rows": [
+    "rpc:agentSessions.import"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-assets.persistChatAttachments",
+   "kind": "derived",
+   "rows": [
+    "rpc:assets.persistChatAttachments"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-device.close",
+   "kind": "derived",
+   "rows": [
+    "rpc:device.close"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-device.open",
+   "kind": "derived",
+   "rows": [
+    "rpc:device.open"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-git.preparePullRequestThread",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.preparePullRequestThread"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-git.resolvePullRequest",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.resolvePullRequest"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-git.runStackedAction",
+   "kind": "derived",
+   "rows": [
+    "rpc:git.runStackedAction"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-guestShare.create",
+   "kind": "derived",
+   "rows": [
+    "rpc:guestShare.create"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-mcpApps.callTool",
+   "kind": "derived",
+   "rows": [
+    "rpc:mcpApps.callTool"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-mcpApps.readResource",
+   "kind": "derived",
+   "rows": [
+    "rpc:mcpApps.readResource"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-mcpApps.toolInfo",
+   "kind": "derived",
+   "rows": [
+    "rpc:mcpApps.toolInfo"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-mcpApps.updateModelContext",
+   "kind": "derived",
+   "rows": [
+    "rpc:mcpApps.updateModelContext"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.dispatchCommand",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.dispatchCommand"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.forceStopThread",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.forceStopThread"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.getFullThreadDiff",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.getFullThreadDiff"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.getThreadFamily",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.getThreadFamily"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.getThreadProjection",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.getThreadProjection"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.getTurnItem",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.getTurnItem"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.getWorkflowScript",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.getWorkflowScript"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.launchThread",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.launchThread"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.searchThread",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.searchThread"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.searchThreadStream",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.searchThreadStream"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.stopWorkflow",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.stopWorkflow"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.subscribeCommandOutput",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.subscribeCommandOutput"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-peerLinks.answerRequest",
+   "kind": "derived",
+   "rows": [
+    "rpc:peerLinks.answerRequest"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-preview.adjust",
+   "kind": "derived",
+   "rows": [
+    "rpc:preview.adjust"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-preview.close",
+   "kind": "derived",
+   "rows": [
+    "rpc:preview.close"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-preview.list",
+   "kind": "derived",
+   "rows": [
+    "rpc:preview.list"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-preview.open",
+   "kind": "derived",
+   "rows": [
+    "rpc:preview.open"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-preview.reportStatus",
+   "kind": "derived",
+   "rows": [
+    "rpc:preview.reportStatus"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-preview.resize",
+   "kind": "derived",
+   "rows": [
+    "rpc:preview.resize"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-projectClone.cancel",
+   "kind": "derived",
+   "rows": [
+    "rpc:projectClone.cancel"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-projectClone.retry",
+   "kind": "derived",
+   "rows": [
+    "rpc:projectClone.retry"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-projectClone.start",
+   "kind": "derived",
+   "rows": [
+    "rpc:projectClone.start"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-projects.createFromThread",
+   "kind": "derived",
+   "rows": [
+    "rpc:projects.createFromThread"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-projects.listEntries",
+   "kind": "derived",
+   "rows": [
+    "rpc:projects.listEntries"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-projects.listIgnoredFiles",
+   "kind": "derived",
+   "rows": [
+    "rpc:projects.listIgnoredFiles"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-projects.mutate",
+   "kind": "derived",
+   "rows": [
+    "rpc:projects.mutate"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-projects.readFile",
+   "kind": "derived",
+   "rows": [
+    "rpc:projects.readFile"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-projects.searchContents",
+   "kind": "derived",
+   "rows": [
+    "rpc:projects.searchContents"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-projects.searchEntries",
+   "kind": "derived",
+   "rows": [
+    "rpc:projects.searchEntries"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-projects.writeFile",
+   "kind": "derived",
+   "rows": [
+    "rpc:projects.writeFile"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-provider.uploadFeedback",
+   "kind": "derived",
+   "rows": [
+    "rpc:provider.uploadFeedback"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.activity",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.activity"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.changeBreakdown",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.changeBreakdown"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.checks",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.checks"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.detail",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.detail"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.filesViewed",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.filesViewed"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.generateReviewGuide",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.generateReviewGuide"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.labelCandidates",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.labelCandidates"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.linkedThreads",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.linkedThreads"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.preview",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.preview"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.replyToThread",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.replyToThread"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.reviewerCandidates",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.reviewerCandidates"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.reviewGuide",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.reviewGuide"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.routing",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.routing"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.setThreadResolution",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.setThreadResolution"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.stack",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.stack"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.summary",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.summary"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-pullRequests.threadComments",
+   "kind": "derived",
+   "rows": [
+    "rpc:pullRequests.threadComments"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-review.getBranchCommits",
+   "kind": "derived",
+   "rows": [
+    "rpc:review.getBranchCommits"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-review.getDiffFileContents",
+   "kind": "derived",
+   "rows": [
+    "rpc:review.getDiffFileContents"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-review.getDiffPreview",
+   "kind": "derived",
+   "rows": [
+    "rpc:review.getDiffPreview"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-scheduledTasks.upsert",
+   "kind": "derived",
+   "rows": [
+    "rpc:scheduledTasks.upsert"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-secrets.answerRequest",
+   "kind": "derived",
+   "rows": [
+    "rpc:secrets.answerRequest"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-server.deleteAcpRegistrySession",
+   "kind": "derived",
+   "rows": [
+    "rpc:server.deleteAcpRegistrySession"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-server.disableAcpRegistryProvider",
+   "kind": "derived",
+   "rows": [
+    "rpc:server.disableAcpRegistryProvider"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-server.importAcpRegistrySession",
+   "kind": "derived",
+   "rows": [
+    "rpc:server.importAcpRegistrySession"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-server.listAcpRegistryProviders",
+   "kind": "derived",
+   "rows": [
+    "rpc:server.listAcpRegistryProviders"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-server.listAcpRegistrySessions",
+   "kind": "derived",
+   "rows": [
+    "rpc:server.listAcpRegistrySessions"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-server.setAcpRegistryProvider",
+   "kind": "derived",
+   "rows": [
+    "rpc:server.setAcpRegistryProvider"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-shell.openInEditor",
+   "kind": "derived",
+   "rows": [
+    "rpc:shell.openInEditor"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-sourceControl.publishRepository",
+   "kind": "derived",
+   "rows": [
+    "rpc:sourceControl.publishRepository"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-subscribeWorktreeSetup",
+   "kind": "derived",
+   "rows": [
+    "rpc:subscribeWorktreeSetup"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-terminal.open",
+   "kind": "derived",
+   "rows": [
+    "rpc:terminal.open"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-vcs.createRef",
+   "kind": "derived",
+   "rows": [
+    "rpc:vcs.createRef"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-vcs.init",
+   "kind": "derived",
+   "rows": [
+    "rpc:vcs.init"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-vcs.listRefs",
+   "kind": "derived",
+   "rows": [
+    "rpc:vcs.listRefs"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-vcs.pull",
+   "kind": "derived",
+   "rows": [
+    "rpc:vcs.pull"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-vcs.removeWorktree",
+   "kind": "derived",
+   "rows": [
+    "rpc:vcs.removeWorktree"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-vcs.switchRef",
+   "kind": "derived",
+   "rows": [
+    "rpc:vcs.switchRef"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-worktreeSetup.cancel",
+   "kind": "derived",
+   "rows": [
+    "rpc:worktreeSetup.cancel"
+   ]
+  },
+  {
+   "id": "t3-story-thread-lifecycle",
+   "kind": "story",
+   "rows": [
+    "rpc:orchestration.getThreadProjection",
+    "command:thread.metadata.update",
+    "command:thread.pin",
+    "command:thread.unpin",
+    "command:thread.archive",
+    "command:thread.unarchive",
+    "command:thread.mark-unread",
+    "command:thread.delete"
+   ],
+   "note": "rename, pin, archive, unarchive and delete a thread, reading it between"
+  },
+  {
+   "id": "t3-story-project-lifecycle",
+   "kind": "story",
+   "rows": [
+    "mutation:project.update",
+    "mutation:project.delete"
+   ],
+   "note": "update and delete a project"
+  },
+  {
+   "id": "t3-story-turn-and-history",
+   "kind": "story",
+   "rows": [
+    "command:message.dispatch",
+    "rpc:orchestration.getThreadProjection",
+    "command:run.interrupt",
+    "command:thread.stop"
+   ],
+   "note": "one scripted turn, its projection, an interrupt and the projection again"
+  }
+ ],
+ "coverage": [
+  {
+   "row": "command:checkpoint.rollback",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-checkpoint.rollback"
+   ]
+  },
+  {
+   "row": "command:delegated_task.completion-delivery.acknowledge",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-delegated_task.completion-delivery.acknowledge"
+   ]
+  },
+  {
+   "row": "command:delegated_task.completion-delivery.dispose",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-delegated_task.completion-delivery.dispose"
+   ]
+  },
+  {
+   "row": "command:delegated_task.request",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-delegated_task.request"
+   ]
+  },
+  {
+   "row": "command:delegated_task.wake-policy",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-delegated_task.wake-policy"
+   ]
+  },
+  {
+   "row": "command:message.dispatch",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-message.dispatch",
+    "t3-story-turn-and-history"
+   ]
+  },
+  {
+   "row": "command:notification.delivery.accept",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-notification.delivery.accept"
+   ]
+  },
+  {
+   "row": "command:prepared-run.fail",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-prepared-run.fail"
+   ]
+  },
+  {
+   "row": "command:prepared-run.progress",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-prepared-run.progress"
+   ]
+  },
+  {
+   "row": "command:prepared-run.release",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-prepared-run.release"
+   ]
+  },
+  {
+   "row": "command:prepared-run.retry",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-prepared-run.retry"
+   ]
+  },
+  {
+   "row": "command:provider-session.detach",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-provider-session.detach"
+   ]
+  },
+  {
+   "row": "command:provider.switch",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-provider.switch"
+   ]
+  },
+  {
+   "row": "command:queue.resume",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-queue.resume"
+   ]
+  },
+  {
+   "row": "command:queued-message.promote-to-steer",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-queued-message.promote-to-steer"
+   ]
+  },
+  {
+   "row": "command:queued-run.cancel",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-queued-run.cancel"
+   ]
+  },
+  {
+   "row": "command:queued-run.edit",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-queued-run.edit"
+   ]
+  },
+  {
+   "row": "command:queued-run.reorder",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-queued-run.reorder"
+   ]
+  },
+  {
+   "row": "command:queued-run.start",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-queued-run.start"
+   ]
+  },
+  {
+   "row": "command:run.interrupt",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-run.interrupt",
+    "t3-story-turn-and-history"
+   ]
+  },
+  {
+   "row": "command:runtime-request.respond",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-runtime-request.respond"
+   ]
+  },
+  {
+   "row": "command:subagent.stop",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-subagent.stop"
+   ]
+  },
+  {
+   "row": "command:thread.active.reorder",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.active.reorder"
+   ]
+  },
+  {
+   "row": "command:thread.archive",
+   "state": "populated",
+   "via": [
+    "t3-story-thread-lifecycle"
+   ]
+  },
+  {
+   "row": "command:thread.auto-settle",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.auto-settle"
+   ]
+  },
+  {
+   "row": "command:thread.auto-settle.set",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.auto-settle.set"
+   ]
+  },
+  {
+   "row": "command:thread.create",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "command:thread.created.record",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.created.record"
+   ]
+  },
+  {
+   "row": "command:thread.delete",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.delete",
+    "t3-story-thread-lifecycle"
+   ]
+  },
+  {
+   "row": "command:thread.fork",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.fork"
+   ]
+  },
+  {
+   "row": "command:thread.guest-message.dismiss",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.guest-message.dismiss"
+   ]
+  },
+  {
+   "row": "command:thread.guest-share.close",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.guest-share.close"
+   ]
+  },
+  {
+   "row": "command:thread.interaction-mode.set",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.interaction-mode.set"
+   ]
+  },
+  {
+   "row": "command:thread.mark-unread",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.mark-unread",
+    "t3-story-thread-lifecycle"
+   ]
+  },
+  {
+   "row": "command:thread.merge_back",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.merge_back"
+   ]
+  },
+  {
+   "row": "command:thread.metadata.update",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.metadata.update",
+    "t3-story-thread-lifecycle"
+   ]
+  },
+  {
+   "row": "command:thread.model-selection.set",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.model-selection.set"
+   ]
+  },
+  {
+   "row": "command:thread.pin",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.pin",
+    "t3-story-thread-lifecycle"
+   ]
+  },
+  {
+   "row": "command:thread.pin.reorder",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.pin.reorder"
+   ]
+  },
+  {
+   "row": "command:thread.pull-request-link.sync",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.pull-request-link.sync"
+   ]
+  },
+  {
+   "row": "command:thread.pull-request.link",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.pull-request.link"
+   ]
+  },
+  {
+   "row": "command:thread.pull-request.sync",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.pull-request.sync"
+   ]
+  },
+  {
+   "row": "command:thread.pull-request.unlink",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.pull-request.unlink"
+   ]
+  },
+  {
+   "row": "command:thread.pull-request.watch",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.pull-request.watch"
+   ]
+  },
+  {
+   "row": "command:thread.runtime-mode.set",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.runtime-mode.set"
+   ]
+  },
+  {
+   "row": "command:thread.settle",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.settle"
+   ]
+  },
+  {
+   "row": "command:thread.snooze",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.snooze"
+   ]
+  },
+  {
+   "row": "command:thread.stop",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.stop",
+    "t3-story-turn-and-history"
+   ]
+  },
+  {
+   "row": "command:thread.title.regeneration.complete",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.title.regeneration.complete"
+   ]
+  },
+  {
+   "row": "command:thread.unarchive",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.unarchive",
+    "t3-story-thread-lifecycle"
+   ]
+  },
+  {
+   "row": "command:thread.unpin",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.unpin",
+    "t3-story-thread-lifecycle"
+   ]
+  },
+  {
+   "row": "command:thread.unsettle",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.unsettle"
+   ]
+  },
+  {
+   "row": "command:thread.unsnooze",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.unsnooze"
+   ]
+  },
+  {
+   "row": "command:thread.user-input.dismiss",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.user-input.dismiss"
+   ]
+  },
+  {
+   "row": "command:thread.visit",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.visit"
+   ]
+  },
+  {
+   "row": "http:auth.browserSession",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:auth.pairingCredential",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:auth.revokeClient",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:auth.revokeOtherClients",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:auth.revokePairingLink",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:auth.session",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:auth.token",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:auth.webSocketTicket",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:auth.webSocketTicketFor",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:connect.checkReachability",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:connect.health",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:connect.linkProof",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:connect.linkState",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:connect.preferences",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:connect.relayConfig",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:connect.t3MintCredential",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:connect.unlink",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:mcpOAuth.approval",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:mcpOAuth.authorizationServer",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:mcpOAuth.authorize",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:mcpOAuth.decision",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:mcpOAuth.mcpProtectedResource",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:mcpOAuth.protectedResource",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:mcpOAuth.register",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:mcpOAuth.token",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:metadata.descriptor",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:orchestration.shellSnapshot",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:orchestration.threadBoundedSnapshot",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:orchestration.threadHistoryPage",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:orchestration.threadSnapshot",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:orchestration.threadTranscript",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:projects.mutate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:projects.snapshot",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:pullRequests.diff",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:webhooks.webhookGet",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:webhooks.webhookPatch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:webhooks.webhookPost",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:webhooks.webhookPut",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "mutation:project.create",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "mutation:project.delete",
+   "state": "populated",
+   "via": [
+    "t3-scn-mutation-project.delete",
+    "t3-story-project-lifecycle"
+   ]
+  },
+  {
+   "row": "mutation:project.update",
+   "state": "populated",
+   "via": [
+    "t3-scn-mutation-project.update",
+    "t3-story-project-lifecycle"
+   ]
+  },
+  {
+   "row": "rpc:agentSessions.import",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-agentSessions.import"
+   ]
+  },
+  {
+   "row": "rpc:agentSessions.scan",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:assets.createUrl",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:assets.persistChatAttachments",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-assets.persistChatAttachments"
+   ]
+  },
+  {
+   "row": "rpc:attachments.createUploadUrl",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:attachments.delete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:cloud.getRelayClientStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:cloud.installRelayClient",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:device.action",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:device.close",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-device.close"
+   ]
+  },
+  {
+   "row": "rpc:device.configure",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:device.detail",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:device.easAccount",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:device.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:device.open",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-device.open"
+   ]
+  },
+  {
+   "row": "rpc:device.shutdown",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:device.simlockIdentity",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:device.testHost",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:filesystem.browse",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:filesystem.getMetadata",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:git.preparePullRequestThread",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-git.preparePullRequestThread"
+   ]
+  },
+  {
+   "row": "rpc:git.resolvePullRequest",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-git.resolvePullRequest"
+   ]
+  },
+  {
+   "row": "rpc:git.runStackedAction",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-git.runStackedAction"
+   ]
+  },
+  {
+   "row": "rpc:guestShare.create",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-guestShare.create"
+   ]
+  },
+  {
+   "row": "rpc:mcpApps.callTool",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-mcpApps.callTool"
+   ]
+  },
+  {
+   "row": "rpc:mcpApps.readResource",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-mcpApps.readResource"
+   ]
+  },
+  {
+   "row": "rpc:mcpApps.toolInfo",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-mcpApps.toolInfo"
+   ]
+  },
+  {
+   "row": "rpc:mcpApps.updateModelContext",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-mcpApps.updateModelContext"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.dispatchCommand",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.dispatchCommand"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.forceStopThread",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.forceStopThread"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.getArchivedShellSnapshot",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.getFullThreadDiff",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.getFullThreadDiff"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.getOlderSettledThreads",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.getThreadFamily",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.getThreadFamily"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.getThreadProjection",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.getThreadProjection",
+    "t3-story-thread-lifecycle",
+    "t3-story-turn-and-history"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.getTurnDiff",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.getTurnItem",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.getTurnItem"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.getWorkflowScript",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.getWorkflowScript"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.getWorktreeThreadIds",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.launchThread",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.launchThread"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.searchThread",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.searchThread"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.searchThreads",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.searchThreadStream",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.searchThreadStream"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.stopWorkflow",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.stopWorkflow"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.subscribeCommandOutput",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.subscribeCommandOutput"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.subscribeShell",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.subscribeThread",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:peerLinks.answerRequest",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-peerLinks.answerRequest"
+   ]
+  },
+  {
+   "row": "rpc:peerLinks.link",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:peerLinks.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:peerLinks.unlink",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:preview.adjust",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-preview.adjust"
+   ]
+  },
+  {
+   "row": "rpc:preview.clearProfile",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:preview.close",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-preview.close"
+   ]
+  },
+  {
+   "row": "rpc:preview.list",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-preview.list"
+   ]
+  },
+  {
+   "row": "rpc:preview.open",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-preview.open"
+   ]
+  },
+  {
+   "row": "rpc:preview.reportProfiles",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:preview.reportStatus",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-preview.reportStatus"
+   ]
+  },
+  {
+   "row": "rpc:preview.resize",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-preview.resize"
+   ]
+  },
+  {
+   "row": "rpc:preview.stopLocalServer",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:projectClone.cancel",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-projectClone.cancel"
+   ]
+  },
+  {
+   "row": "rpc:projectClone.retry",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-projectClone.retry"
+   ]
+  },
+  {
+   "row": "rpc:projectClone.start",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-projectClone.start"
+   ]
+  },
+  {
+   "row": "rpc:projects.createFromThread",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-projects.createFromThread"
+   ]
+  },
+  {
+   "row": "rpc:projects.createNew",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:projects.ensureScratch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:projects.listEntries",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-projects.listEntries"
+   ]
+  },
+  {
+   "row": "rpc:projects.listIgnoredFiles",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-projects.listIgnoredFiles"
+   ]
+  },
+  {
+   "row": "rpc:projects.mutate",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-projects.mutate"
+   ]
+  },
+  {
+   "row": "rpc:projects.readFile",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-projects.readFile"
+   ]
+  },
+  {
+   "row": "rpc:projects.searchContents",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-projects.searchContents"
+   ]
+  },
+  {
+   "row": "rpc:projects.searchEntries",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-projects.searchEntries"
+   ]
+  },
+  {
+   "row": "rpc:projects.writeFile",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-projects.writeFile"
+   ]
+  },
+  {
+   "row": "rpc:provider.auth.cancel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.auth.complete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.auth.logout",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.auth.respond",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.auth.start",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.auth.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.chatgpt.handoff.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names attemptId, raised by a provider run (an approval, a tool item, a checkpoint) the scripted CLI does not raise here"
+  },
+  {
+   "row": "rpc:provider.chatgpt.import-profile",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.chatgpt.reconnect-profile",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.consumeResetCredit",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.install.cancel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.install.remove",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.install.start",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.install.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:provider.uploadFeedback",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-provider.uploadFeedback"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.activity",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.activity"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.changeBreakdown",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.changeBreakdown"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.checks",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.checks"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.comment",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.detail",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.detail"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.diffFileContents",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.filesViewed",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.filesViewed"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.filterOptions",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.generateReviewGuide",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.generateReviewGuide"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.invalidate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.labelCandidates",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.labelCandidates"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.linkedThreads",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.linkedThreads"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.list",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.listStats",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.preview",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.preview"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.replyToThread",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.replyToThread"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.reportState",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.requestReviewers",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.reviewerCandidates",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.reviewerCandidates"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.reviewGuide",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.reviewGuide"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.routing",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.routing"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.routingIdentity",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.runAction",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.setFilesViewed",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.setLabels",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.setReaction",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.setThreadResolution",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.setThreadResolution"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.stack",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.stack"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.submitReview",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.subscribeRefreshes",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.summary",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.summary"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.threadComments",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-pullRequests.threadComments"
+   ]
+  },
+  {
+   "row": "rpc:pullRequests.update",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:pullRequests.updateComment",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:review.getBranchCommits",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-review.getBranchCommits"
+   ]
+  },
+  {
+   "row": "rpc:review.getDiffFileContents",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-review.getDiffFileContents"
+   ]
+  },
+  {
+   "row": "rpc:review.getDiffPreview",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-review.getDiffPreview"
+   ]
+  },
+  {
+   "row": "rpc:scheduledTasks.delete",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:scheduledTasks.getWebhookDelivery",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names deliveryId, raised by a provider run (an approval, a tool item, a checkpoint) the scripted CLI does not raise here"
+  },
+  {
+   "row": "rpc:scheduledTasks.listWebhookDeliveries",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:scheduledTasks.rotateWebhookToken",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:scheduledTasks.runNow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:scheduledTasks.setEnabled",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:scheduledTasks.subscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:scheduledTasks.upsert",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-scheduledTasks.upsert"
+   ]
+  },
+  {
+   "row": "rpc:secrets.answerRequest",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-secrets.answerRequest"
+   ]
+  },
+  {
+   "row": "rpc:server.acceptAcpRegistryUrlAuth",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.checkOtlpEndpoint",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.commitDesktopUpdate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "not-recorded: commits a desktop app update; there is no desktop"
+  },
+  {
+   "row": "rpc:server.deleteAcpRegistrySession",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-server.deleteAcpRegistrySession"
+   ]
+  },
+  {
+   "row": "rpc:server.disableAcpRegistryProvider",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-server.disableAcpRegistryProvider"
+   ]
+  },
+  {
+   "row": "rpc:server.discoverSourceControl",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.getConfig",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.getDatabaseStorage",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.getHostResources",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.getNpmRelease",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.getProcessDiagnostics",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.getProcessResourceHistory",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.getResourceTelemetryHistory",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.getStorageCleanupReport",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.getTraceDiagnostics",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.getUsageSummary",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.importAcpRegistrySession",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-server.importAcpRegistrySession"
+   ]
+  },
+  {
+   "row": "rpc:server.listAcpRegistryProviders",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-server.listAcpRegistryProviders"
+   ]
+  },
+  {
+   "row": "rpc:server.listAcpRegistrySessions",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-server.listAcpRegistrySessions"
+   ]
+  },
+  {
+   "row": "rpc:server.logoutAcpRegistry",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.prepareAcpRegistryAgent",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.prepareTriage",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.probe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.refreshProviders",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.refreshUsageRates",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.removeKeybinding",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.reportClientActivity",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.retryResourceTelemetry",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.runStorageCleanup",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.searchAcpRegistry",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.setAcpRegistryProvider",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-server.setAcpRegistryProvider"
+   ]
+  },
+  {
+   "row": "rpc:server.signalProcess",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.uninstallAcpRegistryManagedBinary",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.updateProvider",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.updateServer",
+   "state": "empty-only",
+   "via": [],
+   "reason": "not-recorded: replaces the installed server binary"
+  },
+  {
+   "row": "rpc:server.updateServerWithProgress",
+   "state": "empty-only",
+   "via": [],
+   "reason": "not-recorded: replaces the installed server binary"
+  },
+  {
+   "row": "rpc:server.updateSettings",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.upsertKeybinding",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:shell.openInEditor",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-shell.openInEditor"
+   ]
+  },
+  {
+   "row": "rpc:sourceControl.appAccess",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:sourceControl.cloneRepository",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:sourceControl.lookupRepository",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:sourceControl.publishRepository",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-sourceControl.publishRepository"
+   ]
+  },
+  {
+   "row": "rpc:sourceControl.signInCancel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:sourceControl.signInStart",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:sourceControl.signInWait",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:sourceControl.starred",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribeAuthAccess",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribeDeviceState",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribeDiscoveredLocalServers",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribePreviewEvents",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribeProjectClones",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribeResourceTelemetry",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribeServerConfig",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribeServerLifecycle",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribeTerminalMetadata",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribeVcsStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribeWorktreeSetup",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-subscribeWorktreeSetup"
+   ]
+  },
+  {
+   "row": "rpc:terminal.attach",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminal.clear",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminal.close",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminal.observe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminal.open",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-terminal.open"
+   ]
+  },
+  {
+   "row": "rpc:terminal.resize",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:terminal.write",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:vcs.createRef",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-vcs.createRef"
+   ]
+  },
+  {
+   "row": "rpc:vcs.createWorktree",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:vcs.init",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-vcs.init"
+   ]
+  },
+  {
+   "row": "rpc:vcs.listRefs",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-vcs.listRefs"
+   ]
+  },
+  {
+   "row": "rpc:vcs.pull",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-vcs.pull"
+   ]
+  },
+  {
+   "row": "rpc:vcs.refreshStatus",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:vcs.removeWorktree",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-vcs.removeWorktree"
+   ]
+  },
+  {
+   "row": "rpc:vcs.switchRef",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-vcs.switchRef"
+   ]
+  },
+  {
+   "row": "rpc:worktreeSetup.cancel",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-worktreeSetup.cancel"
+   ]
+  }
+ ]
+}

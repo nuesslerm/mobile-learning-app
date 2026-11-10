@@ -1,0 +1,120 @@
+# Auth-session stack — mirrors backend/leetcode-auth-cookie-capture's
+# docker-compose.capture.yml: a dedicated tailscale sidecar (its OWN identity)
+# + the persistent listener sharing its netns. Run on the VM.
+#
+# Secrets come from `wf secret sync-env --for vnc-auth-session --backend bitwarden
+# --out .env` immediately before `docker compose -f docker-compose.auth.yml up -d`.
+services:
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: vnc-auth-tailscale
+    hostname: vnc-auth                    # -> https://vnc-auth.<tailnet>.ts.net
+    volumes:
+      - vnc-auth-tailscale-state:/var/lib/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_VM_AUTH_KEY}   # ephemeral+tagged; never pasted in chat
+      TS_STATE_DIR: /var/lib/tailscale
+      # Moves tailscaled's control socket off its image default (/tmp, not
+      # shared by anything) into the already-shared state volume, so `app`
+      # can reach it too (network_mode: service:tailscale shares ONLY the
+      # network namespace, never the filesystem -- a Unix socket needs a
+      # shared volume, not shared network, to be reachable). See `app`'s own
+      # TS_SOCKET below and tailscale-serve.ts's `tailscaleCmd`.
+      TS_SOCKET: /var/lib/tailscale/tailscaled.sock
+      TS_USERSPACE: "false"
+      TS_HOSTNAME: vnc-auth
+      # Without this, `app` (sharing this container's netns) can never
+      # resolve vm-ops-api-${HOST_LABEL} via MagicDNS -- same requirement as
+      # every other app's sidecar (see agent-shell's identical setting).
+      # Confirmed live as the actual cause of a real failure, not a
+      # theoretical gap: agent-shell-relay's POST to vm-ops-api-main died
+      # with a bare `fetch failed` (DNS resolution failure, not a connection
+      # or auth error) the moment a real codex login completed in this
+      # desktop -- the capture succeeded, but the relay could never reach
+      # its destination to hand the credential to agent-shell.
+      TS_ACCEPT_DNS: "true"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    restart: unless-stopped
+
+  app:
+    # Published, same as every other app -- built + pushed manually this once
+    # (the Build images workflow's `include_desktop` opt-in still exists for a
+    # from-CI rebuild, but this tag was pushed directly from a local arm64
+    # build after fixing the Dockerfile: native toolchain for ws's optional
+    # accelerators, a sparse COPY that missed workspace-wide concerns,
+    # and DOCKER_BUILD=true gating for the root preinstall).
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/vnc-auth-capture:${IMAGE_TAG:-latest}
+    container_name: vnc-auth
+    # Share the tailscale netns so `tailscale serve` proxies to 127.0.0.1:3001.
+    network_mode: service:tailscale
+    shm_size: "256mb"
+    # A person is watching this browser: during a CI build on the same 2 cores it keeps twice the default weight, so frames and taps do not stall.
+    cpu_shares: 2048
+    volumes:
+      # Shared credential volume, seeded once + auto-refreshed. U9 wires the exact
+      # per-tool credential paths (~/.claude, ~/.codex, ~/.opencode, gemini ADC,
+      # leetcode session) identically here and in the agent container.
+      - vnc-auth-credentials:/config
+      # Read-only: `app` only needs to CONNECT to the socket the sidecar's
+      # tailscaled creates in this volume (see TS_SOCKET above) -- it never
+      # writes to the state dir itself. Connecting to a listening Unix
+      # socket through a `:ro` bind mount is a well-established pattern (the
+      # same shape as mounting /var/run/docker.sock:ro elsewhere in this repo).
+      - vnc-auth-tailscale-state:/var/lib/tailscale:ro
+    environment:
+      VNC_AUTH_TRIGGER_SECRET: ${VNC_AUTH_TRIGGER_SECRET}
+      VNC_AUTH_OWNER_CHAT_ID: ${VNC_AUTH_OWNER_CHAT_ID}
+      # Bearer token for vm-ops-api's POST /agent-shell/credentials -- the
+      # same seed every other vm-ops-api caller in this repo uses (see
+      # backend/leetcode-backend's own compose file).
+      # Consumed by src/data/agent-shell-relay.ts once a login completes.
+      VM_OPS_API_AUTH_TOKEN: ${VM_OPS_API_AUTH_TOKEN}
+      VNC_AUTH_LISTENER_PORT: ${VNC_AUTH_LISTENER_PORT:-8795}
+      # leetcode's credential is not a file -- it is the desktop browser's own
+      # session cookies, POSTed to leetcode-backend. Both of these must be
+      # present or the leetcode tool is not offered at all, so a human is never
+      # sent to do a login whose persist step would fail afterwards. Explicit
+      # mapping (not an env_file sweep) because compose silently drops any var
+      # not named here -- see
+      # docs/solutions/integration-issues/docker-compose-explicit-env-mapping-drops-new-vault-secrets.md
+      LEETCODE_BACKEND_BASE_URL: ${LEETCODE_BACKEND_BASE_URL:-}
+      LEETCODE_BACKEND_ADMIN_SECRET: ${LEETCODE_BACKEND_ADMIN_SECRET:-}
+      # leetcode-backend puts a bearer gate in front of EVERY /api/leetcode
+      # path, using the same seed vm-ops-api uses -- the admin secret alone
+      # gets a 401 before the session route is ever reached.
+      VM_GATEWAY_AUTH_SEED: ${VM_GATEWAY_AUTH_SEED:-}
+      # Must match the sidecar's own TS_SOCKET above exactly -- this is what
+      # lets resolveTailnetBaseUrl/bindServeRoute (tailscale-serve.ts) find
+      # the daemon at all from inside this container.
+      TS_SOCKET: /var/lib/tailscale/tailscaled.sock
+      # Optional: the listener self-derives this from `tailscale status` (Self.DNSName).
+      # Set it only to override, e.g. https://vnc-auth.<tailnet>.ts.net
+      VNC_AUTH_LINK_BASE_URL: ${VNC_AUTH_LINK_BASE_URL:-}
+      # Loopback-only port of the token-gated viewer that `tailscale serve` points at (the listener serves it itself).
+      VNC_AUTH_GATE_PORT: ${VNC_AUTH_GATE_PORT:-3002}
+      PUID: "1000"
+      PGID: "1000"
+      TZ: ${TZ:-Etc/UTC}
+      # Telemetry → BetterStack (buffered forwarder; empty = console-only).
+      # BETTERSTACK_OTLP_TOKEN/_HOST -- NOT EXPO_PUBLIC_BETTERSTACK_* -- is
+      # what clis/telemetry's Destination::from_env actually reads for a
+      # backend or CLI process (KTD9: deliberately separate from the mobile
+      # app's EXPO_PUBLIC_BETTERSTACK_* pair, which this service never
+      # reads). Wiring the wrong pair here silently left this listener
+      # console-only forever -- its structured `agent_shell_relay.*` events
+      # (including the one that caught the TS_ACCEPT_DNS bug above) were
+      # only ever visible via `docker logs`, never queryable in BetterStack.
+      SECRETS_LOG_BETTERSTACK: ${SECRETS_LOG_BETTERSTACK:-}
+      BETTERSTACK_OTLP_TOKEN: ${BETTERSTACK_OTLP_TOKEN:-}
+      BETTERSTACK_OTLP_HOST: ${BETTERSTACK_OTLP_HOST:-}
+    depends_on:
+      - tailscale
+    restart: unless-stopped
+
+volumes:
+  vnc-auth-tailscale-state:
+  vnc-auth-credentials:

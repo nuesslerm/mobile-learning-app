@@ -1,0 +1,13 @@
+id: application-does-not-reach-outward
+valid:
+  - use crate::application::ports::Ports;
+  - use super::log;
+  - use crate::{application, domain::util};
+invalid:
+  - use crate::infrastructure::env::ProcessEnv;
+  - use crate::api::app::App;
+  - use super::super::infrastructure::env::ProcessEnv;
+  - use crate::{domain, infrastructure::log};
+  - use crate::{api::app::App, domain};
+  - use super::{infrastructure as infra};
+  - 'fn f() { crate::api::auth::unauthorized(); }'

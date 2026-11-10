@@ -1,0 +1,1789 @@
+{
+  "schema": "mimic-coverage/1",
+  "app": "orca",
+  "rows": [
+    {
+      "row": "rpc:accounts.consumeCodexResetCredit",
+      "status": "case",
+      "case": "orca-accounts.consumeCodexResetCredit",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:accounts.list",
+      "status": "case",
+      "case": "orca-accounts.list",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:accounts.selectClaude",
+      "status": "case",
+      "case": "orca-accounts.selectClaude",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:accounts.selectCodex",
+      "status": "case",
+      "case": "orca-accounts.selectCodex",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:accounts.selectCodexForTarget",
+      "status": "case",
+      "case": "orca-accounts.selectCodexForTarget",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:accounts.subscribe",
+      "status": "skipped",
+      "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:accounts.unsubscribe",
+      "status": "case",
+      "case": "orca-accounts.unsubscribe",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:agent.launch",
+      "status": "case",
+      "case": "orca-agent.launch",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agent.launchReplay",
+      "status": "case",
+      "case": "orca-agent.launchReplay",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.cancel",
+      "status": "case",
+      "case": "orca-agentSession.cancel",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.commands",
+      "status": "case",
+      "case": "orca-agentSession.commands",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.conversationCommand",
+      "status": "case",
+      "case": "orca-agentSession.conversationCommand",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.create",
+      "status": "case",
+      "case": "orca-agentSession.create",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.createSupport",
+      "status": "case",
+      "case": "orca-agentSession.createSupport",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:agentSession.currentRequests",
+      "status": "case",
+      "case": "orca-agentSession.currentRequests",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.history",
+      "status": "case",
+      "case": "orca-agentSession.history",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.hold",
+      "status": "case",
+      "case": "orca-agentSession.hold",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.item",
+      "status": "case",
+      "case": "orca-agentSession.item",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.modelCatalog",
+      "status": "case",
+      "case": "orca-agentSession.modelCatalog",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:agentSession.options",
+      "status": "case",
+      "case": "orca-agentSession.options",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.queuedMessageDelete",
+      "status": "case",
+      "case": "orca-agentSession.queuedMessageDelete",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.queuedMessageEditHold",
+      "status": "case",
+      "case": "orca-agentSession.queuedMessageEditHold",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.queuedMessageMove",
+      "status": "case",
+      "case": "orca-agentSession.queuedMessageMove",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.queuedMessageSend",
+      "status": "case",
+      "case": "orca-agentSession.queuedMessageSend",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.queuedMessagesResume",
+      "status": "case",
+      "case": "orca-agentSession.queuedMessagesResume",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.queuedMessageUpdate",
+      "status": "case",
+      "case": "orca-agentSession.queuedMessageUpdate",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.readVisual",
+      "status": "case",
+      "case": "orca-agentSession.readVisual",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.release",
+      "status": "case",
+      "case": "orca-agentSession.release",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.respondToApproval",
+      "status": "case",
+      "case": "orca-agentSession.respondToApproval",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.respondToQuestion",
+      "status": "case",
+      "case": "orca-agentSession.respondToQuestion",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.reveal",
+      "status": "case",
+      "case": "orca-agentSession.reveal",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.send",
+      "status": "case",
+      "case": "orca-agentSession.send",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.setOption",
+      "status": "case",
+      "case": "orca-agentSession.setOption",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.subscribe",
+      "status": "skipped",
+      "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:agentSession.subscribeStatus",
+      "status": "skipped",
+      "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:agentSession.threadGoal",
+      "status": "case",
+      "case": "orca-agentSession.threadGoal",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.unsubscribe",
+      "status": "case",
+      "case": "orca-agentSession.unsubscribe",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSessionAttachment.read",
+      "status": "case",
+      "case": "orca-agentSessionAttachment.read",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:agentSessionAttachment.readTextChunk",
+      "status": "case",
+      "case": "orca-agentSessionAttachment.readTextChunk",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:agentSessionAttachment.uploadAbort",
+      "status": "case",
+      "case": "orca-agentSessionAttachment.uploadAbort",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:agentSessionAttachment.uploadAppend",
+      "status": "case",
+      "case": "orca-agentSessionAttachment.uploadAppend",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSessionAttachment.uploadCommit",
+      "status": "case",
+      "case": "orca-agentSessionAttachment.uploadCommit",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:agentSessionAttachment.uploadStart",
+      "status": "case",
+      "case": "orca-agentSessionAttachment.uploadStart",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:aiVault.listSessions",
+      "status": "case",
+      "case": "orca-aiVault.listSessions",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:aiVault.prepareSessionResume",
+      "status": "case",
+      "case": "orca-aiVault.prepareSessionResume",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:automation.create",
+      "status": "case",
+      "case": "orca-automation.create",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:automation.delete",
+      "status": "case",
+      "case": "orca-automation.delete",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:automation.list",
+      "status": "case",
+      "case": "orca-automation.list",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:automation.runNow",
+      "status": "case",
+      "case": "orca-automation.runNow",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:automation.runs",
+      "status": "case",
+      "case": "orca-automation.runs",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:automation.show",
+      "status": "case",
+      "case": "orca-automation.show",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:automation.update",
+      "status": "case",
+      "case": "orca-automation.update",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.back",
+      "status": "case",
+      "case": "orca-browser.back",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.dialogAccept",
+      "status": "case",
+      "case": "orca-browser.dialogAccept",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.dialogDismiss",
+      "status": "case",
+      "case": "orca-browser.dialogDismiss",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.forward",
+      "status": "case",
+      "case": "orca-browser.forward",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.goto",
+      "status": "case",
+      "case": "orca-browser.goto",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.keyboardInsertText",
+      "status": "case",
+      "case": "orca-browser.keyboardInsertText",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.keypress",
+      "status": "case",
+      "case": "orca-browser.keypress",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.mouseClick",
+      "status": "case",
+      "case": "orca-browser.mouseClick",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:browser.mouseDown",
+      "status": "case",
+      "case": "orca-browser.mouseDown",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.mouseMove",
+      "status": "case",
+      "case": "orca-browser.mouseMove",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:browser.mouseUp",
+      "status": "case",
+      "case": "orca-browser.mouseUp",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.mouseWheel",
+      "status": "case",
+      "case": "orca-browser.mouseWheel",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:browser.reload",
+      "status": "case",
+      "case": "orca-browser.reload",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.screencast",
+      "status": "skipped",
+      "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:browser.screencast.unsubscribe",
+      "status": "case",
+      "case": "orca-browser.screencast.unsubscribe",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:browser.tabCreate",
+      "status": "case",
+      "case": "orca-browser.tabCreate",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:clipboard.abortImageUpload",
+      "status": "case",
+      "case": "orca-clipboard.abortImageUpload",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:clipboard.appendImageUploadChunk",
+      "status": "case",
+      "case": "orca-clipboard.appendImageUploadChunk",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:clipboard.commitImageUpload",
+      "status": "case",
+      "case": "orca-clipboard.commitImageUpload",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:clipboard.saveImageAsTempFile",
+      "status": "case",
+      "case": "orca-clipboard.saveImageAsTempFile",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:clipboard.startImageUpload",
+      "status": "case",
+      "case": "orca-clipboard.startImageUpload",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.createFile",
+      "status": "case",
+      "case": "orca-files.createFile",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.list",
+      "status": "case",
+      "case": "orca-files.list",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.open",
+      "status": "case",
+      "case": "orca-files.open",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.openDiff",
+      "status": "case",
+      "case": "orca-files.openDiff",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.read",
+      "status": "case",
+      "case": "orca-files.read",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.readChatImage",
+      "status": "case",
+      "case": "orca-files.readChatImage",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.readChunk",
+      "status": "case",
+      "case": "orca-files.readChunk",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.readDir",
+      "status": "case",
+      "case": "orca-files.readDir",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.readPreview",
+      "status": "case",
+      "case": "orca-files.readPreview",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.readTerminalArtifact",
+      "status": "case",
+      "case": "orca-files.readTerminalArtifact",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.readTerminalArtifactPreview",
+      "status": "case",
+      "case": "orca-files.readTerminalArtifactPreview",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.resolveTerminalPath",
+      "status": "case",
+      "case": "orca-files.resolveTerminalPath",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.searchPaths",
+      "status": "case",
+      "case": "orca-files.searchPaths",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.stat",
+      "status": "case",
+      "case": "orca-files.stat",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.writeTerminalArtifact",
+      "status": "case",
+      "case": "orca-files.writeTerminalArtifact",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:folderWorkspace.list",
+      "status": "case",
+      "case": "orca-folderWorkspace.list",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:git.abortMerge",
+      "status": "case",
+      "case": "orca-git.abortMerge",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.abortRebase",
+      "status": "case",
+      "case": "orca-git.abortRebase",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.branchCompare",
+      "status": "case",
+      "case": "orca-git.branchCompare",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.branchDiff",
+      "status": "case",
+      "case": "orca-git.branchDiff",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:git.bulkStage",
+      "status": "case",
+      "case": "orca-git.bulkStage",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.bulkUnstage",
+      "status": "case",
+      "case": "orca-git.bulkUnstage",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.cancelGenerateCommitMessage",
+      "status": "case",
+      "case": "orca-git.cancelGenerateCommitMessage",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.cancelGeneratePullRequestFields",
+      "status": "case",
+      "case": "orca-git.cancelGeneratePullRequestFields",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.checkout",
+      "status": "case",
+      "case": "orca-git.checkout",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.commit",
+      "status": "case",
+      "case": "orca-git.commit",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.commitCompare",
+      "status": "case",
+      "case": "orca-git.commitCompare",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:git.commitDiff",
+      "status": "case",
+      "case": "orca-git.commitDiff",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:git.completeMerge",
+      "status": "case",
+      "case": "orca-git.completeMerge",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.diff",
+      "status": "case",
+      "case": "orca-git.diff",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.discard",
+      "status": "case",
+      "case": "orca-git.discard",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.discoverCommitMessageModels",
+      "status": "case",
+      "case": "orca-git.discoverCommitMessageModels",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.fastForward",
+      "status": "case",
+      "case": "orca-git.fastForward",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.fetch",
+      "status": "case",
+      "case": "orca-git.fetch",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.generateCommitMessage",
+      "status": "case",
+      "case": "orca-git.generateCommitMessage",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.generatePullRequestFields",
+      "status": "case",
+      "case": "orca-git.generatePullRequestFields",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.history",
+      "status": "case",
+      "case": "orca-git.history",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.localBranches",
+      "status": "case",
+      "case": "orca-git.localBranches",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.pull",
+      "status": "case",
+      "case": "orca-git.pull",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.push",
+      "status": "case",
+      "case": "orca-git.push",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.rebaseFromBase",
+      "status": "case",
+      "case": "orca-git.rebaseFromBase",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.remoteCommitUrl",
+      "status": "case",
+      "case": "orca-git.remoteCommitUrl",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:git.resolveConflict",
+      "status": "case",
+      "case": "orca-git.resolveConflict",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.stage",
+      "status": "case",
+      "case": "orca-git.stage",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.status",
+      "status": "case",
+      "case": "orca-git.status",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.unstage",
+      "status": "case",
+      "case": "orca-git.unstage",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:git.upstreamStatus",
+      "status": "case",
+      "case": "orca-git.upstreamStatus",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.addIssueComment",
+      "status": "case",
+      "case": "orca-github.addIssueComment",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.addPRReviewComment",
+      "status": "case",
+      "case": "orca-github.addPRReviewComment",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.addPRReviewCommentReply",
+      "status": "case",
+      "case": "orca-github.addPRReviewCommentReply",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.countWorkItems",
+      "status": "case",
+      "case": "orca-github.countWorkItems",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.createIssue",
+      "status": "case",
+      "case": "orca-github.createIssue",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.listAssignableUsers",
+      "status": "case",
+      "case": "orca-github.listAssignableUsers",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.listLabels",
+      "status": "case",
+      "case": "orca-github.listLabels",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.listWorkItems",
+      "status": "case",
+      "case": "orca-github.listWorkItems",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.markPRDraft",
+      "status": "case",
+      "case": "orca-github.markPRDraft",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.markPRReadyForReview",
+      "status": "case",
+      "case": "orca-github.markPRReadyForReview",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.mergePR",
+      "status": "case",
+      "case": "orca-github.mergePR",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.prCheckDetails",
+      "status": "case",
+      "case": "orca-github.prCheckDetails",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.prChecks",
+      "status": "case",
+      "case": "orca-github.prChecks",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.prComments",
+      "status": "case",
+      "case": "orca-github.prComments",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.prFileContents",
+      "status": "case",
+      "case": "orca-github.prFileContents",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.prForBranch",
+      "status": "case",
+      "case": "orca-github.prForBranch",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.addIssueCommentBySlug",
+      "status": "case",
+      "case": "orca-github.project.addIssueCommentBySlug",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.clearItemField",
+      "status": "case",
+      "case": "orca-github.project.clearItemField",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.deleteIssueCommentBySlug",
+      "status": "case",
+      "case": "orca-github.project.deleteIssueCommentBySlug",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.listAccessible",
+      "status": "case",
+      "case": "orca-github.project.listAccessible",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.listAssignableUsersBySlug",
+      "status": "case",
+      "case": "orca-github.project.listAssignableUsersBySlug",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.listIssueTypesBySlug",
+      "status": "case",
+      "case": "orca-github.project.listIssueTypesBySlug",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.listLabelsBySlug",
+      "status": "case",
+      "case": "orca-github.project.listLabelsBySlug",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.listViews",
+      "status": "case",
+      "case": "orca-github.project.listViews",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.resolveRef",
+      "status": "case",
+      "case": "orca-github.project.resolveRef",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.updateIssueBySlug",
+      "status": "case",
+      "case": "orca-github.project.updateIssueBySlug",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.updateIssueCommentBySlug",
+      "status": "case",
+      "case": "orca-github.project.updateIssueCommentBySlug",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.updateIssueTypeBySlug",
+      "status": "case",
+      "case": "orca-github.project.updateIssueTypeBySlug",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.updateItemField",
+      "status": "case",
+      "case": "orca-github.project.updateItemField",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.updatePullRequestBySlug",
+      "status": "case",
+      "case": "orca-github.project.updatePullRequestBySlug",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.viewTable",
+      "status": "case",
+      "case": "orca-github.project.viewTable",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.project.workItemDetailsBySlug",
+      "status": "case",
+      "case": "orca-github.project.workItemDetailsBySlug",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.removePRReviewers",
+      "status": "case",
+      "case": "orca-github.removePRReviewers",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.repoSlug",
+      "status": "case",
+      "case": "orca-github.repoSlug",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.requestPRReviewers",
+      "status": "case",
+      "case": "orca-github.requestPRReviewers",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.rerunPRChecks",
+      "status": "case",
+      "case": "orca-github.rerunPRChecks",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.resolveReviewThread",
+      "status": "case",
+      "case": "orca-github.resolveReviewThread",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.setPRAutoMerge",
+      "status": "case",
+      "case": "orca-github.setPRAutoMerge",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.setPRFileViewed",
+      "status": "case",
+      "case": "orca-github.setPRFileViewed",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.updateIssue",
+      "status": "case",
+      "case": "orca-github.updateIssue",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.updatePR",
+      "status": "case",
+      "case": "orca-github.updatePR",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.updatePRState",
+      "status": "case",
+      "case": "orca-github.updatePRState",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.updatePRTitle",
+      "status": "case",
+      "case": "orca-github.updatePRTitle",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.workItem",
+      "status": "case",
+      "case": "orca-github.workItem",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.workItemByOwnerRepo",
+      "status": "case",
+      "case": "orca-github.workItemByOwnerRepo",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:github.workItemDetails",
+      "status": "case",
+      "case": "orca-github.workItemDetails",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:gitlab.addIssueComment",
+      "status": "case",
+      "case": "orca-gitlab.addIssueComment",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:gitlab.addMRComment",
+      "status": "case",
+      "case": "orca-gitlab.addMRComment",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:gitlab.createIssue",
+      "status": "case",
+      "case": "orca-gitlab.createIssue",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:gitlab.listWorkItems",
+      "status": "case",
+      "case": "orca-gitlab.listWorkItems",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:gitlab.mergeMR",
+      "status": "case",
+      "case": "orca-gitlab.mergeMR",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:gitlab.todos",
+      "status": "case",
+      "case": "orca-gitlab.todos",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:gitlab.updateIssue",
+      "status": "case",
+      "case": "orca-gitlab.updateIssue",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:gitlab.updateMR",
+      "status": "case",
+      "case": "orca-gitlab.updateMR",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:gitlab.updateMRState",
+      "status": "case",
+      "case": "orca-gitlab.updateMRState",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:gitlab.workItemByPath",
+      "status": "case",
+      "case": "orca-gitlab.workItemByPath",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:gitlab.workItemDetails",
+      "status": "case",
+      "case": "orca-gitlab.workItemDetails",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:host.platform",
+      "status": "case",
+      "case": "orca-host.platform",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:hostedReview.create",
+      "status": "case",
+      "case": "orca-hostedReview.create",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:hostedReview.forBranch",
+      "status": "case",
+      "case": "orca-hostedReview.forBranch",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:hostedReview.getCreationEligibility",
+      "status": "case",
+      "case": "orca-hostedReview.getCreationEligibility",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:jira.getIssue",
+      "status": "case",
+      "case": "orca-jira.getIssue",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:jira.issueComments",
+      "status": "case",
+      "case": "orca-jira.issueComments",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:jira.listIssues",
+      "status": "case",
+      "case": "orca-jira.listIssues",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:jira.searchIssues",
+      "status": "case",
+      "case": "orca-jira.searchIssues",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:jira.status",
+      "status": "case",
+      "case": "orca-jira.status",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:linear.addIssueComment",
+      "status": "case",
+      "case": "orca-linear.addIssueComment",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:linear.connect",
+      "status": "case",
+      "case": "orca-linear.connect",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:linear.createIssue",
+      "status": "case",
+      "case": "orca-linear.createIssue",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:linear.getIssue",
+      "status": "case",
+      "case": "orca-linear.getIssue",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:linear.issueComments",
+      "status": "case",
+      "case": "orca-linear.issueComments",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:linear.listIssues",
+      "status": "case",
+      "case": "orca-linear.listIssues",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:linear.listTeams",
+      "status": "case",
+      "case": "orca-linear.listTeams",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:linear.searchIssues",
+      "status": "case",
+      "case": "orca-linear.searchIssues",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:linear.selectWorkspace",
+      "status": "case",
+      "case": "orca-linear.selectWorkspace",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:linear.status",
+      "status": "case",
+      "case": "orca-linear.status",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:linear.teamStates",
+      "status": "case",
+      "case": "orca-linear.teamStates",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:linear.updateIssue",
+      "status": "case",
+      "case": "orca-linear.updateIssue",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:markdown.readTab",
+      "status": "case",
+      "case": "orca-markdown.readTab",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:markdown.saveTab",
+      "status": "case",
+      "case": "orca-markdown.saveTab",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:mobileRelay.hosts.list",
+      "status": "skipped",
+      "reason": "not registered in the pinned methods dir (dynamic registration)"
+    },
+    {
+      "row": "rpc:mobileRelay.hosts.worktrees",
+      "status": "skipped",
+      "reason": "not registered in the pinned methods dir (dynamic registration)"
+    },
+    {
+      "row": "rpc:mobileRelay.projectSections",
+      "status": "skipped",
+      "reason": "not registered in the pinned methods dir (dynamic registration)"
+    },
+    {
+      "row": "rpc:mobileWeb.bundle.chunk",
+      "status": "skipped",
+      "reason": "not registered in the pinned methods dir (dynamic registration)"
+    },
+    {
+      "row": "rpc:mobileWeb.bundle.manifest",
+      "status": "skipped",
+      "reason": "not registered in the pinned methods dir (dynamic registration)"
+    },
+    {
+      "row": "rpc:mobileWeb.bundle.range",
+      "status": "skipped",
+      "reason": "not registered in the pinned methods dir (dynamic registration)"
+    },
+    {
+      "row": "rpc:nativeChat.readSession",
+      "status": "case",
+      "case": "orca-nativeChat.readSession",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:nativeChat.subscribe",
+      "status": "skipped",
+      "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:nativeChat.unsubscribe",
+      "status": "case",
+      "case": "orca-nativeChat.unsubscribe",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:notifications.getMissedSince",
+      "status": "case",
+      "case": "orca-notifications.getMissedSince",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:notifications.registerPush",
+      "status": "case",
+      "case": "orca-notifications.registerPush",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:notifications.subscribe",
+      "status": "skipped",
+      "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:notifications.testPush",
+      "status": "case",
+      "case": "orca-notifications.testPush",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:notifications.unregisterPush",
+      "status": "case",
+      "case": "orca-notifications.unregisterPush",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:notifications.unsubscribe",
+      "status": "case",
+      "case": "orca-notifications.unsubscribe",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:orchestration.partyLocation",
+      "status": "case",
+      "case": "orca-orchestration.partyLocation",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:orchestration.partyOpen",
+      "status": "case",
+      "case": "orca-orchestration.partyOpen",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:orchestration.workerAutoClose",
+      "status": "case",
+      "case": "orca-orchestration.workerAutoClose",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:orchestration.workerKeepOpen",
+      "status": "case",
+      "case": "orca-orchestration.workerKeepOpen",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:pairing.getEndpoints",
+      "status": "case",
+      "case": "orca-pairing.getEndpoints",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:pairing.provisionRelay",
+      "status": "case",
+      "case": "orca-pairing.provisionRelay",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:plugins.panelAction",
+      "status": "case",
+      "case": "orca-plugins.panelAction",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:preflight.check",
+      "status": "case",
+      "case": "orca-preflight.check",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:preflight.detectAgents",
+      "status": "case",
+      "case": "orca-preflight.detectAgents",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:preflight.detectRemoteAgents",
+      "status": "case",
+      "case": "orca-preflight.detectRemoteAgents",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:preflight.refreshAgents",
+      "status": "case",
+      "case": "orca-preflight.refreshAgents",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:project.list",
+      "status": "case",
+      "case": "orca-project.list",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:projectGroup.list",
+      "status": "case",
+      "case": "orca-projectGroup.list",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:projectHostSetup.list",
+      "status": "case",
+      "case": "orca-projectHostSetup.list",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:repo.baseRefDefault",
+      "status": "case",
+      "case": "orca-repo.baseRefDefault",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:repo.hooks",
+      "status": "case",
+      "case": "orca-repo.hooks",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:repo.list",
+      "status": "case",
+      "case": "orca-repo.list",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:repo.saveSparsePreset",
+      "status": "case",
+      "case": "orca-repo.saveSparsePreset",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:repo.searchRefs",
+      "status": "case",
+      "case": "orca-repo.searchRefs",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:repo.sparsePresets",
+      "status": "case",
+      "case": "orca-repo.sparsePresets",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:repo.update",
+      "status": "case",
+      "case": "orca-repo.update",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:runtime.clientCapabilities.update",
+      "status": "case",
+      "case": "orca-runtime.clientCapabilities.update",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:runtime.clientEvents.subscribe",
+      "status": "skipped",
+      "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:runtime.clientEvents.unsubscribe",
+      "status": "case",
+      "case": "orca-runtime.clientEvents.unsubscribe",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:session.tabs.activate",
+      "status": "case",
+      "case": "orca-session.tabs.activate",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:session.tabs.close",
+      "status": "case",
+      "case": "orca-session.tabs.close",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:session.tabs.createTerminal",
+      "status": "case",
+      "case": "orca-session.tabs.createTerminal",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:session.tabs.list",
+      "status": "case",
+      "case": "orca-session.tabs.list",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:session.tabs.subscribe",
+      "status": "skipped",
+      "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:session.tabs.unsubscribe",
+      "status": "case",
+      "case": "orca-session.tabs.unsubscribe",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:settings.get",
+      "status": "case",
+      "case": "orca-settings.get",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:settings.getAgentLaunch",
+      "status": "case",
+      "case": "orca-settings.getAgentLaunch",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:settings.getTerminalQuickCommands",
+      "status": "case",
+      "case": "orca-settings.getTerminalQuickCommands",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:settings.mutateNativeChatSessionOptions",
+      "status": "case",
+      "case": "orca-settings.mutateNativeChatSessionOptions",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:settings.update",
+      "status": "case",
+      "case": "orca-settings.update",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:settings.updateTerminalQuickCommands",
+      "status": "case",
+      "case": "orca-settings.updateTerminalQuickCommands",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:sidebarInputs.read",
+      "status": "case",
+      "case": "orca-sidebarInputs.read",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:sidebarInputs.repoIcons",
+      "status": "case",
+      "case": "orca-sidebarInputs.repoIcons",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:skills.discover",
+      "status": "case",
+      "case": "orca-skills.discover",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:speech.dictation.cancel",
+      "status": "case",
+      "case": "orca-speech.dictation.cancel",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:speech.dictation.chunk",
+      "status": "case",
+      "case": "orca-speech.dictation.chunk",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:speech.dictation.finish",
+      "status": "case",
+      "case": "orca-speech.dictation.finish",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:speech.dictation.setup",
+      "status": "case",
+      "case": "orca-speech.dictation.setup",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:speech.dictation.start",
+      "status": "case",
+      "case": "orca-speech.dictation.start",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:speech.models.delete",
+      "status": "case",
+      "case": "orca-speech.models.delete",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:speech.models.download",
+      "status": "case",
+      "case": "orca-speech.models.download",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:speech.models.list",
+      "status": "case",
+      "case": "orca-speech.models.list",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:ssh.connect",
+      "status": "case",
+      "case": "orca-ssh.connect",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:ssh.getState",
+      "status": "case",
+      "case": "orca-ssh.getState",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:ssh.listTargetSummaries",
+      "status": "case",
+      "case": "orca-ssh.listTargetSummaries",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:status.get",
+      "status": "case",
+      "case": "orca-status.get",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.clearBuffer",
+      "status": "case",
+      "case": "orca-terminal.clearBuffer",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.close",
+      "status": "case",
+      "case": "orca-terminal.close",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.focus",
+      "status": "case",
+      "case": "orca-terminal.focus",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.getAutoRestoreFit",
+      "status": "case",
+      "case": "orca-terminal.getAutoRestoreFit",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.list",
+      "status": "case",
+      "case": "orca-terminal.list",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.rename",
+      "status": "case",
+      "case": "orca-terminal.rename",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:terminal.send",
+      "status": "case",
+      "case": "orca-terminal.send",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.setAutoRestoreFit",
+      "status": "case",
+      "case": "orca-terminal.setAutoRestoreFit",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.setDisplayMode",
+      "status": "case",
+      "case": "orca-terminal.setDisplayMode",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.subscribe",
+      "status": "skipped",
+      "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:terminal.unsubscribe",
+      "status": "case",
+      "case": "orca-terminal.unsubscribe",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.updateViewport",
+      "status": "case",
+      "case": "orca-terminal.updateViewport",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:ui.get",
+      "status": "case",
+      "case": "orca-ui.get",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:ui.set",
+      "status": "case",
+      "case": "orca-ui.set",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:ui.setCollapsed",
+      "status": "case",
+      "case": "orca-ui.setCollapsed",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.activate",
+      "status": "case",
+      "case": "orca-worktree.activate",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.create",
+      "status": "case",
+      "case": "orca-worktree.create",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.list",
+      "status": "case",
+      "case": "orca-worktree.list",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.listRetiredNames",
+      "status": "case",
+      "case": "orca-worktree.listRetiredNames",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.prefetchCreateBase",
+      "status": "case",
+      "case": "orca-worktree.prefetchCreateBase",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.ps",
+      "status": "case",
+      "case": "orca-worktree.ps",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.resolveMrBase",
+      "status": "case",
+      "case": "orca-worktree.resolveMrBase",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.resolvePrBase",
+      "status": "case",
+      "case": "orca-worktree.resolvePrBase",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.rm",
+      "status": "case",
+      "case": "orca-worktree.rm",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.set",
+      "status": "case",
+      "case": "orca-worktree.set",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.show",
+      "status": "case",
+      "case": "orca-worktree.show",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:worktree.sleep",
+      "status": "case",
+      "case": "orca-worktree.sleep",
+      "input": "schema"
+    },
+    {
+      "row": "http:mobile/src/app-update/app-store-update-source.ts#1",
+      "status": "skipped",
+      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+    },
+    {
+      "row": "http:mobile/src/app-update/github-release-update-source.ts#1",
+      "status": "skipped",
+      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+    },
+    {
+      "row": "http:mobile/src/app-update/github-release-update-source.ts#2",
+      "status": "skipped",
+      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+    },
+    {
+      "row": "http:mobile/src/components/MobileAgentIcon.tsx#1",
+      "status": "skipped",
+      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+    },
+    {
+      "row": "http:mobile/src/diagnostics/connection-diagnostics-submission.ts#1",
+      "status": "skipped",
+      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+    },
+    {
+      "row": "http:mobile/src/diagnostics/use-troubleshoot-diagnostics.ts#1",
+      "status": "skipped",
+      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+    },
+    {
+      "row": "http:mobile/src/transport/mobile-relay-resume-director.ts#1",
+      "status": "skipped",
+      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+    },
+    {
+      "row": "transport:e2ee.handshake",
+      "status": "skipped",
+      "reason": "the e2ee handshake is the connection every case opens, answered once per case"
+    }
+  ]
+}

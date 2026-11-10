@@ -1,0 +1,165 @@
+{
+  "ranAt": "2026-10-21",
+  "command": "wf bench agent-proof --arm <opencode|sonnet> --base http://127.0.0.1:8810/mla-tamagui",
+  "served": "expo export --platform web with export:web env + EXPO_PUBLIC_LEETCODE_FIXTURES=1 into agent-proof-bench/export, served by frontend/mla-tamagui/e2e/lib/staticServer.mjs from agent-proof-bench/serve (mla-tamagui -> export)",
+  "baseline": {
+    "file": "docs/runbooks/.results/agent-proof.json",
+    "apiTextBytes": 6432,
+    "scripted": {
+      "runS": 4.1
+    },
+    "sonnet": {
+      "agentS": 12.0,
+      "runS": 4.0,
+      "costUsd": 0.0281,
+      "tokens": 6114
+    },
+    "opencode": {
+      "agentS": 85.4,
+      "runS": 3.9,
+      "costUsd": 0.0112,
+      "tokens": 22249
+    }
+  },
+  "stages": [
+    {
+      "sha": "7046c46ec",
+      "apiTextBytes": 17290,
+      "change": "the new API as landed (H7)",
+      "runs": [
+        {
+          "arm": "sonnet",
+          "model": "claude-sonnet-5-5",
+          "agentS": 12.2,
+          "runS": 5.6,
+          "passed": true,
+          "costUsd": 0.045498399999999994,
+          "tokens": 10440.0
+        },
+        {
+          "arm": "opencode",
+          "model": "minimax/MiniMax-M3",
+          "agentS": 93.7,
+          "runS": 4.0,
+          "passed": false,
+          "costUsd": 0.01164996,
+          "tokens": 26348.0,
+          "error": "run1/opencode.lua:11: scroll_until_visible{element={id='EditorAction-Done'}, direction='left', from={id='EditorActionToolbar'}, timeout=3000} 'scroll toolbar to Done' Runtime.evaluate failed: Cannot find context with specified id",
+          "cause": "direction=left (API confusion) -> page blanked, CDP context lost"
+        },
+        {
+          "arm": "opencode",
+          "model": "minimax/MiniMax-M3",
+          "agentS": 37.6,
+          "runS": 5.5,
+          "passed": true,
+          "costUsd": 0.00652452,
+          "tokens": 22105.0
+        },
+        {
+          "arm": "opencode",
+          "model": "minimax/MiniMax-M3",
+          "agentS": 64.0,
+          "runS": 5.3,
+          "passed": false,
+          "costUsd": 0.01136514,
+          "tokens": 26109.0,
+          "error": "run3/opencode.lua:8: scroll_until_visible{element={id='EditorAction-Done'}, direction='LEFT', from={id='EditorActionToolbar'}, timeout=3000} Runtime.evaluate failed: Cannot find context with specified id",
+          "cause": "direction=LEFT (API confusion); latent: get_logs()==0 gate fails on the export's app.crash + React #419 console errors"
+        }
+      ]
+    },
+    {
+      "sha": "b8f07225c",
+      "apiTextBytes": 16388,
+      "change": "test --api prints each option's doc; Chromium's overscroll history navigation off",
+      "runs": [
+        {
+          "arm": "opencode",
+          "model": "minimax/MiniMax-M3",
+          "agentS": 52.9,
+          "runS": 8.9,
+          "passed": true,
+          "costUsd": 0.00698136,
+          "tokens": 22386.0,
+          "report": "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-766609988a7d1ef6/report.html",
+          "run": "run4"
+        },
+        {
+          "arm": "opencode",
+          "model": "minimax/MiniMax-M3",
+          "agentS": 60.9,
+          "runS": 2.7,
+          "passed": false,
+          "costUsd": 0.00919458,
+          "tokens": 23866.0,
+          "error": "run5/opencode.lua:9: scroll_until_visible{element={id='EditorAction-Done'}, direction='RIGHT', from={text='0,531,393,582'}} 'Done scrolled into view' scroll_until_visible: from {text='0,531,393,582'} is not on screen",
+          "report": "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-20ec1b70da570e17/report.html",
+          "run": "run5"
+        },
+        {
+          "arm": "opencode",
+          "model": "minimax/MiniMax-M3",
+          "agentS": 94.3,
+          "runS": 5.7,
+          "passed": true,
+          "costUsd": 0.01367574,
+          "tokens": 27943.0,
+          "report": "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-4baf2a9d26bd3b74/report.html",
+          "run": "run6"
+        }
+      ]
+    },
+    {
+      "sha": "2da8aca09",
+      "apiTextBytes": 16906,
+      "change": "test --api prints each option's kind; from's doc names an element",
+      "runs": [
+        {
+          "arm": "opencode",
+          "model": "minimax/MiniMax-M3",
+          "agentS": 48.8,
+          "runS": 5.8,
+          "passed": true,
+          "costUsd": 0.00734682,
+          "tokens": 23637.0,
+          "report": "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-ecbbdb9eb1422d42/report.html",
+          "run": "run7"
+        },
+        {
+          "arm": "opencode",
+          "model": "minimax/MiniMax-M3",
+          "agentS": 39.8,
+          "runS": 5.5,
+          "passed": true,
+          "costUsd": 0.00741738,
+          "tokens": 22856.0,
+          "report": "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-a6522ce520122e4b/report.html",
+          "run": "run8"
+        },
+        {
+          "arm": "opencode",
+          "model": "minimax/MiniMax-M3",
+          "agentS": 66.6,
+          "runS": 5.9,
+          "passed": true,
+          "costUsd": 0.00865482,
+          "tokens": 24846.0,
+          "report": "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-6515e4bad9269f63/report.html",
+          "run": "run9"
+        },
+        {
+          "arm": "sonnet",
+          "model": "claude-sonnet-5-5",
+          "agentS": 9.9,
+          "runS": 5.7,
+          "passed": true,
+          "costUsd": 0.040889100000000005,
+          "tokens": 10290.0,
+          "report": "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-dcc1bc61c206bdc7/report.html",
+          "run": "run10"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+id: pure-module-does-no-io
+language: rust
+severity: error
+message: A pure module inside an adapter crate does no file, socket, process or environment access; its adapters implement the ports it declares.
+files:
+  - "**/clis/rca-exec/src/domain.rs"
+rule:
+  matches: does-io

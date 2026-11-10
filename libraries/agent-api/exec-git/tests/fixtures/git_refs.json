@@ -1,0 +1,122 @@
+{
+  "action": "git_refs",
+  "exchanges": [
+    {
+      "name": "lists the branch with the sha it points at and marks it current",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "refs5",
+        "tool": "git_refs",
+        "args": {}
+      },
+      "response": {
+        "id": "refs5",
+        "ok": true,
+        "result": {
+          "current": "main",
+          "detached": false,
+          "refs": [
+            {
+              "name": "main",
+              "full": "refs/heads/main",
+              "kind": "branch",
+              "sha": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+              "current": true
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "lists a tracked branch's upstream and the remote branch",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "refs6",
+        "tool": "git_refs",
+        "args": {}
+      },
+      "response": {
+        "id": "refs6",
+        "ok": true,
+        "result": {
+          "current": "main",
+          "detached": false,
+          "refs": [
+            {
+              "name": "main",
+              "full": "refs/heads/main",
+              "kind": "branch",
+              "sha": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+              "upstream": "origin/main",
+              "current": true
+            },
+            {
+              "name": "origin/main",
+              "full": "refs/remotes/origin/main",
+              "kind": "remote",
+              "sha": "5009730d8ab8bb51d7d1aa4f222e0dfbd88f838b",
+              "current": false
+            }
+          ],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "lists only the tags asked for",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "refs7",
+        "tool": "git_refs",
+        "args": {
+          "kind": "tag"
+        }
+      },
+      "response": {
+        "id": "refs7",
+        "ok": true,
+        "result": {
+          "current": "main",
+          "detached": false,
+          "refs": [],
+          "truncated": false
+        }
+      }
+    },
+    {
+      "name": "refuses a kind that is none of the three",
+      "request": {
+        "id": "refs8",
+        "tool": "git_refs",
+        "args": {
+          "kind": "stash"
+        }
+      },
+      "response": {
+        "id": "refs8",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`kind` must be one of branch, remote, tag"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "content_hash": "sha256:122cc94c3c40b5b32d3b41977c6711b06ef21261f30d09f44239df25c3fd102a",
+  "corpus": {
+    "hash": "sha256:729752070017f168fd5640811920937f76dce0354e2a243872d662a23d772d71",
+    "path": "corpus.json"
+  },
+  "interactions": 67,
+  "provenance": {
+    "corpus_hash": "sha256:729752070017f168fd5640811920937f76dce0354e2a243872d662a23d772d71",
+    "driver": {
+      "name": "t3",
+      "protocol": "mimic-driver/1",
+      "version": "0.1.0"
+    },
+    "kind": "recorded",
+    "recorded_at": "2026-11-06T14:35:23.815Z",
+    "recorded_on": "vm",
+    "rules_hash": "sha256:162d5d8c2808c2fcc8ad5715851c81f0de7043c190dd9f26d61807685b205b7f",
+    "seed": 0,
+    "source": "R1: every phone row, real server, scripted inputs (shard 3 of 3)",
+    "target": {
+      "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e",
+      "name": "t3",
+      "pin_file": "../../../../tooling/t3-conformance/t3-pin.json",
+      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0",
+      "version": "0.1.6"
+    },
+    "tool": {
+      "git": "2e3a145ff92f2fe8a32db6c002f246581044fdf4",
+      "mimic": "0.1.0"
+    }
+  },
+  "rules": {
+    "hash": "sha256:162d5d8c2808c2fcc8ad5715851c81f0de7043c190dd9f26d61807685b205b7f",
+    "path": "rules.json"
+  },
+  "schema": "mimic-cassette/1"
+}

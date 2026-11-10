@@ -1,0 +1,45 @@
+[package]
+name = "vm-ops-api-rs"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "vm_ops_api"
+path = "src/lib.rs"
+
+[[bin]]
+name = "vm-ops-api-rs"
+path = "src/main.rs"
+
+[dependencies]
+async-trait.workspace = true
+axum.workspace = true
+clap.workspace = true
+futures-util.workspace = true
+hex.workspace = true
+http-body-util.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
+libc.workspace = true
+memory-stats.workspace = true
+reqwest.workspace = true
+secrecy.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+service-kit = { version = "0.1", registry = "mla" }
+sha2.workspace = true
+# Only to switch on `oneshot`, the batch sender `service_kit::telemetry` hides behind a feature; service-kit enables `service`.
+telemetry = { version = "0.1", registry = "mla", features = ["oneshot"] }
+tokio = { workspace = true, features = ["fs", "io-util", "net", "process", "rt-multi-thread", "signal"] }
+tracing.workspace = true
+uuid.workspace = true
+vm-ops-api-core = { path = "../core" }
+
+[dev-dependencies]
+base64.workspace = true
+ed25519-dalek.workspace = true
+tempfile.workspace = true
+tokio = { workspace = true, features = ["test-util"] }
+tower = { workspace = true, features = ["util"] }
+vm-ops-api-core = { path = "../core", features = ["testing"] }

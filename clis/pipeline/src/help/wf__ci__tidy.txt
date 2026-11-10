@@ -1,0 +1,36 @@
+Usage: wf ci tidy [options]
+
+Frees the CI runner's disk before a run needs it. When the volume is over the
+high-water mark it removes what can be built again, the cheapest to rebuild
+first, until the volume is under the low-water mark:
+
+  1. the build artifacts in a live target's `deps` directories that nothing has
+     read or written for a week (the test binaries of every earlier version of
+     the code; cargo never collects them)
+  2. old `wf` installs under /opt/clis (the published one, `current`, and the
+     newest three stay)
+  3. whole cargo target directories nothing has built in for a week
+  4. Rust incremental build state (the `incremental` directory of every cargo
+     profile), last: the `wf` build's own keeps it at 30 seconds instead of 3
+     minutes
+
+Under the high mark it removes nothing. It never removes outside the two
+directories it works in (the runner's work directory, three levels above the
+checkout, and /opt/clis). Over the mark it prints what the volume holds, the biggest
+directories under both, in the JSON and in the job summary, so a full disk can be
+explained; under it nothing is measured (walking the runner's work volume cost
+800 MB of reads and 20 s of I/O wait on every run), and the JSON carries a reason
+instead of the biggest directories.
+
+Output: one JSON line {ok, dryRun, usedPercent, highWater, lowWater,
+freedBytes, afterPercent, removed: [{path, bytes, why, removed}], biggest:
+[{path, bytes}]}.
+
+Options:
+  --root <dir>       the work directory to search for cargo output (default: the
+                     runner's work directory)
+  --installs <dir>   the directory of wf installs (default /opt/clis)
+  --high <percent>   remove only at or above this use (default 70)
+  --low <percent>    stop once use would be at or under this (default 60)
+  --dry-run          say what would go and remove nothing
+  -h, --help         display help for command

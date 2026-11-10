@@ -1,0 +1,129 @@
+{
+  "_doc": "Every Platform.OS / Platform.select use and every *.web / *.native fork file, classified (device-lab spec J3). A new fork fails lib/device-lab/__tests__/platformForks.test.ts until it is listed here. inherent: keep, with a unit test of the native branch or a residual that says why none exists; removable: make it platform-agnostic; instrumentation: no behaviour.",
+  "files": {
+    "frontend/mla-tamagui/app/(app)/_layout.tsx": {
+      "class": "inherent",
+      "why": "drawer width: a CSS min() string is valid on web only, native computes pixels",
+      "residual": "style arithmetic; the native arm is Math.min(width * 0.78, 320)"
+    },
+    "frontend/mla-tamagui/features/leetcode/hooks/useVoiceEdit.ts": {
+      "class": "instrumentation",
+      "why": "Platform.OS is recorded on the edit-stats row, no behaviour"
+    },
+    "frontend/mla-tamagui/features/leetcode/plan/hooks/useLiveTranscript.ts": {
+      "class": "instrumentation",
+      "why": "Platform.OS is recorded on the edit-stats row, no behaviour"
+    },
+    "frontend/mla-tamagui/features/leetcode/plan/hooks/usePlanRealize.ts": {
+      "class": "instrumentation",
+      "why": "Platform.OS is recorded on the edit-stats row, no behaviour"
+    },
+    "frontend/mla-tamagui/features/leetcode/code-editor/core/EditorInput.tsx": {
+      "class": "inherent",
+      "why": "on web the iframe keeps focus after the editor blurs, so the iframe itself is blurred",
+      "residual": "DOM focus; a WebView on native has no document focus to clear"
+    },
+    "frontend/mla-tamagui/features/leetcode/plan/ui/PlanTab.tsx": {
+      "class": "inherent",
+      "why": "Android resizes the window for the keyboard, iOS does not, so only iOS lifts the composer",
+      "residual": "one inset; covered by the keyboard-toolbar flow tests on the web arm"
+    },
+    "frontend/mla-tamagui/features/leetcode/data/ExpoAudioRecorderAdapter.tsx": {
+      "class": "inherent",
+      "why": "recording container: audio/webm on web, audio/m4a on iOS, audio/mp4 on Android (spec I4)",
+      "nativeTest": "backend/remote-chat-agent/tests/unit/voiceTranscribeContainers.test.ts"
+    },
+    "frontend/mla-tamagui/features/leetcode/data/voiceEditTransport.ts": {
+      "class": "inherent",
+      "why": "a Blob on web, { uri, name, type } on native (RN truncates a Blob under Hermes)",
+      "nativeTest": "frontend/mla-tamagui/features/leetcode/data/__tests__/voiceEditTransport.native.test.ts"
+    },
+    "frontend/mla-tamagui/features/tamil-writing/ui/TracingCanvasSkia.tsx": {
+      "class": "inherent",
+      "why": "CanvasKit (WithSkiaWeb) on web, native Skia otherwise",
+      "residual": "U4: the native arm renders Skia directly; no test can run it off a device"
+    },
+    "frontend/libraries/tamagui-design-system/composites/keyboard-toolbar/index.tsx": {
+      "class": "inherent",
+      "why": "position fixed on web, absolute and the keyboard height on native",
+      "residual": "layout props; the web arm runs in every flow test"
+    },
+    "frontend/libraries/tamagui-design-system/composites/composer-base.tsx": {
+      "class": "inherent",
+      "why": "isWeb picks the web composer chrome",
+      "residual": "layout only"
+    },
+    "frontend/libraries/tamagui-design-system/ui/Textarea.tsx": {
+      "class": "inherent",
+      "why": "default rows: 2 on web, 8 on native",
+      "residual": "default prop value"
+    },
+    "frontend/libraries/tamagui-design-system/ui/sheet.tsx": {
+      "class": "inherent",
+      "why": "a web scroll lock and fixed positioning; native sheets are positioned by the OS (spec U5)",
+      "nativeTest": "frontend/mla-tamagui/tests/flow/sheetBranches.flow.test.tsx"
+    },
+    "frontend/libraries/tamagui-design-system/lib/keyboard/keyboardSource.ts": {
+      "class": "inherent",
+      "why": "iOS has keyboardWill* events, Android keyboardDid*",
+      "nativeTest": "frontend/libraries/tamagui-design-system/tests/keyboardSource.test.ts"
+    },
+    "frontend/libraries/rn-agentation/src/hooks/useKeyboardHeight.ts": {
+      "class": "inherent",
+      "why": "iOS has keyboardWill* events, Android keyboardDid*",
+      "residual": "same pair as keyboardSource.ts"
+    },
+    "frontend/libraries/rn-agentation/src/document/hooks/useDocumentNodeService.ts": {
+      "class": "instrumentation",
+      "why": "PLATFORM labels the tree the driver reads, no behaviour"
+    },
+    "frontend/libraries/rn-agentation/src/headless/useAgentationState.ts": {
+      "class": "instrumentation",
+      "why": "PLATFORM labels the tree the driver reads, no behaviour"
+    },
+    "frontend/libraries/rn-agentation/src/headless/AgentationProvider.tsx": {
+      "class": "instrumentation",
+      "why": "PLATFORM labels the tree the driver reads, no behaviour"
+    },
+    "features/settings/src/ui/AboutSettingsScreen.tsx": {
+      "class": "inherent",
+      "why": "selectable text is a native-only Text prop",
+      "residual": "one prop"
+    },
+    "frontend/mla-tamagui/lib/webview/ReactNativeWebView.web.tsx": {
+      "class": "inherent",
+      "why": "the web build of react-native-webview: an iframe with srcdoc (spec U1)",
+      "nativeTest": "frontend/mla-tamagui/tests/flow/webviewBridge.flow.test.tsx"
+    },
+    "frontend/libraries/rn-agentation/src/capture/capture.native.ts": {
+      "class": "inherent",
+      "why": "agentation reads the tree through the platform renderer",
+      "residual": "driver for the dev overlay; web only in the browser render"
+    },
+    "frontend/libraries/rn-agentation/src/capture/capture.web.ts": {
+      "class": "inherent",
+      "why": "agentation reads the tree through the platform renderer",
+      "residual": "driver for the dev overlay; web only in the browser render"
+    },
+    "frontend/libraries/rn-agentation/src/document/driver/documentTree.native.ts": {
+      "class": "inherent",
+      "why": "agentation reads the tree through the platform renderer",
+      "residual": "driver for the dev overlay; web only in the browser render"
+    },
+    "frontend/libraries/rn-agentation/src/document/driver/documentTree.web.ts": {
+      "class": "inherent",
+      "why": "agentation reads the tree through the platform renderer",
+      "residual": "driver for the dev overlay; web only in the browser render"
+    },
+    "frontend/libraries/tamagui-design-system/composites/keyboard-toolbar/portal.web.tsx": {
+      "class": "inherent",
+      "why": "a DOM portal for the toolbar on web",
+      "residual": "DOM portal; native renders in place"
+    },
+    "frontend/libraries/tamagui-design-system/lib/keyboard/keyboardSource.web.ts": {
+      "class": "inherent",
+      "why": "the browser has no keyboard events: a visualViewport source",
+      "nativeTest": "frontend/libraries/tamagui-design-system/tests/keyboardSource.test.ts"
+    }
+  }
+}

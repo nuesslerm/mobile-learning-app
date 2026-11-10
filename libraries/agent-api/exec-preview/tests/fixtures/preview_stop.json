@@ -1,0 +1,15 @@
+{
+  "action": "preview_stop",
+  "exchanges": [
+    {
+      "name": "finds nothing to stop under an id that was never started",
+      "request": {"id": "s1", "tool": "preview_stop", "args": {"id": "preview-9"}},
+      "response": {"id": "s1", "ok": true, "result": {"stopped": false}}
+    },
+    {
+      "name": "refuses a stop that names no server",
+      "request": {"id": "s2", "tool": "preview_stop", "args": {}},
+      "response": {"id": "s2", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`id` must be a string"}}
+    }
+  ]
+}

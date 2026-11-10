@@ -1,0 +1,66 @@
+{
+  "method": "queue.delete",
+  "exchanges": [
+    {
+      "name": "takes an item out of the queue",
+      "before": [
+        {
+          "id": "setup-create-t-qd",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-qd",
+            "title": "Thread t-qd",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        },
+        {
+          "id": "setup-a1",
+          "method": "queue.add",
+          "params": {
+            "thread": "t-qd",
+            "item": "q1",
+            "prompt": "one"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "queue.delete",
+        "params": {
+          "thread": "t-qd",
+          "item": "q1"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "thread": "t-qd",
+          "item": "q1",
+          "seq": 1
+        }
+      },
+      "volatile": [
+        "/result/seq"
+      ]
+    },
+    {
+      "name": "refuses an item that is not queued",
+      "request": {
+        "id": "2",
+        "method": "queue.delete",
+        "params": {
+          "thread": "t-qd",
+          "item": "q1"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "ITEM_NOT_QUEUED",
+          "message": "Run q1 is not queued."
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  ".agents/config/sources.json": "{\"instructions\":\".agents/instructions\",\"commands\":[\".agents/commands\",\"vendor/commands/vend.md\"],\"skills\":[\".agents/skills\",\"vendor/skills\"],\"rules\":[\"vendor/rules/rule.md\"],\"setup\":\".agents/setup.sh\"}",
+  ".agents/config/mcps.json": "{\"servers\":{\"demo\":{\"default\":{\"type\":\"local\",\"enabled\":true,\"command\":[\"node\",\"__PROJECT_ROOT__/mcp.js\"]},\"claude\":{\"type\":\"stdio\",\"command\":\"node\",\"args\":[\"__PROJECT_ROOT__/mcp.js\"]},\"codex\":{\"command\":\"node\",\"args\":[\"mcp.js\"]}}}}",
+  ".agents/config/hooks.json": "{\"claude\":{\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"bash \\\"__PROJECT_ROOT__/.agents/hooks/start.sh\\\"\"}]}]}},\"opencode\":{\"hooks\":{\"session.created\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"pnpm install\"}]}]}},\"codex\":{\"hooks\":{\"SessionStart\":[{\"hooks\":[{\"type\":\"command\",\"command\":\"pnpm install\"}]}]}}}",
+  ".agents/config/permissions.json": "{\"shared\":{\"deny\":[\"Bash(gh pr merge:*)\"]},\"claude\":{\"includeShared\":true,\"permissions\":{\"defaultMode\":\"acceptEdits\",\"deny\":[],\"allow\":[\"Bash(git:*)\"]}},\"opencode\":{\"includeShared\":true,\"permission\":{}},\"codex\":{\"includeShared\":true,\"approvalPolicy\":\"never\",\"defaultPermissions\":\"project\",\"rules\":[]}}",
+  ".agents/config/plugins.json": "{\"opencode\":[\"file://__PROJECT_ROOT__/plugin.js\"]}",
+  ".agents/config/claude-settings.json": "{\"outputStyle\":\"terse\"}",
+  ".agents/instructions/root.md": "# Root rules\n",
+  ".agents/instructions/area/sub.md": "# Area rules\n",
+  ".agents/instructions/.agents.md": "# Agents dir rules\n",
+  "area/sub/.gitkeep": "",
+  ".agents/commands/hello.md": "---\ndescription: Say hello\n---\nHello $ARGUMENTS\n",
+  ".agents/skills/own-skill/SKILL.md": "---\nname: own-skill\ndescription: Own\n---\nBody\n",
+  ".agents/skills/own-skill/references/notes.md": "notes\n",
+  "vendor/commands/vend.md": "---\ndescription: Vendored\n---\nVend\n",
+  "vendor/skills/vend-skill/SKILL.md": "---\nname: vend-skill\ndescription: Vendored skill\n---\nVend\n",
+  "vendor/rules/rule.md": "# A rule\n",
+  ".agents/setup.sh": "#!/usr/bin/env bash\n",
+  ".agents/hooks/start.sh": "#!/usr/bin/env bash\n"
+}

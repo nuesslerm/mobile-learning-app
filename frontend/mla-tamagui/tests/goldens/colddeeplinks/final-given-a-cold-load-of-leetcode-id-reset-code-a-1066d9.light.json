@@ -1,0 +1,38 @@
+{
+  "suite": "colddeeplinks",
+  "step": "final-given-a-cold-load-of-leetcode-id-reset-code-a-1066d9",
+  "scheme": "light",
+  "snapshot": "colddeeplinks/final-given-a-cold-load-of-leetcode-id-reset-code-a-1066d9.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "ResetCodeDialog",
+      "ResetCodeDialog-Title",
+      "ResetCodeDialog-Description",
+      "ResetCodeDialog-Cancel",
+      "ResetCodeDialog-Confirm"
+    ],
+    "text": "Reset to starter code?\nThis discards your current edits for this problem and restores the starter template. This cannot be undone.\nCancel\nReset"
+  },
+  "timings": {
+    "render_ms": 459
+  },
+  "name": "colddeeplinks/final-given-a-cold-load-of-leetcode-id-reset-code-a-1066d9.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

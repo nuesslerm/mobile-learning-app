@@ -1,0 +1,96 @@
+{
+  "schema": "mimic-rules/1",
+  "rules": [
+    {
+      "kind": "uuid-ordinal"
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/1/payload/result/rateLimits/antigravity/updatedAt",
+      "placeholder": "<volatile>",
+      "interaction": "orca-accounts.list-valid-min"
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/1/payload/result/rateLimits/claude/updatedAt",
+      "placeholder": "<volatile>",
+      "interaction": "orca-accounts.list-valid-min"
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/1/payload/result/rateLimits/codex/updatedAt",
+      "placeholder": "<volatile>",
+      "interaction": "orca-accounts.list-valid-min"
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/1/payload/result/rateLimits/cursor/updatedAt",
+      "placeholder": "<volatile>",
+      "interaction": "orca-accounts.list-valid-min"
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/1/payload/result/rateLimits/gemini/updatedAt",
+      "placeholder": "<volatile>",
+      "interaction": "orca-accounts.list-valid-min"
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/1/payload/result/rateLimits/grok/updatedAt",
+      "placeholder": "<volatile>",
+      "interaction": "orca-accounts.list-valid-min"
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/1/payload/result/rateLimits/kimi/updatedAt",
+      "placeholder": "<volatile>",
+      "interaction": "orca-accounts.list-valid-min"
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/1/payload/result/rateLimits/minimax/updatedAt",
+      "placeholder": "<volatile>",
+      "interaction": "orca-accounts.list-valid-min"
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/1/payload/result/rateLimits/opencodeGo/updatedAt",
+      "placeholder": "<volatile>",
+      "interaction": "orca-accounts.list-valid-min"
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/1/payload/result/rateLimits/zcode/updatedAt",
+      "placeholder": "<volatile>",
+      "interaction": "orca-accounts.list-valid-min"
+    },
+    {
+      "kind": "token",
+      "pattern": "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(?:Z|[+-][0-9]{2}:[0-9]{2})",
+      "placeholder": "<ts>"
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "createdAt": "<volatile:createdAt>"
+      }
+    },
+    {
+      "kind": "pointer",
+      "pointer": "/steps/1/payload/result/group/updatedAt",
+      "placeholder": "<volatile>",
+      "interaction": "orca-projectGroup.create-valid-min"
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "scannedAt": "<volatile:scannedAt>"
+      }
+    },
+    {
+      "kind": "token",
+      "pattern": "/tmp/r[0-9a-z]+/stage/clis/[a-z0-9-]+/cassettes/[a-z0-9-]+",
+      "placeholder": "<set-dir>"
+    }
+  ]
+}

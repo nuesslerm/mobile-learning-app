@@ -1,0 +1,22 @@
+[package]
+name = "orca-map-accounts"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Orca mapping crate for the phone's accounts screen: accounts.list and the account selections over rca's accounts group, behind the AgentApi port of orca-core"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["orca-core/testing"]
+
+[dependencies]
+orca-core = { path = "../core" }
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-accounts = { path = "../../../libraries/agent-api/agent-api-accounts" }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+orca-core = { path = "../core", features = ["testing"] }
+orca-map-accounts = { path = ".", features = ["testing"] }

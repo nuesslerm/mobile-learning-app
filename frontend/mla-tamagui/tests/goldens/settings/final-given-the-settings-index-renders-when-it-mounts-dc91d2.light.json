@@ -1,0 +1,81 @@
+{
+  "suite": "settings",
+  "step": "final-given-the-settings-index-renders-when-it-mounts-dc91d2",
+  "scheme": "light",
+  "snapshot": "settings/final-given-the-settings-index-renders-when-it-mounts-dc91d2.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "SettingsIndexScreen",
+      "SettingsIndexScreenHeader",
+      "SettingsIndexScreenHeaderBack",
+      "SettingsIndexScreenHeaderTitle",
+      "SettingsIndexScreen-ScrollView",
+      "SettingsIndexScreen-GroupProfile",
+      "SettingsRow-Profile",
+      "SettingsRow-ProfileContent",
+      "SettingsRow-ProfileIcon",
+      "SettingsRow-ProfileLabel",
+      "SettingsRow-ProfileValue",
+      "SettingsIndexScreen-GroupLabelPreferences",
+      "SettingsIndexScreen-GroupPreferences",
+      "SettingsRow-Appearance",
+      "SettingsRow-AppearanceContent",
+      "SettingsRow-AppearanceIcon",
+      "SettingsRow-AppearanceLabel",
+      "SettingsRow-AppearanceValue",
+      "SettingsRow-Notifications",
+      "SettingsRow-NotificationsContent",
+      "SettingsRow-NotificationsIcon",
+      "SettingsRow-NotificationsLabel",
+      "SettingsIndexScreen-GroupLabelSystem",
+      "SettingsIndexScreen-GroupSystem",
+      "SettingsRow-Storage",
+      "SettingsRow-StorageContent",
+      "SettingsRow-StorageIcon",
+      "SettingsRow-StorageLabel",
+      "SettingsRow-About",
+      "SettingsRow-AboutContent",
+      "SettingsRow-AboutIcon",
+      "SettingsRow-AboutLabel",
+      "SettingsRow-AboutValue"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nSettings\nProfile\nAda Lovelace\nPREFERENCES\nAppearance\niOS Native\nNotifications\nSYSTEM\nStorage\nAbout\n1.0.0"
+  },
+  "timings": {
+    "render_ms": 256
+  },
+  "name": "settings/final-given-the-settings-index-renders-when-it-mounts-dc91d2.light",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

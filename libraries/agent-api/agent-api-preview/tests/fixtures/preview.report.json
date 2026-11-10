@@ -1,0 +1,81 @@
+{
+  "method": "preview.report",
+  "exchanges": [
+    {
+      "name": "keeps what the app reported of the navigation",
+      "before": [
+        {
+          "id": "o",
+          "method": "preview.open",
+          "params": {
+            "thread": "t1",
+            "url": "http://127.0.0.1:3000/"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "preview.report",
+        "params": {
+          "thread": "t1",
+          "tab": "tab-2",
+          "nav": {
+            "state": "success",
+            "url": "http://127.0.0.1:3000/",
+            "title": "App"
+          },
+          "can_go_back": true,
+          "can_go_forward": false
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "session": {
+            "thread": "t1",
+            "tab": "tab-2",
+            "nav": {
+              "state": "success",
+              "url": "http://127.0.0.1:3000/",
+              "title": "App"
+            },
+            "can_go_back": true,
+            "can_go_forward": false,
+            "viewport": {
+              "mode": "fill"
+            },
+            "updated_ms": 1
+          }
+        }
+      },
+      "volatile": [
+        "/result/session/updated_ms"
+      ]
+    },
+    {
+      "name": "refuses a report for a tab the thread does not have",
+      "request": {
+        "id": 1,
+        "method": "preview.report",
+        "params": {
+          "thread": "t1",
+          "tab": "tab-9",
+          "nav": {
+            "state": "success",
+            "url": "http://127.0.0.1:3000/",
+            "title": "App"
+          },
+          "can_go_back": true,
+          "can_go_forward": false
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "PREVIEW_SESSION_NOT_FOUND",
+          "message": "thread t1 has no preview tab tab-9"
+        }
+      }
+    }
+  ]
+}

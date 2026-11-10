@@ -1,0 +1,112 @@
+diff --git a/dest/commonjs/base/list/List.js b/dest/commonjs/base/list/List.js
+index 9ba12ff..2353ff3 100644
+--- a/dest/commonjs/base/list/List.js
++++ b/dest/commonjs/base/list/List.js
+@@ -57,7 +57,7 @@ const List = ({
+       }
+     }
+   }], {
+-    useNativeDriver: true
++    useNativeDriver: _reactNative.Platform.OS !== 'web'
+   }), [scrollOffset]);
+   const contentContainerStyle = (0, _react.useMemo)(() => {
+     return [{
+diff --git a/dest/commonjs/base/overlay/Overlay.js b/dest/commonjs/base/overlay/Overlay.js
+index 00bd804..4665301 100644
+--- a/dest/commonjs/base/overlay/Overlay.js
++++ b/dest/commonjs/base/overlay/Overlay.js
+@@ -14,8 +14,7 @@ const Overlay = ({
+   overlayItemStyle
+ }) => {
+   return /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+-    style: [_reactNative.StyleSheet.absoluteFill, styles.overlayContainer],
+-    pointerEvents: 'none',
++    style: [_reactNative.StyleSheet.absoluteFill, styles.overlayContainer, { pointerEvents: 'none' }],
+     children: /*#__PURE__*/(0, _jsxRuntime.jsx)(_reactNative.View, {
+       style: [styles.selection, {
+         height: itemHeight
+diff --git a/dest/commonjs/hoc/virtualized/VirtualizedList.js b/dest/commonjs/hoc/virtualized/VirtualizedList.js
+index 3846cea..8014b9a 100644
+--- a/dest/commonjs/hoc/virtualized/VirtualizedList.js
++++ b/dest/commonjs/hoc/virtualized/VirtualizedList.js
+@@ -43,7 +43,7 @@ const VirtualizedList = ({
+       }
+     }
+   }], {
+-    useNativeDriver: true
++    useNativeDriver: _reactNative.Platform.OS !== 'web'
+   }), [scrollOffset]);
+   const getItemLayout = (0, _react.useCallback)((_, index) => ({
+     length: itemHeight,
+diff --git a/dest/module/base/list/List.js b/dest/module/base/list/List.js
+index 67b64d6..d264d59 100644
+--- a/dest/module/base/list/List.js
++++ b/dest/module/base/list/List.js
+@@ -1,7 +1,7 @@
+ "use strict";
+ 
+ import React, { forwardRef, memo, useImperativeHandle, useMemo, useRef } from 'react';
+-import { Animated, StyleSheet } from 'react-native';
++import { Animated, Platform, StyleSheet } from 'react-native';
+ import { useInit } from '@rozhkov/react-useful-hooks';
+ import { withScrollStartEndEvent } from '../../utils/scrolling';
+ import { jsx as _jsx } from "react/jsx-runtime";
+@@ -51,7 +51,7 @@ const List = ({
+       }
+     }
+   }], {
+-    useNativeDriver: true
++    useNativeDriver: Platform.OS !== 'web'
+   }), [scrollOffset]);
+   const contentContainerStyle = useMemo(() => {
+     return [{
+diff --git a/dest/module/base/overlay/Overlay.js b/dest/module/base/overlay/Overlay.js
+index 3c3da41..0e92b23 100644
+--- a/dest/module/base/overlay/Overlay.js
++++ b/dest/module/base/overlay/Overlay.js
+@@ -8,8 +8,7 @@ const Overlay = ({
+   overlayItemStyle
+ }) => {
+   return /*#__PURE__*/_jsx(View, {
+-    style: [StyleSheet.absoluteFill, styles.overlayContainer],
+-    pointerEvents: 'none',
++    style: [StyleSheet.absoluteFill, styles.overlayContainer, { pointerEvents: 'none' }],
+     children: /*#__PURE__*/_jsx(View, {
+       style: [styles.selection, {
+         height: itemHeight
+diff --git a/dest/module/hoc/virtualized/VirtualizedList.js b/dest/module/hoc/virtualized/VirtualizedList.js
+index f46565b..470a9e0 100644
+--- a/dest/module/hoc/virtualized/VirtualizedList.js
++++ b/dest/module/hoc/virtualized/VirtualizedList.js
+@@ -1,7 +1,7 @@
+ "use strict";
+ 
+ import React, { forwardRef, memo, useCallback, useMemo } from 'react';
+-import { Animated, StyleSheet } from 'react-native';
++import { Animated, Platform, StyleSheet } from 'react-native';
+ import { withScrollStartEndEvent } from '../../utils/scrolling';
+ import { jsx as _jsx } from "react/jsx-runtime";
+ // TODO "any" is not an exact type. How to pass the generic type?
+@@ -37,7 +37,7 @@ const VirtualizedList = ({
+       }
+     }
+   }], {
+-    useNativeDriver: true
++    useNativeDriver: Platform.OS !== 'web'
+   }), [scrollOffset]);
+   const getItemLayout = useCallback((_, index) => ({
+     length: itemHeight,
+diff --git a/src/base/overlay/Overlay.tsx b/src/base/overlay/Overlay.tsx
+index 9d9eb2d..633b648 100644
+--- a/src/base/overlay/Overlay.tsx
++++ b/src/base/overlay/Overlay.tsx
+@@ -8,8 +8,7 @@ type OverlayProps = {
+ const Overlay = ({itemHeight, overlayItemStyle}: OverlayProps) => {
+   return (
+     <View
+-      style={[StyleSheet.absoluteFill, styles.overlayContainer]}
+-      pointerEvents={'none'}
++      style={[StyleSheet.absoluteFill, styles.overlayContainer, { pointerEvents: 'none' }]}
+     >
+       <View
+         style={[

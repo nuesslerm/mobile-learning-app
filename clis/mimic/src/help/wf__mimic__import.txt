@@ -1,0 +1,29 @@
+Usage: wf mimic import [options] <format> <legacy-dir>
+
+Convert legacy CLI fixtures into a cassette set of kind "imported" (honest
+provenance: nothing here runs claude, codex, opencode, gh or glab, and a legacy
+recording that claims "recorded" is refused). Formats: exec-recording
+(<legacy-dir> holds recordings.json and recordings/*.jsonl), exec-hosted
+(<legacy-dir> holds the hosted_*.json fixtures) and t3-golden (<legacy-dir>
+holds the <scenario>.jsonl goldens of tooling/t3-conformance recorded from the
+pinned T3 server; the pairing, token exchange and socket scenarios become one
+"session" interaction whose input is the client's side as a driver script, the
+variant ordering file a permutation of it tagged "variant:order", the timing of
+each line is dropped). Each legacy file's canonical sha256 (sorted keys,
+minified; the exact bytes for a .jsonl, without `t` for a t3-golden line) goes
+into provenance.imported_from, so `wf mimic export` can show the conversion lost
+nothing. A mimic.toml without a [reference] is written beside the set; for
+t3-golden the set also gets the allowlist (copied verbatim), the T3 rules, the
+differ's T3 settings and the pinned server as the [reference] of `verify --live`.
+
+Options:
+  --out <set dir>             where the set is written (required)
+  --root <dir>                the paths recorded in imported_from are relative to it
+                              (default the git top level)
+  --allowlist <file>          t3-golden: the allowlist (default <legacy-dir>/../../allowlist.json)
+  --pin <file>                t3-golden: the pin file (default <legacy-dir>/../../t3-pin.json)
+  -h, --help                  display help for command
+
+Output (schema mimic-import/1):
+  {schema, ok, format, set, kind, interactions, imported_from: [{path, hash}],
+  wrote, warnings, next}

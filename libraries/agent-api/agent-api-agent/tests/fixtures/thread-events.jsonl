@@ -1,0 +1,20 @@
+{"event":{"seq":1,"thread":"t1","turn":"u1","type":"turn.started"}}
+{"event":{"seq":2,"thread":"t1","turn":"u1","type":"message.delta","role":"user","text":"Why does the login fail?"}}
+{"event":{"seq":3,"thread":"t1","turn":"u1","type":"reasoning.delta","text":"Look at the handler first."}}
+{"event":{"seq":4,"thread":"t1","turn":"u1","type":"message.delta","role":"assistant","text":"I will read the handler."}}
+{"event":{"seq":5,"thread":"t1","turn":"u1","type":"tool.started","call":"c1","tool":"read_file","args":{"path":"login.ts"}}}
+{"event":{"seq":6,"thread":"t1","turn":"u1","type":"tool.output","call":"c1","stream":"stdout","data":"export function login() {}\n"}}
+{"event":{"seq":7,"thread":"t1","turn":"u1","type":"tool.finished","call":"c1","ok":true,"result":{"content":"export function login() {}\n"}}}
+{"event":{"seq":8,"thread":"t1","turn":"u1","type":"plan.updated","plan":"1. fix the handler\n2. run the tests"}}
+{"event":{"seq":9,"thread":"t1","turn":"u1","type":"approval.requested","approval":"ap1","tool":"run_command","args":{"command":"npm test"}}}
+{"event":{"seq":10,"thread":"t1","turn":"u1","type":"tool.started","call":"c2","tool":"run_command","args":{"command":"npm test"}}}
+{"event":{"seq":11,"thread":"t1","turn":"u1","type":"tool.output","call":"c2","stream":"stderr","data":"1 failing\n"}}
+{"event":{"seq":12,"thread":"t1","turn":"u1","type":"tool.finished","call":"c2","ok":false,"result":{"exit_code":1}}}
+{"event":{"seq":13,"thread":"t1","turn":"u1","type":"file.changed","path":"login.ts","op":"edit"}}
+{"event":{"seq":14,"thread":"t1","turn":"u1","type":"input.requested","request":"rq1","prompt":"Which test runner?","options":["vitest","jest"]}}
+{"event":{"seq":15,"thread":"t1","turn":"u1","type":"usage","input_tokens":1200,"output_tokens":340,"cache_read_tokens":800}}
+{"event":{"seq":16,"thread":"t1","turn":"u1","type":"message.delta","role":"assistant","text":"Fixed."}}
+{"event":{"seq":17,"thread":"t1","turn":"u1","type":"turn.finished","reason":"completed"}}
+{"event":{"seq":18,"thread":"t1","turn":"u2","type":"turn.started"}}
+{"event":{"seq":19,"thread":"t1","turn":"u2","type":"error","code":"RATE_LIMITED","message":"the provider asked to slow down"}}
+{"event":{"seq":20,"thread":"t1","turn":"u2","type":"turn.finished","reason":"failed"}}

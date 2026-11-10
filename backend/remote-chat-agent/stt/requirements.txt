@@ -1,0 +1,5 @@
+faster-whisper==1.1.1
+# faster-whisper 1.1.1 still imports requests, which huggingface-hub 1.x no
+# longer pulls in (seen 2026-09-15: ModuleNotFoundError at image build).
+huggingface-hub<1.0
+requests>=2.32

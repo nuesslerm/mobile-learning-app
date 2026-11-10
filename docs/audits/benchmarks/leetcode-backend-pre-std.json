@@ -1,0 +1,16 @@
+{
+  "label": "pre",
+  "binary": "/home/user/lcb-old-dev/backend/target/release/leetcode-backend-rs",
+  "binaryMb": 0.63,
+  "runs": 5,
+  "medians": {
+    "coldStartMs": 5.12,
+    "idleRssMb": 2.59,
+    "rssAfter60HealthMb": 2.63,
+    "peakRssMb": 3.01,
+    "healthMs": 0.46,
+    "userStatusMs": 6.66,
+    "runMs": 33.89,
+    "formatMs": 37.09
+  }
+}

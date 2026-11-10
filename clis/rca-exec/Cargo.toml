@@ -1,0 +1,49 @@
+[package]
+name = "rca-exec"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "`rca-exec` (`wf exec`): the executor that runs at a workspace, connects out to the rca service and performs every action a model takes there"
+
+# The tests are one flow binary (tests/flow.rs): the real adapters on temp directories, real processes and sockets, an in-test WebSocket server as rca.
+# The flow replays the recorded exchanges of the contract crates, so they are its inputs. The hosted tests put the replay double of `gh` and `glab`
+# that exec-testkit builds from its own workspace on the executor's PATH (`uses`). Each crate's directory is named: a wildcard over
+# the crates would leave them out of the hash, because Nx drops the crate projects from a glob that spans them.
+[package.metadata.flow]
+uses = ["exec-testkit"]
+inputs = ["../../libraries/agent-api/exec-fs/tests/fixtures/**", "../../libraries/agent-api/exec-proc/tests/fixtures/**", "../../libraries/agent-api/exec-git/tests/fixtures/**", "../../libraries/agent-api/exec-pty/tests/fixtures/**", "../../libraries/agent-api/exec-hosted/tests/cassettes/**", "../../libraries/agent-api/exec-preview/tests/fixtures/**"]
+
+# The domain's unit tests (`src/domain.rs`) run as `cargo test --lib`.
+[lib]
+doctest = false
+
+[[bin]]
+name = "rca-exec"
+path = "src/bin/rca-exec.rs"
+test = false
+
+[dependencies]
+wf-kit = { path = "../wf-kit" }
+exec-proto = { path = "../../libraries/agent-api/exec-proto" }
+exec-fs = { path = "../../libraries/agent-api/exec-fs" }
+exec-proc = { path = "../../libraries/agent-api/exec-proc" }
+exec-git = { path = "../../libraries/agent-api/exec-git" }
+exec-pty = { path = "../../libraries/agent-api/exec-pty" }
+exec-hosted = { path = "../../libraries/agent-api/exec-hosted" }
+exec-preview = { path = "../../libraries/agent-api/exec-preview" }
+serde_json = { version = "1", features = ["preserve_order"] }
+base64 = "0.22"
+libc = "0.2"
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+
+[dev-dependencies]
+exec-proto = { path = "../../libraries/agent-api/exec-proto", features = ["testing"] }
+exec-fs = { path = "../../libraries/agent-api/exec-fs", features = ["testing"] }
+exec-proc = { path = "../../libraries/agent-api/exec-proc", features = ["testing"] }
+exec-git = { path = "../../libraries/agent-api/exec-git", features = ["testing"] }
+exec-hosted = { path = "../../libraries/agent-api/exec-hosted", features = ["testing"] }
+exec-preview = { path = "../../libraries/agent-api/exec-preview", features = ["testing"] }
+exec-pty = { path = "../../libraries/agent-api/exec-pty", features = ["testing"] }
+tempfile = "3"
+exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }

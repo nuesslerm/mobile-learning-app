@@ -1,0 +1,71 @@
+{
+  "suite": "dashboards",
+  "step": "final-given-a-ready-fixture-with-two-plans-on-one-day-eefca1",
+  "scheme": "dark",
+  "snapshot": "dashboards/final-given-a-ready-fixture-with-two-plans-on-one-day-eefca1.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "AgentsDashboardScreen",
+      "AgentsDashboardScreenHeader",
+      "AgentsDashboardScreenHeaderBack",
+      "AgentsDashboardScreenHeaderTitle",
+      "AgentsDashboardScreen-ScrollView",
+      "AgentsMeasureSelector",
+      "AgentsMeasureSelectorControl",
+      "AgentsMeasureSelectorControl-tokens",
+      "AgentsMeasureSelectorControl-cost",
+      "AgentsMeasureSelectorControl-notional",
+      "AgentsBreadcrumb",
+      "AgentsBreadcrumb-0",
+      "AgentsDashboardScreen-Content",
+      "AgentsDashboardScreen-OverviewSummary",
+      "AgentsOverviewCard",
+      "AgentsOverviewTitle",
+      "AgentsOverviewChart",
+      "AgentsOverviewChart-Canvas",
+      "AgentsOverviewChart-Segments",
+      "AgentsOverviewChart-Bar-0",
+      "AgentsOverviewChart-Bar-0-Label",
+      "AgentsOverviewChart-Bar-0-Segment-0",
+      "AgentsOverviewChart-Bar-0-Segment-1"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nAgents\nTokens\nCost\nNotional\nAll plans\n2 plans · 7 of 9 runIds joined to a run record\nTokens per day\n09-12\ncoding-agent\nsettings-screen"
+  },
+  "timings": {
+    "render_ms": 252
+  },
+  "name": "dashboards/final-given-a-ready-fixture-with-two-plans-on-one-day-eefca1.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

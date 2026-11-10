@@ -1,0 +1,37 @@
+name: CI (self-hosted)
+
+# The production CI: pipeline.yml with the VM's runner (flavor vm), one job at a time, shipping (latest images, the EAS Update, the clis build) and running
+# the device suites. The job graph and every rule live in pipeline.yml; the GitHub-hosted caller (ci-hosted.yml) differs only in its `with:`, its triggers,
+# its name and its concurrency group. Commit tags: docs/solutions/ci/one-pipeline-two-flavors.md.
+on:
+  push:
+    branches: [dev]
+    # a push that changes no file starts no run, because no path matches: the Gem sync is triggered by such an EMPTY commit ([gem-sync], see
+    # repomix-gemini-context.yml), and a trigger must neither run this pipeline nor take the place of a run of it that is still waiting
+    paths: ['**', '.*', '.*/**']
+
+# One run at a time; a newer push replaces a run still waiting, so a backlog never deploys old commits over newer ones.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  run:
+    uses: ./.github/workflows/pipeline.yml
+    with:
+      flavor: vm
+      runner: '["self-hosted","vm"]'
+      deploy_runner: '["self-hosted","vm"]'
+      shards: 1
+      ship: true
+      deploy: true
+      e2e: true
+    secrets:
+      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}

@@ -1,0 +1,109 @@
+name: Vault parity
+
+# The same two vault tokens must give a job the same keys and values on a GitHub-hosted runner as on the VM runner (Phase 2 and 6 of
+# docs/plans/ci-scoped-vault-access/plan.md). Each side runs `wf secret parity` under one nonce and the last job diffs the two JSON documents:
+# key names per scope and a keyed hash of every value, never a value. By hand (workflow_dispatch) or started by scheduled-triggers.yml
+# (dispatch) on an EMPTY commit to dev tagged `[parity]`, never by `push` itself. The hosted side joins the tailnet as tag:ci-gh-hosted
+# for the private cargo registry and builds wf.
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Commit message that triggered the run
+        type: string
+        required: false
+        default: ''
+      sha:
+        description: Commit sha that triggered the run
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+env:
+  PARITY_NONCE: parity-${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  vm:
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    name: parity on the VM runner
+    runs-on: [self-hosted, vm]
+    timeout-minutes: 30
+    env:
+      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          submodules: false
+      - uses: ./.github/actions/install-bws
+      - uses: ./.github/actions/install-wf
+        with:
+          live: "false"
+      - name: Parity report
+        run: |
+          code=0
+          wf secret parity --nonce "$PARITY_NONCE" > "$RUNNER_TEMP/parity-vm.json" || code=$?
+          jq -c '.scopes[] | {scope, held: (.held | length), missing, missingOptional}' "$RUNNER_TEMP/parity-vm.json" || true
+          exit $code
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: parity-vm
+          path: ${{ runner.temp }}/parity-vm.json
+  hosted:
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    name: parity on a hosted runner
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+      BWS_SERVER_URL: https://vault.bitwarden.eu
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          submodules: false
+      - name: Join the tailnet as tag:ci-gh-hosted
+        uses: tailscale/github-action@99a8333667fff04fdd6cffb46dfd409f8329a7bf # v4.3.0
+        with:
+          oauth-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+          tags: tag:ci-gh-hosted
+          use-cache: 'false'
+      - name: Rust toolchain
+        run: rustup toolchain install --profile minimal
+      - uses: ./.github/actions/install-bws
+      - name: Build wf
+        working-directory: clis
+        run: cargo build --release --locked -p wf
+      - name: Parity report
+        run: |
+          code=0
+          clis/target/release/wf secret parity --nonce "$PARITY_NONCE" > "$RUNNER_TEMP/parity-hosted.json" || code=$?
+          jq -c '.scopes[] | {scope, held: (.held | length), missing, missingOptional}' "$RUNNER_TEMP/parity-hosted.json" || true
+          exit $code
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: parity-hosted
+          path: ${{ runner.temp }}/parity-hosted.json
+  compare:
+    needs: [vm, hosted]
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    name: the two reports are identical
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: parity-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/reports
+      - name: Diff
+        working-directory: ${{ runner.temp }}/reports
+        run: |
+          jq -S . parity-vm.json > "$RUNNER_TEMP/vm.sorted"
+          jq -S . parity-hosted.json > "$RUNNER_TEMP/hosted.sorted"
+          diff -u "$RUNNER_TEMP/vm.sorted" "$RUNNER_TEMP/hosted.sorted" && echo "parity: identical key names and value hashes on both runner kinds"

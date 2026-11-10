@@ -1,0 +1,9 @@
+Usage: wf flow <run|goldens> [options]
+
+The flow harness: vitest over the app's *.flow.test.tsx (harness doubles, jsdom), the third runner beside
+`wf browser test` and `wf android test`.
+
+  run [<test file>]   run the flow tests (all, or one file) and write .flow-report/{report.json,index.html,debug.jsonl};
+                      --publish uploads the run as a bundle; --json prints {verdict, exitCode, tests, failed, files,
+                      durationMs, report, debug}
+  goldens             paint the frozen pages a flow run wrote and compare them with the goldens (`wf flow goldens --help`)

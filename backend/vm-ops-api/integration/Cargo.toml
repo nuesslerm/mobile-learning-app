@@ -1,0 +1,37 @@
+[package]
+name = "vm-ops-api-integration"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "vm-ops-api's integration tests: the real service process (VM_OPS_API_CMD, the vm-ops-api-rs binary) over real HTTP, its world doubled"
+
+# Its own workspace and lockfile (seeded from clis/Cargo.lock), so the Rust Dockerfiles that copy every backend workspace
+# member never need this directory. `test:integration` builds it into backend/target with --target-dir.
+[workspace]
+
+[lib]
+test = false
+doctest = false
+
+[[bin]]
+name = "fake-tool"
+path = "src/bin/fake-tool.rs"
+test = false
+
+[dependencies]
+axum = { version = "0.8", default-features = false, features = ["http1", "tokio"] }
+# The Stream trait the fake Engine's follow body implements; axum already builds it.
+futures-core = "0.3"
+tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "process", "rt-multi-thread", "signal", "sync", "time"] }
+reqwest = { version = "0.12", default-features = false, features = ["blocking"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+tempfile = "3"
+uuid = { version = "1", features = ["v4"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl"] }
+ed25519-dalek = { version = "2", default-features = false, features = ["std", "pkcs8", "pem"] }
+hmac = "0.12"
+sha2 = "0.10"
+base64 = "0.22"
+hex = "0.4"
+# kill(2) of the service's process group and its parent-death signal; tokio already builds it.
+libc = "0.2"

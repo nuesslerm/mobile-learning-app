@@ -1,0 +1,88 @@
+Usage: wf cache [options] [command]
+
+The build cache: one OCI Object Storage bucket holds every cache layer, and the
+sandbox and CI share it. Nothing is cached on the VM, so a recreated VM finds it
+all. A store that is unreachable, over budget or refused makes a run cold, never
+red.
+
+Layers (one prefix, one expiry and one verb each; `docs/solutions/ci/cache-layers.md`):
+  nx        Nx task results and declared outputs   nx/        14 days   wf cache nx
+  sccache   Rust compile output                    sccache/   7 days    wf cache sccache
+  pnpm      the downloaded npm packages            pnpm/      60 days   wf cache restore|save pnpm
+  metro     Metro's transform cache and tsc's      metro/     14 days   wf cache restore|save metro
+            build info, one restore-latest object
+
+`wf test run --stage` and `wf check --staged` start a loopback shim that gives
+Nx the bucket (NX_SELF_HOSTED_REMOTE_CACHE_SERVER, a token per run, and
+127.0.0.1,localhost added to NO_PROXY) and stop it when Nx exits. It needs
+BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL (the environment, then
+the vault); when either does not resolve nothing starts and Nx uses its local
+cache alone, as it does under `wf test run --fresh`. The same shim also serves Rust
+compiles when `sccache` is on PATH: it adds RUSTC_WRAPPER=sccache, CARGO_INCREMENTAL=0
+(sccache refuses incremental compiles), a WebDAV endpoint on the loopback and its
+own server port to the Nx child, and prints `wf: compile cache {...}` and
+`wf: sccache {hits, misses}` when it stops. A compile's key includes the target
+directory path, so keep CARGO_TARGET_DIR the same between runs. WF_BLOB_CACHE=off, or
+"enabled": false in clis/blob-cache/data/budget.json, turns the cache off.
+
+A run writes only when the tree is clean (untracked files count; under
+`wf check --staged` what is staged does not), HEAD is an ancestor of origin/dev,
+and node and pnpm are the versions mise.toml pins. Otherwise one stderr line
+gives the reason (`dirty`, `not-on-dev`, `tools-unpinned`) and the run reads
+only. The caps are in clis/blob-cache/data/budget.json.
+
+Every run ends with one stderr line, `wf: build cache <json>`:
+  {"hits": n, "misses": n, "puts": n, "skipped": n, "quotaExceeded": n, "droppedPuts": n,
+   "lastFailure": null | {"class": "unreachable" | "credential" | "rejected" | "quota-exceeded", "status": n | null},
+   "requests": n, "bytes": n,
+   "degraded": null | "unreachable" | "credential" | "budget",
+   "latencyMs": {"get": T, "put": T, "exists": T}}   T = {"n", "sumMs", "maxMs"}
+hits and misses count reads, puts the entries written, skipped the calls that
+sent nothing (cold, read-only, too large, or an entry already there), quotaExceeded
+the writes the tenancy's full Object Storage refused (HTTP 400 StorageQuotaExceeded;
+one extra stderr line `wf: build cache storage quota exceeded` flags it; `wf cache
+guard` makes room), requests
+and bytes what the run spent against its cap, degraded why the run went cold.
+latencyMs is how long the store took to answer the calls that went out: n of
+them, their total and the slowest, in milliseconds (a put is the whole call,
+with its existence check). droppedPuts counts the writes that were wanted and did
+not land (a read-only run is not one: its refusal has its own event), lastFailure the
+class and HTTP status of the last store call that failed, never the store's words.
+
+Each operation also leaves one structured event on stderr (logfmt, source `ci-cache`):
+`cache.restore` / `cache.save` (pnpm, metro, with `error_class` and `error_status` when
+the store failed), `cache.run` (one per shim layer, with seeded_checked and seeded_present: how many of its writes the store holds when asked again), `cache.write.refused` (warn: why the
+run reads only, and for a dirty tree the paths), `cache.put.dropped` (warn),
+`cache.shim.disabled` (warn: why the shared cache is off, also printed as a line),
+`gate.seeding`, `nx.stage.summary`, `drift.report`. The same steps send gauges to the
+Better Stack source named by BETTERSTACK_METRICS_HOST and BETTERSTACK_METRICS_TOKEN
+(labels as scope, name): ci.cache.requests{kind,result}, ci.cache.step_seconds{kind,verb},
+ci.cache.degraded{kind,reason}, ci.cache.seeded{kind,checked|present}, ci.nx.tasks{stage,outcome}, ci.nx.replay_ratio{stage},
+ci.gate.seeded{stage}, ci.drift.tasks_drifted. Best effort: at most 2 seconds, never
+a failed run; WF_CI_METRICS=off turns them off.
+
+The verbs print one JSON object on stdout, documented under each verb; none
+prints a PAR link. `status`, `gc`, `guard` and `purge` are the operator's (`guard`
+also runs in CI). `restore` and `save` keep the pnpm store in the bucket: the CI jobs run `restore` before and
+`save` after `pnpm install --frozen-lockfile`, and neither fails a job.
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  nx <command...>             Run a command with Nx served from the bucket
+  sccache <command...>        Run a command with Rust compiles served from the
+                              bucket (needs sccache on PATH)
+  status [options]            Bytes stored and requests this month against the
+                              caps; exits 1 above either
+  gc [options]                Delete cache objects: --evict-to <bytes>,
+                              --prefix <p>, or --status
+  guard [options]             Keep the tenancy's Object Storage under its cap:
+                              evict above 85 percent down to 70, never fails
+  purge <kind>                Start a new empty generation (every kind starts
+                              over; the old entries expire by lifecycle)
+  restore <kind>              Fill an empty local pnpm store (pnpm) or app build
+                              directory (metro) from the bucket
+  save <kind>                 Upload the pnpm store after a green install, or
+                              the app build directory after a build
+  help [command]              display help for command

@@ -1,0 +1,77 @@
+{
+  "method": "state.set",
+  "exchanges": [
+    {
+      "name": "keeps a value for a device",
+      "request": {
+        "id": "s",
+        "method": "state.set",
+        "params": {
+          "scope": "phone-a",
+          "key": "quickCommands",
+          "value": [
+            "git status",
+            "ls"
+          ]
+        }
+      },
+      "response": {
+        "id": "s",
+        "result": {}
+      }
+    },
+    {
+      "name": "keeps a null value as a value",
+      "request": {
+        "id": 5,
+        "method": "state.set",
+        "params": {
+          "scope": "phone-a",
+          "key": "theme",
+          "value": null
+        }
+      },
+      "response": {
+        "id": 5,
+        "result": {}
+      }
+    },
+    {
+      "name": "refuses a request with no value",
+      "request": {
+        "id": 6,
+        "method": "state.set",
+        "params": {
+          "scope": "phone-a",
+          "key": "quickCommands"
+        }
+      },
+      "response": {
+        "id": 6,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "value is required"
+        }
+      }
+    },
+    {
+      "name": "refuses a request with an empty scope",
+      "request": {
+        "id": 7,
+        "method": "state.set",
+        "params": {
+          "scope": "",
+          "key": "k",
+          "value": 1
+        }
+      },
+      "response": {
+        "id": 7,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "scope and key are required"
+        }
+      }
+    }
+  ]
+}

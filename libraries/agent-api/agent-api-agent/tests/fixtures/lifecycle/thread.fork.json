@@ -1,0 +1,69 @@
+{
+  "method": "thread.fork",
+  "exchanges": [
+    {
+      "name": "refuses a source with no finished turn",
+      "before": [
+        {
+          "id": "setup-create-t-fo",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-fo",
+            "title": "Thread t-fo",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.fork",
+        "params": {
+          "thread": "t-fo"
+        }
+      },
+      "response": {
+        "id": "1",
+        "error": {
+          "code": "NO_STABLE_TURN",
+          "message": "No stable source run was found for fork source latest_stable."
+        }
+      }
+    },
+    {
+      "name": "refuses a fork named as a thread that exists",
+      "request": {
+        "id": "2",
+        "method": "thread.fork",
+        "params": {
+          "thread": "t-fo",
+          "fork": "t-fo"
+        }
+      },
+      "response": {
+        "id": "2",
+        "error": {
+          "code": "THREAD_EXISTS",
+          "message": "thread t-fo already exists"
+        }
+      }
+    },
+    {
+      "name": "answers THREAD_NOT_FOUND for an id no thread has",
+      "request": {
+        "id": "3",
+        "method": "thread.fork",
+        "params": {
+          "thread": "nope"
+        }
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "THREAD_NOT_FOUND",
+          "message": "no thread has the id nope"
+        }
+      }
+    }
+  ]
+}

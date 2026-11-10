@@ -1,0 +1,20 @@
+Usage: wf android start-device [--name N] [--screen WxH@dpi] [--port P] [--with F,...] [--slim | --stock] [--expo-go] [--dry-run]
+
+Starts the on-demand redroid on the VM (container --name, default WF_ANDROID_NAME, else rdl; adb on port --port, default
+5555, of the agent-shell node) and waits for it to boot. A fresh device boots slim: every package outside the core set and
+the --with features is disabled (`wf android list-devices` shows each feature). Idempotent: a running device at the same
+screen is kept as it is unless --slim, --with or --stock is given; one at another screen is stopped and booted again.
+Nothing stays resident between runs, so idle cost is zero. The script's progress goes to stderr; stdout carries the one
+JSON line. Not lease-guarded: nobody holds a lease on a device that is not running.
+
+Options:
+  --screen <WxH@dpi>     screen (default: 480x1040@213: a Galaxy S25 in dp, 360 x 780, fewer pixels than 540x960@240)
+  --expo-go              install Expo Go 57.0.9 once booted (also on a device that is already running)
+  --with <features>      keep these features on, comma separated (camera,files,...)
+  --slim                 apply the slim set to a device that is already running
+  --stock                enable every package again (no slimming)
+  --name <container>     container name (default: WF_ANDROID_NAME, else rdl), to run beside another device
+  --port <n>             host adb port (default: 5555)
+  --dry-run              print the VM script in result.script instead of running it (was --print)
+
+Result: {name, screen, port, expoGo}; with --dry-run {dryRun: true, script}

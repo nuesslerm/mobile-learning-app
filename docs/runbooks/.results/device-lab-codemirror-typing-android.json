@@ -1,0 +1,72 @@
+{
+  "runbook": "device-lab-codemirror-typing.md",
+  "gate": "G3 CodeMirror typing",
+  "sha": "18e8db0197a4c12cbf3451de78904e4bcfcb0c3b",
+  "platform": "android",
+  "ranAt": "2026-10-19T23:38:21.342Z",
+  "ranOn": "ci",
+  "verdict": "pass",
+  "recordingsReadBack": true,
+  "criteria": {
+    "all_units_pass": "pass (5 of 5 units)",
+    "zero_warnings": "pass (0 warnings)",
+    "recorded_and_read_back": "pass (one recording per unit, read back after upload and decoded again for the report)",
+    "unit_under_60s": "pass (longest 36.3 s, median 28.6 s)",
+    "vm_sampled": "pass (10 samples every 20 s over 5 units; load peaked at 5.83, MemAvailable fell to 2739 MB)"
+  },
+  "notes": "CI on the VM, e2e/editor-typing.lua, one unit per job step, screen 127.0.0.1:5555 480x1040@213. Replaces the hand-run record of mid-October; the units, timings and recordings are in the report page.",
+  "evidence": {
+    "page": "https://claude.ai/artifact/A949abTVxxhtbsRf3Qg6hx",
+    "recordingsReadBack": true,
+    "runs": [
+      "run-022fa250ec38c916",
+      "run-7f0ece197a55780b",
+      "run-5d872855cb3e4403",
+      "run-0cad7fe4e049338c",
+      "run-3ad2ddb9f36c2234"
+    ],
+    "units": {
+      "part=1 problem=two-sum": {
+        "runId": "run-022fa250ec38c916",
+        "durationS": 27.5,
+        "verdict": "pass"
+      },
+      "part=1 problem=valid-palindrome": {
+        "runId": "run-7f0ece197a55780b",
+        "durationS": 36.3,
+        "verdict": "pass"
+      },
+      "part=2 problem=two-sum": {
+        "runId": "run-5d872855cb3e4403",
+        "durationS": 27.2,
+        "verdict": "pass"
+      },
+      "part=2 problem=valid-palindrome": {
+        "runId": "run-0cad7fe4e049338c",
+        "durationS": 28.6,
+        "verdict": "pass"
+      },
+      "part=3 problem=valid-palindrome": {
+        "runId": "run-3ad2ddb9f36c2234",
+        "durationS": 32.9,
+        "verdict": "pass"
+      }
+    },
+    "recordings": [
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-022fa250ec38c916/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-7f0ece197a55780b/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-5d872855cb3e4403/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-0cad7fe4e049338c/run.mp4",
+      "https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/run-3ad2ddb9f36c2234/run.mp4"
+    ],
+    "vm": {
+      "everyS": 20,
+      "units": 5,
+      "samples": 10,
+      "failedSamples": 5,
+      "load1Max": 5.83,
+      "memAvailableMinMb": 2739,
+      "device": "not captured in this run: the sampler looked for the rdl container, which lives inside agent-shell-dind; fixed for the next runs"
+    }
+  }
+}

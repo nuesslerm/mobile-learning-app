@@ -1,0 +1,24 @@
+[package]
+name = "rca-group-schedules"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The schedules groups of the service's agent API (schedules, schedules.watch): interval, time-of-day and webhook schedules over the ports ScheduleStore, Clock, Ids and TurnTrigger; a turn a schedule starts goes through the agent group's port, and every run is an event"
+
+[lib]
+name = "rca_group_schedules"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+# The doubles of the ports, for the service crate's tests
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-schedules = { path = "../../../libraries/agent-api/agent-api-schedules" }
+rca-agent-core = { path = "../agent-core" }

@@ -1,0 +1,1 @@
+mypid=$$; echo "$mypid" > "$1/pid"; trap 'echo 143 > "$1/exit-code" 2>/dev/null; exit 143' TERM; sh "$1/script.sh" > "$1/output.log" 2>&1 & script_pid=$!; ( sleep "$2"; kill -TERM -"$mypid" 2>/dev/null ) & wait "$script_pid"; code=$?; trap - TERM; echo "$code" > "$1/exit-code"; kill -TERM -"$mypid" 2>/dev/null

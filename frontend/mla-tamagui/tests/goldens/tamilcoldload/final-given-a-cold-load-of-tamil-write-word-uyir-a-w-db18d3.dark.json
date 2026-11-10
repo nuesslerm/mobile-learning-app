@@ -1,0 +1,72 @@
+{
+  "suite": "tamilcoldload",
+  "step": "final-given-a-cold-load-of-tamil-write-word-uyir-a-w-db18d3",
+  "scheme": "dark",
+  "snapshot": "tamilcoldload/final-given-a-cold-load-of-tamil-write-word-uyir-a-w-db18d3.html",
+  "viewport": {
+    "width": 393,
+    "height": 852
+  },
+  "screen": {
+    "width": 393,
+    "height": 852,
+    "page_height": 852
+  },
+  "summary": {
+    "testids": [
+      "AppDrawer",
+      "AppDrawerTitle",
+      "AppDrawerSubtitle",
+      "DrawerItemHome",
+      "DrawerItemHomeLabel",
+      "DrawerItemShowcase",
+      "DrawerItemShowcaseLabel",
+      "DrawerItemCodingAgent",
+      "DrawerItemCodingAgentLabel",
+      "DrawerItemTamil",
+      "DrawerItemTamilLabel",
+      "DrawerItemSettings",
+      "DrawerItemSettingsLabel",
+      "DrawerItemDashboards",
+      "DrawerItemDashboardsLabel",
+      "TamilWriteScreen",
+      "TamilWriteHeader",
+      "TamilWriteHeaderBack",
+      "TamilWriteHeaderTitle",
+      "TamilWriteHeaderSubtitle",
+      "TamilWriteStepsCard",
+      "TamilWriteStepNumber1",
+      "TamilWriteStep1",
+      "TamilWriteStepNumber2",
+      "TamilWriteStep2",
+      "TamilWriteStepNumber3",
+      "TamilWriteStep3",
+      "TamilWriteCanvas",
+      "TamilWriteCanvasGuide",
+      "TamilWriteCanvasGuideMeasure",
+      "TamilWriteCanvasGuideGlyph",
+      "TamilWriteCanvasSurface",
+      "TamilWriteHint",
+      "TamilWriteToggleTemplate",
+      "TamilWriteUndo",
+      "TamilWriteClear",
+      "TamilWriteToggleSteps",
+      "TamilWriteCheck",
+      "TamilWriteNext"
+    ],
+    "text": "mla-tamagui\nApp #2 · Tamagui\nBlind 75\nDesign system\nCoding agent\nTamil writing\nSettings\nDashboards\nஅம்மா · ammā\nmother\n1.\nஅ — a (அகரம்)\n2.\nம் — m (மகரம்)\n3.\nமா — mā (ம் + ஆ)\nஅம்மா\nஅம்மா\nWrite it as large as you like.\nHide steps\nCheck my writing"
+  },
+  "timings": {
+    "render_ms": 459
+  },
+  "name": "tamilcoldload/final-given-a-cold-load-of-tamil-write-word-uyir-a-w-db18d3.dark",
+  "image": {
+    "width": 360,
+    "height": 780
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.0001,
+    "ignore": []
+  }
+}

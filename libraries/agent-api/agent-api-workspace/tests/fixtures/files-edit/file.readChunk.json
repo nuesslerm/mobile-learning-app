@@ -1,0 +1,70 @@
+{
+  "method": "file.readChunk",
+  "exchanges": [
+    {
+      "name": "reads a byte range of a file, base64 encoded",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "data.bin",
+          "offset": 2,
+          "length": 3
+        },
+        "id": 1,
+        "method": "file.readChunk"
+      },
+      "response": {
+        "result": {
+          "data": "Y2Rl",
+          "offset": 2,
+          "bytes": 3,
+          "total_bytes": 6,
+          "eof": false
+        },
+        "id": 1
+      },
+      "actions": [
+        "read_chunk"
+      ]
+    },
+    {
+      "name": "relays the executor's refusal of a file that is not there",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "missing.bin"
+        },
+        "id": 2,
+        "method": "file.readChunk"
+      },
+      "response": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "missing.bin does not exist"
+        },
+        "id": 2
+      },
+      "actions": [
+        "read_chunk"
+      ]
+    },
+    {
+      "name": "needs a path before it asks the executor",
+      "request": {
+        "params": {
+          "workspace": "w1"
+        },
+        "id": 3,
+        "method": "file.readChunk"
+      },
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "path is required"
+        },
+        "id": 3
+      },
+      "actions": []
+    }
+  ]
+}

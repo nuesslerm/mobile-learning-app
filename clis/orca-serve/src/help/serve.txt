@@ -1,0 +1,29 @@
+Usage: orca-serve serve [options]
+
+Run the Orca-compatible server: a phone paired with it (see `orca-serve pair`) speaks Orca's
+encrypted WebSocket protocol to it, and it answers from rca's agent API. GET /health answers
+{ok, service, version, commit} without authentication.
+
+On start it checks rca's service.status (protocol and groups) and refuses to start against a
+service it cannot work with. It prints one JSON line when it listens, then runs until stopped:
+  {ok, event: "listening", address, port, runtimeId, stateDir}
+ok is false, with exit 1, when rca does not answer, the bearer is missing, the port is taken or
+the state directory is not writable (error and next say which).
+
+Without --mobile-web-dir the host holds no web bundle: mobileWeb.bundle.* answers mobile_web_bundle_unavailable and status.get does not
+advertise mobileWeb.bundle.v1. A directory whose manifest fails the pinned checks is logged and served as none.
+
+The state directory holds host-key.json (the host's x25519 identity, mode 0600), devices.json
+(paired devices and their tokens, mode 0600) and runtime-id.
+
+Options:
+  --rca-url <url>      rca's agent API, http://host:port or ws://host:port (ORCA_RCA_URL; required)
+  --state-dir <dir>    where the key, devices and runtime id live (ORCA_STATE_DIR; default ~/.local/share/orca-serve)
+  --bind <address>     interface to listen on (ORCA_BIND; default 127.0.0.1)
+  --port <n>           port (ORCA_PORT; default 6768; 0 picks a free one)
+  --label <name>       the machine name the phone shows (ORCA_LABEL; default rca)
+  --mobile-web-dir <dir>  the phone web page to serve: manifest.json and the assets it lists (ORCA_MOBILE_WEB_DIR; default none)
+  --healthcheck        ask the server of this configuration for /health and exit 0 when it answers 200
+
+Environment:
+  ORCA_RCA_BEARER      the device bearer for rca's agent API (wf offload bearers mint --label orca); required

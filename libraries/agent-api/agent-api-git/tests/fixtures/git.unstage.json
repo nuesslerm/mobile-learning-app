@@ -1,0 +1,39 @@
+{
+  "method": "git.unstage",
+  "exchanges": [
+    {
+      "name": "unstages a path",
+      "before": [
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "README.md"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.unstage",
+        "params": {
+          "workspace": "w1",
+          "paths": [
+            "README.md"
+          ]
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "paths": 1
+        }
+      },
+      "actions": [
+        "git_unstage"
+      ]
+    }
+  ]
+}

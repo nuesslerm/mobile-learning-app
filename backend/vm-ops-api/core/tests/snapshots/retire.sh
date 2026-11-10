@@ -1,0 +1,1 @@
+docker compose -p old-app down --volumes --remove-orphans

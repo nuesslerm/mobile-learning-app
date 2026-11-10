@@ -1,0 +1,7 @@
+Usage: wf vm deps add [options] <manager> <name>
+
+Record a dependency in the manifest. Idempotent -- adding an existing entry is a
+no-op.
+
+Options:
+  -h, --help  display help for command

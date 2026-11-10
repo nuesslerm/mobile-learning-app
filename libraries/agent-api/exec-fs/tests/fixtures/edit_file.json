@@ -1,0 +1,35 @@
+{
+  "action": "edit_file",
+  "exchanges": [
+    {
+      "name": "replaces the one occurrence",
+      "setup": {"files": {"a.txt": "one\ntwo\nthree\n"}},
+      "request": {"id": "e1", "tool": "edit_file", "args": {"path": "a.txt", "old": "two", "new": "2"}},
+      "response": {"id": "e1", "ok": true, "result": {"replacements": 1}}
+    },
+    {
+      "name": "replaces every occurrence when asked",
+      "setup": {"files": {"a.txt": "x y x\n"}},
+      "request": {"id": "e2", "tool": "edit_file", "args": {"path": "a.txt", "old": "x", "new": "z", "replace_all": true}},
+      "response": {"id": "e2", "ok": true, "result": {"replacements": 2}}
+    },
+    {
+      "name": "refuses text that is not in the file",
+      "setup": {"files": {"a.txt": "one\n"}},
+      "request": {"id": "e3", "tool": "edit_file", "args": {"path": "a.txt", "old": "two", "new": "2"}},
+      "response": {"id": "e3", "ok": false, "error": {"code": "EDIT_NOT_FOUND", "message": "`old` does not occur in a.txt"}}
+    },
+    {
+      "name": "refuses text that occurs twice unless every occurrence is asked for",
+      "setup": {"files": {"a.txt": "x y x\n"}},
+      "request": {"id": "e4", "tool": "edit_file", "args": {"path": "a.txt", "old": "x", "new": "z"}},
+      "response": {"id": "e4", "ok": false, "error": {"code": "EDIT_AMBIGUOUS", "message": "`old` occurs 2 times in a.txt; add context or set replace_all"}}
+    },
+    {
+      "name": "refuses an empty text to replace",
+      "setup": {"files": {"a.txt": "one\n"}},
+      "request": {"id": "e5", "tool": "edit_file", "args": {"path": "a.txt", "old": "", "new": "z"}},
+      "response": {"id": "e5", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`old` must not be empty"}}
+    }
+  ]
+}

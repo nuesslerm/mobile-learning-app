@@ -1,0 +1,16 @@
+# The Orca oracle (mimic plan X6). One driver (the phone's own transport) for both targets; which host it talks to is the run's
+# environment: ORCA_ORCAD_CHECKOUT (orcad built at the pin, the VM) or ORCA_PAIRING_URI (a running host, a double, orca-serve).
+corpus = "corpus.json"
+allowlist = "allowlist.json"
+
+[reference]
+name = "orca"
+command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca"]
+pin = "../../../../tooling/orca-conformance/orca-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"
+live_when_named = "orcad is built at the pin on the VM (arm64): verify <set> --live runs it, --all --live never does"
+timeout_ms = 600000
+
+[candidate.orca-serve]
+command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca"]

@@ -1,0 +1,14 @@
+name: Install bws
+description: The Bitwarden Secrets Manager CLI at the version mise.toml pins, so wf can resolve vault secrets.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        command -v bws >/dev/null && exit 0
+        tag=$(grep -o 'bws-v[0-9][0-9.]*' mise.toml | head -1)
+        version=${tag#bws-v}
+        curl -fsSL "https://github.com/bitwarden/sdk-sm/releases/download/${tag}/bws-$(uname -m)-unknown-linux-gnu-${version}.zip" -o /tmp/bws.zip
+        unzip -o /tmp/bws.zip -d /usr/local/bin
+        chmod +x /usr/local/bin/bws
+        bws --version

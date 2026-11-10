@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "initial_route": {
+      "type": ["string", "null"],
+      "description": "Route to cold-start the dev app on. Allowed values are the route paths in app/.",
+      "enum": [
+        null,
+        "/",
+        "/service-report",
+        "/leetcode/login",
+        "/leetcode/toolbar",
+        "/leetcode/two-sum",
+        "/leetcode/contains-duplicate",
+        "/leetcode/group-anagrams"
+      ]
+    },
+    "feature_flags": {
+      "type": "object",
+      "additionalProperties": { "type": "boolean" },
+      "description": "Booleans read at boot via DevRuntimeConfig.isFeatureEnabled(name). Known flags: debug_overlay (show debug FAB + sheet, default true).",
+      "properties": {
+        "debug_overlay": {
+          "type": "boolean",
+          "description": "Show the debug FAB and bottom sheet. Set false to hide in dev/staging."
+        }
+      }
+    }
+  },
+  "required": ["initial_route", "feature_flags"],
+  "additionalProperties": false
+}

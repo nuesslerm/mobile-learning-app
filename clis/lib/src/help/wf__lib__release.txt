@@ -1,0 +1,30 @@
+Usage: wf lib release [options] <library> <bump>
+
+Release a library from libraries.json: <bump> is major, minor or patch. The
+crate's [package] version is raised, the library's registry adapter publishes it,
+and when that fails the manifest is put back. A version is never replaced: a
+second release of a version is refused before anything is touched, and a fix is
+a new version.
+
+bucket-sparse: `cargo package` the crate, upload crates/<name>/<version>.crate
+with an if-absent write, append the version to the crate's sparse index file
+(index/1/a, index/2/ab, index/3/a/abc, index/ab/cd/abcd...; the current file is read
+through the read proxy) and write index/config.json, all under libs/ of the one
+private bucket. config.json's `dl` is <proxy base>/dl/{crate}/{version}.crate, derived
+from indexUrl; it holds no bucket link and no api field.
+cargo-publish: `cargo publish --registry <alias>` with the registry and its token
+passed in the environment of that one child. A library whose own dependencies on
+other libraries are still paths is refused by cargo packaging: release in
+dependency order.
+
+Output: one JSON object on stdout {ok, crate, previous, version, bump, registry,
+publisher, objects, checksum, bytes, warnings}; objects are the keys written
+(bucket-sparse), checksum the sha256 of the .crate. cargo-semver-checks is not
+run yet; the warning says so. A failure prints {ok: false, error, next}.
+
+Arguments:
+  library   a name in libraries.json (rust kind)
+  bump      major, minor or patch
+
+Options:
+  -h, --help  display help for command

@@ -1,0 +1,8 @@
+Usage: wf browser set-breakpoint <file:line[:condition]> [--device N]
+
+Arms a pausing breakpoint on an original source line, resolved through the page's source maps (a path suffix is enough;
+an unknown file fails naming the files that have maps). The condition runs in the page's scope. When it hits, the page
+holds there: read it with debug-eval, move with debug-step, release it with debug-resume. A logpoint that never pauses is
+armed by the test (`wf browser test --logpoint file:line[:cond]`). Browser only: there is no Android debugger.
+
+Result: {id, file, line, resolved, scripts}

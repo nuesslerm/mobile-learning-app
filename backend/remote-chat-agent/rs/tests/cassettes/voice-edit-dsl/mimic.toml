@@ -1,0 +1,13 @@
+# What the TypeScript voice-edit DSL answers for validated, repaired, completed and normalised inputs: the reference of the Rust port
+# (rca_service_core::domain::voice_dsl) that tests/flow/voice.rs replays. The pin is the git tree of the library's src (its own tests and tooling do not move it), so an edit to the code
+# makes `wf mimic verify` fail until the set is re-recorded: wf mimic record backend/remote-chat-agent/rs/tests/cassettes/voice-edit-dsl
+rules = "rules.json"
+corpus = "corpus.json"
+
+[reference]
+driver = "stdio"
+name = "voice-edit-dsl"
+version = "1.0.0"
+command = ["node", "../../../../../../tooling/mimic-drivers/src/cli.ts", "serve", "voice-edit-dsl"]
+env = { NODE_NO_WARNINGS = "1" }
+pin_tree = "../../../../../../frontend/libraries/voice-edit-dsl/src"

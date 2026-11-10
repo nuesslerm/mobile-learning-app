@@ -1,0 +1,76 @@
+name: CI budget
+
+# Flips the `CI_BUDGET_LOW` repository Actions Variable, which ci-gate.yml's
+# `decide` job and ci.yml's `fast` job both gate on (`if: vars.CI_BUDGET_LOW
+# != 'true'`). When it's true those jobs show as SKIPPED, not FAILED.
+#
+# WHY THIS EXISTS: once this account's GitHub Actions minutes are exhausted
+# for the month, every job -- cheap or expensive -- fails near-instantly with
+# an empty log, because GitHub never provisions a runner for it at all (see
+# docs/known-gaps.md #16). That is a chicken-and-egg problem for any check
+# living INSIDE the affected workflow: a "do we have minutes left?" step
+# needs a runner too, and by definition there isn't one. A job-level `if:`
+# condition sidesteps this because GitHub's orchestrator evaluates it BEFORE
+# requesting a runner -- it costs no minutes and works even at true zero, as
+# long as the variable was already set correctly beforehand. This workflow is
+# what sets it.
+#
+# Two triggers, no live billing check, no new credential:
+#   - workflow_dispatch: one tap from the Actions tab (works from a phone) to
+#     silence CI for the rest of an exhausted month (value true, the default)
+#     or to resume it (value false). This is the manual step -- this session's
+#     own GitHub access cannot write a repo Actions Variable (same access wall
+#     as docs/known-gaps.md #16: `gh`/direct API calls 403 with "GitHub access
+#     is not enabled for this session"), so it needs a human's tap, not an
+#     agent's.
+#   - an EMPTY commit to dev whose message carries [ci-budget-reset]: sets it
+#     back to false (started by scheduled-triggers.yml via dispatch, never by
+#     'push' itself). A Claude scheduled task ("CI budget reset clock") pushes
+#     it at the start of every month, so CI resumes at the start of every new
+#     billing cycle (a calendar-UTC approximation of the real per-account
+#     boundary). GitHub's own `schedule` was dropped: it starts hours late in
+#     this private repo.
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: 'Commit message that triggered this run (set by scheduled-triggers.yml)'
+        type: string
+        required: false
+        default: ''
+      sha:
+        description: 'Commit sha that triggered this run (set by scheduled-triggers.yml)'
+        type: string
+        required: false
+        default: ''
+      value:
+        description: 'CI_BUDGET_LOW: true silences CI for the rest of the billing cycle, false resumes it'
+        type: choice
+        options: ['true', 'false']
+        default: 'true'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  set-budget-flag:
+    name: Set CI_BUDGET_LOW
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Set the flag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VALUE: ${{ inputs.message != '' && 'false' || inputs.value }}
+          COMMIT_MESSAGE: ${{ inputs.message }}
+        run: |
+          set -euo pipefail
+          if [ "$VALUE" = 'true' ]; then
+            REASON='manual dispatch -- silencing CI for the rest of this billing cycle'
+          else
+            REASON='manual dispatch -- resuming CI'
+          fi
+          gh variable set CI_BUDGET_LOW --body "$VALUE" --repo "${{ github.repository }}"
+          echo "CI_BUDGET_LOW=$VALUE ($REASON)" >> "$GITHUB_STEP_SUMMARY"

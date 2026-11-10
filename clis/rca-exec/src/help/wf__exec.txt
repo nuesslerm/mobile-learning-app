@@ -1,0 +1,21 @@
+Usage: wf exec [options] [command]
+
+The executor of an rca workspace (docs/plans/rca-client/architecture.md). It runs
+at the workspace, connects out to the rca service and performs every action a
+model takes there: run a command, read, write, edit, list, search and cancel,
+each confined to --root (docs/plans/rca-client/protocol.md). The agent CLIs run
+in the rca service; this is the only part that touches the workspace.
+
+This is the separate binary rca-exec: `wf exec ...` runs `rca-exec exec ...` in
+its place, found beside wf, else on PATH; `rca-exec serve ...` works too.
+
+Every line on stdout is one JSON object and no verb prompts. A failure prints
+{ok: false, error, next} and exits 1; a malformed line exits 2.
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  serve [options]             Attach to rca and serve a workspace until the
+                              channel closes
+  help [command]              display help for command

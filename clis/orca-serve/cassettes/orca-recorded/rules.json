@@ -1,0 +1,17 @@
+{
+  "schema": "mimic-rules/1",
+  "rules": [
+    { "kind": "uuid-ordinal" },
+    { "kind": "pointer", "pointer": "/steps/1/payload/result/rateLimits/antigravity/updatedAt", "placeholder": "<volatile:updatedAt>", "interaction": "orca-accounts.list" },
+    { "kind": "pointer", "pointer": "/steps/1/payload/result/rateLimits/claude/updatedAt", "placeholder": "<volatile:updatedAt>", "interaction": "orca-accounts.list" },
+    { "kind": "pointer", "pointer": "/steps/1/payload/result/rateLimits/codex/updatedAt", "placeholder": "<volatile:updatedAt>", "interaction": "orca-accounts.list" },
+    { "kind": "pointer", "pointer": "/steps/1/payload/result/rateLimits/cursor/updatedAt", "placeholder": "<volatile:updatedAt>", "interaction": "orca-accounts.list" },
+    { "kind": "pointer", "pointer": "/steps/1/payload/result/rateLimits/gemini/updatedAt", "placeholder": "<volatile:updatedAt>", "interaction": "orca-accounts.list" },
+    { "kind": "pointer", "pointer": "/steps/1/payload/result/rateLimits/grok/updatedAt", "placeholder": "<volatile:updatedAt>", "interaction": "orca-accounts.list" },
+    { "kind": "pointer", "pointer": "/steps/1/payload/result/rateLimits/kimi/updatedAt", "placeholder": "<volatile:updatedAt>", "interaction": "orca-accounts.list" },
+    { "kind": "pointer", "pointer": "/steps/1/payload/result/rateLimits/minimax/updatedAt", "placeholder": "<volatile:updatedAt>", "interaction": "orca-accounts.list" },
+    { "kind": "pointer", "pointer": "/steps/1/payload/result/rateLimits/opencodeGo/updatedAt", "placeholder": "<volatile:updatedAt>", "interaction": "orca-accounts.list" },
+    { "kind": "pointer", "pointer": "/steps/1/payload/result/rateLimits/zcode/updatedAt", "placeholder": "<volatile:updatedAt>", "interaction": "orca-accounts.list" },
+    { "kind": "pointer", "pointer": "/steps/1/payload/result/scannedAt", "placeholder": "<volatile:scannedAt>", "interaction": "orca-skills.discover" }
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "instructions": ".agents/instructions",
+  "commands": [
+    ".agents/commands"
+  ],
+  "skills": [
+    ".agents/skills"
+  ],
+  "rules": [
+    ".agents/rules/delegation.md"
+  ],
+  "setup": ".agents/setup.sh"
+}

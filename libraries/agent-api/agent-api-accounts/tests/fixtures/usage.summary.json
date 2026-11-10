@@ -1,0 +1,35 @@
+{
+  "method": "usage.summary",
+  "exchanges": [
+    {
+      "name": "shows each provider and its usage where something reports it",
+      "request": {
+        "id": 1,
+        "method": "usage.summary",
+        "params": {}
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "providers": [
+            {
+              "provider": "opencode",
+              "status": "signed_out",
+              "usage": null
+            },
+            {
+              "provider": "claudeAgent",
+              "status": "signed_out",
+              "usage": null
+            },
+            {
+              "provider": "codex",
+              "status": "signed_out",
+              "usage": null
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

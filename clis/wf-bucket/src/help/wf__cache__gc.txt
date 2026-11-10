@@ -1,0 +1,20 @@
+Usage: wf cache gc [options]
+
+Delete cache objects. The bucket's lifecycle rules expire entries by age on
+their own; this is for an overrun. Needs the operator's `oci` and ~/.oci. Give
+exactly one option. The generation pointer (meta/generation) is never deleted by
+--evict-to, nor by a --prefix that does not start with meta/: losing it would
+send every reader back to generation 0.
+
+Output: one JSON object on stdout {ok, deleted, freedBytes, storedBytes}, the
+bytes counted from the object listing; ok is false, with exit 1, when --evict-to
+could not reach its target. With --status {ok, storedBytes, objects}, counted the
+same way, and nothing is deleted. A failure (no oci, no key, a call refused)
+prints {ok: false, error} and exits 1; a malformed line exits 2.
+
+Options:
+  --status            report what is stored and delete nothing
+  --evict-to <bytes>  delete the oldest objects, by creation time, until the
+                      bucket holds at most this many bytes
+  --prefix <p>        delete every object whose name starts with <p> (not empty)
+  -h, --help          display help for command

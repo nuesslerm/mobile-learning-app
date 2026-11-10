@@ -1,0 +1,25 @@
+[package]
+name = "watchdog-rs"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "watchdog_service"
+path = "src/lib.rs"
+
+[[bin]]
+name = "watchdog-rs"
+path = "src/main.rs"
+
+[dependencies]
+async-trait.workspace = true
+clap.workspace = true
+serde_json.workspace = true
+service-kit = { version = "0.1", registry = "mla" }
+tokio = { workspace = true, features = ["fs", "io-util", "net", "process", "rt-multi-thread", "signal"] }
+tracing.workspace = true
+watchdog-core = { path = "../core" }
+
+[dev-dependencies]
+axum.workspace = true

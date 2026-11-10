@@ -1,0 +1,70 @@
+Usage: wf parity coverage --app t3|orca [--check] [--traces <dir|bundle>] [--root <dir>] [--base <rev>]
+
+Scan the pinned phone app and build its coverage table. The reference is
+references/t3code (pinned by tooling/t3-conformance/t3-pin.json) or
+references/orca (tooling/orca-conformance/orca-pin.json). The scan follows the
+phone's import graph (apps/mobile into packages/client-runtime; mobile/ into
+src/shared) and counts a library method only when the phone uses its
+declaration. It writes docs/plans/rca-parity/coverage/<app>-methods.json; the
+table <app>.json and <app>.md are built from that list, the hand-kept
+<app>-decisions.json (milestones by row id or `prefix*`, T3 command targets,
+not-offered and excluded rows) and what the mapper answers today (t3 serve's
+RPC, command and mutation lists and its HTTP routes). A row is served only with
+evidence: a passing test of a complete integration chain run whose method-hit
+trace shows the row's call answered and, for a command or mutation whose target
+is agent:<method>, that method answered in the same call's window. The evidence
+of record is the checked-in <app>-evidence.json (row to the test, the agent
+methods and the executor tools); a row the mapper only answers stays pending,
+with a note, and a row with a `reverify` note in the decisions stays pending
+whatever a trace says (the mapper refuses it, or answers without doing it).
+A row whose decision says `"oracle": "mimic"` is served only by a `wf mimic replay
+--suite` trace: a call labelled `diff` clean or allowlisted, in a test whose
+`cassette` is `recorded`; a chain call, a drift, or an authored or imported
+cassette never serves it. Its evidence entry then names `oracle`, `diff` and
+`cassette`, and the table's note shows them.
+
+--traces refreshes the evidence from a chain run: the test output dir
+(WF_TEST_OUTPUT_DIR, every <suite>/trace.json under it), one trace.json, or the
+bundle.json `wf test publish` made of the run (a path or its URL; its `traces`
+list is read). A write rewrites <app>-evidence.json and the tables from it; a
+check compares the checked-in evidence with it. Without --traces the checked-in
+evidence stands, so a check never needs the run. The evidence records where the
+traces were read only as a URL or a path inside the repository (--traces paths
+under the root are made relative); an absolute or scratch path is left out, and
+a checked-in file that has one fails the check.
+
+Without the reference checked out, the table is rebuilt from the checked-in
+method list. A reference checked out at another commit than its pin is refused
+for a write.
+
+Options:
+  --app <t3|orca>             The phone app
+  --check                     Write nothing: fail when the checked-in files
+                              (the evidence file too, with --traces) differ
+                              from what is built, a row has no milestone or
+                              decidedBy of the form M<n>, a T3
+                              command row has no target of the form
+                              agent:<method>, state:<key> or t3-local, a
+                              not-offered row has no reason, a row claims
+                              served without evidence, the evidence names a row
+                              the table does not serve, a trace names a row the
+                              phone does not reach, or pending rose
+  --traces <dir|bundle>       The method-hit traces of a chain run: a test output
+                              dir, a trace.json, or a bundle.json (path or URL)
+  --root <dir>                The repository root (default: the git top level)
+  --base <rev>                What pending is compared with (default HEAD when
+                              the table is dirty, else HEAD^); a commit since it
+                              whose message carries 'parity: pin-bump' may
+                              raise it
+  -h, --help                  display help for command
+
+Output, one JSON object: {ok, app, mode, source: "reference-scan" or
+"methods-list", reference: {dir, head, pin, atPin}, counts, summary: {rows,
+served, pending, notOffered, excluded, flagged, answeredByMapper, byKind,
+pendingByMilestone}, evidence: {file, rows, refreshedFrom (a URL or a repository path, else null)}, problems: [{rule,
+message, rows}], wrote (write mode)}.
+Rules: stale, unassigned, untargeted, incomplete-decision,
+served-without-evidence, stale-evidence, unknown-trace-row, stale-decision,
+pending-rose, scratch-trace-path. A write reports the
+problems and exits 0; --check exits 1 on any. A refusal prints {ok: false,
+app, error, next} and exits 1.

@@ -1,0 +1,14 @@
+[
+  [
+    "run",
+    "--pull",
+    "missing",
+    "--rm",
+    "-v",
+    "/var/run/docker.sock:/var/run/docker.sock",
+    "<image>",
+    "sh",
+    "-c",
+    "docker compose -p old-app down --volumes --remove-orphans"
+  ]
+]

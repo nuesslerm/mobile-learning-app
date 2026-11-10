@@ -1,0 +1,31 @@
+Usage: wf mimic replay [options] <set>
+
+Feed the inputs of the cassette to a [candidate] of the set's mimic.toml, mask
+what it did with the set's rules and diff it with what was recorded, under the
+allowlist. A divergence the allowlist covers counts for nothing and is reported
+with its reason; an entry bound to another pin (pin_hash) has expired. A driver
+failure on one interaction is that interaction's breaking result.
+
+A set whose corpus has a `property` generator stores each generated case with a ladder of smaller inputs of the same shape (ids
+<case>.shrink.<n>, tagged shrink-of:<case>). When a property case fails, `shrunk` names for it the smallest stored input of the ladder
+that still fails (`minimal`, its `input`), so the report carries the minimal case.
+
+Severity: breaking (a missing key, a changed type or length, a changed status),
+drift (an extra key, a changed value), none. Exit 0 only for none.
+
+Options:
+  --target <file>             mimic.toml to use (default <set>/mimic.toml)
+  --candidate <name>          the [candidate.<name>] to run (default: the only one)
+  --only <id,...>             replay these interactions only
+  --allowlist <file>          replace the allowlist of mimic.toml
+  --suite <name>              write $WF_TEST_OUTPUT_DIR/<name>/report.json and
+                              trace.json (method-trace/1 with each call's row and diff, and its test's cassette kind)
+  -h, --help                  display help for command
+
+Output (schema mimic-replay/1):
+  {schema, ok, set, candidate, severity: none|drift|breaking, summary: {total,
+  clean, allowlisted, drift, breaking}, results: [non-clean interactions: {id,
+  row?, severity, label, diffs: [{path, kind: missing|extra|changed|kind,
+  severity, expected?, actual?, allowlisted?: {group, path, reason, phase}}],
+  error?}], shrunk: [{case, minimal, input}], evidence_rows, unused_allowlist, evidence: {report, trace},
+  warnings, next}

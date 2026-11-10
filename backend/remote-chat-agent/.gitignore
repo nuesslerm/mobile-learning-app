@@ -1,0 +1,3 @@
+dist/
+# Tesseract.js downloads language model files into the cwd at runtime
+*.traineddata

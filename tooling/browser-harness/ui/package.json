@@ -1,0 +1,23 @@
+{
+  "name": "@cli/harness-ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@cli/harness-contracts": "workspace:*",
+    "@cli/harness-data": "workspace:*",
+    "@cli/harness-di": "workspace:*",
+    "react": "catalog:",
+    "react-device-frameset": "catalog:"
+  },
+  "devDependencies": {
+    "@typescript/native": "catalog:",
+    "@types/react": "catalog:",
+    "@types/react-dom": "catalog:",
+    "oxlint": "catalog:"
+  },
+  "scripts": {
+    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings",
+    "typecheck": "tsc --noEmit"
+  }
+}

@@ -1,0 +1,10 @@
+id: application-does-not-reach-outward
+language: rust
+severity: error
+message: An application module may not use the infrastructure or api layer; reach it through a port defined in application.
+files:
+  - "**/application/**/*.rs"
+rule:
+  any:
+    - matches: names-infrastructure
+    - matches: names-api

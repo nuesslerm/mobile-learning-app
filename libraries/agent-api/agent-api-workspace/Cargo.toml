@@ -1,0 +1,17 @@
+[package]
+name = "agent-api-workspace"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's workspace and files groups (`workspace.list`, `file.read`, `file.list`, `file.diff`): the methods and how their params are read"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }

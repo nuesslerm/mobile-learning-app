@@ -1,0 +1,445 @@
+{
+  "suite": "startup",
+  "initial": {
+    "recordedAt": "2026-10-06T16:39:51.222Z",
+    "commit": "38da180ac6beb89f0906359c82940a1bd5ca6c91",
+    "runs": 3,
+    "env": {
+      "device": "iphone-15-pro",
+      "settleMs": "1500",
+      "scope": "lab-only (Chromium V8, headless)"
+    },
+    "metrics": {
+      "startupScriptBytes": {
+        "unit": "bytes",
+        "median": 7471433,
+        "min": 7471433,
+        "max": 7471433,
+        "values": [
+          7471433,
+          7471433,
+          7471433
+        ]
+      },
+      "startupExecutedBytes": {
+        "unit": "bytes",
+        "median": 1751672,
+        "min": 1751672,
+        "max": 1751736,
+        "values": [
+          1751672,
+          1751672,
+          1751736
+        ]
+      },
+      "startup.react-native-reanimated.executedBytes": {
+        "unit": "bytes",
+        "median": 262602,
+        "min": 262602,
+        "max": 262602,
+        "values": [
+          262602,
+          262602,
+          262602
+        ]
+      },
+      "startup.react-native-gesture-handler.executedBytes": {
+        "unit": "bytes",
+        "median": 63577,
+        "min": 63577,
+        "max": 63577,
+        "values": [
+          63577,
+          63577,
+          63577
+        ]
+      },
+      "startup.@gorhom/bottom-sheet.executedBytes": {
+        "unit": "bytes",
+        "median": 33185,
+        "min": 33185,
+        "max": 33185,
+        "values": [
+          33185,
+          33185,
+          33185
+        ]
+      },
+      "startup.zod.executedBytes": {
+        "unit": "bytes",
+        "median": 70671,
+        "min": 70671,
+        "max": 70671,
+        "values": [
+          70671,
+          70671,
+          70671
+        ]
+      },
+      "startup.@tamagui/themes.executedBytes": {
+        "unit": "bytes",
+        "median": 32720,
+        "min": 32720,
+        "max": 32720,
+        "values": [
+          32720,
+          32720,
+          32720
+        ]
+      },
+      "startup.@tamagui/config.executedBytes": {
+        "unit": "bytes",
+        "median": 3750,
+        "min": 3750,
+        "max": 3750,
+        "values": [
+          3750,
+          3750,
+          3750
+        ]
+      },
+      "startup.@tamagui/web.executedBytes": {
+        "unit": "bytes",
+        "median": 82697,
+        "min": 82697,
+        "max": 82697,
+        "values": [
+          82697,
+          82697,
+          82697
+        ]
+      },
+      "startup.tamagui.executedBytes": {
+        "unit": "bytes",
+        "median": 27760,
+        "min": 27760,
+        "max": 27760,
+        "values": [
+          27760,
+          27760,
+          27760
+        ]
+      },
+      "startup.sonner-native.executedBytes": {
+        "unit": "bytes",
+        "median": 9736,
+        "min": 9736,
+        "max": 9736,
+        "values": [
+          9736,
+          9736,
+          9736
+        ]
+      },
+      "startup.expo-router.executedBytes": {
+        "unit": "bytes",
+        "median": 160262,
+        "min": 160262,
+        "max": 160262,
+        "values": [
+          160262,
+          160262,
+          160262
+        ]
+      },
+      "startup.react-native-web.executedBytes": {
+        "unit": "bytes",
+        "median": 110800,
+        "min": 110800,
+        "max": 110800,
+        "values": [
+          110800,
+          110800,
+          110800
+        ]
+      },
+      "startup.react-dom.executedBytes": {
+        "unit": "bytes",
+        "median": 67725,
+        "min": 67725,
+        "max": 67761,
+        "values": [
+          67725,
+          67725,
+          67761
+        ]
+      },
+      "startup.react-native-screens.executedBytes": {
+        "unit": "bytes",
+        "median": 6342,
+        "min": 6342,
+        "max": 6342,
+        "values": [
+          6342,
+          6342,
+          6342
+        ]
+      },
+      "startup.react-native-safe-area-context.executedBytes": {
+        "unit": "bytes",
+        "median": 3961,
+        "min": 3961,
+        "max": 3961,
+        "values": [
+          3961,
+          3961,
+          3961
+        ]
+      },
+      "startup.@react-navigation/native.executedBytes": {
+        "unit": "bytes",
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      },
+      "startup.first-party.executedBytes": {
+        "unit": "bytes",
+        "median": 85247,
+        "min": 85247,
+        "max": 85247,
+        "values": [
+          85247,
+          85247,
+          85247
+        ]
+      },
+      "startup.other.executedBytes": {
+        "unit": "bytes",
+        "median": 730637,
+        "min": 730637,
+        "max": 730665,
+        "values": [
+          730637,
+          730637,
+          730665
+        ]
+      }
+    }
+  },
+  "current": {
+    "recordedAt": "2026-10-13T17:17:56.741Z",
+    "commit": "aeaa4f58c52099b2e1451c2b1e05fe6aedfeb53f",
+    "runs": 3,
+    "env": {
+      "device": "iphone-15-pro",
+      "settleMs": "1500",
+      "scope": "lab-only (Chromium V8, headless)"
+    },
+    "metrics": {
+      "startupScriptBytes": {
+        "unit": "bytes",
+        "median": 6858446,
+        "min": 6858446,
+        "max": 6858446,
+        "values": [
+          6858446,
+          6858446,
+          6858446
+        ]
+      },
+      "startupExecutedBytes": {
+        "unit": "bytes",
+        "median": 1614880,
+        "min": 1614880,
+        "max": 1614900,
+        "values": [
+          1614880,
+          1614900,
+          1614880
+        ]
+      },
+      "startup.react-native-reanimated.executedBytes": {
+        "unit": "bytes",
+        "median": 342357,
+        "min": 342357,
+        "max": 342357,
+        "values": [
+          342357,
+          342357,
+          342357
+        ]
+      },
+      "startup.react-native-gesture-handler.executedBytes": {
+        "unit": "bytes",
+        "median": 60891,
+        "min": 60891,
+        "max": 60891,
+        "values": [
+          60891,
+          60891,
+          60891
+        ]
+      },
+      "startup.@gorhom/bottom-sheet.executedBytes": {
+        "unit": "bytes",
+        "median": 188,
+        "min": 188,
+        "max": 188,
+        "values": [
+          188,
+          188,
+          188
+        ]
+      },
+      "startup.zod.executedBytes": {
+        "unit": "bytes",
+        "median": 70671,
+        "min": 70671,
+        "max": 70671,
+        "values": [
+          70671,
+          70671,
+          70671
+        ]
+      },
+      "startup.@tamagui/themes.executedBytes": {
+        "unit": "bytes",
+        "median": 32720,
+        "min": 32720,
+        "max": 32720,
+        "values": [
+          32720,
+          32720,
+          32720
+        ]
+      },
+      "startup.@tamagui/config.executedBytes": {
+        "unit": "bytes",
+        "median": 3750,
+        "min": 3750,
+        "max": 3750,
+        "values": [
+          3750,
+          3750,
+          3750
+        ]
+      },
+      "startup.@tamagui/web.executedBytes": {
+        "unit": "bytes",
+        "median": 82361,
+        "min": 82361,
+        "max": 82361,
+        "values": [
+          82361,
+          82361,
+          82361
+        ]
+      },
+      "startup.tamagui.executedBytes": {
+        "unit": "bytes",
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      },
+      "startup.sonner-native.executedBytes": {
+        "unit": "bytes",
+        "median": 9733,
+        "min": 9733,
+        "max": 9733,
+        "values": [
+          9733,
+          9733,
+          9733
+        ]
+      },
+      "startup.expo-router.executedBytes": {
+        "unit": "bytes",
+        "median": 160194,
+        "min": 160194,
+        "max": 160194,
+        "values": [
+          160194,
+          160194,
+          160194
+        ]
+      },
+      "startup.react-native-web.executedBytes": {
+        "unit": "bytes",
+        "median": 110740,
+        "min": 110740,
+        "max": 110740,
+        "values": [
+          110740,
+          110740,
+          110740
+        ]
+      },
+      "startup.react-dom.executedBytes": {
+        "unit": "bytes",
+        "median": 64710,
+        "min": 64710,
+        "max": 64710,
+        "values": [
+          64710,
+          64710,
+          64710
+        ]
+      },
+      "startup.react-native-screens.executedBytes": {
+        "unit": "bytes",
+        "median": 6342,
+        "min": 6342,
+        "max": 6342,
+        "values": [
+          6342,
+          6342,
+          6342
+        ]
+      },
+      "startup.react-native-safe-area-context.executedBytes": {
+        "unit": "bytes",
+        "median": 3865,
+        "min": 3865,
+        "max": 3865,
+        "values": [
+          3865,
+          3865,
+          3865
+        ]
+      },
+      "startup.@react-navigation/native.executedBytes": {
+        "unit": "bytes",
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      },
+      "startup.first-party.executedBytes": {
+        "unit": "bytes",
+        "median": 84551,
+        "min": 84551,
+        "max": 84571,
+        "values": [
+          84551,
+          84571,
+          84551
+        ]
+      },
+      "startup.other.executedBytes": {
+        "unit": "bytes",
+        "median": 581807,
+        "min": 581807,
+        "max": 581807,
+        "values": [
+          581807,
+          581807,
+          581807
+        ]
+      }
+    }
+  }
+}

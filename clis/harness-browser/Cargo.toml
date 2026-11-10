@@ -1,0 +1,31 @@
+[package]
+name = "harness-browser"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The browser harness: `wf browser`, the browser daemon that drives a Chromium framed as a device, the tunnel and tailnet forward, and the Browser driver of the device command table"
+
+[lib]
+doctest = false
+
+[features]
+# The mock browser daemon and a launched-browser session, which the flow and integration tests of the crates above read a run with.
+testing = ["dep:wf-testkit", "dep:tempfile", "dep:ureq"]
+
+[dependencies]
+harness-core = { path = "../harness-core" }
+wf-kit = { path = "../wf-kit" }
+cdp = { path = "../cdp" }
+rca-core = { version = "0.1", registry = "mla" }
+cli-http = { path = "../http" }
+serde_json = { version = "1", features = ["preserve_order"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+base64 = "0.22"
+tiny_http = "0.12"
+tokio-socks = { version = "0.5", default-features = false, features = ["tokio"] }
+nix = { version = "0.31", default-features = false, features = ["signal", "process"] }
+signal-hook = "0.4"
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "net", "io-util", "time"] }
+wf-testkit = { path = "../wf-testkit", optional = true }
+tempfile = { version = "3", optional = true }
+ureq = { version = "3", default-features = false, optional = true }

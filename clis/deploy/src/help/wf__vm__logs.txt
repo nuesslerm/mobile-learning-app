@@ -1,0 +1,17 @@
+Usage: wf vm logs [options]
+
+Recent BetterStack log lines (default: last 10m of the backend source),
+optionally for one service. Reads the source's recent rows and its archive
+(BetterStack moves older rows out of the recent table), so a quiet source
+such as mobile still answers; the archive adds a few seconds.
+
+Options:
+  --service <name>    Only rows tagged with this service name
+  --since <duration>  Look back this far: e.g. 30s, 5m, 1h, 2d (default 10m)
+  --level <level>     Minimum level: debug|info|warn|error
+  --module <name>     Filter to a single module
+  --grep <substring>  Substring match on the message (case-insensitive)
+  --limit <n>         Max rows to return (default 200)
+  --source <name>     BetterStack source: backend (every backend service + wf
+                      itself) | mobile (published EAS bundles). Default backend
+  -h, --help          display help for command

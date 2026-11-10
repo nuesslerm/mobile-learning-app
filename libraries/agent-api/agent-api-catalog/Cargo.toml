@@ -1,0 +1,22 @@
+[package]
+name = "agent-api-catalog"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's catalog group (models.list, agents.detect, skills.list, commands.list): what a driver offers (models, modes, commands), which agent CLIs an executor has and the skills it holds, the last two read at the executor"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }
+exec-fs = { path = "../exec-fs" }
+exec-proc = { path = "../exec-proc" }

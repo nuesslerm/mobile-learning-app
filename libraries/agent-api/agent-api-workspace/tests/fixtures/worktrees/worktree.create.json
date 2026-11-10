@@ -1,0 +1,99 @@
+{
+  "method": "worktree.create",
+  "exchanges": [
+    {
+      "name": "relays the executor's refusal of a branch that git would read as an option",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "worktree": "wt",
+          "branch": "--orphan"
+        },
+        "id": 1,
+        "method": "worktree.create"
+      },
+      "response": {
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`branch` must be a branch name"
+        },
+        "id": 1
+      },
+      "actions": [
+        "git_worktree_add"
+      ]
+    },
+    {
+      "name": "adds a worktree as a workspace of its own and starts its setup",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "worktree": "wt",
+          "branch": "feature/setup",
+          "base": "HEAD",
+          "setup": [
+            "echo hi",
+            "basename \"$PWD\""
+          ]
+        },
+        "id": 2,
+        "method": "worktree.create"
+      },
+      "response": {
+        "result": {
+          "workspace": "wt",
+          "repo": "w1",
+          "executor": "w1",
+          "path": "/base/wt",
+          "branch": "feature/setup",
+          "head": "0000000",
+          "setup": true
+        },
+        "id": 2
+      },
+      "actions": [
+        "git_worktree_add",
+        "worktree_setup"
+      ]
+    },
+    {
+      "name": "refuses a workspace nobody knows",
+      "request": {
+        "params": {
+          "workspace": "zz",
+          "worktree": "w9",
+          "branch": "b"
+        },
+        "id": 3,
+        "method": "worktree.create"
+      },
+      "response": {
+        "error": {
+          "code": "UNKNOWN_WORKSPACE",
+          "message": "no workspace zz"
+        },
+        "id": 3
+      },
+      "actions": []
+    },
+    {
+      "name": "needs a branch",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "worktree": "wt"
+        },
+        "id": 4,
+        "method": "worktree.create"
+      },
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "branch is required"
+        },
+        "id": 4
+      },
+      "actions": []
+    }
+  ]
+}

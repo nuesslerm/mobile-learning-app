@@ -1,0 +1,234 @@
+{
+  "action": "git_diff",
+  "exchanges": [
+    {
+      "name": "shows the change of one path of the working tree",
+      "setup": {
+        "files": {
+          "a.txt": "one\n",
+          "b.txt": "two\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "one\nmore\n",
+          "b.txt": "changed\n"
+        }
+      },
+      "request": {
+        "id": "d1",
+        "tool": "git_diff",
+        "args": {
+          "path": "a.txt"
+        }
+      },
+      "response": {
+        "id": "d1",
+        "ok": true,
+        "result": {
+          "diff": "diff --git a/a.txt b/a.txt\nindex 5626abf..9a72323 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1 +1,2 @@\n one\n+more\n"
+        }
+      }
+    },
+    {
+      "name": "shows the whole tree against a revision",
+      "setup": {
+        "files": {
+          "a.txt": "one\n",
+          "b.txt": "two\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "one\nmore\n",
+          "b.txt": "changed\n"
+        }
+      },
+      "request": {
+        "id": "d2",
+        "tool": "git_diff",
+        "args": {
+          "base": "HEAD"
+        }
+      },
+      "response": {
+        "id": "d2",
+        "ok": true,
+        "result": {
+          "diff": "diff --git a/a.txt b/a.txt\nindex 5626abf..9a72323 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1 +1,2 @@\n one\n+more\ndiff --git a/b.txt b/b.txt\nindex f719efd..5ea2ed4 100644\n--- a/b.txt\n+++ b/b.txt\n@@ -1 +1 @@\n-two\n+changed\n"
+        }
+      }
+    },
+    {
+      "name": "refuses a base that git would read as an option",
+      "request": {
+        "id": "d3",
+        "tool": "git_diff",
+        "args": {
+          "base": "--output=/tmp/x"
+        }
+      },
+      "response": {
+        "id": "d3",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`base` must be a revision"
+        }
+      }
+    },
+    {
+      "name": "refuses a path outside the root",
+      "request": {
+        "id": "d4",
+        "tool": "git_diff",
+        "args": {
+          "path": "../etc/passwd"
+        }
+      },
+      "response": {
+        "id": "d4",
+        "ok": false,
+        "error": {
+          "code": "PATH_OUTSIDE_ROOT",
+          "message": "../etc/passwd is outside the root"
+        }
+      }
+    },
+    {
+      "name": "shows the change made in a worktree, not the root's, when a worktree is named",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "worktrees": {
+          "wt": "feature/diff"
+        },
+        "worktree_edit": {
+          "wt/a.txt": "one\nmore\n"
+        }
+      },
+      "request": {
+        "id": "d9",
+        "tool": "git_diff",
+        "args": {
+          "worktree": "wt",
+          "path": "a.txt"
+        }
+      },
+      "response": {
+        "id": "d9",
+        "ok": true,
+        "result": {
+          "diff": "diff --git a/a.txt b/a.txt\nindex 5626abf..9a72323 100644\n--- a/a.txt\n+++ b/a.txt\n@@ -1 +1,2 @@\n one\n+more\n"
+        }
+      }
+    },
+    {
+      "name": "refuses a worktree that does not exist, and a path that climbs out of the worktree",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "worktrees": {
+          "wt": "feature/diff"
+        }
+      },
+      "request": {
+        "id": "d10",
+        "tool": "git_diff",
+        "args": {
+          "worktree": "nope"
+        }
+      },
+      "response": {
+        "id": "d10",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "worktree nope does not exist"
+        }
+      }
+    },
+    {
+      "name": "compares two revisions, not the working tree",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n"
+        }
+      },
+      "request": {
+        "id": "d90",
+        "tool": "git_diff",
+        "args": {
+          "base": "HEAD",
+          "head": "HEAD"
+        }
+      },
+      "response": {
+        "id": "d90",
+        "ok": true,
+        "result": {
+          "diff": ""
+        }
+      }
+    },
+    {
+      "name": "shows nothing staged when only the working tree changed",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n"
+        }
+      },
+      "request": {
+        "id": "d91",
+        "tool": "git_diff",
+        "args": {
+          "staged": true
+        }
+      },
+      "response": {
+        "id": "d91",
+        "ok": true,
+        "result": {
+          "diff": ""
+        }
+      }
+    },
+    {
+      "name": "refuses a head without a base",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "edit": {
+          "a.txt": "two\n"
+        }
+      },
+      "request": {
+        "id": "d92",
+        "tool": "git_diff",
+        "args": {
+          "head": "HEAD"
+        }
+      },
+      "response": {
+        "id": "d92",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`head` needs a `base`"
+        }
+      }
+    }
+  ]
+}

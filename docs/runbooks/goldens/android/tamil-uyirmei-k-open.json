@@ -1,0 +1,20 @@
+{
+  "platform": "android",
+  "step": 1,
+  "last_action": "open exp://metro-runner-main:20000/--/tamil/uyirmei-k",
+  "warnings": [],
+  "summary": null,
+  "screen": {
+    "width": 480,
+    "height": 1040
+  },
+  "timings": {
+    "since_start_ms": 1766,
+    "capture_ms": 163
+  },
+  "name": "tamil-uyirmei-k-open",
+  "image": {
+    "width": 360,
+    "height": 780
+  }
+}

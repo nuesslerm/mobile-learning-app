@@ -1,0 +1,13 @@
+# The set of the Orca paired-e2ee crypto: keys, the pinned v2 vector, two handshakes with sealed frames, the legacy box frame and the
+# pairing offer, from fixed keys and nonces. Re-record with: wf mimic record clis/orca-serve/crypto/vectors/orca-crypto
+rules = "rules.json"
+corpus = "corpus.json"
+
+[reference]
+driver = "stdio"
+name = "orca"
+command = ["node", "../../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca-lib"]
+env = { NODE_NO_WARNINGS = "1" }
+pin = "../../../../../tooling/orca-conformance/orca-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"

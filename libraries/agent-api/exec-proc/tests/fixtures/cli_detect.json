@@ -1,0 +1,44 @@
+{
+  "action": "cli_detect",
+  "exchanges": [
+    {
+      "name": "says which agent CLIs the executor has, where, and what each prints for --version",
+      "setup": {"clis": {"claude": "2.1.7 (Claude Code)", "codex": "codex-cli 0.9.1"}},
+      "request": {"id": "d1", "tool": "cli_detect", "args": {"programs": ["claude", "codex", "opencode"]}},
+      "response": {"id": "d1", "ok": true, "result": {"clis": [
+        {"program": "claude", "installed": true, "path": "/executor/bin/claude", "version": "2.1.7 (Claude Code)"},
+        {"program": "codex", "installed": true, "path": "/executor/bin/codex", "version": "codex-cli 0.9.1"},
+        {"program": "opencode", "installed": false}
+      ]}},
+      "volatile": ["/result/clis/0/path", "/result/clis/1/path"]
+    },
+    {
+      "name": "answers only the programs named, in the order named",
+      "setup": {"clis": {"claude": "2.1.7 (Claude Code)", "codex": "codex-cli 0.9.1"}},
+      "request": {"id": "d2", "tool": "cli_detect", "args": {"programs": ["codex"]}},
+      "response": {"id": "d2", "ok": true, "result": {"clis": [
+        {"program": "codex", "installed": true, "path": "/executor/bin/codex", "version": "codex-cli 0.9.1"}
+      ]}},
+      "volatile": ["/result/clis/0/path"]
+    },
+    {
+      "name": "finds a program that prints no version and gives it none",
+      "setup": {"clis": {"opencode": ""}},
+      "request": {"id": "d3", "tool": "cli_detect", "args": {"programs": ["opencode"]}},
+      "response": {"id": "d3", "ok": true, "result": {"clis": [
+        {"program": "opencode", "installed": true, "path": "/executor/bin/opencode"}
+      ]}},
+      "volatile": ["/result/clis/0/path"]
+    },
+    {
+      "name": "refuses a program that is not an agent CLI",
+      "request": {"id": "d4", "tool": "cli_detect", "args": {"programs": ["rm"]}},
+      "response": {"id": "d4", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`programs` names only claude, codex, opencode, not \"rm\""}}
+    },
+    {
+      "name": "refuses a request that names no programs",
+      "request": {"id": "d5", "tool": "cli_detect", "args": {}},
+      "response": {"id": "d5", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`programs` must be an array of program names"}}
+    }
+  ]
+}

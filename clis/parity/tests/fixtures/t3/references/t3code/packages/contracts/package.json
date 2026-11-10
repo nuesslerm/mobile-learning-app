@@ -1,0 +1,1 @@
+{"name": "@t3tools/contracts", "exports": {".": "./src/rpc.ts"}}

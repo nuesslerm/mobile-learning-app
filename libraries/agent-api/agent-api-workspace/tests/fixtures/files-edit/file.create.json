@@ -1,0 +1,48 @@
+{
+  "method": "file.create",
+  "exchanges": [
+    {
+      "name": "creates a new file with its content",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "new.txt",
+          "content": "hello"
+        },
+        "id": 1,
+        "method": "file.create"
+      },
+      "response": {
+        "result": {
+          "bytes": 5
+        },
+        "id": 1
+      },
+      "actions": [
+        "create_file"
+      ]
+    },
+    {
+      "name": "refuses a path that exists, with the executor's own code",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "a.txt",
+          "content": "new"
+        },
+        "id": 2,
+        "method": "file.create"
+      },
+      "response": {
+        "error": {
+          "code": "ALREADY_EXISTS",
+          "message": "a.txt already exists"
+        },
+        "id": 2
+      },
+      "actions": [
+        "create_file"
+      ]
+    }
+  ]
+}

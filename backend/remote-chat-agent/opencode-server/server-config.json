@@ -1,0 +1,32 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "opencode-go": { "options": { "setCacheKey": true } },
+    "kimi-code-plan-global": { "options": { "setCacheKey": true } },
+    "minimax": { "options": { "setCacheKey": true } }
+  },
+  "agent": {
+    "voice-planner": {
+      "description": "Deterministic JSON edit planner for the leetcode voice editor",
+      "mode": "primary",
+      "temperature": 0,
+      "tools": {
+        "bash": false,
+        "edit": false,
+        "write": false,
+        "read": false,
+        "glob": false,
+        "grep": false,
+        "list": false,
+        "patch": false,
+        "todowrite": false,
+        "todoread": false,
+        "webfetch": false,
+        "websearch": false,
+        "task": false,
+        "question": false,
+        "skill": false
+      }
+    }
+  }
+}

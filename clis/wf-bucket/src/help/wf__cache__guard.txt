@@ -1,0 +1,50 @@
+Usage: wf cache guard [options]
+
+Keep the tenancy's Object Storage under its cap. Every bucket (build-cache,
+verification-artifacts, pnpm-cache, goldens, tfstate) shares one 20 GB quota
+(clis/blob-cache/data/budget.json tenancyStoredBytes, held equal to
+infra/oracle-cloud/always-free-quota.tf by a test), and a full tenancy rejects
+every write with StorageQuotaExceeded. Above 85 percent of the cap the guard
+deletes until usage is under 70 percent, cheapest first and oldest first within a
+class: sccache/, metro/, probe/, nx/, the old pnpm stores (never the newest store
+and its sidecar), verification test-runs bundles older than 3 days, then eas-updates
+and device-lab older than 3 days. It never touches tfstate, goldens, libs, meta/,
+latest-<branch> pointers, the update group a pointer names (read from the pointer;
+when one cannot be read no update group goes), or any object younger than 1 day.
+A delete names the version the object was listed with, so one rewritten since is
+left alone. Evicted test-runs bundles stay listed in verification/test-runs/index.json:
+whatever follows an index entry must tolerate a 404.
+
+The CI runner holds no OCI credential. Without --local the guard asks agent-shell,
+which does, to run `wf cache guard --local` through vm-ops-api's exec route (the
+signed access `wf vm exec` and the deploy legs use) and waits at most 45 seconds.
+--local uses the `oci` CLI and ~/.oci of the machine it runs on, writing
+~/.oci/config from the OCI_* vault secrets when it is missing.
+
+It never fails: one JSON line on stdout and exit 0 on every path, a store that
+cannot be reached included. Every listing, read and delete stops at a 30 second
+limit on the machine that runs it, so the line is printed before its shell's
+timeout. The plan job of pipeline.yml (vm flavor) starts it in the background and shows the
+line in the run summary. A skipped line on run after run is a broken guard (no
+oci CLI, no ~/.oci, an old wf on agent-shell), not noise.
+
+Output: {event: "storage-guard", ok, action, usedBytes, usedBytesAfter, capBytes,
+highWaterBytes, lowWaterBytes, deletedObjects, freedBytes, buckets: {name: bytes},
+layers: {bucket: {layer: bytes}}, evicted: {class: {objects, bytes}},
+changedSinceListing, wouldDelete?: {objects, bytes, listed: [{bucket, name, bytes,
+class}]}, skipCode?, skip?}.
+action is none (under the high-water mark), evicted (back under the low-water
+mark), short (nothing more may be deleted, a delete failed or the time ran out),
+would-evict (--dry-run over the high-water mark) or skipped (the tenancy could not
+be measured; ok is false). skipCode is one of unmeasurable, config-missing,
+listing-failed, pointer-unreadable, delete-failed, time-limit, relay-unreachable,
+relay-timeout, relay-no-result; skip is the cause with key blocks and passphrases
+removed. deletedObjects and freedBytes count what the store confirmed deleted.
+Usage is what the listings of the build-cache and verification-artifacts buckets
+add up to (a bucket's own size figure lags a delete by hours); the other buckets
+count their approximate size.
+
+Options:
+  --local     run here with this machine's oci CLI instead of on agent-shell
+  --dry-run   decide as a real run would and delete nothing (action would-evict)
+  -h, --help  display help for command

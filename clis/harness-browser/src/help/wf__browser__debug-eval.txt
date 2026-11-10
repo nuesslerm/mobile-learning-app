@@ -1,0 +1,5 @@
+Usage: wf browser debug-eval <expr> [--device N]
+
+Evaluates an expression in the paused top frame; a throw fails (exit 1). Browser only, as set-breakpoint.
+
+Result: {expression, value, type, function, file, line}

@@ -1,0 +1,36 @@
+# How a runner provisions the Orca reference for `wf mimic record` (`wf mimic provision --help` documents the schema): the commit the pin names,
+# built the way docs/runbooks/record-reference-servers-on-the-vm.md section 1 says. The Orca Provisioner (src/orca/orcad.ts) refuses a checkout
+# that is not at the pin.
+workdir = "orca"
+
+[toolchain]
+node = "24"
+
+[source]
+repo = "https://github.com/stablyai/orca"
+pin = "../../orca-conformance/orca-pin.json"
+commit_pointer = "/commit"
+
+[env]
+MIMIC_ORCA_ROOT = "{source}"
+ORCA_ORCAD_CHECKOUT = "{source}"
+
+[[step]]
+name = "orca-install"
+run = ["pnpm", "install", "--frozen-lockfile"]
+timeout_minutes = 45
+
+[[step]]
+name = "orca-mobile-install"
+run = ["pnpm", "-C", "mobile", "install", "--frozen-lockfile"]
+timeout_minutes = 45
+
+[[step]]
+name = "build-mobile-web"
+run = ["pnpm", "run", "build:mobile-web"]
+timeout_minutes = 45
+
+[[step]]
+name = "build-orcad"
+run = ["pnpm", "run", "build:orcad"]
+timeout_minutes = 45

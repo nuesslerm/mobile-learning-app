@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "name": "feature-tamil-writing",
+  "$comment": "The tamil-writing feature as its own Nx project inside the app, so the e2e tests that drive it are keyed by its files alone; the app shell is not one of its dependencies",
+  "implicitDependencies": ["!mla-tamagui"],
+  "targets": {}
+}

@@ -1,0 +1,25 @@
+{
+  "platform": "android",
+  "step": 1,
+  "last_action": "open exp://metro-runner-main:20000/--/leetcode/two-sum",
+  "warnings": [],
+  "summary": null,
+  "screen": {
+    "width": 480,
+    "height": 1040
+  },
+  "timings": {
+    "since_start_ms": 4321,
+    "capture_ms": 177
+  },
+  "tolerance": {
+    "threshold": 0.1,
+    "max_ratio": 0.002,
+    "ignore": []
+  },
+  "name": "two-sum-before-run",
+  "image": {
+    "width": 360,
+    "height": 780
+  }
+}

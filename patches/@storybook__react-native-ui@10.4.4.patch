@@ -1,0 +1,96 @@
+diff --git a/src/MobileAddonsPanel.tsx b/src/MobileAddonsPanel.tsx
+index 6a845170b4e89f689d3105a5d68f8e8a5b6bc0e1..b83b63474d1808ab51e78491614c638b272d2ffe 100644
+--- a/src/MobileAddonsPanel.tsx
++++ b/src/MobileAddonsPanel.tsx
+@@ -1,4 +1,9 @@
+-import { BottomSheetModal } from '@gorhom/bottom-sheet';
++import {
++  BottomSheetBackdrop,
++  type BottomSheetBackdropProps,
++  BottomSheetModal,
++  BottomSheetScrollView,
++} from '@gorhom/bottom-sheet';
+ import { addons } from 'storybook/manager-api';
+ import { styled, useTheme } from '@storybook/react-native-theming';
+ import {
+@@ -31,6 +36,20 @@ const contentStyle = {
+   flex: 1,
+ } satisfies StyleProp<ViewStyle>;
+ 
++// Tap-outside-to-dismiss backdrop. It also BLOCKS touches from reaching the story
++// behind the panel — without it, a drag on the panel content leaks through to the
++// story's scroll view and scrolls both at once.
++function renderAddonsBackdrop(props: BottomSheetBackdropProps) {
++  return (
++    <BottomSheetBackdrop
++      {...props}
++      appearsOnIndex={0}
++      disappearsOnIndex={-1}
++      pressBehavior="close"
++    />
++  );
++}
++
+ export const MobileAddonsPanel = forwardRef<MobileAddonsPanelRef, { storyId?: string }>(
+   ({ storyId }, ref) => {
+     const theme = useTheme();
+@@ -89,11 +108,14 @@ export const MobileAddonsPanel = forwardRef<MobileAddonsPanelRef, { storyId?: st
+         animatedPosition={animatedPosition}
+         backgroundStyle={backgroundStyle}
+         handleIndicatorStyle={handleIndicatorStyle}
++        backdropComponent={renderAddonsBackdrop}
+         keyboardBehavior="extend"
+         // keyboardBlurBehavior="restore"
+         enableDismissOnClose
+         enableHandlePanningGesture={true}
+-        // enableContentPanningGesture={true}
++        // Content drag scrolls the inner list instead of moving the sheet; the
++        // sheet only changes snap points via the handle (fixed-at-snap-points).
++        enableContentPanningGesture={false}
+         stackBehavior="replace"
+         enableDynamicSizing={false}
+       >
+@@ -192,7 +214,7 @@ export const AddonsTabs = ({ onClose, storyId }: { onClose?: () => void; storyId
+           onPress={() => onClose?.()}
+         />
+       </View>
+-      <ScrollView
++      <BottomSheetScrollView
+         style={addonsScrollStyle}
+         // keyboardShouldPersistTaps="handled"
+         contentContainerStyle={scrollContentContainerStyle}
+@@ -212,7 +234,7 @@ export const AddonsTabs = ({ onClose, storyId }: { onClose?: () => void; storyId
+             </View>
+           ))
+         )}
+-      </ScrollView>
++      </BottomSheetScrollView>
+     </View>
+   );
+ };
+diff --git a/src/MobileMenuDrawer.tsx b/src/MobileMenuDrawer.tsx
+index 6c97a8702c791ed091d9b1e46f96531374469bcb..0e3a4dd88c3db7ffb0ed83c94d4c6623e9d68fdc 100644
+--- a/src/MobileMenuDrawer.tsx
++++ b/src/MobileMenuDrawer.tsx
+@@ -79,7 +79,9 @@ export const MobileMenuDrawer = memo(
+       setMobileMenuOpen: (open: boolean) => {
+         if (open) {
+           shouldScrollOnOpen.current = true;
+-          menuBottomSheetRef.current?.snapToIndex(1);
++          // Open at the standard half screen (snapPoints[0] = '50%'); the handle
++          // still drags up to 75%.
++          menuBottomSheetRef.current?.snapToIndex(0);
+         } else {
+           Keyboard.dismiss();
+ 
+@@ -108,7 +110,9 @@ export const MobileMenuDrawer = memo(
+         snapPoints={snapPoints}
+         // enableDismissOnClose
+         enableHandlePanningGesture
+-        enableContentPanningGesture
++        // Content drag scrolls the story list instead of expanding/collapsing the
++        // drawer; snap points only change via the handle (fixed-at-snap-points).
++        enableContentPanningGesture={false}
+         enableDynamicSizing={false}
+         keyboardBehavior="extend"
+         keyboardBlurBehavior="restore"

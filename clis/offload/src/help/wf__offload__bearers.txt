@@ -1,0 +1,12 @@
+Usage: wf offload bearers [options] [command]
+
+The device bearers of the rca service's agent API socket
+
+Options:
+  -h, --help        display help for command
+
+Commands:
+  mint [options]    Mint a device bearer and print its token, once
+  list              List the device bearers that were not revoked
+  revoke <id>       Revoke a device bearer
+  help [command]    display help for command

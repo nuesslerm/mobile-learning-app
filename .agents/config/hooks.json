@@ -1,0 +1,97 @@
+{
+  "claude": {
+    "hooks": {
+      "SessionStart": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "node \"__PROJECT_ROOT__/libraries/hook-runtime/src/dispatch.mjs\"",
+              "timeout": 600
+            }
+          ]
+        }
+      ],
+      "UserPromptSubmit": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "node \"__PROJECT_ROOT__/libraries/hook-runtime/src/dispatch.mjs\"",
+              "timeout": 300
+            }
+          ]
+        }
+      ],
+      "PreToolUse": [
+        {
+          "matcher": "Bash|Edit|Write|mcp__.*",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "node \"__PROJECT_ROOT__/libraries/hook-runtime/src/dispatch.mjs\""
+            }
+          ]
+        }
+      ],
+      "PostToolUse": [
+        {
+          "matcher": "Bash|Read",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "node \"__PROJECT_ROOT__/libraries/hook-runtime/src/dispatch.mjs\""
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "opencode": {
+    "hooks": {
+      "session.created": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "wf agent-config sync"
+            },
+            {
+              "type": "command",
+              "command": "pnpm install"
+            }
+          ]
+        }
+      ],
+      "tool.execute.before": [
+        {
+          "matcher": "Bash|Edit|Write",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "node \"__PROJECT_ROOT__/libraries/hook-runtime/src/dispatch.mjs\" guard"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "codex": {
+    "hooks": {
+      "SessionStart": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "wf agent-config sync"
+            },
+            {
+              "type": "command",
+              "command": "pnpm install"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

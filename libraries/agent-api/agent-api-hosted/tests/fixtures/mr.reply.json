@@ -1,0 +1,28 @@
+{
+  "method": "mr.reply",
+  "exchanges": [
+    {
+      "name": "the mr spelling reaches the same action and defaults to gitlab",
+      "request": {
+        "id": 1,
+        "method": "mr.reply",
+        "params": {
+          "number": 1,
+          "thread": "-x",
+          "body": "hi",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`thread` must be an id of letters, digits, `_`, `-`, `=`"
+        }
+      },
+      "actions": [
+        "hosted_pr_reply"
+      ]
+    }
+  ]
+}

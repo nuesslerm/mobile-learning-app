@@ -1,0 +1,20 @@
+{
+  "platform": "android",
+  "step": 20,
+  "last_action": "tap id:ProblemEditorRunLocalButton",
+  "warnings": [],
+  "summary": null,
+  "screen": {
+    "width": 480,
+    "height": 1040
+  },
+  "timings": {
+    "since_start_ms": 27426,
+    "capture_ms": 185
+  },
+  "name": "editor-valid-palindrome-result",
+  "image": {
+    "width": 360,
+    "height": 780
+  }
+}

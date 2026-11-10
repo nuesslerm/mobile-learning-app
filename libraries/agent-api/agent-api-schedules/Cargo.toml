@@ -1,0 +1,20 @@
+[package]
+name = "agent-api-schedules"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The agent API's schedules groups (`schedules`: schedule.list/upsert/setEnabled/delete/runNow/rotateWebhookToken; `schedules.watch`: schedule.subscribe): turns a service starts by interval, by time of day or by an inbound webhook, and the events that record each run"
+
+[lib]
+doctest = false
+
+[features]
+testing = ["agent-api-proto/testing"]
+
+[dependencies]
+agent-api-proto = { path = "../agent-api-proto" }
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[dev-dependencies]
+agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }

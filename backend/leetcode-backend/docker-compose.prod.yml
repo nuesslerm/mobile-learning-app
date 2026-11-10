@@ -1,0 +1,84 @@
+# Docker's json-file log driver keeps every line of a container forever unless told otherwise; the CI runner and the model services print
+# a lot, so each service rotates its own log (three files of 20 MB) instead of filling the host disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "3"
+
+services:
+  tailscale:
+    image: tailscale/tailscale:v1.102.2
+    container_name: leetcode-backend-tailscale
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+    environment:
+      TS_AUTHKEY: ${TS_VM_AUTH_KEY}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "false"
+      TS_HOSTNAME: leetcode-backend-prod
+      # Without this, tailscaled never manages this sidecar's DNS at all
+      # (confirmed elsewhere in this repo -- vm-gateway/vm-ops-api's own
+      # sidecars showed `dns: OScfg: {}` / `SearchDomains:[]` before this was
+      # added there), so `app` (sharing this netns via network_mode:
+      # service:tailscale) has no MagicDNS and no `*.ts.net` hostname
+      # resolves. This is the same established fix already applied to every
+      # other app-with-tailscale-sidecar in this repo except this one and
+      # leetcode-auth-cookie-capture -- see docs/known-gaps.md.
+      TS_ACCEPT_DNS: "true"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.ip_forward=1
+    healthcheck:
+      test: ["CMD-SHELL", "tailscale status --json >/dev/null"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    logging: *logging
+
+  app:
+    # Image is built in CI (repo-root context) and shipped to the VM via
+    # `docker save | ssh docker load` — see the deploy workflow. No build: here,
+    # because the VM only ever has this app dir, not the pnpm workspace.
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/leetcode-backend:${IMAGE_TAG:-latest}
+    container_name: leetcode-backend
+    network_mode: service:tailscale
+    environment:
+      PORT: 8789
+      LEETCODE_BACKEND_ADMIN_SECRET: ${LEETCODE_BACKEND_ADMIN_SECRET}
+      # Reused from vm-ops-api (not an independent secret) -- gates
+      # /api/leetcode/* via the same Authorization: Bearer header shape.
+      VM_GATEWAY_AUTH_SEED: ${VM_GATEWAY_AUTH_SEED}
+      LEETCODE_BACKEND_SESSION_FILE: /app/.data/session.json
+      LEETCODE_CAPTURE_TOOL_BASE_URL: ${LEETCODE_CAPTURE_TOOL_BASE_URL}
+      LEETCODE_CAPTURE_TRIGGER_SECRET: ${LEETCODE_CAPTURE_TRIGGER_SECRET}
+      # Telemetry → BetterStack (buffered forwarder; empty = console-only).
+      SECRETS_LOG_BETTERSTACK: ${SECRETS_LOG_BETTERSTACK:-}
+      EXPO_PUBLIC_BETTERSTACK_TOKEN: ${EXPO_PUBLIC_BETTERSTACK_TOKEN:-}
+      EXPO_PUBLIC_BETTERSTACK_HOST: ${EXPO_PUBLIC_BETTERSTACK_HOST:-}
+      # The pair the service's OTLP export reads (KTD9: deliberately separate
+      # from the mobile app's EXPO_PUBLIC_BETTERSTACK_* pair above, which this
+      # service doesn't consume).
+      BETTERSTACK_OTLP_TOKEN: ${BETTERSTACK_OTLP_TOKEN:-}
+      BETTERSTACK_OTLP_HOST: ${BETTERSTACK_OTLP_HOST:-}
+    volumes:
+      - leetcode-backend-data:/app/.data
+    healthcheck:
+      test: ["CMD", "leetcode-backend-rs", "--healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # No command override — the image's CMD runs the service binary.
+    depends_on:
+      - tailscale
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  tailscale-state:
+  leetcode-backend-data:

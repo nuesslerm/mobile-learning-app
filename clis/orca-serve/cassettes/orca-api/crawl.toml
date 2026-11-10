@@ -1,0 +1,7 @@
+# The whole Orca host API as the pinned source defines it (references/orca at the commit of the pin): `wf mimic crawl clis/orca-serve/cassettes/orca-api`.
+app = "orca"
+command = ["node", "src/cli.ts", "crawl", "orca"]
+cwd = "../../../../tooling/mimic-drivers"
+catalog = "../../../../docs/plans/rca-parity/coverage/orca-methods.json"
+pin = "../../../../tooling/orca-conformance/orca-pin.json"
+commit_pointer = "/commit"

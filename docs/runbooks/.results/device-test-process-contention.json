@@ -1,0 +1,22 @@
+{
+  "runbook": "device-test-process contention",
+  "sha": "b29288e4b5b67dbceb66279001224248c0b00b33",
+  "ranAt": "2026-10-13T19:35:00.000Z",
+  "verdict": "pass",
+  "how": "Two clients with distinct identities (sandbox-a, sandbox-b) from one sandbox against the real VM device. A took the lease; B asked with --no-wait and was refused naming sandbox-a; B enqueued the Metro smoke job, which waited in line behind A (queue position 1, status running while the worker waited for the lease); A released; B's job took the device and passed.",
+  "leaseA": "1a136b12a1747f02",
+  "jobB": "1a136b14524-47f67",
+  "refusedNamedHolder": true,
+  "refusal": "device busy: held by sandbox-a (position 1); retry with --wait",
+  "jobWaitedBehindHolder": true,
+  "queueWhileHeld": [
+    {
+      "position": 1,
+      "who": "worker:device-lab-metro-android",
+      "waitingMs": 44770
+    }
+  ],
+  "ranAfterRelease": true,
+  "releaseToDoneSeconds": 126,
+  "totalSeconds": 190
+}

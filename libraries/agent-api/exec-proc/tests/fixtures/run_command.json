@@ -1,0 +1,39 @@
+{
+  "action": "run_command",
+  "exchanges": [
+    {
+      "name": "streams the output of a command that succeeds",
+      "request": {"id": "r1", "tool": "run_command", "args": {"command": "echo hi"}},
+      "stream": [{"stream": "stdout", "data": "hi\n"}],
+      "response": {"id": "r1", "ok": true, "result": {"exit_code": 0, "timed_out": false, "cancelled": false, "truncated": false}}
+    },
+    {
+      "name": "reports a non-zero exit code and streams stderr apart from stdout",
+      "request": {"id": "r2", "tool": "run_command", "args": {"command": "echo oops >&2; exit 3"}},
+      "stream": [{"stream": "stderr", "data": "oops\n"}],
+      "response": {"id": "r2", "ok": true, "result": {"exit_code": 3, "timed_out": false, "cancelled": false, "truncated": false}}
+    },
+    {
+      "name": "runs in a directory of the workspace with extra environment variables",
+      "setup": {"files": {"sub/keep.txt": "x"}},
+      "request": {"id": "r3", "tool": "run_command", "args": {"command": "echo $GREETING; ls", "cwd": "sub", "env": {"GREETING": "hello"}}},
+      "stream": [{"stream": "stdout", "data": "hello\nkeep.txt\n"}],
+      "response": {"id": "r3", "ok": true, "result": {"exit_code": 0, "timed_out": false, "cancelled": false, "truncated": false}}
+    },
+    {
+      "name": "kills a command that outlives its timeout",
+      "request": {"id": "r4", "tool": "run_command", "args": {"command": "sleep 30", "timeout_ms": 200}},
+      "response": {"id": "r4", "ok": true, "result": {"exit_code": 137, "timed_out": true, "cancelled": false, "truncated": false}}
+    },
+    {
+      "name": "refuses a directory outside the root",
+      "request": {"id": "r5", "tool": "run_command", "args": {"command": "ls", "cwd": "../elsewhere"}},
+      "response": {"id": "r5", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../elsewhere is outside the root"}}
+    },
+    {
+      "name": "refuses an environment that is not an object",
+      "request": {"id": "r6", "tool": "run_command", "args": {"command": "ls", "env": "A=1"}},
+      "response": {"id": "r6", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`env` must be an object"}}
+    }
+  ]
+}

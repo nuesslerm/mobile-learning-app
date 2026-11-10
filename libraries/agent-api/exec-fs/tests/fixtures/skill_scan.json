@@ -1,0 +1,78 @@
+{
+  "action": "skill_scan",
+  "exchanges": [
+    {
+      "name": "lists the skills of the workspace by directory and name, with the front matter's name and description",
+      "setup": {"files": {
+        ".claude/skills/review/SKILL.md": "---\nname: review\ndescription: Reviews a diff\n---\nBody\n",
+        ".claude/skills/deploy/SKILL.md": "---\nname: ship-it\ndescription: >\n  Ships the build\n  to the server\n---\n",
+        ".agents/skills/notes/SKILL.md": "# no front matter\n",
+        ".claude/skills/empty/README.md": "not a skill\n",
+        "src/main.rs": "fn main() {}\n"
+      }},
+      "request": {"id": "s1", "tool": "skill_scan", "args": {"root": "."}},
+      "response": {"id": "s1", "ok": true, "result": {"skills": [
+        {"name": "ship-it", "description": "Ships the build to the server", "scope": "workspace", "dir": ".claude/skills", "path": ".claude/skills/deploy/SKILL.md"},
+        {"name": "review", "description": "Reviews a diff", "scope": "workspace", "dir": ".claude/skills", "path": ".claude/skills/review/SKILL.md"},
+        {"name": "notes", "scope": "workspace", "dir": ".agents/skills", "path": ".agents/skills/notes/SKILL.md"}
+      ], "truncated": false}}
+    },
+    {
+      "name": "lists the skills of a directory of the workspace, paths relative to the workspace root",
+      "setup": {"files": {
+        "pkg/.codex/skills/lint/SKILL.md": "---\nname: lint\ndescription: \"Runs the linter\"\n---\n",
+        ".claude/skills/review/SKILL.md": "---\nname: review\n---\n"
+      }},
+      "request": {"id": "s2", "tool": "skill_scan", "args": {"root": "pkg"}},
+      "response": {"id": "s2", "ok": true, "result": {"skills": [
+        {"name": "lint", "description": "Runs the linter", "scope": "workspace", "dir": ".codex/skills", "path": "pkg/.codex/skills/lint/SKILL.md"}
+      ], "truncated": false}}
+    },
+    {
+      "name": "adds the skills of the executor's own home after the workspace's, naming them below ~ and not by where the home is",
+      "setup": {
+        "files": {".claude/skills/review/SKILL.md": "---\nname: review\ndescription: Reviews a diff\n---\n"},
+        "home": {".claude/skills/personal/SKILL.md": "---\nname: personal\ndescription: Mine\n---\n", ".codex/skills/tidy/SKILL.md": "---\nname: tidy\n---\n", "notes.txt": "not a skill"}
+      },
+      "request": {"id": "s3", "tool": "skill_scan", "args": {"root": ".", "home": true}},
+      "response": {"id": "s3", "ok": true, "result": {"skills": [
+        {"name": "review", "description": "Reviews a diff", "scope": "workspace", "dir": ".claude/skills", "path": ".claude/skills/review/SKILL.md"},
+        {"name": "personal", "description": "Mine", "scope": "home", "dir": ".claude/skills", "path": "~/.claude/skills/personal/SKILL.md"},
+        {"name": "tidy", "scope": "home", "dir": ".codex/skills", "path": "~/.codex/skills/tidy/SKILL.md"}
+      ], "truncated": false}}
+    },
+    {
+      "name": "leaves the home out unless asked",
+      "setup": {"home": {".claude/skills/personal/SKILL.md": "---\nname: personal\n---\n"}},
+      "request": {"id": "s4", "tool": "skill_scan", "args": {"root": "."}},
+      "response": {"id": "s4", "ok": true, "result": {"skills": [], "truncated": false}}
+    },
+    {
+      "name": "answers a workspace with no skill directories with an empty list",
+      "setup": {"files": {"a.txt": "x"}},
+      "request": {"id": "s5", "tool": "skill_scan", "args": {"root": "."}},
+      "response": {"id": "s5", "ok": true, "result": {"skills": [], "truncated": false}}
+    },
+    {
+      "name": "refuses a root outside the workspace",
+      "request": {"id": "s6", "tool": "skill_scan", "args": {"root": "../elsewhere"}},
+      "response": {"id": "s6", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../elsewhere is outside the root"}}
+    },
+    {
+      "name": "refuses a root that does not exist",
+      "request": {"id": "s7", "tool": "skill_scan", "args": {"root": "nowhere"}},
+      "response": {"id": "s7", "ok": false, "error": {"code": "NOT_FOUND", "message": "nowhere does not exist"}}
+    },
+    {
+      "name": "refuses a root that is a file",
+      "setup": {"files": {"a.txt": "x"}},
+      "request": {"id": "s8", "tool": "skill_scan", "args": {"root": "a.txt"}},
+      "response": {"id": "s8", "ok": false, "error": {"code": "INVALID_ARGS", "message": "a.txt is not a directory"}}
+    },
+    {
+      "name": "refuses a request with no root",
+      "request": {"id": "s9", "tool": "skill_scan", "args": {}},
+      "response": {"id": "s9", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`root` must be a string"}}
+    }
+  ]
+}

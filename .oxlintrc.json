@@ -1,0 +1,46 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Everything outside frontend/, which has its own config (oxlint applies the nearest one). Only rules that catch a
+  // defect the typecheck and tests miss; everything is an error or off.
+  "plugins": ["typescript"],
+  "categories": { "correctness": "error" },
+  // type-aware rules run through oxlint-tsgolint (typescript-go) with each file's nearest tsconfig
+  "options": { "typeAware": true },
+  "env": { "node": true, "browser": true, "es2024": true },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/bundle/**",
+    "**/target/**",
+    "**/fixtures/**",
+    "**/__fixtures__/**",
+    "references/**",
+    "artifacts/**",
+    // browser-side scripts the Rust CDP crate embeds (include_str!) and calls by name
+    "clis/cdp/src/**/*.js"
+  ],
+  "rules": {
+    // a promise nobody awaits loses its rejection, and on a device that is a silent failure
+    "typescript/no-floating-promises": [
+      "error",
+      // node:test returns a promise from describe/it/test that the runner itself awaits
+      { "allowForKnownSafeCalls": [{ "from": "package", "package": "node:test", "name": ["describe", "it", "test", "suite"] }] }
+    ],
+    "typescript/no-misused-promises": "error",
+    "typescript/await-thenable": "error",
+    // the other type-aware correctness rules: reviewed 20 Oct (spec D4b), none of their 66 findings was a real defect
+    "typescript/no-array-delete": "off",
+    "typescript/no-base-to-string": "off",
+    "typescript/no-duplicate-type-constituents": "off",
+    "typescript/no-for-in-array": "off",
+    "typescript/no-implied-eval": "off",
+    "typescript/no-meaningless-void-operator": "off",
+    "typescript/no-misused-spread": "off",
+    "typescript/no-redundant-type-constituents": "off",
+    "typescript/no-unsafe-unary-minus": "off",
+    "typescript/no-useless-default-assignment": "off",
+    "typescript/require-array-sort-compare": "off",
+    "typescript/restrict-template-expressions": "off",
+    "typescript/unbound-method": "off",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "caughtErrorsIgnorePattern": "^_", "ignoreRestSiblings": true }]
+  }
+}

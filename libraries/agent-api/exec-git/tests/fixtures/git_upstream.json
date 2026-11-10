@@ -1,0 +1,60 @@
+{
+  "action": "git_upstream",
+  "exchanges": [
+    {
+      "name": "reports a branch with no upstream",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true
+      },
+      "request": {
+        "id": "upst17",
+        "tool": "git_upstream",
+        "args": {}
+      },
+      "response": {
+        "id": "upst17",
+        "ok": true,
+        "result": {
+          "branch": "main",
+          "has_upstream": false,
+          "ahead": 0,
+          "behind": 0,
+          "remotes": []
+        }
+      }
+    },
+    {
+      "name": "reports the upstream, the remote and the configured remotes",
+      "setup": {
+        "files": {
+          "a.txt": "one\n"
+        },
+        "commit": true,
+        "remote": true
+      },
+      "request": {
+        "id": "upst18",
+        "tool": "git_upstream",
+        "args": {}
+      },
+      "response": {
+        "id": "upst18",
+        "ok": true,
+        "result": {
+          "branch": "main",
+          "has_upstream": true,
+          "upstream": "origin/main",
+          "remote": "origin",
+          "ahead": 0,
+          "behind": 0,
+          "remotes": [
+            "origin"
+          ]
+        }
+      }
+    }
+  ]
+}

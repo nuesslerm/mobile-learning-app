@@ -1,0 +1,9 @@
+Usage: wf android list-devices [--name N]
+
+The device the container --name (default WF_ANDROID_NAME, else rdl) runs, read on the VM: whether it finished booting,
+whether the slim set was proved to boot after a restart, and each feature of the catalog (clis/harness-android/src/android_features.json)
+as on, off or partial. Every package of the stock image is core (always kept), part of a named feature (on only with
+`wf android start-device --with <feature>`) or removed. An empty list when no such container runs.
+
+Result: {devices: [{name, serial, boot: {completed, activityService}, restartProven, disabledTotal, core: {state, packages},
+removed: {state, packages}, features: [{feature, state: on|off|partial, what, packages}], lease: {holder, queue} | null}]}

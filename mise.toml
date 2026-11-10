@@ -1,0 +1,30 @@
+# Pinned toolchain + CLI dependencies, installed by `.agents/setup.sh`
+# (the SessionStart hook; `pnpm run setup` by hand). Single
+# source of truth for this repo's dev toolchain — install mise
+# (https://mise.jdx.dev) locally and run `mise install` to pick these up.
+#
+# CI does not read this file — .github/workflows/*.yml pin toolchains via
+# actions/setup-node + oven-sh/setup-bun instead (see setup-mise.sh's header).
+# `wf test drift --pins` fails when the installed node or pnpm, a `node-version:` of a workflow or
+# the root `packageManager` is not the pin below.
+
+[tools]
+# Nx hashes `node --version` and `pnpm --version` into every task, and the shared build cache
+# writes only from these two: the sandbox and every CI job run this node, so they replay each other.
+node = "22.22.0"
+pnpm = "11.5.2"
+gh = "latest"
+actionlint = "1.7.7"
+# Floor pinned in infra/oracle-cloud/versions.tf (required_version >= 1.5.0).
+terraform = "latest"
+# Tailscale CLI + daemon. Lets a sandboxed session JOIN the tailnet in userspace
+# mode and reach vm-ops-api/vm-gateway directly, with no Funnel and no SSH --
+# see docs/solutions/infra/sandbox-joins-tailnet-instead-of-funnel.md.
+tailscale = "1.86.2"
+# Bitwarden Secrets Manager CLI — reads deploy-vault secrets (see clis/secrets).
+# Releases are tagged "bws-vX.Y.Z" in the bitwarden/sdk-sm monorepo (shared with
+# unrelated Rust/Python releases), so the version pin must be the full tag.
+"ubi:bitwarden/sdk-sm[exe=bws]" = "bws-v2.1.0"
+# Rust compile cache: `wf cache sccache` and the build-cache shim serve it from the bucket when it is on PATH
+# (docs/solutions/ci/cache-layers.md). CI installs the same tag (.github/actions/install-sccache).
+"ubi:mozilla/sccache" = "v0.10.0"

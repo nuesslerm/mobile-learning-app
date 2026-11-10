@@ -1,0 +1,25 @@
+{
+  "method": "git.pull",
+  "exchanges": [
+    {
+      "name": "a repository with no remote cannot pull",
+      "request": {
+        "id": 1,
+        "method": "git.pull",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "this repository has no remote configured"
+        }
+      },
+      "actions": [
+        "git_pull"
+      ]
+    }
+  ]
+}

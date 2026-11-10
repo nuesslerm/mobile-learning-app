@@ -1,0 +1,39 @@
+{
+  "method": "git.refs",
+  "exchanges": [
+    {
+      "name": "lists the branches with the current one",
+      "request": {
+        "id": 1,
+        "method": "git.refs",
+        "params": {
+          "workspace": "w1",
+          "kind": "branch"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "current": "main",
+          "detached": false,
+          "refs": [
+            {
+              "name": "main",
+              "full": "refs/heads/main",
+              "kind": "branch",
+              "sha": "2ba16e412e77c7e68edad66eb0b4799958069606",
+              "current": true
+            }
+          ],
+          "truncated": false
+        }
+      },
+      "actions": [
+        "git_refs"
+      ],
+      "volatile": [
+        "/result/refs/0/sha"
+      ]
+    }
+  ]
+}

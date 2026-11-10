@@ -1,0 +1,22 @@
+id: names-infrastructure
+language: rust
+# A path or a `use` that reaches the crate's `infrastructure` layer: `crate::infrastructure::x`, `super::infrastructure`, `super::super::infrastructure::x`,
+# and the same inside a use list (`use crate::{api, infrastructure::log}`, `use super::{infrastructure as infra}`).
+rule:
+  any:
+    - kind: scoped_identifier
+      regex: '^(crate|super)(::super)*::infrastructure\b'
+    - kind: scoped_use_list
+      regex: '^(crate|super)(::super)*::\{'
+      has:
+        kind: use_list
+        has:
+          any:
+            - kind: identifier
+              regex: '^infrastructure$'
+            - kind: scoped_identifier
+              regex: '^infrastructure::'
+            - kind: scoped_use_list
+              regex: '^infrastructure::'
+            - kind: use_as_clause
+              regex: '^infrastructure\b'

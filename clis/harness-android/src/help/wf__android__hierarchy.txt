@@ -1,0 +1,9 @@
+Usage: wf android hierarchy [--device D]
+
+The screen's elements as JSON (Maestro's `maestro hierarchy`), so an agent can write a selector: every on-screen node
+with a resource id, an accessibility label, its own text or an EditText's value, in tree order, at most 500. Bounds are
+the on-screen part. Read from the on-device UI server, or a uiautomator dump with WF_ANDROID_UIA=dump. Every failed wait
+writes the same dump as evidence. --device is the adb serial (default ANDROID_SERIAL, WF_ANDROID_SERIAL, else the only
+device).
+
+Result: {platform, elements: [{id, label, text, class, bounds: {left, top, right, bottom}, frame}]}

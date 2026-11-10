@@ -1,0 +1,118 @@
+{
+  "method": "skills.list",
+  "exchanges": [
+    {
+      "name": "lists the skills of the workspace by skills directory and name, as the executor found them",
+      "before": [
+        {
+          "id": "setup-1",
+          "method": "file.create",
+          "params": {
+            "workspace": "w1",
+            "path": ".claude/skills/review/SKILL.md",
+            "content": "---\nname: review\ndescription: Reviews a diff\n---\nBody\n",
+            "create_dirs": true
+          }
+        },
+        {
+          "id": "setup-2",
+          "method": "file.create",
+          "params": {
+            "workspace": "w1",
+            "path": ".codex/skills/lint/SKILL.md",
+            "content": "---\nname: lint\ndescription: Runs the linter\n---\n",
+            "create_dirs": true
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "skills.list",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "skills": [
+            {
+              "name": "review",
+              "description": "Reviews a diff",
+              "scope": "workspace",
+              "dir": ".claude/skills",
+              "path": ".claude/skills/review/SKILL.md"
+            },
+            {
+              "name": "lint",
+              "description": "Runs the linter",
+              "scope": "workspace",
+              "dir": ".codex/skills",
+              "path": ".codex/skills/lint/SKILL.md"
+            }
+          ],
+          "truncated": false
+        }
+      },
+      "actions": [
+        "skill_scan"
+      ]
+    },
+    {
+      "name": "answers a workspace that holds no skill with an empty list",
+      "request": {
+        "id": 2,
+        "method": "skills.list",
+        "params": {
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 2,
+        "result": {
+          "skills": [],
+          "truncated": false
+        }
+      },
+      "actions": [
+        "skill_scan"
+      ]
+    },
+    {
+      "name": "answers NO_EXECUTOR for a workspace nobody serves",
+      "request": {
+        "id": 3,
+        "method": "skills.list",
+        "params": {
+          "workspace": "w9"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "NO_EXECUTOR",
+          "message": "no executor is attached for workspace w9"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "needs a workspace",
+      "request": {
+        "id": 4,
+        "method": "skills.list",
+        "params": {
+          "workspace": ""
+        }
+      },
+      "response": {
+        "id": 4,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "workspace is required"
+        }
+      },
+      "actions": []
+    }
+  ]
+}

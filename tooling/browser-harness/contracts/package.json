@@ -1,0 +1,27 @@
+{
+  "name": "@cli/harness-contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepare": "pnpm run build",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings"
+  },
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "@typescript/native": "catalog:",
+    "oxlint": "catalog:"
+  }
+}

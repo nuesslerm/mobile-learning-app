@@ -1,0 +1,7 @@
+Usage: wf knowledge stale [options]
+
+List learnings not touched in --days
+
+Options:
+  --days <n>  age threshold in days
+  -h, --help  display help for command

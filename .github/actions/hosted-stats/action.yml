@@ -1,0 +1,31 @@
+name: Hosted stats
+description: >-
+  The two ends of a GitHub-hosted job's runner sampling (the hosted flavor of pipeline.yml): `start` runs the sampler beside the job, `upload` (the job's last
+  step, `if: always()`) hands the samples to the report job as the artifact `stats-<job>`.
+inputs:
+  mode:
+    description: start or upload
+    required: true
+  job:
+    description: The job's name (the file and artifact name)
+    required: true
+runs:
+  using: composite
+  steps:
+    - name: Start the runner sampler
+      if: ${{ inputs.mode == 'start' }}
+      shell: bash
+      env:
+        STATS_FILE: ${{ runner.temp }}/runner-stats/stats-${{ inputs.job }}.jsonl
+      run: |
+        mkdir -p "$(dirname "$STATS_FILE")"
+        # the runner kills what still carries the step's tracking id when the step ends, which setsid does not clear
+        env -u RUNNER_TRACKING_ID setsid nohup bash "${{ github.action_path }}/../hosted-setup/sampler.sh" "$STATS_FILE" > /dev/null 2>&1 &
+    - name: Upload the runner samples
+      if: ${{ inputs.mode == 'upload' }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: stats-${{ inputs.job }}
+        path: ${{ runner.temp }}/runner-stats/stats-${{ inputs.job }}.jsonl
+        retention-days: 1
+        if-no-files-found: ignore

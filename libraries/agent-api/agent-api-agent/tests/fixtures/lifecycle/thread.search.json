@@ -1,0 +1,80 @@
+{
+  "method": "thread.search",
+  "exchanges": [
+    {
+      "name": "finds a thread by its title",
+      "before": [
+        {
+          "id": "setup-create-t-sr",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-sr",
+            "title": "Fix login bug",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        },
+        {
+          "id": "setup-create-t-sr2",
+          "method": "thread.create",
+          "params": {
+            "thread": "t-sr2",
+            "title": "Other",
+            "workspace": "w1",
+            "driver": "claudeAgent"
+          }
+        }
+      ],
+      "request": {
+        "id": "1",
+        "method": "thread.search",
+        "params": {
+          "query": "login"
+        }
+      },
+      "response": {
+        "id": "1",
+        "result": {
+          "matches": [
+            {
+              "thread": "t-sr",
+              "title": "Fix login bug",
+              "source": "title"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "finds nothing for words no title holds",
+      "request": {
+        "id": "2",
+        "method": "thread.search",
+        "params": {
+          "query": "zebra"
+        }
+      },
+      "response": {
+        "id": "2",
+        "result": {
+          "matches": []
+        }
+      }
+    },
+    {
+      "name": "refuses a search for nothing",
+      "request": {
+        "id": "3",
+        "method": "thread.search",
+        "params": {}
+      },
+      "response": {
+        "id": "3",
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "query is required"
+        }
+      }
+    }
+  ]
+}

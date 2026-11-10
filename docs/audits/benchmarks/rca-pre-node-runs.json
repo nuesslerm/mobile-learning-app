@@ -1,0 +1,20 @@
+{
+  "label": "pre-runs",
+  "date": "2026-10-08T21:59:26.156Z",
+  "command": "node dist/bundle/index.mjs",
+  "runs": 5,
+  "artifactBytes": 14869215,
+  "coldStartMs": 446.51658000000134,
+  "idleRssMb": 133.95703125,
+  "rssAfterHealthMb": 139.38671875,
+  "healthP50Ms": 0.8977565000004688,
+  "scenarios": {
+    "run once": {
+      "p50Ms": 121.58447350000006,
+      "rssAfterMb": 168.91015625
+    }
+  },
+  "finalRssMb": 168.91015625,
+  "peakRssMb": 168.91015625,
+  "peakRssMaxMb": 169.21484375
+}

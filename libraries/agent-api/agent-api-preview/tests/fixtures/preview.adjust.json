@@ -1,0 +1,72 @@
+{
+  "method": "preview.adjust",
+  "exchanges": [
+    {
+      "name": "keeps the colour scheme and the zoom",
+      "before": [
+        {
+          "id": "o",
+          "method": "preview.open",
+          "params": {
+            "thread": "t1",
+            "url": "http://127.0.0.1:3000/"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "preview.adjust",
+        "params": {
+          "thread": "t1",
+          "tab": "tab-2",
+          "color_scheme": "dark",
+          "zoom": 1.25
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "session": {
+            "thread": "t1",
+            "tab": "tab-2",
+            "nav": {
+              "state": "loading",
+              "url": "http://127.0.0.1:3000/",
+              "title": ""
+            },
+            "can_go_back": false,
+            "can_go_forward": false,
+            "viewport": {
+              "mode": "fill"
+            },
+            "updated_ms": 1,
+            "color_scheme": "dark",
+            "zoom": 1.25
+          }
+        }
+      },
+      "volatile": [
+        "/result/session/updated_ms"
+      ]
+    },
+    {
+      "name": "refuses a zoom that is not one of the steps",
+      "request": {
+        "id": 1,
+        "method": "preview.adjust",
+        "params": {
+          "thread": "t1",
+          "tab": "tab-2",
+          "zoom": 1.3
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "zoom must be one of the zoom levels"
+        }
+      }
+    }
+  ]
+}

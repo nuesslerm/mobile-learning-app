@@ -1,0 +1,9 @@
+Usage: wf android adb [adb-args...]
+
+Runs adb with the device's serial in front (ANDROID_SERIAL, else WF_ANDROID_SERIAL; plain adb when neither is set).
+Everything after `adb` goes to adb verbatim, and adb's own output and exit code come back unwrapped. Lease-guarded: it
+exits 3 naming the holder while someone else holds the device. `wf android run-shell` runs a shell command and answers
+in the envelope.
+
+Options:
+  -h, --help  display help for command

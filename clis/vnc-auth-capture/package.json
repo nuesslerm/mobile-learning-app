@@ -1,0 +1,9 @@
+{
+  "name": "@cli/vnc-auth-capture",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The shared auth desktop image (Dockerfile, compose, init hooks, the newtab extension) and the on-demand installer for the tool CLIs whose login it captures. The listener that runs in it is `vnc-auth-listener` (listener/: the code of `wf secret login listener`, built alone); the control channel is `wf secret login`.",
+  "scripts": {
+    "setup": "bash scripts/setup.sh"
+  }
+}

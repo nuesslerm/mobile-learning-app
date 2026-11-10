@@ -1,0 +1,40 @@
+{
+  "action": "browse",
+  "exchanges": [
+    {
+      "name": "lists the directories first, then the files, without hidden names",
+      "setup": {"files": {"src/a.rs": "x", "b.txt": "y", "docs/c.md": "z", ".hidden/d": "w"}},
+      "request": {"id": "b1", "tool": "browse", "args": {"path": "."}},
+      "response": {"id": "b1", "ok": true, "result": {"path": "/root", "entries": [{"name": "docs", "kind": "dir", "path": "/root/docs"}, {"name": "src", "kind": "dir", "path": "/root/src"}, {"name": "b.txt", "kind": "file", "path": "/root/b.txt"}]}},
+      "volatile": ["/result/path", "/result/entries/0/path", "/result/entries/1/path", "/result/entries/2/path"]
+    },
+    {
+      "name": "shows hidden names when asked, and the parent of a directory inside the allowed places",
+      "setup": {"files": {"src/a.rs": "x", ".hidden/d": "w"}},
+      "request": {"id": "b2", "tool": "browse", "args": {"path": "src", "show_hidden": true}},
+      "response": {"id": "b2", "ok": true, "result": {"path": "/root/src", "parent": "/root", "entries": [{"name": "a.rs", "kind": "file", "path": "/root/src/a.rs"}]}},
+      "volatile": ["/result/path", "/result/parent", "/result/entries/0/path"]
+    },
+    {
+      "name": "refuses an absolute path outside the allowed places",
+      "request": {"id": "b3", "tool": "browse", "args": {"path": "/etc"}},
+      "response": {"id": "b3", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "/etc is outside the root"}}
+    },
+    {
+      "name": "refuses a relative path that leaves the root",
+      "request": {"id": "b4", "tool": "browse", "args": {"path": "../.."}},
+      "response": {"id": "b4", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "../.. is outside the root"}}
+    },
+    {
+      "name": "refuses a file",
+      "setup": {"files": {"b.txt": "y"}},
+      "request": {"id": "b5", "tool": "browse", "args": {"path": "b.txt"}},
+      "response": {"id": "b5", "ok": false, "error": {"code": "INVALID_ARGS", "message": "b.txt is not a directory"}}
+    },
+    {
+      "name": "refuses a directory that does not exist",
+      "request": {"id": "b6", "tool": "browse", "args": {"path": "missing"}},
+      "response": {"id": "b6", "ok": false, "error": {"code": "NOT_FOUND", "message": "missing does not exist"}}
+    }
+  ]
+}

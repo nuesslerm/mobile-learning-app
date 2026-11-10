@@ -1,0 +1,29 @@
+[package]
+name = "rca-group-hosted"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The hosted source control groups of the service's agent API (hosted.pr, hosted.clone, hosted.auth): pull and merge requests, clones and the provider sign-in, done by the executor that owns the workspace with its machine's own gh/glab credentials; the service holds no token"
+
+[lib]
+name = "rca_group_hosted"
+path = "src/lib.rs"
+doctest = false
+
+[features]
+# The double of the HostCredentials port, for the service crate's tests
+testing = []
+
+[dependencies]
+async-trait.workspace = true
+serde_json.workspace = true
+tokio.workspace = true
+agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
+agent-api-hosted = { path = "../../../libraries/agent-api/agent-api-hosted" }
+rca-agent-core = { path = "../agent-core" }
+rca-exec-channel = { path = "../exec-channel" }
+exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
+exec-hosted = { path = "../../../libraries/agent-api/exec-hosted" }
+
+[dev-dependencies]
+rca-exec-channel = { path = "../exec-channel", features = ["testing"] }

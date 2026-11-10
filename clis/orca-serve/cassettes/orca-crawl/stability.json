@@ -1,0 +1,203 @@
+{
+  "runs": [
+    "orca-s1",
+    "orca-s2",
+    "orca-s3"
+  ],
+  "compared": 739,
+  "unobserved": [],
+  "stable_before": 735,
+  "stable_after": 739,
+  "stable_pct": 100.0,
+  "causes": {},
+  "proposals": [
+    {
+      "rule": {
+        "kind": "pointer",
+        "pointer": "/steps/1/payload/result/rateLimits/antigravity/updatedAt",
+        "placeholder": "<volatile>",
+        "interaction": "orca-accounts.list-valid-min"
+      },
+      "why": "a number that differs between runs under a key that is stable elsewhere",
+      "scope": "orca-accounts.list-valid-min",
+      "seen_in": [
+        "orca-accounts.list-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "pointer",
+        "pointer": "/steps/1/payload/result/rateLimits/claude/updatedAt",
+        "placeholder": "<volatile>",
+        "interaction": "orca-accounts.list-valid-min"
+      },
+      "why": "a number that differs between runs under a key that is stable elsewhere",
+      "scope": "orca-accounts.list-valid-min",
+      "seen_in": [
+        "orca-accounts.list-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "pointer",
+        "pointer": "/steps/1/payload/result/rateLimits/codex/updatedAt",
+        "placeholder": "<volatile>",
+        "interaction": "orca-accounts.list-valid-min"
+      },
+      "why": "a number that differs between runs under a key that is stable elsewhere",
+      "scope": "orca-accounts.list-valid-min",
+      "seen_in": [
+        "orca-accounts.list-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "pointer",
+        "pointer": "/steps/1/payload/result/rateLimits/cursor/updatedAt",
+        "placeholder": "<volatile>",
+        "interaction": "orca-accounts.list-valid-min"
+      },
+      "why": "a number that differs between runs under a key that is stable elsewhere",
+      "scope": "orca-accounts.list-valid-min",
+      "seen_in": [
+        "orca-accounts.list-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "pointer",
+        "pointer": "/steps/1/payload/result/rateLimits/gemini/updatedAt",
+        "placeholder": "<volatile>",
+        "interaction": "orca-accounts.list-valid-min"
+      },
+      "why": "a number that differs between runs under a key that is stable elsewhere",
+      "scope": "orca-accounts.list-valid-min",
+      "seen_in": [
+        "orca-accounts.list-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "pointer",
+        "pointer": "/steps/1/payload/result/rateLimits/grok/updatedAt",
+        "placeholder": "<volatile>",
+        "interaction": "orca-accounts.list-valid-min"
+      },
+      "why": "a number that differs between runs under a key that is stable elsewhere",
+      "scope": "orca-accounts.list-valid-min",
+      "seen_in": [
+        "orca-accounts.list-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "pointer",
+        "pointer": "/steps/1/payload/result/rateLimits/kimi/updatedAt",
+        "placeholder": "<volatile>",
+        "interaction": "orca-accounts.list-valid-min"
+      },
+      "why": "a number that differs between runs under a key that is stable elsewhere",
+      "scope": "orca-accounts.list-valid-min",
+      "seen_in": [
+        "orca-accounts.list-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "pointer",
+        "pointer": "/steps/1/payload/result/rateLimits/minimax/updatedAt",
+        "placeholder": "<volatile>",
+        "interaction": "orca-accounts.list-valid-min"
+      },
+      "why": "a number that differs between runs under a key that is stable elsewhere",
+      "scope": "orca-accounts.list-valid-min",
+      "seen_in": [
+        "orca-accounts.list-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "pointer",
+        "pointer": "/steps/1/payload/result/rateLimits/opencodeGo/updatedAt",
+        "placeholder": "<volatile>",
+        "interaction": "orca-accounts.list-valid-min"
+      },
+      "why": "a number that differs between runs under a key that is stable elsewhere",
+      "scope": "orca-accounts.list-valid-min",
+      "seen_in": [
+        "orca-accounts.list-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "pointer",
+        "pointer": "/steps/1/payload/result/rateLimits/zcode/updatedAt",
+        "placeholder": "<volatile>",
+        "interaction": "orca-accounts.list-valid-min"
+      },
+      "why": "a number that differs between runs under a key that is stable elsewhere",
+      "scope": "orca-accounts.list-valid-min",
+      "seen_in": [
+        "orca-accounts.list-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "token",
+        "pattern": "[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(?:Z|[+-][0-9]{2}:[0-9]{2})",
+        "placeholder": "<ts>"
+      },
+      "why": "`2026-11-07T01:14:59Z` and `2026-11-07T01:16:02Z` differ and share the shape [0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]+(?:Z|[+-][0-9]{2}:[0-9]{2})",
+      "scope": "global",
+      "seen_in": [
+        "orca-orchestration.runList-invalid-no-payload"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "volatile-number",
+        "keys": {
+          "createdAt": "<volatile:createdAt>"
+        }
+      },
+      "why": "the number under `createdAt` differed in every recording that carried it (1 places)",
+      "scope": "global",
+      "seen_in": [
+        "orca-projectGroup.create-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "pointer",
+        "pointer": "/steps/1/payload/result/group/updatedAt",
+        "placeholder": "<volatile>",
+        "interaction": "orca-projectGroup.create-valid-min"
+      },
+      "why": "a number that differs between runs under a key that is stable elsewhere",
+      "scope": "orca-projectGroup.create-valid-min",
+      "seen_in": [
+        "orca-projectGroup.create-valid-min"
+      ]
+    },
+    {
+      "rule": {
+        "kind": "volatile-number",
+        "keys": {
+          "scannedAt": "<volatile:scannedAt>"
+        }
+      },
+      "why": "the number under `scannedAt` differed in every recording that carried it (1 places)",
+      "scope": "global",
+      "seen_in": [
+        "orca-skills.discover-valid-min"
+      ]
+    }
+  ],
+  "unstable": [],
+  "accounting": {
+    "allowlisted": [],
+    "unlisted": [],
+    "stale": [],
+    "wrong_cause": []
+  }
+}

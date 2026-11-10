@@ -1,0 +1,11 @@
+Usage: wf vm net auth-key [options] <action>
+
+Rotate TS_VM_AUTH_KEY before Tailscale’s 90-day cap expires it
+
+Arguments:
+  action             rotate
+
+Options:
+  --apply            actually mint and store the new key (default is a dry run)
+  --expiry-days <n>  key lifetime, max 90 (default 90)
+  -h, --help         display help for command

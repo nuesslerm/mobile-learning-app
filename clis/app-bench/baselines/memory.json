@@ -1,0 +1,798 @@
+{
+  "suite": "memory",
+  "initial": {
+    "recordedAt": "2026-10-06T10:25:06.903Z",
+    "commit": "ae07f096d46829adc67ded75e8fd68b4a50ce037",
+    "runs": 3,
+    "env": {
+      "device": "iphone-15-pro",
+      "settleMs": "1500",
+      "scope": "lab-only (Chromium V8 heap)",
+      "appOnlyDerived": "The initial app-only heaps are the initial raw heaps minus the harness shell median (713096 B); the shell was first measured after the refactor began, and it is not part of the app."
+    },
+    "metrics": {
+      "coldStartHeapBytes": {
+        "unit": "bytes",
+        "median": 24657344,
+        "min": 24657052,
+        "max": 24660708,
+        "values": [
+          24657052,
+          24660708,
+          24657344
+        ]
+      },
+      "coldStartDomNodes": {
+        "unit": "nodes",
+        "median": 1308,
+        "min": 1308,
+        "max": 1308,
+        "values": [
+          1308,
+          1308,
+          1308
+        ]
+      },
+      "coldStartListeners": {
+        "unit": "listeners",
+        "median": 326,
+        "min": 326,
+        "max": 326,
+        "values": [
+          326,
+          326,
+          326
+        ]
+      },
+      "route.tamil.heapBytes": {
+        "unit": "bytes",
+        "median": 25502036,
+        "min": 25500476,
+        "max": 25504788,
+        "values": [
+          25504788,
+          25502036,
+          25500476
+        ]
+      },
+      "route.tamil.domNodes": {
+        "unit": "nodes",
+        "median": 807,
+        "min": 807,
+        "max": 807,
+        "values": [
+          807,
+          807,
+          807
+        ]
+      },
+      "route.tamil-lesson.heapBytes": {
+        "unit": "bytes",
+        "median": 23112240,
+        "min": 23106396,
+        "max": 23112596,
+        "values": [
+          23112240,
+          23112596,
+          23106396
+        ]
+      },
+      "route.tamil-lesson.domNodes": {
+        "unit": "nodes",
+        "median": 253,
+        "min": 253,
+        "max": 253,
+        "values": [
+          253,
+          253,
+          253
+        ]
+      },
+      "route.tamil-write.heapBytes": {
+        "unit": "bytes",
+        "median": 23020600,
+        "min": 23018260,
+        "max": 23020672,
+        "values": [
+          23020672,
+          23020600,
+          23018260
+        ]
+      },
+      "route.tamil-write.domNodes": {
+        "unit": "nodes",
+        "median": 211,
+        "min": 211,
+        "max": 211,
+        "values": [
+          211,
+          211,
+          211
+        ]
+      },
+      "route.leetcode.heapBytes": {
+        "unit": "bytes",
+        "median": 28853712,
+        "min": 28853576,
+        "max": 28859000,
+        "values": [
+          28853712,
+          28859000,
+          28853576
+        ]
+      },
+      "route.leetcode.domNodes": {
+        "unit": "nodes",
+        "median": 378,
+        "min": 378,
+        "max": 378,
+        "values": [
+          378,
+          378,
+          378
+        ]
+      },
+      "route.settings.heapBytes": {
+        "unit": "bytes",
+        "median": 23248428,
+        "min": 23231416,
+        "max": 23253076,
+        "values": [
+          23231416,
+          23253076,
+          23248428
+        ]
+      },
+      "route.settings.domNodes": {
+        "unit": "nodes",
+        "median": 232,
+        "min": 232,
+        "max": 232,
+        "values": [
+          232,
+          232,
+          232
+        ]
+      },
+      "route.dashboards.heapBytes": {
+        "unit": "bytes",
+        "median": 23643208,
+        "min": 23628276,
+        "max": 23650616,
+        "values": [
+          23628276,
+          23650616,
+          23643208
+        ]
+      },
+      "route.dashboards.domNodes": {
+        "unit": "nodes",
+        "median": 198,
+        "min": 198,
+        "max": 198,
+        "values": [
+          198,
+          198,
+          198
+        ]
+      },
+      "loopGrowthBytes": {
+        "unit": "bytes",
+        "median": 1189856,
+        "min": 1173320,
+        "max": 1201276,
+        "values": [
+          1189856,
+          1173320,
+          1201276
+        ]
+      },
+      "loopGrowthDomNodes": {
+        "unit": "nodes",
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      },
+      "loopGrowthListeners": {
+        "unit": "listeners",
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      },
+      "harnessShellHeapBytes": {
+        "unit": "bytes",
+        "median": 713096,
+        "min": 713096,
+        "max": 713096,
+        "values": [
+          713096,
+          713096,
+          713096
+        ]
+      },
+      "coldStartAppHeapBytes": {
+        "unit": "bytes",
+        "median": 23944248,
+        "min": 23943956,
+        "max": 23947612,
+        "values": [
+          23943956,
+          23947612,
+          23944248
+        ]
+      },
+      "route.tamil.appHeapBytes": {
+        "unit": "bytes",
+        "median": 24788940,
+        "min": 24787380,
+        "max": 24791692,
+        "values": [
+          24791692,
+          24788940,
+          24787380
+        ]
+      },
+      "route.tamil-lesson.appHeapBytes": {
+        "unit": "bytes",
+        "median": 22399144,
+        "min": 22393300,
+        "max": 22399500,
+        "values": [
+          22399144,
+          22399500,
+          22393300
+        ]
+      },
+      "route.tamil-write.appHeapBytes": {
+        "unit": "bytes",
+        "median": 22307504,
+        "min": 22305164,
+        "max": 22307576,
+        "values": [
+          22307576,
+          22307504,
+          22305164
+        ]
+      },
+      "route.leetcode.appHeapBytes": {
+        "unit": "bytes",
+        "median": 28140616,
+        "min": 28140480,
+        "max": 28145904,
+        "values": [
+          28140616,
+          28145904,
+          28140480
+        ]
+      },
+      "route.settings.appHeapBytes": {
+        "unit": "bytes",
+        "median": 22535332,
+        "min": 22518320,
+        "max": 22539980,
+        "values": [
+          22518320,
+          22539980,
+          22535332
+        ]
+      },
+      "route.dashboards.appHeapBytes": {
+        "unit": "bytes",
+        "median": 22930112,
+        "min": 22915180,
+        "max": 22937520,
+        "values": [
+          22915180,
+          22937520,
+          22930112
+        ]
+      },
+      "loopSteadyGrowthBytes": {
+        "unit": "bytes",
+        "median": 883700,
+        "min": 860200,
+        "max": 887032,
+        "values": [
+          860200,
+          883700,
+          887032
+        ]
+      },
+      "coldStartAppDomNodes": {
+        "unit": "nodes",
+        "median": 1299,
+        "min": 1299,
+        "max": 1299,
+        "values": [
+          1299,
+          1299,
+          1299
+        ]
+      },
+      "coldStartAppListeners": {
+        "unit": "listeners",
+        "median": 296,
+        "min": 296,
+        "max": 296,
+        "values": [
+          296,
+          296,
+          296
+        ]
+      },
+      "route.tamil.appDomNodes": {
+        "unit": "nodes",
+        "median": 798,
+        "min": 798,
+        "max": 798,
+        "values": [
+          798,
+          798,
+          798
+        ]
+      },
+      "route.tamil-lesson.appDomNodes": {
+        "unit": "nodes",
+        "median": 244,
+        "min": 244,
+        "max": 244,
+        "values": [
+          244,
+          244,
+          244
+        ]
+      },
+      "route.tamil-write.appDomNodes": {
+        "unit": "nodes",
+        "median": 202,
+        "min": 202,
+        "max": 202,
+        "values": [
+          202,
+          202,
+          202
+        ]
+      },
+      "route.leetcode.appDomNodes": {
+        "unit": "nodes",
+        "median": 436,
+        "min": 436,
+        "max": 436,
+        "values": [
+          436,
+          436,
+          436
+        ]
+      },
+      "route.settings.appDomNodes": {
+        "unit": "nodes",
+        "median": 290,
+        "min": 290,
+        "max": 290,
+        "values": [
+          290,
+          290,
+          290
+        ]
+      },
+      "route.dashboards.appDomNodes": {
+        "unit": "nodes",
+        "median": 256,
+        "min": 256,
+        "max": 256,
+        "values": [
+          256,
+          256,
+          256
+        ]
+      }
+    }
+  },
+  "current": {
+    "recordedAt": "2026-10-13T17:30:10.443Z",
+    "commit": "3e9bdb9e86067bf24200e71ee23e7f07055ed4b2",
+    "runs": 3,
+    "env": {
+      "device": "iphone-15-pro",
+      "settleMs": "1500",
+      "scope": "lab-only (Chromium V8, headless)"
+    },
+    "metrics": {
+      "coldStartHeapBytes": {
+        "unit": "bytes",
+        "median": 19791064,
+        "min": 19784248,
+        "max": 19802168,
+        "values": [
+          19802168,
+          19791064,
+          19784248
+        ]
+      },
+      "harnessShellHeapBytes": {
+        "unit": "bytes",
+        "median": 1658452,
+        "min": 1658448,
+        "max": 1658452,
+        "values": [
+          1658448,
+          1658452,
+          1658452
+        ]
+      },
+      "coldStartAppHeapBytes": {
+        "unit": "bytes",
+        "median": 18132612,
+        "min": 18125796,
+        "max": 18143720,
+        "values": [
+          18143720,
+          18132612,
+          18125796
+        ]
+      },
+      "coldStartAppDomNodes": {
+        "unit": "nodes",
+        "median": 1299,
+        "min": 1299,
+        "max": 1299,
+        "values": [
+          1299,
+          1299,
+          1299
+        ]
+      },
+      "coldStartAppListeners": {
+        "unit": "listeners",
+        "median": 296,
+        "min": 296,
+        "max": 296,
+        "values": [
+          296,
+          296,
+          296
+        ]
+      },
+      "coldStartDomNodes": {
+        "unit": "nodes",
+        "median": 1360,
+        "min": 1360,
+        "max": 1360,
+        "values": [
+          1360,
+          1360,
+          1360
+        ]
+      },
+      "coldStartListeners": {
+        "unit": "listeners",
+        "median": 447,
+        "min": 447,
+        "max": 447,
+        "values": [
+          447,
+          447,
+          447
+        ]
+      },
+      "route.tamil.heapBytes": {
+        "unit": "bytes",
+        "median": 17558308,
+        "min": 17548320,
+        "max": 17562296,
+        "values": [
+          17562296,
+          17548320,
+          17558308
+        ]
+      },
+      "route.tamil.appHeapBytes": {
+        "unit": "bytes",
+        "median": 15899856,
+        "min": 15889868,
+        "max": 15903848,
+        "values": [
+          15903848,
+          15889868,
+          15899856
+        ]
+      },
+      "route.tamil.appDomNodes": {
+        "unit": "nodes",
+        "median": 798,
+        "min": 798,
+        "max": 798,
+        "values": [
+          798,
+          798,
+          798
+        ]
+      },
+      "route.tamil.domNodes": {
+        "unit": "nodes",
+        "median": 859,
+        "min": 859,
+        "max": 859,
+        "values": [
+          859,
+          859,
+          859
+        ]
+      },
+      "route.tamil-lesson.heapBytes": {
+        "unit": "bytes",
+        "median": 17608432,
+        "min": 16499680,
+        "max": 17611292,
+        "values": [
+          17611292,
+          16499680,
+          17608432
+        ]
+      },
+      "route.tamil-lesson.appHeapBytes": {
+        "unit": "bytes",
+        "median": 15949980,
+        "min": 14841228,
+        "max": 15952844,
+        "values": [
+          15952844,
+          14841228,
+          15949980
+        ]
+      },
+      "route.tamil-lesson.appDomNodes": {
+        "unit": "nodes",
+        "median": 244,
+        "min": 244,
+        "max": 244,
+        "values": [
+          244,
+          244,
+          244
+        ]
+      },
+      "route.tamil-lesson.domNodes": {
+        "unit": "nodes",
+        "median": 305,
+        "min": 305,
+        "max": 305,
+        "values": [
+          305,
+          305,
+          305
+        ]
+      },
+      "route.tamil-write.heapBytes": {
+        "unit": "bytes",
+        "median": 17585940,
+        "min": 17576984,
+        "max": 17586920,
+        "values": [
+          17585940,
+          17576984,
+          17586920
+        ]
+      },
+      "route.tamil-write.appHeapBytes": {
+        "unit": "bytes",
+        "median": 15927492,
+        "min": 15918532,
+        "max": 15928468,
+        "values": [
+          15927492,
+          15918532,
+          15928468
+        ]
+      },
+      "route.tamil-write.appDomNodes": {
+        "unit": "nodes",
+        "median": 202,
+        "min": 202,
+        "max": 202,
+        "values": [
+          202,
+          202,
+          202
+        ]
+      },
+      "route.tamil-write.domNodes": {
+        "unit": "nodes",
+        "median": 263,
+        "min": 263,
+        "max": 263,
+        "values": [
+          263,
+          263,
+          263
+        ]
+      },
+      "route.leetcode.heapBytes": {
+        "unit": "bytes",
+        "median": 24880112,
+        "min": 24870192,
+        "max": 24887896,
+        "values": [
+          24880112,
+          24870192,
+          24887896
+        ]
+      },
+      "route.leetcode.appHeapBytes": {
+        "unit": "bytes",
+        "median": 23221664,
+        "min": 23211740,
+        "max": 23229444,
+        "values": [
+          23221664,
+          23211740,
+          23229444
+        ]
+      },
+      "route.leetcode.appDomNodes": {
+        "unit": "nodes",
+        "median": 436,
+        "min": 436,
+        "max": 436,
+        "values": [
+          436,
+          436,
+          436
+        ]
+      },
+      "route.leetcode.domNodes": {
+        "unit": "nodes",
+        "median": 497,
+        "min": 497,
+        "max": 497,
+        "values": [
+          497,
+          497,
+          497
+        ]
+      },
+      "route.settings.heapBytes": {
+        "unit": "bytes",
+        "median": 19663308,
+        "min": 19652356,
+        "max": 19667116,
+        "values": [
+          19667116,
+          19652356,
+          19663308
+        ]
+      },
+      "route.settings.appHeapBytes": {
+        "unit": "bytes",
+        "median": 18004856,
+        "min": 17993904,
+        "max": 18008668,
+        "values": [
+          18008668,
+          17993904,
+          18004856
+        ]
+      },
+      "route.settings.appDomNodes": {
+        "unit": "nodes",
+        "median": 290,
+        "min": 290,
+        "max": 290,
+        "values": [
+          290,
+          290,
+          290
+        ]
+      },
+      "route.settings.domNodes": {
+        "unit": "nodes",
+        "median": 351,
+        "min": 351,
+        "max": 351,
+        "values": [
+          351,
+          351,
+          351
+        ]
+      },
+      "route.dashboards.heapBytes": {
+        "unit": "bytes",
+        "median": 19683376,
+        "min": 19670652,
+        "max": 19708284,
+        "values": [
+          19683376,
+          19670652,
+          19708284
+        ]
+      },
+      "route.dashboards.appHeapBytes": {
+        "unit": "bytes",
+        "median": 18024928,
+        "min": 18012200,
+        "max": 18049832,
+        "values": [
+          18024928,
+          18012200,
+          18049832
+        ]
+      },
+      "route.dashboards.appDomNodes": {
+        "unit": "nodes",
+        "median": 256,
+        "min": 256,
+        "max": 256,
+        "values": [
+          256,
+          256,
+          256
+        ]
+      },
+      "route.dashboards.domNodes": {
+        "unit": "nodes",
+        "median": 317,
+        "min": 317,
+        "max": 317,
+        "values": [
+          317,
+          317,
+          317
+        ]
+      },
+      "loopGrowthBytes": {
+        "unit": "bytes",
+        "median": 1729780,
+        "min": 1726104,
+        "max": 1764564,
+        "values": [
+          1764564,
+          1726104,
+          1729780
+        ]
+      },
+      "loopGrowthDomNodes": {
+        "unit": "nodes",
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      },
+      "loopGrowthListeners": {
+        "unit": "listeners",
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      },
+      "loopSteadyGrowthBytes": {
+        "unit": "bytes",
+        "median": 0,
+        "min": 0,
+        "max": 0,
+        "values": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  }
+}

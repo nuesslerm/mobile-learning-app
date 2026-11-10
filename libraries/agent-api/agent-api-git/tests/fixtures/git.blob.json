@@ -1,0 +1,53 @@
+{
+  "method": "git.blob",
+  "exchanges": [
+    {
+      "name": "reads a file at a revision",
+      "request": {
+        "id": 1,
+        "method": "git.blob",
+        "params": {
+          "workspace": "w1",
+          "rev": "HEAD",
+          "path": "README.md"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "rev": "HEAD",
+          "path": "README.md",
+          "size": 10,
+          "data": "dGVtcCByZXBvCg==",
+          "truncated": false,
+          "binary": false
+        }
+      },
+      "actions": [
+        "git_blob"
+      ]
+    },
+    {
+      "name": "a path in the git directory is refused",
+      "request": {
+        "id": 1,
+        "method": "git.blob",
+        "params": {
+          "workspace": "w1",
+          "rev": "HEAD",
+          "path": ".git/config"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`path` must be a path inside the repository's working tree"
+        }
+      },
+      "actions": [
+        "git_blob"
+      ]
+    }
+  ]
+}

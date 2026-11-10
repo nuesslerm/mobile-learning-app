@@ -1,0 +1,88 @@
+{
+  "method": "file.mkdir",
+  "exchanges": [
+    {
+      "name": "makes a directory and the parents it lacks when asked to",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": ".rca/projects/a",
+          "parents": true
+        },
+        "id": 1,
+        "method": "file.mkdir"
+      },
+      "response": {
+        "result": {
+          "path": ".rca/projects/a",
+          "created": true
+        },
+        "id": 1
+      },
+      "actions": [
+        "make_dir"
+      ]
+    },
+    {
+      "name": "refuses a name that is taken, with the executor's own code",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "projects/taken"
+        },
+        "id": 2,
+        "method": "file.mkdir"
+      },
+      "response": {
+        "error": {
+          "code": "ALREADY_EXISTS",
+          "message": "projects/taken already exists"
+        },
+        "id": 2
+      },
+      "actions": [
+        "make_dir"
+      ]
+    },
+    {
+      "name": "refuses a path outside the workspace's root",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "../escape",
+          "parents": true
+        },
+        "id": 3,
+        "method": "file.mkdir"
+      },
+      "response": {
+        "error": {
+          "code": "PATH_OUTSIDE_ROOT",
+          "message": "../escape is outside the root"
+        },
+        "id": 3
+      },
+      "actions": [
+        "make_dir"
+      ]
+    },
+    {
+      "name": "refuses a request that names no path, before the executor is asked",
+      "request": {
+        "params": {
+          "workspace": "w1"
+        },
+        "id": 4,
+        "method": "file.mkdir"
+      },
+      "response": {
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "path is required"
+        },
+        "id": 4
+      },
+      "actions": []
+    }
+  ]
+}

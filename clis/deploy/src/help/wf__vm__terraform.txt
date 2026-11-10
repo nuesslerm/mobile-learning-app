@@ -1,0 +1,20 @@
+Usage: wf vm terraform [options] [command]
+
+Terraform for infra/oracle-cloud
+
+Options:
+  -h, --help                          display help for command
+
+Commands:
+  apply <workingDir> <compartmentId>  Guarded apply: free-tier check on every
+                                      planned create/resize, post-apply
+                                      convergence check, auto-rollback on
+                                      failure.
+  preflight [options] [workingDir]    Checks before a recreate: state
+                                      backup, secrets, no CI run in flight,
+                                      and the recreate's plan.
+  exec <workingDir> [args...]         Run terraform with the remote-state
+                                      credentials injected (plan, output, state
+                                      list, init, import, ...). Unguarded: no
+                                      free-tier check, no rollback.
+  help [command]                      display help for command

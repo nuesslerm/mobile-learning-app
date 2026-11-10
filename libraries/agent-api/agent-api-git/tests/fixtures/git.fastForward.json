@@ -1,0 +1,71 @@
+{
+  "method": "git.fastForward",
+  "exchanges": [
+    {
+      "name": "moves a branch to one ahead of it",
+      "before": [
+        {
+          "id": 1,
+          "method": "git.createRef",
+          "params": {
+            "workspace": "w1",
+            "name": "topic",
+            "checkout": true
+          }
+        },
+        {
+          "id": 1,
+          "method": "file.write",
+          "params": {
+            "workspace": "w1",
+            "path": "t.txt",
+            "content": "t\n"
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.stage",
+          "params": {
+            "workspace": "w1",
+            "paths": [
+              "t.txt"
+            ]
+          }
+        },
+        {
+          "id": 1,
+          "method": "git.commit",
+          "params": {
+            "workspace": "w1",
+            "message": "on topic"
+          }
+        }
+      ],
+      "request": {
+        "id": 1,
+        "method": "git.fastForward",
+        "params": {
+          "workspace": "w1",
+          "branch": "main",
+          "to": "topic"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "branch": "main",
+          "from": "584baedb16cc19246c01f67532c4bfd77c4edddc",
+          "head": "78f0829fa35dd724ea666de4a9d376abbb1e114d",
+          "updated": true
+        }
+      },
+      "actions": [
+        "git_fast_forward"
+      ],
+      "volatile": [
+        "/result/from",
+        "/result/head"
+      ]
+    }
+  ]
+}
