@@ -95,6 +95,14 @@ fn spec(verb: &str) -> Spec {
 }
 
 fn start_device(name: &str, p: &Parsed) -> Result<Value, Out> {
+    if crate::android_emulator::selected().map_err(Out::Usage)? {
+        let script = crate::android_emulator::up_script(480, 1040, 213, p.flag("expo-go"));
+        if p.flag("dry-run") {
+            return Ok(json!({ "dryRun": true, "script": script }));
+        }
+        wf_kit::json_mode::stdout_to_stderr(|| crate::android_emulator::run_local("start-device", &script)).map_err(|e| failed(e, "the emulator log is emulator.log in RUNNER_TEMP; adb devices shows whether it came up"))?;
+        return Ok(json!({ "name": crate::android_emulator::SERIAL, "provider": "emulator", "expoGo": p.flag("expo-go") }));
+    }
     let up = crate::android_lab::up(p.val("screen"), name, p.val("port"), p.val("with"), p.flag("slim"), p.flag("stock"), p.flag("expo-go")).map_err(Out::Usage)?;
     let script = crate::android_lab::up_script(&up);
     if p.flag("dry-run") {
@@ -105,6 +113,14 @@ fn start_device(name: &str, p: &Parsed) -> Result<Value, Out> {
 }
 
 fn stop_device(name: &str, p: &Parsed) -> Result<Value, Out> {
+    if crate::android_emulator::selected().map_err(Out::Usage)? {
+        let script = crate::android_emulator::down_script();
+        if p.flag("dry-run") {
+            return Ok(json!({ "dryRun": true, "script": script }));
+        }
+        wf_kit::json_mode::stdout_to_stderr(|| crate::android_emulator::run_local("stop-device", &script)).map_err(|e| failed(e, "adb devices shows whether the emulator is still there"))?;
+        return Ok(json!({ "name": crate::android_emulator::SERIAL, "stopped": true }));
+    }
     let script = crate::android_lab::down_script(name);
     if p.flag("dry-run") {
         return Ok(json!({ "dryRun": true, "script": script }));
@@ -139,7 +155,7 @@ fn verb(verb: &str, rest: &[String]) -> i32 {
     let (device, out) = match verb {
         "start-device" => (Some(name.clone()), start_device(&name, &p)),
         "stop-device" => (Some(name.clone()), stop_device(&name, &p)),
-        "list-devices" => (Some(name.clone()), crate::android_lab::device(&name).map(|d| json!({ "devices": d.into_iter().collect::<Vec<_>>() })).map_err(|e| failed(e, "wf vm ops health"))),
+        "list-devices" => (Some(name.clone()), if crate::android_emulator::selected().unwrap_or(false) { crate::android_emulator::device() } else { crate::android_lab::device(&name) }.map(|d| json!({ "devices": d.into_iter().collect::<Vec<_>>() })).map_err(|e| failed(e, "wf vm ops health"))),
         "stack" => (None, harness_core::android_logs::stack(&p.positional[0], p.val("platform").unwrap_or("android"), p.val("file")).map_err(|e| failed(e, "wf android stack --help; the group id is in the EAS Update link and in the run summary"))),
         "lease" => {
             let action = p.positional.first().map_or("acquire", String::as_str);

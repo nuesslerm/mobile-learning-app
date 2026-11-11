@@ -1020,7 +1020,11 @@ jobs:
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+      TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+      TS_HOSTED_OAUTH_CLIENT_SECRET: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
     with:
+      flavor: ${{ inputs.flavor }}
+      runner: ${{ inputs.runner }}
       platform: browser
       plan: ${{ needs.plan.outputs.plan }}
       sha: ${{ github.sha }}
@@ -1033,7 +1037,11 @@ jobs:
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+      TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+      TS_HOSTED_OAUTH_CLIENT_SECRET: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
     with:
+      flavor: ${{ inputs.flavor }}
+      runner: ${{ inputs.runner }}
       platform: android
       plan: ${{ needs.plan.outputs.plan }}
       sha: ${{ github.sha }}

@@ -53,10 +53,7 @@ pub fn write_refusal(key: &str) -> Option<String> {
         return None;
     }
     let (event, git_ref) = (var("GITHUB_EVENT_NAME").unwrap_or_default(), var("GITHUB_REF").unwrap_or_default());
-    let allowed = match (event.as_str(), git_ref.as_str()) {
-        ("push" | "workflow_dispatch", "refs/heads/dev") | ("schedule", "refs/heads/main") => true,
-        _ => false,
-    };
+    let allowed = matches!((event.as_str(), git_ref.as_str()), ("push" | "workflow_dispatch", "refs/heads/dev") | ("schedule", "refs/heads/main"));
     (!allowed).then(|| format!("write URL refused for {event}/{git_ref}"))
 }
 
