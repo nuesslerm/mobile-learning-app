@@ -34,7 +34,7 @@ describe('given the ci-runner compose project with its builder sidecar', () => {
     assert.ok(sources(builder).includes('builder-data') && (builder.volumes ?? []).includes('builder-data:/var/lib/docker'));
     assert.ok(!sources(runner).includes('builder-data'), 'the runner never mounts the daemon state');
     assert.ok(builder.healthcheck, 'the builder has a healthcheck');
-    for (const volume of ['builder-data', 'builder-certs', 'gh-runner-config-3']) assert.ok(volume in compose.volumes, `${volume} is declared`);
+    for (const volume of ['builder-data', 'builder-certs', 'gh-runner-config-4']) assert.ok(volume in compose.volumes, `${volume} is declared`);
   });
 
   it('when the runner registers, then its container env holds a registration token and no PAT', () => {
