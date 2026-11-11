@@ -864,6 +864,11 @@ fn the_recreate_preflight_passes_only_when_state_secrets_ci_and_plan_all_hold() 
     assert_eq!((r.exit_code, failed(&v)), (1, vec!["ci".to_string()]));
     assert!(detail(&v, "ci").contains("CI #42 (in_progress, abcdef123)"), "{v}");
     assert!(v["next"].as_str().unwrap().starts_with("fix the failed checks"));
+    // Given a run only queued, Then the ci check passes and says it waits for the new runner
+    set_runs(json!({ "queued": [{ "id": 43, "name": "CI", "head_sha": "abcdef1234567" }] }));
+    let q = verdict(&preflight(&[]));
+    assert!(failed(&q).is_empty(), "{q}");
+    assert!(detail(&q, "ci").contains("only queued") && detail(&q, "ci").contains("CI #43"), "{q}");
     // and the run list the API cannot give is a failure too, never a pass
     set_runs(json!({ "exit": 1, "stderr": "HTTP 403" }));
     assert!(detail(&verdict(&preflight(&[])), "ci").contains("HTTP 403"));
