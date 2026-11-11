@@ -1,0 +1,22 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "demo": {
+      "type": "local",
+      "enabled": true,
+      "command": [
+        "node",
+        "{ROOT}/mcp.js"
+      ]
+    }
+  },
+  "permission": {
+    "bash.gh pr merge *": "deny"
+  },
+  "plugin": [
+    "file://{ROOT}/plugin.js"
+  ],
+  "instructions": [
+    "vendor/rules/rule.md"
+  ]
+}
