@@ -360,7 +360,15 @@ impl harness_core::platform::Platform for AndroidPlatform {
     fn open_run_device(&self, serial: Option<String>, inputs: String, f: &mut harness_core::run_report::Facts) -> std::rc::Rc<dyn Device> {
         f.device = crate::android::serial_or_env(serial.as_deref());
         f.inputs = Some(std::path::PathBuf::from(std::env::var("WF_ANDROID_INPUT_LOG").unwrap_or_else(|_| inputs.clone())));
-        std::rc::Rc::new(AndroidDevice::new(serial, Some(inputs)))
+        let device = AndroidDevice::new(serial, Some(inputs));
+        // the backend names are mapped to the host (WF_ANDROID_HOSTS): the stub server must listen there even when the script stubs nothing, and forwards what it has no stub for
+        if std::env::var("WF_ANDROID_HOSTS").is_ok_and(|h| !h.trim().is_empty()) {
+            match device.start_stubs() {
+                Ok(server) => *device.stubs.borrow_mut() = Some(server),
+                Err(e) => wf_kit::wf_err!("wf: the forwarding server for the mapped backends did not start: {e}"),
+            }
+        }
+        std::rc::Rc::new(device)
     }
 
     fn refuse_option(&self, p: &wf_kit::args::Parsed) -> Option<String> {
