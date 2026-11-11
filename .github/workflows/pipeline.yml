@@ -100,6 +100,7 @@ jobs:
           wf-source: none
           job: wf-build
           install: "false"
+          apt-packages: build-essential musl-tools
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
       - name: This commit's wf

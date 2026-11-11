@@ -29,6 +29,9 @@ inputs:
   keep-android:
     description: Keep the Android SDK on a hosted runner (the Android e2e job's emulator)
     default: "false"
+  apt-packages:
+    description: System packages a hosted job needs, installed before the tailnet join (see the hosted-apt action)
+    default: ""
 runs:
   using: composite
   steps:
@@ -39,6 +42,11 @@ runs:
         # the tailnet joins in kernel mode here: wf routes by the environment, not through the userspace SOCKS listener it defaults to
         echo "WF_TAILNET_SOCKS=" >> "$GITHUB_ENV"
         echo "BWS_SERVER_URL=https://vault.bitwarden.eu" >> "$GITHUB_ENV"
+
+    - uses: ./.github/actions/hosted-apt
+      if: ${{ inputs.flavor == 'hosted' && inputs.apt-packages != '' }}
+      with:
+        packages: ${{ inputs.apt-packages }}
 
     - uses: ./.github/actions/hosted-setup
       if: ${{ inputs.flavor == 'hosted' && inputs.wf-source != 'none' }}
