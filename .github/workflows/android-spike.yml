@@ -56,8 +56,11 @@ jobs:
           echo "$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator" >> "$GITHUB_PATH"
       - name: Create the device
         run: |
-          avdmanager create avd -n wf -k "system-images;android-34;google_apis;x86_64" -d pixel_2 --force
-          ini="$HOME/.android/avd/wf.avd/config.ini"
+          export ANDROID_AVD_HOME="$HOME/.android/avd"; mkdir -p "$ANDROID_AVD_HOME"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+          echo no | avdmanager create avd -n wf -k "system-images;android-34;google_apis;x86_64" -d pixel_2 --force
+          avdmanager list avd | head -8
+          ini="$ANDROID_AVD_HOME/wf.avd/config.ini"
           for kv in hw.lcd.width=480 hw.lcd.height=1040 hw.lcd.density=213 hw.ramSize=3072 disk.dataPartition.size=2G; do
             key="${kv%%=*}"; sed -i "/^$key=/d" "$ini"; echo "$kv" >> "$ini"
           done
