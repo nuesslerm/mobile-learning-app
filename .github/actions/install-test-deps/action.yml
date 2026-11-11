@@ -63,7 +63,17 @@ runs:
         # `install --with-deps` checks the browser and the system packages on every call: only a new Playwright version needs it
         version=$(pnpm --filter @lib/browser-client exec playwright --version | tr -c '0-9a-z.\n' '_')
         marker="$HOME/.cache/ms-playwright/.installed-$version"
-        [ -f "$marker" ] || { pnpm --filter @lib/browser-client exec playwright install --with-deps chromium && mkdir -p "$(dirname "$marker")" && touch "$marker"; }
+        [ -f "$marker" ] && exit 0
+        # apt can stall on a mirror with no output for the rest of the job: bound each try, kill the stuck apt, try again
+        sudo=$([ "$(id -u)" = 0 ] || echo sudo)
+        for attempt in 1 2 3; do
+          if timeout -k 10 420 pnpm --filter @lib/browser-client exec playwright install --with-deps chromium; then
+            mkdir -p "$(dirname "$marker")" && touch "$marker"; exit 0
+          fi
+          echo "playwright: attempt $attempt failed or stalled"
+          $sudo pkill -9 -x apt-get || true; $sudo pkill -9 -x dpkg || true; $sudo dpkg --configure -a || true
+        done
+        exit 1
     - name: Device-frame page
       if: ${{ inputs.browser-harness == 'true' }}
       shell: bash

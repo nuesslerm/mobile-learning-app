@@ -7,12 +7,14 @@ runs:
   steps:
     - shell: bash
       run: |
-        if getent hosts archive.ubuntu.com >/dev/null; then echo "dns: the Ubuntu mirrors resolve"; exit 0; fi
+        hosts="archive.ubuntu.com"; [ "$(uname -m)" = aarch64 ] && hosts="$hosts ports.ubuntu.com"
+        resolves() { for h in $hosts; do getent hosts "$h" >/dev/null || return 1; done; }
+        if resolves; then echo "dns: the Ubuntu mirrors resolve"; exit 0; fi
         resolvectl status 2>&1 | grep -E "Link|DNS Server|Current DNS" || true
         iface=$(ip route show default | awk '{print $5; exit}')
         for ns in 8.8.8.8 1.1.1.1; do
           sudo resolvectl dns "$iface" "$ns" && sudo resolvectl flush-caches
-          if getent hosts archive.ubuntu.com >/dev/null; then echo "dns: the Ubuntu mirrors resolve through $ns"; exit 0; fi
+          if resolves; then echo "dns: the Ubuntu mirrors resolve through $ns"; exit 0; fi
           echo "dns: still not through $ns"
         done
         echo "::warning::no Ubuntu mirror resolves from this runner"
