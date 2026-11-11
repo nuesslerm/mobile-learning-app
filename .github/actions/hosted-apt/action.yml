@@ -17,19 +17,6 @@ runs:
         for p in $PACKAGES; do dpkg -s "$p" >/dev/null 2>&1 || missing="$missing $p"; done
         if [ -z "$missing" ]; then echo "apt: nothing to install ($PACKAGES)"; exit 0; fi
         sudo dpkg --configure -a
-        # the runner's stub resolver sometimes cannot resolve the Ubuntu mirrors while github.com resolves: show it, then try other upstreams
-        for host in azure.archive.ubuntu.com archive.ubuntu.com security.ubuntu.com github.com; do
-          getent hosts "$host" >/dev/null && echo "dns: $host resolves" || echo "dns: $host does NOT resolve"
-        done
-        if ! getent hosts archive.ubuntu.com >/dev/null; then
-          resolvectl status 2>&1 | grep -E "Link|DNS Server|Current DNS" || true
-          iface=$(ip route show default | awk '{print $5; exit}')
-          for ns in 168.63.129.16 8.8.8.8 1.1.1.1; do
-            sudo resolvectl dns "$iface" "$ns" && sudo resolvectl flush-caches
-            if getent hosts archive.ubuntu.com >/dev/null; then echo "dns: archive.ubuntu.com resolves through $ns"; break; fi
-            echo "dns: still not through $ns"
-          done
-        fi
         getent hosts archive.ubuntu.com >/dev/null || { echo "::error::no Ubuntu mirror resolves from this runner"; exit 1; }
         opts=(-o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
         ok=false

@@ -43,6 +43,8 @@ runs:
         echo "WF_TAILNET_SOCKS=" >> "$GITHUB_ENV"
         echo "BWS_SERVER_URL=https://vault.bitwarden.eu" >> "$GITHUB_ENV"
 
+    - uses: ./.github/actions/hosted-dns
+      if: ${{ inputs.flavor == 'hosted' }}
     - uses: ./.github/actions/hosted-apt
       if: ${{ inputs.flavor == 'hosted' && inputs.apt-packages != '' }}
       with:
@@ -109,3 +111,5 @@ runs:
       if: ${{ inputs.flavor == 'vm' && inputs.install == 'true' }}
       shell: bash
       run: pnpm install --frozen-lockfile
+    - uses: ./.github/actions/hosted-dns
+      if: ${{ inputs.flavor == 'hosted' }}
