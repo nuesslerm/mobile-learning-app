@@ -22,10 +22,11 @@ runs:
           getent hosts "$host" >/dev/null && echo "dns: $host resolves" || echo "dns: $host does NOT resolve"
         done
         grep -m3 nameserver /etc/resolv.conf || true
+        opts=(-o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
         ok=false
         for attempt in 1 2 3 4; do
           # shellcheck disable=SC2086
-          if sudo apt-get update -qq -o Acquire::Retries=3 && sudo apt-get install -y -qq -o Acquire::Retries=3 $missing; then ok=true; break; fi
+          if sudo timeout 150 apt-get update -qq "${opts[@]}" && sudo timeout 240 apt-get install -y -qq "${opts[@]}" $missing; then ok=true; break; fi
           echo "apt: attempt $attempt failed"
           if [ "$attempt" = 2 ] && [ -f /etc/apt/apt-mirrors.txt ]; then
             echo "apt: falling back to archive.ubuntu.com"
