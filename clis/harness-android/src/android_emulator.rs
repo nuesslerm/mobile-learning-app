@@ -6,7 +6,8 @@ use std::process::{Command, Stdio};
 
 pub const SERIAL: &str = "emulator-5554";
 pub const STUB_HOST: &str = "10.0.2.2";
-const IMAGE: &str = "system-images;android-34;google_apis;x86_64";
+/// The AOSP image, not google_apis: no Gboard (its autocorrect rewrote what the editor tests typed) and no Google apps, as on the redroid.
+const IMAGE: &str = "system-images;android-34;default;x86_64";
 const EXPO_GO_URL: &str = "https://github.com/expo/expo-go-releases/releases/download/Expo-Go-57.0.9/Expo-Go-57.0.9.apk";
 
 /// How the device is reached: the redroid on the VM through `wf vm exec` (the default), the redroid through the CI port's device lab
@@ -49,7 +50,7 @@ SDK=\"${{ANDROID_HOME:-${{ANDROID_SDK_ROOT:-}}}}\"; [ -n \"$SDK\" ] || {{ echo '
 export PATH=\"$SDK/cmdline-tools/latest/bin:$SDK/platform-tools:$SDK/emulator:$PATH\"\n\
 if adb -s {SERIAL} get-state >/dev/null 2>&1; then echo '{SERIAL} already up'; {apps}exit 0; fi\n\
 [ -w /dev/kvm ] || {{ echo 'KVM is not writable here'; ls -l /dev/kvm; exit 1; }}\n\
-if ! command -v emulator >/dev/null || [ ! -d \"$SDK/system-images/android-34\" ]; then\n\
+if ! command -v emulator >/dev/null || [ ! -d \"$SDK/system-images/android-34/default\" ]; then\n\
   yes | sdkmanager --licenses >/dev/null 2>&1 || true\n\
   sdkmanager --install emulator platform-tools '{IMAGE}' >/dev/null\n\
 fi\n\
@@ -58,7 +59,7 @@ echo no | avdmanager create avd -n wf -k '{IMAGE}' -d pixel_2 --force >/dev/null
 ini=\"$ANDROID_AVD_HOME/wf.avd/config.ini\"\n\
 for kv in hw.lcd.width={w} hw.lcd.height={h} hw.lcd.density={dpi} hw.ramSize=3072 disk.dataPartition.size=2G; do key=\"${{kv%%=*}}\"; sed -i \"/^$key=/d\" \"$ini\"; echo \"$kv\" >> \"$ini\"; done\n\
 log=\"${{RUNNER_TEMP:-/tmp}}/emulator.log\"\n\
-setsid nohup emulator -avd wf -no-window -no-snapshot -no-boot-anim -no-audio -gpu swiftshader_indirect -accel on -cores 2 -memory 3072 > \"$log\" 2>&1 &\n\
+setsid nohup emulator -avd wf -no-window -no-snapshot -no-boot-anim -gpu swiftshader_indirect -accel on -cores 2 -memory 3072 > \"$log\" 2>&1 &\n\
 echo $! > \"${{RUNNER_TEMP:-/tmp}}/emulator.pid\"\n\
 t0=$(date +%s)\n\
 adb wait-for-device\n\
