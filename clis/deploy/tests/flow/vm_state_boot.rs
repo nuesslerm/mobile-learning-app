@@ -452,7 +452,7 @@ fn seed(boot: &Boot, existing_wf: bool) -> (String, PathBuf) {
     assert!(Command::new("python3").args(["-c", make]).arg(&zip).status().unwrap().success());
     let script = boot.p("seed.js");
     let header = "const fs=require('fs');const {execFileSync}=require('child_process');const PROVISION_REPO='o/r';const githubToken='tok';const log=(m)=>console.log(m);\n";
-    std::fs::write(&script, format!("{header}{}\nseedClis();\n", &t[start..end].replace("$$", "$"))).unwrap();
+    std::fs::write(&script, format!("{header}{}\nseedClis();\n", t[start..end].replace("$$", "$"))).unwrap();
     let out = boot.command("node").arg(&script).env("STUB_ZIP", &zip).output().expect("node runs");
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
     (String::from_utf8_lossy(&out.stdout).into_owned(), vol)
