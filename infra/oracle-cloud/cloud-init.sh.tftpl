@@ -485,6 +485,37 @@ function installGlobalWf() {
   }
 }
 
+// A fresh VM has an empty `clis` volume and every redeploy sibling needs `wf` from it, while the CI that fills it needs the runner a
+// redeploy registers. This breaks the cycle: the newest arm64 build artifact of the repository becomes the `bootstrap` tree and
+// `current` points at it, until the first clis job publishes its own. Best-effort: without it `wf ship ci-runner` fails with `wf: not found`.
+function seedClis() {
+  try {
+    const mount = execFileSync('docker', ['volume', 'inspect', '-f', '{{.Mountpoint}}', 'clis'], { timeout: 15_000 }).toString().trim();
+    if (fs.existsSync(mount + '/current/wf')) return log('clis volume already holds a wf; not seeding');
+    const api = 'https://api.github.com/repos/' + PROVISION_REPO + '/actions/artifacts';
+    const auth = githubToken ? ['-H', 'Authorization: Bearer ' + githubToken] : [];
+    const list = JSON.parse(execFileSync('curl', ['-fsS', '-m', '30', ...auth, api + '?name=clis-arm&per_page=20'], { timeout: 40_000 }).toString());
+    const art = (list.artifacts || []).find((a) => !a.expired);
+    if (!art) throw new Error('no unexpired clis-arm artifact in ' + PROVISION_REPO);
+    const dir = mount + '/.seed';
+    fs.rmSync(dir, { recursive: true, force: true });
+    fs.mkdirSync(dir, { recursive: true });
+    execFileSync('curl', ['-fsSL', '-m', '120', ...auth, '-o', dir + '/clis.zip', api + '/' + art.id + '/zip'], { timeout: 130_000 });
+    execFileSync('python3', ['-c', 'import zipfile,sys; zipfile.ZipFile(sys.argv[1]).extractall(sys.argv[2])', dir + '/clis.zip', dir + '/x'], { timeout: 60_000 });
+    fs.mkdirSync(mount + '/bootstrap', { recursive: true });
+    for (const bin of fs.readdirSync(dir + '/x')) {
+      fs.copyFileSync(dir + '/x/' + bin, mount + '/bootstrap/' + bin);
+      fs.chmodSync(mount + '/bootstrap/' + bin, 0o755);
+    }
+    fs.rmSync(mount + '/current', { force: true });
+    fs.symlinkSync('bootstrap', mount + '/current');
+    fs.rmSync(dir, { recursive: true, force: true });
+    log('clis volume seeded from artifact ' + art.id + ' (run ' + (art.workflow_run && art.workflow_run.head_sha) + ')');
+  } catch (e) {
+    log('clis volume NOT seeded (' + e.message + ')');
+  }
+}
+
 const HOST_LABEL = process.env.HOST_LABEL;
 // what cloud-init ran: the restore keeps every volume that already holds data, so running it again only fills the ones that failed and starts the apps
 const RERUN_COMMAND = 'HOST_LABEL=' + HOST_LABEL + ' node /home/ubuntu/provision-apps.js';
@@ -619,6 +650,7 @@ function waitForDocker() {
   log('docker is ready');
   try {
     await installGlobalWf();
+    seedClis();
   } catch (e) {
     log('wf CLI install failed (continuing): ' + (e && e.message ? e.message : String(e)));
   }

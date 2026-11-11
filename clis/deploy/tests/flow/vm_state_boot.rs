@@ -428,3 +428,58 @@ fn given_a_policy_that_never_takes_effect_when_cloud_init_reads_the_bucket_then_
     assert!(!rows.iter().any(|r| r.to_string().contains("first boot")), "{rows:?}");
     assert!(files(&vol).is_empty());
 }
+
+const CURL: &str = r#"for a in "$@"; do last="$a"; done
+case "$last" in
+  *"artifacts?name=clis-arm"*) echo '{"artifacts":[{"id":7,"expired":true},{"id":9,"expired":false,"workflow_run":{"head_sha":"abc123"}}]}' ;;
+  *"/artifacts/9/zip") out=""; prev=""; for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done; cp "$STUB_ZIP" "$out" ;;
+  *) exit 22 ;;
+esac"#;
+
+/// `seedClis` of the template on a volume with this content, GitHub doubled; the log lines it printed and the volume's directory.
+fn seed(boot: &Boot, existing_wf: bool) -> (String, PathBuf) {
+    let t = template();
+    let start = t.find("function seedClis()").expect("seedClis in the template");
+    let end = t[start..].find("\nconst HOST_LABEL").expect("seedClis ends") + start;
+    let vol = boot.volume("clis");
+    if existing_wf {
+        std::fs::create_dir_all(vol.join("current")).unwrap();
+        std::fs::write(vol.join("current/wf"), "published").unwrap();
+    }
+    crate::support::create_stub(&boot.p("bin/curl"), CURL);
+    let zip = boot.p("clis.zip");
+    let make = "import zipfile,sys; z=zipfile.ZipFile(sys.argv[1],'w'); z.writestr('wf','#!/bin/sh\\necho seeded'); z.writestr('wf-mimic','x')";
+    assert!(Command::new("python3").args(["-c", make]).arg(&zip).status().unwrap().success());
+    let script = boot.p("seed.js");
+    let header = "const fs=require('fs');const {execFileSync}=require('child_process');const PROVISION_REPO='o/r';const githubToken='tok';const log=(m)=>console.log(m);\n";
+    std::fs::write(&script, format!("{header}{}\nseedClis();\n", &t[start..end].replace("$$", "$"))).unwrap();
+    let out = boot.command("node").arg(&script).env("STUB_ZIP", &zip).output().expect("node runs");
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    (String::from_utf8_lossy(&out.stdout).into_owned(), vol)
+}
+
+#[test]
+fn given_a_fresh_vm_with_an_empty_clis_volume_when_cloud_init_seeds_it_then_the_newest_unexpired_build_is_current_and_runs() {
+    // Given an empty clis volume and a repository whose newest unexpired clis-arm artifact holds wf
+    let boot = Boot::new();
+    // When cloud-init seeds the volume
+    let (log, vol) = seed(&boot, false);
+    // Then current points at the bootstrap tree, whose wf is executable and is the one of the unexpired artifact
+    assert!(log.contains("seeded from artifact 9"), "{log}");
+    assert_eq!(std::fs::read_link(vol.join("current")).unwrap(), PathBuf::from("bootstrap"));
+    let out = Command::new(vol.join("current/wf")).output().expect("the seeded wf runs");
+    assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "seeded");
+    assert!(vol.join("bootstrap/wf-mimic").exists() && !vol.join(".seed").exists());
+}
+
+#[test]
+fn given_a_clis_volume_that_already_holds_a_wf_when_cloud_init_seeds_it_then_the_published_build_is_left_alone() {
+    // Given a volume whose current already has a wf
+    let boot = Boot::new();
+    // When cloud-init seeds the volume
+    let (log, vol) = seed(&boot, true);
+    // Then nothing is downloaded or replaced
+    assert!(log.contains("already holds a wf"), "{log}");
+    assert_eq!(std::fs::read_to_string(vol.join("current/wf")).unwrap(), "published");
+    assert!(!vol.join("bootstrap").exists());
+}
