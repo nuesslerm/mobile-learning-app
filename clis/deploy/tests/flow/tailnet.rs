@@ -36,8 +36,8 @@ impl Admin {
     fn wf(&self, args: &[&str], env: &[(&str, Option<&str>)]) -> RunResult {
         let mut merged: Vec<(String, String)> = [
             ("SECRETS_BACKEND", "bitwarden".to_string()),
-            ("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", "read".to_string()),
-            ("BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN", "edit".to_string()),
+            ("BWS_ADMIN_ACCESS_TOKEN", "read".to_string()),
+            ("BWS_ADMIN_ACCESS_TOKEN", "edit".to_string()),
             ("STUB_DIR", self.dir.path().display().to_string()),
             ("HOME", self.dir.path().display().to_string()),
             ("WF_TAILSCALE_API", format!("http://127.0.0.1:{}", self.api.port)),
@@ -312,7 +312,7 @@ fn net_up_starts_the_userspace_daemon_and_joins_this_machine_with_the_vault_key_
         }
         let mut full = vec!["vm", "net", "up"];
         full.extend_from_slice(args);
-        let mut opts = RunOpts::default().bin_dir(&bin).cwd(dir.path()).clean_env().timeout(Duration::from_secs(60)).env("STUB_DIR", &dir.path().display().to_string()).env("SECRETS_BACKEND", "bitwarden").env("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", "read");
+        let mut opts = RunOpts::default().bin_dir(&bin).cwd(dir.path()).clean_env().timeout(Duration::from_secs(60)).env("STUB_DIR", &dir.path().display().to_string()).env("SECRETS_BACKEND", "bitwarden").env("BWS_ADMIN_ACCESS_TOKEN", "read");
         for (key, value) in env {
             opts = opts.env(key, value);
         }

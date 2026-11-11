@@ -44,8 +44,6 @@ on:
         type: string
         required: false
     secrets:
-      BWS_CI_OPEN_ACCESS_TOKEN:
-        required: false
       BWS_CI_DEPLOY_ACCESS_TOKEN:
         required: false
   workflow_dispatch:
@@ -92,7 +90,6 @@ jobs:
       group: e2e-tests-${{ inputs.platform }}
       cancel-in-progress: false
     env:
-      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
       PLATFORM: ${{ inputs.platform }}
       SHA: ${{ inputs.sha || github.sha }}

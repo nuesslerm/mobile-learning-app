@@ -69,7 +69,6 @@ jobs:
       - name: Restore the Drive login from the vault
         env:
           SECRETS_BACKEND: bitwarden
-          BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
         run: |
           mkdir -p ~/.config/gcloud
@@ -97,7 +96,6 @@ jobs:
         # shares with agent-shell: the service owns opencode, the model keys and the shared cooldowns, so this job has none of them.
         env:
           SECRETS_BACKEND: bitwarden
-          BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
           COMMIT_MESSAGE: ${{ inputs.message }}
         run: |

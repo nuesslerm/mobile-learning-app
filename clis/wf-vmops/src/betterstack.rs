@@ -57,7 +57,7 @@ pub fn load_config(source: &str) -> Result<Config, String> {
     }
     if !missing.is_empty() {
         return Err(format!(
-            "BetterStack config for source \"{source}\" missing: {}.\nThese are admin-scoped VAULT secrets and are resolved automatically — but only through the active backend, which defaults to the macOS keychain and is a no-op off darwin. If the values live in Bitwarden rather than your local keychain, run with SECRETS_BACKEND=bitwarden (needs BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN — they are admin-scoped, so the read-only deploy token cannot see them). See `wf secret list` for where each value comes from.",
+            "BetterStack config for source \"{source}\" missing: {}.\nThese are admin-scoped VAULT secrets and are resolved automatically — but only through the active backend, which defaults to the macOS keychain and is a no-op off darwin. If the values live in Bitwarden rather than your local keychain, run with SECRETS_BACKEND=bitwarden (needs BWS_ADMIN_ACCESS_TOKEN — they are admin-scoped, so the read-only deploy token cannot see them). See `wf secret list` for where each value comes from.",
             missing.join(", ")
         ));
     }

@@ -7,7 +7,7 @@
 // `$(wf secret get X)` capture pattern is this repo's primary safe usage),
 // but nothing stopped that value from being redirected to a file or piped
 // into a content-dump command in the same breath -- which is exactly how
-// BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN leaked into an agent's own tool
+// BWS_ADMIN_ACCESS_TOKEN leaked into an agent's own tool
 // output this session (`wf secret get ... >/tmp/x.txt`, then `head -c 40
 // /tmp/x.txt` two commands later in the same Bash call).
 //

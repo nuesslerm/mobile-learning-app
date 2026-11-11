@@ -9,7 +9,7 @@ name: Rotate Tailscale VM auth key
 #
 # DELIBERATELY manual-only for now (`workflow_dispatch`, no `schedule:`).
 # Automating it needs a deploy-project WRITE token as a GitHub secret
-# (BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN), and today CI only ever holds the
+# (BWS_ADMIN_ACCESS_TOKEN), and today CI only ever holds the
 # read-only gh-ci token. That is a real privilege increase for CI, so it is an
 # explicit decision rather than a side effect of landing this file. Until it is
 # made, run the rotation locally instead:
@@ -56,7 +56,7 @@ jobs:
           # by design right now (see the header): a dry run still works and
           # reports what it would do, and an --apply run fails loudly at the
           # write rather than silently minting an orphan key.
-          BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN: ${{ secrets.BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN }}
+          BWS_ADMIN_ACCESS_TOKEN: ${{ secrets.BWS_ADMIN_ACCESS_TOKEN }}
           TS_TAILNET_ID: ${{ env.TS_TAILNET_ID }}
           TS_VM_OAUTH_CLIENT_ID: ${{ env.TS_VM_OAUTH_CLIENT_ID }}
           TS_VM_OAUTH_CLIENT_SECRET: ${{ env.TS_VM_OAUTH_CLIENT_SECRET }}

@@ -37,7 +37,7 @@ fi
 # reach the vault at all. Bootstrap it here from THIS machine's own
 # already-configured credential, so nothing is ever hardcoded.
 #
-# Can't use --backend bitwarden for this: BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN
+# Can't use --backend bitwarden for this: BWS_ADMIN_ACCESS_TOKEN
 # is the credential bitwarden itself needs to authenticate, so fetching it
 # via bitwarden would be circular (see bootstrap-config.ts). Mirrors that
 # same env-first-then-keychain resolution instead — env var wins if set
@@ -45,26 +45,26 @@ fi
 # a local-dev fallback (no-ops on non-darwin). Safe to re-run: same
 # idempotent content cloud-init would have written for a freshly created
 # VM (also added to cloud-init.sh.tftpl's per-app loop for future rebuilds).
-LOCAL_READ_TOKEN="${BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN:-}"
+LOCAL_READ_TOKEN="${BWS_ADMIN_ACCESS_TOKEN:-}"
 LOCAL_SERVER_URL="${BWS_SERVER_URL:-}"
 if [[ -z "$LOCAL_READ_TOKEN" ]]; then
-  LOCAL_READ_TOKEN="$("$WF_BIN" secrets get BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN --backend macos 2>/dev/null || true)"
+  LOCAL_READ_TOKEN="$("$WF_BIN" secrets get BWS_ADMIN_ACCESS_TOKEN --backend macos 2>/dev/null || true)"
 fi
 if [[ -z "$LOCAL_SERVER_URL" ]]; then
   LOCAL_SERVER_URL="$("$WF_BIN" secrets get BWS_SERVER_URL --backend macos 2>/dev/null || true)"
 fi
 if [[ -z "$LOCAL_READ_TOKEN" ]]; then
   cat >&2 <<MSG
-[deploy] Could not resolve BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN from either
+[deploy] Could not resolve BWS_ADMIN_ACCESS_TOKEN from either
 your shell environment or the local macOS keychain. That's the credential
 vm-ops-api needs on the VM to reach the vault at all — export it in this
-shell, or run: wf secret set BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN
+shell, or run: wf secret set BWS_ADMIN_ACCESS_TOKEN
 MSG
   exit 1
 fi
 echo "[deploy] Seeding ~/vm-ops-api/.env.local on ${VM_HOST} with the read-only deploy bootstrap credential..."
 ssh "$VM_HOST" "mkdir -p $VM_DIR && umask 077 && cat > $VM_DIR/.env.local" <<EOF
-BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN=${LOCAL_READ_TOKEN}
+BWS_ADMIN_ACCESS_TOKEN=${LOCAL_READ_TOKEN}
 $( [[ -n "$LOCAL_SERVER_URL" ]] && echo "BWS_SERVER_URL=${LOCAL_SERVER_URL}" )
 EOF
 

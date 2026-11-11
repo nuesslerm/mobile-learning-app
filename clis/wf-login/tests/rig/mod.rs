@@ -167,7 +167,7 @@ impl Container {
             ("HOME".into(), self.home.display().to_string()),
             ("SECRETS_BACKEND".into(), "bitwarden".into()),
             ("SECRETS_LOG_BETTERSTACK".into(), "false".into()),
-            ("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN".into(), "read".into()),
+            ("BWS_ADMIN_ACCESS_TOKEN".into(), "read".into()),
             ("VNC_AUTH_TRIGGER_SECRET".into(), SECRET.into()),
             ("VNC_AUTH_OWNER_CHAT_ID".into(), format!("{OWNER},9999")),
             ("VNC_AUTH_LISTENER_PORT".into(), "0".into()),

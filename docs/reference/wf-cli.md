@@ -5045,7 +5045,7 @@ Usage: `wf secret set [options] <KEY> [value]`
 Examples:
 
 ```sh
-wf secret set BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN
+wf secret set BWS_ADMIN_ACCESS_TOKEN
 ```
 
 <details><summary>Full help</summary>
@@ -6846,7 +6846,7 @@ Example:
 
 #### `wf vm ops runner-check`
 
-Read-only. Run inside a CI job on the self-hosted runner, it checks that the job has the builder sidecar and none of the host: (a) DOCKER_HOST is set and `docker info` through it answers with a server name; (b) the host docker socket does not exist; (c) PID 1's environment (names only, read from /proc/1/environ) holds no ACCESS_TOKEN, no VM_PROVISION_GITHUB_TOKEN and no BWS_ variable other than the two job tokens BWS_CI_OPEN_ACCESS_TOKEN and BWS_CI_DEPLOY_ACCESS_TOKEN; (d) a TCP connect to the agent-shell dind address (AGENT_SHELL_DIND_ADDR, host:port) is refused or times out. No such address is configured today, so the probe is skipped and the output says so.
+Read-only. Run inside a CI job on the self-hosted runner, it checks that the job has the builder sidecar and none of the host: (a) DOCKER_HOST is set and `docker info` through it answers with a server name; (b) the host docker socket does not exist; (c) PID 1's environment (names only, read from /proc/1/environ) holds no ACCESS_TOKEN, no VM_PROVISION_GITHUB_TOKEN and no BWS_ variable other than the job token BWS_CI_DEPLOY_ACCESS_TOKEN; (d) a TCP connect to the agent-shell dind address (AGENT_SHELL_DIND_ADDR, host:port) is refused or times out. No such address is configured today, so the probe is skipped and the output says so.
 
 Usage: `wf vm ops runner-check [options]`
 
@@ -6866,7 +6866,7 @@ has the builder sidecar and none of the host: (a) DOCKER_HOST is set and
 `docker info` through it answers with a server name; (b) the host docker socket
 does not exist; (c) PID 1's environment (names only, read from /proc/1/environ)
 holds no ACCESS_TOKEN, no VM_PROVISION_GITHUB_TOKEN and no BWS_ variable other
-than the two job tokens BWS_CI_OPEN_ACCESS_TOKEN and BWS_CI_DEPLOY_ACCESS_TOKEN;
+than the job token BWS_CI_DEPLOY_ACCESS_TOKEN;
 (d) a TCP connect to the agent-shell dind address (AGENT_SHELL_DIND_ADDR,
 host:port) is refused or times out. No such address is configured today, so
 the probe is skipped and the output says so.

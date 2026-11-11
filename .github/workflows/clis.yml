@@ -8,8 +8,6 @@ name: CLIs
 on:
   workflow_call:
     secrets:
-      BWS_CI_OPEN_ACCESS_TOKEN:
-        required: false
       BWS_CI_DEPLOY_ACCESS_TOKEN:
         required: false
   workflow_dispatch:
@@ -22,7 +20,6 @@ jobs:
     name: clis
     runs-on: [self-hosted, vm]
     env:
-      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
     # a cold build of every crate on the loaded VM took over 30 min; a warm one takes seconds
     timeout-minutes: 60

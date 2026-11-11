@@ -7,18 +7,18 @@ use std::collections::{BTreeSet, HashSet};
 pub const SCOPES: &[(&str, &str, &str)] = &[
     (
         "deploy",
-        "BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN",
-        "bws-deploy-secrets-read-access-token",
+        "BWS_ADMIN_ACCESS_TOKEN",
+        "bws-admin-access-token",
     ),
     (
         "gh-ci",
-        "BWS_GH_CI_SECRETS_READ_ACCESS_TOKEN",
-        "bws-gh-ci-secrets-read-access-token",
+        "BWS_CI_DEPLOY_ACCESS_TOKEN",
+        "bws-ci-deploy-access-token",
     ),
     (
         "admin",
-        "BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN",
-        "bws-deploy-secrets-edit-access-token",
+        "BWS_ADMIN_ACCESS_TOKEN",
+        "bws-admin-access-token",
     ),
 ];
 

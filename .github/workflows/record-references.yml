@@ -217,7 +217,6 @@ jobs:
         if: ${{ success() && env.ACTION == 'record' }}
         env:
           SECRETS_BACKEND: bitwarden
-          BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
         run: wf mimic publish "$SET_DIR" --run "$GITHUB_RUN_ID"
       - name: Drop the checkpoints of the finished record

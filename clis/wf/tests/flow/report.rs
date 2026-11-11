@@ -193,7 +193,7 @@ fn every_command_posts_one_anonymised_usage_row_and_says_so_when_it_cannot() {
             .env("HOME", &home.path().display().to_string())
             .env("WF_USAGE", "")
             .env("SECRETS_BACKEND", "bitwarden")
-            .env("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", "read-token"),
+            .env("BWS_ADMIN_ACCESS_TOKEN", "read-token"),
     );
     assert!(r.exit_code == 0 && !r.stderr.contains("usage row") && !r.stderr.contains("[secrets]"), "{}", r.stderr);
     assert_eq!(posted(1)[0]["command"].as_str(), Some("vm"));

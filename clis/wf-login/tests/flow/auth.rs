@@ -39,7 +39,7 @@ impl Desk {
             ("HOME".into(), self.home.display().to_string()),
             ("SECRETS_BACKEND".into(), "bitwarden".into()),
             ("SECRETS_LOG_BETTERSTACK".into(), "false".into()),
-            ("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN".into(), "read".into()),
+            ("BWS_ADMIN_ACCESS_TOKEN".into(), "read".into()),
             ("VNC_AUTH_LISTENER_URL".into(), format!("http://127.0.0.1:{}", self.server.port)),
             ("WF_TAILNET_SOCKS".into(), String::new()),
             ("VNC_AUTH_TRIGGER_SECRET".into(), "trigger-secret".into()),
@@ -596,7 +596,7 @@ fn a_gcloud_login_mirrors_its_credential_into_the_vault_and_clear_empties_that_s
     let d = Desk::new();
     d.stub("bws", VAULT_STUB);
     let content = base64::engine::general_purpose::STANDARD.encode("sqlite-bytes");
-    let edit = [("BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN", Some("edit".to_string()))];
+    let edit = [("BWS_ADMIN_ACCESS_TOKEN", Some("edit".to_string()))];
     d.server.routes(&[
         ("POST /auth/start", MockReply::json(200, session_for("gcloud"))),
         ("POST /auth/credential", MockReply::json(200, json!({ "ready": true, "files": [{ "path": "~/.config/gcloud/credentials.db", "content": content }] }))),
@@ -624,7 +624,7 @@ fn a_gcloud_login_mirrors_its_credential_into_the_vault_and_clear_empties_that_s
     assert!(edits.len() == 2 && edits[0].contains("--value bG9nZ2VkLW91dA==") && edits[1].contains(&format!("--value {content}")), "{log}");
 
     // When the vault cannot be written (no write token), Then the login still succeeds and says why
-    let no_token = d.login(&["gcloud"], &[]);
+    let no_token = d.login(&["gcloud"], &[("BWS_ADMIN_ACCESS_TOKEN", None)]);
     assert_eq!(no_token.exit_code, 0, "{}", no_token.stderr);
     assert!(no_token.stderr.contains("could not update the vault secret GCLOUD_DRIVE_CREDENTIALS_DB_B64"), "{}", no_token.stderr);
 }

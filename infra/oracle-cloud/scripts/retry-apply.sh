@@ -88,12 +88,12 @@ ensure_tfvars() {
   log "terraform.tfvars or OCI API key missing, bootstrapping"
   ensure_bws
   ensure_ssh_key
-  : "${BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN:?BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN must be set to bootstrap terraform.tfvars}"
+  : "${BWS_ADMIN_ACCESS_TOKEN:?BWS_ADMIN_ACCESS_TOKEN must be set to bootstrap terraform.tfvars}"
   SECRETS_BACKEND=bitwarden wf vm creds sync
   {
     echo "ssh_public_key_path = \"$HOME/.ssh/oracle_deploy.pub\""
     echo "budget_alert_email  = \"owner@example.com\""
-    echo "bws_read_access_token = \"$BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN\""
+    echo "bws_read_access_token = \"$BWS_ADMIN_ACCESS_TOKEN\""
   } >> terraform.tfvars
 }
 

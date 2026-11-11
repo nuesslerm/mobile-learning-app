@@ -133,7 +133,7 @@ variable "availability_domain_index" {
 # Leave blank to skip — you can write .env.local by hand on the VM instead.
 # ---------------------------------------------------------------------------
 variable "bws_read_access_token" {
-  description = "Bitwarden machine-account access token with project access 'Can read' — the READ-ONLY deploy credential, written to each VM as BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN. Never put the write-capable BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN on a VM: a host running model-generated code should be able to read secrets, not rewrite them. EFFECTIVELY REQUIRED: leaving it blank produces a VM that boots, reports RUNNING, and provisions nothing at all (provision-apps.js aborts on the missing token) — main.tf's _assert_provisionable now refuses to plan rather than letting that happen silently. `wf vm creds sync` does NOT write this, so set it yourself."
+  description = "Bitwarden machine-account access token with project access 'Can read' — the READ-ONLY deploy credential, written to each VM as BWS_ADMIN_ACCESS_TOKEN. Never put the write-capable BWS_ADMIN_ACCESS_TOKEN on a VM: a host running model-generated code should be able to read secrets, not rewrite them. EFFECTIVELY REQUIRED: leaving it blank produces a VM that boots, reports RUNNING, and provisions nothing at all (provision-apps.js aborts on the missing token) — main.tf's _assert_provisionable now refuses to plan rather than letting that happen silently. `wf vm creds sync` does NOT write this, so set it yourself."
   type        = string
   default     = ""
   sensitive   = true

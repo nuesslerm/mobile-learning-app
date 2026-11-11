@@ -41,7 +41,7 @@ locals {
   vm_apps        = [for app in local.vm_app_entries : app.name]
 
   # A VM created without the Bitwarden bootstrap token is a SILENT DUD: cloud-init
-  # writes each app's .env.local with no BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN, and
+  # writes each app's .env.local with no BWS_ADMIN_ACCESS_TOKEN, and
   # provision-apps.js then hits its own `if (!bootstrapEnv.BWS_DEPLOY_SECRETS_
   # READ_ACCESS_TOKEN) process.exit(1)` and aborts before provisioning ANYTHING.
   # The instance boots, reports RUNNING, and serves nothing -- no containers, no

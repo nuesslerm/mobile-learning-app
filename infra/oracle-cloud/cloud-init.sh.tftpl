@@ -106,7 +106,7 @@ fi
 # The deploy scripts source ~/<app>/.env.local before `sync-env`, so this is how
 # the READ-ONLY deploy token + region reach the resolver. Non-secret
 # overrides (tailnet URLs, INSTANCES JSON, etc.) get appended here later, by hand.
-# NEVER write BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN here — the write-capable token
+# NEVER write BWS_ADMIN_ACCESS_TOKEN here — the write-capable token
 # stays on a laptop; a VM only ever needs read.
 # xtrace OFF for this loop, and this loop only. The script runs under
 # `set -euxo pipefail`, so tracing echoes the interpolated token verbatim -- and
@@ -121,7 +121,7 @@ for APP in ${apps}; do
   # NOTE: only the vault bootstrap creds go here — NOT SECRETS_BACKEND, which the
   # deploy script owns (sourcing it here would clobber a SECRETS_BACKEND override).
   {
-    if [ -n "${bws_read_access_token}" ]; then echo "BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN=${bws_read_access_token}"; fi
+    if [ -n "${bws_read_access_token}" ]; then echo "BWS_ADMIN_ACCESS_TOKEN=${bws_read_access_token}"; fi
     # Region — EU accounts need https://vault.bitwarden.eu or bws returns invalid_client.
     if [ -n "${bws_server_url}" ]; then echo "BWS_SERVER_URL=${bws_server_url}"; fi
   } > "/home/ubuntu/$${APP}/.env.local"
@@ -333,7 +333,7 @@ function readEnvFile(path) {
 // borrowed here rather than duplicated, same fallback-copy idea
 // buildAppRedeploySiblingArgs already uses for a brand-new app dir.
 const bootstrapEnv = readEnvFile('/home/ubuntu/vm-ops-api/.env.local');
-if (!bootstrapEnv.BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN) {
+if (!bootstrapEnv.BWS_ADMIN_ACCESS_TOKEN) {
   console.error('[provision] no BWS read token in vm-ops-api/.env.local -- aborting');
   process.exit(1);
 }
@@ -342,7 +342,7 @@ const secretsList = JSON.parse(
   execFileSync('bws', ['secret', 'list', '--output', 'json'], {
     env: {
       ...process.env,
-      BWS_ACCESS_TOKEN: bootstrapEnv.BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN,
+      BWS_ACCESS_TOKEN: bootstrapEnv.BWS_ADMIN_ACCESS_TOKEN,
       ...(bootstrapEnv.BWS_SERVER_URL ? { BWS_SERVER_URL: bootstrapEnv.BWS_SERVER_URL } : {}),
     },
     maxBuffer: 1024 * 1024 * 20,

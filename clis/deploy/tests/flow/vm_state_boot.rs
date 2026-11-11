@@ -210,7 +210,7 @@ fn provision(boot: &Boot, repo: &Path, password: &str, extra_env: &[(&str, &str)
     let restore = heredoc("RESTORESTATEJS");
     std::fs::create_dir_all(boot.p("ubuntu/vm-ops-api")).unwrap();
     std::fs::write(boot.p("ubuntu/restore-state.js"), restore).unwrap();
-    std::fs::write(boot.p("ubuntu/vm-ops-api/.env.local"), "BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN=token\n").unwrap();
+    std::fs::write(boot.p("ubuntu/vm-ops-api/.env.local"), "BWS_ADMIN_ACCESS_TOKEN=token\n").unwrap();
     std::fs::write(boot.p("provision-apps.js"), js).unwrap();
     let secrets = json!([{ "key": "VM_STATE_RESTIC_PASSWORD", "value": password }]).to_string();
     crate::support::create_stub(&boot.p("bin/bws"), &format!("printf '%s' '{secrets}'"));

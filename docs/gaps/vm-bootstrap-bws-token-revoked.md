@@ -21,7 +21,7 @@ vm-ops-api's and agent-shell's included. Every redeploy (the `dev` trunk deploy 
 stale `latest` image, so a VM job gets no `GITHUB_TOKEN` or provider keys. This also parks
 `docs/archive/plans/vm-puppeteer` units e1/e2 (`GET /services/agent-shell/vm-jobs` is 404 on the running
 server; e1's script is stashed as "vm-puppeteer e1 wip").
-History: `BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN` leaked to OCI console history via `set -x` in
+History: `BWS_ADMIN_ACCESS_TOKEN` leaked to OCI console history via `set -x` in
 `cloud-init.sh.tftpl` (fixed, console objects deleted, 2026-08-21) and had to be rotated.
 
 ## Why blocked

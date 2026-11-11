@@ -473,8 +473,8 @@ impl Oracle {
             .env("HOME", &self.home.display().to_string())
             .env("SECRETS_BACKEND", "bitwarden")
             .env("SECRETS_LOG_BETTERSTACK", "false")
-            .env("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", "read")
-            .env("BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN", "edit")
+            .env("BWS_ADMIN_ACCESS_TOKEN", "read")
+            .env("BWS_ADMIN_ACCESS_TOKEN", "edit")
             .env("TF_VAR_adb_admin_password", "pw")
             .env("TF_VAR_ssh_public_key_path", "/k.pub")
             .env("BWS_FIXTURE", &self.dir.path().join("vault.json").display().to_string())
@@ -789,7 +789,7 @@ fn preflight_vault(without: &[&str]) -> Value {
         ("OCI_API_PRIVATE_KEY", "-----BEGIN KEY-----\nabc\n-----END KEY-----"),
         ("OCI_COMPARTMENT_OCID", "ocid1.compartment.x"),
         ("OCI_REGION", "eu-frankfurt-1"),
-        ("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", "read"),
+        ("BWS_ADMIN_ACCESS_TOKEN", "read"),
         ("ADB_ADMIN_PASSWORD", "pw"),
         ("TS_VM_OAUTH_CLIENT_SECRET", "secret"),
         ("TS_TAILNET_ID", "example.com"),

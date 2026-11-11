@@ -76,7 +76,7 @@ RUN npm install -g pnpm@11.5.2
 # bws. Both were measured with toolchain-check, not assumed.
 #
 # remote-chat-agent's need is not hypothetical: its compose forwards
-# BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN and BWS_SERVER_URL specifically so
+# BWS_ADMIN_ACCESS_TOKEN and BWS_SERVER_URL specifically so
 # service_kit::secrets (through wf) can resolve ANY registered secret at runtime --
 # and wf's bitwarden backend resolves by spawning this binary. Credentials forwarded to a container with no binary to
 # spend them is a no-op that reports "not set" rather than "could not check".

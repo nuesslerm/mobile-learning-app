@@ -130,7 +130,7 @@ namespace at once, with no list and no delete. The old generation expires by lif
 
 ### Same store for the sandbox and CI
 
-Both run the same wf and resolve the same two secrets; the sandbox through `BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN` (`wf secret get` of both
+Both run the same wf and resolve the same two secrets; the sandbox through `BWS_ADMIN_ACCESS_TOKEN` (`wf secret get` of both
 PARs works there today for the sibling PARs), the runner through the same variable in its compose environment. No workflow gains an env
 variable. Reads need nothing else. A sandbox that has pushed commit C to `dev` seeds the entries CI replays at C, provided both compute
 the same hashes, which needs one Node (open decision 2).

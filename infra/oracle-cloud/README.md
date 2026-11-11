@@ -228,7 +228,7 @@ gh secret delete VM_HOST_HEAVY --repo nuesslerm/mobile-learning-app 2>/dev/null 
    generate its access token, and add the app secrets (keyed by env-var name).
    Full list: `wf secret list`.
 2. Put `bws_read_access_token` in `terraform.tfvars` (baked into each VM's
-   `.env.local` by cloud-init as `BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN`)
+   `.env.local` by cloud-init as `BWS_ADMIN_ACCESS_TOKEN`)
    **or** write it into `~/<app>/.env.local` on each VM by hand.
 3. Trigger a deploy — push to `main` (path-filtered) or run a `deploy-*`
    workflow via **Actions → Run workflow**.

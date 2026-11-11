@@ -244,7 +244,6 @@ jobs:
         if: ${{ success() }}
         env:
           SECRETS_BACKEND: bitwarden
-          BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
         run: wf mimic publish "$SET_DIR" --run "$GITHUB_RUN_ID"
       - name: Drop the checkpoints of the finished record
@@ -350,7 +349,6 @@ jobs:
         # verification/test-runs/<runId>/ in the verification-artifacts bucket: where an agent session whose proxy refuses the Actions API reads it
         env:
           SECRETS_BACKEND: bitwarden
-          BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
         run: wf test publish "$RUNNER_TEMP/bundle" | tee -a "$GITHUB_STEP_SUMMARY"
       # an initialized references/t3code breaks the next job's actions/checkout (its recursive submodule step fails on a nested gitlink without a url)

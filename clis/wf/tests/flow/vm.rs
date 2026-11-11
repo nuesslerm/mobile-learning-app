@@ -154,7 +154,7 @@ fn vm_ops_api_is_reached_through_the_tailnet_with_requests_signed_by_the_vault_k
         .bin_dir(&dir.path().join("bin"))
         .env("SECRETS_BACKEND", "bitwarden")
         .env("SECRETS_LOG_BETTERSTACK", "false")
-        .env("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", "read")
+        .env("BWS_ADMIN_ACCESS_TOKEN", "read")
         .env("WF_TAILNET_SOCKS", &vm.tailnet.address())
         .env("STUB_DIR", &dir.path().display().to_string())
         .env("STUB_FAIL_FIRST", "1");

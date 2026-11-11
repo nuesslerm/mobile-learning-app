@@ -7,7 +7,7 @@ use std::process::Command;
 use std::time::Duration;
 
 /// The two job tokens that are job env on purpose; any other BWS_ name in PID 1's environment is a leak.
-const JOB_TOKENS: [&str; 2] = ["BWS_CI_OPEN_ACCESS_TOKEN", "BWS_CI_DEPLOY_ACCESS_TOKEN"];
+const JOB_TOKENS: [&str; 1] = ["BWS_CI_DEPLOY_ACCESS_TOKEN"];
 /// Config, not a credential.
 const CONFIG_NAMES: [&str; 1] = ["BWS_SERVER_URL"];
 fn forbidden(name: &str) -> bool {

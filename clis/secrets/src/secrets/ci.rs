@@ -7,7 +7,6 @@ use std::io::Write;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
-pub const OPEN_TOKEN_VAR: &str = "BWS_CI_OPEN_ACCESS_TOKEN";
 pub const DEPLOY_TOKEN_VAR: &str = "BWS_CI_DEPLOY_ACCESS_TOKEN";
 
 /// The cache and artifact links that can overwrite shared objects (docs/solutions/ci/job-secret-needs.md).
@@ -31,7 +30,7 @@ pub fn in_ci() -> bool {
 
 pub fn token_var(scope: Scope) -> Option<&'static str> {
     match scope {
-        Scope::CiOpen => Some(OPEN_TOKEN_VAR),
+        Scope::CiOpen => Some(DEPLOY_TOKEN_VAR),
         Scope::CiDeploy => Some(DEPLOY_TOKEN_VAR),
         Scope::Vm | Scope::Public => None,
     }

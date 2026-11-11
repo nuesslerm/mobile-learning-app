@@ -139,7 +139,7 @@ to the US cloud, which rejects an EU token with a bare `invalid_client`):
 ```yaml
 - uses: bitwarden/sm-action@v2
   with:
-    access_token: ${{ secrets.BWS_GH_CI_SECRETS_READ_ACCESS_TOKEN }}
+    access_token: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
     base_url: https://vault.bitwarden.eu
     api_url: https://vault.bitwarden.eu/api
     identity_url: https://vault.bitwarden.eu/identity
@@ -151,12 +151,12 @@ Consume it as `${{ env.SOME_SECRET }}` in later steps.
 
 **Only two GitHub Actions secrets remain, and both are bootstrap credentials
 that cannot come from the vault** (they are what opens the vault, or what the
-vault cannot carry): `BWS_GH_CI_SECRETS_READ_ACCESS_TOKEN` and
+vault cannot carry): `BWS_CI_DEPLOY_ACCESS_TOKEN` and
 `DEPLOY_SSH_KEY`. Everything else belongs in Bitwarden.
 
 **WHY THIS MATTERS TO AN AGENT SESSION:** the egress proxy 403s
 `api.github.com/repos/*/actions/*`, so no agent can ever create or rotate a
-GitHub Actions secret — but `BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN` writes to
+GitHub Actions secret — but `BWS_ADMIN_ACCESS_TOKEN` writes to
 the vault fine, and it can see the CI project (verified: `bws project list`
 shows `mobile-learning-deploy-secrets`, `mobile-learning-gh-ci-secrets`,
 `mobile-learning-admin-secrets`). So a value that changes — like `VM_HOST`,
@@ -165,7 +165,7 @@ self-serviceable here, whereas as a GitHub secret it would be a standing manual
 chore for the user after every rebuild. Adding one:
 
 ```bash
-BWS_ACCESS_TOKEN="$BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN" \
+BWS_ACCESS_TOKEN="$BWS_ADMIN_ACCESS_TOKEN" \
   bws secret create NAME "value" b9781a83-92dc-4d99-94f3-b4930106ba6d -o json
 ```
 
@@ -197,7 +197,7 @@ in the registry — one `wf secret set` populates both.
 A Rust service reads its environment; `service_kit::secrets::load()` asks the vault through wf for any
 registered variable its container was not given. `wf secret` has two backends, chosen with `--backend <name>` /
 `SECRETS_BACKEND`: `macos` (the local default, via the `security` CLI, the only writable one) and the read-only
-production backend `bitwarden` (`bws`, `BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN`). Production hosts compose the runtime
+production backend `bitwarden` (`bws`, `BWS_ADMIN_ACCESS_TOKEN`). Production hosts compose the runtime
 `.env` via `wf secret sync-env --for <app> --backend <name> --base .env.defaults --out .env` immediately before each
 deploy (committed non-secret base, then vault secrets, then `.env.local` overrides last).
 

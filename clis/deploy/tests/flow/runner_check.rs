@@ -37,7 +37,7 @@ fn line(r: &RunResult) -> Value {
     serde_json::from_str(r.stdout.trim()).unwrap_or_else(|_| panic!("one json line: {}{}", r.stdout, r.stderr))
 }
 
-const CLEAN: [&str; 4] = ["PATH=/usr/bin", "BWS_CI_OPEN_ACCESS_TOKEN=job-token-1", "BWS_CI_DEPLOY_ACCESS_TOKEN=job-token-2", "HOME=/root"];
+const CLEAN: [&str; 3] = ["PATH=/usr/bin", "BWS_CI_DEPLOY_ACCESS_TOKEN=job-token-2", "HOME=/root"];
 
 #[test]
 fn a_job_with_the_sidecar_no_host_socket_and_a_clean_pid1_passes_and_the_probe_without_an_address_is_said_to_be_skipped() {
@@ -73,7 +73,7 @@ fn a_job_without_docker_host_or_with_a_host_socket_fails() {
 
 #[test]
 fn a_pid1_environment_holding_a_vault_or_provision_variable_fails_naming_only_the_variable_and_never_its_value() {
-    for leak in ["ACCESS_TOKEN=leaked-value-1", "BWS_ACCESS_TOKEN=leaked-value-2", "VM_PROVISION_GITHUB_TOKEN=leaked-value-4", "BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN=leaked-value-5"] {
+    for leak in ["ACCESS_TOKEN=leaked-value-1", "BWS_ACCESS_TOKEN=leaked-value-2", "VM_PROVISION_GITHUB_TOKEN=leaked-value-4", "BWS_ADMIN_ACCESS_TOKEN=leaked-value-5"] {
         // Given a PID 1 that holds one forbidden variable next to the two job tokens
         let mut env = CLEAN.to_vec();
         env.push(leak);

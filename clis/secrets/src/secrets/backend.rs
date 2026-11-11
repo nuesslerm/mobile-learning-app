@@ -200,19 +200,19 @@ fn memo(token: Option<String>, label: &'static str) -> Memo {
 impl Bitwarden {
     pub fn new() -> Result<Self, String> {
         let read = match resolve_backend_config(
-            "BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN",
-            "bws-deploy-secrets-read-access-token",
+            "BWS_ADMIN_ACCESS_TOKEN",
+            "bws-admin-access-token",
         )? {
             Some(t) => Some(t),
             None => resolve_backend_config("BWS_ACCESS_TOKEN", "bws-access-token")?,
         };
         let admin = resolve_backend_config(
-            "BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN",
-            "bws-deploy-secrets-edit-access-token",
+            "BWS_ADMIN_ACCESS_TOKEN",
+            "bws-admin-access-token",
         )?;
         let gh_ci = resolve_backend_config(
-            "BWS_GH_CI_SECRETS_READ_ACCESS_TOKEN",
-            "bws-gh-ci-secrets-read-access-token",
+            "BWS_CI_DEPLOY_ACCESS_TOKEN",
+            "bws-ci-deploy-access-token",
         )?;
         let server_url = resolve_backend_config("BWS_SERVER_URL", "bws-server-url")?;
         Ok(Bitwarden {

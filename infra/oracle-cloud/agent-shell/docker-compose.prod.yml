@@ -94,7 +94,7 @@ x-agent-environment: &agent-environment
   # while every retry from inside this container silently failed to
   # resolve credentials, reading as "not found yet" instead of
   # "couldn't check at all".
-  BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN: ${BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN:-}
+  BWS_ADMIN_ACCESS_TOKEN: ${BWS_ADMIN_ACCESS_TOKEN:-}
   BWS_SERVER_URL: ${BWS_SERVER_URL:-}
   # Everything below moves per-user and per-toolchain state onto the
   # shared volume, so it survives a redeploy AND is visible to the other

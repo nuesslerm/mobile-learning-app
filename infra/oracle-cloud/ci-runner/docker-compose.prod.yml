@@ -102,7 +102,7 @@ services:
       # Already on the tailnet through the sidecar, so `wf` connects directly instead of via a SOCKS proxy.
       WF_TAILNET_SOCKS: ""
       # No vm-ops-api seed and no gateway seed here: `wf` resolves the CI seed, the request-signing key and every other secret from the
-      # vault with bws at job time from the two job tokens the workflow passes (BWS_CI_OPEN_ACCESS_TOKEN, BWS_CI_DEPLOY_ACCESS_TOKEN), so a step holds only what it asks for
+      # vault with bws at job time from the job token the workflow passes (BWS_CI_DEPLOY_ACCESS_TOKEN), so a step holds only what it asks for
       # and the runner itself holds no vault token.
       BWS_SERVER_URL: ${BWS_SERVER_URL:-}
     volumes:

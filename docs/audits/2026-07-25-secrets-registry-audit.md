@@ -124,8 +124,8 @@ needs the entry to know where to store them.
 
 | Env var | Backend | What it's for | Suggestion |
 | --- | --- | --- | --- |
-| `BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN` | Bitwarden Secrets Manager (**the production default**) | Read-only machine-account token. This is what every VM holds and what `sync-env` uses at deploy time. | **Keep.** Structural. |
-| `BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN` | Bitwarden | Write-capable token, used *only* by `wf secrets push-notes`. Deliberately in **no** deploy group so no deploy can ship it to a VM — a test asserts this. | **Keep.** Never put it on a VM. |
+| `BWS_ADMIN_ACCESS_TOKEN` | Bitwarden Secrets Manager (**the production default**) | Read-only machine-account token. This is what every VM holds and what `sync-env` uses at deploy time. | **Keep.** Structural. |
+| `BWS_ADMIN_ACCESS_TOKEN` | Bitwarden | Write-capable token, used *only* by `wf secrets push-notes`. Deliberately in **no** deploy group so no deploy can ship it to a VM — a test asserts this. | **Keep.** Never put it on a VM. |
 | `BWS_PROJECT_ID` | Bitwarden | Project UUID that scopes secret lookups. Also written into each VM's `.env.local` by cloud-init. | **Keep in the vault** — decided 2026-07-25. |
 | `BWS_SERVER_URL` | Bitwarden | Region endpoint. Defaults to the EU cloud because this account is EU-hosted; `bws` defaults to US and rejects EU tokens with a bare `invalid_client`. | **Keep in the vault** — decided 2026-07-25. |
 | ~~`OP_SERVICE_ACCOUNT_TOKEN`~~ | ~~1Password~~ | Removed 2026-07-27 — see below. | **Removed.** |

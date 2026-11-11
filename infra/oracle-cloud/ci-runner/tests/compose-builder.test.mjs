@@ -52,7 +52,7 @@ describe('given the ci-runner compose project with its builder sidecar', () => {
       assert.equal(runner.environment[name], undefined, `${name} is not in the runner's environment`);
       assert.ok(!JSON.stringify(compose).includes(`\${${name}`), `${name} is not substituted from the host .env`);
     }
-    assert.ok(!('BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN' in runner.environment), 'the runner holds no vault token: jobs get theirs from the workflow');
+    assert.ok(!('BWS_ADMIN_ACCESS_TOKEN' in runner.environment), 'the runner holds no vault token: jobs get theirs from the workflow');
     const group = groups.find((g) => g.app === 'ci-runner');
     const names = [...group.required, ...group.optional];
     assert.ok(!names.includes('VM_OPS_API_AUTH_TOKEN') && !names.includes('VM_GATEWAY_AUTH_SEED'), 'sync-env writes neither seed into the runner .env');

@@ -39,6 +39,14 @@ impl Report {
     }
 }
 
+/// The ci-open, ci-deploy and public keys share the one ci project; the vm keys live in the other.
+fn project_of(scope: Scope) -> u8 {
+    match scope {
+        Scope::CiOpen | Scope::CiDeploy | Scope::Public => 0,
+        Scope::Vm => 1,
+    }
+}
+
 /// `present` answers whether the vault holds a key; `visible` is every name the token lists, when it can say.
 pub fn report(registry: &[Entry], scope: Scope, visible: Option<&[String]>, present: &mut dyn FnMut(&Entry) -> Result<bool, String>) -> Result<Report, String> {
     let (mut found, mut missing) = (Vec::new(), Vec::new());
@@ -50,7 +58,7 @@ pub fn report(registry: &[Entry], scope: Scope, visible: Option<&[String]>, pres
         }
     }
     let exposed = visible.map(|names| {
-        let mut wrong: Vec<(String, Scope)> = registry.iter().filter(|e| e.scope != scope && !e.bootstrap && names.iter().any(|n| n == vault_name(e))).map(|e| (e.key.clone(), e.scope)).collect();
+        let mut wrong: Vec<(String, Scope)> = registry.iter().filter(|e| project_of(e.scope) != project_of(scope) && !e.bootstrap && names.iter().any(|n| n == vault_name(e))).map(|e| (e.key.clone(), e.scope)).collect();
         wrong.sort_by(|a, b| a.0.cmp(&b.0));
         wrong
     });

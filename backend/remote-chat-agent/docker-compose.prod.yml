@@ -299,11 +299,11 @@ services:
       # seeds a .env.local per app and vm-ops-api appends it -- but compose
       # never forwarded them, so the container could not see them. Confirmed
       # live rather than inferred, by this service's own redeploy diagnostics:
-      #   BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN: disk=94 container=absent
+      #   BWS_ADMIN_ACCESS_TOKEN: disk=94 container=absent
       #   BWS_SERVER_URL:                       disk=26 container=absent
       # which is precisely the "present in .env is not the same as present in
       # this container" trap OPENCODE_DEFAULT_MODEL's own comment above records.
-      BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN: ${BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN:-}
+      BWS_ADMIN_ACCESS_TOKEN: ${BWS_ADMIN_ACCESS_TOKEN:-}
       BWS_SERVER_URL: ${BWS_SERVER_URL:-}
     volumes:
       # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.

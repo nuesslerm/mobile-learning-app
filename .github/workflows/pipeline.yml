@@ -45,8 +45,6 @@ on:
         type: string
         default: ""
     secrets:
-      BWS_CI_OPEN_ACCESS_TOKEN:
-        required: false
       BWS_CI_DEPLOY_ACCESS_TOKEN:
         required: false
       TS_HOSTED_OAUTH_CLIENT_ID:
@@ -64,7 +62,6 @@ env:
   npm_config_manage_package_manager_versions: "false"
   WF_PNPM_SAVE_JOB: flow-tests
   WF_VM_CI_PORT: "8081"
-  BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
   BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
 
 jobs:
@@ -524,7 +521,6 @@ jobs:
     if: ${{ !cancelled() && inputs.flavor == 'vm' && inputs.ship && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' }}
     uses: ./.github/workflows/clis.yml
     secrets:
-      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
 
   # The images are built and pushed under the commit's tag with the first wave: nothing serves them yet, so a red test later just leaves them unused.
@@ -1011,7 +1007,6 @@ jobs:
     if: ${{ !cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && (needs.clis.result == 'success' || !inputs.ship) && needs.deploy.result != 'failure' && needs.plan.outputs.browser_e2e_tests != '0' && needs.plan.outputs.run_browser == 'true' }}
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
-      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
     with:
       platform: browser
@@ -1025,7 +1020,6 @@ jobs:
     if: ${{ !cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && (needs.clis.result == 'success' || !inputs.ship) && needs.deploy.result != 'failure' && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true' }}
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
-      BWS_CI_OPEN_ACCESS_TOKEN: ${{ secrets.BWS_CI_OPEN_ACCESS_TOKEN }}
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
     with:
       platform: android

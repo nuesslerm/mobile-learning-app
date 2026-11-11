@@ -24,7 +24,7 @@ The condition script behind the secret rules of `deny.json` refused any Bash cal
 
 ## Deliberate behaviour changes
 
-- A dump word beside an unrelated fetch is no longer refused. Every shape that has leaked a value (the `BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN` redirect, the piped dump, the piped network tool) still is.
+- A dump word beside an unrelated fetch is no longer refused. Every shape that has leaked a value (the `BWS_ADMIN_ACCESS_TOKEN` redirect, the piped dump, the piped network tool) still is.
 
 ## Deviations from the instructions
 

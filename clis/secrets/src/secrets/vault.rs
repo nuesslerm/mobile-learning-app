@@ -45,8 +45,8 @@ struct Tokens {
 }
 
 fn tokens() -> Result<Tokens, String> {
-    let edit = resolve_backend_config("BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN", "bws-deploy-secrets-edit-access-token")?;
-    let read = match resolve_backend_config("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", "bws-deploy-secrets-read-access-token")? {
+    let edit = resolve_backend_config("BWS_ADMIN_ACCESS_TOKEN", "bws-admin-access-token")?;
+    let read = match resolve_backend_config("BWS_ADMIN_ACCESS_TOKEN", "bws-admin-access-token")? {
         Some(t) => Some(t),
         None => resolve_backend_config("BWS_ACCESS_TOKEN", "bws-access-token")?,
     };
@@ -56,7 +56,7 @@ fn tokens() -> Result<Tokens, String> {
 
 fn missing_edit(what: &str) -> String {
     format!(
-        "BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN is not set, so {what} cannot be performed. It needs a Bitwarden machine account with 'Can read, write' on the project — a SEPARATE credential from the read-only BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN that ships to the VMs (never put the edit token on a VM). Re-run without --apply to preview using only read access."
+        "BWS_ADMIN_ACCESS_TOKEN is not set, so {what} cannot be performed. It needs the Bitwarden machine account `vm-admin` ('Can read, write' on both vault projects), which never goes into GitHub. Re-run without --apply to preview."
     )
 }
 
@@ -70,7 +70,7 @@ pub struct VaultWriter {
 pub fn vault_writer() -> Result<VaultWriter, String> {
     let t = tokens()?;
     if t.edit.is_none() && t.read.is_none() {
-        return Err("No Bitwarden token available. Set BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN to preview mutations, and BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN to apply them.".into());
+        return Err("No Bitwarden token available. Set BWS_ADMIN_ACCESS_TOKEN to preview and apply mutations.".into());
     }
     Ok(VaultWriter { edit: t.edit, server: t.server })
 }
@@ -131,7 +131,7 @@ pub struct NoteWriter {
 pub fn note_writer() -> Result<NoteWriter, String> {
     let t = tokens()?;
     if t.edit.is_none() && t.read.is_none() {
-        return Err("No Bitwarden token available. Set BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN to preview note changes, and BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN to apply them.".into());
+        return Err("No Bitwarden token available. Set BWS_ADMIN_ACCESS_TOKEN to preview and apply note changes.".into());
     }
     Ok(NoteWriter { edit: t.edit, read: t.read, server: t.server })
 }
@@ -168,7 +168,7 @@ impl NoteWriter {
 
     pub fn set_note(&self, id: &str, note: &str) -> Result<(), String> {
         let Some(token) = self.edit.as_deref() else {
-            return Err("BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN is not set, so notes cannot be written. It needs a Bitwarden machine account with 'Can read, write' on the project — a SEPARATE credential from the read-only BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN that ships to the VMs (never put the edit token on a VM). Create the second machine account, then `wf secret set BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN`. Re-run without --apply to preview changes using only read access.".into());
+            return Err("BWS_ADMIN_ACCESS_TOKEN is not set, so notes cannot be written. It needs the Bitwarden machine account `vm-admin` ('Can read, write' on both vault projects): `wf secret set BWS_ADMIN_ACCESS_TOKEN`. Re-run without --apply to preview changes.".into());
         };
         run_bws(&["secret", "edit", "--note", note, id, "--output", "none"], token, self.server.as_deref())
             .map(|_| ())

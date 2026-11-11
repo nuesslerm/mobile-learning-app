@@ -14,8 +14,9 @@ mod ci_scope;
 
 const GROQ: &str = "GROQ_API_KEY";
 const TAILNET: &str = "TS_VM_AUTH_KEY";
-const READ: &str = "read-token";
-const EDIT: &str = "edit-token";
+const EDIT: &str = "admin-token";
+/// One vault token now reads and writes: the read helpers in these tests use the admin token.
+const READ: &str = EDIT;
 
 /// The vault as `bws` serves it: `secret list` answers the listing kept for the token it was given (401 without one), every call
 /// is logged with its token, and a write fails with STUB_WRITE_FAIL.
@@ -89,7 +90,7 @@ impl Vault {
     /// With the read token (and `extra`), the call log forgotten first.
     fn read(&self, args: &[&str], extra: &[(&str, &str)]) -> RunResult {
         self.forget();
-        let mut env = vec![("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ)];
+        let mut env = vec![("BWS_ADMIN_ACCESS_TOKEN", READ)];
         env.extend_from_slice(extra);
         self.wf(args, &env, None)
     }
@@ -141,18 +142,15 @@ fn a_developer_reads_secrets_from_the_vault_lists_them_masked_and_writes_env_fil
     assert_eq!((absent.exit_code, absent.stdout.as_str()), (1, ""));
     assert!(absent.stderr.contains("GROQ_API_KEY: not found"), "{}", absent.stderr);
 
-    // When the token is rejected, when the EU server is named, and when only the admin token is broken
+    // When the token is rejected, when the EU server is named, 
     v.holds(READ, json!([groq()]));
-    let rejected = v.read(&["get", GROQ], &[("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", "bad")]);
+    let rejected = v.read(&["get", GROQ], &[("BWS_ADMIN_ACCESS_TOKEN", "bad")]);
     v.read(&["get", GROQ], &[("BWS_SERVER_URL", "https://vault.bitwarden.eu")]);
     let eu_calls = v.calls();
-    let admin_broken = v.read(&["get", GROQ], &[("BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN", "bad")]);
-    // Then the 401 comes with the EU hint, bws gets the server URL, and the read source alone answers
+    // Then the 401 comes with the EU hint, bws gets the server URL, and the one token answers
     assert_eq!(rejected.exit_code, 1);
     assert!(rejected.stderr.contains("Bitwarden Secrets Manager list failed (read token)") && rejected.stderr.contains("401 Unauthorized") && rejected.stderr.contains("set BWS_SERVER_URL=https://vault.bitwarden.eu"), "{}", rejected.stderr);
-    assert_eq!(eu_calls[0], "secret list --output json | token=read-token url=https://vault.bitwarden.eu");
-    assert_eq!((admin_broken.exit_code, admin_broken.stdout.as_str()), (0, "gsk_abcdefghijkl\n"), "{}", admin_broken.stderr);
-    assert_eq!(v.calls(), [listed(READ)]);
+    assert_eq!(eu_calls[0], "secret list --output json | token=admin-token url=https://vault.bitwarden.eu");
 
     // When everything is listed and dumped as env lines
     let list = v.read(&["list"], &[]);
@@ -167,7 +165,7 @@ fn a_developer_reads_secrets_from_the_vault_lists_them_masked_and_writes_env_fil
     assert!(Regex::new(r" {2}env {5} {2}gsk•{10}jkl$").unwrap().is_match(lines.iter().find(|l| l.starts_with("GROQ_API_KEY ")).unwrap()));
     assert!(Regex::new(r"missing {3}\(missing\)$").unwrap().is_match(lines.iter().find(|l| l.starts_with("ADB_ADMIN_PASSWORD ")).unwrap()));
     assert_eq!(lines.iter().filter(|l| l.contains("(missing)")).count(), registry().len() - 2);
-    assert_eq!(env.stdout, "TS_VM_AUTH_KEY=\"tskey-12345678\"\nGROQ_API_KEY=\"gsk_abcdefghijkl\"\nBWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN=\"read-token\"\n");
+    assert_eq!(env.stdout, "TS_VM_AUTH_KEY=\"tskey-12345678\"\nGROQ_API_KEY=\"gsk_abcdefghijkl\"\nBWS_ADMIN_ACCESS_TOKEN=\"admin-token\"\n");
     assert_eq!(one.stdout, "GROQ_API_KEY=\"gsk_abcdefghijkl\"\n");
     assert_eq!((none.exit_code, none.stdout.as_str()), (0, ""));
 
@@ -266,9 +264,9 @@ fn every_app_group_gets_its_required_then_its_optional_keys_in_order() {
     let v = Vault::new();
     let vault: Vec<Value> = entries.iter().filter(|(_, e)| e["envVar"].as_str().is_some_and(|v| v != skipped && !v.starts_with("BWS_"))).map(|(_, e)| { let key = e.get("bitwardenKey").and_then(Value::as_str).unwrap_or(e["envVar"].as_str().unwrap()); json!({ "id": key, "key": key, "value": format!("value-of-{}", e["envVar"].as_str().unwrap()) }) }).collect();
     v.holds(READ, Value::Array(vault));
-    v.holds("value-of-BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN", json!([]));
+    v.holds("value-of-BWS_ADMIN_ACCESS_TOKEN", json!([]));
     let mut env: Vec<(&str, &str)> = all.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
-    env.push(("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ));
+    env.push(("BWS_ADMIN_ACCESS_TOKEN", READ));
     for (app, group) in &groups {
         // When the app's env file is revealed
         let r = v.wf(&["sync-env", "--for", app, "--reveal"], &env, None);
@@ -308,7 +306,7 @@ fn a_key_created_after_the_sealed_copy_was_taken_is_found_by_one_live_look() {
     let v = Vault::new();
     v.holds(READ, json!([groq()]));
     let cache = v.dir.path().join("cache").display().to_string();
-    let get = |key: &str| v.wf(&["get", key], &[("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ), ("WF_SECRETS_CACHE", "use"), ("WF_CACHE_DIR", cache.as_str())], None);
+    let get = |key: &str| v.wf(&["get", key], &[("BWS_ADMIN_ACCESS_TOKEN", READ), ("WF_SECRETS_CACHE", "use"), ("WF_CACHE_DIR", cache.as_str())], None);
     assert_eq!(get(GROQ).exit_code, 0);
     // When the key is created in the vault and then read
     v.holds(READ, json!([groq(), tailnet()]));
@@ -326,7 +324,7 @@ fn the_sealed_local_copy_saves_vault_calls_and_stands_in_only_where_it_is_safe()
     let get = |extra: &[(&str, &str)]| {
         let mut env = vec![("WF_SECRETS_CACHE", "use"), ("WF_CACHE_DIR", cache.as_str())];
         env.extend_from_slice(extra);
-        v.wf(&["get", GROQ], &[&[("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ)][..], &env].concat(), None)
+        v.wf(&["get", GROQ], &[&[("BWS_ADMIN_ACCESS_TOKEN", READ)][..], &env].concat(), None)
     };
 
     // When the same key is read twice
@@ -362,7 +360,7 @@ fn the_sealed_local_copy_saves_vault_calls_and_stands_in_only_where_it_is_safe()
 
     // When the vault goes down with a warm copy of the same token, and a rotated token meets the old copy
     let down = get(&[("WF_SECRETS_CACHE", "refresh"), ("STUB_VAULT_DOWN", "1")]);
-    let rotated = get(&[("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", "bad")]);
+    let rotated = get(&[("BWS_ADMIN_ACCESS_TOKEN", "bad")]);
     // Then the copy stands in with a warning, but a copy sealed under another token never opens
     assert_eq!((down.exit_code, down.stdout.as_str()), (0, "gsk_abcdefghijkl\n"), "{}", down.stderr);
     assert!(down.stderr.contains("using the vault copy from"), "{}", down.stderr);
@@ -371,8 +369,8 @@ fn the_sealed_local_copy_saves_vault_calls_and_stands_in_only_where_it_is_safe()
     // When the copy is switched off, sync-env runs, and the copy is cleared
     v.forget();
     get(&[("WF_SECRETS_CACHE", "off")]);
-    v.wf(&["sync-env", TAILNET, "--reveal"], &[("WF_SECRETS_CACHE", "use"), ("WF_CACHE_DIR", cache.as_str()), ("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ)], None);
-    let cleared = v.wf(&["cache", "clear"], &[("WF_SECRETS_CACHE", "use"), ("WF_CACHE_DIR", cache.as_str()), ("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ)], None);
+    v.wf(&["sync-env", TAILNET, "--reveal"], &[("WF_SECRETS_CACHE", "use"), ("WF_CACHE_DIR", cache.as_str()), ("BWS_ADMIN_ACCESS_TOKEN", READ)], None);
+    let cleared = v.wf(&["cache", "clear"], &[("WF_SECRETS_CACHE", "use"), ("WF_CACHE_DIR", cache.as_str()), ("BWS_ADMIN_ACCESS_TOKEN", READ)], None);
     get(&[]);
     // Then each of those lists the vault: off, sync-env's refresh, and the first read after the clear
     assert_eq!(v.calls().len(), 3);
@@ -390,13 +388,13 @@ fn the_doctor_reports_drift_between_the_registry_and_the_vault_and_registry_sync
     let stray = v.read(&["doctor"], &[]);
     v.holds(READ, json!([{ "id": "8", "key": "GROQ_SOURCE_TOKEN", "value": "x" }]));
     let similar = v.read(&["doctor"], &[]);
-    let rejected = v.read(&["doctor", "--if-available"], &[("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", "bad")]);
+    let rejected = v.read(&["doctor", "--if-available"], &[("BWS_ADMIN_ACCESS_TOKEN", "bad")]);
     // Then it skips without a credential, lists the unregistered and the scopes it could not list, flags the likely rename, and fails
     // when no credential can list anything
     assert_eq!((skipped.exit_code, skipped.stdout.as_str()), (0, "secrets doctor SKIPPED: no Bitwarden scope credential in this environment, so registry/vault drift was not checked.\n"));
     assert_eq!(stray.exit_code, 1);
     assert_eq!(stray.stdout.lines().next().unwrap(), format!("registry: {entries} entr(ies)   vault: 2 secret(s)"));
-    assert!(stray.stdout.contains("UNREGISTERED — in the vault, reachable by nothing (1):\n  STRAY_SECRET_NAME\n") && stray.stdout.contains("PARTIAL INVENTORY — no credential could list 2 scope(s): gh-ci, admin"), "{}", stray.stdout);
+    assert!(stray.stdout.contains("UNREGISTERED — in the vault, reachable by nothing (1):\n  STRAY_SECRET_NAME\n") && stray.stdout.contains("PARTIAL INVENTORY — no credential could list 1 scope(s): gh-ci"), "{}", stray.stdout);
     assert_eq!(similar.exit_code, 1);
     assert!(similar.stdout.contains("NAME MISMATCH (likely)") && similar.stdout.contains("GROQ_API_KEY: wants \"GROQ_API_KEY\", vault has \"GROQ_SOURCE_TOKEN\""), "{}", similar.stdout);
     assert_eq!(rejected.exit_code, 1);
@@ -433,14 +431,10 @@ fn the_doctor_reports_drift_between_the_registry_and_the_vault_and_registry_sync
 #[test]
 fn the_writers_preview_by_default_and_apply_through_the_edit_token_keeping_the_old_value() {
     let v = Vault::new();
-    let both = [("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ), ("BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN", EDIT)];
+    let both = [("BWS_ADMIN_ACCESS_TOKEN", READ), ("BWS_ADMIN_ACCESS_TOKEN", EDIT)];
     let write = |args: &[&str], extra: &[(&str, &str)], input: Option<&str>| {
         v.forget();
         v.wf(args, &[&both[..], extra].concat(), input)
-    };
-    let read_only = |args: &[&str]| {
-        v.forget();
-        v.wf(args, &both[..1], None)
     };
     let chars = |text: &str| text.chars().count();
     let total = registry().len();
@@ -452,8 +446,6 @@ fn the_writers_preview_by_default_and_apply_through_the_edit_token_keeping_the_o
     let dry_calls = v.calls();
     let applied = write(&["push-notes", "--apply"], &[], None);
     let applied_writes = v.writes();
-    let no_edit = read_only(&["push-notes", "--apply"]);
-    let no_edit_writes = v.writes();
     v.forget();
     let no_token = v.wf(&["push-notes"], &[], None);
     let no_token_calls = v.calls();
@@ -468,9 +460,7 @@ fn the_writers_preview_by_default_and_apply_through_the_edit_token_keeping_the_o
     assert_eq!(dry_calls, [listed(READ)]);
     assert!(applied.stdout.contains(&format!("updated  {GROQ}  (3 -> {} chars)", chars(&note(GROQ)))) && applied.stdout.contains(&format!("Wrote 1 note(s); 1 already current; {} not in the vault.", total - 2)), "{}", applied.stdout);
     assert_eq!(applied_writes, [format!("secret edit --note {} id-1 --output none | token={EDIT} url=", note(GROQ))]);
-    assert_eq!(no_edit.exit_code, 1);
-    assert!(no_edit.stderr.contains("BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN is not set, so notes cannot be written.") && no_edit_writes.is_empty(), "{}", no_edit.stderr);
-    assert_eq!((no_token.exit_code, no_token.stderr.as_str()), (1, "No Bitwarden token available. Set BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN to preview note changes, and BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN to apply them.\n"));
+    assert_eq!((no_token.exit_code, no_token.stderr.as_str()), (1, "No Bitwarden token available. Set BWS_ADMIN_ACCESS_TOKEN to preview and apply note changes.\n"));
     assert!(no_token_calls.is_empty());
     assert_eq!((refused.exit_code, refused.stderr.as_str()), (1, "Bitwarden secret edit id-1 failed: [403 Forbidden] The token authenticated but was refused — grant its machine account 'Can read, write' on the project.\n"));
     // and --verbose lists every key absent from the vault
@@ -485,7 +475,6 @@ fn the_writers_preview_by_default_and_apply_through_the_edit_token_keeping_the_o
     let preview = write(&["create", GROQ, "proj-1", "--value", "v"], &[], None);
     let preview_writes = v.writes();
     v.holds(READ, json!([{ "id": "id-2", "key": TAILNET, "value": "tskey-copied" }]));
-    v.holds(EDIT, json!([]));
     let created = write(&["create", GROQ, "proj-1", "--value", "-----BEGIN KEY", "--apply"], &[], None);
     let created_writes = v.writes();
     write(&["create", GROQ, "proj-1", "--placeholder", "--apply"], &[], None);
@@ -512,13 +501,11 @@ fn the_writers_preview_by_default_and_apply_through_the_edit_token_keeping_the_o
     let unregistered = write(&["create", "NOT_REGISTERED", "proj-1", "--value", "v"], &[], None);
     let sources: Vec<RunResult> = [&[][..], &["--value", "a", "--placeholder"][..]].iter().map(|extra| write(&[&["create", GROQ, "proj-1"][..], *extra].concat(), &[], None)).collect();
     v.holds(READ, json!([]));
-    let no_edit_create = read_only(&["create", GROQ, "proj-1", "--value", "v", "--apply"]);
     assert_eq!((duplicate.exit_code, duplicate.stderr.clone()), (1, format!("Refused: a secret named {GROQ} already exists in the vault — refusing to create a duplicate\n")));
     assert_eq!((unregistered.exit_code, unregistered.stderr.as_str()), (1, "Refused: NOT_REGISTERED is not in registry.json, so it has no reviewed description to use as its note — add the registry entry first\n"));
     for r in &sources {
         assert_eq!((r.exit_code, r.stderr.as_str()), (1, "Pass exactly one of --value, --value-stdin, --value-from <KEY>, or --placeholder\n"));
     }
-    assert!(no_edit_create.stderr.contains(&format!("BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN is not set, so creating {GROQ} cannot be performed.")) && v.writes().is_empty(), "{}", no_edit_create.stderr);
 
     // When a value is rotated: previewed (also from stdin), applied, applied to a key the vault lacks, and refused by the vault
     let rotate_preview = write(&["update", GROQ, "--value", "newvalue123"], &[], None);
@@ -837,21 +824,21 @@ fn verify_scope_passes_when_every_key_of_the_scope_is_present() {
 }
 
 #[test]
-fn verify_scope_of_ci_open_never_lists_a_ci_deploy_key_as_its_own_and_flags_one_the_token_can_read() {
-    // Given a project that holds every ci-open key and also a ci-deploy key the open token must not read
+fn verify_scope_of_ci_open_never_lists_a_vm_key_as_its_own_and_flags_one_the_token_can_read() {
+    // Given a project that holds every ci-open key and also a vm key the ci token must not read
     let v = Vault::new();
     let mut vault = held(&scope_keys("ci-open"));
-    vault.push(json!({ "id": "x", "key": "EXPO_TOKEN", "value": "scopedvalue-1234" }));
+    vault.push(json!({ "id": "x", "key": "VM_STATE_RESTIC_PASSWORD", "value": "scopedvalue-1234" }));
     v.holds(READ, Value::Array(vault));
 
     // When the ci-open scope is verified
     let r = v.read(&["verify", "--scope", "ci-open"], &[]);
 
-    // Then the ci-deploy key is not among the scope's keys, and is reported as exposed with its scope, failing the check
+    // Then the vm key is not among the scope's keys, and is reported as exposed with its scope, failing the check
     assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
     let report: Value = serde_json::from_str(&r.stdout).unwrap();
-    assert!(!names(&report, "keys").contains("EXPO_TOKEN") && names(&report, "missing").is_empty());
-    assert_eq!(report["exposed"], json!([{ "key": "EXPO_TOKEN", "scope": "ci-deploy" }]));
+    assert!(!names(&report, "keys").contains("VM_STATE_RESTIC_PASSWORD") && names(&report, "missing").is_empty());
+    assert_eq!(report["exposed"], json!([{ "key": "VM_STATE_RESTIC_PASSWORD", "scope": "vm" }]));
 }
 
 #[test]

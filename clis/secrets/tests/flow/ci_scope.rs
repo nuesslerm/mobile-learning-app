@@ -4,8 +4,9 @@ use super::{held, listed, names, scope_keys, Vault, READ};
 use crate::support::{repo_root, run_wf, RunOpts, RunResult};
 use serde_json::{json, Value};
 
-const OPEN_TOKEN: &str = "open-token";
 const DEPLOY_TOKEN: &str = "deploy-token";
+/// One token reads every ci key: the ci-open keys sit in the same project as the ci-deploy ones.
+const OPEN_TOKEN: &str = DEPLOY_TOKEN;
 const OPEN_KEY: &str = "TEST_RUNS_ORDS_BASE_URL";
 const OPEN_KEY_2: &str = "HEALTH_REPORTS_ORDS_BASE_URL";
 const DEPLOY_KEY: &str = "GROQ_API_KEY";
@@ -22,13 +23,12 @@ fn secret_of(key: &str, value: &str) -> Value {
 /// A CI run's vault: each scope token's project holds the keys of its scope.
 fn ci_vault() -> Vault {
     let v = Vault::new();
-    v.holds(OPEN_TOKEN, json!([secret_of(OPEN_KEY, "open-value-aaaa"), secret_of(OPEN_KEY_2, "open-value-bbbb"), secret_of("BUILD_CACHE_READ_PAR_URL", "https://read.example/o/")]));
-    v.holds(DEPLOY_TOKEN, json!([secret_of(DEPLOY_KEY, "deploy-value-cccc"), secret_of(WRITE_KEY, "https://write.example/o/"), secret_of(BUNDLE_KEY, "https://bundle.example/o/")]));
+    v.holds(DEPLOY_TOKEN, json!([secret_of(OPEN_KEY, "open-value-aaaa"), secret_of(OPEN_KEY_2, "open-value-bbbb"), secret_of("BUILD_CACHE_READ_PAR_URL", "https://read.example/o/"), secret_of(DEPLOY_KEY, "deploy-value-cccc"), secret_of(WRITE_KEY, "https://write.example/o/"), secret_of(BUNDLE_KEY, "https://bundle.example/o/")]));
     v
 }
 
 fn both() -> Vec<(&'static str, &'static str)> {
-    vec![("CI", "true"), ("BWS_CI_OPEN_ACCESS_TOKEN", OPEN_TOKEN), ("BWS_CI_DEPLOY_ACCESS_TOKEN", DEPLOY_TOKEN)]
+    vec![("CI", "true"), ("BWS_CI_DEPLOY_ACCESS_TOKEN", DEPLOY_TOKEN)]
 }
 
 fn ci(v: &Vault, args: &[&str], env: &[(&str, &str)]) -> RunResult {
@@ -62,16 +62,6 @@ fn ci_reads_each_key_with_the_token_of_its_scope_and_refuses_what_ci_may_not_rea
     }
     assert!(v.calls().is_empty());
 
-    // When only the other scope's token is set, even with the deploy-read token beside it
-    let only_open = ci(&v, &["get", DEPLOY_KEY], &[("CI", "true"), ("BWS_CI_OPEN_ACCESS_TOKEN", OPEN_TOKEN), ("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ)]);
-    let only_deploy = ci(&v, &["get", OPEN_KEY], &[("CI", "true"), ("BWS_CI_DEPLOY_ACCESS_TOKEN", DEPLOY_TOKEN)]);
-    // Then the error names the key and the missing variable, and no token was tried
-    assert_eq!(only_open.exit_code, 1);
-    assert!(only_open.stderr.contains(DEPLOY_KEY) && only_open.stderr.contains("BWS_CI_DEPLOY_ACCESS_TOKEN") && only_open.stderr.contains("not set"), "{}", only_open.stderr);
-    assert_eq!(only_deploy.exit_code, 1);
-    assert!(only_deploy.stderr.contains(OPEN_KEY) && only_deploy.stderr.contains("BWS_CI_OPEN_ACCESS_TOKEN"), "{}", only_deploy.stderr);
-    assert!(v.calls().is_empty());
-
     // When a whole-registry walk runs in CI
     let list = ci(&v, &["list"], &both());
     // Then it succeeds and marks the keys CI may not read as refused
@@ -85,14 +75,14 @@ fn ci_without_a_scope_token_reads_as_it_always_did() {
     v.holds(READ, json!([secret_of(DEPLOY_KEY, "deploy-value-cccc"), secret_of(VM_KEY, "restic-value-1234")]));
 
     // When CI has only the deploy-read token and asks for a ci-deploy key and for a vm key
-    let deploy = ci(&v, &["get", DEPLOY_KEY], &[("CI", "true"), ("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ)]);
-    let vm = ci(&v, &["get", VM_KEY], &[("CI", "true"), ("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ)]);
+    let deploy = ci(&v, &["get", DEPLOY_KEY], &[("CI", "true"), ("BWS_ADMIN_ACCESS_TOKEN", READ)]);
+    let vm = ci(&v, &["get", VM_KEY], &[("CI", "true"), ("BWS_ADMIN_ACCESS_TOKEN", READ)]);
     // Then both come from the read token, so the VM runner keeps working until its container-level token is removed
     assert_eq!((deploy.exit_code, deploy.stdout.as_str()), (0, "deploy-value-cccc\n"), "{}", deploy.stderr);
     assert_eq!((vm.exit_code, vm.stdout.as_str()), (0, "restic-value-1234\n"), "{}", vm.stderr);
 
     // And outside CI the scope tokens are not consulted at all
-    let local = ci(&v, &["get", DEPLOY_KEY], &[("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ), ("BWS_CI_OPEN_ACCESS_TOKEN", OPEN_TOKEN)]);
+    let local = ci(&v, &["get", DEPLOY_KEY], &[("BWS_ADMIN_ACCESS_TOKEN", READ)]);
     assert_eq!((local.exit_code, local.stdout.as_str()), (0, "deploy-value-cccc\n"), "{}", local.stderr);
 }
 
@@ -175,7 +165,7 @@ fn write_urls_resolve_only_for_a_push_to_dev_in_github_actions() {
 
     // When the write URL is asked for outside GitHub Actions (the local gate, the VM by hand), whatever the event variables say
     v.holds(READ, json!([secret_of(WRITE_KEY, "https://write.example/o/")]));
-    let local = ci(&v, &["get", WRITE_KEY], &[("BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN", READ), ("GITHUB_EVENT_NAME", "pull_request"), ("GITHUB_REF", "refs/pull/7/merge")]);
+    let local = ci(&v, &["get", WRITE_KEY], &[("BWS_ADMIN_ACCESS_TOKEN", READ), ("GITHUB_EVENT_NAME", "pull_request"), ("GITHUB_REF", "refs/pull/7/merge")]);
     // Then it is unchanged
     assert_eq!((local.exit_code, local.stdout.as_str()), (0, "https://write.example/o/\n"), "{}", local.stderr);
 }
@@ -309,15 +299,17 @@ fn scope_check_lets_a_deploy_job_verify_a_group_whose_vm_only_key_it_never_reads
     assert!(!report["violations"].to_string().contains("probe.yml:leg: deploy job asks for VM_PROVISION_GITHUB_TOKEN"), "{report}");
 }
 
-/// Two vault projects as a CI run sees them: the ci-open project holds exactly the ci-open keys of the registry, the ci-deploy project
-/// exactly the ci-deploy keys, each value distinct and carrying its project's name.
+/// The scope's registry keys as vault secrets, each value distinct and carrying the label.
+fn project_of(scope: &str, label: &str) -> Vec<Value> {
+    scope_keys(scope).iter().enumerate().map(|(i, (_, name))| json!({ "id": i.to_string(), "key": name, "value": format!("{label}-secret-of-{name}") })).collect()
+}
+
+/// The ci project as a CI run sees it: one project, one token, holding exactly the ci-open and the ci-deploy keys of the registry.
 fn two_projects() -> Vault {
     let v = Vault::new();
-    let project = |scope: &str, label: &str| -> Value {
-        Value::Array(scope_keys(scope).iter().enumerate().map(|(i, (_, name))| json!({ "id": i.to_string(), "key": name, "value": format!("{label}-secret-of-{name}") })).collect())
-    };
-    v.holds(OPEN_TOKEN, project("ci-open", "open"));
-    v.holds(DEPLOY_TOKEN, project("ci-deploy", "deploy"));
+    let mut all = project_of("ci-open", "open");
+    all.extend(project_of("ci-deploy", "deploy"));
+    v.holds(DEPLOY_TOKEN, Value::Array(all));
     v
 }
 
@@ -333,7 +325,7 @@ fn only_token(v: &Vault, token: &str) -> bool {
 }
 
 #[test]
-fn two_projects_serve_each_scope_to_its_own_token_only_and_verify_reports_exactly_the_scope() {
+fn one_project_serves_both_scopes_to_the_one_ci_token_and_verify_reports_exactly_the_scope() {
     let v = two_projects();
     let env = push_to_dev();
     let open: Vec<String> = scope_keys("ci-open").into_iter().map(|(k, _)| k).collect();
@@ -364,7 +356,7 @@ fn two_projects_serve_each_scope_to_its_own_token_only_and_verify_reports_exactl
     assert!(vm.stderr.contains("scope vm") && vm.stderr.contains("not readable in CI"), "{}", vm.stderr);
     assert!(v.calls().is_empty());
 
-    // When each CI scope is verified with the tokens of a CI run
+    // When each CI scope is verified with the token of a CI run
     for (scope, token, own, other) in [("ci-open", OPEN_TOKEN, &open, &deploy), ("ci-deploy", DEPLOY_TOKEN, &deploy, &open)] {
         let r = ci(&v, &["verify", "--scope", scope], &env);
         // Then the report lists exactly the scope's keys, all present, none missing, no key of the other scope, no value, and only
@@ -383,19 +375,19 @@ fn two_projects_serve_each_scope_to_its_own_token_only_and_verify_reports_exactl
 }
 
 #[test]
-fn verify_scope_in_ci_names_a_key_missing_from_its_own_project_and_ignores_the_other_project() {
-    // Given a ci-open project that lost one key while the ci-deploy project holds it (a key moved to the wrong project)
+fn verify_scope_in_ci_names_a_key_missing_from_the_ci_project() {
+    // Given a ci project that lost one ci-open key
     let v = two_projects();
     let (lost, lost_name) = scope_keys("ci-open").remove(0);
-    let mut open = held(&scope_keys("ci-open"));
-    open.retain(|s| s["key"] != json!(lost_name));
-    v.holds(OPEN_TOKEN, Value::Array(open));
-    v.holds(DEPLOY_TOKEN, Value::Array(held(&scope_keys("ci-deploy")).into_iter().chain([json!({ "id": "x", "key": lost_name, "value": "scopedvalue-1234" })]).collect()));
+    let mut all = project_of("ci-open", "open");
+    all.retain(|s| s["key"] != json!(lost_name));
+    all.extend(project_of("ci-deploy", "deploy"));
+    v.holds(DEPLOY_TOKEN, Value::Array(all));
 
     // When the ci-open scope is verified
     let r = ci(&v, &["verify", "--scope", "ci-open"], &push_to_dev());
 
-    // Then the key is reported missing: the other project's copy does not count
+    // Then the key is reported missing
     assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
     let report: Value = serde_json::from_str(&r.stdout).unwrap();
     assert_eq!(names(&report, "missing"), [lost].into_iter().collect());
@@ -423,7 +415,7 @@ fn parity_of_two_runner_kinds_with_one_nonce_is_identical_and_a_divergent_value_
     // When two runner kinds (a VM runner and a hosted one: same tokens, one with a different working directory and workflow event
     // variables) run the parity verb with the same nonce
     let (vm_code, vm_run, vm_text) = parity(&v, &["--nonce", NONCE]);
-    let hosted = ci(&v, &["parity", "--json", "--nonce", NONCE], &[("CI", "true"), ("GITHUB_ACTIONS", "true"), ("GITHUB_EVENT_NAME", "push"), ("GITHUB_REF", "refs/heads/dev"), ("BWS_CI_OPEN_ACCESS_TOKEN", OPEN_TOKEN), ("BWS_CI_DEPLOY_ACCESS_TOKEN", DEPLOY_TOKEN), ("RUNNER_NAME", "hosted-1")]);
+    let hosted = ci(&v, &["parity", "--json", "--nonce", NONCE], &[("CI", "true"), ("GITHUB_ACTIONS", "true"), ("GITHUB_EVENT_NAME", "push"), ("GITHUB_REF", "refs/heads/dev"), ("BWS_CI_DEPLOY_ACCESS_TOKEN", DEPLOY_TOKEN), ("RUNNER_NAME", "hosted-1")]);
     // Then the reports are byte-identical, hold exactly the registry keys of each scope, and carry a hash per key
     assert_eq!((vm_code, hosted.exit_code), (0, 0), "{}", hosted.stderr);
     assert_eq!(hosted.stdout, serde_json::to_string_pretty(&vm_run).unwrap() + "\n");
@@ -445,6 +437,7 @@ fn parity_of_two_runner_kinds_with_one_nonce_is_identical_and_a_divergent_value_
     for s in deploy.iter_mut().filter(|s| s["key"] == json!(name)) {
         s["value"] = json!("stale-value-9999");
     }
+    deploy.extend(project_of("ci-open", "open"));
     v.holds(DEPLOY_TOKEN, Value::Array(deploy));
     let (code, drifted, text) = parity(&v, &["--nonce", NONCE]);
     // Then it exits 1, names the missing key, differs from the first run in the changed value's hash and the held names' hash only,
@@ -488,6 +481,7 @@ fn parity_lists_a_key_only_deploy_groups_call_optional_as_missing_optional_witho
     let v = two_projects();
     let mut deploy = held(&scope_keys("ci-deploy"));
     deploy.retain(|s| s["key"] != json!("GROQ_API_KEY"));
+    deploy.extend(project_of("ci-open", "open"));
     v.holds(DEPLOY_TOKEN, Value::Array(deploy));
 
     // When the parity verb runs

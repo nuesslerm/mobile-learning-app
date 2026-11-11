@@ -17,7 +17,7 @@ function fires(guardCommand) {
 describe('given a command that fetches a real secret value and redirects it to a file', () => {
   it('when the exact incident shape is checked (get > file, then head -c on it later in the same call), then it fires', () => {
     const command =
-      'wf secret get BWS_DEPLOY_SECRETS_EDIT_ACCESS_TOKEN --backend bitwarden >/tmp/edit_check_len.txt 2>&1; ' +
+      'wf secret get BWS_ADMIN_ACCESS_TOKEN --backend bitwarden >/tmp/edit_check_len.txt 2>&1; ' +
       "wc -c /tmp/edit_check_len.txt; head -c 40 /tmp/edit_check_len.txt | tr -d '\\n'; echo; rm -f /tmp/edit_check_len.txt";
     expect(fires(command)).toBe(true);
   });

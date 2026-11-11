@@ -408,7 +408,7 @@ fn apply(dir: &str, compartment: &str, vars: &[(String, String)]) -> Res<i32> {
 /// nothing), the ADB admin password, and the deploy key's public half (made once when missing). An env value wins.
 fn vm_vars() -> Res<Vec<(String, String)>> {
     let mut vars = Vec::new();
-    for (var, key) in [("TF_VAR_bws_read_access_token", "BWS_DEPLOY_SECRETS_READ_ACCESS_TOKEN"), ("TF_VAR_adb_admin_password", "ADB_ADMIN_PASSWORD")] {
+    for (var, key) in [("TF_VAR_bws_read_access_token", "BWS_ADMIN_ACCESS_TOKEN"), ("TF_VAR_adb_admin_password", "ADB_ADMIN_PASSWORD")] {
         if std::env::var(var).is_ok_and(|v| !v.is_empty()) {
             continue;
         }
