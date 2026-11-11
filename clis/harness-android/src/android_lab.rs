@@ -137,6 +137,20 @@ impl Up {
     }
 }
 
+/// Runs a script here, in agent-shell's own shell (what the device lab's job does), its output on stderr.
+pub fn run_local(verb: &str, script: &str) -> Result<(), String> {
+    crate::android_emulator::run_local(verb, script)
+}
+
+/// Runs a script here and returns its output.
+fn capture_local(script: &str) -> Result<String, String> {
+    let out = std::process::Command::new("bash").arg("-c").arg(script).stdin(std::process::Stdio::null()).output().map_err(|e| format!("cannot run bash: {e}"))?;
+    match out.status.code() {
+        Some(0) => Ok(String::from_utf8_lossy(&out.stdout).to_string()),
+        c => Err(format!("local script exit {}: {}", c.unwrap_or(-1), String::from_utf8_lossy(&out.stderr).trim())),
+    }
+}
+
 /// Runs a lifecycle script on the VM, its output streamed as it comes; a non-zero exit is the error.
 pub fn on_vm(verb: &str, script: &str) -> Result<(), String> {
     let path = std::env::temp_dir().join(format!("wf-android-{verb}-{}.sh", std::process::id()));
@@ -152,7 +166,7 @@ pub fn on_vm(verb: &str, script: &str) -> Result<(), String> {
 
 /// The device `name` as `list-devices` reports it: booted, the slim set proved across a restart, each feature on, off or
 /// partial, and its lease where the lease state is local. None when no such container runs.
-pub(crate) fn device(name: &str) -> Result<Option<Value>, String> {
+pub(crate) fn device(name: &str, local: bool) -> Result<Option<Value>, String> {
     let script = format!(
         "[ \"$(docker inspect -f '{{{{.State.Running}}}}' {name} 2>/dev/null)\" = true ] || {{ echo @@ABSENT; exit 0; }}\n\
 docker exec {name} getprop sys.boot_completed\n\
@@ -161,7 +175,7 @@ echo \"@@PROOF $(docker exec {name} cat /data/local/wf-slim-proof 2>/dev/null)\"
 echo @@DISABLED\n\
 docker exec {name} pm list packages -d\n"
     );
-    let out = capture(&script)?;
+    let out = if local { capture_local(&script)? } else { capture(&script)? };
     if out.lines().any(|l| l.trim() == "@@ABSENT") {
         return Ok(None);
     }

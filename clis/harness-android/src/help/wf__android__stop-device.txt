@@ -1,4 +1,6 @@
-Usage: wf android stop-device [--name N] [--dry-run]
+Usage: wf android stop-device [--name N] [--local] [--dry-run]
+
+With WF_ANDROID_PROVIDER=redroid-lab it goes through the device lab on the CI port; --local runs the script in this shell.
 
 With WF_ANDROID_PROVIDER=emulator it kills the local emulator process instead.
 
