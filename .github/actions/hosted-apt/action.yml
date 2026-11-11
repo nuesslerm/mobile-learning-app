@@ -17,6 +17,20 @@ runs:
         for p in $PACKAGES; do dpkg -s "$p" >/dev/null 2>&1 || missing="$missing $p"; done
         if [ -z "$missing" ]; then echo "apt: nothing to install ($PACKAGES)"; exit 0; fi
         sudo dpkg --configure -a
-        sudo apt-get update -qq
-        # shellcheck disable=SC2086
-        sudo apt-get install -y -qq $missing
+        # a mirror host that does not resolve is a runner-network fault, not ours: say what resolves, retry, then try the main archive
+        for host in azure.archive.ubuntu.com archive.ubuntu.com security.ubuntu.com github.com; do
+          getent hosts "$host" >/dev/null && echo "dns: $host resolves" || echo "dns: $host does NOT resolve"
+        done
+        grep -m3 nameserver /etc/resolv.conf || true
+        ok=false
+        for attempt in 1 2 3 4; do
+          # shellcheck disable=SC2086
+          if sudo apt-get update -qq -o Acquire::Retries=3 && sudo apt-get install -y -qq -o Acquire::Retries=3 $missing; then ok=true; break; fi
+          echo "apt: attempt $attempt failed"
+          if [ "$attempt" = 2 ] && [ -f /etc/apt/apt-mirrors.txt ]; then
+            echo "apt: falling back to archive.ubuntu.com"
+            echo "http://archive.ubuntu.com/ubuntu/ priority:1" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          fi
+          sleep $((attempt * 15))
+        done
+        [ "$ok" = true ] || { echo "::error::apt could not install:$missing"; exit 1; }
