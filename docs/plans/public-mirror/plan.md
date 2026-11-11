@@ -2,6 +2,8 @@
 
 Status: superseded on 2026-11-10 for the public repository: it runs the same pipeline as the private one on both a GitHub-hosted and a self-hosted runner, identically, with its own Actions secrets and the tailnet, kept safe by an owner-only branch ruleset and no pull request triggers (see `SECURITY.md`). The rest of this plan is the original design. Original status: proposed, 2026-11-08. Replaces `docs/plans/secrets-broker/plan.md` as the path to free GitHub-hosted compute (that plan and `docs/solutions/architecture/secrets-broker.md` are deferred, not deleted: they apply if a hosted runner ever has to deploy).
 
+Update 2026-11-11: the repository is now `nuesslerm/mobile-learning-app`, public, with the vault token and the tailnet-join client as Actions secrets. The first push to `dev` is the end-to-end check of the GitHub-hosted pipeline on free public minutes.
+
 Owner decisions (8 Nov): public mirror of the repo (the private repo stays canonical), any permissive license, hosted and VM runners both run CI, and no secret-handling service for now. Instead: **the mirror holds no privileged secret**. Hosted runners in the mirror run only jobs that need none; every privileged leg stays on the private repo's VM runner.
 
 ## Why this is enough
