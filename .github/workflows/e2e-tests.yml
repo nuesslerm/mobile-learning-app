@@ -121,6 +121,7 @@ jobs:
       # the stub server the Android tests start runs on the runner's own tailnet node: the device's DNAT rules point at its address, not at the device's gateway
       # (on a hosted runner the emulator reaches the run at 10.0.2.2)
       WF_ANDROID_STUB_HOST: ${{ inputs.flavor == 'hosted' && '10.0.2.2' || 'ci-runner-main' }}
+      WF_ANDROID_HOSTS: ${{ inputs.flavor == 'hosted' && 'leetcode-backend-prod remote-chat-agent-prod vm-ops-api-main' || '' }}
     steps:
       # the plan job fetched this commit into the runner's checkout: a fetch of every ref (316 of them) to learn nothing new costs 12 s
       - name: The pnpm store of the VM runner

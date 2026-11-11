@@ -34,6 +34,17 @@ pub fn selected() -> Result<bool, String> {
     provider().map(|p| p == Provider::Emulator)
 }
 
+/// The app's backend URLs name tailnet hosts (`leetcode-backend-prod`) that the emulator's own resolver cannot answer (its DNS forwards bare
+/// names to the host's stub, which adds no search domain). Every backend port is DNATed to the stub server anyway, so the address is
+/// irrelevant: `WF_ANDROID_HOSTS` names point at the host (10.0.2.2) in the device's hosts file.
+const HOSTS_STEP: &str = "if [ -n \"${WF_ANDROID_HOSTS:-}\" ]; then\n\
+  hosts=\"${RUNNER_TEMP:-/tmp}/android-hosts\"\n\
+  { adb -s emulator-5554 shell cat /system/etc/hosts | tr -d '\\r'; echo \"10.0.2.2 $WF_ANDROID_HOSTS\"; } > \"$hosts\"\n\
+  adb -s emulator-5554 push \"$hosts\" /data/local/tmp/hosts >/dev/null\n\
+  adb -s emulator-5554 shell 'chcon u:object_r:system_file:s0 /data/local/tmp/hosts; mount -o bind /data/local/tmp/hosts /system/etc/hosts || { setenforce 0; mount -o bind /data/local/tmp/hosts /system/etc/hosts; }' || echo 'hosts: the backend names could not be mapped'\n\
+  first=\"${WF_ANDROID_HOSTS%% *}\"; adb -s emulator-5554 shell \"ping -c 1 -W 2 $first\" 2>&1 | sed -n 1p\n\
+fi\n";
+
 pub fn up_script(w: u32, h: u32, dpi: u32, expo_go: bool) -> String {
     let apps = if expo_go {
         format!(
@@ -69,6 +80,7 @@ until [ \"$(adb -s {SERIAL} shell getprop sys.boot_completed 2>/dev/null | tr -d
 done\n\
 adb -s {SERIAL} root >/dev/null; sleep 3; adb -s {SERIAL} wait-for-device\n\
 adb -s {SERIAL} shell wm size {w}x{h}; adb -s {SERIAL} shell wm density {dpi}\n\
+{HOSTS_STEP}\
 echo \"{SERIAL} up {w}x{h}@{dpi} after $(( $(date +%s) - t0 )) s\"\n\
 {apps}"
     )
@@ -117,6 +129,13 @@ mod tests {
         let s = up_script(480, 1040, 213, true);
         assert!(s.contains("hw.lcd.width=480") && s.contains("wm size 480x1040"), "{s}");
         assert!(s.contains("emulator-5554") && s.contains("Expo Go installed"), "{s}");
+    }
+
+    #[test]
+    fn given_the_start_script_when_it_is_built_then_it_maps_the_named_backend_hosts_to_the_host_only_when_asked() {
+        let s = up_script(480, 1040, 213, false);
+        assert!(s.contains("if [ -n \"${WF_ANDROID_HOSTS:-}\" ]"), "{s}");
+        assert!(s.contains("10.0.2.2 $WF_ANDROID_HOSTS") && s.contains("mount -o bind /data/local/tmp/hosts /system/etc/hosts"), "{s}");
     }
 
     #[test]
