@@ -38,6 +38,10 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
           ls -l /dev/kvm
+      - name: Libraries the emulator binary links against
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libpulse0 libnss3 libxkbcommon0 libgl1
       - name: Install the emulator and the system image
         run: |
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
