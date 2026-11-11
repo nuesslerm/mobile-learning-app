@@ -46,14 +46,18 @@ pub fn scoped_mode() -> bool {
     in_ci() && (scope_token(Scope::CiOpen).is_some() || scope_token(Scope::CiDeploy).is_some())
 }
 
-/// `Some(reason)` when this event and ref may not resolve the write URL `key`; only checked in GitHub Actions. A push to `dev` and a dispatch on `dev` may (the
-/// dispatcher can push to `dev` too: the forced cold run is one); a pull request or another branch may not.
+/// `Some(reason)` when this event and ref may not resolve the write URL `key`; only checked in GitHub Actions. A push to `dev`, a dispatch on `dev` (the
+/// dispatcher can push to `dev` too) and a schedule on `main` (GitHub runs schedules only from the default branch) may; a pull request or another branch may not.
 pub fn write_refusal(key: &str) -> Option<String> {
     if !in_actions() || !WRITE_URL_KEYS.contains(&key) {
         return None;
     }
     let (event, git_ref) = (var("GITHUB_EVENT_NAME").unwrap_or_default(), var("GITHUB_REF").unwrap_or_default());
-    (!matches!(event.as_str(), "push" | "workflow_dispatch") || git_ref != "refs/heads/dev").then(|| format!("write URL refused for {event}/{git_ref}"))
+    let allowed = match (event.as_str(), git_ref.as_str()) {
+        ("push" | "workflow_dispatch", "refs/heads/dev") | ("schedule", "refs/heads/main") => true,
+        _ => false,
+    };
+    (!allowed).then(|| format!("write URL refused for {event}/{git_ref}"))
 }
 
 /// The repository variable of a `public` key: the environment variable named like the registry key.

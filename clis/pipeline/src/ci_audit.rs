@@ -289,7 +289,7 @@ fn next_step(kind: &str) -> &'static str {
         "pnpm-save-slow" => "The store is packed for nothing: find what grew it (`wf cache save pnpm` bytes) and trim it.",
         "drift" => "Read the drift report of the job (which task hashed differently and the cause it names) and make that input stable.",
         "replayed-nothing" => "The push gate seeded the stage and CI replayed none of it: compare the gate's hashes with CI's (`wf test drift`) and fix the one that differs.",
-        _ => "Read the finding's message and the run's job log, fix the cause through the normal gate, or record it in issue #365.",
+        _ => "Read the finding's message and the run's job log, fix the cause through the normal gate, or record it in the findings inbox issue.",
     }
 }
 
@@ -341,6 +341,7 @@ struct RunVerdict {
     run: String,
     sha: String,
     cold: bool,
+    hosted: bool,
     judged: bool,
     reason: Option<String>,
     tasks: usize,
@@ -352,8 +353,8 @@ struct RunVerdict {
 
 type LedgerOpen = Result<Box<dyn crate::ci_ledger::Ledger>, String>;
 
-fn judge_run(env: &Env, push_to_dev: bool, cold: bool, limits: &Limits, ledger: &LedgerOpen, dry_run: bool) -> RunVerdict {
-    let mut v = RunVerdict { run: env.run.clone(), sha: env.sha.clone(), cold, judged: false, reason: None, tasks: 0, cpu_secs: None, findings: Vec::new(), stages: Vec::new(), notes: Vec::new() };
+fn judge_run(env: &Env, push_to_dev: bool, cold: bool, hosted: bool, limits: &Limits, ledger: &LedgerOpen, dry_run: bool) -> RunVerdict {
+    let mut v = RunVerdict { run: env.run.clone(), sha: env.sha.clone(), cold, hosted, judged: false, reason: None, tasks: 0, cpu_secs: None, findings: Vec::new(), stages: Vec::new(), notes: Vec::new() };
     let jobs = match list_jobs_of(env, &env.run) {
         Ok(jobs) => jobs,
         Err(reason) => {
@@ -388,7 +389,7 @@ fn judge_run(env: &Env, push_to_dev: bool, cold: bool, limits: &Limits, ledger: 
         Err(reason) => v.notes.push(format!("the ledger is unavailable ({}), so tasks were not compared with earlier runs", cut(reason, 160))),
         Ok(ledger) => {
             if cold {
-                cold_history = ledger.cold_jobs(COLD_RUNS).ok();
+                cold_history = if hosted { None } else { ledger.cold_jobs(COLD_RUNS).ok() };
             } else {
                 let hashes: Vec<String> = now_obs.iter().map(|o| o.hash.clone()).collect::<BTreeSet<_>>().into_iter().collect();
                 let tasks: Vec<String> = now_obs.iter().map(|o| o.task.clone()).collect::<BTreeSet<_>>().into_iter().collect();
@@ -409,14 +410,20 @@ fn judge_run(env: &Env, push_to_dev: bool, cold: bool, limits: &Limits, ledger: 
             }
         }
     }
-    let (psi_io, cpu_iowait, cpu_secs) = io_wait_peaks(env, started * 1000, ended * 1000 + 60_000);
-    v.cpu_secs = cpu_secs;
-    breaches.extend(judge_time(&spans, &refused, psi_io, cpu_iowait, cpu_secs, cold_history.as_ref(), limits));
+    // The VM's samples, waits behind its one runner and its cold baseline say nothing about a GitHub-hosted machine
+    if hosted {
+        v.notes.push("a GitHub-hosted run: its tasks and caches were judged, its times and the VM's load were not".to_string());
+    } else {
+        let (psi_io, cpu_iowait, cpu_secs) = io_wait_peaks(env, started * 1000, ended * 1000 + 60_000);
+        v.cpu_secs = cpu_secs;
+        breaches.extend(judge_time(&spans, &refused, psi_io, cpu_iowait, cpu_secs, cold_history.as_ref(), limits));
+    }
     v.findings.extend(breaches.iter().map(|b| Finding::of(&env.run, b)));
     if !dry_run {
         if let Ok(ledger) = ledger {
             let kind = if cold { "cold" } else { "push" };
             let rows: Vec<JobRow> = spans.iter().map(|s| JobRow { run: env.run.clone(), sha: env.sha.clone(), ts: started * 1000, kind: kind.to_string(), job: s.name.clone(), secs: s.secs(), queued: s.queued }).collect();
+            let rows = if hosted { Vec::new() } else { rows };
             if let Err(reason) = ledger.record_tasks(&now_obs).and_then(|()| ledger.record_jobs(&rows)) {
                 v.notes.push(format!("the ledger could not be written: {}", cut(&reason, 160)));
             }
@@ -425,26 +432,51 @@ fn judge_run(env: &Env, push_to_dev: bool, cold: bool, limits: &Limits, ledger: 
     v
 }
 
-/// A run is cold when it was dispatched by hand or its head commit asks for no cache (`[cache:no]`): nothing in it replays.
+/// A run is cold when it was dispatched by hand, started by a schedule, or its head commit asks for no cache (`[cache:no]`): nothing in it replays.
 pub fn is_cold(event: &str, head_message: &str) -> bool {
-    event == "workflow_dispatch" || head_message.contains("[cache:no]")
+    matches!(event, "workflow_dispatch" | "schedule") || head_message.contains("[cache:no]")
 }
 
-/// The completed runs of the CI workflow on `dev` that started at or after `since` (epoch seconds), oldest first, as (id, sha, cold).
-fn runs_since(env: &Env, since: i64) -> Result<Vec<(String, String, bool)>, String> {
-    let url = format!("{}/repos/{}/actions/workflows/deploy.yml/runs?branch={BRANCH}&status=completed&per_page=50", env.api, env.repo);
-    let reply = json_of(send(env, "GET", &url, None)?, "listing the runs")?;
-    let mut runs: Vec<(i64, String, String, bool)> = reply["workflow_runs"]
+/// The workflows whose runs are judged, as (file, runs on a GitHub-hosted machine). The VM's own is the one every push to `dev` runs.
+const WORKFLOWS: [(&str, bool); 2] = [("deploy.yml", false), ("ci-hosted.yml", true)];
+
+/// A completed run to judge: its id, head sha, whether it is cold, and whether it ran on GitHub-hosted machines.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct Picked {
+    started: i64,
+    id: String,
+    sha: String,
+    cold: bool,
+    hosted: bool,
+}
+
+/// The runs of one workflow's listing that started at or after `since`: pushes, hand dispatches and schedules, never a pull request's.
+fn pick_runs(reply: &Value, since: i64, hosted: bool) -> Vec<Picked> {
+    reply["workflow_runs"]
         .as_array()
         .map(Vec::as_slice)
         .unwrap_or_default()
         .iter()
-        .filter(|r| matches!(r["event"].as_str(), Some("push" | "workflow_dispatch")))
-        .filter_map(|r| Some((epoch(&r["run_started_at"])?, r["id"].to_string().trim_matches('"').to_string(), text(r, "head_sha"), is_cold(&text(r, "event"), r["head_commit"]["message"].as_str().unwrap_or_default()))))
-        .filter(|(started, ..)| *started >= since)
-        .collect();
+        .filter(|r| matches!(r["event"].as_str(), Some("push" | "workflow_dispatch" | "schedule")))
+        .filter_map(|r| Some(Picked { started: epoch(&r["run_started_at"])?, id: r["id"].to_string().trim_matches('"').to_string(), sha: text(r, "head_sha"), cold: is_cold(&text(r, "event"), r["head_commit"]["message"].as_str().unwrap_or_default()), hosted }))
+        .filter(|p| p.started >= since)
+        .collect()
+}
+
+/// The completed runs on `dev` of the workflows in `WORKFLOWS` that started at or after `since` (epoch seconds), oldest first. The VM's
+/// listing failing fails the audit; the hosted one failing (the workflow switched off, or not there) is a note, not a failure.
+fn runs_since(env: &Env, since: i64) -> Result<(Vec<Picked>, Vec<String>), String> {
+    let (mut runs, mut notes) = (Vec::new(), Vec::new());
+    for (file, hosted) in WORKFLOWS {
+        let url = format!("{}/repos/{}/actions/workflows/{file}/runs?branch={BRANCH}&status=completed&per_page=50", env.api, env.repo);
+        match send(env, "GET", &url, None).and_then(|r| json_of(r, "listing the runs")) {
+            Ok(reply) => runs.extend(pick_runs(&reply, since, hosted)),
+            Err(reason) if hosted => notes.push(format!("the runs of {file} could not be listed ({}), so only the other workflow was audited", cut(&reason, 120))),
+            Err(reason) => return Err(reason),
+        }
+    }
     runs.sort();
-    Ok(runs.into_iter().map(|(_, id, sha, cold)| (id, sha, cold)).collect())
+    Ok((runs, notes))
 }
 
 fn now_secs() -> i64 {
@@ -468,12 +500,17 @@ fn attempt(args: &Args) -> Result<Value, String> {
         Err(_) => Limits::default(),
     };
     let since = args.since.unwrap_or_else(|| now_secs() - DEFAULT_WINDOW_SECS);
-    let targets: Vec<(String, String, bool, bool)> = match &args.run {
-        Some(run) => vec![(run.clone(), env.sha.clone(), args.cold, true)],
-        None => runs_since(&env, since)?.into_iter().map(|(id, sha, cold)| (id, sha, cold, true)).collect(),
+    let mut listing_notes = Vec::new();
+    let targets: Vec<Picked> = match &args.run {
+        Some(run) => vec![Picked { started: 0, id: run.clone(), sha: env.sha.clone(), cold: args.cold, hosted: false }],
+        None => {
+            let (runs, notes) = runs_since(&env, since)?;
+            listing_notes = notes;
+            runs
+        }
     };
     let ledger = crate::ci_ledger::open().and_then(|l| l.ensure().map(|()| l));
-    let verdicts: Vec<RunVerdict> = targets.iter().map(|(run, sha, cold, gate)| judge_run(&Env { run: run.clone(), sha: sha.clone(), ..env.clone() }, *gate, *cold, &limits, &ledger, args.dry_run)).collect();
+    let verdicts: Vec<RunVerdict> = targets.iter().map(|t| judge_run(&Env { run: t.id.clone(), sha: t.sha.clone(), ..env.clone() }, true, t.cold, t.hosted, &limits, &ledger, args.dry_run)).collect();
 
     let mut findings: Vec<Finding> = verdicts.iter().flat_map(|v| v.findings.clone()).collect();
     let mut by_stage: BTreeMap<String, (u64, u64)> = BTreeMap::new();
@@ -489,6 +526,7 @@ fn attempt(args: &Args) -> Result<Value, String> {
     }
     let judged = verdicts.iter().filter(|v| v.judged).count();
     let mut notes: Vec<String> = verdicts.iter().flat_map(|v| v.notes.iter().map(|n| format!("run {}: {n}", v.run))).collect::<BTreeSet<_>>().into_iter().collect();
+    notes.extend(listing_notes);
     if verdicts.is_empty() {
         notes.push("no completed CI run on dev in the window".to_string());
     }
@@ -500,7 +538,7 @@ fn attempt(args: &Args) -> Result<Value, String> {
             let _ = std::fs::OpenOptions::new().append(true).create(true).open(path).and_then(|mut f| writeln!(f, "{report}"));
         }
     }
-    let runs: Vec<Value> = verdicts.iter().map(|v| json!({ "run": v.run, "sha": v.sha, "cold": v.cold, "judged": v.judged, "reason": v.reason, "tasks": v.tasks, "cpuSeconds": v.cpu_secs.map(|s| s.round() as i64), "findings": v.findings.len() })).collect();
+    let runs: Vec<Value> = verdicts.iter().map(|v| json!({ "run": v.run, "sha": v.sha, "cold": v.cold, "hosted": v.hosted, "judged": v.judged, "reason": v.reason, "tasks": v.tasks, "cpuSeconds": v.cpu_secs.map(|s| s.round() as i64), "findings": v.findings.len() })).collect();
     let stages: Vec<Value> = by_stage.iter().map(|(stage, (replayed, total))| json!({ "stage": stage, "replayed": replayed, "tasks": total, "hitRatioPercent": ratio(*replayed, *total) })).collect();
     let threshold = json!({ "cpuSecondsThreshold": limits.cpu_seconds, "cpuSecondsPerExtraDeploy": limits.cpu_seconds_per_extra_deploy, "hitRatioFloorPercent": limits.hit_ratio_floor_pct, "file": LIMITS_FILE });
     Ok(json!({ "schema": SCHEMA, "ok": findings.is_empty(), "since": since, "runs": runs, "findings": findings.iter().map(Finding::json).collect::<Vec<_>>(), "stages": stages, "threshold": threshold, "notes": notes, "report": report }))
@@ -600,6 +638,21 @@ mod tests {
         assert!(is_cold("push", "ci: a full cold run [services:all] [cache:no]"));
         assert!(!is_cold("push", "ci: an ordinary push [services:all] [cache:yes]"));
         assert!(!is_cold("push", ""));
+    }
+
+    #[test]
+    fn given_a_scheduled_run_when_classified_then_it_is_cold_like_a_dispatched_one() {
+        assert!(is_cold("schedule", ""));
+        assert!(!is_cold("pull_request", "a message"));
+    }
+
+    #[test]
+    fn given_a_listing_of_runs_when_picked_then_pushes_dispatches_and_schedules_in_the_window_remain_and_a_pull_request_does_not() {
+        let run = |id: u64, event: &str, at: &str| json!({ "id": id, "event": event, "head_sha": "abc", "run_started_at": at });
+        let listing = json!({ "workflow_runs": [run(1, "push", "2026-11-10T10:00:00Z"), run(2, "schedule", "2026-11-10T11:00:00Z"), run(3, "pull_request", "2026-11-10T12:00:00Z"), run(4, "workflow_dispatch", "2026-11-01T00:00:00Z")] });
+        let since = epoch(&json!("2026-11-10T00:00:00Z")).unwrap();
+        let picked: Vec<(String, bool, bool)> = pick_runs(&listing, since, true).into_iter().map(|p| (p.id, p.cold, p.hosted)).collect();
+        assert_eq!(picked, [("1".to_string(), false, true), ("2".to_string(), true, true)]);
     }
 
     #[test]

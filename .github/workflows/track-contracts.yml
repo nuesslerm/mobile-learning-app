@@ -7,13 +7,15 @@ name: Track contracts
 # replay the new set against our candidate; the last job rebuilds the method lists and coverage tables from the new source and publishes the
 # drift report with the new contracts as one artifact and as a run bundle (`wf test publish`, verification/test-runs/<runId>/).
 #
-# Started by scheduled-triggers.yml (dispatch) on an EMPTY commit to dev tagged `[track t3|orca]`, never by `push` itself; the commit is pushed
-# about every 24 hours by the scheduled session of docs/runbooks/contract-tracker.md:
-#     git commit --allow-empty -m "[track t3 orca]" && git push origin dev
+# Started daily at 02:23 UTC by its own schedule (an empty message means `[track t3 orca]`), on a GitHub-hosted runner, or by scheduled-triggers.yml
+# (dispatch) on an EMPTY commit to dev tagged `[track t3|orca]`, never by `push` itself:
 #     git commit --allow-empty -m "[track orca chunk=15 fresh]" && git push origin dev     (15 minute chunks, no checkpoint)
 # A record that runs out of its budget uploads its checkpoint and exits red; the same marker again resumes it. The marker grammar is
-# `wf parity track --help`.
+# `wf parity track --help`. GitHub runs a schedule only from main, hours late. Only the plan job joins the tailnet (to build wf); the legs that run
+# provisioned third-party code get wf as an artifact and the vault token only after the record.
 on:
+  schedule:
+    - cron: '23 2 * * *'
   workflow_dispatch:
     inputs:
       message:
@@ -27,16 +29,24 @@ on:
         required: false
         default: ''
 
-permissions:
-  actions: read
-  contents: read
+permissions: {}
+
+concurrency:
+  group: track-contracts
+  cancel-in-progress: false
 
 jobs:
   plan:
     name: Check the pins
-    if: ${{ github.ref == 'refs/heads/dev' }}
-    runs-on: [self-hosted, vm]
+    if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') }}
+    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-latest"]') }}
     timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+    env:
+      BWS_SERVER_URL: https://vault.bitwarden.eu
+      WF_TAILNET_SOCKS: ''
     outputs:
       drifted: ${{ steps.plan.outputs.drifted }}
       record: ${{ steps.plan.outputs.record }}
@@ -47,6 +57,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           clean: false
+          persist-credentials: false
           ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -55,11 +66,22 @@ jobs:
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           run_install: false
-      - uses: ./.github/actions/install-wf
+      - name: Join the tailnet as tag:ci-gh-hosted
+        uses: tailscale/github-action@99a8333667fff04fdd6cffb46dfd409f8329a7bf # v4.3.0
+        with:
+          oauth-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+          tags: tag:ci-gh-hosted
+          use-cache: 'false'
+      - uses: ./.github/actions/install-bws
+      - uses: ./.github/actions/build-wf
+        with:
+          flavor: hosted
+          upload: "true"
       - name: Compare each pin with the newest release
         id: plan
         env:
-          COMMIT_MESSAGE: ${{ inputs.message }}
+          COMMIT_MESSAGE: ${{ inputs.message || '[track t3 orca]' }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set +e
@@ -100,20 +122,18 @@ jobs:
   capture:
     name: record ${{ matrix.name }}
     needs: plan
-    if: ${{ github.ref == 'refs/heads/dev' && needs.plan.outputs.record == 'true' }}
-    runs-on: [self-hosted, vm]
+    if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && needs.plan.outputs.record == 'true' }}
+    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-latest"]') }}
     permissions:
-      # write: only to delete the checkpoint artifacts of a record that finished
-      actions: write
+      actions: read
       contents: read
-    # Not a concurrency group: it would keep one waiting leg and drop the rest. The one runner runs one job at a time, in this order.
     timeout-minutes: 240
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     env:
       WF_SITE: ci
+      BWS_SERVER_URL: https://vault.bitwarden.eu
       CHUNK: ${{ needs.plan.outputs.chunk }}
       FRESH: ${{ needs.plan.outputs.fresh }}
       DRIFTED: ${{ needs.plan.outputs.drifted }}
@@ -123,6 +143,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           clean: false
+          persist-credentials: false
           ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 1
       # One setup step per toolchain a [provision] block can pin (TOOLCHAINS in clis/mimic/src/provision.rs); `wf mimic trigger` emits each as a matrix key.
@@ -151,7 +172,15 @@ jobs:
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           run_install: false
-      - uses: ./.github/actions/install-wf
+      - name: wf from the plan job
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: clis
+          path: ${{ runner.temp }}/clis-bin
+      - name: wf and its sibling binaries on PATH
+        run: |
+          chmod +x "$RUNNER_TEMP"/clis-bin/*
+          echo "$RUNNER_TEMP/clis-bin" >> "$GITHUB_PATH"
       - name: Point the pins at the newest release
         # In this checkout only: the provision block reads the pin, so the record is of the newest release and stamped with its commit
         env:
@@ -167,8 +196,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           url="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts?name=track-checkpoint-$SET_NAME&per_page=50"
-          # only a checkpoint of dev: a run of another branch or pull request never feeds this one
-          run_id=$(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$url" | jq -r '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "dev")] | first | .workflow_run.id // empty')
+          # only a checkpoint of dev or main (a schedule runs on main): a run of another branch or pull request never feeds this one
+          run_id=$(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$url" | jq -r '[.artifacts[] | select(.expired == false and (.workflow_run.head_branch == "dev" or .workflow_run.head_branch == "main"))] | first | .workflow_run.id // empty')
           echo "an earlier checkpoint of $SET_NAME: run ${run_id:-none}"
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
       - name: Restore the checkpoint
@@ -246,32 +275,50 @@ jobs:
           SECRETS_BACKEND: bitwarden
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
         run: wf mimic publish "$SET_DIR" --run "$GITHUB_RUN_ID"
-      - name: Drop the checkpoints of the finished record
-        # a published record leaves nothing to resume, and a later marker must not pick an old checkpoint up
-        if: ${{ success() }}
+
+  drop-checkpoints:
+    name: Drop finished checkpoints
+    # its own job: it runs no provisioned code, so the capture legs keep actions: read only
+    needs: capture
+    if: ${{ always() && needs.capture.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Drop the checkpoints of every set that published
+        # a set whose leg uploaded track-set-<name> finished: nothing is left to resume, and a later marker must not pick an old checkpoint up
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          url="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts?name=track-checkpoint-$SET_NAME&per_page=100"
-          for id in $(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$url" | jq -r '.artifacts[].id'); do
-            curl -fsS -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$id" > /dev/null
-            echo "dropped checkpoint artifact $id"
+          api="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions"
+          hdr=(-H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json")
+          for set in $(curl -fsS "${hdr[@]}" "$api/runs/$GITHUB_RUN_ID/artifacts?per_page=100" | jq -r '.artifacts[].name | select(startswith("track-set-")) | sub("^track-set-"; "")'); do
+            for id in $(curl -fsS "${hdr[@]}" "$api/artifacts?name=track-checkpoint-$set&per_page=100" | jq -r '.artifacts[].id'); do
+              curl -fsS -X DELETE "${hdr[@]}" "$api/artifacts/$id" > /dev/null
+              echo "dropped checkpoint artifact $id of $set"
+            done
           done
 
   report:
     name: Drift report
     needs: [plan, capture]
     # runs after a failed or unfinished capture too: the report says which set did not finish
-    if: ${{ always() && github.ref == 'refs/heads/dev' && needs.plan.result == 'success' }}
-    runs-on: [self-hosted, vm]
+    if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && needs.plan.result == 'success' }}
+    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-latest"]') }}
     timeout-minutes: 60
+    permissions:
+      actions: read
+      contents: read
     env:
       WF_SITE: ci
       DRIFTED: ${{ needs.plan.outputs.drifted }}
+      BWS_SERVER_URL: https://vault.bitwarden.eu
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           clean: false
+          persist-credentials: false
           ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -280,7 +327,15 @@ jobs:
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           run_install: false
-      - uses: ./.github/actions/install-wf
+      - name: wf from the plan job
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: clis
+          path: ${{ runner.temp }}/clis-bin
+      - name: wf and its sibling binaries on PATH
+        run: |
+          chmod +x "$RUNNER_TEMP"/clis-bin/*
+          echo "$RUNNER_TEMP/clis-bin" >> "$GITHUB_PATH"
       - name: Fetch the plan
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:

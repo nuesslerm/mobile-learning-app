@@ -40,6 +40,14 @@ on:
         description: Names a second pipeline next to the CI, so it has its own pull request comment (WF_CI_LABEL)
         type: string
         default: ""
+      fresh:
+        description: Run every test and build every image without the Nx and layer caches, as the commit tag [cache:no] does
+        type: boolean
+        default: false
+      services:
+        description: What the commit tag [services:...] names (all, changed, or package, crate and service names), for a caller whose commit carries no tag
+        type: string
+        default: ""
       concurrency_prefix:
         description: Prefix of the VM job concurrency groups, so a run that is not production never queues behind or replaces a production job
         type: string
@@ -213,6 +221,9 @@ jobs:
           echo "$!" > "$out.pid"
       - name: Commit tags
         id: tags
+        env:
+          INPUT_FRESH: ${{ inputs.fresh }}
+          INPUT_SERVICES: ${{ inputs.services }}
         run: |
           tag() { git log -1 --format=%B "$GITHUB_SHA" | grep -oiE "\[$1:[^]]*\]" | tail -1 | cut -d: -f2- | tr -d '[]' | tr ',' ' '; }
           ci=$(tag ci)
@@ -224,7 +235,7 @@ jobs:
           echo "test jobs: ${ci:-every planned one}"
           # [services:changed] (default) plans what the push changed; [services:all] every test and every service; [services:a,b] also the tests and the
           # deploy legs of the named packages, crates and services. [cache:no] runs every test and builds every image without the Nx and layer caches.
-          read -ra words <<< "$(tag services)"
+          read -ra words <<< "$(tag services) ${INPUT_SERVICES//,/ }"
           names=""
           for w in "${words[@]}"; do
             if printf '%s' "$w" | grep -Eq '^[A-Za-z0-9_@][A-Za-z0-9_@/.:-]*$'; then names="${names:+$names,}$w"; else echo "::warning::[services:] ignores the name '$w'"; fi
@@ -237,6 +248,7 @@ jobs:
           esac
           fresh=false
           case "$(tag cache)" in no|false|off) fresh=true ;; esac
+          [ "$INPUT_FRESH" != true ] || fresh=true
           { echo "force_tests=$force_tests"; echo "force_ship=$force_ship"; echo "fresh=$fresh"; } >> "$GITHUB_OUTPUT"
           echo "services: ${names:-changed}, cache: $([ $fresh = true ] && echo no || echo yes)"
       # Changed since the newest commit whose CI passed, not since the push before: GitHub cancels a run that is still

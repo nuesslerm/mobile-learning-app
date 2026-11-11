@@ -116,7 +116,7 @@ openssl rand -base64 32 | tr '+/' '-_' | tr -d '=\n' | wf secret create VM_STATE
 
 6. **`VM_HOST`.** The public IP changed. Update the CI vault project's `VM_HOST` (`ubuntu@<ip>`, from `wf vm terraform exec infra/oracle-cloud output -raw vm_host`) with the command in `infra/oracle-cloud/AGENTS.md` ("CI secrets live in Bitwarden"). It is not a GitHub Actions secret.
 
-7. **Stale runner record.** `gh api repos/nuesslerm/expo-hello-world-app-2/actions/runners --jq '.runners[] | [.id,.name,.status] | @tsv'`. A second `vm-main` that is `offline` is the old one: `gh api -X DELETE repos/nuesslerm/expo-hello-world-app-2/actions/runners/<id>`. The new runner is `online` with label `vm`.
+7. **Stale runner record.** `gh api repos/nuesslerm/mobile-learning-app/actions/runners --jq '.runners[] | [.id,.name,.status] | @tsv'`. A second `vm-main` that is `offline` is the old one: `gh api -X DELETE repos/nuesslerm/expo-hello-world-app-2/actions/runners/<id>`. The new runner is `online` with label `vm`.
 
 8. **Check the restored state.** Nothing to run: cloud-init already restored every state volume from its newest verified snapshot before it started the first app (see "State backup", "Restore on a fresh VM"). Read `/home/ubuntu/provision-apps.log` (through `wf vm exec`) for one `state <volume>: restored (...)` line per volume; `none (no snapshot...)` is the first boot ever. A `FAILED` line names the volume that was not restored and the app that was therefore **not started**: fix the cause it names (the restic password in the vault, the bucket, a snapshot that never verified: `wf vm state verify`), then re-run `HOST_LABEL=main node /home/ubuntu/provision-apps.js` over `wf vm exec`, which restores into the still empty volume and starts the app. Then:
 
@@ -159,6 +159,6 @@ Stop at the first failure and take its rollback.
 
    `wf vm ops pair` calls `POST /services/orca-serve/pair` on vm-ops-api, which runs `orca-serve pair` inside the container. Exit 1 with a JSON error on stderr means no link was minted; `wf vm ops logs orca-serve` says why.
 
-2. **Merge `origin/main` into `dev`** before anything else starts (issue #364 phase 2; `docs/solutions/workflow/dev-parity-with-main.md`): `git fetch origin && git merge origin/main`, regenerate lockfiles and generated files with the repo's tooling (never by hand), run the gate, push.
+2. **Merge `origin/main` into `dev`** before anything else starts (`<PLAN-ISSUE>` phase 2; `docs/solutions/workflow/dev-parity-with-main.md`): `git fetch origin && git merge origin/main`, regenerate lockfiles and generated files with the repo's tooling (never by hand), run the gate, push.
 
-3. Tick the phase 1 items of #364 with the sha and the verdict of the preflight, the verify table and the green CI run.
+3. Tick the phase 1 items of `<PLAN-ISSUE>` with the sha and the verdict of the preflight, the verify table and the green CI run.

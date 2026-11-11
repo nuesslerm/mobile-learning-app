@@ -33,5 +33,4 @@ Written for issue #367 (`docs/plans/ci-scoped-vault-access/plan.md`, U1.7); depl
 
 A job whose scope in `clis/secrets/src/data/job-scopes.json` is `open` (read-only, no deploy key) takes its runner from a repo variable: `runs-on: ${{ fromJSON(vars.RUNNER_<WORKFLOW>_<JOB> || '["self-hosted","vm"]') }}`. Today this is `RUNNER_TAG_GATE_GATE` (scheduled-triggers.yml `gate`). An unset variable keeps the VM runner. To switch one, set the variable to `["ubuntu-latest"]` (`gh variable set RUNNER_TAG_GATE_GATE --body '["ubuntu-latest"]'`); unset it to switch back.
 
-- `ci-budget.yml` `set-budget-flag` is not in this scheme: it already runs on `ubuntu-latest` so the budget flag can be set while the VM is out.
 - Hosted runners cannot reach libs-proxy until the Phase 5 tailnet join, so only a job that needs no private registry may be switched; both jobs above use only `curl` and `jq`.

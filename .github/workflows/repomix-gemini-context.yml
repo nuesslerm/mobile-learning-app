@@ -1,21 +1,22 @@
 name: Gemini Gem context
 
 # The Gem's knowledge is a family of Google Docs in one Drive folder (`repomix-context-00-architecture` = ARCHITECTURE.md, then the repomix pack in
-# parts of at most 900k characters), each overwritten in place and read back, on a schedule and on demand. The ARCHITECTURE.md
-# draft comes from the rca service. It runs on the VM runner; its Drive login (wf secret login gcloud) is restored from the vault secret GCLOUD_DRIVE_CREDENTIALS_DB_B64 (in the
-# deploy-secrets project, the one BWS_CI_DEPLOY_ACCESS_TOKEN reads: the runner holds no vault token, the two vault steps take it from the repo secret),
-# because the runner is a different container from agent-shell, where the login lives (a fresh vault copy that predates the secret is re-checked live). The destination is the Drive folder "Gemini Gem context" plus the Doc name prefix (a folder id is no secret).
-#
-# Started by scheduled-triggers.yml (workflow_dispatch) on an EMPTY commit to dev tagged `[gem-sync]`, never by `push` itself:
-#     git commit --allow-empty -m "[gem-sync]" && git push origin dev           (drafts ARCHITECTURE.md anew)
-#     git commit --allow-empty -m "[gem-sync cached]" && git push origin dev    (reuses the cached draft: no model call)
-# Runs queue in the concurrency group below, one at a time.
-#
-# The clock is a Claude scheduled task ("Gem sync clock") that pushes `[gem-sync]` every night: GitHub starts a `schedule` hours late in this
-# private repo (its weekly crons fire 3 to 8 hours after their time), so there is no cron here.
+# parts of at most 900k characters), each overwritten in place and read back. Nightly (02:23 UTC) the cached form runs: the pack is rebuilt and the cached
+# ARCHITECTURE.md draft reused, no model call. Sundays (03:37 UTC) the full form drafts ARCHITECTURE.md anew with a read-only `wf offload ask` over the
+# tailnet. Both run on a GitHub-hosted runner; GitHub starts a schedule hours late and only from main. By hand (dispatch, `mode`) or from
+# scheduled-triggers.yml for an EMPTY commit to dev tagged `[gem-sync]` (full) or `[gem-sync cached]`. Runs queue in the concurrency group below.
+# The Drive login (GCLOUD_DRIVE_CREDENTIALS_DB_B64, vault) is written in the last two steps of this one job, after every build, and nowhere else.
 on:
+  schedule:
+    - cron: '23 2 * * *'
+    - cron: '37 3 * * 0'
   workflow_dispatch:
     inputs:
+      mode:
+        description: cached (reuse the cached draft, no model call) or full (draft ARCHITECTURE.md anew)
+        type: choice
+        options: [cached, full]
+        default: cached
       message:
         description: The tagged commit message, set by scheduled-triggers.yml
         type: string
@@ -27,25 +28,29 @@ on:
         required: false
         default: ''
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   sync:
     name: Build and upload the Gem bundle
-    if: ${{ github.ref == 'refs/heads/dev' }}
-    runs-on: [self-hosted, vm]
+    if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') }}
+    runs-on: ${{ fromJSON(vars.RUNNER_TAG_GEM_SYNC || '["ubuntu-latest"]') }}
     timeout-minutes: 45
+    permissions:
+      contents: read
     concurrency:
       group: gemini-context
       cancel-in-progress: false
     env:
       GEMINI_CONTEXT_REMOTE: 1iqI_o5gDJtxkbf4gVB3J8c952zYlYw2Y/repomix-context
       WF_SITE: ci
+      BWS_SERVER_URL: https://vault.bitwarden.eu
+      WF_TAILNET_SOCKS: ''
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           clean: false
+          persist-credentials: false
           ref: dev
           fetch-depth: 1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -54,18 +59,41 @@ jobs:
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           run_install: false
+      - name: Join the tailnet as tag:ci-gh-hosted
+        uses: tailscale/github-action@99a8333667fff04fdd6cffb46dfd409f8329a7bf # v4.3.0
+        with:
+          oauth-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+          tags: tag:ci-gh-hosted
+          use-cache: 'false'
       - uses: ./.github/actions/install-bws
-      - uses: ./.github/actions/install-wf
+      - uses: ./.github/actions/build-wf
+        with:
+          flavor: hosted
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Install gcloud
         # the runner is a different container from agent-shell, so it has neither gcloud nor the login
         run: |
           command -v gcloud >/dev/null && exit 0
-          curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
-          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" > /etc/apt/sources.list.d/google-cloud-sdk.list
-          apt-get update -qq
-          apt-get install -y -qq --no-install-recommends google-cloud-cli
+          sudo=$([ "$(id -u)" = 0 ] || echo sudo)
+          curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | $sudo gpg --dearmor -o /usr/share/keyrings/cloud.google.gpg
+          echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | $sudo tee /etc/apt/sources.list.d/google-cloud-sdk.list >/dev/null
+          $sudo apt-get update -qq
+          $sudo apt-get install -y -qq --no-install-recommends google-cloud-cli
+      - name: Rust toolchain on PATH
+        run: |
+          [ -x "$HOME/.cargo/bin/cargo" ] || curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+          export PATH="$HOME/.cargo/bin:$PATH"
+          pin=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' rust-toolchain.toml)
+          cargo --version >/dev/null 2>&1 || { rustup toolchain uninstall "$pin" || true; rustup toolchain install --profile minimal; }
+          cargo --version
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      - name: Prove the upload path
+        # the sync is not part of the shared wf build: flow-test and integration-test it here (a local destination and a fake Drive)
+        run: cargo test --manifest-path clis/Cargo.toml -p knowledge --test flow --test integration
+      - name: Build the bundle tool
+        run: cargo build --manifest-path clis/Cargo.toml --release --locked -p knowledge
       - name: Restore the Drive login from the vault
         env:
           SECRETS_BACKEND: bitwarden
@@ -80,28 +108,21 @@ jobs:
             exit 1
           fi
           gcloud config set account "$account"
-      - name: Rust toolchain on PATH
-        run: |
-          [ -x "$HOME/.cargo/bin/cargo" ] || curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
-          export PATH="$HOME/.cargo/bin:$PATH"
-          pin=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' rust-toolchain.toml)
-          cargo --version >/dev/null 2>&1 || { rustup toolchain uninstall "$pin" || true; rustup toolchain install --profile minimal; }
-          cargo --version
-          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
-      - name: Prove the upload path
-        # the sync is not part of the shared wf build: flow-test and integration-test it here (a local destination and a fake Drive)
-        run: cargo test --manifest-path clis/Cargo.toml -p knowledge --test flow --test integration
-      - name: Build and upload the bundle
-        # The ARCHITECTURE.md draft is a read-only `wf offload ask`, served by the rca service (remote-chat-agent) over the tailnet the runner
-        # shares with agent-shell: the service owns opencode, the model keys and the shared cooldowns, so this job has none of them.
+      - name: Upload the bundle
+        # The full form's ARCHITECTURE.md draft is a read-only `wf offload ask`, served by the rca service (remote-chat-agent) over the tailnet:
+        # the service owns opencode, the model keys and the shared cooldowns, so this job has none of them. The cached form calls no model.
         env:
           SECRETS_BACKEND: bitwarden
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
-          COMMIT_MESSAGE: ${{ inputs.message }}
+          SCHEDULE: ${{ github.event.schedule }}
+          MODE: ${{ github.event.inputs.mode }}
+          COMMIT_MESSAGE: ${{ github.event.inputs.message }}
         run: |
-          cargo build --manifest-path clis/Cargo.toml --release -p knowledge
-          # a [gem-sync cached] commit reuses the cached draft (a [gem-sync] run made it); a [gem-sync] commit drafts anew
+          mode=cached
+          if [ "$SCHEDULE" = '37 3 * * 0' ] || [ "$MODE" = full ]; then mode=full; fi
+          if printf '%s' "$COMMIT_MESSAGE" | grep -q '\[gem-sync cached\]'; then mode=cached; elif printf '%s' "$COMMIT_MESSAGE" | grep -q '\[gem-sync'; then mode=full; fi
+          echo "gem sync mode: $mode"
           flags=""
-          if printf '%s' "$COMMIT_MESSAGE" | grep -q '\[gem-sync cached\]'; then flags="--no-summary"; fi
+          if [ "$mode" = cached ]; then flags="--no-summary"; fi
           # shellcheck disable=SC2086
           clis/target/release/knowledge knowledge index --gemini $flags

@@ -1,6 +1,6 @@
 ---
 name: test-report
-description: Build one report Artifact for every published test run that has no report yet (run bundles in the verification-artifacts bucket, newer than lastPublishedAt in docs/runbooks/.results/test-report-state.json). Use when asked for a test report, "report the latest runs", or when the hourly test-report Routine fires.
+description: Build one report Artifact for every published test run that has no report yet (run bundles in the verification-artifacts bucket, newer than lastPublishedAt in docs/runbooks/.results/test-report-state.json). Use when asked for a test report, "report the latest runs", or when the test-report clock fires (every 6 h).
 license: MIT
 metadata:
   origin: custom
@@ -12,7 +12,7 @@ metadata:
 
 Every CI test run publishes a bundle (`wf test publish`): report, screenshots, recordings, timing and its metrics row, listed
 newest first in the bucket's `verification/test-runs/index.json`. This skill turns the runs that have no report yet into one
-report page. The hourly Routine (`trig_01WG8t9iahjso6FVxG9EB9Zv`) runs it; anyone can ask for it.
+report page. The test-report clock (every 6 h) fires a tick into the `<reports-session>` and the session runs it; anyone can ask for it.
 
 ## 1. Which runs
 
@@ -23,7 +23,7 @@ report page. The hourly Routine (`trig_01WG8t9iahjso6FVxG9EB9Zv`) runs it; anyon
    publishedAt, screen, warnings, recordings, readBack, phases, byVerb, timing, report, bundle; `wf test --help`). Without
    `wf`, fetch the index directly:
    `https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-verification-artifacts/o/verification/test-runs/index.json`.
-3. No new runs: say so in one line and stop. Commit nothing.
+3. No new runs: say so in one line and stop. Commit and push nothing, not even a state file.
 
 ## 2. What each run holds
 

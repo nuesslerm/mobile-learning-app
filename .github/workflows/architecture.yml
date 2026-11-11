@@ -64,15 +64,6 @@ jobs:
       - name: Test ESLint plugin (vitest)
         run: pnpm --filter @lib/eslint-plugin-mobile-learn run test
 
-      # Pre-emptive CI_BUDGET_LOW flip -- see ci.yml's fast job and
-      # .github/actions/check-ci-budget/action.yml for the full rationale.
-      # The root-checks job is short (~3 min) but it runs on every PR, so
-      # having the check here means the flip is attempted many times even
-      # if one run fails to land it.
-      - name: Check CI budget and flip flag if low
-        if: always()
-        uses: ./.github/actions/check-ci-budget
-
       - name: Flow tests of the wf surface
         # The wf binary was built by install-wf above; the flow tests drive it as a child process, through stub tools.
         run: 'WF_BIN="$(command -v wf)" cargo test --manifest-path clis/Cargo.toml -p wf --test flow surface::'
@@ -116,11 +107,3 @@ jobs:
 
       - name: Flow tests
         run: pnpm --filter mla-tamagui run test:flow
-
-      # Pre-emptive CI_BUDGET_LOW flip -- app-checks is the most expensive
-      # job in this repo (~20 min on a cold cache). Flipping here saves the
-      # most budget at month-end. See .github/actions/check-ci-budget/action.yml
-      # for the design rationale.
-      - name: Check CI budget and flip flag if low
-        if: always()
-        uses: ./.github/actions/check-ci-budget

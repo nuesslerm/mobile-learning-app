@@ -56,3 +56,18 @@ need judgement remain Claude clocks and everything that only started a workflow 
 3. Land the workflow and runbook edits on `dev`, merge `dev` to `main` (the owner's decision), create the `schedules` and `reports` sessions and the two
    Claude clocks, then trial each: `fire_trigger` for the Claude clocks, `workflow_dispatch` for the hosted ones.
 4. Delete each old clock only after its replacement has run green once.
+
+## Implemented in the working tree (2026-11-11), not yet live
+
+Workflows: `scheduled-triggers.yml` (hosted runner, retired tags removed), `ci-audit.yml` (hosted, weekly replay, no Berlin guard), `track-contracts.yml` (daily schedule, hosted), `repomix-gemini-context.yml` (nightly cached, weekly full, hosted), `cold-ci.yml` (new) over `pipeline.yml`'s new `fresh` and `services` inputs; `ci-budget.yml`, `check-ci-budget` and `CI_BUDGET_LOW` are gone. `wf ci audit` judges `ci-hosted.yml` runs and treats `schedule` runs as cold.
+
+## Open
+
+- Nothing is live until `dev` is merged to `main` (the owner's decision); then each schedule needs one green first run (constraint 6), by `workflow_dispatch`, before its old clock is deleted.
+- Acceptance step before merging `dev` to `main`: list the repository variables and unset or confirm `RUNNER_TAG_GATE_GATE`, `RUNNER_TAG_CI_AUDIT`, `RUNNER_TAG_TRACK_CONTRACTS` and `RUNNER_TAG_GEM_SYNC` (a stale VM value silently defeats the hosted default).
+- `ci-audit.yml` and `repomix-gemini-context.yml` check out `dev` with the vault token in step env on purpose: `dev` is owner-only, the same trust as a push to `dev`.
+- The owner session creates the `<schedules-session>` and `<reports-session>` sessions, the two Claude clocks and the issues `<INBOX-ISSUE>` and `<PLAN-ISSUE>`, and confirms push access to `dev` under the ruleset (constraint 8).
+- The runner variables `RUNNER_TAG_GATE_GATE`, `RUNNER_TAG_CI_AUDIT`, `RUNNER_TAG_TRACK_CONTRACTS` and `RUNNER_TAG_GEM_SYNC` default to hosted; an old value on the repository variable `RUNNER_TAG_GATE_GATE` (the VM) must be cleared for the route job to move.
+- No owner-side or VM-side timer watches the tailnet auth key (constraint 7): `docs/gaps/tailnet-key-expiry-unwatched.md`.
+- The cold run is not audited as its own workflow: `wf ci audit` lists `deploy.yml` and `ci-hosted.yml` only, so a `cold-ci.yml` run feeds no cold baseline yet.
+- A hosted audit run holds the vault token in the env of the replay steps that run the package tests of `dev`, which the VM runner held at container level; it is limited to `main`/`dev` and `schedule`/`workflow_dispatch`.

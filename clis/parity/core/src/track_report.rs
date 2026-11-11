@@ -75,7 +75,7 @@ pub fn build(input: &Input) -> Result<Vec<(String, String)>, String> {
     } else if incomplete {
         "a capture did not finish: push the same [track ...] marker again to resume it".to_string()
     } else {
-        "bump the pin (wf parity track bump --app <app>), fetch the new sets (wf mimic fetch <run>), regenerate the tables and fix the discrepancies through the normal gate; what cannot be fixed goes in the body of issue #365".to_string()
+        "bump the pin (wf parity track bump --app <app>), fetch the new sets (wf mimic fetch <run>), regenerate the tables and fix the discrepancies through the normal gate; what cannot be fixed goes in the body of the findings inbox issue".to_string()
     };
     let report = json!({"schema": REPORT_SCHEMA, "ok": !incomplete, "run": input.run, "sha": input.sha, "apps": apps, "next": next});
     let tests: Vec<Value> = apps
