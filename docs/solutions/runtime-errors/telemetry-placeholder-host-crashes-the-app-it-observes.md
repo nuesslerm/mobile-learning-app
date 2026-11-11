@@ -59,5 +59,5 @@ Nothing local exercises this path. `.env.defaults` is a deploy-time artifact com
 
 ## Related
 
-- `docs/archive/solutions/integration-issues/redeploying-vm-gateway-destroys-its-own-diagnostic-path.md` — the same deploy where this surfaced
+- `docs/archive/README.md` — the same deploy where this surfaced
 - `frontend/libraries/logging/src/node/otelProviders.ts` — `resolveNodeOtlpConfig`

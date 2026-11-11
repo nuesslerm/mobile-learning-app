@@ -1,6 +1,6 @@
 /**
  * Phase-9 acceptance (#252, #254) as amended by the tranche-4 honesty fixes
- * (`docs/archive/plans/coding-agent-frontend-fixes/contract.md`): navigating into the
+ * (`docs/archive/README.md`): navigating into the
  * diff fixture thread and expanding the tool group surfaces a `ToolRowDiff-*`
  * whose added and deleted rows paint distinct, non-transparent backgrounds.
  *

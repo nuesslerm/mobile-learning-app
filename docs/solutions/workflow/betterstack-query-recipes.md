@@ -9,7 +9,7 @@ module: docs
 
 ## Context
 
-App logs forward to BetterStack (Telemetry). To read them back, query the ClickHouse connect host — but the only correct query shape goes through the `remote(<collection>_logs)` table function. A direct `FROM <table>` always returns `UNKNOWN_TABLE` even with valid creds. That error does **not** mean logs are missing. Full text: [`docs/archive/solutions/tooling-decisions/betterstack-querying.md`](../../archive/solutions/tooling-decisions/betterstack-querying.md).
+App logs forward to BetterStack (Telemetry). To read them back, query the ClickHouse connect host — but the only correct query shape goes through the `remote(<collection>_logs)` table function. A direct `FROM <table>` always returns `UNKNOWN_TABLE` even with valid creds. That error does **not** mean logs are missing. Full text: [`docs/archive/README.md`](../../archive/README.md).
 
 ## Guidance
 

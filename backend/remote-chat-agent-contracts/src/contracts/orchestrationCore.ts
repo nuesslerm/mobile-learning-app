@@ -2,7 +2,7 @@
 //
 // Read-model shapes ported from
 // references/t3code/packages/contracts/src/orchestration.ts (Effect Schema → zod 4)
-// per docs/archive/plans/coding-agent/contract.md. Pure data: no events, no commands —
+// per docs/archive/README.md. Pure data: no events, no commands —
 // the projector over `OrchestrationEventSchema` produces these shapes.
 // `OrchestrationThreadSummary` is the same thread minus the heavy collections
 // so the shell list can ship on every WS tick without re-uploading messages,

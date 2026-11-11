@@ -96,4 +96,4 @@ The timestamp fix belongs at the source rather than only at the serialize site b
 
 **Do not diagnose a logging system with its own console.** Console capture patches `console.*`, so a `console.warn` inside the pipeline routes into the system under test and vanishes. Use the captured original console for diagnostics in logging infrastructure.
 
-The backend hit the same class of failure from the other direction — a transport-owned serialization detail silently dropping content — see `docs/archive/solutions/integration-issues/logs-that-never-arrive-four-silent-forwarding-failures.md`.
+The backend hit the same class of failure from the other direction — a transport-owned serialization detail silently dropping content — see `docs/archive/README.md`.

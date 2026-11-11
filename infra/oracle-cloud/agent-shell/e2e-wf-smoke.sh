@@ -1,7 +1,7 @@
 #!/bin/bash
 # e2e verification for `wf` itself as it actually runs inside agent-shell:
 # the real deployed binary, not a sandbox build, in a plain and a login shell
-# (see docs/archive/runbooks/agent-shell-wf-harness-interactive.md). Re-run after every
+# (see docs/archive/README.md). Re-run after every
 # wf-touching agent-shell redeploy, by hand (`e2e-wf-smoke`, on PATH) or via
 # `wf vm exec` with `e2e-wf-smoke` as the script.
 #

@@ -26,7 +26,7 @@ screenshot, never substitute for one.
 (same viewport/device dimensions, same invocation path, same state) — a
 screenshot of the wrong thing rendering correctly is exactly as misleading
 as no screenshot at all. See
-`docs/archive/runbooks/vnc-kiosk-mobile-viewport-check.md` for a worked example:
+`docs/archive/README.md` for a worked example:
 checking chromium's argv passed while the real bug (visible only at a
 phone's aspect ratio) was still live.
 

@@ -3,7 +3,7 @@ status: open
 area: logging
 paths:
   - "docs/solutions/workflow/betterstack-query-recipes.md"
-  - "docs/archive/solutions/tooling-decisions/betterstack-querying.md"
+  - "docs/archive/README.md"
   - "clis/telemetry/**"
 opened: 2026-08-20
 last_verified: 2026-10-20

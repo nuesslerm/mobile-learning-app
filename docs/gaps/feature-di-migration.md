@@ -43,7 +43,7 @@ Out of date above:
 - The coding-agent list misses ThreadListScreen.tsx:16, which imports a type from ../data/orchestrationGateway. coding-agent now has src/contracts and src/integration but still no container.
 - "dev-tools has only a global di/runtime.ts": dev-tools dissolved into app-shell (its runtime was never read). settings has no data layer at all (src/routes and src/ui only), so it may not need a container.
 - "widen mobile-learn/no-direct-io-in-feature-ui": ESLint is gone, and the rule now runs as an oxlint JS-plugin rule configured in frontend/.oxlintrc.json:139-151. Widening it also needs the rule's glob '**/features/*/ui/**' changed to reach features/<name>/src/ui/**.
-- The links solutions/architecture/two-tier-di-containers.md and solutions/architecture/clean-architecture-standard.md are broken. Both files now live under docs/archive/solutions/architecture/.
+- The links solutions/architecture/two-tier-di-containers.md and solutions/architecture/clean-architecture-standard.md are broken. Both files now live under docs/archive/README.md.
 
 ## Re-checked 2026-10-21
 

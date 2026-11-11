@@ -1,6 +1,6 @@
 /**
  * Phase-9 acceptance (#252, #254) as amended by the tranche-4 honesty fixes
- * (`docs/archive/plans/coding-agent-frontend-fixes/contract.md`): the thread route is
+ * (`docs/archive/README.md`): the thread route is
  * actually reached, tapping option index 1 and Submit dispatches a
  * `thread.user-input.respond` that carries that option's label, and the
  * scripted resume message reaches the feed. The scripted `fixture:question`

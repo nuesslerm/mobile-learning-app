@@ -116,5 +116,5 @@ SEMANTICALLY IDENTICAL
 
 - `infra/tailscale/policy.hujson` — the source of truth
 - `.github/workflows/tailscale-acl.yml` — test on PR, deploy on push to `main`
-- `docs/archive/solutions/developer-experience/stopped-daemon-reads-as-missing-capability.md`
+- `docs/archive/README.md`
   — the adjacent failure: concluding a capability is absent without checking

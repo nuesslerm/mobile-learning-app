@@ -153,7 +153,7 @@ external check-in that asks for the *sink's* state, not the agent's summary, is
 cheap and catches the specific failure of stopping at a plausible partial result.
 
 The concrete failures behind this are documented at
-`docs/archive/solutions/integration-issues/logs-that-never-arrive-four-silent-forwarding-failures.md`,
+`docs/archive/README.md`,
 `docs/solutions/runtime-errors/mobile-logs-never-left-the-app.md`, and
-`docs/archive/solutions/integration-issues/a-success-signal-that-cannot-fail-hides-a-broken-deploy.md`.
+`docs/archive/README.md`.
 Query recipes for the sink itself: `docs/solutions/workflow/betterstack-query-recipes.md`.

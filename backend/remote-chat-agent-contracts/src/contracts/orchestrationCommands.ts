@@ -3,7 +3,7 @@
 // Client-issued orchestration commands, the WS stream items that carry the
 // resulting state back, and the receipt a dispatch returns. Ported from
 // references/t3code/packages/contracts/src/orchestration.ts (Effect Schema
-// → zod 4) per docs/archive/plans/coding-agent/contract.md. Every command carries a
+// → zod 4) per docs/archive/README.md. Every command carries a
 // `commandId` so the receipt and the events it produced can be correlated
 // with the request that caused them.
 import { z } from 'zod';

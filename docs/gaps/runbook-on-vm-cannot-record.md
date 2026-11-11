@@ -4,7 +4,7 @@ area: runbooks
 paths:
   - "clis/offload/src/runbook.rs"
   - "clis/offload/src/dispatch_run.rs"
-  - "docs/archive/runbooks/coding-agent-live-on-vm.md"
+  - "docs/archive/README.md"
 opened: 2026-09-06
 last_verified: 2026-10-20
 links: []
@@ -25,7 +25,7 @@ When recorded, every attempt ended `rejected` with no `steps.json`:
 - claude driver (`--runbook-cli claude`): `Not logged in · Please run /login` (the VM worktree's Claude Code has no credential).
 The sandbox twin `coding-agent-live-opencode.md` passed for $0.05, so the runbook itself is sound.
 
-Both runbooks have since moved to `docs/archive/runbooks/`, and `wf offload ask --runbook` reads only `docs/runbooks/`
+Both runbooks have since moved to `docs/archive/README.md`, and `wf offload ask --runbook` reads only `docs/runbooks/`
 (`clis/offload/src/runbook.rs`), so the title command now fails with `ENOENT: no such file or directory` before any
 dispatch. Reproducing the gap needs the runbook back under `docs/runbooks/`.
 
@@ -45,8 +45,8 @@ Any one of: surface per-attempt raw opencode stdout/stderr in the error `dispatc
 VM-side runbook dispatch fall through to the `runbook` ladder's last rung, `claude-sonnet-5`, which
 `dispatch_runbook` leaves out because its pool is claude-max (it already rotates the four opencode rungs on any
 non-fatal failure); or a human `wf secret login claude` on the VM for the claude lane. Each one first needs the
-runbook back under `docs/runbooks/`, or `wf offload ask --runbook` taught to read `docs/archive/runbooks/`.
+runbook back under `docs/runbooks/`, or `wf offload ask --runbook` taught to read `docs/archive/README.md`.
 
 ## Re-checked 2026-10-20
 
-I ran the gap's title command at 982839ee9. `wf offload ask --runbook coding-agent-live-on-vm` still fails before any dispatch with ENOENT, because runbook.rs:149 reads only docs/runbooks/ and the runbook lives in docs/archive/runbooks/. None of the four unblockers is in the code. dispatch_runbook still drops the claude-max rung (dispatch_run.rs:797) and still runs with `live: false` (:814), so it does not reach the opencode-log store. Its error still carries only the rung trail plus a 500-char tail (:821-823). No published run of this runbook exists (`wf test results --query "test=coding-agent-live-on-vm"` returns no runs).
+I ran the gap's title command at 982839ee9. `wf offload ask --runbook coding-agent-live-on-vm` still fails before any dispatch with ENOENT, because runbook.rs:149 reads only docs/runbooks/ and the runbook lives in docs/archive/README.md. None of the four unblockers is in the code. dispatch_runbook still drops the claude-max rung (dispatch_run.rs:797) and still runs with `live: false` (:814), so it does not reach the opencode-log store. Its error still carries only the rung trail plus a 500-char tail (:821-823). No published run of this runbook exists (`wf test results --query "test=coding-agent-live-on-vm"` returns no runs).

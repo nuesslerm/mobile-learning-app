@@ -32,6 +32,6 @@ The composer chips row and the SegmentedControl layout are unchanged since the g
 Out of date above:
 
 - frontmatter paths `features/coding-agent-impl/src/ui/ThreadComposer.tsx` and `features/coding-agent-impl/src/ui/**` should be `frontend/mla-tamagui/features/coding-agent/src/ui/ThreadComposer.tsx` and `frontend/mla-tamagui/features/coding-agent/src/ui/**` (moved in 3feb94d29, 18 Oct; no -impl packages remain). Also add `frontend/libraries/tamagui-design-system/ui/segmented-control.tsx`, where the control's layout lives.
-- "The vm-e2e-tiers `v12` vision judge": that plan is archived (docs/archive/plans/vm-e2e-tiers/). `wf vm exec --e2e coding-agent-thread` was removed on 22 Oct (Metro retirement M3), and CI never ran frontend/mla-tamagui/e2e/verify-coding-agent-thread.mjs. Today's gate would be a flow screenshot golden or a browser e2e test.
+- "The vm-e2e-tiers `v12` vision judge": that plan is archived (docs/archive/README.md). `wf vm exec --e2e coding-agent-thread` was removed on 22 Oct (Metro retirement M3), and CI never ran frontend/mla-tamagui/e2e/verify-coding-agent-thread.mjs. Today's gate would be a flow screenshot golden or a browser e2e test.
 - "Why blocked: ... outside the vm-e2e-tiers plan": that plan is closed, so plan scope no longer blocks the fix.
 - last_verified 2026-10-04: re-verified 2026-10-20.

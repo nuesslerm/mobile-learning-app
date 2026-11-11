@@ -99,7 +99,7 @@ Then walk the same path the browser suite walks, and screenshot each step:
 | 9 | Tap the debug FAB | The log sheet opens with live entries, newest first |
 
 Step 5 is the one worth the trip. The browser suite emulates iOS's overlay
-strategy (`docs/archive/solutions/testing/device-frame-keyboard-must-match-the-platform.md`),
+strategy (`docs/archive/README.md`),
 but emulation of a safe-area behaviour is exactly the kind of thing that is
 right in the harness and wrong on glass.
 

@@ -1,6 +1,6 @@
 /**
  * Phase-9 acceptance (#252, #254) as amended by the tranche-4 honesty fixes
- * (`docs/archive/plans/coding-agent-frontend-fixes/contract.md`): the model picker in
+ * (`docs/archive/README.md`): the model picker in
  * the thread settings sheet lists every CLI the server probe reports (opencode
  * and claude) with codex marked unavailable, and picking a claude model moves
  * the composer's ModelChip label and dispatches a `thread.meta.update` on the

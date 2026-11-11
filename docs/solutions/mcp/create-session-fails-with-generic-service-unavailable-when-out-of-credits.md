@@ -44,7 +44,7 @@ case it read:
 ```
 
 This is a **more specific value** than the `"org_level_disabled"` seen in
-`docs/archive/solutions/mcp/remote-control-session-spawning-blocked-by-org-policy.md`
+`docs/archive/README.md`
 — that doc's finding was an org policy toggle (`allow_remote_control.allowed:
 false`, later shown to be an unreliable predictor on its own); `out_of_credits`
 is a literal billing/budget exhaustion signal. It directly explains the
@@ -132,11 +132,11 @@ ARCHIVED.
    call to make.
 
 **Related:**
-- `docs/archive/solutions/mcp/remote-control-session-spawning-blocked-by-org-policy.md`
+- `docs/archive/README.md`
   — a different, `-32003`-coded failure mode with an org-policy (not
   billing) root cause; its "Update" section is the source of the "policy-
   limits.json alone is not a reliable predictor" caveat reused here.
-- `docs/archive/solutions/workflow/agent-approve-guard-lockout-and-stuck-remote-session-recovery.md`
+- `docs/archive/README.md`
   — a third, unrelated CCR limitation: `create_session` *succeeds* there but
   the spawned child later deadlocks. Together, the three docs cover "spawn
   blocked by policy," "spawn blocked by credits," and "spawn succeeds but

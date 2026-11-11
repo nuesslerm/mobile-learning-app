@@ -9,7 +9,7 @@ maxAgeDays: 30
 # device-lab G1: voice edit, recorded with tap dots
 
 Gate G1 of the device-lab spec ([`spec.md`](../plans/device-lab/spec.md) §7). It runs the spoken turns of
-[`e2e/voice-edit.lua`](../../e2e/voice-edit.lua) (first written as [`voice-edit-iterative-solve.md`](../archive/runbooks/voice-edit-iterative-solve.md)) on the device-lab render, the way a person
+[`e2e/voice-edit.lua`](../../e2e/voice-edit.lua) (first written as [`voice-edit-iterative-solve.md`](../archive/README.md)) on the device-lab render, the way a person
 would run it, and records every problem on video.
 
 An agent runs it step by step through `wf browser`, on a commit that is already on `origin/dev`, and writes the run to `docs/runbooks/.results/device-lab-voice-edit.json` (`runbook`, `sha`, `ranAt`, `verdict`, `evidence`). A commit not yet on `origin/dev` would leave the recorded sha orphaned by a later rebase.

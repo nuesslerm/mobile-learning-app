@@ -1,6 +1,6 @@
 /**
  * Captures the nine leetcode visual-judge contract shots
- * (docs/archive/plans/leetcode-visual-judge/contract.md) against the served web export,
+ * (docs/archive/README.md) against the served web export,
  * into .report/leetcode/<shot>.png.
  *
  * Each shot waits for that state's testID before capturing so no shot catches a

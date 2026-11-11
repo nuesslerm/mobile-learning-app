@@ -28,7 +28,6 @@ jobs:
         contains(github.event.head_commit.message, format('{0}[record ', fromJSON('"\n"'))) ||
         contains(github.event.head_commit.message, format('{0}[replay ', fromJSON('"\n"'))) ||
         contains(github.event.head_commit.message, '[gem-sync') ||
-        contains(github.event.head_commit.message, '[ts-key-watch]') ||
         startsWith(github.event.head_commit.message, '[track ') ||
         contains(github.event.head_commit.message, format('{0}[track ', fromJSON('"\n"'))) ||
         contains(github.event.head_commit.message, '[vm-state-backup]')
@@ -76,7 +75,6 @@ jobs:
           ! atstart '[parity]' || start parity.yml
           if online '\[record ' || online '\[replay '; then start record-references.yml; fi
           ! anywhere '[gem-sync' || start repomix-gemini-context.yml
-          ! anywhere '[ts-key-watch]' || start tailscale-auth-key-expiry.yml
           ! online '\[track ' || start track-contracts.yml
           ! anywhere '[vm-state-backup]' || start vm-state-backup.yml
           echo "$started workflow(s) started"

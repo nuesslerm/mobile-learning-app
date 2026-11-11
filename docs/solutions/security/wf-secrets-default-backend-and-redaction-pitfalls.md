@@ -141,5 +141,5 @@ python3 -c "print(open_secret_value[:6])"
 ## Related
 
 - `docs/solutions/security/keychain-secrets-not-env.md` — the canonical `clis/secrets` architecture doc (the `macos`/`bitwarden` backend split, `--backend`/`SECRETS_BACKEND` selection, the registry contract). It documents the mechanism this doc's trap depends on and summarizes the hazard (an explicit `--backend macos`/`SECRETS_BACKEND=macos` off darwin silently resolves nothing), and links here for the failure modes and metadata-only verification.
-- `docs/archive/solutions/security/registry-vault-name-drift-silently-omits-a-secret.md` — a different root cause (registry↔vault key-name drift in either direction) but an adjacent failure-mode taxonomy: "unregistered" vs "registered but unresolvable."
+- `docs/archive/README.md` — a different root cause (registry↔vault key-name drift in either direction) but an adjacent failure-mode taxonomy: "unregistered" vs "registered but unresolvable."
 - `docs/solutions/security/sync-env-stdout-redaction.md` — the same `wf secret` module (`clis/secrets/src/secrets/mod.rs`) and the same secret-into-transcript leak domain, but a different command (`sync-env` printing every value with no `--out`) and a different root cause (missing flag, not an output-format assumption in a hand-written redaction script).

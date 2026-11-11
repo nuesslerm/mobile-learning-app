@@ -1,6 +1,6 @@
 /**
  * Phase-9 acceptance (#252, #254) as amended by the tranche-4 honesty fixes
- * (`docs/archive/plans/coding-agent-frontend-fixes/contract.md`): the thread route is
+ * (`docs/archive/README.md`): the thread route is
  * actually reached and rendered, the header back control returns to the list,
  * `NewThreadButton` puts a `thread.create` on the wire and navigates to a
  * genuinely new id, and no fatal page error (`Minified React error`,

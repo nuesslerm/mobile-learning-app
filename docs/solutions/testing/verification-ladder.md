@@ -92,5 +92,5 @@ Every tier but a browser e2e test runs on the VM in a session worktree (`/worksp
 
 - Cheap-flow planner: `.agents/skills/cf-plan/SKILL.md` — how to choose a tier; half-done work gates at `unit`/`flow`, a finished UI unit gates at `visual`.
 - Cheap-flow worker: `.agents/skills/cf-work/SKILL.md` — manifest reads the `tiers:` line.
-- Evidence handling: `docs/archive/solutions/workflow/publish-dont-paste-evidence.md` — evidence referenced again is published with a link, not pasted inline.
-- Doctrine source: `docs/archive/plans/test-tiers/contract.md`; tier enum: `clis/offload/src/worker_plan.rs`.
+- Evidence handling: `docs/archive/README.md` — evidence referenced again is published with a link, not pasted inline.
+- Doctrine source: `docs/archive/README.md`; tier enum: `clis/offload/src/worker_plan.rs`.

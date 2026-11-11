@@ -35,4 +35,4 @@ These aren't bugs to route around once — they're standing properties of how CC
 ## Related
 
 - `mcp__Claude_Code_Remote__create_session`, `mcp__Claude_Code_Remote__get_session`, `mcp__Claude_Code_Remote__send_later` / `create_trigger` — the tool surface this applies to.
-- `docs/archive/solutions/workflow/agent-approve-guard-lockout-and-stuck-remote-session-recovery.md` — sharpens the `get_session`-only limitation noted above: beyond having no full-transcript access, there is no tool at all to answer a pending `AskUserQuestion` or otherwise redirect an already-running child session. If a dispatched child deadlocks on stale state, the documented recovery is archive the child and redispatch a fresh one, not try to message it.
+- `docs/archive/README.md` — sharpens the `get_session`-only limitation noted above: beyond having no full-transcript access, there is no tool at all to answer a pending `AskUserQuestion` or otherwise redirect an already-running child session. If a dispatched child deadlocks on stale state, the documented recovery is archive the child and redispatch a fresh one, not try to message it.

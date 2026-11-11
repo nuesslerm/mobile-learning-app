@@ -1,6 +1,6 @@
 /**
  * Phase-9 acceptance (#252, #254) as amended by the tranche-4 honesty fixes
- * (`docs/archive/plans/coding-agent-frontend-fixes/contract.md`): the thread route is
+ * (`docs/archive/README.md`): the thread route is
  * actually reached, the Plan segment flips the composer placeholder, sending
  * `fixture:plan` surfaces a PlanCard on the feed, and tapping the PlanCard's
  * Implement button dispatches a `thread.turn.start` carrying the proposed

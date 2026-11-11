@@ -20,7 +20,7 @@ session can run `terraform plan`/`apply`/`destroy` against
 `infra/oracle-cloud/` without you hand-carrying credentials every time.
 
 Companion reading: `infra/oracle-cloud/README.md` (the Terraform module this
-document grants access *to*) and `docs/archive/solutions/infra/deployment-provisioning.md` (this
+document grants access *to*) and `docs/archive/README.md` (this
 repo's general secrets/provisioning conventions, which everything below
 follows).
 
@@ -250,7 +250,7 @@ against a live tenancy from here).
 ## Part 3 — Wiring the credentials into this repo (so I can use them autonomously)
 
 This repo already has a registry-driven secrets system (`clis/secrets`,
-`docs/archive/solutions/infra/deployment-provisioning.md`) — everything below follows that
+`docs/archive/README.md`) — everything below follows that
 convention rather than inventing a new one.
 
 ### 3.1 New registry entries — done

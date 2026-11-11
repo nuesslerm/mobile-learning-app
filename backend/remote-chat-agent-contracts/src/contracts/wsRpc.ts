@@ -2,7 +2,7 @@
 //
 // Wire envelope and RPC tables for the remote-chat-agent WebSocket transport.
 // Ported from references/t3code/packages/contracts/src/rpc.ts (Effect Schema
-// → zod 4) per docs/archive/plans/coding-agent/contract.md. The outer `kind`
+// → zod 4) per docs/archive/README.md. The outer `kind`
 // discriminator splits client↔server traffic; the response variant further
 // splits on `ok` so `result` and `error` never appear together. Method
 // and subscription tables are typed record-of-shape lookups: the dispatch

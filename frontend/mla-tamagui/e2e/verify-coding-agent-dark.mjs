@@ -1,6 +1,6 @@
 /**
  * Phase-9 acceptance (#252, #254) as amended by the tranche-4 honesty fixes
- * (`docs/archive/plans/coding-agent-frontend-fixes/contract.md`): the coding-agent
+ * (`docs/archive/README.md`): the coding-agent
  * thread surfaces (AssistantMessage, ToolRow, PendingApprovalCard, DiffView
  * rows) keep enough text-vs-background contrast on the dark theme to read.
  *

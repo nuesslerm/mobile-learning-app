@@ -156,7 +156,7 @@ RUN curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg \
 # all: the env/noise ones run as a plain one-shot `ssh host "bash -lc ..."`,
 # and the terminal-UX ones through tmux + ssh driven from
 # the CLIENT side, so neither driver is needed in this image either.
-# See docs/archive/runbooks/agent-shell-wf-harness-interactive.md.
+# See docs/archive/README.md.
 # The tool packages most often edited (ssh, tmux, build deps) sit here, after the heavy installs above, so adding one reruns
 # only this layer and what follows instead of the whole chain.
 RUN apt-get update && apt-get install -y --no-install-recommends \

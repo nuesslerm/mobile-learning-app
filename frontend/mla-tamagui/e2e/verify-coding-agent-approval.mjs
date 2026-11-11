@@ -1,6 +1,6 @@
 /**
  * Phase-9 acceptance (#252, #254) as amended by the tranche-4 honesty fixes
- * (`docs/archive/plans/coding-agent-frontend-fixes/contract.md`): the thread route is
+ * (`docs/archive/README.md`): the thread route is
  * actually reached, tapping Allow on the pending command approval records a
  * `thread.approval.respond` accept on the wire, and sending `fixture:approval`
  * opens a fresh approval that a Deny tap resolves to decline. The scripted

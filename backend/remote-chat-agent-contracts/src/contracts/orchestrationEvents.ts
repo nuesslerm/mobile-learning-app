@@ -8,7 +8,7 @@
 // OrchestrationReadModel. Payloads are intentionally minimal — only what
 // the decider needs to mutate the read model — and ported from
 // references/t3code/packages/contracts/src/orchestration.ts (Effect Schema
-// → zod 4) per docs/archive/plans/coding-agent/contract.md.
+// → zod 4) per docs/archive/README.md.
 import { z } from 'zod';
 import {
   ApprovalRequestId,

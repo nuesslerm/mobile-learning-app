@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-# One image, four services (docs/archive/plans/persistent-session-services/contract.md
+# One image, four services (docs/archive/README.md
 # section 1): AGENT_SHELL_ROLE selects which surface this entrypoint brings up.
 # Unset/`all` = today's single combined container, line for line (a legacy
 # deploy can never regress); `sessions` = sshd only, `dind` = nested dockerd

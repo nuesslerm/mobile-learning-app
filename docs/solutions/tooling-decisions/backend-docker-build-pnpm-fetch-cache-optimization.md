@@ -380,7 +380,7 @@ container.
 
 ## Related
 
-- `docs/archive/solutions/workflow/root-lifecycle-scripts-break-docker-filtered-installs.md`
+- `docs/archive/README.md`
   — the same Node-era Dockerfiles, a different root cause (root postinstall/prepare
   scripts breaking a scoped `pnpm install --filter` inside Docker). Complementary,
   not overlapping.

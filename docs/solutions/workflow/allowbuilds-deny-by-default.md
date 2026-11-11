@@ -33,4 +33,4 @@ A postinstall script is arbitrary code execution with the privileges of whoever 
 
 - Authoritative source: `pnpm-workspace.yaml` (the `allowBuilds:` and `onlyBuiltDependencies:` blocks).
 - Companion controls in the same file: `minimumReleaseAge: 1440` (minutes, not a duration string — `"1440 minutes"` resolves to `NaN` in pnpm and crashes every install), `blockExoticSubdeps: true`, `strict-ssl`.
-- The CVE response flow and the broader checklist this rule belongs to: `docs/archive/solutions/conventions/dependency-vetting.md`, `docs/archive/solutions/workflow/dependency-vetting-checklist.md`, `docs/archive/solutions/workflow/onlybuiltdependencies-vs-root-postinstall.md`.
+- The CVE response flow and the broader checklist this rule belongs to: `docs/archive/README.md`, `docs/archive/README.md`, `docs/archive/README.md`.

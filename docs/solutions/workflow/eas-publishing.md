@@ -111,5 +111,5 @@ deep-link URL scheme (`mla-tamagui`) that every `exp://` link in this repo
 depends on. Without `"scheme": "mlatamagui"`, EAS's fastlane step looks for a
 scheme named after the deep-link one and fails with `scheme 'mla-tamagui' does
 not exist` — the same pre-existing bug `docs/gaps/no-real-device-verification.md`
-records against app #1 (in full in `docs/archive/known-gaps-2026-10.md`). Naming the Xcode scheme in `eas.json` fixes the build without touching
+records against app #1 (in full in `docs/archive/README.md`). Naming the Xcode scheme in `eas.json` fixes the build without touching
 the deep-link scheme.
