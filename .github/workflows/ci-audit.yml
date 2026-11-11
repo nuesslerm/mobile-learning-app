@@ -44,7 +44,7 @@ jobs:
   audit:
     name: audit
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') }}
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_CI_AUDIT || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(vars.RUNNER_TAG_CI_AUDIT || '["ubuntu-24.04"]') }}
     timeout-minutes: 150
     permissions:
       contents: read

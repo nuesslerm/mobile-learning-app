@@ -39,7 +39,7 @@ jobs:
   plan:
     name: Check the pins
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') }}
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-24.04"]') }}
     timeout-minutes: 30
     permissions:
       actions: read
@@ -123,7 +123,7 @@ jobs:
     name: record ${{ matrix.name }}
     needs: plan
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && needs.plan.outputs.record == 'true' }}
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-24.04"]') }}
     permissions:
       actions: read
       contents: read
@@ -305,7 +305,7 @@ jobs:
     needs: [plan, capture]
     # runs after a failed or unfinished capture too: the report says which set did not finish
     if: ${{ always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && needs.plan.result == 'success' }}
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-latest"]') }}
+    runs-on: ${{ fromJSON(vars.RUNNER_TAG_TRACK_CONTRACTS || '["ubuntu-24.04"]') }}
     timeout-minutes: 60
     permissions:
       actions: read

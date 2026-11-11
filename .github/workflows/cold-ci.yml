@@ -24,7 +24,7 @@ jobs:
     uses: ./.github/workflows/pipeline.yml
     with:
       flavor: hosted
-      runner: '"ubuntu-latest"'
+      runner: '"ubuntu-24.04"'
       deploy_runner: '"ubuntu-24.04-arm"'
       shards: ${{ fromJSON(vars.HOSTED_SHARDS || '6') }}
       ship: false
