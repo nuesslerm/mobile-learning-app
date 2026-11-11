@@ -26,6 +26,9 @@ inputs:
   ts-secret:
     description: Its secret
     default: ""
+  keep-android:
+    description: Keep the Android SDK on a hosted runner (the Android e2e job's emulator)
+    default: "false"
 runs:
   using: composite
   steps:
@@ -45,6 +48,7 @@ runs:
         ts-secret: ${{ inputs.ts-secret }}
         install: ${{ inputs.install }}
         clis-artifact: ${{ inputs.artifact }}
+        keep-android: ${{ inputs.keep-android }}
     - uses: ./.github/actions/hosted-stats
       if: ${{ inputs.flavor == 'hosted' && inputs.wf-source == 'none' }}
       with:

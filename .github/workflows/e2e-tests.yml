@@ -148,6 +148,7 @@ jobs:
         with:
           flavor: hosted
           job: ${{ inputs.platform }}-e2e-tests
+          keep-android: ${{ inputs.platform == 'android' }}
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
       - if: inputs.flavor != 'hosted'
