@@ -1,4 +1,5 @@
 pub mod access;
+pub mod clis_install;
 pub mod agent_shell;
 pub mod drill;
 pub mod health;

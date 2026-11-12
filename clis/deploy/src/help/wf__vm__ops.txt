@@ -34,6 +34,8 @@ Commands:
                               agent-shell); prints yes/no per probe
   cancel-run [options]        Cancel one CI run or every run still waiting for
                               a runner (run on agent-shell, with the PAT)
+  install-clis --sha256 <hex>  Install the wf build CI published on the VM (a
+                              hosted runner has no other way to)
   drill <action>              Second-door drill: stop or freeze the primary on
                               purpose and measure who brings it back
   help [command]              display help for command

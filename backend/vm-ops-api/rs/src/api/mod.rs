@@ -6,6 +6,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use vm_ops_api_core::application::access::Gate;
 use vm_ops_api_core::application::agent_shell::AgentShell;
+use vm_ops_api_core::application::clis_install::ClisInstall;
 use vm_ops_api_core::application::drill::Drill;
 use vm_ops_api_core::application::health::{Build, Health};
 use vm_ops_api_core::application::logs::Logs;
@@ -84,6 +85,7 @@ pub struct AppState {
     agent_shell: Arc<AgentShell>,
     run_writes: Arc<RunWrites>,
     drill: Arc<Drill>,
+    clis_install: Arc<ClisInstall>,
     redeploy: Arc<Redeploy>,
     redeploy_status: Arc<RedeployStatus>,
     self_redeploy: Arc<SelfRedeploy>,
@@ -104,6 +106,7 @@ pub fn routers(ports: Ports, settings: Settings) -> Routers {
     let agent_shell = Arc::new(AgentShell::new(ports.containers.clone(), ports.ids, ports.clock.clone(), ports.log.clone()));
     let run_writes = Arc::new(RunWrites::new(ports.run_log.clone(), ports.clock.clone()));
     let drill = Arc::new(Drill::new(ports.siblings.clone(), settings.sibling_image.clone(), OWN_CONTAINER.to_string()));
+    let clis_install = Arc::new(ClisInstall::new(ports.siblings.clone(), settings.sibling_image.clone()));
     let redeploy = Arc::new(Redeploy::new(ports.siblings.clone(), ports.log.clone(), ports.clock.clone(), settings.redeploy.clone(), settings.build.server_script_sha.clone()));
     let redeploy_status = Arc::new(RedeployStatus::new(ports.siblings.clone(), settings.redeploy));
     let (admin_gate, ci_gate) = (Arc::new(Gate::new(settings.auth, ports.clock.clone())), settings.ci_auth.map(|auth| Arc::new(Gate::new(auth, ports.clock.clone()))));
@@ -120,6 +123,7 @@ pub fn routers(ports: Ports, settings: Settings) -> Routers {
         agent_shell,
         run_writes,
         drill,
+        clis_install,
         redeploy,
         redeploy_status,
         self_redeploy,

@@ -6,6 +6,7 @@ use vm_ops_api_core::domain::exposure::{spec_of, Exposure};
 use vm_ops_api_core::domain::request::Target;
 
 mod agent_shell;
+mod clis_install;
 mod drill;
 mod health;
 mod logs;
@@ -45,6 +46,7 @@ pub enum RouteId {
     SelfRedeploy,
     SelfSmoke,
     SelfSmokeStop,
+    ClisInstall,
 }
 
 impl RouteId {
@@ -82,6 +84,7 @@ impl RouteId {
             RouteId::SelfRedeploy => "SelfRedeploy",
             RouteId::SelfSmoke => "SelfSmoke",
             RouteId::SelfSmokeStop => "SelfSmokeStop",
+            RouteId::ClisInstall => "ClisInstall",
                         }
     }
 
@@ -149,6 +152,7 @@ pub fn resolve(method: &str, target: &Target) -> Option<RouteId> {
         "POST" if target.is_path("/redeploy") => Some(RouteId::SelfRedeploy),
         "POST" if target.is_path("/redeploy/smoke") => Some(RouteId::SelfSmoke),
         "POST" if target.is_path("/redeploy/smoke/stop") => Some(RouteId::SelfSmokeStop),
+        "POST" if target.is_path("/clis/install") => Some(RouteId::ClisInstall),
         _ => None,
     }
 }
@@ -181,6 +185,7 @@ pub async fn handle(route: RouteId, call: &Call<'_>, state: &AppState) -> Result
         RouteId::SelfRedeploy => Ok(self_redeploy::answer(call, state).await),
         RouteId::SelfSmoke => Ok(self_redeploy::smoke(call, state).await),
         RouteId::SelfSmokeStop => Ok(self_redeploy::smoke_stop(call, state).await),
+        RouteId::ClisInstall => clis_install::answer(call, state).await,
     }
 }
 
@@ -189,7 +194,7 @@ mod tests {
     use super::*;
     use vm_ops_api_core::domain::exposure::{matches, ROUTES};
 
-    const ALL: [RouteId; 26] = [
+    const ALL: [RouteId; 27] = [
         RouteId::Health,
         RouteId::Ps,
         RouteId::Stats,
@@ -216,6 +221,7 @@ mod tests {
         RouteId::SelfRedeploy,
         RouteId::SelfSmoke,
         RouteId::SelfSmokeStop,
+        RouteId::ClisInstall,
     ];
 
     #[test]

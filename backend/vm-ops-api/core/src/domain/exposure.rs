@@ -45,7 +45,7 @@ const fn spec(id: &'static str, method: &'static str, path: &'static str, exposu
     RouteSpec { id, method, path, exposure }
 }
 
-use Exposure::{AdminOnly, Shared};
+use Exposure::{AdminOnly, CiOnly, Shared};
 
 /// Every route, classified. Anything that is not clearly something a CI job calls (a redeploy of a tag CI already pushed, its smoke
 /// test and status, health, the container and stats reads) is admin only.
@@ -60,6 +60,8 @@ pub const ROUTES: &[RouteSpec] = &[
     spec("SelfRedeploy", "POST", "/redeploy", Shared),
     spec("SelfSmoke", "POST", "/redeploy/smoke", Shared),
     spec("SelfSmokeStop", "POST", "/redeploy/smoke/stop", Shared),
+    // The wf build CI published, installed on the VM by a sibling: a hosted runner cannot write to the VM, and only CI calls this.
+    spec("ClisInstall", "POST", "/clis/install", CiOnly),
     spec("Logs", "GET", "/services/{app}/logs", AdminOnly),
     spec("Retire", "POST", "/services/{app}/retire", AdminOnly),
     spec("AppPair", "POST", "/services/{app}/pair", AdminOnly),

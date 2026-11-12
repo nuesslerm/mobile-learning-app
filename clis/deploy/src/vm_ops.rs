@@ -1,4 +1,4 @@
-//! `wf vm ops health|stats|host|logs|probe|pair|ci-port|runner-check|token-permissions|cancel-run` and `wf vm ledger cat`: the commands that
+//! `wf vm ops health|stats|host|logs|probe|pair|ci-port|runner-check|token-permissions|cancel-run|install-clis` and `wf vm ledger cat`: the commands that
 //! talk to vm-ops-api.
 use wf_kit::args::parse;
 use wf_vmops::services::health_url;
@@ -240,6 +240,10 @@ pub fn run(args: &[String]) -> Option<i32> {
                 (None, false, true) => crate::cancel_run::run(crate::cancel_run::Target::All),
                 _ => None,
             }
+        }
+        "install-clis" => {
+            let p = parse(rest, &["sha256"], &[]).filter(|p| p.positional.is_empty())?;
+            crate::install_clis::run(p.opts.get("sha256")?)
         }
         "host" => crate::host_history::run(rest),
         "drill" => crate::vm_drill::run(rest),

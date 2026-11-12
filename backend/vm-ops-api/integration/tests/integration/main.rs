@@ -3,6 +3,7 @@
 //! (`VM_OPS_API_CMD`). The helpers below are the ones every area's cases share.
 mod agent_shell;
 mod auth;
+mod clis_install;
 mod helpers;
 mod pipeline;
 mod ports;

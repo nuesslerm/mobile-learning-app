@@ -536,11 +536,24 @@ jobs:
     name: clis
     needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, wf-build]
     if: ${{ !cancelled() && inputs.ship && needs.wf-build.result == 'success' && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' }}
-    runs-on: ubuntu-latest
+    # the flavor's own runner: the install call below needs a wf that runs there and the tailnet (the VM runner has both, a hosted one joins it)
+    runs-on: ${{ fromJSON(inputs.deploy_runner) }}
     timeout-minutes: 10
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+      - uses: ./.github/actions/setup-job
+        with:
+          flavor: ${{ inputs.flavor }}
+          wf-source: ${{ inputs.flavor == 'vm' && 'tree' || 'artifact' }}
+          artifact: clis
+          job: clis
+          install: "false"
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: clis*
@@ -570,6 +583,13 @@ jobs:
           [ -n "$(ls "$out")" ] || { echo "nothing to publish"; exit 1; }
           gh release view wf-latest >/dev/null 2>&1 || gh release create wf-latest --prerelease --target dev --title "wf, newest dev build" --notes "Built by CI from dev: wf, t3-serve, rca-exec, wf-mimic for linux x64 and arm64, with sha256. Installed on the VM by clis-sync and in cloud sessions by .agents/setup.sh."
           gh release upload wf-latest "$out"/* --clobber
+      # A runner that cannot write to the VM's disk (a hosted one) asks vm-ops-api to install what was just published, if it is that build.
+      - name: Install the build on the VM
+        # the first run that carries the route reaches this before vm-ops-api is redeployed with it; clis-sync still installs until then
+        continue-on-error: true
+        run: |
+          sha=$(cut -d' ' -f1 "$RUNNER_TEMP/out/wf-linux-arm64.tar.gz.sha256")
+          wf vm ops install-clis --sha256 "$sha"
 
   # The images are built and pushed under the commit's tag with the first wave: nothing serves them yet, so a red test later just leaves them unused.
   deploy-build:
