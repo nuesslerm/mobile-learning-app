@@ -31,6 +31,10 @@ on:
       all:
         type: boolean
         default: false
+      # [cache:no] or a cold run: replay nothing from the Nx cache, run every planned test
+      fresh:
+        type: boolean
+        default: false
       flags:
         type: string
         required: false
@@ -198,7 +202,7 @@ jobs:
         run: |
           if [ -n "$PLAN" ]; then
             printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
-            select="--stage $PLATFORM-e2e-tests --plan $RUNNER_TEMP/plan.json"
+            select="--stage $PLATFORM-e2e-tests --plan $RUNNER_TEMP/plan.json${{ inputs.fresh && ' --fresh' || '' }}"
             # Nx replays every focused test whose feature code, test case and app shell are unchanged; the rest run
             # shellcheck disable=SC2086
             wf test run $select --probe | tee "$RUNNER_TEMP/probe.json"

@@ -1027,6 +1027,7 @@ jobs:
       flavor: ${{ inputs.flavor }}
       runner: ${{ inputs.runner }}
       platform: browser
+      fresh: ${{ needs.plan.outputs.fresh == 'true' }}
       plan: ${{ needs.plan.outputs.plan }}
       sha: ${{ github.sha }}
       base: ${{ github.event.before }}
@@ -1044,6 +1045,7 @@ jobs:
       flavor: ${{ inputs.flavor }}
       runner: ${{ inputs.runner }}
       platform: android
+      fresh: ${{ needs.plan.outputs.fresh == 'true' }}
       plan: ${{ needs.plan.outputs.plan }}
       sha: ${{ github.sha }}
       base: ${{ github.event.before }}
