@@ -1534,7 +1534,7 @@ dependencies = [
 
 [[package]]
 name = "service-kit"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "axum",
  "governor",
@@ -1689,7 +1689,7 @@ dependencies = [
 
 [[package]]
 name = "telemetry"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "opentelemetry",
  "opentelemetry-otlp",
