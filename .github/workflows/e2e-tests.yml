@@ -117,7 +117,7 @@ jobs:
       WF_SITE: ci
       # the device's adb port is published on the agent-shell node (start-device runs there); the runner has its own tailnet node, so it is reached by name
       WF_ANDROID_SERIAL: ${{ inputs.flavor == 'hosted' && 'emulator-5554' || 'agent-shell-main:5555' }}
-      WF_ANDROID_PROVIDER: ${{ inputs.flavor == 'hosted' && 'emulator' || 'redroid' }}
+      WF_ANDROID_PROVIDER: ${{ inputs.flavor == 'hosted' && 'emulator' || 'redroid-lab' }}
       # the stub server the Android tests start runs on the runner's own tailnet node: the device's DNAT rules point at its address, not at the device's gateway
       # (on a hosted runner the emulator reaches the run at 10.0.2.2)
       WF_ANDROID_STUB_HOST: ${{ inputs.flavor == 'hosted' && '10.0.2.2' || 'ci-runner-main' }}

@@ -44,6 +44,13 @@
 				"tcp:6768",  // orca-serve
 			],
 		},
+
+		// The self-hosted runner alone drives the redroid device lab over adb: a GitHub-hosted job brings its own emulator and never needs this.
+		{
+			"src": ["tag:ci-self-hosted"],
+			"dst": ["tag:mobile-learning"],
+			"ip":  ["tcp:5555"],
+		},
 	],
 
 	// Define postures that will be applied to all rules without any specific
@@ -114,13 +121,13 @@
 	"tests": [
 		{
 			"src":    "tag:ci-self-hosted",
-			"accept": ["tag:mobile-learning:8081"],
+			"accept": ["tag:mobile-learning:8081", "tag:mobile-learning:5555"],
 			"deny":   ["tag:mobile-learning:8080", "tag:mobile-learning:22"],
 		},
 		{
 			"src":    "tag:ci-gh-hosted",
 			"accept": ["tag:mobile-learning:8081"],
-			"deny":   ["tag:mobile-learning:8080", "tag:mobile-learning:22"],
+			"deny":   ["tag:mobile-learning:8080", "tag:mobile-learning:22", "tag:mobile-learning:5555"],
 		},
 		{
 			"src":    "tag:mobile-learning",
