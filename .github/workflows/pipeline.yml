@@ -544,7 +544,7 @@ jobs:
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: clis*
-          path: bins
+          path: ${{ runner.temp }}/bins
       - name: Publish the binaries
         env:
           GH_TOKEN: ${{ github.token }}
@@ -553,8 +553,8 @@ jobs:
           BWS_CI_DEPLOY_ACCESS_TOKEN: ''
         run: |
           set -euo pipefail
-          mkdir out
-          for dir in bins/*/; do
+          bins="$RUNNER_TEMP/bins"; out="$RUNNER_TEMP/out"; mkdir -p "$out"
+          for dir in "$bins"/*/; do
             [ -f "${dir}wf" ] || continue
             # the machine that built it decides the name: the VM builds arm64, a hosted x64 runner x64
             if file -b "${dir}wf" | grep -q 'ARM aarch64'; then arch=arm64; else arch=x64; fi
@@ -563,13 +563,13 @@ jobs:
             if grep -aEq -e '-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}|xox[bpas]-[A-Za-z0-9-]{20,}|sk-[A-Za-z0-9]{32,}' "$stage"/*; then
               echo "::error::a secret-shaped string is in the $arch binaries: nothing is published"; exit 1
             fi
-            tar -C "$stage" -czf "out/wf-linux-$arch.tar.gz" .
-            (cd out && sha256sum "wf-linux-$arch.tar.gz" > "wf-linux-$arch.tar.gz.sha256")
+            tar -C "$stage" -czf "$out/wf-linux-$arch.tar.gz" .
+            (cd "$out" && sha256sum "wf-linux-$arch.tar.gz" > "$out/wf-linux-$arch.tar.gz.sha256")
           done
-          ls -l out
-          [ -n "$(ls out)" ] || { echo "nothing to publish"; exit 1; }
+          ls -l "$out"
+          [ -n "$(ls "$out")" ] || { echo "nothing to publish"; exit 1; }
           gh release view wf-latest >/dev/null 2>&1 || gh release create wf-latest --prerelease --target dev --title "wf, newest dev build" --notes "Built by CI from dev: wf, t3-serve, rca-exec, wf-mimic for linux x64 and arm64, with sha256. Installed on the VM by clis-sync and in cloud sessions by .agents/setup.sh."
-          gh release upload wf-latest out/* --clobber
+          gh release upload wf-latest "$out"/* --clobber
 
   # The images are built and pushed under the commit's tag with the first wave: nothing serves them yet, so a red test later just leaves them unused.
   deploy-build:
