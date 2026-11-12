@@ -88,3 +88,15 @@ runs:
           exit 1
         fi
         echo "- Builder sidecar \`$name\` answered: no host container listed, no docker socket in the runner" >> "$GITHUB_STEP_SUMMARY"
+    - name: Stop the buildkit container
+      if: always()
+      shell: bash
+      run: |
+        # The docker-container builder keeps a buildkitd running in the daemon after the build, holding its memory until the next one.
+        # Stopping it frees that memory; its state volume and layer cache stay, and the next build starts it again.
+        stats() { docker stats --no-stream --format '{{.Name}} {{.MemUsage}}' 2>/dev/null | tr '\n' ';'; }
+        before=$(stats)
+        docker buildx stop ci-builder >/dev/null 2>&1 || true
+        after=$(stats)
+        echo "buildkit memory before stop: ${before:-none}; after: ${after:-none}"
+        echo "- Buildkit memory (\`$RUNNER_ENVIRONMENT\`): before stop \`${before:-none}\`, after \`${after:-none}\`" >> "$GITHUB_STEP_SUMMARY"
