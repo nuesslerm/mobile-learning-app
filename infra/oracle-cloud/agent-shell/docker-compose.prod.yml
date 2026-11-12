@@ -191,7 +191,7 @@ services:
       <<: *agent-environment
       AGENT_SHELL_ROLE: dind
     volumes:
-      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      # The VM's one wf build (the clis job of pipeline.yml, installed by clis-sync); the image links /usr/local/bin/wf to current/wf here.
       - clis:/opt/clis:ro
       - workspace:/workspace
       # The nested dockerd's own image/layer/buildx store. Was on the
@@ -228,7 +228,7 @@ services:
       AGENT_SHELL_ROLE: sessions
       DOCKER_HOST: unix:///run/dind/docker.sock
     volumes:
-      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      # The VM's one wf build (the clis job of pipeline.yml, installed by clis-sync); the image links /usr/local/bin/wf to current/wf here.
       - clis:/opt/clis:ro
       - workspace:/workspace
       - dind-socket:/run/dind
@@ -264,7 +264,7 @@ services:
     tmpfs:
       - /scratch:size=1280m,mode=1777
     volumes:
-      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      # The VM's one wf build (the clis job of pipeline.yml, installed by clis-sync); the image links /usr/local/bin/wf to current/wf here.
       - clis:/opt/clis:ro
       # THE SHARED WORKSPACE. Mounted at the SAME ABSOLUTE PATH in every
       # container that touches it -- non-negotiable, and already a scar in

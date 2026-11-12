@@ -51,7 +51,7 @@ jobs:
       runner: '"ubuntu-24.04"'
       deploy_runner: '"ubuntu-24.04-arm"'
       shards: ${{ fromJSON(vars.HOSTED_SHARDS || '6') }}
-      ship: false
+      ship: ${{ vars.SHIP_FLAVOR == 'hosted' }}
       deploy: ${{ vars.HOSTED_DEPLOY != 'off' }}
       e2e: true
       label: GitHub-hosted

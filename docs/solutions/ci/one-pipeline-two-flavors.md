@@ -73,7 +73,7 @@ Three waves:
 ## What each machine-building job is
 
 - **`wf-build`** builds `wf` for the machine that runs the next jobs. On hosted, the arm64 leg exists because `deploy` runs `wf ship` on `ubuntu-24.04-arm` (it builds the arm64 images the VM runs). It is one matrix job, not two jobs: the legs share every step and differ only in the runner.
-- **`clis`** (reusable `clis.yml`) builds and publishes the `wf`, `t3` and `exec` binaries to the VM's shared volume. That is an irreversible step, so it runs only after the tests are green.
+- **`clis`** publishes the `wf`, `t3-serve`, `rca-exec` and `wf-mimic` binaries (the ones `wf-build` built, arm64 and x64) as the `wf-latest` release, after the secret-shape scan, with a sha256. It is the same job on every flavor and runs only after the tests are green and only when the run ships (`ship`: the repository variable `SHIP_FLAVOR`, `vm` unless it says `hosted`, picks which flavor ships a push, so the two callers differ only in their runner). The VM's `clis-sync` container (the `ci-runner` compose project) pulls the release within a minute, checks the sha256 and installs it on the `clis` volume as `/opt/clis/<clis tree>`, then points `current` at it; no runner writes that volume, and a cloud session installs the same release with `.agents/setup.sh`.
 - **`deploy-build`** builds and pushes the container images of one app (the `build-image` action). Pushing a tag is harmless; moving `latest` happens only in `deploy`, on the trunk.
 
 ## Deploy legs

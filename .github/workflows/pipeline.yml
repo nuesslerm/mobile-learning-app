@@ -25,7 +25,7 @@ on:
         type: number
         default: 1
       ship:
-        description: Publish the verified images as latest and the EAS Update, and publish the clis build to /opt/clis (vm only)
+        description: Publish the verified images as latest, the EAS Update and the wf release (any flavor; the repository variable SHIP_FLAVOR picks which one ships)
         type: boolean
         default: false
       deploy:
@@ -109,7 +109,7 @@ jobs:
         with:
           flavor: ${{ inputs.flavor }}
           name: ${{ matrix.arch == 'arm64' && 'clis-arm' || 'clis' }}
-          upload: ${{ inputs.flavor == 'hosted' }}
+          upload: ${{ inputs.flavor == 'hosted' || inputs.ship }}
       - name: Free the runner's disk when it is filling
         if: ${{ inputs.flavor == 'vm' }}
         continue-on-error: true
@@ -130,47 +130,6 @@ jobs:
         with:
           mode: upload
           job: ${{ matrix.arch == 'arm64' && 'clis-arm' || 'wf-build' }}
-
-  # This commit's wf as the `wf-latest` release: a fresh cloud session cannot build it (the private crate registry is tailnet-only, and joining the tailnet needs wf),
-  # so .agents/setup.sh installs this instead. Only named binaries leave the runner, the job holds a GITHUB_TOKEN and its vault token blanked, and it stops if a secret-shaped
-  # string is found in them.
-  wf-release:
-    name: Publish wf
-    needs: wf-build
-    if: ${{ !cancelled() && needs.wf-build.result == 'success' && inputs.flavor == 'hosted' && inputs.deploy && github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          pattern: clis*
-          path: bins
-      - name: Publish the binaries
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GH_REPO: ${{ github.repository }}
-          # the workflow-level env hands every job the vault token: this one does not need it
-          BWS_CI_DEPLOY_ACCESS_TOKEN: ''
-        run: |
-          set -euo pipefail
-          mkdir out
-          for pair in clis:x64 clis-arm:arm64; do
-            dir=${pair%%:*}; arch=${pair##*:}
-            [ -f "bins/$dir/wf" ] || { echo "no wf in $dir: skipped"; continue; }
-            stage=$(mktemp -d)
-            for b in wf t3-serve rca-exec wf-mimic; do [ -f "bins/$dir/$b" ] && install -m 0755 "bins/$dir/$b" "$stage/$b"; done
-            if grep -aEq -e '-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}|xox[bpas]-[A-Za-z0-9-]{20,}|sk-[A-Za-z0-9]{32,}' "$stage"/*; then
-              echo "::error::a secret-shaped string is in the $arch binaries: nothing is published"; exit 1
-            fi
-            tar -C "$stage" -czf "out/wf-linux-$arch.tar.gz" .
-            (cd out && sha256sum "wf-linux-$arch.tar.gz" > "wf-linux-$arch.tar.gz.sha256")
-          done
-          ls -l out
-          [ -n "$(ls out)" ] || { echo "nothing to publish"; exit 1; }
-          gh release view wf-latest >/dev/null 2>&1 || gh release create wf-latest --prerelease --target dev --title "wf, newest dev build" --notes "Built by CI from dev: wf, t3-serve, rca-exec, wf-mimic for linux x64 and arm64, with sha256. Installed by .agents/setup.sh in sessions that cannot build wf."
-          gh release upload wf-latest out/* --clobber
 
   preflight:
     name: preflight
@@ -570,12 +529,47 @@ jobs:
           mode: upload
           job: typecheck-lint-unit-tests-${{ matrix.shard }}
 
+  # This commit's wf, published as the `wf-latest` release once the tests passed. Every flavor publishes the same way: the VM's clis-sync container
+  # (infra/oracle-cloud/ci-runner) pulls the release, checks its sha256 and installs it on the `clis` volume, so no runner writes that volume. Only the
+  # named binaries leave the runner, the job holds a GITHUB_TOKEN with its vault token blanked, and it stops if a secret-shaped string is in them.
   clis:
-    needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests]
-    if: ${{ !cancelled() && inputs.flavor == 'vm' && inputs.ship && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' }}
-    uses: ./.github/workflows/clis.yml
-    secrets:
-      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+    name: clis
+    needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, wf-build]
+    if: ${{ !cancelled() && inputs.ship && needs.wf-build.result == 'success' && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: clis*
+          path: bins
+      - name: Publish the binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          # the workflow-level env hands every job the vault token: this one does not need it
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ''
+        run: |
+          set -euo pipefail
+          mkdir out
+          for dir in bins/*/; do
+            [ -f "${dir}wf" ] || continue
+            # the machine that built it decides the name: the VM builds arm64, a hosted x64 runner x64
+            if file -b "${dir}wf" | grep -q 'ARM aarch64'; then arch=arm64; else arch=x64; fi
+            stage=$(mktemp -d)
+            for b in wf t3-serve rca-exec wf-mimic; do [ -f "${dir}$b" ] && install -m 0755 "${dir}$b" "$stage/$b"; done
+            if grep -aEq -e '-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}|xox[bpas]-[A-Za-z0-9-]{20,}|sk-[A-Za-z0-9]{32,}' "$stage"/*; then
+              echo "::error::a secret-shaped string is in the $arch binaries: nothing is published"; exit 1
+            fi
+            tar -C "$stage" -czf "out/wf-linux-$arch.tar.gz" .
+            (cd out && sha256sum "wf-linux-$arch.tar.gz" > "wf-linux-$arch.tar.gz.sha256")
+          done
+          ls -l out
+          [ -n "$(ls out)" ] || { echo "nothing to publish"; exit 1; }
+          gh release view wf-latest >/dev/null 2>&1 || gh release create wf-latest --prerelease --target dev --title "wf, newest dev build" --notes "Built by CI from dev: wf, t3-serve, rca-exec, wf-mimic for linux x64 and arm64, with sha256. Installed on the VM by clis-sync and in cloud sessions by .agents/setup.sh."
+          gh release upload wf-latest out/* --clobber
 
   # The images are built and pushed under the commit's tag with the first wave: nothing serves them yet, so a red test later just leaves them unused.
   deploy-build:

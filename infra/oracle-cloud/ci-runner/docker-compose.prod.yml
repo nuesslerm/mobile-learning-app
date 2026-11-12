@@ -71,6 +71,46 @@ services:
     restart: unless-stopped
     logging: *logging
 
+  # The only writer of the `clis` volume besides a runner's own tree builds: every flavor of the CI publishes its wf as the `wf-latest` release (the clis job
+  # of pipeline.yml, after the tests passed) and this container pulls it: it checks the sha256, installs it under /opt/clis/<clis tree> and points
+  # `current` at it, then keeps current and the three newest builds. Nothing connects to it, so no runner, hosted or here, needs write access to the VM.
+  clis-sync:
+    image: alpine:3.20
+    container_name: ci-runner-clis-sync
+    volumes:
+      - clis:/opt/clis
+    command:
+      - sh
+      - -c
+      - |
+        set -u
+        apk add --no-cache curl >/dev/null
+        base=https://github.com/nuesslerm/mobile-learning-app/releases/download/wf-latest
+        case "$$(uname -m)" in aarch64|arm64) a=arm64 ;; *) a=x64 ;; esac
+        last=/opt/clis/.sync-sha
+        while true; do
+          sum=$$(curl -fsSL --max-time 30 "$$base/wf-linux-$$a.tar.gz.sha256" 2>/dev/null | cut -d' ' -f1)
+          if [ -n "$$sum" ] && [ "$$sum" != "$$(cat $$last 2>/dev/null)" ]; then
+            tmp=$$(mktemp -d /opt/clis/.sync-XXXXXX)
+            if curl -fsSL --max-time 300 -o "$$tmp/a.tgz" "$$base/wf-linux-$$a.tar.gz" && [ "$$(sha256sum "$$tmp/a.tgz" | cut -d' ' -f1)" = "$$sum" ]; then
+              mkdir "$$tmp/x" && tar -xzf "$$tmp/a.tgz" -C "$$tmp/x" && chmod 755 "$$tmp/x" "$$tmp"/x/*
+              tree=$$("$$tmp/x/wf" build-sha 2>/dev/null)
+              if [ -n "$$tree" ]; then
+                [ -x "/opt/clis/$$tree/wf" ] || mv -T "$$tmp/x" "/opt/clis/$$tree"
+                ln -sfn "$$tree" /opt/clis/.current-new && mv -T /opt/clis/.current-new /opt/clis/current
+                echo "$$sum" > $$last
+                echo "clis-sync: current is $$tree"
+                cur=$$(readlink /opt/clis/current)
+                ls -1dt /opt/clis/*/ 2>/dev/null | tail -n +5 | while read -r d; do [ "$$(basename "$$d")" = "$$cur" ] || rm -rf "$$d"; done
+              fi
+            fi
+            rm -rf "$$tmp"
+          fi
+          sleep 60
+        done
+    restart: unless-stopped
+    logging: *logging
+
   # GitHub's own runner image: the CI workflow (.github/workflows/deploy.yml) executes here. It shares the tailscale sidecar's network so
   # `wf` reaches vm-ops-api and the builder.
   # GitHub moved the runner to 2.338.x on 31 Oct 00:12 UTC: the runner pinned at 2.337.0 restarted five times trying to update, and every job since
@@ -113,7 +153,7 @@ services:
       - builder-certs:/certs:ro
       # Keeps the pnpm package store across jobs and container recreates, so installs reuse downloads.
       - gh-runner-pnpm-store:/root/.local/share/pnpm
-      # The one build of the CLIs (clis.yml writes /opt/clis/<tree>/ and flips current); the other projects mount it read-only.
+      # The one build of the CLIs (the clis-sync container installs the published wf here and flips current); the other projects mount it read-only.
       - clis:/opt/clis
     depends_on:
       - tailscale

@@ -74,7 +74,7 @@ services:
       # new rotating-token+signature scheme. true: legacy token rejected.
       - REQUIRE_SIGNED_AUTH=${REQUIRE_SIGNED_AUTH:-}
     volumes:
-      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      # The VM's one wf build (the clis job of pipeline.yml, installed by clis-sync); the image links /usr/local/bin/wf to current/wf here.
       - clis:/opt/clis:ro
       # :ro only stops replacing the socket file; the boundary is the fixed
       # route set (container list/logs/exec plus the redeploy siblings).
@@ -112,7 +112,7 @@ services:
       - /home/ubuntu:/home/ubuntu:ro
 
 volumes:
-  # Written by the runner in the agent-shell project (clis.yml); external here so this project never removes it.
+  # Written by the runner in the agent-shell project (the clis job of pipeline.yml, installed by clis-sync); external here so this project never removes it.
   clis:
     external: true
     name: clis

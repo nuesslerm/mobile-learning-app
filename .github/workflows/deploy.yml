@@ -29,7 +29,8 @@ jobs:
       runner: '["self-hosted","vm"]'
       deploy_runner: '["self-hosted","vm"]'
       shards: 1
-      ship: true
+      # exactly one flavor ships a push (the repository variable SHIP_FLAVOR, vm unless it says hosted); the pipeline is the same on both
+      ship: ${{ vars.SHIP_FLAVOR != 'hosted' }}
       deploy: true
       e2e: true
     secrets:
