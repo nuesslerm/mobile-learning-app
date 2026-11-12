@@ -7,7 +7,15 @@ use super::{err, out, Ctx};
 use wf_kit::args::Parsed;
 use std::io::{IsTerminal, Read};
 
-const DEFAULT_PROJECT_ID: &str = "65501031-2ee6-4d57-9e45-b48e0175233f";
+const DEFAULT_PROJECT_ID_VAR: &str = "BWS_DEFAULT_PROJECT_ID";
+
+/// The vault project a new secret is created in: read from the environment, never compiled in.
+fn default_project_id() -> Result<String, String> {
+    std::env::var(DEFAULT_PROJECT_ID_VAR)
+        .ok()
+        .filter(|v| !v.trim().is_empty())
+        .ok_or_else(|| format!("{DEFAULT_PROJECT_ID_VAR} is not set: a new vault secret needs the project to be created in"))
+}
 
 fn units(s: &str) -> usize {
     s.encode_utf16().count()
@@ -66,7 +74,7 @@ pub fn cmd_set(p: Parsed) -> Result<i32, String> {
         let writer = vault::vault_writer()?;
         match writer.list()?.into_iter().find(|s| s.key == entry.env_var) {
             Some(existing) => writer.update_value(&existing.id, &value)?,
-            None => writer.create(&entry.env_var, &value, DEFAULT_PROJECT_ID, &entry.description)?,
+            None => writer.create(&entry.env_var, &value, &default_project_id()?, &entry.description)?,
         }
     } else {
         ctx.backend.store(&entry.service, &value)?;
