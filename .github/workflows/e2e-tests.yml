@@ -119,12 +119,11 @@ jobs:
       # at 2 shows no toolbar key typed on the keyboard (its swipes lift while moving, so a faster one flings further)
       WF_TEST_SPEED: ${{ inputs.platform == 'browser' && '2' || '1' }}
       WF_SITE: ci
-      # the device's adb port is published on the agent-shell node (start-device runs there); the runner has its own tailnet node, so it is reached by name
-      WF_ANDROID_SERIAL: ${{ inputs.flavor == 'hosted' && 'emulator-5554' || 'agent-shell-main:5555' }}
-      WF_ANDROID_PROVIDER: ${{ inputs.flavor == 'hosted' && 'emulator' || 'redroid-lab' }}
-      # the stub server the Android tests start runs on the runner's own tailnet node: the device's DNAT rules point at its address, not at the device's gateway
-      # (on a hosted runner the emulator reaches the run at 10.0.2.2)
-      WF_ANDROID_STUB_HOST: ${{ inputs.flavor == 'hosted' && '10.0.2.2' || 'ci-runner-main' }}
+      # the VM runner starts redroid in its own docker (the builder sidecar, which shares its network namespace), so adb is on localhost; a hosted runner has the SDK emulator
+      WF_ANDROID_SERIAL: ${{ inputs.flavor == 'hosted' && 'emulator-5554' || 'localhost:5555' }}
+      WF_ANDROID_PROVIDER: ${{ inputs.flavor == 'hosted' && 'emulator' || 'redroid' }}
+      # the device's DNAT rules point at the host the run lives on: a hosted emulator reaches it at 10.0.2.2, the device in the runner's docker at its gateway (the shared network namespace)
+      WF_ANDROID_STUB_HOST: ${{ inputs.flavor == 'hosted' && '10.0.2.2' || '' }}
       WF_ANDROID_HOSTS: ${{ inputs.flavor == 'hosted' && 'leetcode-backend-prod remote-chat-agent-prod vm-ops-api-main' || '' }}
     steps:
       # the plan job fetched this commit into the runner's checkout: a fetch of every ref (316 of them) to learn nothing new costs 12 s
@@ -319,7 +318,7 @@ jobs:
         # The device holds about 1.3 GB under test; it runs only for this job, and only when an Android test runs
         # (docs/gaps/vm-memory-saturation.md).
         if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
-        run: wf android start-device --expo-go
+        run: wf android start-device --expo-go --local
       # goal p0: the one device boots healthy; no test runs on a device that is not (the app's cold start follows this)
       - name: The device is healthy
         if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
@@ -345,7 +344,7 @@ jobs:
           wf test run $SELECT --sha "$SHA" --out "$RUNNER_TEMP/e2e-runs" -- $FLAGS | tee "$RUNNER_TEMP/e2e-tests.jsonl"
       - name: Take the device down
         if: always() && inputs.platform == 'android' && steps.pick.outputs.any == 'true'
-        run: wf android stop-device
+        run: wf android stop-device --local
       # its Chromium would otherwise hold memory through the Android job that runs next
       - name: Stop the browser daemon
         if: always() && inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
