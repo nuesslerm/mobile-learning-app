@@ -26,7 +26,7 @@
 
 		// The VM runner (`tag:ci-self-hosted`, its own tailnet node once it joins with its own auth key) and a GitHub-hosted
 		// runner (`tag:ci-gh-hosted`) reach the VM services only on the ports a CI job calls: vm-ops-api's CI port and its
-		// smoke twin, the health ports of the apps a deploy leg verifies, reporting-service and libs-proxy. Not 8080
+		// smoke twin, the health ports of the apps a deploy leg verifies and reporting-service. Not 8080
 		// (vm-ops-api admin: the generic exec-script), not 22 (agent-shell), nothing else. Anything not granted is denied.
 		{
 			"src": ["tag:ci-self-hosted", "tag:ci-gh-hosted"],
@@ -39,18 +39,11 @@
 				"tcp:8789",  // leetcode-backend
 				"tcp:8791",  // reporting-service
 				"tcp:8792",  // leetcode-capture listener
-				"tcp:8793",  // libs-proxy
 				"tcp:8797",  // t3-serve
 				"tcp:6768",  // orca-serve
 			],
 		},
 
-		// The self-hosted runner alone drives the redroid device lab over adb: a GitHub-hosted job brings its own emulator and never needs this.
-		{
-			"src": ["tag:ci-self-hosted"],
-			"dst": ["tag:mobile-learning"],
-			"ip":  ["tcp:5555"],
-		},
 	],
 
 	// Define postures that will be applied to all rules without any specific
@@ -121,8 +114,8 @@
 	"tests": [
 		{
 			"src":    "tag:ci-self-hosted",
-			"accept": ["tag:mobile-learning:8081", "tag:mobile-learning:5555"],
-			"deny":   ["tag:mobile-learning:8080", "tag:mobile-learning:22"],
+			"accept": ["tag:mobile-learning:8081"],
+			"deny":   ["tag:mobile-learning:8080", "tag:mobile-learning:22", "tag:mobile-learning:5555"],
 		},
 		{
 			"src":    "tag:ci-gh-hosted",

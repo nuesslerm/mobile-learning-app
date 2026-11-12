@@ -43,7 +43,7 @@ jobs:
         # rust-toolchain.toml pins rustc; a hosted image already has rustup
         run: rustup toolchain install --profile minimal
       - name: Libraries workspace tests
-        # the clis workspace needs the private registry behind the tailnet (libs-proxy), which a hosted runner cannot reach before Phase 5
+        # the libraries workspace takes its shared crates from the public libs bucket
         working-directory: libraries
         run: cargo test --locked --workspace
       - name: Runner, arch and elapsed seconds

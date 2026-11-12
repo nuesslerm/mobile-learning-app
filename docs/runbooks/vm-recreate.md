@@ -11,7 +11,7 @@ The VM (`oci_core_instance.main`, A1.Flex 2 OCPU / 12 GB, 150 GB boot volume) is
 
 ## What a recreate destroys, and how each piece comes back
 
-Terraform replaces only `oci_core_instance.main` (and the boot volume with it) and, in the same apply, the `libs_read` pre-authenticated request. Block storage cannot be preserved: the Always-Free cap is 200 GB, the boot volume is 150 GB and the dummy box 50 GB, so `preserve_boot_volume` or a data volume beside the new boot volume is `QuotaExceeded`. Everything on the boot volume is therefore rebuilt, none of it kept.
+Terraform replaces only `oci_core_instance.main` (and the boot volume with it). Block storage cannot be preserved: the Always-Free cap is 200 GB, the boot volume is 150 GB and the dummy box 50 GB, so `preserve_boot_volume` or a data volume beside the new boot volume is `QuotaExceeded`. Everything on the boot volume is therefore rebuilt, none of it kept.
 
 | Lost with the boot volume | Comes back by |
 | --- | --- |
@@ -22,18 +22,16 @@ Terraform replaces only `oci_core_instance.main` (and the boot volume with it) a
 | agent-shell: the `agent-workspace` volume (worktrees, `~/.claude`, `~/.codex`, `~/.config`, `~/.local`, opencode sessions and history), `leetcode-backend-data`, `orca-state` (orca-serve's paired devices), `vnc-auth-credentials` | Cloud-init restores each from the newest verified restic snapshot in the bucket `mobile-learning-vm-state` **before any app starts** (step 8 only checks it). What the backup leaves out of the workspace is rebuilt or gone: `rca-asks`, `repos`, build caches, `target` dirs, `node_modules`, the pnpm store, `tools/` (mise, npm, cargo homes: `wf vm deps` replays them), `~/.npm`, `~/.cache`. Anything written after the last backup (up to a day) is lost: push every branch before the recreate anyway. |
 | `/home/ubuntu/<app>/.env`, compose files | Rewritten by `provision-apps.js` from `vm-apps.json`, the `.env.defaults` of the repo at `provision_ref` and the vault. Hand-appended `.env.local` overrides are lost: there should be none, every override belongs in `.env.defaults` or the vault. |
 | `/home/ubuntu/vm-ops-api/state` (redeploy status history), session logs, tmux sessions, shell history | Lost. Not needed. |
-| Public IP | New. Everything automated uses MagicDNS names. `VM_HOST` in the CI vault project tracks the IP (step 6). |
+| Public IP | New. Everything automated uses MagicDNS names. `VM_HOST` in the CI vault project tracks the IP (step 5). |
 | SSH access | Keys baked at create from `ssh_public_key_path` (`ORACLE_DEPLOY_SSH_PUBLIC_KEY` in the vault) and `break_glass_ssh_public_key`. |
 
 What survives, outside the boot volume: the Terraform state (OCI bucket `mobile-learning-tfstate`, object versions kept), the build-cache and libs buckets (crates, Nx cache, pnpm store object), the verification-artifacts bucket, the state backup bucket `mobile-learning-vm-state` (the restic repository, versioned, 14 snapshots per volume), Docker Hub images, Bitwarden, the Autonomous DB, budgets, quotas, policies, the VCN, GitHub, the `dummy-test-infra` box.
 
-Order matters after the apply: the first CI run needs every sidecar up (`libs-proxy` is how Cargo resolves the `mla` registry), and cloud-init takes about 8 minutes (the tailnet shows `libs-proxy` and `reporting-service` when it is done). A push that lands earlier fails `preflight` with `Could not resolve host: libs-proxy`, and a failed run cannot be rerun from the agent session (the Actions API is denied), so push only after `wf vm net device list` shows every app. Ubuntu's `rclone` has no `oracleobjectstorage` backend (the restore fails with `didn't find backend`), so cloud-init and the agent-shell image install the pinned upstream binary.
-
-Refresh `LIBS_READ_PAR_URL` in the vault before the apply that creates the VM, not after: cloud-init writes `libs-proxy`'s `.env` from the vault once, and until the first CI run publishes `wf` no `wf ship` can rewrite it (the redeploy script runs `wf secret sync-env` on the host, which has no `wf` yet). A stale value makes `libs-proxy` answer 502, the first run's `preflight` then cannot resolve the `mla` registry, and the only way out is another recreate.
+Order matters after the apply: the first CI run needs every sidecar up, and cloud-init takes about 8 minutes (the tailnet shows `vm-ops-api-main` and `reporting-service` when it is done). A push that lands earlier fails `preflight` on a tailnet name that does not resolve yet, and a failed run cannot be rerun from the agent session (the Actions API is denied), so push only after `wf vm net device list` shows every app. Ubuntu's `rclone` has no `oracleobjectstorage` backend (the restore fails with `didn't find backend`), so cloud-init and the agent-shell image install the pinned upstream binary.
 
 Until a first backup exists, a recreate also loses remote-chat-agent's device bearers (`device-bearers.json`): `t3-serve` and `orca-serve` then fail their smoke test with `401 Unauthorized` and their deploy legs go red. Mint new ones before the first CI run: `wf offload bearers mint --label t3` and `--label orca` (with `CHAT_AGENT_API_SECRET` in the environment), stored with `wf secret update T3_RCA_BEARER|ORCA_RCA_BEARER --value-stdin --apply`. The Android job needs the host's `binder_linux` module; cloud-init loads it from the base kernel modules (the 7.0 kernels have no `linux-modules-extra` package).
 
-The one other change in the same apply is the `libs_read` PAR: its URL changes, and `LIBS_READ_PAR_URL` in the vault goes stale (step 5). Nothing else may be destroyed; the preflight fails if the plan says otherwise.
+Nothing else may be destroyed; the preflight fails if the plan says otherwise.
 
 Why the image id drift is not an `ignore_changes` casualty: `source_details[0].source_id` and `metadata` are ignored on the instance so no later image publish or cloud-init edit can plan a replacement of a live VM. The recreate still takes the newest Ubuntu image, because a create always uses the current value. The preflight plans with `-replace=oci_core_instance.main`, so it shows the destroy and create that a plain plan (correctly) does not.
 
@@ -56,7 +54,7 @@ The verdict lists seven checks and the plan. Each failed check carries its `next
 | `backups` | Every app with `stateVolumes` in `vm-apps.json` has a backup under 24 hours old whose newest snapshot of **every** declared volume restores into a scratch directory with its SQLite databases passing `integrity_check`, and the repository is under its budget (`wf vm state verify` on agent-shell; the row of each app says which volume failed and the next step). |
 | `tailnet` | The Tailscale admin API lists devices with `TS_VM_OAUTH_CLIENT_SECRET` and `TS_TAILNET_ID`, and a DELETE of a device id that cannot exist answers 404 (no side effect). A 403 there means the OAuth client is read-only (`devices:core:read`): the check fails naming the missing write scope `devices:core`, so a revoked, rotated or read-only client fails here and not after the VM is destroyed. Fix the values or regenerate the client with `devices:core` write in the vault. |
 | `ci` | No workflow run is in progress (queued runs only wait for the new runner and are listed, not blocking). Cancel with `wf vm ops cancel-run --run <id>` or `--queued` (through agent-shell, PAT-backed); never ask the owner. |
-| `plan` | The plan of `-replace=oci_core_instance.main` destroys the VM and nothing but the VM and `libs_read`, and the free-tier guard accepts it. Read `plan.changes`: every resource with its actions. Anything else destroyed: find the cause with `wf vm terraform exec infra/oracle-cloud plan` and fix the drift; `--expect <address>` accepts a destroy you intend. |
+| `plan` | The plan of `-replace=oci_core_instance.main` destroys the VM and nothing but the VM, and the free-tier guard accepts it. Read `plan.changes`: every resource with its actions. Anything else destroyed: find the cause with `wf vm terraform exec infra/oracle-cloud plan` and fix the drift; `--expect <address>` accepts a destroy you intend. |
 
 Also, by hand, before destroying: push every branch worktree of agent-shell that holds work (the backup is at most a day old and leaves out build output).
 
@@ -107,18 +105,11 @@ openssl rand -base64 32 | tr '+/' '-_' | tr -d '=\n' | wf secret create VM_STATE
 
 4. **Rebuilt agent-shell and `wf-bin`.** Cloud-init pulled the images at `latest`. The agent-shell image with the storage guard and `cpu_shares: 128` is built and shipped by the first CI run; to do it before that, redeploy the tag CI pushed: `wf ship agent-shell --ref <sha> --redeploy-only --tag sha-<8>` (agent-shell is deployed by hand: the pipeline never restarts its own runner), then check below.
 
-5. **New `LIBS_READ_PAR_URL`.** The plan's `afterApply` names the commands. The new URL replaces the stale one in the vault and libs-proxy takes it up:
+5. **`VM_HOST`.** The public IP changed. Update the CI vault project's `VM_HOST` (`ubuntu@<ip>`, from `wf vm terraform exec infra/oracle-cloud output -raw vm_host`) with the command in `infra/oracle-cloud/AGENTS.md` ("CI secrets live in Bitwarden"). It is not a GitHub Actions secret.
 
-   ```sh
-   wf vm terraform exec infra/oracle-cloud output -raw libs_read_par_url | wf secret update LIBS_READ_PAR_URL --value-stdin --apply
-   wf ship libs-proxy --ref dev --redeploy-only   # redeploys the tag at latest; CI's next push builds a new one
-   ```
+6. **Stale runner record.** `gh api repos/nuesslerm/mobile-learning-app/actions/runners --jq '.runners[] | [.id,.name,.status] | @tsv'`. A second `vm-main` that is `offline` is the old one: `gh api -X DELETE repos/nuesslerm/expo-hello-world-app-2/actions/runners/<id>`. The new runner is `online` with label `vm`.
 
-6. **`VM_HOST`.** The public IP changed. Update the CI vault project's `VM_HOST` (`ubuntu@<ip>`, from `wf vm terraform exec infra/oracle-cloud output -raw vm_host`) with the command in `infra/oracle-cloud/AGENTS.md` ("CI secrets live in Bitwarden"). It is not a GitHub Actions secret.
-
-7. **Stale runner record.** `gh api repos/nuesslerm/mobile-learning-app/actions/runners --jq '.runners[] | [.id,.name,.status] | @tsv'`. A second `vm-main` that is `offline` is the old one: `gh api -X DELETE repos/nuesslerm/expo-hello-world-app-2/actions/runners/<id>`. The new runner is `online` with label `vm`.
-
-8. **Check the restored state.** Nothing to run: cloud-init already restored every state volume from its newest verified snapshot before it started the first app (see "State backup", "Restore on a fresh VM"). Read `/home/ubuntu/provision-apps.log` (through `wf vm exec`) for one `state <volume>: restored (...)` line per volume; `none (no snapshot...)` is the first boot ever. A `FAILED` line names the volume that was not restored and the app that was therefore **not started**: fix the cause it names (the restic password in the vault, the bucket, a snapshot that never verified: `wf vm state verify`), then re-run `HOST_LABEL=main node /home/ubuntu/provision-apps.js` over `wf vm exec`, which restores into the still empty volume and starts the app. Then:
+7. **Check the restored state.** Nothing to run: cloud-init already restored every state volume from its newest verified snapshot before it started the first app (see "State backup", "Restore on a fresh VM"). Read `/home/ubuntu/provision-apps.log` (through `wf vm exec`) for one `state <volume>: restored (...)` line per volume; `none (no snapshot...)` is the first boot ever. A `FAILED` line names the volume that was not restored and the app that was therefore **not started**: fix the cause it names (the restic password in the vault, the bucket, a snapshot that never verified: `wf vm state verify`), then re-run `HOST_LABEL=main node /home/ubuntu/provision-apps.js` over `wf vm exec`, which restores into the still empty volume and starts the app. Then:
 
    ```sh
    wf vm state verify
@@ -136,8 +127,8 @@ Stop at the first failure and take its rollback.
 | Check | Command | Expect |
 | --- | --- | --- |
 | Every project healthy | `wf vm ops probe $(jq -r '.[].name' infra/oracle-cloud/vm-apps.json)` and `wf check --health` | Exit 0; each of the eleven apps answers on its tailnet name (the apps without `/health`, `ci-runner` and `agent-shell`, show as healthy containers). |
-| Tailnet names | `wf vm net resolve vm-ops-api-main agent-shell-main ci-runner-main libs-proxy-main` and `wf vm net device list` | Every name resolves to itself, no `-1` suffix; `ci-runner-main` is its own node, not the agent-shell one. |
-| ci-runner on its own node | `docker`-less: `wf vm ops logs ci-runner` and the runner list of step 7 | The listener says `Listening for Jobs`; `online`. Redeploying agent-shell (`wf ship agent-shell --ref <sha> --redeploy-only --tag sha-<8>`) leaves `ci-runner-gh-runner`'s start time unchanged (`wf vm ops stats`). |
+| Tailnet names | `wf vm net resolve vm-ops-api-main agent-shell-main ci-runner-main` and `wf vm net device list` | Every name resolves to itself, no `-1` suffix; `ci-runner-main` is its own node, not the agent-shell one. |
+| ci-runner on its own node | `docker`-less: `wf vm ops logs ci-runner` and the runner list of step 6 | The listener says `Listening for Jobs`; `online`. Redeploying agent-shell (`wf ship agent-shell --ref <sha> --redeploy-only --tag sha-<8>`) leaves `ci-runner-gh-runner`'s start time unchanged (`wf vm ops stats`). |
 | agent-shell guard active | `wf vm exec` of a script that prints `docker inspect agent-shell --format '{{.HostConfig.CpuShares}}'`, and `wf cache guard` | `128`; the guard (it runs in agent-shell through vm-ops-api's exec route, so it only answers when the rebuilt agent-shell and `wf-bin` are there) prints its result line with `action` set, not an error. The CI run's "Storage guard" step reports the same. |
 | State restored | `wf vm state verify` and `wf vm ops probe orca-serve leetcode-backend vnc-auth-session` | Every app `ok`; no device has to pair again; the next nightly backup is green. |
 | One full CI run | Push a commit that changes a file to dev, tagged `[services:all] [cache:no]` for a cold run (an empty commit starts no `deploy.yml` run), once the first run has published `wf`; follow `gh run watch` | Every job green: `plan`, `flow-tests`, `typecheck-lint-unit-tests`, `clis`, each `deploy (<service>)`, `integration-tests`, `cli-e2e-tests`, `deployment-verification-tests`, the browser and Android e2e jobs, `eas-update`. The first run is cold and long. |

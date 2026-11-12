@@ -33,6 +33,6 @@ Written for issue #367 (`docs/plans/ci-scoped-vault-access/plan.md`, U1.7); depl
 
 A job whose scope in `clis/secrets/src/data/job-scopes.json` is `open` (read-only, no deploy key) takes its runner from a repo variable: `runs-on: ${{ fromJSON(vars.RUNNER_<WORKFLOW>_<JOB> || '["self-hosted","vm"]') }}`. Today this is `RUNNER_TAG_GATE_GATE` (scheduled-triggers.yml `gate`). An unset variable keeps the VM runner. To switch one, set the variable to `["ubuntu-latest"]` (`gh variable set RUNNER_TAG_GATE_GATE --body '["ubuntu-latest"]'`); unset it to switch back.
 
-- Hosted runners cannot reach libs-proxy until the Phase 5 tailnet join, so only a job that needs no private registry may be switched; both jobs above use only `curl` and `jq`.
+- The shared libraries come from a public bucket, so no job needs the tailnet to build them; a job that needs nothing else from the tailnet may be switched to a hosted runner (both jobs above use only `curl` and `jq`).
 
 - **Buildkit is stopped after each build.** `wf ship build` makes a `docker-container` buildx builder (`ci-builder`) in the builder daemon, which keeps a buildkitd running after the build. The `build-image` action ends with `docker buildx stop ci-builder` (state volume and layer cache kept; the next build starts it again) and logs the buildkit memory before and after in the job summary.

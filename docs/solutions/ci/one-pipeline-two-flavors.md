@@ -93,7 +93,7 @@ sequenceDiagram
 
 `vm-ops-api` is the first leg because every other leg redeploys through it, and its swap drops their in-flight requests ("Peer disconnected"). The other legs build in parallel and wait only just before their redeploy. On the VM the wait is a no-op because legs already run one at a time.
 
-Hosted image builds run in a buildx container that cannot resolve the tailnet name `libs-proxy` (the cargo registry). The `build-image` action resolves the proxy's Tailscale IP and passes it as `--add-host` (`WF_BUILD_ADD_HOSTS`).
+Image builds fetch the shared libraries from the public libs bucket over plain HTTPS, so a build container on a hosted runner needs no tailnet name or `--add-host` (the registry proxy and `WF_BUILD_ADD_HOSTS` are gone).
 
 ## Concurrency groups
 

@@ -93,7 +93,6 @@ Events. `deploy.yml` runs on `push` to `dev` (paths filter) and `workflow_dispat
 | `leetcode-auth-cookie-capture` | 7 | `TELEGRAM_NOTIFY_SECRET` |
 | `vnc-auth-session` | 10 | `VNC_AUTH_*` (4), `VM_OPS_API_AUTH_TOKEN` |
 | `reporting-service` | 9 | `HEALTH_REPORTS_ORDS_*` (2), `BETTERSTACK_*` (5), `VM_PROVISION_GITHUB_TOKEN` |
-| `libs-proxy` | 2 | `LIBS_READ_PAR_URL` |
 | `t3-serve` | 2 | `T3_RCA_BEARER` |
 | `orca-serve` | 2 | `ORCA_RCA_BEARER` |
 
@@ -101,15 +100,15 @@ Events. `deploy.yml` runs on `push` to `dev` (paths filter) and `workflow_dispat
 
 Counting every key any workflow job above reads on the runner side, with `registry.json` as the source of names:
 
-- From the deploy-read project: 48 keys.
+- From the deploy-read project: 47 keys.
 - From the CI-read (`gh-ci`) project: 5 keys (`TS_TAILNET_ID`, `TS_CI_OAUTH_CLIENT_ID`, `TS_CI_OAUTH_CLIENT_SECRET`, `TS_VM_OAUTH_CLIENT_ID`, `TS_VM_OAUTH_CLIENT_SECRET`). These are the only five `registry.json` entries marked `vault: gh-ci`, and the only keys the `sm-action` blocks name.
-- Union: 53 keys, all present in `registry.json`.
+- Union: 52 keys, all present in `registry.json`.
 
 Against the plan's target scopes:
 
 | Bucket | Count | Keys |
 | --- | --- | --- |
-| In the plan's `ci-open` list and read by a job | 8 | `BUILD_CACHE_READ_PAR_URL`, `LIBS_READ_PAR_URL`, `HEALTH_REPORTS_ORDS_BASE_URL`, `TEST_RUNS_ORDS_BASE_URL`, `WF_USAGE_ORDS_BASE_URL`, `EDIT_STATS_ORDS_BASE_URL`, `POOL_COOLDOWNS_ORDS_BASE_URL`, `VERIFICATION_ARTIFACTS_PAR_URL` |
+| In the plan's `ci-open` list and read by a job | 7 | `BUILD_CACHE_READ_PAR_URL`, `HEALTH_REPORTS_ORDS_BASE_URL`, `TEST_RUNS_ORDS_BASE_URL`, `WF_USAGE_ORDS_BASE_URL`, `EDIT_STATS_ORDS_BASE_URL`, `POOL_COOLDOWNS_ORDS_BASE_URL`, `VERIFICATION_ARTIFACTS_PAR_URL` |
 | In the plan's `ci-deploy` list and read by a job | 11 | `VM_GATEWAY_REQUEST_SIGNING_PRIVATE_KEY`, `VM_GATEWAY_AUTH_SEED`, `VM_OPS_API_AUTH_TOKEN`, `DOCKERHUB_TOKEN`, `EXPO_TOKEN`, `BUILD_CACHE_WRITE_PAR_URL`, the five Tailscale keys above |
 | Read by a job, in neither list | 34 | see below |
 
@@ -125,7 +124,7 @@ The 34 keys the plan does not place in a scope:
 
 Does the union equal what the plan says (deploy-read 75 keys, CI-read 18 keys)? No, and it cannot be checked fully from the repo:
 
-- Deploy-read project. A job on the runner reads 48 keys of it. `registry.json` has 80 keys that resolve through the deploy-read token (98 entries, minus 4 bootstrap tokens, 5 `gh-ci`, 8 `admin`, and `GITHUB_TOKEN`, which is an environment name, not a vault key); the plan measured 75 live. The 5 that the registry has and the vault does not are not named by the repo. The other 32 registry keys (27 if five are absent from the vault) are read by no job on the runner: Telegram client keys (6), the SSH keys, `OCI_*` (7), PagerDuty and budget alert settings, the restic and age keys, `ADB_ADMIN_PASSWORD`, `LIBS_WRITE_PAR_URL`, `LIBS_INDEX_WRITE_PAR_URL`, and the two legacy cache URLs (`PNPM_CACHE_PAR_URL`, `NX_REMOTE_CACHE_PAR_URL`, which no code resolves).
+- Deploy-read project. A job on the runner reads 47 keys of it. `registry.json` has 78 keys that resolve through the deploy-read token (96 entries, minus 4 bootstrap tokens, 5 `gh-ci`, 8 `admin`, and `GITHUB_TOKEN`, which is an environment name, not a vault key); the plan measured 75 live. The 5 that the registry has and the vault does not are not named by the repo. The other 32 registry keys (27 if five are absent from the vault) are read by no job on the runner: Telegram client keys (6), the SSH keys, `OCI_*` (7), PagerDuty and budget alert settings, the restic and age keys, `ADB_ADMIN_PASSWORD`, `LIBS_WRITE_PAR_URL`, `LIBS_INDEX_WRITE_PAR_URL`, and the two legacy cache URLs (`PNPM_CACHE_PAR_URL`, `NX_REMOTE_CACHE_PAR_URL`, which no code resolves).
 - CI-read project. Statically it needs 5 keys. The plan's 18 includes OCI, Expo, Docker Hub and the signing seed; no workflow that uses the CI-read token resolves any of them (`sm-action` names three Tailscale keys per workflow, and `wf` in `tailscale-auth-key-expiry.yml` finds its keys through the same token). So 13 of the 18 are either unused by this repo's workflows or reached through the read fallback (`Source::GhCi` first, then `Source::Read`, `clis/secrets/src/secrets/backend.rs:352-356`), which the CI-read token cannot satisfy for keys outside its project. The live listing of that project would settle which.
 
 Findings that change the plan:

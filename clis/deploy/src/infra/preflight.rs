@@ -5,10 +5,10 @@ use super::*;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// What a recreate may destroy: the VM itself and the PAR whose replacement is the known drift. Anything else destroyed fails the plan check.
-const EXPECTED_DESTROYS: [&str; 2] = ["oci_core_instance.main", "oci_objectstorage_preauthrequest.libs_read"];
+const EXPECTED_DESTROYS: [&str; 1] = ["oci_core_instance.main"];
 const VM: &str = "oci_core_instance.main";
 /// A replaced resource whose new value is minted by Terraform and lives in the vault, with the output and the vault key that carry it over.
-const MINTED: [(&str, &str, &str); 1] = [("oci_objectstorage_preauthrequest.libs_read", "libs_read_par_url", "LIBS_READ_PAR_URL")];
+const MINTED: [(&str, &str, &str); 0] = [];
 /// Secrets a recreate reads beyond each app's own group: the Terraform inputs.
 const TERRAFORM_EXTRAS: [&str; 6] = ["BWS_ADMIN_ACCESS_TOKEN", "ADB_ADMIN_PASSWORD", "OCI_TFSTATE_S3_ACCESS_KEY_ID", "OCI_TFSTATE_S3_SECRET_ACCESS_KEY", "TS_VM_OAUTH_CLIENT_SECRET", "TS_TAILNET_ID"];
 const IN_FLIGHT: [&str; 4] = ["in_progress", "queued", "waiting", "pending"];

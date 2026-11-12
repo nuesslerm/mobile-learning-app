@@ -31,7 +31,6 @@ const DEPLOY_LEGS: &[Leg] = &[
     Leg { app: "leetcode-backend", package: "@app/leetcode-backend" },
     Leg { app: "leetcode-auth-cookie-capture", package: "@app/leetcode-auth-cookie-capture" },
     Leg { app: "reporting-service", package: "@backend/reporting-service" },
-    Leg { app: "libs-proxy", package: "@backend/libs-proxy" },
     Leg { app: "t3-serve", package: "crate-t3-serve" },
     Leg { app: "orca-serve", package: "crate-orca-serve" },
     Leg { app: "vnc-auth-session", package: "@cli/vnc-auth-capture" },

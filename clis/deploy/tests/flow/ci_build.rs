@@ -105,7 +105,7 @@ fn a_failed_push_stops_the_build_without_leaking_the_credential_and_a_bad_comman
         (vec!["ship", "build", "remote-chat-agent", "--tag", "t1"], "DOCKERHUB_TOKEN is not set"),
         (vec!["ship", "build", "nope", "--tag", "t1"], "nope builds no image"),
         (vec!["ship", "build", "ci-runner", "--tag", "t1"], "ci-runner builds no image"),
-        (vec!["ship", "build", "libs-proxy", "--tag", "a b"], "unsafe tag"),
+        (vec!["ship", "build", "reporting-service", "--tag", "a b"], "unsafe tag"),
     ] {
         let s = Ship::new();
         fake_docker(&s);
@@ -295,24 +295,3 @@ fn with_fresh_every_image_is_rebuilt_without_the_layer_cache_even_when_the_regis
     assert!(r.stdout.contains("\"reused\": false") && !r.stdout.contains("\"reused\": true"), "{}", r.stdout);
 }
 
-#[test]
-fn with_build_add_hosts_each_pair_reaches_the_build_so_a_hosted_container_resolves_a_tailnet_name() {
-    // Given a hosted runner that names the tailnet address of the registry proxy
-    let s = Ship::new();
-    fake_docker(&s);
-
-    // When the images are built
-    let r = s.wf(
-        &["ship", "build", "remote-chat-agent", "--tag", "sha-abc1234", "--ref", "HEAD"],
-        &[("DOCKERHUB_TOKEN", TOKEN), ("DOCKER_HOST", "tcp://127.0.0.1:2376"), ("WF_BUILD_ADD_HOSTS", "libs-proxy:100.64.0.7, other:100.64.0.8")],
-    );
-
-    // Then every image build carries one --add-host per pair
-    assert_eq!(r.exit_code, 0, "{}", r.stderr);
-    let all = calls(&s);
-    let built: Vec<&String> = all.iter().filter(|c| c.starts_with("buildx build") && c.contains("-f ")).collect();
-    assert!(!built.is_empty(), "{all:?}");
-    for call in built {
-        assert!(call.contains("--add-host libs-proxy:100.64.0.7") && call.contains("--add-host other:100.64.0.8"), "{call}");
-    }
-}

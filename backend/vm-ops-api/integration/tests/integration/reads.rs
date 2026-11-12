@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 use std::path::Path;
 use vm_ops_api_integration::{assert_golden, auth, case, frame, now_ms, Exec, Logs, GIT_COMMIT, HOST_LABEL, IMAGE_TAG};
 
-const KNOWN_APPS: [&str; 10] = [
+const KNOWN_APPS: [&str; 9] = [
     "leetcode-backend",
     "remote-chat-agent",
     "leetcode-auth-cookie-capture",
@@ -18,7 +18,6 @@ const KNOWN_APPS: [&str; 10] = [
     "ci-runner",
     "vnc-auth-session",
     "reporting-service",
-    "libs-proxy",
     "t3-serve",
     "orca-serve",
 ];

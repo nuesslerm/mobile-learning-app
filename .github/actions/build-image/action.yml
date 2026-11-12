@@ -47,8 +47,6 @@ runs:
           # a hosted runner builds on its own daemon, whatever the job environment names
           echo "DOCKER_HOST=" >> "$GITHUB_ENV"; echo "DOCKER_TLS_VERIFY=" >> "$GITHUB_ENV"; echo "DOCKER_CERT_PATH=" >> "$GITHUB_ENV"
           echo "hosted runner: building on the local docker daemon"
-          # the build container does not see the runner's MagicDNS: hand it the registry proxy's tailnet address (cargo registry `mla`)
-          ip=$(tailscale ip -4 libs-proxy 2>/dev/null | head -1) && [ -n "$ip" ] && echo "WF_BUILD_ADD_HOSTS=libs-proxy:$ip" >> "$GITHUB_ENV" || echo "::warning::no tailnet address for libs-proxy: a cargo build in an image will not reach the registry"
         fi
     - name: Build and push
       shell: bash

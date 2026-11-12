@@ -8,7 +8,7 @@ RUN apk add --no-cache ca-certificates
 
 FROM docker.io/library/rust:1-bookworm AS builder
 WORKDIR /src
-# The shared libraries come from the mla registry (libs-proxy on the tailnet); the lockfile pins their versions.
+# The shared libraries come from the mla registry (a public bucket, plain HTTPS); the lockfile pins their versions.
 COPY .cargo/config.toml /src/.cargo/config.toml
 COPY clis/Cargo.toml clis/Cargo.lock ./clis/
 COPY clis/wf-kit ./clis/wf-kit

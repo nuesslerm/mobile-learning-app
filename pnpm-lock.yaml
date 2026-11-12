@@ -181,7 +181,6 @@ importers:
         specifier: 'catalog:'
         version: 1.87.0(oxlint-tsgolint@7.0.2003)
 
-  backend/libs-proxy: {}
 
   backend/remote-chat-agent:
     dependencies:

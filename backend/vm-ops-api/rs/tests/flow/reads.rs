@@ -51,7 +51,7 @@ async fn given_an_app_with_containers_when_ps_is_read_then_each_is_a_row_and_an_
         )
     );
     // And the unknown app is 404 with the ten known apps in order
-    let known = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "libs-proxy", "t3-serve", "orca-serve"];
+    let known = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
     assert_eq!((unknown.status, unknown.body), (404, json!({ "error": "unknown app", "knownApps": known }).to_string()));
     // And without auth ps is 401, as every route but the public ones
     assert_eq!(world.send("GET", "/services/remote-chat-agent/ps", &[], b"").await.body, UNAUTHORIZED);

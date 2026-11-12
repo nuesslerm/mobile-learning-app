@@ -9,9 +9,9 @@ and usable; every app with stateVolumes has a backup under 24 hours old that
 verifies (wf vm state verify); the tailnet admin API answers with the credentials
 the recreate deletes old node records with (a read-only device list: "tailnet"); no workflow run is
 queued or in progress; the plan of the recreate (-replace on the VM) destroys
-only the VM and the libs_read PAR, passes the free-tier guard, and lists the
-actions per resource. `plan.afterApply` names the vault updates a replaced PAR
-needs. Changes nothing but the local backup.
+only the VM and nothing else, passes the free-tier guard, and lists the
+actions per resource. `plan.afterApply` names the vault updates a replaced
+resource needs (none today). Changes nothing but the local backup.
 
 Options:
   --expect <address>  Also accept this resource being destroyed (repeatable)

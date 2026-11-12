@@ -142,7 +142,7 @@ fn vm_logs_queries_betterstack_over_https_and_prints_one_line_per_row() {
     assert!(r.stderr.contains("See `wf secret list` for where each value comes from."), "{}", r.stderr);
 }
 
-const APPS: [&str; 10] = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "libs-proxy", "t3-serve", "orca-serve"];
+const APPS: [&str; 9] = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
 
 /// vm-ops-api for `wf vm recover`: routes by method and path, a queue per route, entries that answer only once `oci` dropped a
 /// flag file for an action, and entries that drop the connection as a host that is down does.
@@ -774,14 +774,13 @@ fn a_failed_tailnet_cleanup_retries_then_stops_the_recreate_before_the_vm_is_cre
     assert_eq!(o.verbs(), ["plan", "show", "state", "destroy"]);
 }
 
-/// A vault holding every secret the recreate preflight reads for an app list of `libs-proxy` and `t3-serve` (neither has a live check), less `without`.
+/// A vault holding every secret the recreate preflight reads for an app list of `t3-serve` (it has no live check), less `without`.
 fn preflight_vault(without: &[&str]) -> Value {
     let fingerprint = ["aa"; 16].join(":");
     let password = "p".repeat(43);
     let mut vault = state_keys().as_array().unwrap().clone();
     for (key, value) in [
         ("TS_VM_AUTH_KEY", "tskey-abc"),
-        ("LIBS_READ_PAR_URL", "https://objectstorage.example/p/x/o/libs/"),
         ("T3_RCA_BEARER", "bearer"),
         ("OCI_TENANCY_OCID", "ocid1.tenancy.x"),
         ("OCI_USER_OCID", "ocid1.user.x"),
@@ -814,7 +813,7 @@ fn the_recreate_preflight_passes_only_when_state_secrets_ci_and_plan_all_hold() 
     let backups_arg = backups.display().to_string();
     std::fs::write(
         o.repo.join("infra/oracle-cloud/vm-apps.json"),
-        json!([{ "name": "libs-proxy", "repoPath": "x", "composeFile": "c.yml" }, { "name": "t3-serve", "repoPath": "y", "composeFile": "c.yml" }]).to_string(),
+        json!([{ "name": "t3-serve", "repoPath": "y", "composeFile": "c.yml" }]).to_string(),
     )
     .unwrap();
     let tailscale = tailnet_api(json!([{ "id": "d1", "name": "vm-ops-api-main.tail.ts.net", "tags": ["tag:mobile-learning"] }]));
@@ -822,7 +821,6 @@ fn the_recreate_preflight_passes_only_when_state_secrets_ci_and_plan_all_hold() 
     let holds_vm = json!({ "serial": 7, "resources": [{ "mode": "managed", "type": "oci_core_instance", "name": "main" }, { "mode": "managed", "type": "oci_identity_dynamic_group", "name": "budget_guard_fn", "instances": [{}] }] }).to_string();
     let a1 = json!({ "shape": "VM.Standard.A1.Flex", "shape_config": [{ "ocpus": 2, "memory_in_gbs": 12 }] });
     let replace_vm = json!({ "address": "oci_core_instance.main", "change": { "actions": ["delete", "create"], "before": a1, "after": a1 } });
-    let replace_par = change("oci_objectstorage_preauthrequest.libs_read", json!(["delete", "create"]));
     let table = |plan: Vec<Value>, state: &str| json!({ "state pull": { "stdout": state }, "show": show(Value::Array(plan)) });
     let set_runs = |runs: Value| std::fs::write(o.dir.path().join("gh.json"), runs.to_string()).unwrap();
     let preflight = |extra: &[&str]| {
@@ -833,16 +831,15 @@ fn the_recreate_preflight_passes_only_when_state_secrets_ci_and_plan_all_hold() 
     let failed = |v: &Value| -> Vec<String> { v["checks"].as_array().unwrap().iter().filter(|c| c["ok"] == false).map(|c| c["name"].as_str().unwrap().to_string()).collect() };
     let detail = |v: &Value, name: &str| -> String { v["checks"].as_array().unwrap().iter().find(|c| c["name"] == name).unwrap()["detail"].as_str().unwrap().to_string() };
 
-    // Given a state that holds the VM, every secret, no run in flight and a plan that replaces only the VM and the libs_read PAR
+    // Given a state that holds the VM, every secret, no run in flight and a plan that replaces only the VM
     set_runs(json!({}));
-    o.world(preflight_vault(&[]), table(vec![replace_vm.clone(), replace_par.clone(), no_change()], &holds_vm), json!([]));
+    o.world(preflight_vault(&[]), table(vec![replace_vm.clone(), no_change()], &holds_vm), json!([]));
     let r = preflight(&[]);
-    // Then every check passes, the plan lists the actions per resource, and the vault update the new PAR needs is named
+    // Then every check passes, the plan lists the actions per resource, and nothing needs minting after the apply
     let v = verdict(&r);
     assert_eq!((r.exit_code, v["ok"].clone(), failed(&v)), (0, json!(true), Vec::<String>::new()), "{}{}", r.stdout, r.stderr);
-    assert_eq!(v["plan"]["destroys"], json!(["oci_core_instance.main", "oci_objectstorage_preauthrequest.libs_read"]));
-    assert_eq!(v["plan"]["changes"][1], json!({ "address": "oci_objectstorage_preauthrequest.libs_read", "actions": ["delete", "create"] }));
-    assert!(v["plan"]["afterApply"][0]["run"].as_str().unwrap().ends_with("output -raw libs_read_par_url | wf secret update LIBS_READ_PAR_URL --value-stdin --apply"), "{v}");
+    assert_eq!(v["plan"]["destroys"], json!(["oci_core_instance.main"]));
+    assert_eq!(v["plan"]["afterApply"], json!([]));
     assert_eq!(v["next"], "wf vm terraform apply --recreate");
     // and the plan was made with the VM replaced, the state backed up byte for byte, and nothing destroyed or applied
     let log = o.tf_log();
@@ -951,7 +948,7 @@ fn the_recreate_preflight_refuses_state_whose_backup_is_stale_damaged_or_unreach
     let backups = o.dir.path().join("backups").display().to_string();
     std::fs::write(
         o.repo.join("infra/oracle-cloud/vm-apps.json"),
-        json!([{ "name": "libs-proxy", "repoPath": "x", "composeFile": "c.yml" }, { "name": "orca-serve", "repoPath": "y", "composeFile": "c.yml", "stateVolumes": [{ "name": "orca-state", "maxBytes": 1000 }] }]).to_string(),
+        json!([{ "name": "orca-serve", "repoPath": "y", "composeFile": "c.yml", "stateVolumes": [{ "name": "orca-state", "maxBytes": 1000 }] }]).to_string(),
     )
     .unwrap();
     let holds_vm = json!({ "serial": 7, "resources": [{ "mode": "managed", "type": "oci_core_instance", "name": "main" }, { "mode": "managed", "type": "oci_identity_dynamic_group", "name": "budget_guard_fn", "instances": [{}] }] }).to_string();
