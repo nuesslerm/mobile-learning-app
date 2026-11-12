@@ -45,6 +45,12 @@ pre-commit:
       glob: '{backend/**/*.rs,libraries/agent-api/**/*.rs,clis/rca-exec/src/domain.rs,.ls-lint.yml,backend/sgconfig.yml,backend/arch-rules/**,backend/arch-utils/**,backend/arch-tests/**}'
       run: pnpm run arch:services
 
+    - name: workflows
+      # The pipeline crate's flow tests read every workflow and action as text (no step writes into the checkout, the jobs the callers share, the tags): a change under
+      # .github/ that only actionlint saw reached CI red once. About 10 s with the crate built.
+      glob: '.github/**'
+      run: cargo test --manifest-path clis/Cargo.toml -p pipeline --test flow
+
 post-land:
   parallel: true
   jobs:
