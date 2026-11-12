@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { parse } from 'yaml';
+import { loadCompose } from '../../tests/compose-load.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
-const compose = parse(readFileSync(join(root, 'infra/oracle-cloud/ci-runner/docker-compose.prod.yml'), 'utf8'), { merge: true });
+const compose = loadCompose(join(root, 'infra/oracle-cloud/ci-runner/docker-compose.prod.yml'));
 const groups = JSON.parse(readFileSync(join(root, 'clis/secrets/src/secrets/groups.json'), 'utf8'));
 const runner = compose.services['gh-runner'];
 const builder = compose.services.builder;

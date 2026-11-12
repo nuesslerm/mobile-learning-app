@@ -59,8 +59,8 @@ pub fn container_names(app: &str) -> Option<&'static [&'static str]> {
         "leetcode-backend" => &["leetcode-backend", "leetcode-backend-tailscale"],
         "remote-chat-agent" => &["remote-chat-agent", "remote-chat-agent-tailscale", "remote-chat-agent-opencode"],
         "leetcode-auth-cookie-capture" => &["leetcode-capture", "leetcode-capture-tailscale"],
-        "agent-shell" => &["agent-shell", "agent-shell-sessions", "agent-shell-dind", "agent-shell-tailscale"],
-        "ci-runner" => &["ci-runner-tailscale", "ci-runner-builder", "ci-runner-gh-runner"],
+        "agent-shell" => &["agent-shell", "agent-shell-sessions", "agent-shell-dind", "agent-shell-droid", "agent-shell-tailscale"],
+        "ci-runner" => &["ci-runner-tailscale", "ci-runner-builder", "ci-runner-droid", "ci-runner-gh-runner"],
         "vnc-auth-session" => &["vnc-auth", "vnc-auth-tailscale"],
         "reporting-service" => &["reporting-service", "reporting-service-tailscale"],
         "libs-proxy" => &["libs-proxy", "libs-proxy-tailscale"],
@@ -78,6 +78,14 @@ pub fn compose_file(app: &str) -> Option<&'static str> {
         "vnc-auth-session" => "docker-compose.auth.yml",
         _ => return None,
     })
+}
+
+/// Repo files an app's compose file reaches by a relative path (`extends: file: ../dind.yml`); provisioning copies each one to the same relative spot beside the app's directory.
+pub fn shared_files(app: &str) -> &'static [&'static str] {
+    match app {
+        "agent-shell" | "ci-runner" => &["infra/oracle-cloud/dind.yml"],
+        _ => &[],
+    }
 }
 
 pub fn repo_path(app: &str) -> String {
@@ -201,13 +209,23 @@ mod tests {
     }
 
     #[test]
+    fn given_the_apps_that_extend_the_shared_dind_file_when_their_shared_files_are_read_then_it_is_in_the_repo_and_the_others_have_none() {
+        for app in ["agent-shell", "ci-runner"] {
+            assert_eq!(shared_files(app), ["infra/oracle-cloud/dind.yml"], "{app}");
+            let path = format!("{}/../../../{}", env!("CARGO_MANIFEST_DIR"), shared_files(app)[0]);
+            assert!(std::path::Path::new(&path).is_file(), "{path}");
+        }
+        assert!(KNOWN_APPS.iter().filter(|app| !["agent-shell", "ci-runner"].contains(app)).all(|app| shared_files(app).is_empty()));
+    }
+
+    #[test]
     fn given_the_apps_when_their_container_names_are_read_then_each_is_the_compose_files_explicit_list() {
         let expected: [(&str, &[&str]); 11] = [
             ("leetcode-backend", &["leetcode-backend", "leetcode-backend-tailscale"]),
             ("remote-chat-agent", &["remote-chat-agent", "remote-chat-agent-tailscale", "remote-chat-agent-opencode"]),
             ("leetcode-auth-cookie-capture", &["leetcode-capture", "leetcode-capture-tailscale"]),
-            ("agent-shell", &["agent-shell", "agent-shell-sessions", "agent-shell-dind", "agent-shell-tailscale"]),
-            ("ci-runner", &["ci-runner-tailscale", "ci-runner-builder", "ci-runner-gh-runner"]),
+            ("agent-shell", &["agent-shell", "agent-shell-sessions", "agent-shell-dind", "agent-shell-droid", "agent-shell-tailscale"]),
+            ("ci-runner", &["ci-runner-tailscale", "ci-runner-builder", "ci-runner-droid", "ci-runner-gh-runner"]),
             ("vnc-auth-session", &["vnc-auth", "vnc-auth-tailscale"]),
             ("reporting-service", &["reporting-service", "reporting-service-tailscale"]),
             ("libs-proxy", &["libs-proxy", "libs-proxy-tailscale"]),

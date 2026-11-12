@@ -99,7 +99,7 @@ echo '{SERIAL} down'\n"
 pub fn run_local(verb: &str, script: &str) -> Result<(), String> {
     let path = std::env::temp_dir().join(format!("wf-android-emulator-{verb}-{}.sh", std::process::id()));
     std::fs::write(&path, script).map_err(|e| format!("cannot write {}: {e}", path.display()))?;
-    let status = Command::new("bash").arg(&path).stdout(Stdio::inherit()).status();
+    let status = crate::android_lab::on_device_daemon(Command::new("bash").arg(&path)).stdout(Stdio::inherit()).status();
     let _ = std::fs::remove_file(&path);
     match status {
         Ok(s) if s.success() => Ok(()),

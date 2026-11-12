@@ -137,4 +137,6 @@ Related: `ci-pipeline-on-the-vm.md` (the VM pipeline in detail), `hosted-minutes
 
 ## Android device on the VM flavor
 
-The VM flavor drives the redroid device lab over adb (`WF_ANDROID_PROVIDER=redroid-lab`, serial `agent-shell-main:5555`); the tailnet policy grants `tcp:5555` to `tag:ci-self-hosted` only. The hosted flavor brings its own emulator and never needs it.
+The VM flavor runs the redroid device in the runner's own docker, with `wf android start-device --local`: the `droid` daemon of the `ci-runner` project (a docker-in-docker daemon on a unix socket, `DEVICE_DOCKER_HOST=unix:///run/droid/docker.sock`; the Android verbs only, builds keep the `builder`). The device shares the runner's network namespace, so adb is `localhost:5555` and no tailnet grant or vm-ops-api route is involved. The hosted flavor brings its own emulator. agent-shell has its own `agent-droid` daemon the same way.
+
+All three daemons (`builder`, `droid`, `agent-droid`) extend the one definition in `infra/oracle-cloud/dind.yml`; vm-ops-api provisions that file one level above each app's directory (`shared_files` in `core/src/domain/apps.rs`), the place it has in the repo. A compose file that extends it must be redeployed by a vm-ops-api that knows the file, so deploy vm-ops-api first.

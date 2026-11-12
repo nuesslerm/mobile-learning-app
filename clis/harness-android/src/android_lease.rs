@@ -288,7 +288,7 @@ pub fn release_and_hand_over(device: &str, id: &str, clear: Option<&str>) {
 /// What the next holder inherits: every user-installed app stopped, the named one cleared, logcat empty. Where docker is
 /// not available (anywhere but the VM) there is nothing to clean.
 fn hand_over(device: &str, clear: Option<&str>) {
-    let docker = |args: &[&str]| std::process::Command::new("docker").args(args).output().ok().filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).to_string());
+    let docker = |args: &[&str]| crate::android_lab::on_device_daemon(std::process::Command::new("docker").args(args)).output().ok().filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).to_string());
     let Some(listed) = docker(&["exec", device, "pm", "list", "packages", "-3"]) else { return };
     for pkg in listed.lines().filter_map(|l| l.trim().strip_prefix("package:")) {
         let _ = docker(&["exec", device, "am", "force-stop", pkg]);

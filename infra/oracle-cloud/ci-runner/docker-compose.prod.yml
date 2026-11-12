@@ -51,10 +51,8 @@ services:
   # Docker-in-docker for the CI jobs' image builds: TLS only (client certificates in the builder-certs volume), no published port, no host
   # docker socket. It shares the tailscale container's network, so the runner reaches it on 127.0.0.1:2376; the tailnet ACL never opens 2376.
   builder:
-    image: docker:27.5.1-dind
+    extends: {file: ../dind.yml, service: dind}
     container_name: ci-runner-builder
-    privileged: true
-    network_mode: service:tailscale
     environment:
       DOCKER_TLS_CERTDIR: /certs
     volumes:
@@ -68,8 +66,25 @@ services:
       timeout: 15s
       retries: 3
       start_period: 40s
-    restart: unless-stopped
-    logging: *logging
+
+  # The Android device's own daemon (redroid), apart from the image builds: the `wf android` verbs point DEVICE_DOCKER_HOST at it. It
+  # listens on a unix socket in the droid-socket volume only, never on a port, so it does not clash with the builder's 2376 in the shared
+  # network namespace, where the device's adb port 5555 stays on 127.0.0.1.
+  droid:
+    extends: {file: ../dind.yml, service: dind}
+    container_name: ci-runner-droid
+    command: ["dockerd", "--host=unix:///run/droid/docker.sock"]
+    volumes:
+      - droid-socket:/run/droid
+      - droid-data:/var/lib/docker
+    depends_on:
+      - tailscale
+    healthcheck:
+      test: ["CMD-SHELL", "docker -H unix:///run/droid/docker.sock info >/dev/null"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 40s
 
   # The only writer of the `clis` volume besides a runner's own tree builds: every flavor of the CI publishes its wf as the `wf-latest` release (the clis job
   # of pipeline.yml, after the tests passed) and this container pulls it: it checks the sha256, installs it under /opt/clis/<clis tree> and points
@@ -137,6 +152,8 @@ services:
       DOCKER_HOST: tcp://127.0.0.1:2376
       DOCKER_TLS_VERIFY: "1"
       DOCKER_CERT_PATH: /certs/client
+      # The Android verbs only: the device runs on its own daemon, not the builder.
+      DEVICE_DOCKER_HOST: unix:///run/droid/docker.sock
       RUNNER_WORKDIR: /runner-work
       HOST_LABEL: ${HOST_LABEL}
       # Already on the tailnet through the sidecar, so `wf` connects directly instead of via a SOCKS proxy.
@@ -151,6 +168,7 @@ services:
       # container never resumes the old registration.
       - gh-runner-config-4:/runner-config
       - builder-certs:/certs:ro
+      - droid-socket:/run/droid
       # Keeps the pnpm package store across jobs and container recreates, so installs reuse downloads.
       - gh-runner-pnpm-store:/root/.local/share/pnpm
       # The one build of the CLIs (the clis-sync container installs the published wf here and flips current); the other projects mount it read-only.
@@ -158,6 +176,7 @@ services:
     depends_on:
       - tailscale
       - builder
+      - droid
     # The runner shares the tailscale container's network: when that container restarts, the runner is left on a dead network, stops
     # taking jobs and still looks up. Listener alive and GitHub reachable from inside that network; the watchdog recreates it when unhealthy.
     # A runner with a job running (a Runner.Worker) is healthy: a build starves the 8 s probe and the recreate kills the job.
@@ -176,6 +195,8 @@ volumes:
   gh-runner-pnpm-store:
   builder-certs:
   builder-data:
+  droid-socket:
+  droid-data:
   tailscale-state:
   # Shared with every project that runs `wf` (agent-shell, vm-ops-api mount it read-only). External: no project owns its lifecycle, and
   # cloud-init and vm-ops-api's redeploy create it (`docker volume create clis`, idempotent) before any project starts.

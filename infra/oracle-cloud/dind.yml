@@ -1,0 +1,14 @@
+# The one definition of a docker-in-docker daemon, shared by every project that runs one (`extends: {file: ../dind.yml, service: dind}`):
+# ci-runner's builder and droid, agent-shell's droid. vm-ops-api provisions this file one level above each app's directory, the same
+# place it has in the repo. It carries no volumes (each daemon keeps its own state) and no command (each says how it listens).
+services:
+  dind:
+    image: docker:27.5.1-dind
+    privileged: true
+    network_mode: service:tailscale
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"

@@ -1,7 +1,7 @@
 //! The `docker run` argv of every sibling that deploys: the app redeploy, the self-swap, the history append and the retire. Each
 //! script is pinned by its snapshot (`golden`).
 use crate::application::scripts::{HELPER_APPEND_ENV_LOCAL, HELPER_PROVISION, HELPER_VERIFY_ENV, IMAGE_REPO};
-use crate::domain::apps::{repo_path, replaceable_services, smoke, SMOKE_CI_PORT, SMOKE_PORT};
+use crate::domain::apps::{repo_path, replaceable_services, shared_files, smoke, SMOKE_CI_PORT, SMOKE_PORT};
 use crate::domain::js;
 use crate::domain::provision_ref::raw_url;
 use serde_json::{json, Map, Value};
@@ -178,10 +178,11 @@ fn request_env_lines(dir: &str, request_env: &[(String, String)]) -> Vec<String>
 fn app_front_lines(env: &RedeployEnv, request: &AppRedeploy) -> Vec<String> {
     let (host_dir, reference) = (request.host_dir, request.reference);
     let repo_path = repo_path(request.app);
-    let files = [
+    let mut files = vec![
         (raw_url(&format!("{repo_path}/{}", request.compose_file), reference), format!("{host_dir}/{}", request.compose_file)),
         (raw_url(&format!("{repo_path}/.env.defaults"), reference), format!("{host_dir}/.env.defaults")),
     ];
+    files.extend(shared_files(request.app).iter().map(|path| (raw_url(path, reference), format!("{host_dir}/../{}", path.rsplit('/').next().unwrap_or(path)))));
     let mut lines = vec!["set -e".to_string(), stamp("start"), format!("mkdir -p {host_dir}")];
     lines.extend(provision_lines(&format!("{}'\"'\"'s compose file and .env.defaults", request.app), reference, &files));
     lines.push(stamp("provisioned"));

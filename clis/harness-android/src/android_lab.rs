@@ -137,6 +137,15 @@ impl Up {
     }
 }
 
+/// Points a child's docker at the device's own daemon when `DEVICE_DOCKER_HOST` names one (the VM's runner and agent-shell each run a
+/// `droid` daemon beside their builder/session one); with it unset the child keeps the ambient daemon.
+pub fn on_device_daemon(cmd: &mut std::process::Command) -> &mut std::process::Command {
+    match std::env::var("DEVICE_DOCKER_HOST") {
+        Ok(host) if !host.is_empty() => cmd.env("DOCKER_HOST", host).env_remove("DOCKER_TLS_VERIFY").env_remove("DOCKER_CERT_PATH"),
+        _ => cmd,
+    }
+}
+
 /// Runs a script here, in agent-shell's own shell (what the device lab's job does), its output on stderr.
 pub fn run_local(verb: &str, script: &str) -> Result<(), String> {
     crate::android_emulator::run_local(verb, script)
@@ -144,7 +153,7 @@ pub fn run_local(verb: &str, script: &str) -> Result<(), String> {
 
 /// Runs a script here and returns its output.
 fn capture_local(script: &str) -> Result<String, String> {
-    let out = std::process::Command::new("bash").arg("-c").arg(script).stdin(std::process::Stdio::null()).output().map_err(|e| format!("cannot run bash: {e}"))?;
+    let out = on_device_daemon(std::process::Command::new("bash").arg("-c").arg(script)).stdin(std::process::Stdio::null()).output().map_err(|e| format!("cannot run bash: {e}"))?;
     match out.status.code() {
         Some(0) => Ok(String::from_utf8_lossy(&out.stdout).to_string()),
         c => Err(format!("local script exit {}: {}", c.unwrap_or(-1), String::from_utf8_lossy(&out.stderr).trim())),
