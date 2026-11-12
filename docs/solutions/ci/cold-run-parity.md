@@ -9,3 +9,5 @@ gh run view <run> --json jobs --jq '.jobs[]|"\(.conclusion)\t\(.name)\t\((.compl
 ```
 
 Results are recorded below, newest first.
+
+The first full run (995ad26c) found two real failures on the GitHub-hosted flavor that the local gate had missed: a clippy error in a `wf lib` test and a `wf` command with no section in `docs/reference/wf-cli.md`. Both are fixed (b2d558d5); the local pre-commit gate does not run the clippy of test targets or the `wf` surface test.
