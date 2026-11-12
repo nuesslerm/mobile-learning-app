@@ -134,3 +134,7 @@ Numbers of the first cold hosted run and the VM warm-cache run: `hosted-minutes.
 - Cold runs come from the `[cache:no]` commit tag: `wf ci audit` judges a run cold when its head commit carries it (or when it was dispatched by hand). The weekly cold run is `cold-ci.yml` (schedule and dispatch, hosted flavor, nothing deployed or shipped): it calls this pipeline with the `fresh` and `services: all` inputs, which do what the `[cache:no]` and `[services:all]` tags do for a commit that carries none, and `wf ci audit` judges a scheduled run cold.
 
 Related: `ci-pipeline-on-the-vm.md` (the VM pipeline in detail), `hosted-minutes.md` (billing and timings), `job-secret-needs.md` (vault scope per job; `clis/secrets/src/data/job-scopes.json`), `cache-layers.md`.
+
+## Android device on the VM flavor
+
+The VM flavor drives the redroid device lab over adb (`WF_ANDROID_PROVIDER=redroid-lab`, serial `agent-shell-main:5555`); the tailnet policy grants `tcp:5555` to `tag:ci-self-hosted` only. The hosted flavor brings its own emulator and never needs it.
