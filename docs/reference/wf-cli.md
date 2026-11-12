@@ -7059,6 +7059,38 @@ Commands:
 
 </details>
 
+#### `wf vm ops install-clis`
+
+Asks vm-ops-api (its CI port) to install the wf build CI published as the wf-latest release on the VM's clis volume: a sibling fetches wf-linux-arm64.tar.gz, installs it only when it hashes to --sha256, and points /opt/clis/current at it. For a runner that cannot write to the VM's disk (a GitHub-hosted one); the VM's own runner does not need it.
+
+Usage: `wf vm ops install-clis --sha256 <hex> [options]`
+
+Examples:
+
+```sh
+wf vm ops install-clis --sha256 "$(cut -d' ' -f1 wf-linux-arm64.tar.gz.sha256)"
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf vm ops install-clis --sha256 <hex> [options]
+
+Asks vm-ops-api (its CI port) to install the wf build CI published as the wf-latest
+release on the VM's clis volume: a sibling fetches wf-linux-arm64.tar.gz, installs it only
+when it hashes to --sha256, and points /opt/clis/current at it. For a runner that cannot
+write to the VM's disk (a GitHub-hosted one); the VM's own runner does not need it.
+
+Options:
+  --sha256 <hex>  The sha256 of the arm64 tarball CI built (64 lowercase hex digits)
+  -h, --help      display help for command
+
+Output: one JSON line {ok, tree} on success, {ok: false, status, error} on a refusal.
+Exit 0 when installed, else 1.
+```
+
+</details>
+
 #### `wf vm state backup`
 
 Snapshot every state volume of vm-apps.json (only what changed is uploaded) and prune to the newest 14.

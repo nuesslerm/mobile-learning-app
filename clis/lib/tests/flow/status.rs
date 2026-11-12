@@ -36,9 +36,7 @@ fn status_reads_the_index_through_the_proxy_with_no_link_in_the_environment() {
     // Given two releases and no link of any kind in the environment
     let repo = released_twice();
     let mut opts = repo.opts();
-    for var in ["LIBS_WRITE_PAR_URL"] {
-        opts.env.remove(var);
-    }
+    opts.env.remove("LIBS_WRITE_PAR_URL");
     let before = repo.proxy.requests().len();
 
     // When status runs
