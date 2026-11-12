@@ -9,7 +9,8 @@ use serde_json::{json, Value};
 use std::time::{Duration, Instant};
 
 const WS: &str = "w1";
-const SETTLE: Duration = Duration::from_secs(30);
+// A loaded hosted shard (two cores, six shards) timed out here once at 30 s; the wait costs nothing when the start is prompt.
+const SETTLE: Duration = Duration::from_secs(120);
 
 fn said(text: &str) -> String {
     json!({"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}}).to_string()
