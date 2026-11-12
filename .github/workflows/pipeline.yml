@@ -132,7 +132,7 @@ jobs:
           job: ${{ matrix.arch == 'arm64' && 'clis-arm' || 'wf-build' }}
 
   # This commit's wf as the `wf-latest` release: a fresh cloud session cannot build it (the private crate registry is tailnet-only, and joining the tailnet needs wf),
-  # so .agents/setup.sh installs this instead. Only named binaries leave the runner, the job holds a GITHUB_TOKEN and no vault token, and it stops if a secret-shaped
+  # so .agents/setup.sh installs this instead. Only named binaries leave the runner, the job holds a GITHUB_TOKEN and its vault token blanked, and it stops if a secret-shaped
   # string is found in them.
   wf-release:
     name: Publish wf
@@ -150,6 +150,9 @@ jobs:
       - name: Publish the binaries
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          # the workflow-level env hands every job the vault token: this one does not need it
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ''
         run: |
           set -euo pipefail
           mkdir out
