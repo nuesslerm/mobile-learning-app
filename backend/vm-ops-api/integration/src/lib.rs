@@ -39,12 +39,12 @@ const SIGNING_KEY: [u8; 32] = [7; 32];
 pub const CHILD_ENV: &[&str] = &[
     "PATH", "PORT", "CI_PORT", "VM_OPS_API_AUTH_TOKEN", "VM_OPS_API_CI_AUTH_TOKEN", "VM_GATEWAY_REQUEST_SIGNING_PUBLIC_KEY", "REQUIRE_SIGNED_AUTH", "HOST_LABEL", "VM_DIR",
     "DEBUG_MODE", "IMAGE_NAMESPACE", "VM_OPS_API_IMAGE_TAG", "GIT_COMMIT", "VM_PROVISION_GITHUB_TOKEN",
-    "OPENCODE_LOG_STATE_DIR", "POOL_COOLDOWN_STATE_FILE", "DOCKER_SOCKET",
+    "OPENCODE_LOG_STATE_DIR", "DOCKER_SOCKET",
     "PROC_ROOT", "FAKE_TOOL_RULES", "FAKE_TOOL_LOG", "BETTERSTACK_OTLP_TOKEN", "BETTERSTACK_OTLP_HOST",
 ];
 /// The host paths the child reads and writes. Each must be set and inside the case's dir: unset or empty, the service
 /// falls back to the host's own (`/var/run/docker.sock`, `/proc`, `/home/ubuntu/vm-ops-api`, `/state/...`).
-const WORLD_PATHS: [&str; 6] = ["PROC_ROOT", "VM_DIR", "POOL_COOLDOWN_STATE_FILE", "OPENCODE_LOG_STATE_DIR", "FAKE_TOOL_RULES", "FAKE_TOOL_LOG"];
+const WORLD_PATHS: [&str; 5] = ["PROC_ROOT", "VM_DIR", "OPENCODE_LOG_STATE_DIR", "FAKE_TOOL_RULES", "FAKE_TOOL_LOG"];
 const DOUBLED_TOOLS: [&str; 2] = ["docker", "wf"];
 const SUITE: &str = "backend/vm-ops-api/integration";
 /// Where every provision URL of a sibling script points, which a helper case points at its [`GithubRaw`] instead.
@@ -140,7 +140,6 @@ impl World {
             ("VM_OPS_API_IMAGE_TAG", IMAGE_TAG.into()),
             ("GIT_COMMIT", GIT_COMMIT.into()),
             ("VM_PROVISION_GITHUB_TOKEN", "tok".into()),
-            ("POOL_COOLDOWN_STATE_FILE", at("state/pool-cooldowns.json")),
             ("OPENCODE_LOG_STATE_DIR", at("state/opencode-log")),
             ("DOCKER_SOCKET", at("docker.sock")),
             ("PROC_ROOT", at("proc")),

@@ -80,7 +80,7 @@ case!(a_double_that_is_not_the_fake_tool_panics_before_the_child_starts, {
 case!(a_docker_socket_or_host_path_outside_the_case_dir_panics_before_the_child_starts, {
     // Given worlds whose Docker socket or a host path is unset, empty, the host's own or climbs out of the case's dir
     type Change = fn(&mut World);
-    let changes: [(&str, Change); 7] = [
+    let changes: [(&str, Change); 6] = [
         ("DOCKER_SOCKET is unset or empty", |w| {
             w.unset("DOCKER_SOCKET");
         }),
@@ -92,9 +92,6 @@ case!(a_docker_socket_or_host_path_outside_the_case_dir_panics_before_the_child_
         }),
         ("safety rail: PROC_ROOT", |w| {
             w.unset("PROC_ROOT");
-        }),
-        ("safety rail: POOL_COOLDOWN_STATE_FILE", |w| {
-            w.set("POOL_COOLDOWN_STATE_FILE", "/dev/full");
         }),
         ("safety rail: VM_DIR", |w| {
             let up = format!("{}/../vm", w.dir().display());

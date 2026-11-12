@@ -5,7 +5,7 @@ use regex::Regex;
 use std::path::Path;
 
 /// Method and path of each row of the routes table (plan section 2), in its order.
-pub const ROUTE_IDS: [&str; 24] = [
+pub const ROUTE_IDS: [&str; 22] = [
     "GET /health",
     "GET /services/:app/ps",
     "GET /stats",
@@ -27,8 +27,6 @@ pub const ROUTE_IDS: [&str; 24] = [
     "GET /services/agent-shell/vm-ledger/<name>",
     "GET /services/agent-shell/artifact",
     "POST /agent-shell/credentials",
-    "GET /cooldowns",
-    "POST /cooldowns",
     "any <anything else>",
 ];
 

@@ -79,7 +79,7 @@ services:
       # :ro only stops replacing the socket file; the boundary is the fixed
       # route set (container list/logs/exec plus the redeploy siblings).
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      # Host-backed state vm-ops-api owns (cooldowns, opencode-log):
+      # Host-backed state vm-ops-api owns (opencode-log):
       # a redeploy recreates this container.
       - /home/ubuntu/vm-ops-api/state:/state
     healthcheck:

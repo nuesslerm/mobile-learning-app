@@ -59,8 +59,6 @@ pub struct Config {
     #[arg(long, env = "PROC_ROOT")]
     proc_root: Option<String>,
 
-    #[arg(long, env = "POOL_COOLDOWN_STATE_FILE")]
-    pool_cooldown_state_file: Option<String>,
 
     #[arg(long, env = "OPENCODE_LOG_STATE_DIR")]
     opencode_log_state_dir: Option<String>,
@@ -159,10 +157,6 @@ impl Config {
 
     pub fn proc_root(&self) -> PathBuf {
         path_or(&self.proc_root, "/proc")
-    }
-
-    pub fn pool_cooldown_state_file(&self) -> PathBuf {
-        path_or(&self.pool_cooldown_state_file, "/state/pool-cooldowns.json")
     }
 
     pub fn opencode_log_state_dir(&self) -> PathBuf {

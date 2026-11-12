@@ -763,7 +763,6 @@ curl -X POST -H "Authorization: Bearer <token>" "https://<ip>.sslip.io/services/
 The rest of the route set (`backend/vm-ops-api/rs/src/api/mod.rs` `app`): the
 `GET /opencode-log[/api/runs[/:id]]` dashboard (public, no token),
 `POST /opencode-log/:runId/{start,line,finish}`,
-`GET`/`POST /cooldowns` (versioned pool-cooldown ledger, a stale write 409s),
 `GET /redeploy/status`, `GET /stats`, `POST /services/:app/retire`,
 `POST /services/orca-serve/pair` (one fixed `docker exec` sibling; the reply carries the pairing link, a credential never logged; `wf vm ops pair orca-serve`),
 `GET /services/agent-shell/{artifact,vm-ledger/:name}`,

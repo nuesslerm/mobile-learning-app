@@ -64,8 +64,6 @@ pub const ROUTES: &[RouteSpec] = &[
     spec("Retire", "POST", "/services/{app}/retire", AdminOnly),
     spec("AppPair", "POST", "/services/{app}/pair", AdminOnly),
     spec("Drill", "POST", "/drill", AdminOnly),
-    spec("Cooldowns", "GET", "/cooldowns", AdminOnly),
-    spec("CooldownsWrite", "POST", "/cooldowns", AdminOnly),
     spec("OpencodeDashboard", "GET", "/opencode-log", AdminOnly),
     spec("OpencodeRuns", "GET", "/opencode-log/api/runs", AdminOnly),
     spec("OpencodeRun", "GET", "/opencode-log/api/runs/{run}", AdminOnly),

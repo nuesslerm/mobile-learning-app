@@ -138,44 +138,9 @@ impl ProcessMemory for FakeMemory {
     }
 }
 
-use crate::application::ports::{CooldownLedger, LedgerState, LedgerWrite, Object, RunLog, RunMeta, StateError};
+use crate::application::ports::{RunLog, RunMeta, StateError};
 use crate::domain::run_log;
 use std::collections::BTreeMap;
-
-/// The cooldown ledger in memory, with the file store's compare-and-set.
-#[derive(Default)]
-pub struct FakeCooldownLedger {
-    state: Mutex<LedgerState>,
-    write_fails: bool,
-}
-
-impl FakeCooldownLedger {
-    pub fn holding(ledger: Object) -> Self {
-        Self { state: Mutex::new(LedgerState { ledger, version: 0 }), write_fails: false }
-    }
-
-    pub fn whose_writes_fail(mut self) -> Self {
-        self.write_fails = true;
-        self
-    }
-}
-
-#[async_trait]
-impl CooldownLedger for FakeCooldownLedger {
-    async fn read(&self) -> LedgerState {
-        lock(&self.state).clone()
-    }
-
-    async fn write(&self, ledger: Object, expected: i64) -> LedgerWrite {
-        let mut state = lock(&self.state);
-        if expected != state.version || self.write_fails {
-            return LedgerWrite { ok: false, version: state.version };
-        }
-        state.ledger = ledger;
-        state.version += 1;
-        LedgerWrite { ok: true, version: state.version }
-    }
-}
 
 #[derive(Default)]
 struct FakeRun {
@@ -244,24 +209,11 @@ impl RunLog for FakeRunLog {
 #[cfg(test)]
 mod state_fakes_tests {
     use super::*;
+    use crate::application::ports::Object;
     use serde_json::{json, Value};
 
     fn object(value: Value) -> Object {
         value.as_object().cloned().expect("an object")
-    }
-
-    #[tokio::test]
-    async fn given_the_fake_ledger_when_written_then_only_the_current_version_stores_and_moves_it_on() {
-        let ledger = FakeCooldownLedger::holding(object(json!({ "p": {} })));
-
-        let stale = ledger.write(object(json!({ "q": {} })), 3).await;
-        let stored = ledger.write(object(json!({ "r": {} })), 0).await;
-        let again = ledger.write(object(json!({ "s": {} })), 0).await;
-
-        assert_eq!((stale, stored, again), (LedgerWrite { ok: false, version: 0 }, LedgerWrite { ok: true, version: 1 }, LedgerWrite { ok: false, version: 1 }));
-        assert_eq!(ledger.read().await, LedgerState { ledger: object(json!({ "r": {} })), version: 1 });
-        let failing = FakeCooldownLedger::default().whose_writes_fail();
-        assert_eq!(failing.write(Object::new(), 0).await, LedgerWrite { ok: false, version: 0 });
     }
 
     #[tokio::test]

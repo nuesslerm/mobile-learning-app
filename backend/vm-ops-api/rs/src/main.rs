@@ -8,7 +8,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use vm_ops_api::api::{self, Limits, Ports as ApiPorts, Settings};
 use vm_ops_api::infrastructure::{
-    healthcheck, helpers, running_binary_sha, Config, DockerEngine, DockerSiblings, FileCooldownLedger, FileRunLog, OsProcessMemory, OtlpEventLog, ProcHostFiles, RandomIds, StdoutEventLog, SystemClock,
+    healthcheck, helpers, running_binary_sha, Config, DockerEngine, DockerSiblings, FileRunLog, OsProcessMemory, OtlpEventLog, ProcHostFiles, RandomIds, StdoutEventLog, SystemClock,
     TeeEventLog,
 };
 use vm_ops_api_core::application::heartbeat::Heartbeat;
@@ -126,7 +126,6 @@ async fn run(config: &Config, token: SecretString, ports: Ports, clock: Arc<dyn 
             log: log.clone(),
             containers: containers.clone(),
             host_files: Arc::new(ProcHostFiles::new(config.proc_root())),
-            cooldowns: Arc::new(FileCooldownLedger::new(config.pool_cooldown_state_file(), log.clone())),
             run_log: Arc::new(FileRunLog::new(config.opencode_log_state_dir())),
             ids: Arc::new(RandomIds),
             siblings: Arc::new(DockerSiblings::default()),

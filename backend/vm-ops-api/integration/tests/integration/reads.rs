@@ -543,19 +543,6 @@ case!(exec_script_status_keeps_the_last_4000_utf16_units_and_reads_any_exit_code
     assert_eq!(engine_calls(&svc).len(), before);
 });
 
-case!(cooldowns_read_is_the_ledger_file_at_version_0_after_a_start, ["GET /cooldowns"], {
-    // Given the service, with no cooldown file yet
-    let svc = world().start();
-    // When the cooldowns are read, Then the ledger is empty at version 0
-    expect_json(&get(&svc, "/cooldowns"), 200, &json!({ "ledger": {}, "version": 0 }));
-    // When the file holds an object, Then it is the ledger, still at version 0 (the version lives in memory)
-    state_file(&svc, "pool-cooldowns.json", "{\n  \"minimax\": {\n    \"until\": 1700000000000\n  }\n}\n");
-    expect_json(&get(&svc, "/cooldowns"), 200, &json!({ "ledger": { "minimax": { "until": 1_700_000_000_000_i64 } }, "version": 0 }));
-    // When it holds an array, Then the ledger is empty
-    state_file(&svc, "pool-cooldowns.json", "[1]\n");
-    expect_json(&get(&svc, "/cooldowns"), 200, &json!({ "ledger": {}, "version": 0 }));
-});
-
 case!(opencode_log_dashboard_is_public_on_its_paths, ["GET /opencode-log, /opencode-log/, /opencode-log/<runId>"], {
     // Given the service and the dashboard file it serves
     let svc = world().start();
