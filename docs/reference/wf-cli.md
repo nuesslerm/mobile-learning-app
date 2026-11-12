@@ -2318,24 +2318,22 @@ kind is cargo-sparse, crates-io, npm or npm-tarball. url may be `env:NAME`, read
 from that variable (the environment, then the vault), because a pre-authenticated
 link is a credential and is never printed or committed. tokenEnv names the
 variable holding the publish credential. indexUrl (bucket registries) is the literal
-base of the read proxy's sparse index (`http://<proxy>:<port>/index/`), not a secret:
-Cargo records it in Cargo.lock, and the index is read from it with a plain GET. url and
-tokenEnv are then only the bucket's read link and write link. publish names the adapter that releases
-there: bucket-sparse (our bucket: a static Cargo sparse registry under libs/),
+base of the bucket's public sparse index (`https://objectstorage.<region>.oraclecloud.com/n/<ns>/b/<bucket>/o/index/`),
+not a secret: Cargo records it in Cargo.lock, and the index is read from it with a plain GET.
+tokenEnv is then only the bucket's write link. publish names the adapter that releases
+there: bucket-sparse (our bucket: a static Cargo sparse registry),
 cargo-publish (`cargo publish --registry <alias>`: crates.io and any registry with
 Cargo's publish API), or null for a read-only registry. npm-publish and
 npm-tarball are named but not built yet.
 
-The bucket registry (alias mla) is private and holds everything under its libs/ prefix:
-the index at libs/index/ (config.json and one file per crate) and the .crate files at
-libs/crates/<name>/<version>.crate. Nothing is public. Readers (Cargo, `status`) reach
-it only through the read proxy on the tailnet (indexUrl), which holds the read link
-itself; Cargo's config.json sends downloads to <proxy>/dl/. Writers (`release`,
-`prune`) write straight to the bucket with LIBS_WRITE_PAR_URL (a pre-authenticated
-prefix link ending in /o/libs/) and read the index through the proxy. LIBS_READ_PAR_URL
-(the read link, same shape) is only a fallback for a machine off the tailnet:
-`status` and `release` use it when the proxy does not answer. `prune` also needs the
-operator's `oci` CLI and ~/.oci.
+The bucket registry (alias mla) is a public bucket (read without listing) that holds only the
+index at index/ (config.json and one file per crate) and the .crate files at
+crates/<name>/<version>.crate. The libraries are public source, so a release publishes only
+files git tracks, committed, from a HEAD origin/dev already holds, with no credential-shaped
+string in them; anything else stops the release before it uploads. Readers (Cargo, `status`)
+fetch it with a plain GET (indexUrl); Cargo's config.json sends downloads to
+<bucket>/crates/. Writers (`release`, `prune`) write with LIBS_INDEX_WRITE_PAR_URL (a
+pre-authenticated write link ending in /o/). `prune` also needs the operator's `oci` CLI and ~/.oci.
 
 Every verb prints one JSON object on stdout and never prompts. A failure prints
 {ok: false, error, next} and exits 1; a malformed line exits 2.
@@ -2374,9 +2372,13 @@ a new version.
 bucket-sparse: `cargo package` the crate, upload crates/<name>/<version>.crate
 with an if-absent write, append the version to the crate's sparse index file
 (index/1/a, index/2/ab, index/3/a/abc, index/ab/cd/abcd...; the current file is read
-through the read proxy) and write index/config.json, all under libs/ of the one
-private bucket. config.json's `dl` is <proxy base>/dl/{crate}/{version}.crate, derived
-from indexUrl; it holds no bucket link and no api field.
+with a plain GET) and write index/config.json, all in the one public bucket. config.json's
+`dl` is <bucket base>/crates/{crate}/{version}.crate, derived from indexUrl; it holds no
+bucket link and no api field. Before anything is touched the release refuses: a HEAD that
+origin/dev does not hold, a file of the package that git does not track or that differs
+from HEAD, and any file with a credential-shaped string (a private key, a GitHub, AWS or
+Slack token, a JWT, an Oracle id): the bucket is public, so it may hold only what the
+public repository holds. After a release, commit and push the bumped manifest before the next.
 cargo-publish: `cargo publish --registry <alias>` with the registry and its token
 passed in the environment of that one child. A library whose own dependencies on
 other libraries are still paths is refused by cargo packaging: release in
@@ -2410,10 +2412,8 @@ Usage: wf lib status [options]
 
 Per library: what its registry holds and the version each service pins, read
 from every tracked Cargo.lock of the working tree (a library's own workspace
-lockfile is the library, not a service). Reads only; the index is read through the
-registry's read proxy (indexUrl), so no link is needed on the tailnet. When the
-proxy does not answer and LIBS_READ_PAR_URL resolves, the bucket's index is read
-through that link instead.
+lockfile is the library, not a service). Reads only; the index is read with a plain GET
+at the registry's public indexUrl, so no link and no tailnet are needed.
 
 Output: one JSON object on stdout:
   {ok, error, libraries: [{name, kind, path, registry, latest, released, note,
@@ -2450,7 +2450,7 @@ version is first marked yanked in the index, so a new resolution never picks it,
 then its .crate is removed. A registry whose adapter cannot delete (crates.io) is
 skipped and listed with the reason. It runs `git fetch origin dev` first, because
 a stale ref could hide a pin; --no-fetch skips that. Needs the operator's `oci` CLI
-and ~/.oci, and LIBS_WRITE_PAR_URL (the yank is written to libs/index/ through it).
+and ~/.oci, and LIBS_INDEX_WRITE_PAR_URL (the yank is written to index/ through it).
 
 Output: one JSON object on stdout {ok, dryRun, graceDays, deleted | wouldDelete:
 [{crate, version, bytes, ageDays}], freedBytes, kept: [{crate, version, reason}],
@@ -2482,7 +2482,7 @@ crates-io registry, loses it (a line left as just a version becomes `name = "1.2
 Path and git dependencies and lines that inherit from the workspace are left and
 listed. The `[registries.<alias>] index` entry of each changed workspace's
 .cargo/config.toml is regenerated from libraries.json, written literally from
-indexUrl (the read proxy's index, so no credential); a registry with no indexUrl whose url is
+indexUrl (the bucket's public index, so no credential); a registry with no indexUrl whose url is
 `env:NAME` (a credential) gets nothing written and the output says which
 CARGO_REGISTRIES_<ALIAS>_INDEX to build with. libraries.json records the new
 alias. Idempotent. npm libraries and .npmrc are not handled yet.

@@ -1,10 +1,10 @@
 //! Cargo's sparse registry layout, exactly: `config.json` at the root, one file of JSON lines per crate at a path made of its name,
-//! and the `.crate` files where `config.json`'s `dl` says. In the private bucket the index lives under `index/` and the crates under
-//! `crates/` of the `libs/` prefix; readers see them only through the read proxy. https://doc.rust-lang.org/cargo/reference/registry-index.html
+//! and the `.crate` files where `config.json`'s `dl` says. In the public libs bucket the index lives under `index/` and the crates under
+//! `crates/`, both readable by anyone and nothing else in the bucket. https://doc.rust-lang.org/cargo/reference/registry-index.html
 use serde_json::{json, Map, Value};
 use std::collections::BTreeMap;
 
-/// Where `config.json` is stored, relative to the `libs/` prefix.
+/// Where `config.json` is stored in the bucket.
 pub const CONFIG: &str = "index/config.json";
 pub const CRATES_IO_INDEX: &str = "https://github.com/rust-lang/crates.io-index";
 
@@ -59,20 +59,20 @@ pub fn crate_path(name: &str, version: &str) -> String {
     format!("crates/{name}/{version}.crate")
 }
 
-/// The read proxy's base (`http://libs-proxy:8793`) from the registry's `indexUrl` (`[sparse+]<base>/index/`).
-pub fn proxy_base(index_url: &str) -> Result<String, String> {
+/// The bucket's public base (`https://objectstorage.<region>.oraclecloud.com/n/<ns>/b/<bucket>/o`) from the registry's `indexUrl`
+/// (`[sparse+]<base>/index/`).
+pub fn public_base(index_url: &str) -> Result<String, String> {
     let url = index_url.strip_prefix("sparse+").unwrap_or(index_url).trim_end_matches('/');
     match url.strip_suffix("/index") {
         Some(base) if base.starts_with("http") => Ok(base.to_string()),
-        _ => Err(format!("indexUrl {index_url:?} is not `<proxy base>/index/`")),
+        _ => Err(format!("indexUrl {index_url:?} is not `<public bucket base>/index/`")),
     }
 }
 
-/// `config.json`: downloads go through the proxy, `<proxy base>/dl/<name>/<version>.crate`, so no bucket link is stored anywhere.
-/// The proxy generates the same bytes itself.
+/// `config.json`: downloads come straight from the public bucket, `<base>/crates/<name>/<version>.crate`.
 pub fn config(index_url: &str) -> Result<String, String> {
-    let base = proxy_base(index_url)?;
-    Ok(format!("{}\n", json!({ "dl": format!("{base}/dl/{{crate}}/{{version}}.crate") })))
+    let base = public_base(index_url)?;
+    Ok(format!("{}\n", json!({ "dl": format!("{base}/crates/{{crate}}/{{version}}.crate") })))
 }
 
 fn dep_json(dep: &Dep) -> Value {

@@ -2,10 +2,8 @@ Usage: wf lib status [options]
 
 Per library: what its registry holds and the version each service pins, read
 from every tracked Cargo.lock of the working tree (a library's own workspace
-lockfile is the library, not a service). Reads only; the index is read through the
-registry's read proxy (indexUrl), so no link is needed on the tailnet. When the
-proxy does not answer and LIBS_READ_PAR_URL resolves, the bucket's index is read
-through that link instead.
+lockfile is the library, not a service). Reads only; the index is read with a plain GET
+at the registry's public indexUrl, so no link and no tailnet are needed.
 
 Output: one JSON object on stdout:
   {ok, error, libraries: [{name, kind, path, registry, latest, released, note,

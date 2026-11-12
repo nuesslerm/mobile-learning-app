@@ -4,6 +4,7 @@ fn released_twice() -> Repo {
     let repo = Repo::new(&libraries_json("mla", "", ""));
     for _ in 0..2 {
         assert_eq!(repo.lib(&["release", "fixture-core", "patch"]).exit_code, 0);
+        repo.settle();
     }
     repo
 }
@@ -35,7 +36,7 @@ fn status_reads_the_index_through_the_proxy_with_no_link_in_the_environment() {
     // Given two releases and no link of any kind in the environment
     let repo = released_twice();
     let mut opts = repo.opts();
-    for var in ["LIBS_READ_PAR_URL", "LIBS_WRITE_PAR_URL"] {
+    for var in ["LIBS_WRITE_PAR_URL"] {
         opts.env.remove(var);
     }
     let before = repo.proxy.requests().len();
@@ -43,36 +44,19 @@ fn status_reads_the_index_through_the_proxy_with_no_link_in_the_environment() {
     // When status runs
     let r = repo.lib_with(&["status"], opts);
 
-    // Then it still names the releases, and it asked the proxy for the crate's index file
+    // Then it still names the releases, and it asked the public bucket for the crate's index file
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     assert_eq!(last_json(&r)["libraries"][0]["released"], serde_json::json!(["0.1.1", "0.1.2"]));
     assert_eq!(repo.proxy.requests()[before..], ["/index/fi/xt/fixture-core"]);
 }
 
 #[test]
-fn status_falls_back_to_the_read_link_when_the_proxy_does_not_answer_and_never_prints_it() {
-    // Given two releases, a proxy that nothing answers on, and a read link in the environment
-    let repo = released_twice();
-    let dead = repo.read("libraries.json").replace(&repo.proxy.index_url(), "http://127.0.0.1:1/index/");
-    repo.write("libraries.json", &dead);
-
-    // When status runs
-    let r = repo.lib(&["status"]);
-
-    // Then the releases still come from the bucket's index through the link, and no link is printed
-    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
-    assert_eq!(last_json(&r)["libraries"][0]["released"], serde_json::json!(["0.1.1", "0.1.2"]));
-    assert!(!r.stdout.contains("SECRET-PAR-TOKEN") && !r.stderr.contains("SECRET-PAR-TOKEN"));
-}
-
-#[test]
-fn status_with_an_unreachable_proxy_and_no_read_link_still_lists_the_pins_and_says_why_it_is_not_ok() {
-    // Given a service pin, a proxy nothing answers on and no read link
+fn status_with_an_unreachable_index_still_lists_the_pins_and_says_why_it_is_not_ok() {
+    // Given a service pin, an index nothing answers on
     let repo = Repo::new(&libraries_json("mla", "", "").replace("@INDEX@", "http://127.0.0.1:1/index/"));
     repo.write("services/a/Cargo.lock", &lock("fixture-core", "0.1.1", true));
     repo.commit("lock");
-    let mut opts = repo.opts();
-    opts.env.remove("LIBS_READ_PAR_URL");
+    let opts = repo.opts();
 
     // When status runs
     let r = repo.lib_with(&["status"], opts);

@@ -1,11 +1,14 @@
 //! The composition root: which adapter serves which registry, and where the links come from (the environment, then the vault).
 use crate::adapters::bucket_sparse::BucketSparse;
 use crate::adapters::cargo_publish::CargoPublish;
-use crate::adapters::index_source::ProxyThenLink;
+use crate::adapters::index_source::PublicIndex;
 use crate::domain::libraries::{Catalog, Registry};
 use crate::ports::{Failure, IndexSource, Publisher};
 use blob_cache::adapters::OciParStore;
 use blob_cache::ports::BlobStore;
+
+/// `${name_prefix}-libs-index` of `infra/oracle-cloud/build-cache.tf`: the public bucket of the index and the crates.
+pub const LIBS_BUCKET: &str = "mobile-learning-libs-index";
 
 pub fn resolve(name: &str) -> Option<String> {
     std::env::var(name).ok().filter(|v| !v.is_empty()).or_else(|| secrets::load_values(&[name]).get(name).cloned().flatten())
@@ -27,27 +30,24 @@ fn token_of(registry: &Registry) -> Result<Option<String>, Failure> {
     }
 }
 
-/// The bucket's `libs/` prefix, index and crates alike: read through the read link when it resolves (else the write link), written
-/// through the registry's token (its write link) when `write`.
+/// The public libs bucket, index and crates alike: read at the registry's public `url`, written through the registry's token (its
+/// write link) when `write`.
 pub fn libs_store(registry: &Registry, write: bool) -> Result<Box<dyn BlobStore>, Failure> {
-    let link = if write { token_of(registry)? } else { registry.token_env.as_deref().and_then(resolve) };
-    let read = url_of(registry).ok().flatten().or_else(|| link.clone()).ok_or_else(|| Failure::new(format!("registry {} has no resolvable url or write link", registry.alias)).next("set LIBS_WRITE_PAR_URL or LIBS_READ_PAR_URL"))?;
-    // The vault links were stored ending at the bucket's `/o/`; the PARs only answer under `libs/`.
-    let under_libs = |url: &str| if url.ends_with("/o/") { format!("{url}libs/") } else { url.to_string() };
-    Ok(Box::new(OciParStore::new(&under_libs(&read), link.as_deref().map(under_libs).as_deref())))
+    let link = if write { token_of(registry)? } else { None };
+    let read = url_of(registry).ok().flatten().or_else(|| link.clone()).ok_or_else(|| Failure::new(format!("registry {} has no url or write link", registry.alias)).next("set the registry's url in libraries.json, or LIBS_WRITE_PAR_URL"))?;
+    Ok(Box::new(OciParStore::new(&read, link.as_deref())))
 }
 
-/// The registry's index as readers see it: the proxy at `indexUrl`, with the read link as the fallback when one resolves.
+/// The registry's index as readers see it: a public GET at `indexUrl`.
 pub fn index_source(registry: &Registry) -> Result<Box<dyn IndexSource>, Failure> {
-    let proxy = registry.index_url.as_deref().ok_or_else(|| Failure::new(format!("registry {} has no indexUrl", registry.alias)).next("set indexUrl to the read proxy's `<base>/index/` in libraries.json"))?;
-    let link = url_of(registry).ok().flatten().map(|read| Box::new(OciParStore::new(&if read.ends_with("/o/") { format!("{read}libs/") } else { read }, None)) as Box<dyn BlobStore>);
-    Ok(Box::new(ProxyThenLink::new(Box::new(OciParStore::new(proxy, None)), link)))
+    let url = registry.index_url.as_deref().ok_or_else(|| Failure::new(format!("registry {} has no indexUrl", registry.alias)).next("set indexUrl to the bucket's public `<base>/index/` in libraries.json"))?;
+    Ok(Box::new(PublicIndex::new(Box::new(OciParStore::new(url, None)))))
 }
 
 pub fn publisher(registry: &Registry) -> Result<Box<dyn Publisher>, Failure> {
     match registry.publish.as_deref() {
         Some("bucket-sparse") => {
-            let index_url = registry.index_url.as_deref().ok_or_else(|| Failure::new(format!("registry {} has no indexUrl", registry.alias)).next("set indexUrl to the read proxy's `<base>/index/` in libraries.json"))?;
+            let index_url = registry.index_url.as_deref().ok_or_else(|| Failure::new(format!("registry {} has no indexUrl", registry.alias)).next("set indexUrl to the bucket's public `<base>/index/` in libraries.json"))?;
             Ok(Box::new(BucketSparse::new(libs_store(registry, true)?, index_source(registry)?, index_url)?))
         }
         Some("cargo-publish") => {

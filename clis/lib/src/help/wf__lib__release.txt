@@ -9,9 +9,13 @@ a new version.
 bucket-sparse: `cargo package` the crate, upload crates/<name>/<version>.crate
 with an if-absent write, append the version to the crate's sparse index file
 (index/1/a, index/2/ab, index/3/a/abc, index/ab/cd/abcd...; the current file is read
-through the read proxy) and write index/config.json, all under libs/ of the one
-private bucket. config.json's `dl` is <proxy base>/dl/{crate}/{version}.crate, derived
-from indexUrl; it holds no bucket link and no api field.
+with a plain GET) and write index/config.json, all in the one public bucket. config.json's
+`dl` is <bucket base>/crates/{crate}/{version}.crate, derived from indexUrl; it holds no
+bucket link and no api field. Before anything is touched the release refuses: a HEAD that
+origin/dev does not hold, a file of the package that git does not track or that differs
+from HEAD, and any file with a credential-shaped string (a private key, a GitHub, AWS or
+Slack token, a JWT, an Oracle id): the bucket is public, so it may hold only what the
+public repository holds. After a release, commit and push the bumped manifest before the next.
 cargo-publish: `cargo publish --registry <alias>` with the registry and its token
 passed in the environment of that one child. A library whose own dependencies on
 other libraries are still paths is refused by cargo packaging: release in

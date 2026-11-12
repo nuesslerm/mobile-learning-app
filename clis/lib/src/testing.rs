@@ -1,7 +1,6 @@
-//! The doubles of the flow tests, in-process servers on loopback. `MemBucket` is the one private bucket as a pre-authenticated link
-//! sees it (objects in memory, every request needs the link), plus the two operator calls the `oci` stub makes. `LibsProxy` is the
-//! tailnet read proxy in front of it, serving index and crates the way backend/libs-proxy does. `CargoRegistryFake` is a registry
-//! with Cargo's publish API.
+//! The doubles of the flow tests, in-process servers on loopback. `MemBucket` is the libs bucket as a pre-authenticated write link
+//! sees it (objects in memory), plus the two operator calls the `oci` stub makes. `PublicReads` is the same bucket as anyone reads it,
+//! a plain GET of `index/...` and `crates/...` with no credential. `CargoRegistryFake` is a registry with Cargo's publish API.
 use crate::domain::index;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
@@ -35,7 +34,7 @@ pub struct MemBucket {
     objects: Objects,
 }
 
-const BUCKET: &str = "build-cache";
+const BUCKET: &str = "libs-index";
 
 impl MemBucket {
     pub fn start() -> MemBucket {
@@ -80,9 +79,9 @@ impl MemBucket {
         MemBucket { port, objects }
     }
 
-    /// The link for `LIBS_READ_PAR_URL` and `LIBS_WRITE_PAR_URL` (ends at the `libs/` prefix).
+    /// The link for `LIBS_WRITE_PAR_URL`.
     pub fn par_url(&self) -> String {
-        format!("http://127.0.0.1:{}/p/{TOKEN}/n/ns/b/{BUCKET}/o/libs/", self.port)
+        format!("http://127.0.0.1:{}/p/{TOKEN}/n/ns/b/{BUCKET}/o/", self.port)
     }
 
     pub fn put(&self, name: &str, body: &[u8]) {
@@ -126,17 +125,16 @@ impl MemBucket {
     }
 }
 
-/// The read proxy of the private bucket: `GET /index/<sparse path>` and `GET /dl/<crate>/<version>.crate` read `libs/index/...` and
-/// `libs/crates/...` of the bucket, `GET /index/config.json` is generated here (not read), anything else is 404 and a write verb 405.
-/// It holds no link: a reader of it never sees one.
+/// The libs bucket as anyone reads it: `GET /index/<sparse path>` and `GET /crates/<name>/<version>.crate` read `index/...` and
+/// `crates/...` of the bucket, anything else is 404 and a write verb 405. It holds no link: a reader of it never sees one.
 #[derive(Clone)]
-pub struct LibsProxy {
+pub struct PublicReads {
     port: u16,
     served: Arc<Mutex<Vec<String>>>,
 }
 
-impl LibsProxy {
-    pub fn start(bucket: &MemBucket) -> LibsProxy {
+impl PublicReads {
+    pub fn start(bucket: &MemBucket) -> PublicReads {
         let server = Server::http("127.0.0.1:0").unwrap();
         let port = server.server_addr().to_ip().unwrap().port();
         let served: Arc<Mutex<Vec<String>>> = Arc::default();
@@ -147,21 +145,13 @@ impl LibsProxy {
                 return reply(request, 405, Vec::new());
             }
             log.lock().unwrap().push(url.clone());
-            let found = if url == "/index/config.json" {
-                Some(format!("{{\"dl\":\"http://127.0.0.1:{port}/dl/{{crate}}/{{version}}.crate\"}}\n").into_bytes())
-            } else if let Some(path) = url.strip_prefix("/index/") {
-                bucket.get(&format!("libs/index/{path}"))
-            } else if let Some(path) = url.strip_prefix("/dl/") {
-                bucket.get(&format!("libs/crates/{path}"))
-            } else {
-                None
-            };
+            let found = if url.starts_with("/index/") || url.starts_with("/crates/") { bucket.get(url.trim_start_matches('/')) } else { None };
             match found {
                 Some(bytes) => reply(request, 200, bytes),
                 None => reply(request, 404, Vec::new()),
             }
         });
-        LibsProxy { port, served }
+        PublicReads { port, served }
     }
 
     /// The registry's `indexUrl` in `libraries.json`, and what Cargo is given after `sparse+`.

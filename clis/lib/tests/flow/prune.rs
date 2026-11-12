@@ -6,9 +6,9 @@ const OLD: i64 = 90;
 fn stocked() -> Repo {
     let repo = Repo::new(&libraries_json("mla", "", ""));
     let index: String = ["0.1.0", "0.2.0", "0.3.0", "0.4.0"].iter().map(|v| format!("{{\"name\":\"fixture-core\",\"vers\":\"{v}\",\"deps\":[],\"cksum\":\"x\",\"features\":{{}},\"yanked\":false}}\n")).collect();
-    repo.bucket.put("libs/index/fi/xt/fixture-core", index.as_bytes());
+    repo.bucket.put("index/fi/xt/fixture-core", index.as_bytes());
     for (version, age) in [("0.1.0", OLD), ("0.2.0", OLD), ("0.3.0", 5), ("0.4.0", OLD)] {
-        let name = format!("libs/crates/fixture-core/{version}.crate");
+        let name = format!("crates/fixture-core/{version}.crate");
         repo.bucket.put(&name, version.as_bytes());
         repo.bucket.age(&name, age);
     }
@@ -19,7 +19,7 @@ fn stocked() -> Repo {
 }
 
 fn versions(repo: &Repo) -> Vec<String> {
-    repo.bucket.names().iter().filter_map(|n| n.strip_prefix("libs/crates/fixture-core/")?.strip_suffix(".crate").map(str::to_string)).collect()
+    repo.bucket.names().iter().filter_map(|n| n.strip_prefix("crates/fixture-core/")?.strip_suffix(".crate").map(str::to_string)).collect()
 }
 
 #[test]
@@ -55,7 +55,7 @@ fn prune_deletes_only_the_unpinned_old_version_and_yanks_it_so_no_new_resolution
     let out = last_json(&r);
     assert_eq!(out["deleted"].as_array().unwrap().iter().map(|d| d["version"].as_str().unwrap()).collect::<Vec<_>>(), ["0.1.0"]);
     assert_eq!(versions(&repo), ["0.2.0", "0.3.0", "0.4.0"]);
-    let index = repo.bucket.text("libs/index/fi/xt/fixture-core").unwrap();
+    let index = repo.bucket.text("index/fi/xt/fixture-core").unwrap();
     let yanked: Vec<(String, bool)> = index.lines().map(|l| serde_json::from_str::<serde_json::Value>(l).unwrap()).map(|v| (v["vers"].as_str().unwrap().to_string(), v["yanked"].as_bool().unwrap())).collect();
     assert_eq!(repo.proxy.fetch("/index/fi/xt/fixture-core"), (200, index.clone().into_bytes()));
     assert_eq!(yanked, [("0.1.0".into(), true), ("0.2.0".into(), false), ("0.3.0".into(), false), ("0.4.0".into(), false)]);

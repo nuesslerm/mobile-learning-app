@@ -10,24 +10,22 @@ kind is cargo-sparse, crates-io, npm or npm-tarball. url may be `env:NAME`, read
 from that variable (the environment, then the vault), because a pre-authenticated
 link is a credential and is never printed or committed. tokenEnv names the
 variable holding the publish credential. indexUrl (bucket registries) is the literal
-base of the read proxy's sparse index (`http://<proxy>:<port>/index/`), not a secret:
-Cargo records it in Cargo.lock, and the index is read from it with a plain GET. url and
-tokenEnv are then only the bucket's read link and write link. publish names the adapter that releases
-there: bucket-sparse (our bucket: a static Cargo sparse registry under libs/),
+base of the bucket's public sparse index (`https://objectstorage.<region>.oraclecloud.com/n/<ns>/b/<bucket>/o/index/`),
+not a secret: Cargo records it in Cargo.lock, and the index is read from it with a plain GET.
+tokenEnv is then only the bucket's write link. publish names the adapter that releases
+there: bucket-sparse (our bucket: a static Cargo sparse registry),
 cargo-publish (`cargo publish --registry <alias>`: crates.io and any registry with
 Cargo's publish API), or null for a read-only registry. npm-publish and
 npm-tarball are named but not built yet.
 
-The bucket registry (alias mla) is private and holds everything under its libs/ prefix:
-the index at libs/index/ (config.json and one file per crate) and the .crate files at
-libs/crates/<name>/<version>.crate. Nothing is public. Readers (Cargo, `status`) reach
-it only through the read proxy on the tailnet (indexUrl), which holds the read link
-itself; Cargo's config.json sends downloads to <proxy>/dl/. Writers (`release`,
-`prune`) write straight to the bucket with LIBS_WRITE_PAR_URL (a pre-authenticated
-prefix link ending in /o/libs/) and read the index through the proxy. LIBS_READ_PAR_URL
-(the read link, same shape) is only a fallback for a machine off the tailnet:
-`status` and `release` use it when the proxy does not answer. `prune` also needs the
-operator's `oci` CLI and ~/.oci.
+The bucket registry (alias mla) is a public bucket (read without listing) that holds only the
+index at index/ (config.json and one file per crate) and the .crate files at
+crates/<name>/<version>.crate. The libraries are public source, so a release publishes only
+files git tracks, committed, from a HEAD origin/dev already holds, with no credential-shaped
+string in them; anything else stops the release before it uploads. Readers (Cargo, `status`)
+fetch it with a plain GET (indexUrl); Cargo's config.json sends downloads to
+<bucket>/crates/. Writers (`release`, `prune`) write with LIBS_INDEX_WRITE_PAR_URL (a
+pre-authenticated write link ending in /o/). `prune` also needs the operator's `oci` CLI and ~/.oci.
 
 Every service and CLI depends on a library by version and registry (`telemetry = { version =
 "0.1", registry = "mla" }`), never by path; `wf check` refuses a path dependency on a library
