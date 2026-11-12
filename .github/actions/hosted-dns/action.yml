@@ -1,0 +1,20 @@
+name: Hosted DNS
+description: >-
+  Makes the Ubuntu mirrors resolve on a GitHub-hosted runner. The runner's only resolver (Azure's 168.63.129.16) often answers nothing for
+  archive.ubuntu.com while github.com resolves, which fails every apt call; this switches the primary interface to a public resolver then.
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        hosts="archive.ubuntu.com"; [ "$(uname -m)" = aarch64 ] && hosts="$hosts ports.ubuntu.com"
+        resolves() { for h in $hosts; do getent hosts "$h" >/dev/null || return 1; done; }
+        if resolves; then echo "dns: the Ubuntu mirrors resolve"; exit 0; fi
+        resolvectl status 2>&1 | grep -E "Link|DNS Server|Current DNS" || true
+        iface=$(ip route show default | awk '{print $5; exit}')
+        for ns in 8.8.8.8 1.1.1.1; do
+          sudo resolvectl dns "$iface" "$ns" && sudo resolvectl flush-caches
+          if resolves; then echo "dns: the Ubuntu mirrors resolve through $ns"; exit 0; fi
+          echo "dns: still not through $ns"
+        done
+        echo "::warning::no Ubuntu mirror resolves from this runner"

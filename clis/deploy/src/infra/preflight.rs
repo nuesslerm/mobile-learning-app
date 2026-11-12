@@ -140,7 +140,7 @@ fn tailnet_check() -> Value {
     }
 }
 
-/// No workflow run is queued or running: a recreate takes the runner down with it.
+/// No workflow run is in progress: a recreate takes the runner down with it. Queued runs are advisory, they wait for the new runner.
 fn ci_check() -> Value {
     let mut runs = Vec::new();
     for status in IN_FLIGHT {
@@ -157,10 +157,12 @@ fn ci_check() -> Value {
             runs.push(format!("{} #{} ({status}, {})", r["name"].as_str().unwrap_or("run"), r["id"], r["head_sha"].as_str().unwrap_or("").chars().take(9).collect::<String>()));
         }
     }
-    if runs.is_empty() {
-        return check("ci", true, "no workflow run is queued or in progress".into(), "");
+    let running: Vec<&String> = runs.iter().filter(|r| r.contains("(in_progress,")).collect();
+    if running.is_empty() {
+        let detail = if runs.is_empty() { "no workflow run is queued or in progress".to_string() } else { format!("{} run(s) only queued (they wait for the new runner): {}", runs.len(), runs.join("; ")) };
+        return check("ci", true, detail, "");
     }
-    check("ci", false, format!("{} run(s) in flight: {}", runs.len(), runs.join("; ")), "wait for them, or `gh run cancel <id>`, then rerun the preflight")
+    check("ci", false, format!("{} run(s) in progress: {}", running.len(), running.iter().map(|r| r.as_str()).collect::<Vec<_>>().join("; ")), "wait for them, or `wf vm ops cancel-run --run <id>`, then rerun the preflight")
 }
 
 /// The plan of the recreate (`-replace` on the VM, as `apply --recreate` does): its actions per resource, what it destroys, and that this is only what is expected.

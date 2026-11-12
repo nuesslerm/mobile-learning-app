@@ -58,3 +58,7 @@ Read the file id and `modifiedTime` of `repomix-context.md` after the next night
 - The first fire of the nightly clock (a test, 18:57 UTC) pushed nothing: the fired session had no repository and looked for `add_repo` with ToolSearch, but it is a normal tool of the session, not a deferred one. The task prompts now say to call `mcp__claude-code-remote__add_repo` directly.
 - The gate that decides whether a tagged commit is empty read the push payload's `added/modified/removed`, which are null for every commit, so a commit whose message merely mentioned the tag ran the sync (e6c74d7 did, at 18:55 UTC: its upload, 15,881,840 bytes, is the Drive file modified 19:57 local). The shared `tag-gate.yml` now asks the commits API instead.
 - Each former cron is a tagged empty commit to `dev` that a scheduled task pushes: Gem sync nightly `[gem-sync]`, Nx cache audit weekly `[nx-audit]`, Tailscale key watch weekly `[ts-key-watch]`, CI budget reset monthly `[ci-budget-reset]`.
+
+## 2026-11-11: the Gem sync is a native schedule again
+
+On the public repository the sync runs from its own `schedule` on a hosted runner (cached nightly, full on Sundays); the Claude clock that pushed `[gem-sync]` is retired. Decisions: `docs/audits/2026-11-11-scheduled-tasks-audit.md`.

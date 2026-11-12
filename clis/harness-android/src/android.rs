@@ -84,9 +84,9 @@ fn failed(error: impl Into<String>, next: &str) -> Out {
 
 fn spec(verb: &str) -> Spec {
     let (values, flags, positional): (&'static [&'static str], &'static [&'static str], Positional) = match verb {
-        "start-device" => (&["name", "screen", "port", "with"], &["dry-run", "slim", "stock", "expo-go"], Positional::None),
-        "stop-device" => (&["name"], &["dry-run"], Positional::None),
-        "list-devices" => (&["name"], &[], Positional::None),
+        "start-device" => (&["name", "screen", "port", "with"], &["dry-run", "slim", "stock", "expo-go", "local"], Positional::None),
+        "stop-device" => (&["name"], &["dry-run", "local"], Positional::None),
+        "list-devices" => (&["name"], &["local"], Positional::None),
         "stack" => (&["platform", "file"], &[], Positional::Exactly(1)),
         "lease" => (&["name", "wait", "ttl", "who", "id", "clean-package"], &["local", "no-wait"], Positional::AtMost(1)),
         _ => (&["device"], &[], Positional::None),
@@ -94,23 +94,92 @@ fn spec(verb: &str) -> Spec {
     Spec { values, flags, positional, ..Spec::NONE }
 }
 
+/// The lab serves the CI default device only: an option that shapes it is a usage error rather than a silent default.
+fn lab_refuses_options(verb: &str, p: &Parsed) -> Result<(), Out> {
+    let shaped = ["name", "screen", "port", "with"].iter().any(|k| p.val(k).is_some()) || p.flag("slim") || p.flag("stock") || p.flag("dry-run");
+    if shaped {
+        return Err(Out::Usage(format!("{verb} through the device lab (WF_ANDROID_PROVIDER=redroid-lab) takes only --expo-go; the lab boots the default device")));
+    }
+    Ok(())
+}
+
+/// The device lab's verb on the CI port: its output on stderr, a non-zero exit of the job the error.
+fn through_lab(verb: &str, expo_go: bool) -> Result<String, Out> {
+    let (code, output) = wf_vmops::android_lab::run(verb, expo_go).map_err(|e| failed(e, "the device lab is a CI-port route: WF_VM_CI_PORT must name the CI port, and the VM runner's tag must reach it"))?;
+    eprintln!("{output}");
+    if code != 0 {
+        return Err(failed(format!("the {verb} job exited {code} (its output is above, on stderr)"), "wf vm ops stats shows what holds the VM's memory"));
+    }
+    Ok(output)
+}
+
 fn start_device(name: &str, p: &Parsed) -> Result<Value, Out> {
+    let provider = crate::android_emulator::provider().map_err(Out::Usage)?;
+    if provider == crate::android_emulator::Provider::RedroidLab {
+        lab_refuses_options("start-device", p)?;
+        through_lab("start-device", p.flag("expo-go"))?;
+        return Ok(json!({ "name": name, "provider": "redroid-lab", "expoGo": p.flag("expo-go") }));
+    }
+    if provider == crate::android_emulator::Provider::Emulator {
+        let script = crate::android_emulator::up_script(480, 1040, 213, p.flag("expo-go"));
+        if p.flag("dry-run") {
+            return Ok(json!({ "dryRun": true, "script": script }));
+        }
+        wf_kit::json_mode::stdout_to_stderr(|| crate::android_emulator::run_local("start-device", &script)).map_err(|e| failed(e, "the emulator log is emulator.log in RUNNER_TEMP; adb devices shows whether it came up"))?;
+        return Ok(json!({ "name": crate::android_emulator::SERIAL, "provider": "emulator", "expoGo": p.flag("expo-go") }));
+    }
     let up = crate::android_lab::up(p.val("screen"), name, p.val("port"), p.val("with"), p.flag("slim"), p.flag("stock"), p.flag("expo-go")).map_err(Out::Usage)?;
     let script = crate::android_lab::up_script(&up);
     if p.flag("dry-run") {
         return Ok(json!({ "dryRun": true, "script": script }));
     }
-    wf_kit::json_mode::stdout_to_stderr(|| crate::android_lab::on_vm("start-device", &script)).map_err(|e| failed(e, "wf vm ops stats shows what holds the VM's memory; wf android stop-device, then start-device again"))?;
+    let run = |script: &str| if p.flag("local") { crate::android_lab::run_local("start-device", script) } else { crate::android_lab::on_vm("start-device", script) };
+    wf_kit::json_mode::stdout_to_stderr(|| run(&script)).map_err(|e| failed(e, "wf vm ops stats shows what holds the VM's memory; wf android stop-device, then start-device again"))?;
     Ok(up.summary())
 }
 
 fn stop_device(name: &str, p: &Parsed) -> Result<Value, Out> {
+    let provider = crate::android_emulator::provider().map_err(Out::Usage)?;
+    if provider == crate::android_emulator::Provider::RedroidLab {
+        lab_refuses_options("stop-device", p)?;
+        through_lab("stop-device", false)?;
+        return Ok(json!({ "name": name, "stopped": true }));
+    }
+    if provider == crate::android_emulator::Provider::Emulator {
+        let script = crate::android_emulator::down_script();
+        if p.flag("dry-run") {
+            return Ok(json!({ "dryRun": true, "script": script }));
+        }
+        wf_kit::json_mode::stdout_to_stderr(|| crate::android_emulator::run_local("stop-device", &script)).map_err(|e| failed(e, "adb devices shows whether the emulator is still there"))?;
+        return Ok(json!({ "name": crate::android_emulator::SERIAL, "stopped": true }));
+    }
     let script = crate::android_lab::down_script(name);
     if p.flag("dry-run") {
         return Ok(json!({ "dryRun": true, "script": script }));
     }
-    wf_kit::json_mode::stdout_to_stderr(|| crate::android_lab::on_vm("stop-device", &script)).map_err(|e| failed(e, "wf vm exec 'docker ps -a' shows whether the container is still there"))?;
+    let run = |script: &str| if p.flag("local") { crate::android_lab::run_local("stop-device", script) } else { crate::android_lab::on_vm("stop-device", script) };
+    wf_kit::json_mode::stdout_to_stderr(|| run(&script)).map_err(|e| failed(e, "wf vm exec 'docker ps -a' shows whether the container is still there"))?;
     Ok(json!({ "name": name, "stopped": true }))
+}
+
+/// The devices as the provider reports them. Through the device lab the job runs `list-devices --local` in agent-shell and its last
+/// JSON line is the answer.
+fn list_devices(name: &str, p: &Parsed) -> Result<Value, Out> {
+    use crate::android_emulator::Provider;
+    let devices = |found: Result<Option<Value>, String>| found.map(|d| json!({ "devices": d.into_iter().collect::<Vec<_>>() })).map_err(|e| failed(e, "wf vm ops health"));
+    match crate::android_emulator::provider().map_err(Out::Usage)? {
+        Provider::Emulator => devices(crate::android_emulator::device()),
+        Provider::Redroid => devices(crate::android_lab::device(name, p.flag("local"))),
+        Provider::RedroidLab => {
+            let output = through_lab("list-devices", false)?;
+            let line = output.lines().rev().find(|l| l.trim_start().starts_with('{')).ok_or_else(|| failed("the device lab's list-devices job printed no JSON line", "wf vm ops stats"))?;
+            let envelope: Value = serde_json::from_str(line).map_err(|e| failed(format!("the device lab's list-devices answer is not JSON: {e}"), "wf vm ops stats"))?;
+            if envelope["ok"] != json!(true) {
+                return Err(failed(format!("list-devices in agent-shell failed: {}", envelope["error"]), "wf vm ops stats"));
+            }
+            Ok(envelope["result"].clone())
+        }
+    }
 }
 
 fn hierarchy(given: Option<&str>) -> Result<(String, Value), Out> {
@@ -139,7 +208,7 @@ fn verb(verb: &str, rest: &[String]) -> i32 {
     let (device, out) = match verb {
         "start-device" => (Some(name.clone()), start_device(&name, &p)),
         "stop-device" => (Some(name.clone()), stop_device(&name, &p)),
-        "list-devices" => (Some(name.clone()), crate::android_lab::device(&name).map(|d| json!({ "devices": d.into_iter().collect::<Vec<_>>() })).map_err(|e| failed(e, "wf vm ops health"))),
+        "list-devices" => (Some(name.clone()), list_devices(&name, &p)),
         "stack" => (None, harness_core::android_logs::stack(&p.positional[0], p.val("platform").unwrap_or("android"), p.val("file")).map_err(|e| failed(e, "wf android stack --help; the group id is in the EAS Update link and in the run summary"))),
         "lease" => {
             let action = p.positional.first().map_or("acquire", String::as_str);

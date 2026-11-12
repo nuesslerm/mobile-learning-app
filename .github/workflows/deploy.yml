@@ -6,8 +6,8 @@ name: CI (self-hosted)
 on:
   push:
     branches: [dev]
-    # a push that changes no file starts no run, because no path matches: the Gem sync is triggered by such an EMPTY commit ([gem-sync], see
-    # repomix-gemini-context.yml), and a trigger must neither run this pipeline nor take the place of a run of it that is still waiting
+    # a push that changes no file starts no run, because no path matches: a manual Gem sync is run by such an EMPTY commit ([gem-sync], see
+    # repomix-gemini-context.yml; the nightly and weekly sync are native schedules, the tag is only a manual run), and a trigger must neither run this pipeline nor take the place of a run of it that is still waiting
     paths: ['**', '.*', '.*/**']
 
 # One run at a time; a newer push replaces a run still waiting, so a backlog never deploys old commits over newer ones.

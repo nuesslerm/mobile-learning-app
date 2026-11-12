@@ -24,7 +24,7 @@ Authority: the owner's written go of 23 Oct 2026, recorded at unit S1 of the pla
 ## Step 1: preflight (read-only)
 
 ```sh
-cd /home/user/expo-hello-world-app-2
+cd /home/user/mobile-learning-app
 git fetch origin dev && git status -sb            # the commit to push is on top of origin/dev
 SHA=$(git rev-parse HEAD); T=sha-$(git rev-parse --short=7 HEAD)
 OUT=$(mktemp -d)                                   # tee each step's JSON here: the progress line quotes it

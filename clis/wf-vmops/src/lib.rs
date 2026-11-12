@@ -1,5 +1,6 @@
 //! The VM as every other `wf` crate reaches it: signed vm-ops-api requests over the tailnet, `wf vm exec`, the tailnet name resolver, the
 //! device-run sampler, and what runs there (the apps, the commit each was built from, the device image). A change reruns every crate that talks to it.
+pub mod android_lab;
 pub mod betterstack;
 mod help_table;
 pub mod host_summary;

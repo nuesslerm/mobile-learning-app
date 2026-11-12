@@ -18,14 +18,19 @@ inputs:
   clis-artifact:
     description: The artifact holding the binaries (clis for x64, clis-arm for an arm64 runner)
     default: clis
+  keep-android:
+    description: Keep the Android SDK the hosted image carries (the Android e2e job boots its emulator from it)
+    default: "false"
 runs:
   using: composite
   steps:
     - name: Free the runner's disk in the background
       shell: bash
+      env:
+        KEEP_ANDROID: ${{ inputs.keep-android }}
       run: |
         # a cold debug build of the workspace's crates fills the 14 GB a hosted runner has free ("No space left on device" in a flow shard)
-        (sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/share/swift >/dev/null 2>&1 &)
+        (sudo rm -rf /usr/share/dotnet $([ "$KEEP_ANDROID" = true ] || echo /usr/local/lib/android) /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/share/swift >/dev/null 2>&1 &)
         df -h / | tail -1
     - name: Join the tailnet as tag:ci-gh-hosted
       uses: tailscale/github-action@99a8333667fff04fdd6cffb46dfd409f8329a7bf # v4.3.0

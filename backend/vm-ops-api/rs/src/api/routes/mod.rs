@@ -6,6 +6,7 @@ use vm_ops_api_core::domain::exposure::{spec_of, Exposure};
 use vm_ops_api_core::domain::request::Target;
 
 mod agent_shell;
+mod android_lab;
 mod cooldown_write;
 mod cooldowns;
 mod drill;
@@ -49,6 +50,10 @@ pub enum RouteId {
     SelfRedeploy,
     SelfSmoke,
     SelfSmokeStop,
+    AndroidDeviceStart,
+    AndroidDeviceStop,
+    AndroidDeviceList,
+    AndroidDeviceJob,
 }
 
 impl RouteId {
@@ -88,6 +93,10 @@ impl RouteId {
             RouteId::SelfRedeploy => "SelfRedeploy",
             RouteId::SelfSmoke => "SelfSmoke",
             RouteId::SelfSmokeStop => "SelfSmokeStop",
+            RouteId::AndroidDeviceStart => "AndroidDeviceStart",
+            RouteId::AndroidDeviceStop => "AndroidDeviceStop",
+            RouteId::AndroidDeviceList => "AndroidDeviceList",
+            RouteId::AndroidDeviceJob => "AndroidDeviceJob",
         }
     }
 
@@ -157,6 +166,10 @@ pub fn resolve(method: &str, target: &Target) -> Option<RouteId> {
         "POST" if target.is_path("/redeploy") => Some(RouteId::SelfRedeploy),
         "POST" if target.is_path("/redeploy/smoke") => Some(RouteId::SelfSmoke),
         "POST" if target.is_path("/redeploy/smoke/stop") => Some(RouteId::SelfSmokeStop),
+        "POST" if target.is_path("/android/device/start") => Some(RouteId::AndroidDeviceStart),
+        "POST" if target.is_path("/android/device/stop") => Some(RouteId::AndroidDeviceStop),
+        "POST" if target.is_path("/android/device/list") => Some(RouteId::AndroidDeviceList),
+        "GET" if android_lab::is_job_status(target) => Some(RouteId::AndroidDeviceJob),
         _ => None,
     }
 }
@@ -191,6 +204,10 @@ pub async fn handle(route: RouteId, call: &Call<'_>, state: &AppState) -> Result
         RouteId::SelfRedeploy => Ok(self_redeploy::answer(call, state).await),
         RouteId::SelfSmoke => Ok(self_redeploy::smoke(call, state).await),
         RouteId::SelfSmokeStop => Ok(self_redeploy::smoke_stop(call, state).await),
+        RouteId::AndroidDeviceStart => android_lab::start(android_lab::start_verb, call, state).await,
+        RouteId::AndroidDeviceStop => android_lab::start(android_lab::stop_verb, call, state).await,
+        RouteId::AndroidDeviceList => android_lab::start(android_lab::list_verb, call, state).await,
+        RouteId::AndroidDeviceJob => android_lab::status(call, state).await,
     }
 }
 
@@ -199,7 +216,7 @@ mod tests {
     use super::*;
     use vm_ops_api_core::domain::exposure::{matches, ROUTES};
 
-    const ALL: [RouteId; 28] = [
+    const ALL: [RouteId; 32] = [
         RouteId::Health,
         RouteId::Ps,
         RouteId::Stats,
@@ -228,6 +245,10 @@ mod tests {
         RouteId::SelfRedeploy,
         RouteId::SelfSmoke,
         RouteId::SelfSmokeStop,
+        RouteId::AndroidDeviceStart,
+        RouteId::AndroidDeviceStop,
+        RouteId::AndroidDeviceList,
+        RouteId::AndroidDeviceJob,
     ];
 
     #[test]

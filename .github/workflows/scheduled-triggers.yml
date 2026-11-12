@@ -1,7 +1,7 @@
 name: Scheduled triggers
 
 # The one workflow that listens to a push for the runs a commit tag asks for. A Claude scheduled task pushes an EMPTY commit to dev whose message carries
-# a tag ([vm-state-backup], [parity], [ci-audit], ...), because GitHub starts its own `schedule` hours late in this private repo. This job is skipped
+# a tag ([vm-state-backup], [parity], [ci-audit], ...), for the runs a schedule cannot start (GitHub starts its own `schedule` hours late, and only from main). This job is skipped
 # at once (no runner) on every push that carries no tag, so the pull request lists one skipped check instead of one per workflow; on a tagged push it
 # checks that the commit changed no file and starts the workflow the tag names (each of them takes `message` and `sha` as dispatch inputs and only runs on dev).
 # deploy.yml starts only when a push changes a file, so an empty commit starts no CI run and cannot displace a waiting one.
@@ -9,17 +9,17 @@ on:
   push:
     branches: [dev]
 
-permissions:
-  actions: write
-  contents: read
+permissions: {}
 
 jobs:
   route:
+    permissions:
+      actions: write
+      contents: read
     # a marker is the start of the message or of a line, like the parsers of `wf mimic trigger` and `wf parity track plan` read it; fromJSON gives the newline
     if: >-
       ${{
         contains(github.event.head_commit.message, '[ci-audit]') ||
-        contains(github.event.head_commit.message, '[ci-budget-reset]') ||
         startsWith(github.event.head_commit.message, '[hosted-minutes ') ||
         startsWith(github.event.head_commit.message, '[hosted-tailnet]') ||
         startsWith(github.event.head_commit.message, '[parity]') ||
@@ -33,7 +33,7 @@ jobs:
         contains(github.event.head_commit.message, '[vm-state-backup]')
       }}
     name: Start the workflow the commit tag names
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_GATE_GATE || '["self-hosted","vm"]') }}
+    runs-on: ${{ fromJSON(vars.RUNNER_TAG_GATE_GATE || '["ubuntu-latest"]') }}
     timeout-minutes: 5
     steps:
       - name: Count the files the commit changed
@@ -67,7 +67,6 @@ jobs:
               || echo "::error::could not start $1"
           }
           ! anywhere '[ci-audit]' || start ci-audit.yml
-          ! anywhere '[ci-budget-reset]' || start ci-budget.yml
           if atstart '[hosted-minutes '; then
             if anywhere arm64; then start hosted-minutes.yml '{"runner":"ubuntu-24.04-arm"}'; else start hosted-minutes.yml; fi
           fi

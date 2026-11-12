@@ -107,7 +107,9 @@ services:
       BWS_SERVER_URL: ${BWS_SERVER_URL:-}
     volumes:
       - gh-runner-work:/runner-work
-      - gh-runner-config-3:/runner-config
+      # The volume is named for the repository it is registered with: moving the runner to another repository takes a new name, so a
+      # container never resumes the old registration.
+      - gh-runner-config-4:/runner-config
       - builder-certs:/certs:ro
       # Keeps the pnpm package store across jobs and container recreates, so installs reuse downloads.
       - gh-runner-pnpm-store:/root/.local/share/pnpm
@@ -130,7 +132,7 @@ services:
 
 volumes:
   gh-runner-work:
-  gh-runner-config-3:
+  gh-runner-config-4:
   gh-runner-pnpm-store:
   builder-certs:
   builder-data:

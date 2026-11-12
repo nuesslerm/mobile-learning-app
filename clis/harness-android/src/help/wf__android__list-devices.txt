@@ -1,4 +1,4 @@
-Usage: wf android list-devices [--name N]
+Usage: wf android list-devices [--name N] [--local]
 
 The device the container --name (default WF_ANDROID_NAME, else rdl) runs, read on the VM: whether it finished booting,
 whether the slim set was proved to boot after a restart, and each feature of the catalog (clis/harness-android/src/android_features.json)

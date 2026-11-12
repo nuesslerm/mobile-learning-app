@@ -1,0 +1,33 @@
+name: Hosted apt
+description: >-
+  Installs the system packages a job of the GitHub-hosted flavor needs, before it joins the tailnet: once the tailnet is up the runner cannot
+  resolve the Ubuntu mirrors ("Temporary failure resolving ..."), so an apt install after the join fails. A package already installed is left alone.
+inputs:
+  packages:
+    description: Space-separated apt package names
+    default: ""
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        PACKAGES: ${{ inputs.packages }}
+      run: |
+        missing=""
+        for p in $PACKAGES; do dpkg -s "$p" >/dev/null 2>&1 || missing="$missing $p"; done
+        if [ -z "$missing" ]; then echo "apt: nothing to install ($PACKAGES)"; exit 0; fi
+        sudo dpkg --configure -a
+        getent hosts archive.ubuntu.com >/dev/null || { echo "::error::no Ubuntu mirror resolves from this runner"; exit 1; }
+        opts=(-o Acquire::Retries=1 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20)
+        ok=false
+        for attempt in 1 2 3 4; do
+          # shellcheck disable=SC2086
+          if sudo timeout 150 apt-get update -qq "${opts[@]}" && sudo timeout 240 apt-get install -y -qq "${opts[@]}" $missing; then ok=true; break; fi
+          echo "apt: attempt $attempt failed"
+          if [ "$attempt" = 2 ] && [ -f /etc/apt/apt-mirrors.txt ]; then
+            echo "apt: falling back to archive.ubuntu.com"
+            echo "http://archive.ubuntu.com/ubuntu/ priority:1" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          fi
+          sleep $((attempt * 15))
+        done
+        [ "$ok" = true ] || { echo "::error::apt could not install:$missing"; exit 1; }

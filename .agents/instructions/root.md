@@ -54,7 +54,7 @@ Say which type ran (runbook, browser/Android e2e, deployment verification, integ
 
 ## The Oracle Cloud VM
 
-One Always-Free A1 VM (`main`) runs every app; deploy = a CI leg (`wf ship`, then a `vm-ops-api` redeploy); no SSH. Downtime is never a concern; recoverability without a human is (check tfstate before destroying); never destroy vault secrets or tfstate history. Recreating an Always-Free instance via Terraform is pre-authorized. Details: `infra/oracle-cloud/AGENTS.md`.
+One Always-Free A1 VM (`main`) runs every app; deploy = a CI leg (`wf ship`, then a `vm-ops-api` redeploy); no SSH. Downtime is never a concern; recoverability without a human is (check tfstate before destroying); never destroy vault secrets or tfstate history. Recreating an Always-Free instance via Terraform is pre-authorized, and every gate before it is yours to clear (cancel runs with `wf vm ops cancel-run`, `wf vm creds sync`, `terraform init`, a vault placeholder is the sentinel `PLACEHOLDER_FILL_ME`): never hand a recreate back for a blocker you can fix. Details: `infra/oracle-cloud/AGENTS.md`.
 
 ## Secrets
 

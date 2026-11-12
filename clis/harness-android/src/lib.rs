@@ -1,6 +1,7 @@
 //! The Android harness: `wf android` (adb, the on-device UI server, the device lease, the lab on the VM) and the `Device` and
 //! `Platform` of an Android device. It builds on `harness-core`.
 pub mod android;
+pub mod android_emulator;
 mod android_features;
 mod android_input;
 pub mod android_lab;

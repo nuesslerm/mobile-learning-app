@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "demo": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "{ROOT}/mcp.js"
+      ]
+    }
+  }
+}

@@ -143,8 +143,12 @@ fn write_urls_resolve_only_for_a_push_to_dev_in_github_actions() {
     let dispatched = ci(&v, &["get", WRITE_KEY], &actions("workflow_dispatch", "refs/heads/dev"));
     assert_eq!((dispatched.exit_code, dispatched.stdout.as_str()), (0, "https://write.example/o/\n"), "{}", dispatched.stderr);
 
-    // When they are asked for by a pull request, by a push to another branch, and by a dispatch on another branch, through get and sync-env
-    let refused = [("pull_request", "refs/pull/7/merge"), ("push", "refs/heads/feature"), ("workflow_dispatch", "refs/heads/feature")];
+    // When they are asked for by a schedule on main (GitHub runs schedules only from the default branch), Then they resolve too
+    let scheduled = ci(&v, &["get", WRITE_KEY], &actions("schedule", "refs/heads/main"));
+    assert_eq!((scheduled.exit_code, scheduled.stdout.as_str()), (0, "https://write.example/o/\n"), "{}", scheduled.stderr);
+
+    // When they are asked for by a pull request, by a push to another branch, by a dispatch on another branch, by a schedule on another ref and by a pull request on main, through get and sync-env
+    let refused = [("pull_request", "refs/pull/7/merge"), ("push", "refs/heads/feature"), ("workflow_dispatch", "refs/heads/feature"), ("schedule", "refs/heads/feature"), ("pull_request", "refs/heads/main")];
     let blocked = v.dir.path().join("blocked.env");
     for (event, git_ref) in refused {
         let got = ci(&v, &["get", WRITE_KEY], &actions(event, git_ref));

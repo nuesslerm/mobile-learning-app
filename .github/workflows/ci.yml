@@ -26,11 +26,6 @@ concurrency:
 jobs:
   fast:
     name: Fast checks (lint)
-    # Evaluated by GitHub's orchestrator before a runner is ever requested --
-    # costs no Actions minutes, and is what lets this job show as SKIPPED
-    # instead of FAILED once the account's minutes are exhausted for the
-    # month. See .github/workflows/ci-budget.yml for what sets/clears this.
-    if: vars.CI_BUDGET_LOW != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -56,16 +51,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm --filter "$AFFECTED" run --if-present lint
-
-      # Last step -- pre-emptively flips CI_BUDGET_LOW=true when this month's
-      # consumed minutes are within 100 of the budget. See
-      # .github/actions/check-ci-budget/action.yml for why a per-repo proxy
-      # rather than the user-billing API. `if: always()` so the flip still
-      # lands when the lint itself failed -- that is exactly the case where
-      # the next several runs would otherwise burn the last sliver.
-      - name: Check CI budget and flip flag if low
-        if: always()
-        uses: ./.github/actions/check-ci-budget
 
   full:
     name: Full (lint + test + build)
@@ -93,11 +78,3 @@ jobs:
       - run: pnpm --filter "$AFFECTED" run --if-present lint
       - run: pnpm --filter "$AFFECTED" run --if-present test
       - run: pnpm --filter "$AFFECTED" run --if-present build
-
-      # Same pre-emptive CI_BUDGET_LOW flip as the fast job above. The full
-      # job is the expensive one (~30 min) so a flip here saves the most
-      # budget at month-end -- see the fast job's identical step for the
-      # full rationale and the action's own doc comment for the design.
-      - name: Check CI budget and flip flag if low
-        if: always()
-        uses: ./.github/actions/check-ci-budget

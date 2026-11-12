@@ -131,6 +131,6 @@ Numbers of the first cold hosted run and the VM warm-cache run: `hosted-minutes.
 
 - A no-drift check (flow test) that the two callers differ only in `with:`, triggers, name, group and permissions.
 - One green full cold hosted run of this structure with every deploy leg (tracked in issue #367).
-- Cold runs come from the `[cache:no]` commit tag: `wf ci audit` judges a run cold when its head commit carries it (or when it was dispatched by hand). The weekly `cold-ci.yml` dispatcher is gone; a scheduled cold run needs a clock that pushes a file-changing commit tagged `[services:all] [cache:no]`, because an empty commit starts no `deploy.yml` run.
+- Cold runs come from the `[cache:no]` commit tag: `wf ci audit` judges a run cold when its head commit carries it (or when it was dispatched by hand). The weekly cold run is `cold-ci.yml` (schedule and dispatch, hosted flavor, nothing deployed or shipped): it calls this pipeline with the `fresh` and `services: all` inputs, which do what the `[cache:no]` and `[services:all]` tags do for a commit that carries none, and `wf ci audit` judges a scheduled run cold.
 
 Related: `ci-pipeline-on-the-vm.md` (the VM pipeline in detail), `hosted-minutes.md` (billing and timings), `job-secret-needs.md` (vault scope per job; `clis/secrets/src/data/job-scopes.json`), `cache-layers.md`.
