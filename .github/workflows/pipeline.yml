@@ -131,6 +131,44 @@ jobs:
           mode: upload
           job: ${{ matrix.arch == 'arm64' && 'clis-arm' || 'wf-build' }}
 
+  # This commit's wf as the `wf-latest` release: a fresh cloud session cannot build it (the private crate registry is tailnet-only, and joining the tailnet needs wf),
+  # so .agents/setup.sh installs this instead. Only named binaries leave the runner, the job holds a GITHUB_TOKEN and no vault token, and it stops if a secret-shaped
+  # string is found in them.
+  wf-release:
+    name: Publish wf
+    needs: wf-build
+    if: ${{ !cancelled() && needs.wf-build.result == 'success' && inputs.flavor == 'hosted' && inputs.deploy && github.event_name == 'push' && github.ref == 'refs/heads/dev' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: clis*
+          path: bins
+      - name: Publish the binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir out
+          for pair in clis:x64 clis-arm:arm64; do
+            dir=${pair%%:*}; arch=${pair##*:}
+            [ -f "bins/$dir/wf" ] || { echo "no wf in $dir: skipped"; continue; }
+            stage=$(mktemp -d)
+            for b in wf t3-serve rca-exec wf-mimic; do [ -f "bins/$dir/$b" ] && install -m 0755 "bins/$dir/$b" "$stage/$b"; done
+            if grep -aEq -e '-----BEGIN [A-Z ]*PRIVATE KEY-----|gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|AKIA[0-9A-Z]{16}|eyJ[A-Za-z0-9_-]{30,}\.[A-Za-z0-9_-]{20,}|xox[bpas]-[A-Za-z0-9-]{20,}|sk-[A-Za-z0-9]{32,}' "$stage"/*; then
+              echo "::error::a secret-shaped string is in the $arch binaries: nothing is published"; exit 1
+            fi
+            tar -C "$stage" -czf "out/wf-linux-$arch.tar.gz" .
+            (cd out && sha256sum "wf-linux-$arch.tar.gz" > "wf-linux-$arch.tar.gz.sha256")
+          done
+          ls -l out
+          [ -n "$(ls out)" ] || { echo "nothing to publish"; exit 1; }
+          gh release view wf-latest >/dev/null 2>&1 || gh release create wf-latest --prerelease --target dev --title "wf, newest dev build" --notes "Built by CI from dev: wf, t3-serve, rca-exec, wf-mimic for linux x64 and arm64, with sha256. Installed by .agents/setup.sh in sessions that cannot build wf."
+          gh release upload wf-latest out/* --clobber
+
   preflight:
     name: preflight
     needs: wf-build

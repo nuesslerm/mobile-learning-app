@@ -72,7 +72,24 @@ step_apt() {
 
 # The Rust wf (cargo: a no-op when unchanged) linked as `wf`, with t3-serve, rca-exec and wf-mimic beside it for `wf t3`, `wf exec` and `wf mimic`.
 # Never steal the link from another live checkout: a deleted worktree would leave every `wf` call on the machine dangling.
+# A fresh session cannot build wf (its private crate registry is tailnet-only and joining the tailnet needs wf): install the build CI publishes as the `wf-latest` release.
+install_published_wf() {
+  [ "$(os)" = linux ] || return 1
+  local base="https://github.com/nuesslerm/mobile-learning-app/releases/download/wf-latest" a tmp b
+  a=$(arch); tmp=$(mktemp -d)
+  curl -fsSL -o "$tmp/wf.tgz" "$base/wf-linux-$a.tar.gz" && curl -fsSL -o "$tmp/wf.sha256" "$base/wf-linux-$a.tar.gz.sha256" || { rm -rf "$tmp"; return 1; }
+  if [ "$(sha256sum "$tmp/wf.tgz" | cut -d' ' -f1)" != "$(cut -d' ' -f1 "$tmp/wf.sha256")" ]; then warn "published wf: checksum mismatch"; rm -rf "$tmp"; return 1; fi
+  tar -xzf "$tmp/wf.tgz" -C "$tmp" || { rm -rf "$tmp"; return 1; }
+  for b in wf t3-serve rca-exec wf-mimic; do [ -f "$tmp/$b" ] && install -m 0755 "$tmp/$b" "$BIN/$b"; done
+  rm -rf "$tmp"
+  "$BIN/wf" --version >/dev/null 2>&1
+}
+
 step_wf() {
+  if ! command -v wf >/dev/null 2>&1; then
+    install_published_wf && return
+    warn "published wf unavailable: building it"
+  fi
   command -v cargo >/dev/null 2>&1 || { warn "cargo missing: wf not built"; return; }
   cargo build --release --quiet --manifest-path clis/Cargo.toml -p wf -p t3-serve -p rca-exec -p wf-mimic || { warn "building wf failed"; return; }
   local target="$REPO_ROOT/clis/target/release/wf" current
