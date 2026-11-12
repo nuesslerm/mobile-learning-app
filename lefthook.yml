@@ -46,10 +46,9 @@ pre-commit:
       run: pnpm run arch:services
 
     - name: workflows
-      # The pipeline crate's flow tests read every workflow and action as text (no step writes into the checkout, the jobs the callers share, the tags): a change under
-      # .github/ that only actionlint saw reached CI red once. About 10 s with the crate built.
-      glob: '.github/**'
-      run: cargo test --manifest-path clis/Cargo.toml -p pipeline --test flow
+      # The pipeline crate's flow tests read every workflow and action as text (no step writes into the checkout, the jobs the callers share, the tags). Always run, through Nx:
+      # `.github/**` is an input of the task, so an unchanged tree replays in about 2 s and a changed one runs (about 15 s); actionlint alone let a red workflow reach CI once.
+      run: pnpm exec nx run crate-pipeline:cargo-flow
 
 post-land:
   parallel: true
