@@ -1,5 +1,5 @@
 ---
-description: Read-only code review of a diff or a set of files: correctness bugs, missed requirements, risky changes, with file and line references, as a findings list. Used by wf offload ask --agent reviewer and the cf-review skill.
+description: Read-only code review of a diff or a set of files: correctness bugs, missed requirements, risky changes, with file and line references, as a findings list. Used by wf offload ask --agent reviewer and cf-plan.
 mode: subagent
 model: minimax/MiniMax-M3
 temperature: 0.1

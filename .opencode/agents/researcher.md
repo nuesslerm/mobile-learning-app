@@ -1,5 +1,5 @@
 ---
-description: Read-only research over the repository: answers a concrete question with file paths and line references, or writes a findings document. Used by wf offload ask --agent researcher and the cf-brainstorm/cf-plan skills.
+description: Read-only research over the repository: answers a concrete question with file paths and line references, or writes a findings document. Used by wf offload ask --agent researcher and the cf-plan skill.
 mode: subagent
 model: minimax/MiniMax-M3
 temperature: 0.2
