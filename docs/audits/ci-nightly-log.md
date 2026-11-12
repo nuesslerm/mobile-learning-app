@@ -1,6 +1,6 @@
 # Nightly audit log
 
-One entry per night, appended by the nightly audit session (the "Nightly audit clock (daily)" tick into `<schedules-session>`, in `nuesslerm/mobile-learning-app`) (procedure: `docs/runbooks/nightly-audit.md`; before 7 Nov 2026 "ci nightly cost review"). Each entry: the date, the numbers judged, the fixes landed (commit and the number each should move), the earlier fixes checked (measured number, kept or reverted) and what needs the owner (also recorded in the findings inbox issue, `<INBOX-ISSUE>`, once the owner session creates it).
+One entry per night, appended by the nightly audit session (the "Nightly audit clock (daily)" tick into `session_01MdgrcdJGE5MkZS29xApR9c`, in `nuesslerm/mobile-learning-app`) (procedure: `docs/runbooks/nightly-audit.md`; before 7 Nov 2026 "ci nightly cost review"). Each entry: the date, the numbers judged, the fixes landed (commit and the number each should move), the earlier fixes checked (measured number, kept or reverted) and what needs the owner (also recorded in the findings inbox issue, `#79`, once the owner session creates it).
 
 ## 2026-11-06 (set up by hand)
 

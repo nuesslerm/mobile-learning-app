@@ -159,6 +159,6 @@ Stop at the first failure and take its rollback.
 
    `wf vm ops pair` calls `POST /services/orca-serve/pair` on vm-ops-api, which runs `orca-serve pair` inside the container. Exit 1 with a JSON error on stderr means no link was minted; `wf vm ops logs orca-serve` says why.
 
-2. **Merge `origin/main` into `dev`** before anything else starts (`<PLAN-ISSUE>` phase 2; `docs/solutions/workflow/dev-parity-with-main.md`): `git fetch origin && git merge origin/main`, regenerate lockfiles and generated files with the repo's tooling (never by hand), run the gate, push.
+2. **Merge `origin/main` into `dev`** before anything else starts (`#78` phase 2; `docs/solutions/workflow/dev-parity-with-main.md`): `git fetch origin && git merge origin/main`, regenerate lockfiles and generated files with the repo's tooling (never by hand), run the gate, push.
 
-3. Tick the phase 1 items of `<PLAN-ISSUE>` with the sha and the verdict of the preflight, the verify table and the green CI run.
+3. Tick the phase 1 items of `#78` with the sha and the verdict of the preflight, the verify table and the green CI run.

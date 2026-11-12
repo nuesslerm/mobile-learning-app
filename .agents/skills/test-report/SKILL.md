@@ -12,7 +12,7 @@ metadata:
 
 Every CI test run publishes a bundle (`wf test publish`): report, screenshots, recordings, timing and its metrics row, listed
 newest first in the bucket's `verification/test-runs/index.json`. This skill turns the runs that have no report yet into one
-report page. The test-report clock (every 6 h) fires a tick into the `<reports-session>` and the session runs it; anyone can ask for it.
+report page. The test-report clock (every 6 h) fires a tick into the `session_01MdgrcfVk6KdjZ7thCpM7kp` and the session runs it; anyone can ask for it.
 
 ## 1. Which runs
 
