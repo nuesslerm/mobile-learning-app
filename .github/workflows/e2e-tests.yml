@@ -324,7 +324,7 @@ jobs:
         if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
         shell: bash
         run: |
-          wf android list-devices | tee "$RUNNER_TEMP/list-devices.json" | jq '.result.devices[0]' > "$RUNNER_TEMP/device-features.json"
+          wf android list-devices --local | tee "$RUNNER_TEMP/list-devices.json" | jq '.result.devices[0]' > "$RUNNER_TEMP/device-features.json"
           if [ "$WF_ANDROID_PROVIDER" = emulator ]; then
             jq -e '.boot.completed == true and .boot.activityService == true' "$RUNNER_TEMP/device-features.json"
           else
