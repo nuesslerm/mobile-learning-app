@@ -146,7 +146,7 @@ pub fn on_device_daemon(cmd: &mut std::process::Command) -> &mut std::process::C
     }
 }
 
-/// Runs a script here, in agent-shell's own shell (what the device lab's job does), its output on stderr.
+/// Runs a script here, in agent-shell's own shell (a VM runner or agent-shell), its output on stderr.
 pub fn run_local(verb: &str, script: &str) -> Result<(), String> {
     crate::android_emulator::run_local(verb, script)
 }

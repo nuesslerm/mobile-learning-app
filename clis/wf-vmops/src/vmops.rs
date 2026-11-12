@@ -56,7 +56,7 @@ pub fn sign_request(
     ])
 }
 
-/// The routes the CI port serves (the `Shared` and `CiOnly` rows of `backend/vm-ops-api/core/src/domain/exposure.rs`, which a flow test compares
+/// The routes the CI port serves (the `Shared` rows of `backend/vm-ops-api/core/src/domain/exposure.rs`, which a flow test compares
 /// with this list); `{app}` is one path segment.
 pub const CI_ROUTES: &[(&str, &str)] = &[
     ("GET", "/health"),
@@ -69,10 +69,6 @@ pub const CI_ROUTES: &[(&str, &str)] = &[
     ("POST", "/redeploy"),
     ("POST", "/redeploy/smoke"),
     ("POST", "/redeploy/smoke/stop"),
-    ("POST", "/android/device/start"),
-    ("POST", "/android/device/stop"),
-    ("POST", "/android/device/list"),
-    ("GET", "/android/device/jobs/{job}"),
 ];
 
 /// Which port and seed a call goes to: a CI job's own, or the admin's.

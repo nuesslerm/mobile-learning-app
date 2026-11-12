@@ -45,7 +45,7 @@ const fn spec(id: &'static str, method: &'static str, path: &'static str, exposu
     RouteSpec { id, method, path, exposure }
 }
 
-use Exposure::{AdminOnly, CiOnly, Shared};
+use Exposure::{AdminOnly, Shared};
 
 /// Every route, classified. Anything that is not clearly something a CI job calls (a redeploy of a tag CI already pushed, its smoke
 /// test and status, health, the container and stats reads) is admin only.
@@ -78,12 +78,6 @@ pub const ROUTES: &[RouteSpec] = &[
     spec("VmLedger", "GET", "/services/agent-shell/vm-ledger/{name}", AdminOnly),
     spec("Artifact", "GET", "/services/agent-shell/artifact", AdminOnly),
     spec("Credentials", "POST", "/agent-shell/credentials", AdminOnly),
-    // The device lab: three fixed verbs on the one redroid and the status of the jobs they start. The VM's runner reaches these, not
-    // the exec-script routes above, so its tag never needs the admin port.
-    spec("AndroidDeviceStart", "POST", "/android/device/start", CiOnly),
-    spec("AndroidDeviceStop", "POST", "/android/device/stop", CiOnly),
-    spec("AndroidDeviceList", "POST", "/android/device/list", CiOnly),
-    spec("AndroidDeviceJob", "GET", "/android/device/jobs/{job}", CiOnly),
 ];
 
 pub fn spec_of(id: &str) -> Option<&'static RouteSpec> {
@@ -135,16 +129,6 @@ mod tests {
         for spec in found {
             assert_eq!(spec.exposure, Exposure::AdminOnly, "{}", spec.id);
             assert!(!spec.exposure.serves(Port::Ci), "{}", spec.id);
-        }
-    }
-
-    #[test]
-    fn given_the_device_lab_routes_when_classified_then_only_the_ci_port_serves_them_and_none_runs_a_script_of_the_requests() {
-        let lab: Vec<&RouteSpec> = ROUTES.iter().filter(|spec| spec.path.starts_with("/android/")).collect();
-        assert_eq!(lab.len(), 4);
-        for spec in lab {
-            assert_eq!(spec.exposure, Exposure::CiOnly, "{}", spec.id);
-            assert!(spec.exposure.serves(Port::Ci) && !spec.exposure.serves(Port::Admin), "{}", spec.id);
         }
     }
 

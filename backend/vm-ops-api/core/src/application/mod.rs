@@ -1,6 +1,5 @@
 pub mod access;
 pub mod agent_shell;
-pub mod android_lab;
 pub mod cooldown_writes;
 pub mod drill;
 pub mod health;

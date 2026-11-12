@@ -28,13 +28,12 @@ pub fn is_ledger(target: &Target) -> bool {
 }
 
 /// A refusal is the route's own reply; an Engine failure is the dispatcher's 502.
-pub(super) fn refused(failed: Failed) -> Result<Reply, Failure> {
+fn refused(failed: Failed) -> Result<Reply, Failure> {
     let error = |status: u16, message: &str| Reply::json(status, &json!({ "error": message }));
     Ok(match failed {
         Failed::NotRunning => error(503, "agent-shell container is not running"),
         Failed::EmptyScript => error(400, "request body (the script to run) must not be empty"),
         Failed::BadJobId => error(400, "jobId must be a UUID"),
-        Failed::NotALabJob => error(404, "not a device-lab job"),
         Failed::UnknownLedger => error(404, "unknown ledger"),
         Failed::LedgerNotFound => error(404, "ledger not found"),
         Failed::BadArtifactPath => error(400, BAD_ARTIFACT_PATH),

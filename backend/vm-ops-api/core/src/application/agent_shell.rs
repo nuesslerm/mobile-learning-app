@@ -23,8 +23,6 @@ pub enum Failed {
     NotRunning,
     EmptyScript,
     BadJobId,
-    /// A device-lab status call for a job the lab did not start.
-    NotALabJob,
     UnknownLedger,
     LedgerNotFound,
     BadArtifactPath,

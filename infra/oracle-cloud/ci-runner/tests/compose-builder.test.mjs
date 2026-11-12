@@ -19,22 +19,21 @@ describe('given the ci-runner compose project with its builder sidecar', () => {
     }
   });
 
-  it('when the runner builds, then its DOCKER_HOST is the builder, over TLS with the client certificates', () => {
-    assert.match(String(runner.environment.DOCKER_HOST), /^tcp:\/\/127\.0\.0\.1:2376$/);
-    assert.equal(String(runner.environment.DOCKER_TLS_VERIFY), '1');
-    assert.equal(runner.environment.DOCKER_CERT_PATH, '/certs/client');
-    assert.ok((runner.volumes ?? []).includes('builder-certs:/certs:ro'), 'the runner reads the client certificates, read-only');
+  it('when the runner builds, then its DOCKER_HOST is the builder socket, with no TLS settings left', () => {
+    assert.equal(runner.environment.DOCKER_HOST, 'unix:///run/builder/docker.sock');
+    assert.equal(runner.environment.DOCKER_TLS_VERIFY, undefined);
+    assert.equal(runner.environment.DOCKER_CERT_PATH, undefined);
+    assert.ok((runner.volumes ?? []).includes('builder-socket:/run/builder'));
     assert.ok(runner.depends_on.includes('builder'));
   });
 
-  it('when the builder runs, then it is TLS-only, in the tailscale network namespace, with its own layer-cache volume and no published port', () => {
+  it('when the builder runs, then it is in the tailscale network namespace with its own layer-cache volume and no published port', () => {
     assert.equal(builder.network_mode, 'service:tailscale');
-    assert.equal(builder.environment.DOCKER_TLS_CERTDIR, '/certs');
     assert.equal(builder.ports, undefined);
-    assert.ok(sources(builder).includes('builder-data') && (builder.volumes ?? []).includes('builder-data:/var/lib/docker'));
+    assert.ok((builder.volumes ?? []).includes('builder-data:/var/lib/docker'));
     assert.ok(!sources(runner).includes('builder-data'), 'the runner never mounts the daemon state');
     assert.ok(builder.healthcheck, 'the builder has a healthcheck');
-    for (const volume of ['builder-data', 'builder-certs', 'gh-runner-config-4']) assert.ok(volume in compose.volumes, `${volume} is declared`);
+    for (const volume of ['builder-data', 'builder-socket', 'gh-runner-config-4']) assert.ok(volume in compose.volumes, `${volume} is declared`);
   });
 
   it('when the runner registers, then its container env holds a registration token and no PAT', () => {

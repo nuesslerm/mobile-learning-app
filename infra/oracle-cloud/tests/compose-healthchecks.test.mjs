@@ -4,6 +4,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative } from 'node:path';
 import { parse } from 'yaml';
+import { loadCompose } from './compose-load.mjs';
 
 const repoRoot = join(
   dirname(fileURLToPath(import.meta.url)),
@@ -35,7 +36,7 @@ function productionComposeFiles() {
 }
 
 function loadServices(file) {
-  return parse(readFileSync(file, 'utf8'), { merge: true }).services ?? {};
+  return loadCompose(file).services ?? {};
 }
 
 const files = productionComposeFiles();

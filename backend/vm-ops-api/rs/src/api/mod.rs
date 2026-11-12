@@ -6,7 +6,6 @@ use std::sync::Arc;
 use std::time::Duration;
 use vm_ops_api_core::application::access::Gate;
 use vm_ops_api_core::application::agent_shell::AgentShell;
-use vm_ops_api_core::application::android_lab::AndroidLab;
 use vm_ops_api_core::application::drill::Drill;
 use vm_ops_api_core::application::health::{Build, Health};
 use vm_ops_api_core::application::logs::Logs;
@@ -84,7 +83,6 @@ pub struct AppState {
     opencode_log: Arc<OpencodeLog>,
     dashboard: &'static [u8],
     agent_shell: Arc<AgentShell>,
-    android_lab: Arc<AndroidLab>,
     run_writes: Arc<RunWrites>,
     cooldown_ledger: Arc<dyn CooldownLedger>,
     drill: Arc<Drill>,
@@ -106,7 +104,6 @@ pub fn routers(ports: Ports, settings: Settings) -> Routers {
         env: settings.redeploy.clone(),
     }));
     let agent_shell = Arc::new(AgentShell::new(ports.containers.clone(), ports.ids, ports.clock.clone(), ports.log.clone()));
-    let android_lab = Arc::new(AndroidLab::new(agent_shell.clone()));
     let run_writes = Arc::new(RunWrites::new(ports.run_log.clone(), ports.clock.clone()));
     let cooldown_ledger = ports.cooldowns.clone();
     let drill = Arc::new(Drill::new(ports.siblings.clone(), settings.sibling_image.clone(), OWN_CONTAINER.to_string()));
@@ -124,7 +121,6 @@ pub fn routers(ports: Ports, settings: Settings) -> Routers {
         opencode_log: Arc::new(OpencodeLog::new(ports.run_log)),
         dashboard: settings.dashboard,
         agent_shell,
-        android_lab,
         run_writes,
         cooldown_ledger,
         drill,

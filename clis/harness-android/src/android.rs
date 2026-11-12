@@ -94,33 +94,8 @@ fn spec(verb: &str) -> Spec {
     Spec { values, flags, positional, ..Spec::NONE }
 }
 
-/// The lab serves the CI default device only: an option that shapes it is a usage error rather than a silent default.
-fn lab_refuses_options(verb: &str, p: &Parsed) -> Result<(), Out> {
-    let shaped = ["name", "screen", "port", "with"].iter().any(|k| p.val(k).is_some()) || p.flag("slim") || p.flag("stock") || p.flag("dry-run");
-    if shaped {
-        return Err(Out::Usage(format!("{verb} through the device lab (WF_ANDROID_PROVIDER=redroid-lab) takes only --expo-go; the lab boots the default device")));
-    }
-    Ok(())
-}
-
-/// The device lab's verb on the CI port: its output on stderr, a non-zero exit of the job the error.
-fn through_lab(verb: &str, expo_go: bool) -> Result<String, Out> {
-    let (code, output) = wf_vmops::android_lab::run(verb, expo_go).map_err(|e| failed(e, "the device lab is a CI-port route: WF_VM_CI_PORT must name the CI port, and the VM runner's tag must reach it"))?;
-    eprintln!("{output}");
-    if code != 0 {
-        return Err(failed(format!("the {verb} job exited {code} (its output is above, on stderr)"), "wf vm ops stats shows what holds the VM's memory"));
-    }
-    Ok(output)
-}
-
 fn start_device(name: &str, p: &Parsed) -> Result<Value, Out> {
-    let provider = crate::android_emulator::provider().map_err(Out::Usage)?;
-    if provider == crate::android_emulator::Provider::RedroidLab {
-        lab_refuses_options("start-device", p)?;
-        through_lab("start-device", p.flag("expo-go"))?;
-        return Ok(json!({ "name": name, "provider": "redroid-lab", "expoGo": p.flag("expo-go") }));
-    }
-    if provider == crate::android_emulator::Provider::Emulator {
+    if crate::android_emulator::selected().map_err(Out::Usage)? {
         let script = crate::android_emulator::up_script(480, 1040, 213, p.flag("expo-go"));
         if p.flag("dry-run") {
             return Ok(json!({ "dryRun": true, "script": script }));
@@ -139,13 +114,7 @@ fn start_device(name: &str, p: &Parsed) -> Result<Value, Out> {
 }
 
 fn stop_device(name: &str, p: &Parsed) -> Result<Value, Out> {
-    let provider = crate::android_emulator::provider().map_err(Out::Usage)?;
-    if provider == crate::android_emulator::Provider::RedroidLab {
-        lab_refuses_options("stop-device", p)?;
-        through_lab("stop-device", false)?;
-        return Ok(json!({ "name": name, "stopped": true }));
-    }
-    if provider == crate::android_emulator::Provider::Emulator {
+    if crate::android_emulator::selected().map_err(Out::Usage)? {
         let script = crate::android_emulator::down_script();
         if p.flag("dry-run") {
             return Ok(json!({ "dryRun": true, "script": script }));
@@ -162,24 +131,10 @@ fn stop_device(name: &str, p: &Parsed) -> Result<Value, Out> {
     Ok(json!({ "name": name, "stopped": true }))
 }
 
-/// The devices as the provider reports them. Through the device lab the job runs `list-devices --local` in agent-shell and its last
-/// JSON line is the answer.
+/// The devices as the provider reports them.
 fn list_devices(name: &str, p: &Parsed) -> Result<Value, Out> {
-    use crate::android_emulator::Provider;
-    let devices = |found: Result<Option<Value>, String>| found.map(|d| json!({ "devices": d.into_iter().collect::<Vec<_>>() })).map_err(|e| failed(e, "wf vm ops health"));
-    match crate::android_emulator::provider().map_err(Out::Usage)? {
-        Provider::Emulator => devices(crate::android_emulator::device()),
-        Provider::Redroid => devices(crate::android_lab::device(name, p.flag("local"))),
-        Provider::RedroidLab => {
-            let output = through_lab("list-devices", false)?;
-            let line = output.lines().rev().find(|l| l.trim_start().starts_with('{')).ok_or_else(|| failed("the device lab's list-devices job printed no JSON line", "wf vm ops stats"))?;
-            let envelope: Value = serde_json::from_str(line).map_err(|e| failed(format!("the device lab's list-devices answer is not JSON: {e}"), "wf vm ops stats"))?;
-            if envelope["ok"] != json!(true) {
-                return Err(failed(format!("list-devices in agent-shell failed: {}", envelope["error"]), "wf vm ops stats"));
-            }
-            Ok(envelope["result"].clone())
-        }
-    }
+    let found = if crate::android_emulator::selected().map_err(Out::Usage)? { crate::android_emulator::device() } else { crate::android_lab::device(name, p.flag("local")) };
+    found.map(|d| json!({ "devices": d.into_iter().collect::<Vec<_>>() })).map_err(|e| failed(e, "wf vm ops health"))
 }
 
 fn hierarchy(given: Option<&str>) -> Result<(String, Value), Out> {

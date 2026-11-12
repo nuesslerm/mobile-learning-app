@@ -10,28 +10,13 @@ pub const STUB_HOST: &str = "10.0.2.2";
 const IMAGE: &str = "system-images;android-34;default;x86_64";
 const EXPO_GO_URL: &str = "https://github.com/expo/expo-go-releases/releases/download/Expo-Go-57.0.9/Expo-Go-57.0.9.apk";
 
-/// How the device is reached: the redroid on the VM through `wf vm exec` (the default), the redroid through the CI port's device lab
-/// (a CI job that has no admin port), or the SDK emulator as a local process.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Provider {
-    Redroid,
-    RedroidLab,
-    Emulator,
-}
-
-/// The provider named by `WF_ANDROID_PROVIDER`: `redroid` (the default), `redroid-lab` or `emulator`.
-pub fn provider() -> Result<Provider, String> {
-    match std::env::var("WF_ANDROID_PROVIDER").unwrap_or_default().as_str() {
-        "" | "redroid" => Ok(Provider::Redroid),
-        "redroid-lab" => Ok(Provider::RedroidLab),
-        "emulator" => Ok(Provider::Emulator),
-        other => Err(format!("WF_ANDROID_PROVIDER is redroid, redroid-lab or emulator, got '{other}'")),
-    }
-}
-
-/// Whether the provider is the local emulator.
+/// Whether `WF_ANDROID_PROVIDER` names the SDK emulator (a local process) rather than the VM's redroid (`redroid`, the default).
 pub fn selected() -> Result<bool, String> {
-    provider().map(|p| p == Provider::Emulator)
+    match std::env::var("WF_ANDROID_PROVIDER").unwrap_or_default().as_str() {
+        "" | "redroid" => Ok(false),
+        "emulator" => Ok(true),
+        other => Err(format!("WF_ANDROID_PROVIDER is redroid or emulator, got '{other}'")),
+    }
 }
 
 /// The app's backend URLs name tailnet hosts (`leetcode-backend-prod`) that the emulator's own resolver cannot answer (its DNS forwards bare

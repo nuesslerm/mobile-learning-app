@@ -219,23 +219,12 @@ services:
     restart: unless-stopped
     logging: *logging
 
-  # The Android device's own daemon (redroid): the `wf android` verbs point DEVICE_DOCKER_HOST at it, so the device never shares a daemon, store or
-  # prune with the sessions' nested one. Unix socket only (droid-socket volume), no port.
+  # The Android device's own daemon (definition: ../dind.yml): the `wf android` verbs point DEVICE_DOCKER_HOST at it, so the device never shares a
+  # daemon, store or prune with the sessions' nested one.
   agent-droid:
     extends: {file: ../dind.yml, service: dind}
     container_name: agent-shell-droid
-    command: ["dockerd", "--host=unix:///run/droid/docker.sock"]
-    volumes:
-      - droid-socket:/run/droid
-      - droid-data:/var/lib/docker
-    depends_on:
-      - tailscale
-    healthcheck:
-      test: ["CMD-SHELL", "docker -H unix:///run/droid/docker.sock info >/dev/null"]
-      interval: 30s
-      timeout: 15s
-      retries: 3
-      start_period: 40s
+    volumes: [droid-socket:/run/dind, droid-data:/var/lib/docker]
 
   agent-sessions:
     image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${IMAGE_TAG:-latest}
