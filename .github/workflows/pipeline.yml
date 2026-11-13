@@ -329,7 +329,13 @@ jobs:
         timeout-minutes: 5
         run: |
           if [ -f frontend/mla-tamagui/.flow-report/report.json ]; then
-            WF_SITE=ci wf test publish frontend/mla-tamagui/.flow-report
+            if out=$(WF_SITE=ci wf test publish frontend/mla-tamagui/.flow-report); then
+              printf '%s\n' "$out"
+            else
+              printf '%s\n' "$out"
+              # the artifact store is a convenience for reading the run: a store that refuses the PUT must not fail a green job
+              case "$out" in *"report PUT failed"*) echo "::warning::the flow run bundle was not published: the artifact store refused it" ;; *) exit 1 ;; esac
+            fi
           else
             echo "no flow report this run (the app's package graph did not change)"
           fi
@@ -690,7 +696,7 @@ jobs:
             if ! out=$(WF_SITE=ci wf test publish "$dir"); then
               printf '%s\n' "$out"
               # the wf this job runs is the previous push's; one from before the integration platform refuses the record
-              case "$out" in *"not a test harness platform: 'integration'"*) echo "::warning::$dir not published: this push's clis build adds the integration platform" ;; *) exit 1 ;; esac
+              case "$out" in *"not a test harness platform: 'integration'"*) echo "::warning::$dir not published: this push's clis build adds the integration platform" ;; *"report PUT failed"*) echo "::warning::$dir not published: the artifact store refused it" ;; *) exit 1 ;; esac
             else
               printf '%s\n' "$out"
             fi
