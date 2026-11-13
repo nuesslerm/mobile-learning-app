@@ -1,7 +1,7 @@
 {
   "runbook": "persistent-session-services.md",
-  "sha": "1b0845ad408821d947fd2e86e378eff9cb8f9d2f",
-  "ranAt": "2026-11-13T13:10:00.000Z",
+  "sha": "ba5b7c73",
+  "ranAt": "2026-11-13T14:35:00.000Z",
   "verdict": "pass",
   "criteria": {
     "1_tmux_survives_agent_shell_redeploy": "pass",
@@ -12,7 +12,7 @@
     "6_verify_env_bisect_and_verify_betterstack_pass": "pass",
     "7_pool_cooldown_ledger_shared_via_vm_ops_api": "pass"
   },
-  "notes": "Criterion 4 rerun 2026-11-13 over real SSH into agent-shell-sessions, real opencode (OPENCODE_GO_API_KEY from vault), thread crit4-oc-1794573603629, session ses_e2b13ec8fffeJrPmI3JE21in6C. Turn 1 told the model PERIWINKLE-42; a long turn was running when CI redeployed rca + opencode sidecar (sha-e7b4672f -> sha-1b0845ad). The interrupted turn was reported as error (opencode event stream failed: Transport error), providerSessionId unchanged. A new prompt on the same thread completed and answered PERIWINKLE-42, same providerSessionId. Criteria 1-3,5-7 carried from the 2026-09-08 run; 1 re-proved live in 8a (tmux survived an agent-shell leg).",
+  "notes": "Criterion 4 rerun 2026-11-13 on the build that reports a cut turn interrupted (deploy of ba5b7c73, remote-chat-agent leg), real SSH into agent-shell-sessions, real opencode (OPENCODE_GO_API_KEY from vault), thread crit4-oc-1794577803067, session ses_e2ad3d858ffeiGFSt0A1w7PMa1. Turn 1 told the model PERIWINKLE-42; a long turn was running when CI redeployed rca + the opencode sidecar. The cut turn was reported latestTurn interrupted / session interrupted (lastError: opencode event stream failed: Transport error), providerSessionId unchanged. A new prompt on the same thread completed and answered PERIWINKLE-42 on the same session. An earlier run on the previous build (thread crit4-oc-1794573603629, sha 52285cb8) showed the same continuation with status error. Criteria 1-3,5-7 carried from the 2026-09-08 run; 1 re-proved live in 8a (tmux survived an agent-shell leg).",
   "evidence": {
     "step1": [
       "session x created 14:18:27Z; tmux ls before/after redeploy shows same creation timestamp; capture-pane scrollback continuous to line-66+"
