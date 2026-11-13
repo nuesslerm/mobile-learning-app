@@ -155,6 +155,20 @@ jobs:
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           run_install: false
+      # A replay runs the repository's own drivers as the candidate: a fresh hosted checkout has no node_modules, so they need the pinned node and their install
+      - name: Node of the drivers a replay runs
+        if: ${{ env.ACTION == 'replay' }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+      - name: pnpm for the drivers a replay runs
+        if: ${{ env.ACTION == 'replay' }}
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+      - name: Install the drivers a replay runs
+        if: ${{ env.ACTION == 'replay' }}
+        run: pnpm install --frozen-lockfile --filter 'mimic-drivers...'
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: clis
