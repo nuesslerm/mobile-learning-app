@@ -458,18 +458,13 @@ async fn history_with_finishes(agent: &mut Agent, thread: &str, count: usize) ->
     panic!("the thread never held {count} finished turns");
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
-async fn given_an_opencode_turn_interrupted_by_a_restart_with_a_prompt_queued_behind_it_then_the_queue_runs_in_the_kept_session_and_a_continue_resumes_it_too() {
-    // Given an opencode thread whose first turn announced its session and is still running, with one more prompt queued behind it
-    let env = Env::process(&[]);
-    let state = env.home.join("rca-state");
-    std::fs::create_dir_all(&state).unwrap();
-    let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
-    // The first service runs on a runtime of its own that is shut down to crash it: the turn it runs and the queue behind it record nothing more
+/// A chain whose first service (on a runtime of its own, shut down by the caller to crash it) holds a running opencode turn that announced `ses_queue_1`
+/// and one prompt queued behind it; the runtime comes back with the chain.
+async fn crashed_with_a_queued_prompt(env: &Env, options: &(dyn Fn() -> Options + Sync)) -> Chain {
     let first_run = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
     let chain = std::thread::scope(|scope| {
         scope.spawn(|| first_run.block_on(async {
-            let chain = chain_with(&env, options()).await;
+            let chain = chain_with(env, options()).await;
             chain.cli.script("opencode", &Script::of(vec![
                 Turn::replaying(&[opencode_said("ses_queue_1", "working")]).then_sleeping(60_000),
                 Turn::replaying(&[opencode_said("ses_queue_1", "queued answer")]),
@@ -489,8 +484,19 @@ async fn given_an_opencode_turn_interrupted_by_a_restart_with_a_prompt_queued_be
             chain
         })).join().unwrap()
     });
-    // When the service crashes and the service and the executor start again over the same state dir
     first_run.shutdown_background();
+    chain
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_an_opencode_turn_interrupted_by_a_restart_with_a_prompt_queued_behind_it_then_the_queue_runs_in_the_kept_session_and_a_continue_resumes_it_too() {
+    // Given an opencode thread whose first turn announced its session and is still running, with one more prompt queued behind it
+    let env = Env::process(&[]);
+    let state = env.home.join("rca-state");
+    std::fs::create_dir_all(&state).unwrap();
+    let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
+    let chain = crashed_with_a_queued_prompt(&env, &options).await;
+    // When the service crashes and the service and the executor start again over the same state dir
     let chain = restarted(chain, &env, options()).await;
     let mut agent = chain.agent().await;
     let kinds_seen = history_with_finishes(&mut agent, "t1", 2).await;
@@ -513,4 +519,40 @@ async fn given_an_opencode_turn_interrupted_by_a_restart_with_a_prompt_queued_be
     let starts = chain.cli.invocations("opencode");
     assert_eq!(starts.len(), 3, "{starts:?}");
     assert_eq!(session_of(&starts[2].argv), Some("ses_queue_1".to_string()), "{:?}", starts[2].argv);
+}
+
+/// The chain after its service and executor were stopped: the service starts at once and the executor only after `delay`.
+async fn restarted_with_a_late_executor(old: Chain, env: &Env, options: Options, delay: Duration) -> Chain {
+    let Chain { _svc, cli, repo, exec, token, _path, .. } = old;
+    drop(exec);
+    drop(_svc);
+    let svc = service_spawning(env, options, Arc::new(Processes::at(env.providers_root().to_string_lossy())));
+    let port = svc.listen().await;
+    tokio::time::sleep(delay).await;
+    let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
+    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token, _path }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_a_restart_whose_executor_attaches_late_when_a_prompt_is_queued_then_nothing_runs_until_it_attaches_and_the_queue_then_runs_in_the_kept_session() {
+    // Given an opencode thread whose running turn crashed with the service, a prompt queued behind it
+    let env = Env::process(&[]);
+    let state = env.home.join("rca-state");
+    std::fs::create_dir_all(&state).unwrap();
+    let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
+    let chain = crashed_with_a_queued_prompt(&env, &options).await;
+    // When the service starts again and its executor attaches only three seconds later
+    let started = std::time::Instant::now();
+    let chain = restarted_with_a_late_executor(chain, &env, options(), Duration::from_secs(3)).await;
+    let mut agent = chain.agent().await;
+    let seen = history_with_finishes(&mut agent, "t1", 2).await;
+    // Then the queued prompt ran only after the executor was there, and the first turn is still the interrupted one
+    assert!(started.elapsed() >= Duration::from_secs(3), "the queue ran before the executor attached");
+    let finishes: Vec<Value> = seen.iter().filter(|(kind, _)| kind == "turn.finished").map(|(_, reason)| reason.clone()).collect();
+    assert_eq!(finishes, [json!("interrupted"), json!("completed")], "{seen:?}");
+    // And its CLI went on in the first turn's session, started once
+    let session_of = |argv: &Vec<String>| argv.iter().position(|a| a == "--session").map(|i| argv[i + 1].clone());
+    let starts = chain.cli.invocations("opencode");
+    assert_eq!(starts.len(), 2, "{starts:?}");
+    assert_eq!(session_of(&starts[1].argv), Some("ses_queue_1".to_string()));
 }
