@@ -234,8 +234,9 @@ while true do
   -- BetterStack holds these lines for the session: a turn that applied must have logged its transcription and its plan (a rename plans locally)
   local function info_log() return table.concat(device:get_logs{level='info'}, "\n") end
   local function planned() local t = info_log() return t:find("voice_edit.plan.response", 1, true) or t:find("voice_edit.plan.local", 1, true) end
-  -- the strip can go before the planner answers: its line is awaited, not read once
-  device:extended_wait_until{condition=planned, timeout=30000, optional=true}
+  -- the strip can go before the planner answers, and BetterStack ships the line late on a busy minute: it is awaited, not read once. The edit already
+  -- landed (outcome "applied"), so a late line is telemetry latency, and 30 s read as "no plan.response" on both CI flavors.
+  device:extended_wait_until{condition=planned, timeout=120000, optional=true}
   local info = info_log()
   assert_true(info:find("voice_edit.transcribe.response", 1, true), ("turn %d: no transcribe.response line in the app log"):format(n))
   assert_true(planned(), ("turn %d: no plan.response or plan.local line in the app log"):format(n))
