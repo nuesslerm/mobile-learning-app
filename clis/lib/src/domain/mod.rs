@@ -6,4 +6,5 @@ pub mod libraries;
 pub mod lockfile;
 pub mod manifest;
 pub mod prune;
+pub mod secrets;
 pub mod version;

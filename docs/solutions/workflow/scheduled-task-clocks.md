@@ -30,10 +30,10 @@ Two Claude clocks, both created by the owner or a live session against this repo
 
 | Clock | Cron | Fires into | Standing steps |
 | --- | --- | --- | --- |
-| `Nightly audit clock (daily)` | `CRON_TZ=Europe/Berlin 41 5 * * *` | `<schedules-session>` | `docs/runbooks/nightly-audit.md`, which ends with the contract-tracker follow-up (`docs/runbooks/contract-tracker.md`) |
-| `Test report clock (every 6 h)` | `43 */6 * * *` | `<reports-session>` | `docs/runbooks/test-report-routine.md` |
+| `Nightly audit clock (daily)` | `CRON_TZ=Europe/Berlin 41 5 * * *` | `session_01MdgrcdJGE5MkZS29xApR9c` | `docs/runbooks/nightly-audit.md`, which ends with the contract-tracker follow-up (`docs/runbooks/contract-tracker.md`) |
+| `Test report clock (every 6 h)` | `43 */6 * * *` | `session_01MdgrcfVk6KdjZ7thCpM7kp` | `docs/runbooks/test-report-routine.md` |
 
-`<schedules-session>` and `<reports-session>` stand for the persistent sessions the owner creates with this repository as their source; their ids are written here when they exist. The sessions need push access to `dev` under the repository ruleset (unconfirmed until the first trial tick).
+The two persistent sessions (`schedules`, `reports`) were created on 12 Nov 2026 with this repository as their source; ids are in the table. They need push access to `dev` under the repository ruleset (unconfirmed until the first trial tick).
 
 ## The native schedule workflows
 

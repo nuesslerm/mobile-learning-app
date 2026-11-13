@@ -13,9 +13,9 @@ pub struct Stored {
     pub created_ms: i64,
 }
 
-/// `libs/crates/<name>/<version>.crate` as a `Stored`; anything else under the prefix is not a crate.
+/// `crates/<name>/<version>.crate` as a `Stored`; anything else under the prefix is not a crate.
 pub fn stored(object: &str, bytes: u64, created_ms: i64) -> Option<Stored> {
-    let rest = object.strip_prefix("libs/crates/")?;
+    let rest = object.strip_prefix("crates/")?;
     let (name, file) = rest.split_once('/')?;
     let version = file.strip_suffix(".crate")?;
     Some(Stored { name: name.to_string(), version: version.to_string(), object: object.to_string(), bytes, created_ms })

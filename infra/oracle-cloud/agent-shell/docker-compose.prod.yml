@@ -191,7 +191,7 @@ services:
       <<: *agent-environment
       AGENT_SHELL_ROLE: dind
     volumes:
-      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      # The VM's one wf build (the clis job of pipeline.yml, installed through vm-ops-api's POST /clis/install); the image links /usr/local/bin/wf to current/wf here.
       - clis:/opt/clis:ro
       - workspace:/workspace
       # The nested dockerd's own image/layer/buildx store. Was on the
@@ -219,6 +219,13 @@ services:
     restart: unless-stopped
     logging: *logging
 
+  # The Android device's own daemon (definition: ../dind.yml): the `wf android` verbs point DEVICE_DOCKER_HOST at it, so the device never shares a
+  # daemon, store or prune with the sessions' nested one.
+  agent-droid:
+    extends: {file: ../dind.yml, service: dind}
+    container_name: agent-shell-droid
+    volumes: [droid-socket:/run/dind, droid-data:/var/lib/docker]
+
   agent-sessions:
     image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${IMAGE_TAG:-latest}
     container_name: agent-shell-sessions
@@ -228,7 +235,7 @@ services:
       AGENT_SHELL_ROLE: sessions
       DOCKER_HOST: unix:///run/dind/docker.sock
     volumes:
-      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      # The VM's one wf build (the clis job of pipeline.yml, installed through vm-ops-api's POST /clis/install); the image links /usr/local/bin/wf to current/wf here.
       - clis:/opt/clis:ro
       - workspace:/workspace
       - dind-socket:/run/dind
@@ -258,13 +265,15 @@ services:
       <<: *agent-environment
       AGENT_SHELL_ROLE: tools
       DOCKER_HOST: unix:///run/dind/docker.sock
+      # The Android verbs only: the device runs on its own daemon (agent-droid).
+      DEVICE_DOCKER_HOST: unix:///run/droid/docker.sock
     # RAM-backed scratch of `wf vm state backup|verify`: the staged SQLite copies and the restore of a verify are plaintext credentials and
     # databases, and a tmpfs is gone with any kill, OOM or restart, so none of it can outlive its run on the container's disk. Sized for
     # the largest volume cap (agent-workspace, 1 GB in vm-apps.json) plus a quarter; RAM is only used while a run holds files there (12 GB VM).
     tmpfs:
       - /scratch:size=1280m,mode=1777
     volumes:
-      # The VM's one wf build (clis.yml); the image links /usr/local/bin/wf to current/wf here.
+      # The VM's one wf build (the clis job of pipeline.yml, installed through vm-ops-api's POST /clis/install); the image links /usr/local/bin/wf to current/wf here.
       - clis:/opt/clis:ro
       # THE SHARED WORKSPACE. Mounted at the SAME ABSOLUTE PATH in every
       # container that touches it -- non-negotiable, and already a scar in
@@ -290,6 +299,7 @@ services:
       # The docker.sock from agent-dind, so tools reach the daemon without
       # being privileged themselves.
       - dind-socket:/run/dind
+      - droid-socket:/run/droid
     # The tools role idles on `sleep infinity`; the entrypoint-initialised workspace is its readiness.
     healthcheck:
       test: ["CMD", "test", "-d", "/workspace/home"]
@@ -310,6 +320,8 @@ volumes:
   tailscale-state:
   docker-state:
   dind-socket:
+  droid-socket:
+  droid-data:
   # `external: true`, not a `name:` pin. Both are enough to SHARE the volume,
   # but with a `name:` pin compose considers it owned by whichever project
   # created it and warns on the other -- and, more seriously, a

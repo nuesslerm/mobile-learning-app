@@ -10,7 +10,6 @@ pub mod ids;
 pub mod opencode_log;
 pub mod process_memory;
 pub mod siblings;
-pub mod state_files;
 mod state_io;
 
 pub use binary_sha::running_binary_sha;
@@ -23,4 +22,3 @@ pub use ids::RandomIds;
 pub use opencode_log::FileRunLog;
 pub use process_memory::OsProcessMemory;
 pub use siblings::DockerSiblings;
-pub use state_files::FileCooldownLedger;

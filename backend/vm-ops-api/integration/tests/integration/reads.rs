@@ -10,7 +10,7 @@ use serde_json::{json, Value};
 use std::path::Path;
 use vm_ops_api_integration::{assert_golden, auth, case, frame, now_ms, Exec, Logs, GIT_COMMIT, HOST_LABEL, IMAGE_TAG};
 
-const KNOWN_APPS: [&str; 10] = [
+const KNOWN_APPS: [&str; 9] = [
     "leetcode-backend",
     "remote-chat-agent",
     "leetcode-auth-cookie-capture",
@@ -18,7 +18,6 @@ const KNOWN_APPS: [&str; 10] = [
     "ci-runner",
     "vnc-auth-session",
     "reporting-service",
-    "libs-proxy",
     "t3-serve",
     "orca-serve",
 ];
@@ -541,19 +540,6 @@ case!(exec_script_status_keeps_the_last_4000_utf16_units_and_reads_any_exit_code
     let before = engine_calls(&svc).len();
     expect_json(&status("not-a-uuid"), 400, &json!({ "error": "jobId must be a UUID" }));
     assert_eq!(engine_calls(&svc).len(), before);
-});
-
-case!(cooldowns_read_is_the_ledger_file_at_version_0_after_a_start, ["GET /cooldowns"], {
-    // Given the service, with no cooldown file yet
-    let svc = world().start();
-    // When the cooldowns are read, Then the ledger is empty at version 0
-    expect_json(&get(&svc, "/cooldowns"), 200, &json!({ "ledger": {}, "version": 0 }));
-    // When the file holds an object, Then it is the ledger, still at version 0 (the version lives in memory)
-    state_file(&svc, "pool-cooldowns.json", "{\n  \"minimax\": {\n    \"until\": 1700000000000\n  }\n}\n");
-    expect_json(&get(&svc, "/cooldowns"), 200, &json!({ "ledger": { "minimax": { "until": 1_700_000_000_000_i64 } }, "version": 0 }));
-    // When it holds an array, Then the ledger is empty
-    state_file(&svc, "pool-cooldowns.json", "[1]\n");
-    expect_json(&get(&svc, "/cooldowns"), 200, &json!({ "ledger": {}, "version": 0 }));
 });
 
 case!(opencode_log_dashboard_is_public_on_its_paths, ["GET /opencode-log, /opencode-log/, /opencode-log/<runId>"], {

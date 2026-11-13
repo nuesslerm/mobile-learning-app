@@ -2,7 +2,7 @@
 //! plain redeploy may restart alone. Every lookup is by exact name, so `toString` or `__proto__` from a request is simply no app.
 
 /// In the order `knownApps` is listed in a reply.
-pub const KNOWN_APPS: [&str; 10] = [
+pub const KNOWN_APPS: [&str; 9] = [
     "leetcode-backend",
     "remote-chat-agent",
     "leetcode-auth-cookie-capture",
@@ -10,13 +10,12 @@ pub const KNOWN_APPS: [&str; 10] = [
     "ci-runner",
     "vnc-auth-session",
     "reporting-service",
-    "libs-proxy",
     "t3-serve",
     "orca-serve",
 ];
 
 /// The apps whose logs are readable: the managed ones, then the control plane itself, which is no managed app.
-pub const LOG_APPS: [&str; 11] = [
+pub const LOG_APPS: [&str; 10] = [
     "leetcode-backend",
     "remote-chat-agent",
     "leetcode-auth-cookie-capture",
@@ -24,7 +23,6 @@ pub const LOG_APPS: [&str; 11] = [
     "ci-runner",
     "vnc-auth-session",
     "reporting-service",
-    "libs-proxy",
     "t3-serve",
     "orca-serve",
     "vm-ops-api",
@@ -59,11 +57,10 @@ pub fn container_names(app: &str) -> Option<&'static [&'static str]> {
         "leetcode-backend" => &["leetcode-backend", "leetcode-backend-tailscale"],
         "remote-chat-agent" => &["remote-chat-agent", "remote-chat-agent-tailscale", "remote-chat-agent-opencode"],
         "leetcode-auth-cookie-capture" => &["leetcode-capture", "leetcode-capture-tailscale"],
-        "agent-shell" => &["agent-shell", "agent-shell-sessions", "agent-shell-dind", "agent-shell-tailscale"],
-        "ci-runner" => &["ci-runner-tailscale", "ci-runner-builder", "ci-runner-gh-runner"],
+        "agent-shell" => &["agent-shell", "agent-shell-sessions", "agent-shell-dind", "agent-shell-droid", "agent-shell-tailscale"],
+        "ci-runner" => &["ci-runner-tailscale", "ci-runner-builder", "ci-runner-droid", "ci-runner-gh-runner"],
         "vnc-auth-session" => &["vnc-auth", "vnc-auth-tailscale"],
         "reporting-service" => &["reporting-service", "reporting-service-tailscale"],
-        "libs-proxy" => &["libs-proxy", "libs-proxy-tailscale"],
         "t3-serve" => &["t3-serve", "t3-serve-tailscale"],
         "orca-serve" => &["orca-serve", "orca-serve-tailscale"],
         "vm-ops-api" => &["vm-ops-api-ops-api-1", "vm-ops-api-tailscale", "watchdog"],
@@ -73,11 +70,19 @@ pub fn container_names(app: &str) -> Option<&'static [&'static str]> {
 
 pub fn compose_file(app: &str) -> Option<&'static str> {
     Some(match app {
-        "leetcode-backend" | "remote-chat-agent" | "agent-shell" | "ci-runner" | "reporting-service" | "libs-proxy" | "t3-serve" | "orca-serve" => "docker-compose.prod.yml",
+        "leetcode-backend" | "remote-chat-agent" | "agent-shell" | "ci-runner" | "reporting-service" | "t3-serve" | "orca-serve" => "docker-compose.prod.yml",
         "leetcode-auth-cookie-capture" => "docker-compose.capture.yml",
         "vnc-auth-session" => "docker-compose.auth.yml",
         _ => return None,
     })
+}
+
+/// Repo files an app's compose file reaches by a relative path (`extends: file: ../dind.yml`); provisioning copies each one to the same relative spot beside the app's directory.
+pub fn shared_files(app: &str) -> &'static [&'static str] {
+    match app {
+        "agent-shell" | "ci-runner" => &["infra/oracle-cloud/dind.yml"],
+        _ => &[],
+    }
 }
 
 pub fn repo_path(app: &str) -> String {
@@ -85,7 +90,6 @@ pub fn repo_path(app: &str) -> String {
         "agent-shell" => "infra/oracle-cloud/agent-shell".to_string(),
         "ci-runner" => "infra/oracle-cloud/ci-runner".to_string(),
         "vnc-auth-session" => "clis/vnc-auth-capture".to_string(),
-        "libs-proxy" => "infra/oracle-cloud/libs-proxy".to_string(),
         "t3-serve" => "clis/t3-serve".to_string(),
         "orca-serve" => "clis/orca-serve".to_string(),
         _ => format!("backend/{app}"),
@@ -138,7 +142,6 @@ pub fn smoke(app: &str) -> Option<Smoke> {
         "leetcode-backend" => Some(Smoke { service: "app", probe: "leetcode-backend-rs --healthcheck", port_env: "PORT", env: &[] }),
         "remote-chat-agent" => Some(Smoke { service: "agent", probe: "curl -fsS -o /dev/null http://127.0.0.1:{port}/health", port_env: "PORT", env: &[] }),
         "reporting-service" => Some(Smoke { service: "app", probe: "reporting-service-rs --healthcheck", port_env: "PORT", env: &[] }),
-        "libs-proxy" => Some(Smoke { service: "app", probe: "libs-proxy-rs --healthcheck", port_env: "PORT", env: &[] }),
         "t3-serve" => Some(Smoke { service: "app", probe: "t3-serve t3 serve --healthcheck", port_env: "T3_PORT", env: &[] }),
         "orca-serve" => Some(Smoke { service: "app", probe: "orca-serve serve --healthcheck", port_env: "ORCA_PORT", env: &[] }),
         "leetcode-auth-cookie-capture" => Some(Smoke { service: "app", probe: "leetcode-auth-cookie-capture-rs --healthcheck", port_env: "CAPTURE_LISTENER_PORT", env: &[] }),
@@ -158,7 +161,7 @@ mod tests {
     fn given_the_managed_apps_when_listed_then_they_are_the_ten_in_order_and_metro_runner_is_gone() {
         assert_eq!(
             KNOWN_APPS,
-            ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "libs-proxy", "t3-serve", "orca-serve"]
+            ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"]
         );
         assert!(!is_known_app("metro-runner"));
         assert!(!is_known_app("vm-ops-api"));
@@ -167,8 +170,8 @@ mod tests {
 
     #[test]
     fn given_the_apps_whose_logs_are_readable_when_listed_then_they_are_the_known_apps_and_the_control_plane() {
-        assert_eq!(LOG_APPS[..10], KNOWN_APPS);
-        assert_eq!(LOG_APPS[10], "vm-ops-api");
+        assert_eq!(LOG_APPS[..9], KNOWN_APPS);
+        assert_eq!(LOG_APPS[9], "vm-ops-api");
         assert!(container_names("vm-ops-api").is_some());
     }
 
@@ -201,16 +204,25 @@ mod tests {
     }
 
     #[test]
+    fn given_the_apps_that_extend_the_shared_dind_file_when_their_shared_files_are_read_then_it_is_in_the_repo_and_the_others_have_none() {
+        for app in ["agent-shell", "ci-runner"] {
+            assert_eq!(shared_files(app), ["infra/oracle-cloud/dind.yml"], "{app}");
+            let path = format!("{}/../../../{}", env!("CARGO_MANIFEST_DIR"), shared_files(app)[0]);
+            assert!(std::path::Path::new(&path).is_file(), "{path}");
+        }
+        assert!(KNOWN_APPS.iter().filter(|app| !["agent-shell", "ci-runner"].contains(app)).all(|app| shared_files(app).is_empty()));
+    }
+
+    #[test]
     fn given_the_apps_when_their_container_names_are_read_then_each_is_the_compose_files_explicit_list() {
-        let expected: [(&str, &[&str]); 11] = [
+        let expected: [(&str, &[&str]); 10] = [
             ("leetcode-backend", &["leetcode-backend", "leetcode-backend-tailscale"]),
             ("remote-chat-agent", &["remote-chat-agent", "remote-chat-agent-tailscale", "remote-chat-agent-opencode"]),
             ("leetcode-auth-cookie-capture", &["leetcode-capture", "leetcode-capture-tailscale"]),
-            ("agent-shell", &["agent-shell", "agent-shell-sessions", "agent-shell-dind", "agent-shell-tailscale"]),
-            ("ci-runner", &["ci-runner-tailscale", "ci-runner-builder", "ci-runner-gh-runner"]),
+            ("agent-shell", &["agent-shell", "agent-shell-sessions", "agent-shell-dind", "agent-shell-droid", "agent-shell-tailscale"]),
+            ("ci-runner", &["ci-runner-tailscale", "ci-runner-builder", "ci-runner-droid", "ci-runner-gh-runner"]),
             ("vnc-auth-session", &["vnc-auth", "vnc-auth-tailscale"]),
             ("reporting-service", &["reporting-service", "reporting-service-tailscale"]),
-            ("libs-proxy", &["libs-proxy", "libs-proxy-tailscale"]),
             ("t3-serve", &["t3-serve", "t3-serve-tailscale"]),
             ("orca-serve", &["orca-serve", "orca-serve-tailscale"]),
             ("vm-ops-api", &["vm-ops-api-ops-api-1", "vm-ops-api-tailscale", "watchdog"]),
@@ -241,7 +253,6 @@ mod tests {
             ("ci-runner", "docker-compose.prod.yml"),
             ("vnc-auth-session", "docker-compose.auth.yml"),
             ("reporting-service", "docker-compose.prod.yml"),
-            ("libs-proxy", "docker-compose.prod.yml"),
             ("t3-serve", "docker-compose.prod.yml"),
             ("orca-serve", "docker-compose.prod.yml"),
         ];
@@ -258,7 +269,6 @@ mod tests {
         assert_eq!(repo_path("agent-shell"), "infra/oracle-cloud/agent-shell");
         assert_eq!(repo_path("ci-runner"), "infra/oracle-cloud/ci-runner");
         assert_eq!(repo_path("vnc-auth-session"), "clis/vnc-auth-capture");
-        assert_eq!(repo_path("libs-proxy"), "infra/oracle-cloud/libs-proxy");
         assert_eq!(repo_path("t3-serve"), "clis/t3-serve");
         assert_eq!(repo_path("orca-serve"), "clis/orca-serve");
         for app in ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "reporting-service"] {
@@ -270,7 +280,7 @@ mod tests {
     fn given_the_apps_when_their_replaceable_services_are_read_then_only_agent_shell_and_remote_chat_agent_have_them() {
         assert_eq!(replaceable_services("agent-shell"), Some(&["app"][..]));
         assert_eq!(replaceable_services("remote-chat-agent"), Some(&["agent"][..]));
-        for app in ["leetcode-backend", "leetcode-auth-cookie-capture", "vnc-auth-session", "reporting-service", "libs-proxy", "t3-serve", "orca-serve", "vm-ops-api", "ci-runner"] {
+        for app in ["leetcode-backend", "leetcode-auth-cookie-capture", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve", "vm-ops-api", "ci-runner"] {
             assert_eq!(replaceable_services(app), None, "{app}");
         }
     }

@@ -4,9 +4,8 @@ name: ci-runner
 # share agent-shell's project and tailscale sidecar, so every agent-shell deploy recreated the runner and killed the CI job running on
 # it, including the job that shipped agent-shell. Now `docker compose` on agent-shell never sees these containers.
 #
-# Builds: the runner mounts no docker socket. Its DOCKER_HOST is the `builder` sidecar, a docker-in-docker daemon of this project with its
-# own layer-cache volume, reached over mutual TLS on localhost (both share the tailscale container's network). The `build-image` action
-# (`wf ship build`) builds and pushes there. vm-ops-api only pulls and swaps an image CI already pushed.
+# Builds: the runner mounts no host docker socket. Its DOCKER_HOST is the `builder` sidecar, a docker-in-docker daemon of this project with its
+# own layer-cache volume, reached over a unix socket in the builder-socket volume. The `build-image` action (`wf ship build`) builds and pushes there. vm-ops-api only pulls and swaps an image CI already pushed.
 #
 # Registration: the container holds no PAT. `wf ship ci-runner` (by hand, from agent-shell) mints a one-hour registration token and
 # passes it as RUNNER_TOKEN; the registration is kept in a volume so a plain restart needs no new token.
@@ -48,28 +47,18 @@ services:
     restart: unless-stopped
     logging: *logging
 
-  # Docker-in-docker for the CI jobs' image builds: TLS only (client certificates in the builder-certs volume), no published port, no host
-  # docker socket. It shares the tailscale container's network, so the runner reaches it on 127.0.0.1:2376; the tailnet ACL never opens 2376.
+  # Two docker-in-docker daemons (the definition is ../dind.yml), each reached by a unix socket in its own volume: `builder` for the CI jobs'
+  # image builds (the runner's DOCKER_HOST), `droid` for the Android device (the Android verbs' DEVICE_DOCKER_HOST). The runner mounts no
+  # host docker socket; each daemon keeps its own state, so a prune or a stuck build on one never touches the other.
   builder:
-    image: docker:27.5.1-dind
+    extends: {file: ../dind.yml, service: dind}
     container_name: ci-runner-builder
-    privileged: true
-    network_mode: service:tailscale
-    environment:
-      DOCKER_TLS_CERTDIR: /certs
-    volumes:
-      - builder-certs:/certs
-      - builder-data:/var/lib/docker
-    depends_on:
-      - tailscale
-    healthcheck:
-      test: ["CMD-SHELL", "docker --tlsverify --tlscacert /certs/client/ca.pem --tlscert /certs/client/cert.pem --tlskey /certs/client/key.pem -H tcp://127.0.0.1:2376 info >/dev/null"]
-      interval: 30s
-      timeout: 15s
-      retries: 3
-      start_period: 40s
-    restart: unless-stopped
-    logging: *logging
+    volumes: [builder-socket:/run/dind, builder-data:/var/lib/docker]
+
+  droid:
+    extends: {file: ../dind.yml, service: dind}
+    container_name: ci-runner-droid
+    volumes: [droid-socket:/run/dind, droid-data:/var/lib/docker]
 
   # GitHub's own runner image: the CI workflow (.github/workflows/deploy.yml) executes here. It shares the tailscale sidecar's network so
   # `wf` reaches vm-ops-api and the builder.
@@ -94,9 +83,9 @@ services:
       # The image stores .runner and the credentials here and skips registration when they exist, so a restart needs no token.
       CONFIGURED_ACTIONS_RUNNER_FILES_DIR: /runner-config
       DISABLE_AUTOMATIC_DEREGISTRATION: "true"
-      DOCKER_HOST: tcp://127.0.0.1:2376
-      DOCKER_TLS_VERIFY: "1"
-      DOCKER_CERT_PATH: /certs/client
+      DOCKER_HOST: unix:///run/builder/docker.sock
+      # The Android verbs only: the device runs on its own daemon, not the builder.
+      DEVICE_DOCKER_HOST: unix:///run/droid/docker.sock
       RUNNER_WORKDIR: /runner-work
       HOST_LABEL: ${HOST_LABEL}
       # Already on the tailnet through the sidecar, so `wf` connects directly instead of via a SOCKS proxy.
@@ -110,14 +99,16 @@ services:
       # The volume is named for the repository it is registered with: moving the runner to another repository takes a new name, so a
       # container never resumes the old registration.
       - gh-runner-config-4:/runner-config
-      - builder-certs:/certs:ro
+      - builder-socket:/run/builder
+      - droid-socket:/run/droid
       # Keeps the pnpm package store across jobs and container recreates, so installs reuse downloads.
       - gh-runner-pnpm-store:/root/.local/share/pnpm
-      # The one build of the CLIs (clis.yml writes /opt/clis/<tree>/ and flips current); the other projects mount it read-only.
+      # The one build of the CLIs (vm-ops-api's POST /clis/install installs the published wf here and flips current); the other projects mount it read-only.
       - clis:/opt/clis
     depends_on:
       - tailscale
       - builder
+      - droid
     # The runner shares the tailscale container's network: when that container restarts, the runner is left on a dead network, stops
     # taking jobs and still looks up. Listener alive and GitHub reachable from inside that network; the watchdog recreates it when unhealthy.
     # A runner with a job running (a Runner.Worker) is healthy: a build starves the 8 s probe and the recreate kills the job.
@@ -134,8 +125,10 @@ volumes:
   gh-runner-work:
   gh-runner-config-4:
   gh-runner-pnpm-store:
-  builder-certs:
+  builder-socket:
   builder-data:
+  droid-socket:
+  droid-data:
   tailscale-state:
   # Shared with every project that runs `wf` (agent-shell, vm-ops-api mount it read-only). External: no project owns its lifecycle, and
   # cloud-init and vm-ops-api's redeploy create it (`docker volume create clis`, idempotent) before any project starts.

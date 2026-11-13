@@ -92,30 +92,6 @@ impl std::fmt::Display for StateError {
 
 impl std::error::Error for StateError {}
 
-#[derive(Debug, Clone, Default, PartialEq)]
-pub struct LedgerState {
-    pub ledger: Object,
-    pub version: i64,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct LedgerWrite {
-    pub ok: bool,
-    pub version: i64,
-}
-
-/// The hosted pool-cooldown ledger with optimistic concurrency. Its version counts the writes since this process started,
-/// so a caller that holds a version from before a restart is told once that it is stale, then converges.
-#[async_trait]
-pub trait CooldownLedger: Send + Sync {
-    /// The stored ledger, empty when the store is missing, unreadable or not an object, at the current version.
-    async fn read(&self) -> LedgerState;
-
-    /// Stores `ledger` and moves the version on by one when `expected` is the current version. A stale write, and one that
-    /// cannot be stored (which the adapter reports as the `cooldowns.persist_failed` event), are not ok and leave the version.
-    async fn write(&self, ledger: Object, expected: i64) -> LedgerWrite;
-}
-
 /// A run's meta: `runId` and `startedAt` among the fields its writers chose, in the order they wrote them.
 pub type RunMeta = Object;
 

@@ -1,6 +1,6 @@
-//! Our registry: the crate uploaded once under `crates/` of the private `libs/` prefix, its line appended to the sparse index file
+//! Our registry: the crate uploaded once under `crates/` of the public libs bucket, its line appended to the sparse index file
 //! under `index/` and `index/config.json` kept current, all through the one write store. Written in that order so the index never
-//! names a `.crate` that is not there. Readers reach all of it only through the read proxy; the existing index is read the same way.
+//! names a `.crate` that is not there. Readers fetch all of it with a plain GET; the existing index is read the same way.
 use super::cargo::package;
 use crate::domain::index;
 use crate::ports::{Failure, IndexSource, Published, Publisher, Release};
@@ -16,7 +16,7 @@ pub struct BucketSparse {
 
 impl BucketSparse {
     pub fn new(store: Box<dyn BlobStore>, index: Box<dyn IndexSource>, index_url: &str) -> Result<BucketSparse, Failure> {
-        let config = index::config(index_url).map_err(|e| Failure::new(e).next("set indexUrl to the read proxy's `<base>/index/` in libraries.json"))?;
+        let config = index::config(index_url).map_err(|e| Failure::new(e).next("set indexUrl to the bucket's public `<base>/index/` in libraries.json"))?;
         Ok(BucketSparse { store, index, config })
     }
 

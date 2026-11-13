@@ -69,10 +69,9 @@ pub const CI_ROUTES: &[(&str, &str)] = &[
     ("POST", "/redeploy"),
     ("POST", "/redeploy/smoke"),
     ("POST", "/redeploy/smoke/stop"),
-    ("POST", "/android/device/start"),
-    ("POST", "/android/device/stop"),
-    ("POST", "/android/device/list"),
-    ("GET", "/android/device/jobs/{job}"),
+    ("POST", "/clis/install"),
+    ("POST", "/state/{verb}"),
+    ("GET", "/state/jobs/{job}"),
 ];
 
 /// Which port and seed a call goes to: a CI job's own, or the admin's.

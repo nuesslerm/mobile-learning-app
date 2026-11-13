@@ -13,7 +13,6 @@ pub const RECOVER_APPS: &[&str] = &[
     "ci-runner",
     "vnc-auth-session",
     "reporting-service",
-    "libs-proxy",
     "t3-serve",
     "orca-serve",
 ];
@@ -43,7 +42,6 @@ pub fn health_url(app: &str) -> Option<&'static str> {
         "leetcode-backend" => Some("http://leetcode-backend-prod:8789/health"),
         "remote-chat-agent" => Some("http://remote-chat-agent-prod:8787/health"),
         "reporting-service" => Some("http://reporting-service:8791/health"),
-        "libs-proxy" => Some("http://libs-proxy:8793/health"),
         "t3-serve" => Some("http://t3-serve:8797/health"),
         "orca-serve" => Some("http://orca-serve:6768/health"),
         _ => None,

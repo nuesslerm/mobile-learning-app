@@ -1,8 +1,7 @@
 Usage: wf android start-device [--name N] [--screen WxH@dpi] [--port P] [--with F,...] [--slim | --stock] [--expo-go] [--local] [--dry-run]
 
-With WF_ANDROID_PROVIDER=redroid-lab (the VM runner's CI job) the redroid boots through vm-ops-api's device lab on the CI port: a fixed
-server-side script, only --expo-go is taken. --local runs the script in this shell instead of through `wf vm exec` (what the lab's job does
-in agent-shell).
+--local runs the script in this shell instead of through `wf vm exec`: the VM runner's CI job and agent-shell use it, on the docker daemon
+DEVICE_DOCKER_HOST names (their own `droid` daemon) when that is set.
 
 With WF_ANDROID_PROVIDER=emulator (a GitHub-hosted runner) it boots the SDK emulator as a local process at serial
 emulator-5554 instead (the guest reaches the host at 10.0.2.2); --name, --port, --with, --slim and --stock do not apply.

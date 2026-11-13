@@ -90,13 +90,11 @@ case!(the_service_refuses_to_start_with_a_ci_port_and_no_ci_seed_or_the_admin_se
 
 /// Every route `core/src/domain/exposure.rs` marks AdminOnly, with a concrete path; the flow test of the router walks the table itself,
 /// this crate cannot see it, so the list is written out here.
-const ADMIN_ONLY: [(&str, &str); 20] = [
+const ADMIN_ONLY: [(&str, &str); 18] = [
     ("GET", "/services/leetcode-backend/logs"),
     ("POST", "/services/leetcode-backend/retire"),
     ("POST", "/services/orca-serve/pair"),
     ("POST", "/drill"),
-    ("GET", "/cooldowns"),
-    ("POST", "/cooldowns"),
     ("GET", "/opencode-log"),
     ("GET", "/opencode-log/api/runs"),
     ("GET", "/opencode-log/api/runs/run-1"),

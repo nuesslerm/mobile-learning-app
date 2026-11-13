@@ -60,12 +60,15 @@ pub const ROUTES: &[RouteSpec] = &[
     spec("SelfRedeploy", "POST", "/redeploy", Shared),
     spec("SelfSmoke", "POST", "/redeploy/smoke", Shared),
     spec("SelfSmokeStop", "POST", "/redeploy/smoke/stop", Shared),
+    // The wf build CI published, installed on the VM by a sibling: a hosted runner cannot write to the VM, and only CI calls this.
+    spec("ClisInstall", "POST", "/clis/install", CiOnly),
+    // The fixed backup and verify of the VM's state volumes, started on agent-shell for a hosted runner that cannot reach the exec route; and their status.
+    spec("StateJobStart", "POST", "/state/{verb}", CiOnly),
+    spec("StateJobStatus", "GET", "/state/jobs/{job}", CiOnly),
     spec("Logs", "GET", "/services/{app}/logs", AdminOnly),
     spec("Retire", "POST", "/services/{app}/retire", AdminOnly),
     spec("AppPair", "POST", "/services/{app}/pair", AdminOnly),
     spec("Drill", "POST", "/drill", AdminOnly),
-    spec("Cooldowns", "GET", "/cooldowns", AdminOnly),
-    spec("CooldownsWrite", "POST", "/cooldowns", AdminOnly),
     spec("OpencodeDashboard", "GET", "/opencode-log", AdminOnly),
     spec("OpencodeRuns", "GET", "/opencode-log/api/runs", AdminOnly),
     spec("OpencodeRun", "GET", "/opencode-log/api/runs/{run}", AdminOnly),
@@ -78,12 +81,6 @@ pub const ROUTES: &[RouteSpec] = &[
     spec("VmLedger", "GET", "/services/agent-shell/vm-ledger/{name}", AdminOnly),
     spec("Artifact", "GET", "/services/agent-shell/artifact", AdminOnly),
     spec("Credentials", "POST", "/agent-shell/credentials", AdminOnly),
-    // The device lab: three fixed verbs on the one redroid and the status of the jobs they start. The VM's runner reaches these, not
-    // the exec-script routes above, so its tag never needs the admin port.
-    spec("AndroidDeviceStart", "POST", "/android/device/start", CiOnly),
-    spec("AndroidDeviceStop", "POST", "/android/device/stop", CiOnly),
-    spec("AndroidDeviceList", "POST", "/android/device/list", CiOnly),
-    spec("AndroidDeviceJob", "GET", "/android/device/jobs/{job}", CiOnly),
 ];
 
 pub fn spec_of(id: &str) -> Option<&'static RouteSpec> {
@@ -135,16 +132,6 @@ mod tests {
         for spec in found {
             assert_eq!(spec.exposure, Exposure::AdminOnly, "{}", spec.id);
             assert!(!spec.exposure.serves(Port::Ci), "{}", spec.id);
-        }
-    }
-
-    #[test]
-    fn given_the_device_lab_routes_when_classified_then_only_the_ci_port_serves_them_and_none_runs_a_script_of_the_requests() {
-        let lab: Vec<&RouteSpec> = ROUTES.iter().filter(|spec| spec.path.starts_with("/android/")).collect();
-        assert_eq!(lab.len(), 4);
-        for spec in lab {
-            assert_eq!(spec.exposure, Exposure::CiOnly, "{}", spec.id);
-            assert!(spec.exposure.serves(Port::Ci) && !spec.exposure.serves(Port::Admin), "{}", spec.id);
         }
     }
 

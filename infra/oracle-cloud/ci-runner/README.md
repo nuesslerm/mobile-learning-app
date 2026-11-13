@@ -6,8 +6,9 @@ deploy recreated it and killed the job that shipped agent-shell.
 
 - **Isolation.** `docker compose` in `/home/ubuntu/agent-shell` and in `/home/ubuntu/ci-runner` act on different projects, so a redeploy of one never
   recreates a container of the other (`tests/compose-isolation.test.mjs`; the vm-ops-api redeploy case that runs both).
-- **Builder sidecar.** The runner mounts no docker socket. Its `DOCKER_HOST` is `tcp://127.0.0.1:2376`, the `builder` service (docker-in-docker, mutual
-  TLS, layer cache in the `builder-data` volume, client certificates in `builder-certs`, shared with the runner read-only). The `build-image` action
+- **Builder and droid daemons.** The runner mounts no host docker socket. Its `DOCKER_HOST` is `unix:///run/builder/docker.sock`, the `builder` service
+  (docker-in-docker from `../dind.yml`, layer cache in the `builder-data` volume, socket in `builder-socket`); the Android device runs on the `droid`
+  daemon beside it (`DEVICE_DOCKER_HOST`). The `build-image` action
   (`wf ship build`) builds and pushes there; vm-ops-api only pulls and swaps (`tests/compose-builder.test.mjs`).
 - **Shared volume.** `clis` (the one wf build) is written by the runner and mounted read-only by agent-shell and vm-ops-api. Both projects declare it
   `external: true, name: clis`; cloud-init and vm-ops-api's redeploy run `docker volume create clis` first.
@@ -29,7 +30,7 @@ deploy recreated it and killed the job that shipped agent-shell.
   - Restart behavior with a spent token: restart only the runner container (`docker restart ci-runner-gh-runner` through a vm-ops-api sibling) and read the log;
     it must reuse the registration in `gh-runner-config-4` and listen again. If it fails on the spent token, the image re-registers on every start, so a restart
     means re-running `wf ship ci-runner --ref dev`; record that here.
-  - From inside the runner, `docker info` with the runner's `DOCKER_HOST` (tcp to 127.0.0.1:2376, mutual TLS) answers the builder's daemon, not the host's, and there
+  - From inside the runner, `docker info` with the runner's `DOCKER_HOST` (the builder socket) answers the builder's daemon, not the host's, and there
     is no `/var/run/docker.sock` in the runner.
   - `env` in the runner has `RUNNER_TOKEN` only if the image keeps it, and no `ACCESS_TOKEN`, `BWS_*` or `VM_PROVISION_GITHUB_TOKEN`.
 

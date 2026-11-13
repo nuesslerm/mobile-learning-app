@@ -9,9 +9,9 @@ use std::process::Command;
 use std::time::Duration;
 
 /// The services with a Cargo workspace of their own.
-const OWN_WORKSPACE: [&str; 7] = ["reporting-service", "libs-proxy", "leetcode-backend", "leetcode-auth-cookie-capture", "vm-ops-api", "watchdog", "remote-chat-agent"];
+const OWN_WORKSPACE: [&str; 6] = ["reporting-service", "leetcode-backend", "leetcode-auth-cookie-capture", "vm-ops-api", "watchdog", "remote-chat-agent"];
 
-/// The services built on service-kit and the telemetry crate; libs-proxy has crates.io dependencies only, so it is in none of their cases.
+/// The services built on service-kit and the telemetry crate.
 const RUST_SERVICES: [&str; 4] = ["remote-chat-agent", "leetcode-backend", "leetcode-auth-cookie-capture", "reporting-service"];
 
 struct Repo {
@@ -147,14 +147,12 @@ fn a_push_ships_exactly_the_legs_built_from_what_it_changed() {
         // the shared libraries are registry dependencies: an edit with no released version is in no image, only a service's lockfile moves it
         ("a library the agent service and the desktop's listener take from the registry", "libraries/rca-core/src/file_store.rs", vec![], false),
         ("a service's crate", "backend/reporting-service/rs/src/main.rs", vec!["reporting-service"], false),
-        ("the proxy's crate, which builds from crates.io alone", "backend/libs-proxy/rs/src/main.rs", vec!["libs-proxy"], false),
         ("the T3 server's code, which builds from the clis workspace", "clis/t3-serve/core/src/usecases/peers.rs", vec!["t3-serve"], false),
         ("the T3 server's compose project, beside its Dockerfile", "clis/t3-serve/docker-compose.prod.yml", vec!["t3-serve"], false),
         ("the Orca server's code, which builds from the clis workspace", "clis/orca-serve/map-mobile/src/lib.rs", vec!["orca-serve"], false),
         ("the Orca agent-session mapper, which the Orca image builds from the clis workspace", "clis/orca-serve/map-agent/src/fold.rs", vec!["orca-serve"], false),
         ("the Orca server's compose project, beside its Dockerfile", "clis/orca-serve/docker-compose.prod.yml", vec!["orca-serve"], false),
         ("the agent API contracts the T3 and Orca servers build with", "libraries/agent-api/agent-api-workspace/src/edit.rs", vec!["remote-chat-agent", "t3-serve", "orca-serve"], false),
-        ("the proxy's compose project, which lives outside its image directory", "infra/oracle-cloud/libs-proxy/docker-compose.prod.yml", vec!["libs-proxy"], false),
         ("a blank line in a service's own workspace manifest", "backend/reporting-service/Cargo.toml", vec![], false),
         ("the kit every Rust service and the watchdog take from the registry", "backend/service-kit/src/lib.rs", vec![], false),
         // the image hash reads the part of the workspace manifest a service's crates use, not the file: a blank line moves nothing
@@ -230,7 +228,7 @@ fn a_push_ships_exactly_the_legs_built_from_what_it_changed() {
     }
 
     // When a service's lockfile pins a new release of service-kit, Then that service alone ships
-    for service in OWN_WORKSPACE.iter().copied().filter(|s| *s != "libs-proxy") {
+    for service in OWN_WORKSPACE.iter().copied() {
         let legs = repo.legs_after(|dir| rechecksum(dir, &format!("backend/{service}/Cargo.lock"), "service-kit"));
         assert_eq!(apps(&legs), vec![if service == "watchdog" { "vm-ops-api" } else { service }]);
     }
@@ -283,12 +281,12 @@ fn a_named_service_deploys_whatever_changed_and_an_unknown_name_deploys_nothing(
     // Given a base and a commit that touches no service's images
     let repo = Repo::copy();
 
-    // When the plan is asked with --also naming libs-proxy, vm-ops-api and a name that is no service
-    let plan = repo.plan_with(&["--also", "libs-proxy,vm-ops-api,no-such-service"], |_| {});
+    // When the plan is asked with --also naming reporting-service, vm-ops-api and a name that is no service
+    let plan = repo.plan_with(&["--also", "reporting-service,vm-ops-api,no-such-service"], |_| {});
 
     // Then exactly the two real services are planned, vm-ops-api first, each because it was forced
     let legs: Vec<(String, Vec<String>)> = plan["legs"].as_array().unwrap().iter().map(|l| (l["app"].as_str().unwrap().to_string(), l["why"].as_array().unwrap().iter().map(|w| w.as_str().unwrap().to_string()).collect())).collect();
-    assert_eq!(legs, [("vm-ops-api".to_string(), vec!["forced".to_string()]), ("libs-proxy".to_string(), vec!["forced".to_string()])]);
+    assert_eq!(legs, [("vm-ops-api".to_string(), vec!["forced".to_string()]), ("reporting-service".to_string(), vec!["forced".to_string()])]);
 
     // and without --also the same commit plans no leg
     assert!(repo.plan_after(|_| {})["legs"].as_array().unwrap().is_empty());

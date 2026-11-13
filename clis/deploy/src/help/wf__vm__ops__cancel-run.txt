@@ -1,15 +1,17 @@
-Usage: wf vm ops cancel-run (--run <number> | --queued) [options]
+Usage: wf vm ops cancel-run (--run <number> | --queued | --all) [options]
 
-Cancels CI runs (the workflow deploy.yml on dev) with VM_PROVISION_GITHUB_TOKEN,
-because the sandbox's own GitHub token cannot. --run <number> cancels that run
+Cancels CI runs of dev (ci-hosted.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
+cannot. Where that token is not in the environment (a sandbox), the verb runs itself on
+agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run
 (its run number as the Actions tab shows it, or its id); it must exist among the
 latest 100 runs of dev and not have completed. --queued cancels every run that
 is still waiting for a runner (queued, waiting, pending, requested) and leaves
-running ones alone. Run it on agent-shell, which holds the token.
+running ones alone. --all cancels every run that has not finished.
 
 Options:
   --run <number>  The CI run to cancel
   --queued        Cancel every run still waiting for a runner
+  --all           Cancel every run that has not finished, running ones included
   -h, --help      display help for command
 
 Output: one JSON line on stdout {ok, repo, cancelled: [{number, id, statusBefore,
@@ -18,5 +20,5 @@ accepted (HTTP 202; nothing waiting with --queued is ok), else 1.
 
 Environment: WF_GITHUB_API (default https://api.github.com).
 
-Example (from anywhere on the tailnet; the script is one line):
-  echo 'wf vm ops cancel-run --queued' > /tmp/cancel-run.sh && wf vm exec /tmp/cancel-run.sh
+Example (from anywhere on the tailnet):
+  wf vm ops cancel-run --all

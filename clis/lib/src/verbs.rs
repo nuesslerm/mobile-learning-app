@@ -6,7 +6,7 @@ use crate::domain::version::Bump;
 use crate::ports::Failure;
 use crate::usecases::{prune, release, retarget, status};
 use crate::wiring;
-use blob_cache::adapters::oci_cli::BUCKET;
+use crate::wiring::LIBS_BUCKET;
 use blob_cache::adapters::OciCli;
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -58,7 +58,7 @@ fn release_verb(p: &Parsed) -> Option<i32> {
         let library = catalog.library(&p.positional[0]).ok_or_else(|| Failure::new(format!("{} is not in libraries.json", p.positional[0])))?;
         let registry = catalog.registry(&library.registry).ok_or_else(|| Failure::new("the library's registry is not in libraries.json"))?;
         let publisher = wiring::publisher(registry)?;
-        release::release(&root, &catalog, &p.positional[0], how, publisher.as_ref())
+        release::release(&root, &catalog, &p.positional[0], how, publisher.as_ref(), &crate::adapters::guard::GitGuard(root.clone()))
     });
     finish("release", outcome)
 }
@@ -93,7 +93,7 @@ fn prune_verb(p: &Parsed) -> Option<i32> {
         let store = wiring::libs_store(registry, true)?;
         let dev = GitRef { root: root.clone(), rev: "origin/dev".into() };
         let options = prune::Options { dry_run: p.flag("dry-run"), grace_days, now_ms: wf_kit::time::now_ms() };
-        prune::prune(&catalog, &dev, store.as_ref(), &OciCli::new(BUCKET), &wiring::publisher_can_delete, &options)
+        prune::prune(&catalog, &dev, store.as_ref(), &OciCli::new(LIBS_BUCKET), &wiring::publisher_can_delete, &options)
     });
     finish("prune", outcome)
 }

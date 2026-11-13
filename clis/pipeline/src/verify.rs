@@ -606,7 +606,7 @@ pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
 
 /* ---------- the apps a path reaches ---------- */
 
-pub const APP_PATHS: [(&str, &str); 16] = [
+pub const APP_PATHS: [(&str, &str); 14] = [
     ("frontend/mla-tamagui", "mla-tamagui"),
     ("infra/oracle-cloud/vm-ops-api", "vm-ops-api"),
     ("infra/oracle-cloud/watchdog", "vm-ops-api"),
@@ -619,12 +619,10 @@ pub const APP_PATHS: [(&str, &str); 16] = [
     ("backend/remote-chat-agent", "remote-chat-agent"),
     ("backend/leetcode-auth-cookie-capture", "leetcode-auth-cookie-capture"),
     ("backend/reporting-service", "reporting-service"),
-    ("backend/libs-proxy", "libs-proxy"),
-    ("infra/oracle-cloud/libs-proxy", "libs-proxy"),
     ("clis/t3-serve", "t3-serve"),
     ("clis/orca-serve", "orca-serve"),
 ];
-pub const HTTP_HEALTH_APPS: [&str; 7] = ["leetcode-backend", "remote-chat-agent", "reporting-service", "libs-proxy", "t3-serve", "orca-serve", "vm-ops-api"];
+pub const HTTP_HEALTH_APPS: [&str; 6] = ["leetcode-backend", "remote-chat-agent", "reporting-service", "t3-serve", "orca-serve", "vm-ops-api"];
 pub const FRONTEND_APP: &str = "mla-tamagui";
 pub const GATE_STEPS: [&str; 2] = ["typecheck", "test:unit + test:flow"];
 

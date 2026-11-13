@@ -40,6 +40,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
+name = "arraydeque"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d902e3d592a523def97af8f317b08ce16b7ab854c1985a0c671e6f15cebc236"
+
+[[package]]
 name = "async-trait"
 version = "0.1.92"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -536,6 +542,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "foldhash"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9c4f5dac5e15c24eb999c26181a6ca40b39fe946cbe4c263c7209467bc83af2"
+
+[[package]]
 name = "form_urlencoded"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -667,9 +679,27 @@ dependencies = [
 
 [[package]]
 name = "hashbrown"
+version = "0.15.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9229cfe53dfd69f0609a49f65461bd93001ea1ef889cd5529dd176593f5338a1"
+dependencies = [
+ "foldhash",
+]
+
+[[package]]
+name = "hashbrown"
 version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed5909b6e89a2db4456e54cd5f673791d7eca6732202bbf2a9cc504fe2f9b84a"
+
+[[package]]
+name = "hashlink"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7382cf6263419f2d8df38c55d7da83da5c18aef87fc7a7fc1fb1e344edfe14c1"
+dependencies = [
+ "hashbrown 0.15.5",
+]
 
 [[package]]
 name = "hex"
@@ -911,7 +941,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cc4e190f5d26ca7051642629da2c52fc03bde85a03197c99408dcd291734c855"
 dependencies = [
  "equivalent",
- "hashbrown",
+ "hashbrown 0.17.1",
 ]
 
 [[package]]
@@ -1474,9 +1504,9 @@ dependencies = [
 
 [[package]]
 name = "rca-core"
-version = "0.1.1"
-source = "sparse+http://libs-proxy:8793/index/"
-checksum = "765a592c73e0d22c35c0831ad0ad1fef5d90b13d79a552afe1bbddfb508c4c88"
+version = "0.1.2"
+source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+checksum = "ea4919dcfdff2bd375d26fe85c32b8de932ef6d1f84db2992d2304bb7a381acd"
 dependencies = [
  "serde",
  "serde_json",
@@ -1713,6 +1743,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "wf-kit",
+ "yaml-rust2",
 ]
 
 [[package]]
@@ -1978,9 +2009,9 @@ dependencies = [
 
 [[package]]
 name = "telemetry"
-version = "0.1.1"
-source = "sparse+http://libs-proxy:8793/index/"
-checksum = "33766991d780f4c35b2675ccddc49f4115262ab0cbeb0d534439acb21d2d7977"
+version = "0.1.2"
+source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+checksum = "72863f0638e0f0c336d091b0fd850a8fe866b3f51a039e0a5c3874b0d8101718"
 dependencies = [
  "futures-executor",
  "opentelemetry",
@@ -2653,6 +2684,16 @@ name = "writeable"
 version = "0.6.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ad82d2a33cdc9674dc7465672f271e096168fcdbe0f799d9e6db8c5892679dc"
+
+[[package]]
+name = "yaml-rust2"
+version = "0.10.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2462ea039c445496d8793d052e13787f2b90e750b833afee748e601c17621ed9"
+dependencies = [
+ "arraydeque",
+ "hashlink",
+]
 
 [[package]]
 name = "yoke"

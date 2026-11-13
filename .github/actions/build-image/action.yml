@@ -1,10 +1,7 @@
 name: Build image
 description: >-
-  Builds and pushes the images of one app on a tag with `wf ship build`, on the daemon the runner kind provides: on the VM runner
-  (`RUNNER_ENVIRONMENT=self-hosted`) the job environment's DOCKER_HOST is the builder sidecar of the ci-runner project (mutual TLS,
-  its own layer cache); on a GitHub-hosted runner it is the local daemon. Needs `wf` on PATH (the install-wf action runs first). On the VM
-  runner it proves there is no host docker socket and that the sidecar, not the host daemon, built, and it ends with the daemon's name and
-  version in the job summary, the evidence of where the image was built.
+  Builds and pushes the images of one app on a tag with `wf ship build`, on the runner's local docker daemon. Needs `wf` on PATH. It ends with the
+  daemon's name and version in the job summary, the evidence of where the image was built.
 inputs:
   app:
     description: The app whose images are built (its own image and the sidecars its compose pulls)
@@ -27,29 +24,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Probe that the runner has no host docker socket
-      if: ${{ runner.environment == 'self-hosted' }}
-      shell: bash
-      run: |
-        if [ -e /var/run/docker.sock ]; then
-          echo "::error::/var/run/docker.sock exists in the runner: a job could build on, and take over, the host daemon"
-          echo "- FAIL: \`/var/run/docker.sock\` exists in the runner" >> "$GITHUB_STEP_SUMMARY"
-          exit 1
-        fi
-        echo "no /var/run/docker.sock in the runner"
-    - name: Select the builder
-      shell: bash
-      run: |
-        if [ "$RUNNER_ENVIRONMENT" = "self-hosted" ]; then
-          [ -n "${DOCKER_HOST:-}" ] || { echo "::error::a self-hosted runner has no DOCKER_HOST: the ci-runner builder sidecar is not wired"; exit 1; }
-          echo "self-hosted runner: building on the builder sidecar at $DOCKER_HOST"
-        else
-          # a hosted runner builds on its own daemon, whatever the job environment names
-          echo "DOCKER_HOST=" >> "$GITHUB_ENV"; echo "DOCKER_TLS_VERIFY=" >> "$GITHUB_ENV"; echo "DOCKER_CERT_PATH=" >> "$GITHUB_ENV"
-          echo "hosted runner: building on the local docker daemon"
-          # the build container does not see the runner's MagicDNS: hand it the registry proxy's tailnet address (cargo registry `mla`)
-          ip=$(tailscale ip -4 libs-proxy 2>/dev/null | head -1) && [ -n "$ip" ] && echo "WF_BUILD_ADD_HOSTS=libs-proxy:$ip" >> "$GITHUB_ENV" || echo "::warning::no tailnet address for libs-proxy: a cargo build in an image will not reach the registry"
-        fi
     - name: Build and push
       shell: bash
       env:
@@ -75,16 +49,15 @@ runs:
         daemon=$(docker info --format '{{.Name}} (docker {{.ServerVersion}}, {{.OperatingSystem}})' 2>&1) || daemon="unreachable: $daemon"
         echo "build daemon for $APP:$TAG ($RUNNER_ENVIRONMENT, DOCKER_HOST=${DOCKER_HOST:-local socket}): $daemon"
         echo "- Built \`$APP:$TAG\` on daemon \`$daemon\` (\`$RUNNER_ENVIRONMENT\`, \`DOCKER_HOST=${DOCKER_HOST:-local socket}\`)" >> "$GITHUB_STEP_SUMMARY"
-    - name: Assert the sidecar built, not the host daemon
-      if: ${{ runner.environment == 'self-hosted' }}
+    - name: Stop the buildkit container
+      if: always()
       shell: bash
       run: |
-        name=$(docker info --format '{{.Name}}')
-        # the host daemon lists this runner's own container; the sidecar lists only its buildkit
-        names=$(docker ps --format '{{.Names}}')
-        if [ "$name" = "${RUNNER_NAME#vm-}" ] || grep -qE '^(ci-runner-|vm-ops-api)' <<<"$names"; then
-          echo "::error::the daemon at ${DOCKER_HOST:-the local socket} (name $name) is the host's, not the builder sidecar's"
-          echo "- FAIL: the build daemon \`$name\` is the host's" >> "$GITHUB_STEP_SUMMARY"
-          exit 1
-        fi
-        echo "- Builder sidecar \`$name\` answered: no host container listed, no docker socket in the runner" >> "$GITHUB_STEP_SUMMARY"
+        # The docker-container builder keeps a buildkitd running in the daemon after the build, holding its memory until the next one.
+        # Stopping it frees that memory; its state volume and layer cache stay, and the next build starts it again.
+        stats() { docker stats --no-stream --format '{{.Name}} {{.MemUsage}}' 2>/dev/null | tr '\n' ';'; }
+        before=$(stats)
+        docker buildx stop ci-builder >/dev/null 2>&1 || true
+        after=$(stats)
+        echo "buildkit memory before stop: ${before:-none}; after: ${after:-none}"
+        echo "- Buildkit memory (\`$RUNNER_ENVIRONMENT\`): before stop \`${before:-none}\`, after \`${after:-none}\`" >> "$GITHUB_STEP_SUMMARY"

@@ -26,7 +26,7 @@ FROM docker.io/library/rust:1-bookworm AS chef
 RUN --mount=type=cache,id=cargo-registry-remote-chat-agent,target=/usr/local/cargo/registry \
     cargo install cargo-chef --locked --version 0.1.78
 WORKDIR /src
-# The shared libraries come from the mla registry (libs-proxy on the tailnet); the lockfile pins their versions.
+# The shared libraries come from the mla registry (a public bucket, plain HTTPS); the lockfile pins their versions.
 COPY .cargo/config.toml /src/.cargo/config.toml
 
 # The service itself: its own workspace; the shared libraries (service-kit, telemetry, rca-core, rca-ladder) are registry

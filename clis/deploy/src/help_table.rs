@@ -36,6 +36,7 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("vm ops runner-check", false, include_str!("help/wf__vm__ops__runner-check.txt")),
     ("vm ops token-permissions", false, include_str!("help/wf__vm__ops__token-permissions.txt")),
     ("vm ops cancel-run", false, include_str!("help/wf__vm__ops__cancel-run.txt")),
+    ("vm ops install-clis", false, include_str!("help/wf__vm__ops__install-clis.txt")),
     ("vm ops drill", false, include_str!("help/wf__vm__ops__drill.txt")),
     ("vm recover", false, include_str!("help/wf__vm__recover.txt")),
     ("vm state", true, include_str!("help/wf__vm__state.txt")),

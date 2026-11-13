@@ -1,5 +1,5 @@
-//! The write routes through the router: agent-shell's job start, status and cancel and its credential files, the hosted cooldown
-//! ledger and the opencode run log. Given/When/Then.
+//! The write routes through the router: agent-shell's job start, status and cancel and its credential files, the
+//! opencode run log. Given/When/Then.
 use crate::harness::{world, world_with, Doubles, NOON};
 use serde_json::{json, Value};
 use vm_ops_api_core::application::ports::{ContainersError, Event, ExecResult};
@@ -79,22 +79,6 @@ async fn given_a_credential_post_when_it_is_written_then_the_file_lands_in_the_t
     let put = world.containers.calls().into_iter().find_map(|call| if let ContainersCall::PutFile { target_dir, .. } = call { Some(target_dir) } else { None });
     assert_eq!(put.as_deref(), Some("/workspace/home/.claude"));
     assert_eq!(world.log.events(), [Event::info("agent_shell_credentials.written").with("tool", "claude")]);
-}
-
-#[tokio::test]
-async fn given_the_cooldown_ledger_when_posted_at_its_version_then_it_is_stored_and_a_second_post_at_the_old_version_is_409_stale() {
-    // Given the service, whose ledger is empty at version 0
-    let world = world(false);
-    // When a ledger is posted at version 0, posted again at version 0, posted malformed, and read
-    let stored = world.signed("POST", "/cooldowns", br#"{"ledger":{"minimax":{"until":1700000000000}},"version":0}"#).await;
-    let stale = world.signed("POST", "/cooldowns", br#"{"ledger":{},"version":0}"#).await;
-    let bad = world.signed("POST", "/cooldowns", br#"{"ledger":[],"version":0}"#).await;
-    let read = world.signed("GET", "/cooldowns", b"").await;
-    // Then the first is 200 with version 1, the second 409 stale with version 1, the malformed one 400, and the read has the first ledger
-    assert_eq!((stored.status, stored.body.as_str()), (200, r#"{"version":1}"#));
-    assert_eq!((stale.status, stale.body.as_str()), (409, r#"{"error":"stale","version":1}"#));
-    assert_eq!((bad.status, bad.body.as_str()), (400, r#"{"error":"expected { ledger, version }"}"#));
-    assert_eq!(read.body, r#"{"ledger":{"minimax":{"until":1700000000000}},"version":1}"#);
 }
 
 #[tokio::test]

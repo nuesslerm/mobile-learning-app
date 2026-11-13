@@ -1,5 +1,6 @@
-//! `wf vm ops cancel-run`, run from agent-shell (which holds the PAT): cancels one CI run (`--run <number>`) or every CI run of `dev` that is
-//! still waiting for a runner (`--queued`). The sandbox's own GitHub token cannot cancel; this is the PAT-backed way, through `wf vm exec`.
+//! `wf vm ops cancel-run`: cancels one CI run (`--run <number>`), every CI run of `dev` still waiting for a runner (`--queued`) or every one
+//! that has not finished (`--all`), of the CI workflow (`ci-hosted.yml`). The sandbox's own GitHub token
+//! cannot cancel, agent-shell holds the PAT that can: where the PAT is not in the environment the verb runs itself there, through `wf vm exec`.
 //! The PAT is used and dropped; only run numbers, ids and HTTP statuses are printed, never the token or a reply body.
 use cli_http::Request;
 use serde_json::{json, Value};
@@ -41,15 +42,16 @@ impl GithubRest {
 
 impl GithubRuns for GithubRest {
     fn runs(&self, token: &str) -> Result<Vec<RunRow>, String> {
-        let reply = self.request(Request::get(&format!("{}{}", self.api, runs_path())), token)?;
-        if reply.status != 200 {
-            return Err(format!("GitHub refused the list of CI runs with HTTP {}", reply.status));
+        let mut all = Vec::new();
+        for workflow in WORKFLOWS {
+            let reply = self.request(Request::get(&format!("{}{}", self.api, runs_path(workflow))), token)?;
+            if reply.status != 200 {
+                return Err(format!("GitHub refused the list of {workflow} runs with HTTP {}", reply.status));
+            }
+            let body: Value = serde_json::from_slice(&reply.body).map_err(|_| "GitHub's list of CI runs is not JSON".to_string())?;
+            all.extend(body["workflow_runs"].as_array().map(|runs| runs.iter().filter_map(|r| Some(RunRow { id: r["id"].as_u64()?, number: r["run_number"].as_u64()?, status: r["status"].as_str()?.to_string() })).collect::<Vec<_>>()).unwrap_or_default());
         }
-        let body: Value = serde_json::from_slice(&reply.body).map_err(|_| "GitHub's list of CI runs is not JSON".to_string())?;
-        Ok(body["workflow_runs"]
-            .as_array()
-            .map(|runs| runs.iter().filter_map(|r| Some(RunRow { id: r["id"].as_u64()?, number: r["run_number"].as_u64()?, status: r["status"].as_str()?.to_string() })).collect())
-            .unwrap_or_default())
+        Ok(all)
     }
 
     fn cancel(&self, token: &str, id: u64) -> Result<u16, String> {
@@ -57,13 +59,16 @@ impl GithubRuns for GithubRest {
     }
 }
 
-fn runs_path() -> String {
-    format!("/repos/{REPO}/actions/workflows/deploy.yml/runs?branch=dev&per_page=100")
+const WORKFLOWS: [&str; 1] = ["ci-hosted.yml"];
+
+fn runs_path(workflow: &str) -> String {
+    format!("/repos/{REPO}/actions/workflows/{workflow}/runs?branch=dev&per_page=100")
 }
 
 pub enum Target {
     Run(u64),
     Queued,
+    All,
 }
 
 fn row(run: &RunRow, http: u16) -> Value {
@@ -76,6 +81,7 @@ pub fn cancel(github: &dyn GithubRuns, token: &str, target: &Target) -> Result<V
     let chosen: Vec<&RunRow> = match target {
         Target::Run(n) => runs.iter().filter(|r| r.number == *n || r.id == *n).collect(),
         Target::Queued => runs.iter().filter(|r| WAITING.contains(&r.status.as_str())).collect(),
+        Target::All => runs.iter().filter(|r| r.status != "completed").collect(),
     };
     if let Target::Run(n) = target {
         match chosen.first() {
@@ -92,10 +98,31 @@ pub fn cancel(github: &dyn GithubRuns, token: &str, target: &Target) -> Result<V
     Ok(json!({ "ok": ok, "repo": REPO, "cancelled": cancelled }))
 }
 
+/// Without the PAT here, the same verb runs on agent-shell (which holds it) through `wf vm exec`; its JSON line is the answer.
+fn relay(flag: &str) -> Option<i32> {
+    match wf_vmops::vm_exec::capture_code(&format!("wf vm ops cancel-run {flag}\n")) {
+        Ok((code, output)) => {
+            match output.lines().rev().find(|l| l.trim_start().starts_with('{')) {
+                Some(line) => println!("{line}"),
+                None => wf_kit::wf_err!("wf: cancel-run on agent-shell printed no result: {}", output.trim()),
+            }
+            Some(if code == 0 { 0 } else { 1 })
+        }
+        Err(e) => {
+            wf_kit::wf_err!("wf: {PAT} is not set here and agent-shell could not be reached to run cancel-run there: {e}");
+            Some(1)
+        }
+    }
+}
+
 pub fn run(target: Target) -> Option<i32> {
     let Some(token) = secrets::load_values(&[PAT]).get(PAT).cloned().flatten().filter(|t| !t.is_empty()) else {
-        wf_kit::wf_err!("wf: {PAT} is not set: run this on agent-shell, which holds it (a one-line script of `wf vm ops cancel-run ...` through `wf vm exec`)");
-        return Some(1);
+        let flag = match &target {
+            Target::Run(n) => format!("--run {n}"),
+            Target::Queued => "--queued".to_string(),
+            Target::All => "--all".to_string(),
+        };
+        return relay(&flag);
     };
     let github = GithubRest { api: std::env::var("WF_GITHUB_API").unwrap_or_else(|_| DEFAULT_API.to_string()) };
     match cancel(&github, &token, &target) {

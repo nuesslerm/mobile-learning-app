@@ -6,13 +6,14 @@ use std::sync::Arc;
 use std::time::Duration;
 use vm_ops_api_core::application::access::Gate;
 use vm_ops_api_core::application::agent_shell::AgentShell;
-use vm_ops_api_core::application::android_lab::AndroidLab;
+use vm_ops_api_core::application::clis_install::ClisInstall;
+use vm_ops_api_core::application::state_job::StateJobs;
 use vm_ops_api_core::application::drill::Drill;
 use vm_ops_api_core::application::health::{Build, Health};
 use vm_ops_api_core::application::logs::Logs;
 use vm_ops_api_core::application::opencode_log::OpencodeLog;
 use vm_ops_api_core::application::opencode_log_writes::RunWrites;
-use vm_ops_api_core::application::ports::{Clock, Containers, CooldownLedger, EventLog, HostFiles, Ids, RunLog, Siblings};
+use vm_ops_api_core::application::ports::{Clock, Containers, EventLog, HostFiles, Ids, RunLog, Siblings};
 use vm_ops_api_core::application::ps::Ps;
 use vm_ops_api_core::application::redeploy::Redeploy;
 use vm_ops_api_core::application::redeploy_status::RedeployStatus;
@@ -36,7 +37,6 @@ pub struct Ports {
     pub log: Arc<dyn EventLog>,
     pub containers: Arc<dyn Containers>,
     pub host_files: Arc<dyn HostFiles>,
-    pub cooldowns: Arc<dyn CooldownLedger>,
     pub run_log: Arc<dyn RunLog>,
     pub ids: Arc<dyn Ids>,
     pub siblings: Arc<dyn Siblings>,
@@ -84,10 +84,10 @@ pub struct AppState {
     opencode_log: Arc<OpencodeLog>,
     dashboard: &'static [u8],
     agent_shell: Arc<AgentShell>,
-    android_lab: Arc<AndroidLab>,
     run_writes: Arc<RunWrites>,
-    cooldown_ledger: Arc<dyn CooldownLedger>,
     drill: Arc<Drill>,
+    clis_install: Arc<ClisInstall>,
+    state_jobs: Arc<StateJobs>,
     redeploy: Arc<Redeploy>,
     redeploy_status: Arc<RedeployStatus>,
     self_redeploy: Arc<SelfRedeploy>,
@@ -106,10 +106,10 @@ pub fn routers(ports: Ports, settings: Settings) -> Routers {
         env: settings.redeploy.clone(),
     }));
     let agent_shell = Arc::new(AgentShell::new(ports.containers.clone(), ports.ids, ports.clock.clone(), ports.log.clone()));
-    let android_lab = Arc::new(AndroidLab::new(agent_shell.clone()));
+    let state_jobs = Arc::new(StateJobs::new(agent_shell.clone()));
     let run_writes = Arc::new(RunWrites::new(ports.run_log.clone(), ports.clock.clone()));
-    let cooldown_ledger = ports.cooldowns.clone();
     let drill = Arc::new(Drill::new(ports.siblings.clone(), settings.sibling_image.clone(), OWN_CONTAINER.to_string()));
+    let clis_install = Arc::new(ClisInstall::new(ports.siblings.clone(), settings.sibling_image.clone()));
     let redeploy = Arc::new(Redeploy::new(ports.siblings.clone(), ports.log.clone(), ports.clock.clone(), settings.redeploy.clone(), settings.build.server_script_sha.clone()));
     let redeploy_status = Arc::new(RedeployStatus::new(ports.siblings.clone(), settings.redeploy));
     let (admin_gate, ci_gate) = (Arc::new(Gate::new(settings.auth, ports.clock.clone())), settings.ci_auth.map(|auth| Arc::new(Gate::new(auth, ports.clock.clone()))));
@@ -124,10 +124,10 @@ pub fn routers(ports: Ports, settings: Settings) -> Routers {
         opencode_log: Arc::new(OpencodeLog::new(ports.run_log)),
         dashboard: settings.dashboard,
         agent_shell,
-        android_lab,
         run_writes,
-        cooldown_ledger,
         drill,
+        clis_install,
+        state_jobs,
         redeploy,
         redeploy_status,
         self_redeploy,

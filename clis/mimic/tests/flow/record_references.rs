@@ -569,7 +569,7 @@ fn a_fetched_file_that_does_not_match_its_manifest_hash_is_refused_and_an_unknow
 }
 
 fn workflow() -> String {
-    std::fs::read_to_string(reporoot().join(".github/workflows/record-references.yml")).expect("the record-references workflow")
+    std::fs::read_to_string(reporoot().join(".github/workflows/mimic-record.yml")).expect("the record-references workflow")
 }
 
 /// Every `<prefix>.<key>` the workflow text reads.

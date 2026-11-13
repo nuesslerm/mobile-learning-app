@@ -1700,9 +1700,9 @@ dependencies = [
 
 [[package]]
 name = "service-kit"
-version = "0.1.1"
-source = "sparse+http://libs-proxy:8793/index/"
-checksum = "c90affb256bb19604f44a2d03f1ee05434d8a789c8c324cbbe4f63e18c83cc4a"
+version = "0.1.2"
+source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+checksum = "692e7bfae472dfd5fd6a8858699449906215e1bcaf503501d7dd7ca4f1956fe3"
 dependencies = [
  "axum",
  "governor",
@@ -1862,9 +1862,9 @@ dependencies = [
 
 [[package]]
 name = "telemetry"
-version = "0.1.1"
-source = "sparse+http://libs-proxy:8793/index/"
-checksum = "33766991d780f4c35b2675ccddc49f4115262ab0cbeb0d534439acb21d2d7977"
+version = "0.1.2"
+source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+checksum = "72863f0638e0f0c336d091b0fd850a8fe866b3f51a039e0a5c3874b0d8101718"
 dependencies = [
  "opentelemetry",
  "opentelemetry-otlp",

@@ -25,7 +25,7 @@ Every other `wf offload` mode runs on the rca service (`POST /runs`, `GET /runs/
 
 - A checkout the service can run a runbook in (a git worktree of a pushed ref, with `wf` and the device harness on `PATH`), then delete `dispatch_local`, `preflight`, `live`, the file ledger and `--start-model`'s local rotation.
 - `runs.rs` returning the usage opencode reports per attempt, and writing it to the run-log row the way the local path did.
-- The vm-ops-api `/cooldowns` endpoint and the agent-shell `vm-ledger` routes are unused by `wf` now and can go with the next vm-ops-api change.
+- The agent-shell `vm-ledger` routes are unused by `wf` now and can go with the next vm-ops-api change (`/cooldowns` is gone).
 
 ## Where a remote run still differs from `opencode run` (found by the parity e2e, `clis/offload/tests/e2e/parity*.rs`)
 

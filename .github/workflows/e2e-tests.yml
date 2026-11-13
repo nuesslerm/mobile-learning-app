@@ -31,6 +31,10 @@ on:
       all:
         type: boolean
         default: false
+      # [cache:no] or a cold run: replay nothing from the Nx cache, run every planned test
+      fresh:
+        type: boolean
+        default: false
       flags:
         type: string
         required: false
@@ -43,14 +47,9 @@ on:
       eas_update:
         type: string
         required: false
-      # vm (the VM's runner: redroid in agent-shell, services on the tailnet by name) or hosted (a GitHub-hosted runner: the SDK emulator as a local
-      # process, the same tailnet joined as tag:ci-gh-hosted)
-      flavor:
-        type: string
-        default: vm
       runner:
         type: string
-        default: '["self-hosted","vm"]'
+        default: '"ubuntu-24.04"'
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN:
         required: false
@@ -94,11 +93,11 @@ env:
 jobs:
   e2e-tests:
     name: ${{ inputs.platform }}-e2e-tests
-    runs-on: ${{ fromJSON(inputs.runner || '["self-hosted","vm"]') }}
+    runs-on: ${{ fromJSON(inputs.runner || '"ubuntu-24.04"') }}
     # the browser job also builds the export (about 4 min)
     timeout-minutes: ${{ inputs.platform == 'browser' && 40 || 30 }}
     concurrency:
-      group: e2e-tests-${{ inputs.flavor || 'vm' }}-${{ inputs.platform }}
+      group: e2e-tests-${{ inputs.platform }}
       cancel-in-progress: false
     env:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
@@ -115,72 +114,23 @@ jobs:
       # at 2 shows no toolbar key typed on the keyboard (its swipes lift while moving, so a faster one flings further)
       WF_TEST_SPEED: ${{ inputs.platform == 'browser' && '2' || '1' }}
       WF_SITE: ci
-      # the device's adb port is published on the agent-shell node (start-device runs there); the runner has its own tailnet node, so it is reached by name
-      WF_ANDROID_SERIAL: ${{ inputs.flavor == 'hosted' && 'emulator-5554' || 'agent-shell-main:5555' }}
-      WF_ANDROID_PROVIDER: ${{ inputs.flavor == 'hosted' && 'emulator' || 'redroid' }}
-      # the stub server the Android tests start runs on the runner's own tailnet node: the device's DNAT rules point at its address, not at the device's gateway
-      # (on a hosted runner the emulator reaches the run at 10.0.2.2)
-      WF_ANDROID_STUB_HOST: ${{ inputs.flavor == 'hosted' && '10.0.2.2' || 'ci-runner-main' }}
-      WF_ANDROID_HOSTS: ${{ inputs.flavor == 'hosted' && 'leetcode-backend-prod remote-chat-agent-prod vm-ops-api-main' || '' }}
+      # the runner has the SDK emulator as a local process, which reaches the runner's host at 10.0.2.2
+      WF_ANDROID_SERIAL: emulator-5554
+      WF_ANDROID_PROVIDER: emulator
+      WF_ANDROID_STUB_HOST: 10.0.2.2
+      WF_ANDROID_HOSTS: leetcode-backend-prod remote-chat-agent-prod vm-ops-api-main
     steps:
-      # the plan job fetched this commit into the runner's checkout: a fetch of every ref (316 of them) to learn nothing new costs 12 s
-      - name: The pnpm store of the VM runner
-        if: inputs.flavor != 'hosted'
-        run: echo "npm_config_store_dir=/root/.pnpm-store-tier3" >> "$GITHUB_ENV"
-      - name: The commit is already here
-        id: tree
-        if: inputs.flavor != 'hosted'
-        run: |
-          if git cat-file -e "$SHA^{commit}" 2>/dev/null; then git checkout -q --detach -f "$SHA" && echo "here=true" >> "$GITHUB_OUTPUT"; fi
-      - if: inputs.flavor != 'hosted' && steps.tree.outputs.here != 'true'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          # the runner's own checkout keeps node_modules between runs: pnpm install then links in seconds, not 10 minutes
-          clean: false
-          ref: ${{ env.SHA }}
-          fetch-depth: 0
-      - if: inputs.flavor == 'hosted'
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: ${{ env.SHA }}
           fetch-depth: 0
-      - if: inputs.flavor == 'hosted'
-        uses: ./.github/actions/setup-job
+      - uses: ./.github/actions/setup-job
         with:
-          flavor: hosted
           job: ${{ inputs.platform }}-e2e-tests
           keep-android: ${{ inputs.platform == 'android' }}
           apt-packages: ${{ inputs.platform == 'android' && 'ffmpeg libpulse0 libnss3 libxkbcommon0 libgl1' || 'ffmpeg' }}
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
-      - if: inputs.flavor != 'hosted'
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version: 22.22.0
-      - if: inputs.flavor != 'hosted'
-        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-        with:
-          run_install: false
-      - if: inputs.flavor != 'hosted'
-        uses: ./.github/actions/install-bws
-      - if: inputs.flavor != 'hosted'
-        uses: ./.github/actions/install-wf
-      # the browser harness drives Playwright's Chromium (cached under ~/.cache/ms-playwright on the runner)
-      # the stage runs through the workspace's Nx (its cache decides which tests run)
-      # an empty pnpm store (a recreated VM) is filled from the bucket first, and the store is saved after the install
-      - name: Restore the pnpm store
-        if: inputs.flavor != 'hosted'
-        continue-on-error: true
-        timeout-minutes: 10
-        run: wf cache restore pnpm
-      - name: Install the workspace
-        if: inputs.flavor != 'hosted'
-        run: pnpm install --frozen-lockfile
-      - name: Save the pnpm store
-        if: inputs.flavor != 'hosted'
-        continue-on-error: true
-        timeout-minutes: 15
-        run: wf cache save pnpm
       - name: Chromium for the browser harness
         if: inputs.platform == 'browser'
         run: |
@@ -198,7 +148,7 @@ jobs:
         run: |
           if [ -n "$PLAN" ]; then
             printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
-            select="--stage $PLATFORM-e2e-tests --plan $RUNNER_TEMP/plan.json"
+            select="--stage $PLATFORM-e2e-tests --plan $RUNNER_TEMP/plan.json${{ inputs.fresh && ' --fresh' || '' }}"
             # Nx replays every focused test whose feature code, test case and app shell are unchanged; the rest run
             # shellcheck disable=SC2086
             wf test run $select --probe | tee "$RUNNER_TEMP/probe.json"
@@ -219,13 +169,8 @@ jobs:
         if: steps.pick.outputs.any == 'true'
         timeout-minutes: 3
         run: wf vm ops probe --wait 45 remote-chat-agent leetcode-backend
-      # The device's adb port is published in the network namespace the runner shares with agent-shell (tailscale sidecar).
-      - name: Install adb
-        if: inputs.platform == 'android' && steps.pick.outputs.any == 'true' && inputs.flavor != 'hosted'
-        run: command -v adb >/dev/null || { apt-get update -qq && apt-get install -y -qq adb; }
-      # a hosted runner has the SDK; its kernel gives the emulator /dev/kvm once every user may open it, and the emulator binary links these libraries
       - name: The emulator's host setup
-        if: inputs.platform == 'android' && steps.pick.outputs.any == 'true' && inputs.flavor == 'hosted'
+        if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules >/dev/null
           sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
@@ -236,33 +181,6 @@ jobs:
         run: |
           sudo=$([ "$(id -u)" = 0 ] || echo sudo)
           command -v ffmpeg >/dev/null || { $sudo dpkg --configure -a; $sudo apt-get update -qq && $sudo apt-get install -y -qq ffmpeg; }
-      # 18 Oct: the device started with 1.3 GB free, the VM thrashed, the watchdog recreated the dind and the job lost its runner
-      - name: The VM has room for the device
-        if: inputs.platform == 'android' && steps.pick.outputs.any == 'true' && inputs.flavor != 'hosted'
-        shell: bash
-        run: |
-          wf vm ops stats > "$RUNNER_TEMP/vm-stats.json"
-          # a container docker cannot sample (one stranded in a dead network) counts 0, so its memory shows up as unread
-          jq -c '{host, containersMb, unreadMb: (.host.memTotalMb - .host.memAvailableMb - .containersMb), top: [.containers[:6][] | {name, memMb}]}' "$RUNNER_TEMP/vm-stats.json"
-          jq -e '.host.memAvailableMb >= 2000' "$RUNNER_TEMP/vm-stats.json" >/dev/null \
-            || { echo "::error::the device needs about 2000 MB and the VM has $(jq .host.memAvailableMb "$RUNNER_TEMP/vm-stats.json") MB available; the line above says what holds the rest"; exit 1; }
-      # The export is one Metro process bundling the web graph beside a deploy's un-awaited cache export
-      # (docs/gaps/vm-memory-saturation.md); a short wait lets that finish
-      - name: The VM has room for the export
-        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true' && inputs.flavor != 'hosted'
-        timeout-minutes: 6
-        shell: bash
-        run: |
-          for _ in $(seq 20); do
-            wf vm ops stats > "$RUNNER_TEMP/vm-stats.json"
-            jq -e '.host.memAvailableMb >= 3000' "$RUNNER_TEMP/vm-stats.json" >/dev/null && exit 0
-            sleep 15
-          done
-          jq -c '{host, containersMb, top: [.containers[:6][] | {name, memMb}]}' "$RUNNER_TEMP/vm-stats.json"
-          echo "::error::the export needs about 3000 MB and the VM has $(jq .host.memAvailableMb "$RUNNER_TEMP/vm-stats.json") MB available after 5 min; the line above says what holds the rest"
-          exit 1
-      # Only when a test will run (the Nx probe above): a replayed pass needs no export. The backends' hosts and token are baked
-      # in, and the BetterStack ingest pair (nothing else), since the tests call the real ones.
       - name: Restore the app build state
         if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
         continue-on-error: true
@@ -315,13 +233,13 @@ jobs:
         # The device holds about 1.3 GB under test; it runs only for this job, and only when an Android test runs
         # (docs/gaps/vm-memory-saturation.md).
         if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
-        run: wf android start-device --expo-go
+        run: wf android start-device --expo-go --local
       # goal p0: the one device boots healthy; no test runs on a device that is not (the app's cold start follows this)
       - name: The device is healthy
         if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
         shell: bash
         run: |
-          wf android list-devices | tee "$RUNNER_TEMP/list-devices.json" | jq '.result.devices[0]' > "$RUNNER_TEMP/device-features.json"
+          wf android list-devices --local | tee "$RUNNER_TEMP/list-devices.json" | jq '.result.devices[0]' > "$RUNNER_TEMP/device-features.json"
           if [ "$WF_ANDROID_PROVIDER" = emulator ]; then
             jq -e '.boot.completed == true and .boot.activityService == true' "$RUNNER_TEMP/device-features.json"
           else
@@ -334,14 +252,12 @@ jobs:
         shell: bash
         env:
           SELECT: ${{ steps.pick.outputs.select }}
-          # each Android unit's report carries the VM's load and memory and the device's memory and CPU every 20 s
-          WF_VM_SAMPLE_SECS: ${{ inputs.platform == 'android' && inputs.flavor != 'hosted' && '20' || '' }}
         run: |
           # shellcheck disable=SC2086
           wf test run $SELECT --sha "$SHA" --out "$RUNNER_TEMP/e2e-runs" -- $FLAGS | tee "$RUNNER_TEMP/e2e-tests.jsonl"
       - name: Take the device down
         if: always() && inputs.platform == 'android' && steps.pick.outputs.any == 'true'
-        run: wf android stop-device
+        run: wf android stop-device --local
       # its Chromium would otherwise hold memory through the Android job that runs next
       - name: Stop the browser daemon
         if: always() && inputs.platform == 'browser' && steps.pick.outputs.any == 'true'

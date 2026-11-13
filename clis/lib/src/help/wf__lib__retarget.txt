@@ -6,7 +6,7 @@ crates-io registry, loses it (a line left as just a version becomes `name = "1.2
 Path and git dependencies and lines that inherit from the workspace are left and
 listed. The `[registries.<alias>] index` entry of each changed workspace's
 .cargo/config.toml is regenerated from libraries.json, written literally from
-indexUrl (the read proxy's index, so no credential); a registry with no indexUrl whose url is
+indexUrl (the bucket's public index, so no credential); a registry with no indexUrl whose url is
 `env:NAME` (a credential) gets nothing written and the output says which
 CARGO_REGISTRIES_<ALIAS>_INDEX to build with. libraries.json records the new
 alias. Idempotent. npm libraries and .npmrc are not handled yet.

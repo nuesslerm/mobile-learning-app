@@ -18,7 +18,7 @@ use vm_ops_api_core::application::health::Build;
 use vm_ops_api_core::application::ports::EventLog;
 use vm_ops_api_core::application::scripts::redeploy::RedeployEnv;
 use vm_ops_api_core::domain::auth::{derive_rotating_token, AuthConfig};
-use vm_ops_api_core::testing::{FakeClock, FakeContainers, FakeCooldownLedger, FakeEventLog, FakeHostFiles, FakeIds, FakeRunLog, FakeSiblings};
+use vm_ops_api_core::testing::{FakeClock, FakeContainers, FakeEventLog, FakeHostFiles, FakeIds, FakeRunLog, FakeSiblings};
 
 pub const SEED: &str = "seed-for-tests";
 pub const CI_SEED: &str = "ci-seed-for-tests";
@@ -61,7 +61,6 @@ pub fn build() -> Build {
 pub struct Doubles {
     pub containers: FakeContainers,
     pub host_files: FakeHostFiles,
-    pub cooldowns: FakeCooldownLedger,
     pub siblings: FakeSiblings,
     /// Every sleep of the clock moves the time on.
     pub advancing: bool,
@@ -86,7 +85,6 @@ pub fn world_with(require_signed_auth: bool, doubles: Doubles) -> World {
         log: doubles.log.unwrap_or_else(|| log.clone()),
         containers: containers.clone(),
         host_files: Arc::new(doubles.host_files),
-        cooldowns: Arc::new(doubles.cooldowns),
         run_log: run_log.clone(),
         ids: Arc::new(FakeIds::default()),
         siblings: siblings.clone(),

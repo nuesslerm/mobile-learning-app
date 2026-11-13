@@ -147,40 +147,11 @@ output "build_cache_write_par_url" {
 }
 
 # ===========================================================================
-# Versioned shared libraries (docs/plans/versioned-libraries/plan.md, clis/lib): crates under libs/ of the build-cache bucket,
-# read and written through prefix-restricted PARs (LIBS_READ_PAR_URL, LIBS_WRITE_PAR_URL). No lifecycle rule names libs/, so
-# nothing there expires: `wf lib prune` is the only cleanup. The PARs below end in /o/libs/ and cannot list; a PAR cannot delete,
-# so prune uses the admin key.
-#
-# The sparse index lives in its own bucket with public read (no listing): a Cargo lockfile records the registry's index URL, so
-# that URL must not be a credential, and the index files are version numbers and checksums, nothing secret. The index's
-# config.json `dl` points at the private crate PAR, which a lockfile never records.
+# Versioned shared libraries (docs/plans/versioned-libraries/plan.md, clis/lib): a Cargo sparse registry in its own bucket with
+# public read and no listing. The libraries are public source (the repository is), so the index (`index/`) and the crates (`crates/`)
+# are read with a plain GET by anyone, and a Cargo lockfile records the index URL, which carries no secret. `wf lib release` writes
+# only files git tracks and the repository holds, through the write link below, after a credential scan. Nothing else lives here.
 # ===========================================================================
-
-resource "oci_objectstorage_preauthrequest" "libs_read" {
-  namespace             = data.oci_objectstorage_namespace.ns.namespace
-  bucket                = oci_objectstorage_bucket.build_cache.name
-  name                  = "libs-read"
-  access_type           = "AnyObjectRead"
-  object_name           = "libs/"
-  bucket_listing_action = "Deny"
-  time_expires          = "2028-10-01T00:00:00Z"
-
-  # OCI does not return bucket_listing_action, so every plan saw it as an addition that forces a replacement: the recreate's
-  # post-apply convergence check never reached "no changes" and rolled the new VM back. The value is set once, at creation.
-  lifecycle {
-    ignore_changes = [bucket_listing_action]
-  }
-}
-
-resource "oci_objectstorage_preauthrequest" "libs_write" {
-  namespace    = data.oci_objectstorage_namespace.ns.namespace
-  bucket       = oci_objectstorage_bucket.build_cache.name
-  name         = "libs-write"
-  access_type  = "AnyObjectWrite"
-  object_name  = "libs/"
-  time_expires = "2028-10-01T00:00:00Z"
-}
 
 resource "oci_objectstorage_bucket" "libs_index" {
   compartment_id = var.compartment_ocid
@@ -197,18 +168,6 @@ resource "oci_objectstorage_preauthrequest" "libs_index_write" {
   name         = "libs-index-write"
   access_type  = "AnyObjectWrite"
   time_expires = "2028-10-01T00:00:00Z"
-}
-
-output "libs_read_par_url" {
-  value       = "https://objectstorage.${var.region}.oraclecloud.com${oci_objectstorage_preauthrequest.libs_read.access_uri}"
-  description = "Pre-authenticated GET/HEAD URL prefix for the published crates (libs/ of the build-cache bucket), ending /o/libs/. Treat as a credential -- store in the vault (LIBS_READ_PAR_URL), never commit."
-  sensitive   = true
-}
-
-output "libs_write_par_url" {
-  value       = "https://objectstorage.${var.region}.oraclecloud.com${oci_objectstorage_preauthrequest.libs_write.access_uri}"
-  description = "Pre-authenticated PUT URL prefix for the published crates, ending /o/libs/. Treat as a credential -- store in the vault (LIBS_WRITE_PAR_URL), never commit."
-  sensitive   = true
 }
 
 output "libs_index_public_url" {

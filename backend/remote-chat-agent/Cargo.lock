@@ -1905,9 +1905,9 @@ dependencies = [
 
 [[package]]
 name = "rca-core"
-version = "0.1.1"
-source = "sparse+http://libs-proxy:8793/index/"
-checksum = "765a592c73e0d22c35c0831ad0ad1fef5d90b13d79a552afe1bbddfb508c4c88"
+version = "0.1.2"
+source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+checksum = "ea4919dcfdff2bd375d26fe85c32b8de932ef6d1f84db2992d2304bb7a381acd"
 dependencies = [
  "serde",
  "serde_json",
@@ -2109,9 +2109,9 @@ dependencies = [
 
 [[package]]
 name = "rca-ladder"
-version = "0.1.1"
-source = "sparse+http://libs-proxy:8793/index/"
-checksum = "28615fcce1cb7326f5e8827b122b5fa0a891e1a5212950e1e590e283703159a1"
+version = "0.1.2"
+source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+checksum = "0b70de66ea3c305ac1d45d08b5271d7059b28a30fa23891f0f4c2f67f192ff80"
 dependencies = [
  "rca-core",
  "serde",
@@ -2669,9 +2669,9 @@ dependencies = [
 
 [[package]]
 name = "service-kit"
-version = "0.1.1"
-source = "sparse+http://libs-proxy:8793/index/"
-checksum = "c90affb256bb19604f44a2d03f1ee05434d8a789c8c324cbbe4f63e18c83cc4a"
+version = "0.1.2"
+source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+checksum = "692e7bfae472dfd5fd6a8858699449906215e1bcaf503501d7dd7ca4f1956fe3"
 dependencies = [
  "axum",
  "governor",
@@ -2902,9 +2902,9 @@ dependencies = [
 
 [[package]]
 name = "telemetry"
-version = "0.1.1"
-source = "sparse+http://libs-proxy:8793/index/"
-checksum = "33766991d780f4c35b2675ccddc49f4115262ab0cbeb0d534439acb21d2d7977"
+version = "0.1.2"
+source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+checksum = "72863f0638e0f0c336d091b0fd850a8fe866b3f51a039e0a5c3874b0d8101718"
 dependencies = [
  "opentelemetry",
  "opentelemetry-otlp",

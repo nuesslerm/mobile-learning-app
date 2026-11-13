@@ -599,7 +599,7 @@ fn audit_github_of(jobs: &[Value], log: &str, others: &[(i64, i64)]) -> Github {
     let github = Github::start();
     let runs: Vec<Value> = others.iter().enumerate().map(|(i, (a, b))| json!({ "id": 900 + i, "run_started_at": iso(BASE + a), "updated_at": iso(BASE + b) })).collect();
     github.server.routes(&[
-        ("GET /repos/o/r/actions/workflows/deploy.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": runs }))),
+        ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": runs }))),
         ("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": jobs.len(), "jobs": jobs }))),
         ("GET /repos/o/r/actions/jobs/500/logs", MockReply::text(200, log)),
     ]);
@@ -801,8 +801,8 @@ fn the_audit_without_a_run_judges_every_completed_run_on_dev_since_the_given_tim
     let github = Github::start();
     let run = |id: u64, started: i64, event: &str| json!({ "id": id, "head_sha": SHA, "event": event, "run_started_at": iso(BASE + started) });
     github.server.routes(&[
-        ("GET /repos/o/r/actions/workflows/deploy.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(200, json!({ "workflow_runs": [run(78, 5000, "push"), run(77, 100, "push"), run(60, -90_000, "push"), run(61, 200, "pull_request")] }))),
-        ("GET /repos/o/r/actions/workflows/deploy.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": [] }))),
+        ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(200, json!({ "workflow_runs": [run(78, 5000, "push"), run(77, 100, "push"), run(60, -90_000, "push"), run(61, 200, "pull_request")] }))),
+        ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": [] }))),
         ("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(500, "flow-tests", "success", 600)] }))),
         ("GET /repos/o/r/actions/jobs/500/logs", MockReply::text(200, &ledger_line(&[("app:lint", "h1", "ran", 95_000)]))),
         ("GET /repos/o/r/actions/runs/78/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(501, "flow-tests", "failure", 600)] }))),
@@ -820,47 +820,40 @@ fn the_audit_without_a_run_judges_every_completed_run_on_dev_since_the_given_tim
 
 #[test]
 fn the_audit_judges_the_hosted_workflow_too_and_calls_a_scheduled_or_dispatched_run_cold() {
-    // Given a push run of the VM's workflow, and a scheduled and a pushed run of the GitHub-hosted workflow
+    // Given a scheduled and a pushed run of the CI workflow
     let earlier: [Value; 0] = [];
     let github = Github::start();
     let run = |id: u64, started: i64, event: &str| json!({ "id": id, "head_sha": SHA, "event": event, "run_started_at": iso(BASE + started) });
     github.server.routes(&[
-        ("GET /repos/o/r/actions/workflows/deploy.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(200, json!({ "workflow_runs": [run(77, 100, "push")] }))),
         ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(200, json!({ "workflow_runs": [run(78, 200, "schedule"), run(79, 300, "push")] }))),
-        ("GET /repos/o/r/actions/workflows/deploy.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": [] }))),
-        ("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(500, "flow-tests", "success", 600)] }))),
-        ("GET /repos/o/r/actions/jobs/500/logs", MockReply::text(200, "ok\n")),
+        ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": [] }))),
         ("GET /repos/o/r/actions/runs/78/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(501, "flow-tests", "success", 600)] }))),
         ("GET /repos/o/r/actions/jobs/501/logs", MockReply::text(200, &ledger_line(&[("app:lint", "h1", "ran", 95_000)]))),
         ("GET /repos/o/r/actions/runs/79/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(502, "flow-tests", "failure", 600)] }))),
         ("GET /repos/o/r/actions/jobs/502/logs", MockReply::text(200, "ok\n")),
     ]);
-    // When the audit runs over a window that holds all three
+    // When the audit runs over a window that holds both
     let r = Audit::new("hosted", &earlier, "", json!({})).run_with(&github, &["--dry-run", "--since", &(BASE - 1000).to_string()]);
-    // Then all three are listed oldest first, only the scheduled one is cold, the hosted ones say so, and a note says the hosted run's times were not judged
+    // Then both are listed oldest first, only the scheduled one is cold, both say they ran GitHub-hosted, and a note says the runs' times were not judged
     let out = last_json(&r);
     let seen: Vec<(String, bool, bool)> = out["runs"].as_array().unwrap().iter().map(|r| (r["run"].as_str().unwrap().to_string(), r["cold"] == true, r["hosted"] == true)).collect();
-    assert_eq!((r.exit_code, seen), (0, vec![("77".to_string(), false, false), ("78".to_string(), true, true), ("79".to_string(), false, true)]), "{}{}", r.stdout, r.stderr);
+    assert_eq!((r.exit_code, seen), (0, vec![("78".to_string(), true, true), ("79".to_string(), false, true)]), "{}{}", r.stdout, r.stderr);
     assert!(out["notes"].to_string().contains("GitHub-hosted"), "{out}");
 }
 
 #[test]
-fn an_audit_still_judges_the_vm_runs_when_the_hosted_workflow_cannot_be_listed_and_says_so() {
-    // Given a VM run and a GitHub that answers 404 for the hosted workflow
+fn an_audit_whose_workflow_cannot_be_listed_exits_0_with_no_runs_and_says_so() {
+    // Given a GitHub that answers 404 for the CI workflow
     let github = Github::start();
     github.server.routes(&[
-        ("GET /repos/o/r/actions/workflows/deploy.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(200, json!({ "workflow_runs": [{ "id": 77, "head_sha": SHA, "event": "push", "run_started_at": iso(BASE + 100) }] }))),
         ("GET /repos/o/r/actions/workflows/ci-hosted.yml/runs?branch=dev&status=completed&per_page=50", MockReply::json(404, json!({ "message": "Not Found" }))),
-        ("GET /repos/o/r/actions/workflows/deploy.yml/runs?branch=dev&per_page=30", MockReply::json(200, json!({ "workflow_runs": [] }))),
-        ("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(500, "flow-tests", "success", 600)] }))),
-        ("GET /repos/o/r/actions/jobs/500/logs", MockReply::text(200, "ok\n")),
     ]);
     // When the audit runs
     let r = Audit::new("no-hosted", &[], "", json!({})).run_with(&github, &["--dry-run", "--since", &(BASE - 1000).to_string()]);
-    // Then the VM run is judged, the exit code is 0 and a note names the workflow that could not be listed
+    // Then no run is judged, the exit code is 0 and a note names the workflow that could not be listed
     let out = last_json(&r);
     let notes = out["notes"].to_string();
-    assert_eq!((r.exit_code, out["runs"].as_array().unwrap().len()), (0, 1), "{}{}", r.stdout, r.stderr);
+    assert_eq!((r.exit_code, out["runs"].as_array().unwrap().len()), (0, 0), "{}{}", r.stdout, r.stderr);
     assert!(notes.contains("ci-hosted.yml"), "{notes}");
 }
 

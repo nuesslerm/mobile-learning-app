@@ -10,7 +10,7 @@ use vm_ops_api::api::serve::serve;
 use vm_ops_api::api::{self, Limits, Ports, Settings};
 use vm_ops_api_core::application::health::Build;
 use vm_ops_api_core::domain::auth::AuthConfig;
-use vm_ops_api_core::testing::{FakeClock, FakeContainers, FakeCooldownLedger, FakeEventLog, FakeHostFiles, FakeIds, FakeRunLog, FakeSiblings};
+use vm_ops_api_core::testing::{FakeClock, FakeContainers, FakeEventLog, FakeHostFiles, FakeIds, FakeRunLog, FakeSiblings};
 
 const ASSERTED_WITHIN: Duration = Duration::from_secs(5);
 
@@ -29,7 +29,6 @@ async fn start(limits: Limits) -> Server {
         log: Arc::new(FakeEventLog::default()),
         containers: Arc::new(FakeContainers::new()),
         host_files: Arc::new(FakeHostFiles::default()),
-        cooldowns: Arc::new(FakeCooldownLedger::default()),
         run_log: Arc::new(FakeRunLog::default()),
         ids: Arc::new(FakeIds::default()),
         siblings: Arc::new(FakeSiblings::new()),

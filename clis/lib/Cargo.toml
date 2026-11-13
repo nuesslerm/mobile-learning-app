@@ -3,7 +3,7 @@ name = "wf-lib"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "`wf lib`: versioned shared libraries on blob storage, a static Cargo sparse registry under the bucket's libs/ prefix"
+description = "`wf lib`: versioned shared libraries on blob storage, a static Cargo sparse registry in a public bucket"
 
 # The test kit hides every secret the registry names from the binary it runs.
 [package.metadata.flow]

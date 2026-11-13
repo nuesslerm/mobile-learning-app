@@ -32,7 +32,6 @@ pub const IMAGES: &[Image] = &[
     image("leetcode-backend", "backend/leetcode-backend/Dockerfile", ".", &["backend/leetcode-backend/rs"]),
     image("leetcode-auth-cookie-capture", "backend/leetcode-auth-cookie-capture/Dockerfile", ".", &["backend/leetcode-auth-cookie-capture/rs"]),
     image("reporting-service", "backend/reporting-service/Dockerfile", ".", &["backend/reporting-service/rs"]),
-    image("libs-proxy", "backend/libs-proxy/Dockerfile", ".", &["backend/libs-proxy/rs"]),
     image("t3-serve", "clis/t3-serve/Dockerfile", ".", &["clis/t3-serve"]),
     image("orca-serve", "clis/orca-serve/Dockerfile", ".", &["clis/orca-serve"]),
     image("vm-ops-api-rs", "backend/vm-ops-api/Dockerfile", ".", &["backend/vm-ops-api/rs"]),
@@ -43,7 +42,7 @@ pub const IMAGES: &[Image] = &[
 ];
 
 /// Where an app's compose project lives when it is not beside its Dockerfile.
-const COMPOSE_DIRS: &[(&str, &str)] = &[("libs-proxy", "infra/oracle-cloud/libs-proxy")];
+const COMPOSE_DIRS: &[(&str, &str)] = &[];
 
 /// Images a release needs besides the app's own: the sidecars its compose file pulls on the same tag.
 pub fn release_companions(app: &str) -> &'static [&'static str] {

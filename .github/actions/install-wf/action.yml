@@ -2,17 +2,11 @@ name: Install wf
 description: >-
   The one `wf` on the VM: a static (musl) binary built from clis/ with the deploy profile, incrementally in a target
   directory on the runner, installed once per clis/ tree under /opt/clis/<tree>/ beside the binaries it runs for `wf t3`
-  and `wf exec`, and put on PATH. A job whose clis/ tree is already installed builds nothing. With `publish: true` (the clis workflow, for a push to dev) it also points
-  /opt/clis/current at that build: the containers mount /opt/clis and run current/wf.
+  and `wf exec`, and put on PATH. A job whose clis/ tree is already installed builds nothing. It never points /opt/clis/current anywhere: the clis job
+  of pipeline.yml publishes the build as the wf-latest release and vm-ops-api installs it (POST /clis/install) (the containers mount /opt/clis and run current/wf).
 inputs:
-  live:
-    description: "true brings the run's pull request comment up to date as this job starts (false leaves it alone: the preflight job starts it itself). Job logs were missing from 31 Oct 00:19 UTC until the runner was moved to 2.338.2, which was not this update's doing"
-    default: "true"
   current:
     description: Use the wf the previous push published (/opt/clis/current) without building, for the jobs that run before this push's clis build
-    default: "false"
-  publish:
-    description: Point /opt/clis/current at this build
     default: "false"
 runs:
   using: composite
@@ -28,7 +22,6 @@ runs:
         # container: a change recompiles only its crates; no cache leaves the VM
         CARGO_TARGET_DIR: ${{ github.workspace }}/../../wf-cargo-target
         CARGO_PROFILE_DEPLOY_INCREMENTAL: "true"
-        PUBLISH: ${{ inputs.publish }}
         CURRENT: ${{ inputs.current }}
       run: |
         tree=$(git rev-parse HEAD:clis)
@@ -68,24 +61,5 @@ runs:
           rm -rf "$dir"
           mv -T "$tmp" "$dir" 2>/dev/null || rm -rf "$tmp"
         fi
-        if [ "$PUBLISH" = "true" ]; then
-          ln -sfn "$tree" "$root/.current-new" && mv -T "$root/.current-new" "$root/current"
-          # keep current and the three newest builds, so a rollback is one symlink flip
-          find "$root" -mindepth 1 -maxdepth 1 -type d ! -name "$tree" ! -name '.*' -printf '%T@ %p\n' | sort -rn | tail -n +4 | cut -d' ' -f2- | xargs -r rm -rf
-        fi
         echo "$dir" >> "$GITHUB_PATH"
-        echo "wf $tree at $dir$([ "$PUBLISH" = "true" ] && echo ', now current')"
-    - name: Update the live comment on the pull request
-      # every job of the CI starts here, so the comment follows the run (`wf ci live`); never a failure of the job
-      if: ${{ github.workflow == 'CI (self-hosted)' && inputs.live == 'true' }}
-      shell: bash
-      continue-on-error: true
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-        GITHUB_REPOSITORY: ${{ github.repository }}
-        GITHUB_RUN_ID: ${{ github.run_id }}
-        GITHUB_SHA: ${{ github.sha }}
-      run: |
-        # the published wf may predate the verb; its own install step put the wf on PATH only for later steps, so find it the same way
-        command -v wf >/dev/null 2>&1 || { [ -x /opt/clis/current/wf ] && export PATH="/opt/clis/current:$PATH"; }
-        wf ci live >/dev/null 2>&1 || true
+        echo "wf $tree at $dir"

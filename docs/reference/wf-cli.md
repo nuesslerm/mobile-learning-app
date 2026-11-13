@@ -2318,24 +2318,22 @@ kind is cargo-sparse, crates-io, npm or npm-tarball. url may be `env:NAME`, read
 from that variable (the environment, then the vault), because a pre-authenticated
 link is a credential and is never printed or committed. tokenEnv names the
 variable holding the publish credential. indexUrl (bucket registries) is the literal
-base of the read proxy's sparse index (`http://<proxy>:<port>/index/`), not a secret:
-Cargo records it in Cargo.lock, and the index is read from it with a plain GET. url and
-tokenEnv are then only the bucket's read link and write link. publish names the adapter that releases
-there: bucket-sparse (our bucket: a static Cargo sparse registry under libs/),
+base of the bucket's public sparse index (`https://objectstorage.<region>.oraclecloud.com/n/<ns>/b/<bucket>/o/index/`),
+not a secret: Cargo records it in Cargo.lock, and the index is read from it with a plain GET.
+tokenEnv is then only the bucket's write link. publish names the adapter that releases
+there: bucket-sparse (our bucket: a static Cargo sparse registry),
 cargo-publish (`cargo publish --registry <alias>`: crates.io and any registry with
 Cargo's publish API), or null for a read-only registry. npm-publish and
 npm-tarball are named but not built yet.
 
-The bucket registry (alias mla) is private and holds everything under its libs/ prefix:
-the index at libs/index/ (config.json and one file per crate) and the .crate files at
-libs/crates/<name>/<version>.crate. Nothing is public. Readers (Cargo, `status`) reach
-it only through the read proxy on the tailnet (indexUrl), which holds the read link
-itself; Cargo's config.json sends downloads to <proxy>/dl/. Writers (`release`,
-`prune`) write straight to the bucket with LIBS_WRITE_PAR_URL (a pre-authenticated
-prefix link ending in /o/libs/) and read the index through the proxy. LIBS_READ_PAR_URL
-(the read link, same shape) is only a fallback for a machine off the tailnet:
-`status` and `release` use it when the proxy does not answer. `prune` also needs the
-operator's `oci` CLI and ~/.oci.
+The bucket registry (alias mla) is a public bucket (read without listing) that holds only the
+index at index/ (config.json and one file per crate) and the .crate files at
+crates/<name>/<version>.crate. The libraries are public source, so a release publishes only
+files git tracks, committed, from a HEAD origin/dev already holds, with no credential-shaped
+string in them; anything else stops the release before it uploads. Readers (Cargo, `status`)
+fetch it with a plain GET (indexUrl); Cargo's config.json sends downloads to
+<bucket>/crates/. Writers (`release`, `prune`) write with LIBS_INDEX_WRITE_PAR_URL (a
+pre-authenticated write link ending in /o/). `prune` also needs the operator's `oci` CLI and ~/.oci.
 
 Every verb prints one JSON object on stdout and never prompts. A failure prints
 {ok: false, error, next} and exits 1; a malformed line exits 2.
@@ -2374,9 +2372,13 @@ a new version.
 bucket-sparse: `cargo package` the crate, upload crates/<name>/<version>.crate
 with an if-absent write, append the version to the crate's sparse index file
 (index/1/a, index/2/ab, index/3/a/abc, index/ab/cd/abcd...; the current file is read
-through the read proxy) and write index/config.json, all under libs/ of the one
-private bucket. config.json's `dl` is <proxy base>/dl/{crate}/{version}.crate, derived
-from indexUrl; it holds no bucket link and no api field.
+with a plain GET) and write index/config.json, all in the one public bucket. config.json's
+`dl` is <bucket base>/crates/{crate}/{version}.crate, derived from indexUrl; it holds no
+bucket link and no api field. Before anything is touched the release refuses: a HEAD that
+origin/dev does not hold, a file of the package that git does not track or that differs
+from HEAD, and any file with a credential-shaped string (a private key, a GitHub, AWS or
+Slack token, a JWT, an Oracle id): the bucket is public, so it may hold only what the
+public repository holds. After a release, commit and push the bumped manifest before the next.
 cargo-publish: `cargo publish --registry <alias>` with the registry and its token
 passed in the environment of that one child. A library whose own dependencies on
 other libraries are still paths is refused by cargo packaging: release in
@@ -2410,10 +2412,8 @@ Usage: wf lib status [options]
 
 Per library: what its registry holds and the version each service pins, read
 from every tracked Cargo.lock of the working tree (a library's own workspace
-lockfile is the library, not a service). Reads only; the index is read through the
-registry's read proxy (indexUrl), so no link is needed on the tailnet. When the
-proxy does not answer and LIBS_READ_PAR_URL resolves, the bucket's index is read
-through that link instead.
+lockfile is the library, not a service). Reads only; the index is read with a plain GET
+at the registry's public indexUrl, so no link and no tailnet are needed.
 
 Output: one JSON object on stdout:
   {ok, error, libraries: [{name, kind, path, registry, latest, released, note,
@@ -2450,7 +2450,7 @@ version is first marked yanked in the index, so a new resolution never picks it,
 then its .crate is removed. A registry whose adapter cannot delete (crates.io) is
 skipped and listed with the reason. It runs `git fetch origin dev` first, because
 a stale ref could hide a pin; --no-fetch skips that. Needs the operator's `oci` CLI
-and ~/.oci, and LIBS_WRITE_PAR_URL (the yank is written to libs/index/ through it).
+and ~/.oci, and LIBS_INDEX_WRITE_PAR_URL (the yank is written to index/ through it).
 
 Output: one JSON object on stdout {ok, dryRun, graceDays, deleted | wouldDelete:
 [{crate, version, bytes, ageDays}], freedBytes, kept: [{crate, version, reason}],
@@ -2482,7 +2482,7 @@ crates-io registry, loses it (a line left as just a version becomes `name = "1.2
 Path and git dependencies and lines that inherit from the workspace are left and
 listed. The `[registries.<alias>] index` entry of each changed workspace's
 .cargo/config.toml is regenerated from libraries.json, written literally from
-indexUrl (the read proxy's index, so no credential); a registry with no indexUrl whose url is
+indexUrl (the bucket's public index, so no credential); a registry with no indexUrl whose url is
 `env:NAME` (a credential) gets nothing written and the output says which
 CARGO_REGISTRIES_<ALIAS>_INDEX to build with. libraries.json records the new
 alias. Idempotent. npm libraries and .npmrc are not handled yet.
@@ -6937,31 +6937,34 @@ Example (from anywhere on the tailnet; the script is one line):
 
 #### `wf vm ops cancel-run`
 
-Cancels CI runs (the workflow deploy.yml on dev) with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token cannot. --run <number> cancels that run, --queued cancels every run still waiting for a runner. Run it on agent-shell, which holds the token.
+Cancels CI runs of dev, of both flavors (deploy.yml, self-hosted, and ci-hosted.yml, GitHub-hosted), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token cannot. Where that token is not in the environment (a sandbox), the verb runs itself on agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run (its run number as the Actions tab shows it, or its id); it must exist among the latest 100 runs of dev and not have completed. --queued cancels every run that is still waiting for a runner (queued, waiting, pending, requested) and leaves running ones alone. --all cancels every run that has not finished.
 
-Usage: `wf vm ops cancel-run (--run <number> | --queued) [options]`
+Usage: `wf vm ops cancel-run (--run <number> | --queued | --all) [options]`
 
 Examples:
 
 ```sh
-echo 'wf vm ops cancel-run --queued' > /tmp/cancel-run.sh && wf vm exec /tmp/cancel-run.sh
+wf vm ops cancel-run --all
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf vm ops cancel-run (--run <number> | --queued) [options]
+Usage: wf vm ops cancel-run (--run <number> | --queued | --all) [options]
 
-Cancels CI runs (the workflow deploy.yml on dev) with VM_PROVISION_GITHUB_TOKEN,
-because the sandbox's own GitHub token cannot. --run <number> cancels that run
+Cancels CI runs of dev, of both flavors (deploy.yml, self-hosted, and ci-hosted.yml,
+GitHub-hosted), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
+cannot. Where that token is not in the environment (a sandbox), the verb runs itself on
+agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run
 (its run number as the Actions tab shows it, or its id); it must exist among the
 latest 100 runs of dev and not have completed. --queued cancels every run that
 is still waiting for a runner (queued, waiting, pending, requested) and leaves
-running ones alone. Run it on agent-shell, which holds the token.
+running ones alone. --all cancels every run that has not finished.
 
 Options:
   --run <number>  The CI run to cancel
   --queued        Cancel every run still waiting for a runner
+  --all           Cancel every run that has not finished, running ones included
   -h, --help      display help for command
 
 Output: one JSON line on stdout {ok, repo, cancelled: [{number, id, statusBefore,
@@ -6970,8 +6973,8 @@ accepted (HTTP 202; nothing waiting with --queued is ok), else 1.
 
 Environment: WF_GITHUB_API (default https://api.github.com).
 
-Example (from anywhere on the tailnet; the script is one line):
-  echo 'wf vm ops cancel-run --queued' > /tmp/cancel-run.sh && wf vm exec /tmp/cancel-run.sh
+Example (from anywhere on the tailnet):
+  wf vm ops cancel-run --all
 ```
 
 </details>
@@ -7037,7 +7040,9 @@ Usage: wf vm state [options] [command]
 Backup and restore of the VM's sensitive state (the stateVolumes of
 infra/oracle-cloud/vm-apps.json) as restic snapshots in the versioned Object
 Storage bucket mobile-learning-vm-state: incremental, encrypted with
-VM_STATE_RESTIC_PASSWORD, deduplicated, 14 snapshots kept per volume
+VM_STATE_RESTIC_PASSWORD, deduplicated, 14 snapshots kept per volume. In a CI job
+(WF_VM_CI_PORT set) backup and verify run through vm-ops-api's CI port, which
+starts one fixed script on agent-shell and fetches the plan itself.
 
 Options:
   -h, --help                  display help for command
@@ -7056,6 +7061,38 @@ Commands:
 
 </details>
 
+#### `wf vm ops install-clis`
+
+Asks vm-ops-api (its CI port) to install the wf build CI published as the wf-latest release on the VM's clis volume: a sibling fetches wf-linux-arm64.tar.gz, installs it only when it hashes to --sha256, and points /opt/clis/current at it. For a runner that cannot write to the VM's disk (a GitHub-hosted one); the VM's own runner does not need it.
+
+Usage: `wf vm ops install-clis --sha256 <hex> [options]`
+
+Examples:
+
+```sh
+wf vm ops install-clis --sha256 "$(cut -d' ' -f1 wf-linux-arm64.tar.gz.sha256)"
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf vm ops install-clis --sha256 <hex> [options]
+
+Asks vm-ops-api (its CI port) to install the wf build CI published as the wf-latest
+release on the VM's clis volume: a sibling fetches wf-linux-arm64.tar.gz, installs it only
+when it hashes to --sha256, and points /opt/clis/current at it. For a runner that cannot
+write to the VM's disk (a GitHub-hosted one); the VM's own runner does not need it.
+
+Options:
+  --sha256 <hex>  The sha256 of the arm64 tarball CI built (64 lowercase hex digits)
+  -h, --help      display help for command
+
+Output: one JSON line {ok, tree} on success, {ok: false, status, error} on a refusal.
+Exit 0 when installed, else 1.
+```
+
+</details>
+
 #### `wf vm state backup`
 
 Snapshot every state volume of vm-apps.json (only what changed is uploaded) and prune to the newest 14.
@@ -7065,7 +7102,7 @@ Usage: `wf vm state backup [options]`
 | Option | Meaning |
 |---|---|
 | `--app <name>` | only this app |
-| `--local` | the agent-shell side: run here (needs restic, rclone, sqlite3, the OCI key, the volumes mounted); --plan <hex> carries the volumes |
+| `--local` | the agent-shell side: run here (needs restic, rclone, sqlite3, the OCI key, the volumes mounted); --plan <hex> carries the volumes, or --apps-file <path> a vm-apps.json |
 
 <details><summary>Full help</summary>
 
@@ -7108,7 +7145,7 @@ password is never printed.
 Options:
   --app <name>  only this app
   --local       the agent-shell side: run here (needs restic, rclone, sqlite3, the OCI
-                key, the volumes mounted); --plan <hex> carries the volumes
+                key, the volumes mounted); --plan <hex> carries the volumes, or --apps-file <path> a vm-apps.json
   -h, --help    display help for command
 ```
 
@@ -7361,9 +7398,9 @@ and usable; every app with stateVolumes has a backup under 24 hours old that
 verifies (wf vm state verify); the tailnet admin API answers with the credentials
 the recreate deletes old node records with (a read-only device list: "tailnet"); no workflow run is
 queued or in progress; the plan of the recreate (-replace on the VM) destroys
-only the VM and the libs_read PAR, passes the free-tier guard, and lists the
-actions per resource. `plan.afterApply` names the vault updates a replaced PAR
-needs. Changes nothing but the local backup.
+only the VM and nothing else, passes the free-tier guard, and lists the
+actions per resource. `plan.afterApply` names the vault updates a replaced
+resource needs (none today). Changes nothing but the local backup.
 
 Options:
   --expect <address>  Also accept this resource being destroyed (repeatable)

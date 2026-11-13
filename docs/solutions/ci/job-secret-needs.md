@@ -61,7 +61,7 @@ Events. `deploy.yml` runs on `push` to `dev` (paths filter) and `workflow_dispat
 | `CI` / plan | relay pair (`wf ship --changed`, `wf cache guard` relay); usage pair | deploy (relay pair) | push `dev`, dispatch | no URL; the guard relay deletes bucket objects through agent-shell's OCI key | no (`GH_TOKEN` is `github.token`) |
 | `CI` / flow-tests | cache pair; ledger pair; test-run pair; metrics pair; bundle URL; usage pair | open keys plus the cache write URL | push `dev`, dispatch | yes: cache (pnpm store save, Nx replays) and the flow run bundle | no |
 | `CI` / typecheck-lint-unit-tests | cache pair (pnpm, Metro, Nx); ledger pair; test-run pair; metrics pair; usage pair. It does not publish a bundle | open keys plus the cache write URL | push `dev`, dispatch | yes: cache | no |
-| `CI` / clis (`clis.yml`) | usage pair only, and only when a vault token is present (no `install-bws` step); builds and installs `wf`, the `current` pointer is VM-local | open | push `dev` (via `deploy.yml`), dispatch | no | no |
+| `CI` / clis | none: a `GITHUB_TOKEN` with `contents: write` and the vault token blanked in the job's env; publishes the `wf-latest` release after a secret-shape scan (the VM's `clis-sync` container installs it) | open | push `dev` (via `deploy.yml`), dispatch | no | no |
 | `CI` / deploy (matrix, one leg per changed service) | leg verify of the leg's group plus `DOCKERHUB_TOKEN` (names in the per-leg table); relay pair; cache pair (image layer cache export); usage pair | deploy | push `dev`, dispatch | yes: image cache export | no (a failure comment uses `github.token`); but `VM_PROVISION_GITHUB_TOKEN` is read by the legs `vm-ops-api` and `reporting-service` (optional group key, live-checked against GitHub) |
 | `CI` / integration-tests | cache pair; ledger pair; test-run pair; metrics pair; bundle URL (publish step); usage pair | open keys plus the cache write URL | push `dev`, dispatch | yes: cache and bundles | no |
 | `CI` / cli-e2e-tests | same as integration-tests, plus `OPENCODE_GO_API_KEY` (`clis/offload/tests/e2e/parity.rs:24`); no publish step in the job | open keys plus the cache write URL, plus a model key | push `dev`, dispatch | yes: cache | no |
@@ -73,7 +73,7 @@ Events. `deploy.yml` runs on `push` to `dev` (paths filter) and `workflow_dispat
 | `CI audit` (`ci-audit.yml`) | cache pair (`wf cache purge nx`, Nx runs with `--fresh`); ledger pair; test-run pair; bundle URL (`wf test publish`); usage pair | open keys plus the cache write URL | `schedule` (02:23 UTC daily, 03:37 UTC Sundays, hosted runner), push `dev` with `[ci-audit]`, dispatch | yes: Nx cache writes, cache purge, audit bundle | no |
 | `vm-state-backup.yml` | relay pair (`wf vm state backup`, `verify`); usage pair. The restic password stays on agent-shell: `VM_STATE_RESTIC_PASSWORD` is read only on the `--local` path (`clis/deploy/src/vm_state.rs:217`) | deploy (relay pair) | `schedule` (01:30 and 02:30 UTC), push `dev` with `[vm-state-backup]`, dispatch | no | no |
 | `track-contracts.yml` plan, capture, report | `wf parity track plan` and `wf mimic trigger` read none; `capture` installs `bws` after the capture and then `wf mimic publish` reads the bundle URL; `report` runs `wf test publish` (bundle URL); usage pair | open keys plus a write URL | push `dev` with a `[track ...]` marker | yes: bundle URL | no (`github.token`, `actions: write` on capture) |
-| `record-references.yml` plan, capture | as `track-contracts.yml`: bundle URL in `wf mimic publish` (record only) | open keys plus a write URL | push `dev` with a `[record ...]` or `[replay ...]` marker | yes: bundle URL | no |
+| `mimic-record.yml` plan, capture | as `track-contracts.yml`: bundle URL in `wf mimic publish` (record only) | open keys plus a write URL | push `dev` with a `[record ...]` or `[replay ...]` marker | yes: bundle URL | no |
 | `repomix-gemini-context.yml` | `GCLOUD_DRIVE_CREDENTIALS_DB_B64` (`wf secret get`); `CHAT_AGENT_API_SECRET` and `VM_HOST` (`wf offload ask`, `clis/offload/src/rca_client.rs:11`, `dispatch_run.rs:847`); usage pair | deploy-type (a Google login) | `schedule` (02:23 UTC daily cached, 03:37 UTC Sundays full, hosted runner; the Drive login is written only in the last two steps), push `dev` with `[gem-sync` | no | no |
 | `tailscale-acl.yml` | by id through `sm-action` with the CI-read token: `TS_TAILNET_ID`, `TS_CI_OAUTH_CLIENT_ID`, `TS_CI_OAUTH_CLIENT_SECRET` | deploy (Tailscale OAuth) | dispatch only (`ubuntu-latest`) | no | no |
 | `tailscale-auth-key-expiry.yml` | by id with the CI-read token: `TS_TAILNET_ID`, `TS_VM_OAUTH_CLIENT_ID`, `TS_VM_OAUTH_CLIENT_SECRET`; `wf` runs with `BWS_ACCESS_TOKEN` set to the same token, so its usage row and any other lookup go to the CI-read project | deploy (Tailscale OAuth) | dispatch, push `dev` with `[ts-key-watch]` (`ubuntu-latest`) | no | no |
@@ -93,7 +93,6 @@ Events. `deploy.yml` runs on `push` to `dev` (paths filter) and `workflow_dispat
 | `leetcode-auth-cookie-capture` | 7 | `TELEGRAM_NOTIFY_SECRET` |
 | `vnc-auth-session` | 10 | `VNC_AUTH_*` (4), `VM_OPS_API_AUTH_TOKEN` |
 | `reporting-service` | 9 | `HEALTH_REPORTS_ORDS_*` (2), `BETTERSTACK_*` (5), `VM_PROVISION_GITHUB_TOKEN` |
-| `libs-proxy` | 2 | `LIBS_READ_PAR_URL` |
 | `t3-serve` | 2 | `T3_RCA_BEARER` |
 | `orca-serve` | 2 | `ORCA_RCA_BEARER` |
 
@@ -101,15 +100,15 @@ Events. `deploy.yml` runs on `push` to `dev` (paths filter) and `workflow_dispat
 
 Counting every key any workflow job above reads on the runner side, with `registry.json` as the source of names:
 
-- From the deploy-read project: 48 keys.
+- From the deploy-read project: 47 keys.
 - From the CI-read (`gh-ci`) project: 5 keys (`TS_TAILNET_ID`, `TS_CI_OAUTH_CLIENT_ID`, `TS_CI_OAUTH_CLIENT_SECRET`, `TS_VM_OAUTH_CLIENT_ID`, `TS_VM_OAUTH_CLIENT_SECRET`). These are the only five `registry.json` entries marked `vault: gh-ci`, and the only keys the `sm-action` blocks name.
-- Union: 53 keys, all present in `registry.json`.
+- Union: 52 keys, all present in `registry.json`.
 
 Against the plan's target scopes:
 
 | Bucket | Count | Keys |
 | --- | --- | --- |
-| In the plan's `ci-open` list and read by a job | 8 | `BUILD_CACHE_READ_PAR_URL`, `LIBS_READ_PAR_URL`, `HEALTH_REPORTS_ORDS_BASE_URL`, `TEST_RUNS_ORDS_BASE_URL`, `WF_USAGE_ORDS_BASE_URL`, `EDIT_STATS_ORDS_BASE_URL`, `POOL_COOLDOWNS_ORDS_BASE_URL`, `VERIFICATION_ARTIFACTS_PAR_URL` |
+| In the plan's `ci-open` list and read by a job | 7 | `BUILD_CACHE_READ_PAR_URL`, `HEALTH_REPORTS_ORDS_BASE_URL`, `TEST_RUNS_ORDS_BASE_URL`, `WF_USAGE_ORDS_BASE_URL`, `EDIT_STATS_ORDS_BASE_URL`, `POOL_COOLDOWNS_ORDS_BASE_URL`, `VERIFICATION_ARTIFACTS_PAR_URL` |
 | In the plan's `ci-deploy` list and read by a job | 11 | `VM_GATEWAY_REQUEST_SIGNING_PRIVATE_KEY`, `VM_GATEWAY_AUTH_SEED`, `VM_OPS_API_AUTH_TOKEN`, `DOCKERHUB_TOKEN`, `EXPO_TOKEN`, `BUILD_CACHE_WRITE_PAR_URL`, the five Tailscale keys above |
 | Read by a job, in neither list | 34 | see below |
 
@@ -125,7 +124,7 @@ The 34 keys the plan does not place in a scope:
 
 Does the union equal what the plan says (deploy-read 75 keys, CI-read 18 keys)? No, and it cannot be checked fully from the repo:
 
-- Deploy-read project. A job on the runner reads 48 keys of it. `registry.json` has 80 keys that resolve through the deploy-read token (98 entries, minus 4 bootstrap tokens, 5 `gh-ci`, 8 `admin`, and `GITHUB_TOKEN`, which is an environment name, not a vault key); the plan measured 75 live. The 5 that the registry has and the vault does not are not named by the repo. The other 32 registry keys (27 if five are absent from the vault) are read by no job on the runner: Telegram client keys (6), the SSH keys, `OCI_*` (7), PagerDuty and budget alert settings, the restic and age keys, `ADB_ADMIN_PASSWORD`, `LIBS_WRITE_PAR_URL`, `LIBS_INDEX_WRITE_PAR_URL`, and the two legacy cache URLs (`PNPM_CACHE_PAR_URL`, `NX_REMOTE_CACHE_PAR_URL`, which no code resolves).
+- Deploy-read project. A job on the runner reads 47 keys of it. `registry.json` has 78 keys that resolve through the deploy-read token (96 entries, minus 4 bootstrap tokens, 5 `gh-ci`, 8 `admin`, and `GITHUB_TOKEN`, which is an environment name, not a vault key); the plan measured 75 live. The 5 that the registry has and the vault does not are not named by the repo. The other 32 registry keys (27 if five are absent from the vault) are read by no job on the runner: Telegram client keys (6), the SSH keys, `OCI_*` (7), PagerDuty and budget alert settings, the restic and age keys, `ADB_ADMIN_PASSWORD`, `LIBS_WRITE_PAR_URL`, `LIBS_INDEX_WRITE_PAR_URL`, and the two legacy cache URLs (`PNPM_CACHE_PAR_URL`, `NX_REMOTE_CACHE_PAR_URL`, which no code resolves).
 - CI-read project. Statically it needs 5 keys. The plan's 18 includes OCI, Expo, Docker Hub and the signing seed; no workflow that uses the CI-read token resolves any of them (`sm-action` names three Tailscale keys per workflow, and `wf` in `tailscale-auth-key-expiry.yml` finds its keys through the same token). So 13 of the 18 are either unused by this repo's workflows or reached through the read fallback (`Source::GhCi` first, then `Source::Read`, `clis/secrets/src/secrets/backend.rs:352-356`), which the CI-read token cannot satisfy for keys outside its project. The live listing of that project would settle which.
 
 Findings that change the plan:
@@ -177,7 +176,7 @@ Anyone can open a pull request, so every `ci-deploy` job must carry the `if:` th
 7. Which live-vault names make up the CI-read project's 18 keys and the deploy-read project's 75? A names-only listing of each project (not values) by the owner or a vault-reading step would let this table's static union be compared exactly and would show which 13 of the 18 nothing reads.
 8. (retired 2026-11-11: `ci-budget.yml` is deleted, no job writes a repository variable.)
 9. Test code resolves keys by name at run time (`service-kit::e2e::setting`, the Orca deployed suite, the offload parity test). The 7 keys listed above are what the grep found; a suite added later widens the scope silently. The Wave 2 `wf` change (a key outside the job's scope fails naming the key) would catch it; until then, add a check to `wf check --budget` that no test calls `wf secret get` for a key outside the scope of its stage.
-10. `record-references.yml` and `track-contracts.yml` run a provisioned reference's code on the VM runner and say "nothing the provisioned reference ran saw the vault", yet the runner container holds the deploy-read token in its environment. Whether `wf mimic job` scrubs it from the reference's environment is not shown here; it should be a flow test.
+10. `mimic-record.yml` and `track-contracts.yml` run a provisioned reference's code on a runner and say "nothing the provisioned reference ran saw the vault", yet the runner container holds the deploy-read token in its environment. Whether `wf mimic job` scrubs it from the reference's environment is not shown here; it should be a flow test.
 11. `VM_PROVISION_GITHUB_TOKEN`: the live scope (previous section). Owner action.
 
 ## Registry scopes assigned from this table (issue #367, U1.1)

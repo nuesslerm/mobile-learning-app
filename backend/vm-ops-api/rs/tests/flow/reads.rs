@@ -1,4 +1,4 @@
-//! The read routes through the router: ps, stats, logs (snapshot and follow), the cooldown ledger and the opencode run log.
+//! The read routes through the router: ps, stats, logs (snapshot and follow), and the opencode run log.
 //! Given/When/Then.
 use crate::harness::{signed_headers, today, world, world_with, Doubles, DASHBOARD, NOON};
 use axum::body::Body;
@@ -9,7 +9,7 @@ use tower::ServiceExt;
 use vm_ops_api_core::application::ports::{ContainersError, Event, Object, RunLog};
 use vm_ops_api_core::domain::containers::DockerContainer;
 use vm_ops_api_core::domain::container_stats::DockerStats;
-use vm_ops_api_core::testing::{FakeContainers, FakeCooldownLedger, FakeHostFiles, FollowEnd};
+use vm_ops_api_core::testing::{FakeContainers, FakeHostFiles, FollowEnd};
 
 const UNAUTHORIZED: &str = r#"{"error":"unauthorized"}"#;
 
@@ -51,7 +51,7 @@ async fn given_an_app_with_containers_when_ps_is_read_then_each_is_a_row_and_an_
         )
     );
     // And the unknown app is 404 with the ten known apps in order
-    let known = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "libs-proxy", "t3-serve", "orca-serve"];
+    let known = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
     assert_eq!((unknown.status, unknown.body), (404, json!({ "error": "unknown app", "knownApps": known }).to_string()));
     // And without auth ps is 401, as every route but the public ones
     assert_eq!(world.send("GET", "/services/remote-chat-agent/ps", &[], b"").await.body, UNAUTHORIZED);
@@ -186,19 +186,6 @@ async fn given_a_follow_that_is_idle_when_the_caller_goes_away_then_the_engines_
     drop(body);
     // Then the Engine's stream was dropped with it
     assert_eq!(world.containers.followers_dropped(), 1);
-}
-
-#[tokio::test]
-async fn given_a_ledger_when_cooldowns_are_read_then_it_comes_back_with_the_version_and_empty_when_nothing_is_stored() {
-    // Given a ledger holding one pool
-    let ledger = object(json!({ "minimax": { "until": 1_700_000_000_000_i64 } }));
-    let world = world_with(false, Doubles { cooldowns: FakeCooldownLedger::holding(ledger), ..Doubles::default() });
-    // When it is read, and then read by a world with none
-    let cooldowns = world.signed("GET", "/cooldowns", b"").await;
-    let no_cooldowns = crate::harness::world(false).signed("GET", "/cooldowns", b"").await;
-    // Then it is as stored, at version 0, and empty when nothing is stored
-    assert_eq!(cooldowns.body, r#"{"ledger":{"minimax":{"until":1700000000000}},"version":0}"#);
-    assert_eq!(no_cooldowns.body, r#"{"ledger":{},"version":0}"#);
 }
 
 #[tokio::test]

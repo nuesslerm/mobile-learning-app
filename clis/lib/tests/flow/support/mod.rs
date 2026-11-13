@@ -1,5 +1,5 @@
 //! A repository to run `wf lib` in, and the doubles around it.
-pub use wf_lib::testing::{CargoRegistryFake, LibsProxy, MemBucket};
+pub use wf_lib::testing::{CargoRegistryFake, PublicReads, MemBucket};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::Duration;
@@ -9,7 +9,7 @@ use wf_testkit::{run_wf, RunOpts};
 pub struct Repo {
     pub dir: tempfile::TempDir,
     pub bucket: MemBucket,
-    pub proxy: LibsProxy,
+    pub proxy: PublicReads,
     pub bin: tempfile::TempDir,
     cargo_home: tempfile::TempDir,
     pub env: Vec<(String, String)>,
@@ -27,12 +27,12 @@ pub fn write(path: &Path, text: &str) {
 }
 
 /// The `libraries.json` of the fixture: our bucket as `mla` and crates.io, one library on `mla`. `@INDEX@` becomes the read
-/// proxy's index base when the `Repo` is made.
+/// public bucket's index base when the `Repo` is made.
 pub fn libraries_json(registry: &str, extra_registries: &str, extra_libraries: &str) -> String {
     format!(
         r#"{{
   "registries": [
-    {{ "alias": "mla", "kind": "cargo-sparse", "url": "env:LIBS_READ_PAR_URL", "tokenEnv": "LIBS_WRITE_PAR_URL", "publish": "bucket-sparse", "indexUrl": "@INDEX@" }},
+    {{ "alias": "mla", "kind": "cargo-sparse", "tokenEnv": "LIBS_WRITE_PAR_URL", "publish": "bucket-sparse", "indexUrl": "@INDEX@" }},
     {{ "alias": "crates-io", "kind": "crates-io", "url": "sparse+https://index.crates.io/", "tokenEnv": "CARGO_REGISTRY_TOKEN", "publish": "cargo-publish" }}{extra_registries}
   ],
   "libraries": [
@@ -51,7 +51,7 @@ impl Repo {
     /// A repository on `dev` with a bare `origin`, `libs/fixture-core` at 0.1.0 and the given `libraries.json`.
     pub fn new(libraries: &str) -> Repo {
         let bucket = MemBucket::start();
-        let repo = Repo { dir: tempfile::tempdir().unwrap(), proxy: LibsProxy::start(&bucket), bucket, bin: tempfile::tempdir().unwrap(), cargo_home: tempfile::tempdir().unwrap(), env: Vec::new() };
+        let repo = Repo { dir: tempfile::tempdir().unwrap(), proxy: PublicReads::start(&bucket), bucket, bin: tempfile::tempdir().unwrap(), cargo_home: tempfile::tempdir().unwrap(), env: Vec::new() };
         let origin = repo.dir.path().join("origin.git");
         let work = repo.work();
         std::fs::create_dir_all(&work).unwrap();
@@ -65,10 +65,11 @@ impl Repo {
         repo.core("0.1.0", "pub fn answer() -> u32 { 42 }\n");
         repo.bucket.oci_stub(repo.bin.path());
         repo.commit("init");
+        repo.push();
         repo
     }
 
-    /// What Cargo is given as the registry index: the proxy's index base, never a bucket link.
+    /// What Cargo is given as the registry index: the public bucket's index base, never a bucket link.
     pub fn proxy_index(&self) -> String {
         format!("sparse+{}", self.proxy.index_url())
     }
@@ -92,7 +93,13 @@ impl Repo {
 
     pub fn commit(&self, message: &str) {
         git(&self.work(), &["add", "-A"]);
-        git(&self.work(), &["commit", "-q", "-m", message]);
+        git(&self.work(), &["commit", "-q", "--allow-empty", "-m", message]);
+    }
+
+    /// What a release needs before it runs: everything committed and pushed.
+    pub fn settle(&self) {
+        self.commit("settle");
+        self.push();
     }
 
     pub fn push(&self) {
@@ -103,7 +110,6 @@ impl Repo {
         let mut opts = RunOpts::default()
             .cwd(&self.work())
             .bin_dir(self.bin.path())
-            .env("LIBS_READ_PAR_URL", &self.bucket.par_url())
             .env("LIBS_WRITE_PAR_URL", &self.bucket.par_url())
             .env("CARGO_HOME", self.cargo_home.path().to_str().unwrap())
             .env("CARGO_HTTP_MULTIPLEXING", "false")
@@ -155,8 +161,8 @@ pub fn sha256_hex(bytes: &[u8]) -> String {
     String::from_utf8_lossy(&child.wait_with_output().unwrap().stdout).split_whitespace().next().unwrap().to_string()
 }
 
-/// A Cargo.lock that pins `name` at `version` from this registry (`source` carries the proxy's index URL, as a real lock does) or as a path.
+/// A Cargo.lock that pins `name` at `version` from this registry (`source` carries the public bucket's index URL, as a real lock does) or as a path.
 pub fn lock(name: &str, version: &str, registry: bool) -> String {
-    let source = if registry { "source = \"sparse+http://libs-proxy:8793/index/\"\n" } else { "" };
+    let source = if registry { "source = \"sparse+https://libs.example/o/index/\"\n" } else { "" };
     format!("version = 4\n\n[[package]]\nname = \"{name}\"\nversion = \"{version}\"\n{source}")
 }

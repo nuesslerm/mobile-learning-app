@@ -1,6 +1,7 @@
 pub mod agent_shell;
 pub mod apps;
 pub mod auth;
+pub mod clis_install;
 pub mod container_stats;
 pub mod containers;
 pub mod docker_log;
@@ -15,5 +16,6 @@ pub mod request;
 pub mod request_env;
 pub mod run_log;
 pub mod run_meta;
+pub mod state_job;
 pub mod tar;
 pub mod validators;

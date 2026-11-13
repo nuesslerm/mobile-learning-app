@@ -85,8 +85,6 @@ jobs:
           use-cache: 'false'
       - uses: ./.github/actions/install-bws
       - uses: ./.github/actions/build-wf
-        with:
-          flavor: hosted
       - run: pnpm install --frozen-lockfile
         if: ${{ steps.mode.outputs.replay == 'true' }}
         timeout-minutes: 10

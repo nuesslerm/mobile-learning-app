@@ -9,7 +9,7 @@ use pipeline::copy_closure::{copy_problems, copy_sources};
 use std::time::Duration;
 
 const BASE: &str = "http://vm-ops-api-main:8080";
-const ALL_APPS: [&str; 9] = ["vm-ops-api", "remote-chat-agent", "leetcode-backend", "leetcode-auth-cookie-capture", "reporting-service", "libs-proxy", "t3-serve", "orca-serve", "vnc-auth-session"];
+const ALL_APPS: [&str; 8] = ["vm-ops-api", "remote-chat-agent", "leetcode-backend", "leetcode-auth-cookie-capture", "reporting-service", "t3-serve", "orca-serve", "vnc-auth-session"];
 /// The exec-script job a promotion starts, with the id the start route mints.
 const JOB1: &str = "0b9f5c2e-8a1d-4c3e-9f7a-000000000001";
 
@@ -121,7 +121,7 @@ fn ps_url(app: &str) -> String {
 }
 
 /// The services in the order the plan asks about them, each with the image its leg builds.
-const PLANNED: [(&str, &str); 8] = [("remote-chat-agent", "remote-chat-agent"), ("leetcode-backend", "leetcode-backend"), ("leetcode-auth-cookie-capture", "leetcode-auth-cookie-capture"), ("reporting-service", "reporting-service"), ("libs-proxy", "libs-proxy"), ("t3-serve", "t3-serve"), ("orca-serve", "orca-serve"), ("vnc-auth-session", "vnc-auth-capture")];
+const PLANNED: [(&str, &str); 7] = [("remote-chat-agent", "remote-chat-agent"), ("leetcode-backend", "leetcode-backend"), ("leetcode-auth-cookie-capture", "leetcode-auth-cookie-capture"), ("reporting-service", "reporting-service"), ("t3-serve", "t3-serve"), ("orca-serve", "orca-serve"), ("vnc-auth-session", "vnc-auth-capture")];
 
 fn running(vm_ops_commit: &str) -> Vec<String> {
     let mut replies: Vec<String> = PLANNED.iter().map(|(app, image)| ps(app, &format!("reg/{image}:sha-abc123"))).collect();
@@ -354,7 +354,7 @@ fn ship_status_reports_every_service_and_vm_ops_api_and_retire_removes_an_app() 
 
     // Given no app names, Then every known app is asked about, in order, then health and the redeploy state, and nothing is asked
     // of the Metro (its container is no app of the sweep, and the dev-bridge is not read)
-    let apps = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "libs-proxy", "t3-serve", "orca-serve"];
+    let apps = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
     let mut replies: Vec<String> = apps.iter().map(|app| answers::reply(200, &answers::ps(app, &[]))).collect();
     replies.extend([answers::reply(200, &status), answers::reply(200, &history)]);
     s.vm.replies(&replies);

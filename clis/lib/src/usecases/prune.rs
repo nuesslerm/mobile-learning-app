@@ -29,7 +29,7 @@ pub fn prune(catalog: &Catalog, dev: &dyn Checkout, store: &dyn BlobStore, admin
         .filter(|l| !catalog.registry(&l.registry).is_some_and(|r| r.publish.as_deref().is_some_and(deletable)))
         .map(|l| json!({ "library": l.name, "registry": l.registry, "why": "this registry's adapter cannot delete versions; its releases are kept" }))
         .collect();
-    let listed = admin.list("libs/crates/").map_err(|e| Failure::new(format!("listing libs/crates/: {e}")).next("prune needs the oci CLI and ~/.oci (the operator's key)"))?;
+    let listed = admin.list("crates/").map_err(|e| Failure::new(format!("listing crates/: {e}")).next("prune needs the oci CLI and ~/.oci (the operator's key)"))?;
     let all: Vec<_> = listed.iter().filter_map(|o| stored(&o.name, o.bytes, o.created_ms)).collect();
     let plan = plan(&all, &pinned, options.now_ms, options.grace_days);
     if !options.dry_run && !plan.delete.is_empty() {

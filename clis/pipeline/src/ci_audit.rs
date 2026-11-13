@@ -258,7 +258,7 @@ fn io_wait_peaks(env: &Env, from_ms: i64, to_ms: i64) -> (Option<f64>, Option<f6
 
 /// When the other runs of the workflow held the runner, from their start to their last update.
 fn other_runs(env: &Env) -> Vec<(i64, i64)> {
-    let url = format!("{}/repos/{}/actions/workflows/deploy.yml/runs?branch={}&per_page=30", env.api, env.repo, env.branch);
+    let url = format!("{}/repos/{}/actions/workflows/ci-hosted.yml/runs?branch={}&per_page=30", env.api, env.repo, env.branch);
     let Ok(reply) = send(env, "GET", &url, None).and_then(|r| json_of(r, "listing the runs")) else { return Vec::new() };
     reply["workflow_runs"].as_array().map(Vec::as_slice).unwrap_or_default().iter().filter(|r| r["id"].to_string().trim_matches('"') != env.run).filter_map(|r| Some((epoch(&r["run_started_at"])?, epoch(&r["updated_at"])?))).collect()
 }
@@ -437,8 +437,8 @@ pub fn is_cold(event: &str, head_message: &str) -> bool {
     matches!(event, "workflow_dispatch" | "schedule") || head_message.contains("[cache:no]")
 }
 
-/// The workflows whose runs are judged, as (file, runs on a GitHub-hosted machine). The VM's own is the one every push to `dev` runs.
-const WORKFLOWS: [(&str, bool); 2] = [("deploy.yml", false), ("ci-hosted.yml", true)];
+/// The workflows whose runs are judged, as (file, runs on a GitHub-hosted machine): the one every push to `dev` runs.
+const WORKFLOWS: [(&str, bool); 1] = [("ci-hosted.yml", true)];
 
 /// A completed run to judge: its id, head sha, whether it is cold, and whether it ran on GitHub-hosted machines.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -471,7 +471,7 @@ fn runs_since(env: &Env, since: i64) -> Result<(Vec<Picked>, Vec<String>), Strin
         let url = format!("{}/repos/{}/actions/workflows/{file}/runs?branch={BRANCH}&status=completed&per_page=50", env.api, env.repo);
         match send(env, "GET", &url, None).and_then(|r| json_of(r, "listing the runs")) {
             Ok(reply) => runs.extend(pick_runs(&reply, since, hosted)),
-            Err(reason) if hosted => notes.push(format!("the runs of {file} could not be listed ({}), so only the other workflow was audited", cut(&reason, 120))),
+            Err(reason) if hosted => notes.push(format!("the runs of {file} could not be listed ({}), so no run was audited", cut(&reason, 120))),
             Err(reason) => return Err(reason),
         }
     }

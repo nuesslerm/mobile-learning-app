@@ -58,10 +58,10 @@ describe('given the agent-shell and ci-runner compose projects', () => {
     assert.ok(mounts(runner).some((m) => m === 'clis:/opt/clis'));
   });
 
-  it('when the runner needs docker, then it reaches no docker socket and only its own builder over TCP', () => {
+  it('when the runner needs docker, then it reaches no host docker socket and no agent-shell daemon, only its own builder socket', () => {
     for (const m of mounts(runner)) {
-      assert.ok(!/docker\.sock|dind-socket|\/run\/dind/.test(m), `runner mounts ${m}`);
+      assert.ok(!/docker\.sock|dind-socket/.test(m), `runner mounts ${m}`);
     }
-    assert.equal(runner.services['gh-runner'].environment.DOCKER_HOST, 'tcp://127.0.0.1:2376');
+    assert.equal(runner.services['gh-runner'].environment.DOCKER_HOST, 'unix:///run/builder/docker.sock');
   });
 });

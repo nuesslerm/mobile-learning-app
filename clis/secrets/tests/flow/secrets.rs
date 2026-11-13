@@ -598,7 +598,7 @@ fn the_writers_preview_by_default_and_apply_through_the_edit_token_keeping_the_o
     v.holds(READ, json!([]));
     v.holds(EDIT, json!([]));
     let _ = std::fs::remove_file(v.history_path());
-    write(&["set", GROQ], &[], Some("fromstdin\n"));
+    write(&["set", GROQ], &[("BWS_DEFAULT_PROJECT_ID", "65501031-2ee6-4d57-9e45-b48e0175233f")], Some("fromstdin\n"));
     let new_writes = v.writes();
     let new_history = v.history();
     let empty = write(&["set", GROQ], &[], Some("\n"));

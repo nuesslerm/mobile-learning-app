@@ -1,6 +1,6 @@
 name: Cold CI
 
-# The weekly cold run: pipeline.yml in its GitHub-hosted flavor with every test planned (`services: all`) and no Nx or layer cache (`fresh`), so a cache that
+# The weekly cold run: pipeline.yml with every test planned (`services: all`) and no Nx or layer cache (`fresh`), so a cache that
 # hides a break is found within a week. It deploys, ships and runs no device suite. GitHub starts a schedule hours late and only from the default branch, so a scheduled run tests `main`, which is `dev` merged; a dispatch on `dev` tests `dev`.
 on:
   schedule:
@@ -23,7 +23,6 @@ jobs:
       pull-requests: write
     uses: ./.github/workflows/pipeline.yml
     with:
-      flavor: hosted
       runner: '"ubuntu-24.04"'
       deploy_runner: '"ubuntu-24.04-arm"'
       shards: ${{ fromJSON(vars.HOSTED_SHARDS || '6') }}

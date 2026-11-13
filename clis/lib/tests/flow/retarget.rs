@@ -15,6 +15,7 @@ fn with_app(registry_extra: &str) -> Repo {
 fn retargeting_to_the_bucket_and_to_crates_io_rewrites_the_dependency_lines_and_the_same_release_builds_either_way() {
     // Given a released library and a consumer on the crates.io line shape
     let repo = with_app("");
+    repo.settle();
     assert_eq!(repo.lib(&["release", "fixture-core", "patch"]).exit_code, 0);
     let app = repo.work().join("services/app/Cargo.toml");
 
@@ -29,7 +30,7 @@ fn retargeting_to_the_bucket_and_to_crates_io_rewrites_the_dependency_lines_and_
     let text = std::fs::read_to_string(&app).unwrap();
     assert!(text.contains("fixture-core = { version = \"0.1.1\", registry = \"mla\" }") && text.contains("features = [], registry = \"mla\""), "{text}");
     assert!(repo.read("libraries.json").contains("\"registry\": \"mla\""));
-    // And the proxy's index is written literally into the workspace config, with no link in it
+    // And the public bucket's index is written literally into the workspace config, with no link in it
     assert_eq!(out["configs"][0]["written"], true);
     let config = repo.read("services/app/.cargo/config.toml");
     assert!(config.contains("[registries.mla]") && config.contains(&format!("index = \"{}\"", repo.proxy_index())) && !config.contains("/p/"), "{config}");
@@ -80,7 +81,7 @@ fn a_registry_whose_index_is_a_credential_gets_no_config_file_and_the_output_say
     let repo = with_app(extra);
 
     // When the library is retargeted to it
-    let r = repo.lib(&["retarget", "fixture-core", "linked"]);
+    let r = repo.lib_with(&["retarget", "fixture-core", "linked"], repo.opts().env("LIBS_READ_PAR_URL", &repo.bucket.par_url()));
 
     // Then nothing is written and the output names the variable to build with
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);

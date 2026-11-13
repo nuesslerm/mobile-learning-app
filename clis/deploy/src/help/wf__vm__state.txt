@@ -3,7 +3,9 @@ Usage: wf vm state [options] [command]
 Backup and restore of the VM's sensitive state (the stateVolumes of
 infra/oracle-cloud/vm-apps.json) as restic snapshots in the versioned Object
 Storage bucket mobile-learning-vm-state: incremental, encrypted with
-VM_STATE_RESTIC_PASSWORD, deduplicated, 14 snapshots kept per volume
+VM_STATE_RESTIC_PASSWORD, deduplicated, 14 snapshots kept per volume. In a CI job
+(WF_VM_CI_PORT set) backup and verify run through vm-ops-api's CI port, which
+starts one fixed script on agent-shell and fetches the plan itself.
 
 Options:
   -h, --help                  display help for command

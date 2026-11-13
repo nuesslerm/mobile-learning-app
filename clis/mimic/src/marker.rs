@@ -1,4 +1,4 @@
-//! The marker an empty commit to `dev` carries to start a reference-capture job on the VM runner (`.github/workflows/record-references.yml`):
+//! The marker an empty commit to `dev` carries to start a reference-capture job on a GitHub-hosted runner (`.github/workflows/mimic-record.yml`):
 //!
 //! ```text
 //! marker  = "[" action 1*( " " word ) "]"

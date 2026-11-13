@@ -8,7 +8,7 @@ version is first marked yanked in the index, so a new resolution never picks it,
 then its .crate is removed. A registry whose adapter cannot delete (crates.io) is
 skipped and listed with the reason. It runs `git fetch origin dev` first, because
 a stale ref could hide a pin; --no-fetch skips that. Needs the operator's `oci` CLI
-and ~/.oci, and LIBS_WRITE_PAR_URL (the yank is written to libs/index/ through it).
+and ~/.oci, and LIBS_INDEX_WRITE_PAR_URL (the yank is written to index/ through it).
 
 Output: one JSON object on stdout {ok, dryRun, graceDays, deleted | wouldDelete:
 [{crate, version, bytes, ageDays}], freedBytes, kept: [{crate, version, reason}],

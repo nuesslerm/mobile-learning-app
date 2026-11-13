@@ -4,7 +4,7 @@ use crate::support::{run_wf, MockReply, MockServer, RunOpts};
 use serde_json::{json, Value};
 
 const PAT: &str = "github_pat_11AAAAAAA0zzzzzzzzzzzz_secretsecretsecret";
-const LIST: &str = "GET /repos/nuesslerm/mobile-learning-app/actions/workflows/deploy.yml/runs?branch=dev&per_page=100";
+const LIST: &str = "GET /repos/nuesslerm/mobile-learning-app/actions/workflows/ci-hosted.yml/runs?branch=dev&per_page=100";
 
 fn cancel_route(id: u64) -> String {
     format!("POST /repos/nuesslerm/mobile-learning-app/actions/runs/{id}/cancel")
@@ -107,11 +107,30 @@ fn a_refused_cancel_fails_the_verb_and_a_missing_token_asks_github_nothing() {
     let idle = github(202);
     let r = run(&idle, &["--queued"], None);
     assert_eq!(r.exit_code, 1);
-    assert!(r.stderr.contains("VM_PROVISION_GITHUB_TOKEN is not set") && idle.requests().is_empty(), "{}", r.stderr);
+    assert!(r.stderr.contains("VM_PROVISION_GITHUB_TOKEN is not set here") && idle.requests().is_empty(), "{}", r.stderr);
 
     // and neither flag, or both, is a usage error that asks GitHub nothing
     let none = github(202);
     assert_ne!(run(&none, &[], Some(PAT)).exit_code, 0);
     assert_ne!(run(&none, &["--queued", "--run", "1"], Some(PAT)).exit_code, 0);
     assert!(none.requests().is_empty());
+}
+
+#[test]
+fn all_cancels_every_unfinished_run() {
+    // Given waiting and running runs of the CI and a finished one
+    let server = github(202);
+
+    // When the verb runs with --all and the PAT in its environment
+    let r = run(&server, &["--all"], Some(PAT));
+
+    // Then every run that has not finished is cancelled and the finished one is left alone
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let report: Value = serde_json::from_str(&r.stdout).unwrap();
+    assert_eq!(report["ok"], json!(true));
+    let mut posted = posts(&server);
+    posted.sort();
+    let mut want: Vec<String> = [9003, 9002, 9001].map(|id| cancel_route(id).trim_start_matches("POST ").to_string()).to_vec();
+    want.sort();
+    assert_eq!(posted, want);
 }

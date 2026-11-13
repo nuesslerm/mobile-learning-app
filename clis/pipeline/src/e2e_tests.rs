@@ -154,7 +154,7 @@ pub(crate) fn resolve_base(raw: Option<&str>, sha: &str) -> String {
 fn last_green(sha: &str) -> Option<String> {
     let repo_name = std::env::var("GITHUB_REPOSITORY").ok()?;
     let out = Command::new("gh")
-        .args(["run", "list", "-R", &repo_name, "--workflow", "deploy.yml", "--branch", "dev", "--status", "success", "--limit", "30", "--json", "headSha", "--jq", ".[].headSha"])
+        .args(["run", "list", "-R", &repo_name, "--workflow", "ci-hosted.yml", "--branch", "dev", "--status", "success", "--limit", "30", "--json", "headSha", "--jq", ".[].headSha"])
         .stdin(Stdio::null())
         .stderr(Stdio::null())
         .output()

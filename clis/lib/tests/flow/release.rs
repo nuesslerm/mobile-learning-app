@@ -7,8 +7,8 @@ fn consumer(repo: &Repo, deps: &str) -> std::path::PathBuf {
     dir.join("Cargo.toml")
 }
 
-const CRATE: &str = "libs/crates/fixture-core/0.1.1.crate";
-const INDEX: &str = "libs/index/fi/xt/fixture-core";
+const CRATE: &str = "crates/fixture-core/0.1.1.crate";
+const INDEX: &str = "index/fi/xt/fixture-core";
 
 #[test]
 fn a_released_crate_and_its_index_land_in_the_one_private_bucket_and_nothing_names_a_link() {
@@ -24,7 +24,7 @@ fn a_released_crate_and_its_index_land_in_the_one_private_bucket_and_nothing_nam
     assert_eq!((out["ok"].clone(), out["version"].as_str(), out["previous"].as_str(), out["publisher"].as_str()), (true.into(), Some("0.1.1"), Some("0.1.0"), Some("bucket-sparse")));
     assert_eq!(out["objects"], serde_json::json!(["crates/fixture-core/0.1.1.crate", "index/fi/xt/fixture-core", "index/config.json"]));
     assert!(repo.read("libs/fixture-core/Cargo.toml").contains("version = \"0.1.1\""));
-    assert_eq!(repo.bucket.names(), [CRATE, "libs/index/config.json", INDEX]);
+    assert_eq!(repo.bucket.names(), [CRATE, "index/config.json", INDEX]);
     let line: serde_json::Value = serde_json::from_str(repo.bucket.text(INDEX).unwrap().lines().next().unwrap()).unwrap();
     assert_eq!((line["name"].as_str(), line["vers"].as_str(), line["yanked"].as_bool()), (Some("fixture-core"), Some("0.1.1"), Some(false)));
     assert_eq!(line["cksum"].as_str(), Some(sha256_hex(&repo.bucket.get(CRATE).unwrap()).as_str()));
@@ -39,12 +39,12 @@ fn config_json_sends_downloads_through_the_proxy_and_is_the_same_bytes_the_proxy
     let repo = Repo::new(&libraries_json("mla", "", ""));
     assert_eq!(repo.lib(&["release", "fixture-core", "patch"]).exit_code, 0);
 
-    // When config.json is read from the bucket and from the proxy
-    let stored = repo.bucket.text("libs/index/config.json").unwrap();
+    // When config.json is read from the bucket and from the public bucket
+    let stored = repo.bucket.text("index/config.json").unwrap();
     let (status, served) = repo.proxy.fetch("/index/config.json");
 
-    // Then it is exactly {"dl": <proxy>/dl/{crate}/{version}.crate} with no api field, and both agree byte for byte
-    assert_eq!(stored, format!("{{\"dl\":\"{}/dl/{{crate}}/{{version}}.crate\"}}\n", repo.proxy.base()));
+    // Then it is exactly {"dl": <public bucket>/crates/{crate}/{version}.crate} with no api field, and both agree byte for byte
+    assert_eq!(stored, format!("{{\"dl\":\"{}/crates/{{crate}}/{{version}}.crate\"}}\n", repo.proxy.base()));
     assert_eq!((status, served), (200, stored.into_bytes()));
 }
 
@@ -58,27 +58,27 @@ fn a_consumers_cargo_resolves_through_the_proxy_downloads_the_crate_from_its_dl_
     // When cargo resolves and builds it
     assert_eq!(repo.cargo_run(&manifest, &[("CARGO_REGISTRIES_MLA_INDEX", &repo.proxy_index())]), "42");
 
-    // Then the consumer's Cargo.lock names the proxy's index as the source and carries no PAR token
+    // Then the consumer's Cargo.lock names the public bucket's index as the source and carries no PAR token
     let lock = std::fs::read_to_string(manifest.with_file_name("Cargo.lock")).unwrap();
     assert!(lock.contains(&format!("source = \"{}\"", repo.proxy_index())), "{lock}");
     assert!(!lock.contains("/p/") && !lock.contains("SECRET-PAR-TOKEN"), "{lock}");
-    // And the crate bytes came through the proxy's /dl route, the index through /index
+    // And the crate bytes came from the public bucket's /dl route, the index through /index
     let asked = repo.proxy.requests();
-    assert!(asked.contains(&"/dl/fixture-core/0.1.1.crate".to_string()) && asked.contains(&"/index/config.json".to_string()) && asked.contains(&"/index/fi/xt/fixture-core".to_string()), "{asked:?}");
+    assert!(asked.contains(&"/crates/fixture-core/0.1.1.crate".to_string()) && asked.contains(&"/index/config.json".to_string()) && asked.contains(&"/index/fi/xt/fixture-core".to_string()), "{asked:?}");
 }
 
 #[test]
 fn a_release_needs_only_the_write_link_and_the_proxy() {
     // Given an environment with the write link and no read link (a CI job on the tailnet)
     let repo = Repo::new(&libraries_json("mla", "", ""));
-    let mut opts = repo.opts();
-    opts.env.remove("LIBS_READ_PAR_URL");
+    let opts = repo.opts();
 
     // When a library is released twice
     let first = repo.lib_with(&["release", "fixture-core", "patch"], opts);
+    repo.settle();
     let second = repo.lib(&["release", "fixture-core", "patch"]);
 
-    // Then both succeed and the second index file lists both versions, read through the proxy before it was appended
+    // Then both succeed and the second index file lists both versions, read from the public bucket before it was appended
     assert_eq!((first.exit_code, second.exit_code), (0, 0), "{}{}{}{}", first.stdout, first.stderr, second.stdout, second.stderr);
     assert_eq!(repo.bucket.text(INDEX).unwrap().lines().count(), 2);
     assert!(repo.proxy.requests().contains(&"/index/fi/xt/fixture-core".to_string()));
@@ -100,18 +100,17 @@ fn a_version_already_in_the_index_is_refused_even_when_its_crate_is_missing() {
 }
 
 #[test]
-fn a_release_with_the_proxy_down_stops_before_uploading_anything_and_says_what_to_do() {
-    // Given a registry whose proxy nothing answers on and no read link
+fn a_release_with_the_index_unreachable_stops_before_uploading_anything_and_says_what_to_do() {
+    // Given a registry whose index nothing answers on
     let repo = Repo::new(&libraries_json("mla", "", "").replace("@INDEX@", "http://127.0.0.1:1/index/"));
-    let mut opts = repo.opts();
-    opts.env.remove("LIBS_READ_PAR_URL");
+    let opts = repo.opts();
 
     // When a library is released
     let r = repo.lib_with(&["release", "fixture-core", "patch"], opts);
 
     // Then it fails with a next step, the manifest is back at 0.1.0 and the bucket is empty
     assert_eq!(r.exit_code, 1);
-    assert!(last_json(&r)["next"].as_str().unwrap().contains("proxy"), "{}", r.stdout);
+    assert!(last_json(&r)["next"].as_str().unwrap().contains("indexUrl"), "{}", r.stdout);
     assert!(repo.read("libs/fixture-core/Cargo.toml").contains("version = \"0.1.0\""));
     assert!(repo.bucket.names().is_empty());
 }
@@ -123,6 +122,7 @@ fn a_version_already_in_the_bucket_is_refused_and_nothing_is_changed() {
     assert_eq!(repo.lib(&["release", "fixture-core", "patch"]).exit_code, 0);
     let before = repo.bucket.get(CRATE).unwrap();
     repo.core("0.1.0", "pub fn answer() -> u32 { 7 }\n");
+    repo.settle();
 
     // When the same version is released again
     let r = repo.lib(&["release", "fixture-core", "patch"]);
@@ -140,6 +140,7 @@ fn a_crate_that_does_not_package_leaves_the_manifest_and_the_bucket_as_they_were
     // Given a library whose source does not compile
     let repo = Repo::new(&libraries_json("mla", "", ""));
     repo.core("0.1.0", "pub fn answer() -> u32 { not rust }\n");
+    repo.settle();
 
     // When it is released
     let r = repo.lib(&["release", "fixture-core", "minor"]);
@@ -161,13 +162,14 @@ fn a_library_that_depends_on_another_released_library_resolves_both_through_its_
     assert_eq!(repo.lib(&["release", "fixture-core", "patch"]).exit_code, 0);
     repo.write("libs/fixture-app/Cargo.toml", &crate_manifest("fixture-app", "0.1.0", "fixture-core = { version = \"0.1.1\", registry = \"mla\", path = \"../fixture-core\" }\n"));
     repo.write("libs/fixture-app/src/lib.rs", "pub fn answer() -> u32 { fixture_core::answer() }\n");
+    repo.settle();
 
     // When fixture-app is released
     let r = repo.lib(&["release", "fixture-app", "patch"]);
 
     // Then its index line names the dependency on this registry
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
-    let line: serde_json::Value = serde_json::from_str(repo.bucket.text("libs/index/fi/xt/fixture-app").unwrap().lines().next().unwrap()).unwrap();
+    let line: serde_json::Value = serde_json::from_str(repo.bucket.text("index/fi/xt/fixture-app").unwrap().lines().next().unwrap()).unwrap();
     assert_eq!((line["deps"][0]["name"].as_str(), line["deps"][0]["req"].as_str(), line["deps"][0]["registry"].is_null()), (Some("fixture-core"), Some("^0.1.1"), true));
 
     // And a consumer of fixture-app alone builds, with cargo fetching fixture-core by that entry
@@ -218,4 +220,38 @@ fn a_registry_without_a_publish_adapter_or_without_its_token_is_refused_with_a_n
         assert!(last_json(&r)["error"].as_str().unwrap().contains(said), "{alias}: {}", r.stdout);
         assert!(repo.read("libs/fixture-core/Cargo.toml").contains("version = \"0.1.0\""));
     }
+}
+
+#[test]
+fn a_release_publishes_only_committed_pushed_files_free_of_credentials_and_otherwise_stops_before_uploading() {
+    // Given a library, pushed
+    let repo = Repo::new(&libraries_json("mla", "", ""));
+    let refused = |what: &str, wants: &str| {
+        // When it is released, Then it is refused naming why, the manifest is as it was and nothing was uploaded
+        let r = repo.lib(&["release", "fixture-core", "patch"]);
+        assert_eq!(r.exit_code, 1, "{what}: {}{}", r.stdout, r.stderr);
+        assert!(last_json(&r)["error"].as_str().unwrap().contains(wants), "{what}: {}", r.stdout);
+        assert!(repo.read("libs/fixture-core/Cargo.toml").contains("version = \"0.1.0\""), "{what}");
+        assert!(repo.bucket.names().is_empty(), "{what}");
+    };
+
+    // Given a source file edited and not committed
+    repo.core("0.1.0", "pub fn answer() -> u32 { 7 }\n");
+    refused("uncommitted edit", "differs from HEAD");
+
+    // Given it committed but not pushed
+    repo.commit("edit");
+    refused("unpushed commit", "HEAD is not on origin/dev");
+    repo.push();
+
+    // Given a file the package would carry that git does not track
+    std::fs::create_dir_all(repo.work().join("libs/fixture-core/data")).unwrap();
+    repo.write("libs/fixture-core/data/extra.json", "{}\n");
+    refused("untracked file", "is not tracked by git");
+    repo.settle();
+
+    // Given a credential-shaped string in a committed, pushed file
+    repo.write("libs/fixture-core/data/extra.json", "{ \"token\": \"ghp_0123456789abcdefghijklmnopqrstuvwxyz\" }\n");
+    repo.settle();
+    refused("a credential", "a GitHub token");
 }

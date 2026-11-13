@@ -6,7 +6,7 @@
 # --out .env` immediately before `docker compose -f docker-compose.auth.yml up -d`.
 services:
   tailscale:
-    image: tailscale/tailscale:latest
+    image: tailscale/tailscale:v1.102.2
     container_name: vnc-auth-tailscale
     hostname: vnc-auth                    # -> https://vnc-auth.<tailnet>.ts.net
     volumes:

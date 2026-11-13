@@ -22,5 +22,3 @@ mod opencode_log;
 mod process_memory;
 #[path = "adapters/siblings.rs"]
 mod siblings;
-#[path = "adapters/state_files.rs"]
-mod state_files;

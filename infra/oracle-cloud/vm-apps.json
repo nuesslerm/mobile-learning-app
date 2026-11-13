@@ -7,7 +7,6 @@
   {"name": "leetcode-auth-cookie-capture", "repoPath": "backend/leetcode-auth-cookie-capture", "composeFile": "docker-compose.capture.yml"},
   {"name": "vnc-auth-session", "repoPath": "clis/vnc-auth-capture", "composeFile": "docker-compose.auth.yml", "stateVolumes": [{"name": "vnc-auth-credentials", "maxBytes": 200000000}]},
   {"name": "reporting-service", "repoPath": "backend/reporting-service", "composeFile": "docker-compose.prod.yml"},
-  {"name": "libs-proxy", "repoPath": "infra/oracle-cloud/libs-proxy", "composeFile": "docker-compose.prod.yml"},
   {"name": "t3-serve", "repoPath": "clis/t3-serve", "composeFile": "docker-compose.prod.yml"},
   {"name": "orca-serve", "repoPath": "clis/orca-serve", "composeFile": "docker-compose.prod.yml", "stateVolumes": [{"name": "orca-state", "maxBytes": 50000000}]}
 ]

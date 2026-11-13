@@ -51,8 +51,6 @@ struct Build<'a> {
     no_push: bool,
     /// `--fresh`: rebuild every image with no layer cache and no reuse of an image of the same hash, and push it as usual.
     fresh: bool,
-    /// `host:ip` pairs from `WF_BUILD_ADD_HOSTS` (comma separated): a build container on a hosted runner cannot resolve tailnet names, so each becomes `--add-host`.
-    add_hosts: Vec<String>,
 }
 
 fn strings(parts: &[&str]) -> Vec<String> {
@@ -126,9 +124,6 @@ fn run_build(docker: &dyn Docker, b: &Build) -> Result<Value, String> {
                 "--label", &format!("wf.input-hash={hash}"),
                 "-f", spec.dockerfile, "-t", &tagged, "-t", &existing,
             ]);
-            for host in &b.add_hosts {
-                args.extend(strings(&["--add-host", host]));
-            }
             args.extend(if b.fresh { strings(&["--no-cache"]) } else { strings(&["--cache-from", &cache]) });
             if b.cache_push && !b.no_push {
                 args.extend(strings(&["--cache-to", &format!("{cache},mode=max")]));
@@ -166,7 +161,7 @@ pub fn run(args: &[String]) -> Result<Option<i32>, String> {
     let images = names.iter().map(|n| pipeline::image_hash::hash(None, git_ref, n).map(|h| (n.to_string(), h))).collect::<Result<Vec<_>, _>>()?;
     let token = std::env::var("DOCKERHUB_TOKEN").ok().filter(|t| !t.is_empty()).ok_or("DOCKERHUB_TOKEN is not set")?;
     let user = std::env::var("DOCKERHUB_USERNAME").ok().filter(|u| !u.is_empty()).unwrap_or_else(|| NAMESPACE.to_string());
-    let build = Build { app, tag, commit: &commit, platform: p.val("platform").unwrap_or(DEFAULT_PLATFORM), images, login: (&user, &token), cache_push: p.flags.iter().any(|f| f == "cache-push"), no_push: p.flags.iter().any(|f| f == "no-push"), fresh: p.flags.iter().any(|f| f == "fresh"), add_hosts: std::env::var("WF_BUILD_ADD_HOSTS").unwrap_or_default().split(',').map(str::trim).filter(|h| !h.is_empty()).map(String::from).collect() };
+    let build = Build { app, tag, commit: &commit, platform: p.val("platform").unwrap_or(DEFAULT_PLATFORM), images, login: (&user, &token), cache_push: p.flags.iter().any(|f| f == "cache-push"), no_push: p.flags.iter().any(|f| f == "no-push"), fresh: p.flags.iter().any(|f| f == "fresh") };
     let result = run_build(&DockerCli, &build)?;
     println!("{}", serde_json::to_string_pretty(&result).map_err(|e| e.to_string())?);
     Ok(Some(0))

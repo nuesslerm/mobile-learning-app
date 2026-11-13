@@ -9,7 +9,7 @@ use vm_ops_api_integration::{
     assert_golden, case, sibling_image, siblings_json, Reply, Service, ToolRule, World, IMAGE_TAG,
 };
 
-const KNOWN_APPS: [&str; 10] = [
+const KNOWN_APPS: [&str; 9] = [
     "leetcode-backend",
     "remote-chat-agent",
     "leetcode-auth-cookie-capture",
@@ -17,7 +17,6 @@ const KNOWN_APPS: [&str; 10] = [
     "ci-runner",
     "vnc-auth-session",
     "reporting-service",
-    "libs-proxy",
     "t3-serve",
     "orca-serve",
 ];

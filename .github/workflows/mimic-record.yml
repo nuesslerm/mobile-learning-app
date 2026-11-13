@@ -1,0 +1,261 @@
+name: Mimic record
+
+# Long reference-capture jobs on GitHub-hosted runners: record a pinned reference server or CLI into a cassette set, or replay a recorded set against its
+# candidates and publish the diff. They run one set at a time, niced, on a runner that never joins the tailnet (the reference's code reaches nothing of ours), and open no
+# inbound port. The grammar of the marker, the provisioning of a set's reference and the chunked job are `wf mimic trigger|provision|job` and the
+# `[provision]` block of the set's mimic.toml (docs/runbooks/record-reference-servers-on-the-vm.md): a new clone of a CLI or server is data in
+# its set, never a change here.
+#
+# Started by scheduled-triggers.yml (dispatch) on an EMPTY commit to dev tagged [record <set>...] or [replay <set>...], never by `push` itself:
+#     git commit --allow-empty -m "[record t3-recorded-1 orca-recorded]" && git push origin dev
+#     git commit --allow-empty -m "[record orca-recorded chunk=15 fresh]" && git push origin dev     (15 minute chunks, no checkpoint)
+#     git commit --allow-empty -m "[replay t3-recorded-1]" && git push origin dev                    (diff the candidates, nothing recorded)
+# A record is resumable: an incomplete one uploads its checkpoint as an artifact, and the same marker again downloads it and goes on. The masked
+# set is the workflow artifact (14 days) and a bucket run that `wf mimic fetch <run-id>` reads from any checkout.
+on:
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Commit message carrying the marker
+        type: string
+        required: false
+        default: ''
+      sha:
+        description: Commit the marker was pushed in
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  wf:
+    name: Build wf
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+          fetch-depth: 1
+      - uses: ./.github/actions/build-wf
+        with:
+          upload: "true"
+  plan:
+    name: Read the marker
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    needs: wf
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      action: ${{ steps.marker.outputs.action }}
+      chunk: ${{ steps.marker.outputs.chunk }}
+      fresh: ${{ steps.marker.outputs.fresh }}
+      matrix: ${{ steps.marker.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          ref: ${{ inputs.sha || github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: clis
+          path: ${{ runner.temp }}/wf-bin
+      - name: wf on PATH
+        run: |
+          chmod 755 "$RUNNER_TEMP"/wf-bin/*
+          echo "$RUNNER_TEMP/wf-bin" >> "$GITHUB_PATH"
+      - name: Parse the marker
+        id: marker
+        env:
+          COMMIT_MESSAGE: ${{ inputs.message }}
+        run: |
+          set +e
+          printf '%s' "$COMMIT_MESSAGE" | wf mimic trigger --file - > "$RUNNER_TEMP/plan.json"
+          code=$?
+          set -e
+          cat "$RUNNER_TEMP/plan.json"
+          if [ "$code" != 0 ]; then
+            {
+              echo "### The marker was refused"
+              echo
+              jq -r '"`" + (.error // "wf mimic trigger failed") + "`\n\nNext: " + (.next // "")' "$RUNNER_TEMP/plan.json"
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          {
+            echo "action=$(jq -r .action "$RUNNER_TEMP/plan.json")"
+            echo "chunk=$(jq -r .chunk "$RUNNER_TEMP/plan.json")"
+            echo "fresh=$(jq -r .fresh "$RUNNER_TEMP/plan.json")"
+            echo "matrix=$(jq -c .matrix "$RUNNER_TEMP/plan.json")"
+          } >> "$GITHUB_OUTPUT"
+
+  capture:
+    name: ${{ needs.plan.outputs.action }} ${{ matrix.name }}
+    needs: plan
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      # write: only to delete the checkpoint artifacts of a record that finished
+      actions: write
+      contents: read
+    # Not a concurrency group: it would keep one waiting leg and drop the rest. max-parallel runs the legs one at a time, in this order.
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      WF_SITE: ci
+      ACTION: ${{ needs.plan.outputs.action }}
+      CHUNK: ${{ needs.plan.outputs.chunk }}
+      FRESH: ${{ needs.plan.outputs.fresh }}
+      SET_NAME: ${{ matrix.name }}
+      SET_DIR: ${{ matrix.dir }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          ref: ${{ inputs.sha || github.sha }}
+          fetch-depth: 1
+      # One setup step per toolchain a [provision] block can pin (TOOLCHAINS in clis/mimic/src/provision.rs); `wf mimic trigger` emits each as a matrix key.
+      - name: Node of the set's provision block
+        if: ${{ matrix.node != '' }}
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ matrix.node }} # pins-exempt: the reference server's toolchain, no Nx task runs on it
+      - name: Python of the set's provision block
+        if: ${{ matrix.python != '' }}
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Go of the set's provision block
+        if: ${{ matrix.go != '' }}
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Rust of the set's provision block
+        if: ${{ matrix.rust != '' }}
+        env:
+          RUST_TOOLCHAIN: ${{ matrix.rust }}
+        run: rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal && rustup default "$RUST_TOOLCHAIN"
+      - name: pnpm for the mimic drivers
+        # `wf mimic provision` installs the repository's drivers for a record when the block has them (a node toolchain, or drivers = true)
+        if: ${{ matrix.drivers == true && env.ACTION == 'record' }}
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+        with:
+          run_install: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: clis
+          path: ${{ runner.temp }}/wf-bin
+      - name: wf on PATH
+        run: |
+          chmod 755 "$RUNNER_TEMP"/wf-bin/*
+          echo "$RUNNER_TEMP/wf-bin" >> "$GITHUB_PATH"
+      - name: Find the checkpoint of an earlier run
+        id: checkpoint
+        if: ${{ env.ACTION == 'record' && env.FRESH != 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          url="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts?name=mimic-checkpoint-$SET_NAME&per_page=50"
+          # only a checkpoint of dev: a run of another branch or pull request never feeds this one
+          run_id=$(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$url" | jq -r '[.artifacts[] | select(.expired == false and .workflow_run.head_branch == "dev")] | first | .workflow_run.id // empty')
+          echo "an earlier checkpoint of $SET_NAME: run ${run_id:-none}"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+      - name: Restore the checkpoint
+        if: ${{ steps.checkpoint.outputs.run_id != '' }}
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: mimic-checkpoint-${{ matrix.name }}
+          path: ${{ matrix.checkpoint }}
+          run-id: ${{ steps.checkpoint.outputs.run_id }}
+          github-token: ${{ github.token }}
+      - name: Provision the reference
+        # Driven by the [provision] block of the set: the pinned source, the install and build steps, the env the record needs. Niced like the job.
+        # No step here holds a secret and nothing is written to GITHUB_ENV: the block's env reaches the record through `wf mimic job` alone
+        if: ${{ matrix.provision == true }}
+        run: nice -n 19 wf mimic provision "$SET_DIR" --when "$ACTION"
+      - name: Capture
+        id: job
+        run: |
+          OUT_DIR="$RUNNER_TEMP/mimic-out"
+          flags=""
+          if [ "$ACTION" = record ]; then
+            flags="--chunk $CHUNK --budget 120"
+            if [ "$FRESH" = true ]; then flags="$flags --fresh"; fi
+          fi
+          mkdir -p "$OUT_DIR"
+          set +e
+          # shellcheck disable=SC2086
+          nice -n 19 wf mimic job "$ACTION" "$SET_DIR" $flags --run "$GITHUB_RUN_ID" --out "$OUT_DIR" > "$OUT_DIR/job.json"
+          code=$?
+          set -e
+          cat "$OUT_DIR/job.json"
+          {
+            echo "complete=$(jq -r '.complete // false' "$OUT_DIR/job.json")"
+            echo "incomplete=$(jq -r '.incomplete // false' "$OUT_DIR/job.json")"
+            echo "checkpoint_upload=$(jq -r '.checkpoint_upload // false' "$OUT_DIR/job.json")"
+          } >> "$GITHUB_OUTPUT"
+          exit "$code"
+      - name: Keep the checkpoint of an unfinished record
+        # Only a record that ran out of its budget (the job says so), never a failed leg, and only when the unmasked checkpoint holds no token-shaped value
+        if: ${{ always() && env.ACTION == 'record' && steps.job.outputs.incomplete == 'true' && steps.job.outputs.checkpoint_upload == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mimic-checkpoint-${{ matrix.name }}
+          path: ${{ matrix.checkpoint }}
+          retention-days: 3
+          if-no-files-found: ignore
+      - name: Upload the masked set
+        # raw/ was deleted by the job; the exclusion is the second lock
+        if: ${{ success() && env.ACTION == 'record' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mimic-set-${{ matrix.name }}
+          path: |
+            ${{ matrix.dir }}
+            !${{ matrix.dir }}/raw
+          retention-days: 14
+          if-no-files-found: error
+      - name: Upload the replay table
+        if: ${{ always() && env.ACTION == 'replay' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: mimic-replay-${{ matrix.name }}
+          path: ${{ runner.temp }}/mimic-out/*.replay.json
+          retention-days: 14
+          if-no-files-found: ignore
+      - uses: ./.github/actions/install-bws
+        # after the capture: nothing the provisioned reference ran saw the vault
+        if: ${{ success() && env.ACTION == 'record' }}
+      - name: Publish the set to the bucket
+        # The transport an agent session can reach: `wf mimic fetch <run-id>`. The write link comes from the vault and is never printed.
+        if: ${{ success() && env.ACTION == 'record' }}
+        env:
+          SECRETS_BACKEND: bitwarden
+          BWS_SERVER_URL: https://vault.bitwarden.eu
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+        run: wf mimic publish "$SET_DIR" --run "$GITHUB_RUN_ID"
+      - name: Drop the checkpoints of the finished record
+        # a published record leaves nothing to resume, and a later marker must not pick an old checkpoint up
+        if: ${{ success() && env.ACTION == 'record' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          url="$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts?name=mimic-checkpoint-$SET_NAME&per_page=100"
+          for id in $(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$url" | jq -r '.artifacts[].id'); do
+            curl -fsS -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$id" > /dev/null
+            echo "dropped checkpoint artifact $id"
+          done

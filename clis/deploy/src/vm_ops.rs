@@ -1,4 +1,4 @@
-//! `wf vm ops health|stats|host|logs|probe|pair|ci-port|runner-check|token-permissions|cancel-run` and `wf vm ledger cat`: the commands that
+//! `wf vm ops health|stats|host|logs|probe|pair|ci-port|runner-check|token-permissions|cancel-run|install-clis` and `wf vm ledger cat`: the commands that
 //! talk to vm-ops-api.
 use wf_kit::args::parse;
 use wf_vmops::services::health_url;
@@ -232,13 +232,18 @@ pub fn run(args: &[String]) -> Option<i32> {
         }
         "token-permissions" => parse(rest, &[], &[]).filter(|p| p.positional.is_empty()).and_then(|_| crate::token_permissions::run()),
         "cancel-run" => {
-            let p = parse(rest, &["run"], &["queued"]).filter(|p| p.positional.is_empty())?;
-            let queued = p.flags.iter().any(|f| f == "queued");
-            match (p.opts.get("run"), queued) {
-                (Some(n), false) => n.parse::<u64>().ok().and_then(|n| crate::cancel_run::run(crate::cancel_run::Target::Run(n))),
-                (None, true) => crate::cancel_run::run(crate::cancel_run::Target::Queued),
+            let p = parse(rest, &["run"], &["queued", "all"]).filter(|p| p.positional.is_empty())?;
+            let (queued, all) = (p.flags.iter().any(|f| f == "queued"), p.flags.iter().any(|f| f == "all"));
+            match (p.opts.get("run"), queued, all) {
+                (Some(n), false, false) => n.parse::<u64>().ok().and_then(|n| crate::cancel_run::run(crate::cancel_run::Target::Run(n))),
+                (None, true, false) => crate::cancel_run::run(crate::cancel_run::Target::Queued),
+                (None, false, true) => crate::cancel_run::run(crate::cancel_run::Target::All),
                 _ => None,
             }
+        }
+        "install-clis" => {
+            let p = parse(rest, &["sha256"], &[]).filter(|p| p.positional.is_empty())?;
+            crate::install_clis::run(p.opts.get("sha256")?)
         }
         "host" => crate::host_history::run(rest),
         "drill" => crate::vm_drill::run(rest),

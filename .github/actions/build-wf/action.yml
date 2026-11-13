@@ -1,12 +1,8 @@
 name: Build wf
 description: >-
   Builds this commit's wf and the binaries it runs beside it (install-wf, without publishing). With `upload: true` they go to the
-  artifact `name` for the jobs of a hosted run. On the VM a build that fails falls back to the wf the previous push published, so the
-  checks that would fix the build still run.
+  artifact `name` for the other jobs of the run.
 inputs:
-  flavor:
-    description: vm or hosted
-    required: true
   name:
     description: The artifact's name (clis for x64, clis-arm for arm64)
     default: clis
@@ -17,17 +13,7 @@ runs:
   using: composite
   steps:
     - name: This commit's wf
-      id: wf
-      continue-on-error: ${{ inputs.flavor == 'vm' }}
       uses: ./.github/actions/install-wf
-      with:
-        live: "false"
-    - name: The published wf, when this commit's did not build
-      if: ${{ inputs.flavor == 'vm' && steps.wf.outcome == 'failure' }}
-      uses: ./.github/actions/install-wf
-      with:
-        current: "true"
-        live: "false"
     - name: The binaries as one artifact
       if: ${{ inputs.upload == 'true' }}
       shell: bash

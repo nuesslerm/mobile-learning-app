@@ -50,8 +50,8 @@ jobs:
           submodules: false
       - name: Rust toolchain
         run: rustup toolchain install --profile minimal
-      - name: The private registry answers through the tailnet (clis workspace)
-        # .cargo/config.toml reads libs-proxy:8793, granted to tag:ci-gh-hosted; the index URL carries no secret
+      - name: The libs registry answers over plain HTTPS (clis workspace)
+        # .cargo/config.toml reads the public libs bucket: no tailnet and no credential
         working-directory: clis
         run: |
           cargo fetch --locked

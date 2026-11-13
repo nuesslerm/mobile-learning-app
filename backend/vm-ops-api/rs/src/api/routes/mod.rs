@@ -6,9 +6,8 @@ use vm_ops_api_core::domain::exposure::{spec_of, Exposure};
 use vm_ops_api_core::domain::request::Target;
 
 mod agent_shell;
-mod android_lab;
-mod cooldown_write;
-mod cooldowns;
+mod clis_install;
+mod state_job;
 mod drill;
 mod health;
 mod logs;
@@ -29,8 +28,6 @@ pub enum RouteId {
     OpencodeDashboard,
     OpencodeRuns,
     OpencodeRun,
-    Cooldowns,
-    CooldownsWrite,
     OpencodeStart,
     OpencodeLine,
     OpencodeFinish,
@@ -50,10 +47,9 @@ pub enum RouteId {
     SelfRedeploy,
     SelfSmoke,
     SelfSmokeStop,
-    AndroidDeviceStart,
-    AndroidDeviceStop,
-    AndroidDeviceList,
-    AndroidDeviceJob,
+    ClisInstall,
+    StateJobStart,
+    StateJobStatus,
 }
 
 impl RouteId {
@@ -72,8 +68,6 @@ impl RouteId {
             RouteId::OpencodeDashboard => "OpencodeDashboard",
             RouteId::OpencodeRuns => "OpencodeRuns",
             RouteId::OpencodeRun => "OpencodeRun",
-            RouteId::Cooldowns => "Cooldowns",
-            RouteId::CooldownsWrite => "CooldownsWrite",
             RouteId::OpencodeStart => "OpencodeStart",
             RouteId::OpencodeLine => "OpencodeLine",
             RouteId::OpencodeFinish => "OpencodeFinish",
@@ -93,11 +87,10 @@ impl RouteId {
             RouteId::SelfRedeploy => "SelfRedeploy",
             RouteId::SelfSmoke => "SelfSmoke",
             RouteId::SelfSmokeStop => "SelfSmokeStop",
-            RouteId::AndroidDeviceStart => "AndroidDeviceStart",
-            RouteId::AndroidDeviceStop => "AndroidDeviceStop",
-            RouteId::AndroidDeviceList => "AndroidDeviceList",
-            RouteId::AndroidDeviceJob => "AndroidDeviceJob",
-        }
+            RouteId::ClisInstall => "ClisInstall",
+            RouteId::StateJobStart => "StateJobStart",
+            RouteId::StateJobStatus => "StateJobStatus",
+                        }
     }
 
     pub fn exposure(self) -> Exposure {
@@ -146,12 +139,12 @@ pub fn resolve(method: &str, target: &Target) -> Option<RouteId> {
         "GET" if target.is_path("/opencode-log/api/runs") => Some(RouteId::OpencodeRuns),
         "GET" if opencode_log::run_id_of_detail(target).is_some() => Some(RouteId::OpencodeRun),
         "GET" if target.is_path("/redeploy/status") => Some(RouteId::RedeployStatus),
+        "GET" if state_job::is_status(target) => Some(RouteId::StateJobStatus),
         "POST" if app_route(target, "redeploy") => Some(RouteId::AppRedeploy),
         "POST" if app_route(target, "smoke") => Some(RouteId::AppSmoke),
         "POST" if smoke_stop_route(target) => Some(RouteId::AppSmokeStop),
         "POST" if app_route(target, "retire") => Some(RouteId::Retire),
         "POST" if app_route(target, "pair") => Some(RouteId::AppPair),
-        "GET" if target.is_path("/cooldowns") => Some(RouteId::Cooldowns),
         "POST" if opencode_log_writes::is_write(target, opencode_log_writes::Write::Start) => Some(RouteId::OpencodeStart),
         "POST" if opencode_log_writes::is_write(target, opencode_log_writes::Write::Line) => Some(RouteId::OpencodeLine),
         "POST" if opencode_log_writes::is_write(target, opencode_log_writes::Write::Finish) => Some(RouteId::OpencodeFinish),
@@ -161,15 +154,12 @@ pub fn resolve(method: &str, target: &Target) -> Option<RouteId> {
         "GET" if agent_shell::is_ledger(target) => Some(RouteId::VmLedger),
         "GET" if target.is_path("/services/agent-shell/artifact") => Some(RouteId::Artifact),
         "POST" if target.is_path("/agent-shell/credentials") => Some(RouteId::Credentials),
-        "POST" if target.is_path("/cooldowns") => Some(RouteId::CooldownsWrite),
         "POST" if target.is_path("/drill") => Some(RouteId::Drill),
         "POST" if target.is_path("/redeploy") => Some(RouteId::SelfRedeploy),
         "POST" if target.is_path("/redeploy/smoke") => Some(RouteId::SelfSmoke),
         "POST" if target.is_path("/redeploy/smoke/stop") => Some(RouteId::SelfSmokeStop),
-        "POST" if target.is_path("/android/device/start") => Some(RouteId::AndroidDeviceStart),
-        "POST" if target.is_path("/android/device/stop") => Some(RouteId::AndroidDeviceStop),
-        "POST" if target.is_path("/android/device/list") => Some(RouteId::AndroidDeviceList),
-        "GET" if android_lab::is_job_status(target) => Some(RouteId::AndroidDeviceJob),
+        "POST" if target.is_path("/clis/install") => Some(RouteId::ClisInstall),
+        "POST" if state_job::is_start(target) => Some(RouteId::StateJobStart),
         _ => None,
     }
 }
@@ -183,8 +173,6 @@ pub async fn handle(route: RouteId, call: &Call<'_>, state: &AppState) -> Result
         RouteId::OpencodeDashboard => Ok(opencode_log::dashboard(state)),
         RouteId::OpencodeRuns => Ok(opencode_log::runs(call, state).await),
         RouteId::OpencodeRun => Ok(opencode_log::run(call, state).await),
-        RouteId::Cooldowns => Ok(cooldowns::answer(state).await),
-        RouteId::CooldownsWrite => Ok(cooldown_write::answer(call, state).await),
         RouteId::OpencodeStart => opencode_log_writes::answer(opencode_log_writes::Write::Start, call, state).await,
         RouteId::OpencodeLine => opencode_log_writes::answer(opencode_log_writes::Write::Line, call, state).await,
         RouteId::OpencodeFinish => opencode_log_writes::answer(opencode_log_writes::Write::Finish, call, state).await,
@@ -204,10 +192,9 @@ pub async fn handle(route: RouteId, call: &Call<'_>, state: &AppState) -> Result
         RouteId::SelfRedeploy => Ok(self_redeploy::answer(call, state).await),
         RouteId::SelfSmoke => Ok(self_redeploy::smoke(call, state).await),
         RouteId::SelfSmokeStop => Ok(self_redeploy::smoke_stop(call, state).await),
-        RouteId::AndroidDeviceStart => android_lab::start(android_lab::start_verb, call, state).await,
-        RouteId::AndroidDeviceStop => android_lab::start(android_lab::stop_verb, call, state).await,
-        RouteId::AndroidDeviceList => android_lab::start(android_lab::list_verb, call, state).await,
-        RouteId::AndroidDeviceJob => android_lab::status(call, state).await,
+        RouteId::ClisInstall => clis_install::answer(call, state).await,
+        RouteId::StateJobStart => state_job::start(call, state).await,
+        RouteId::StateJobStatus => state_job::status(call, state).await,
     }
 }
 
@@ -216,7 +203,7 @@ mod tests {
     use super::*;
     use vm_ops_api_core::domain::exposure::{matches, ROUTES};
 
-    const ALL: [RouteId; 32] = [
+    const ALL: [RouteId; 29] = [
         RouteId::Health,
         RouteId::Ps,
         RouteId::Stats,
@@ -224,8 +211,6 @@ mod tests {
         RouteId::OpencodeDashboard,
         RouteId::OpencodeRuns,
         RouteId::OpencodeRun,
-        RouteId::Cooldowns,
-        RouteId::CooldownsWrite,
         RouteId::OpencodeStart,
         RouteId::OpencodeLine,
         RouteId::OpencodeFinish,
@@ -245,17 +230,16 @@ mod tests {
         RouteId::SelfRedeploy,
         RouteId::SelfSmoke,
         RouteId::SelfSmokeStop,
-        RouteId::AndroidDeviceStart,
-        RouteId::AndroidDeviceStop,
-        RouteId::AndroidDeviceList,
-        RouteId::AndroidDeviceJob,
+        RouteId::ClisInstall,
+        RouteId::StateJobStart,
+        RouteId::StateJobStatus,
     ];
 
     #[test]
     fn given_the_route_table_when_each_pattern_is_resolved_then_it_reaches_the_route_that_names_it() {
         assert_eq!(ALL.len(), ROUTES.len());
         for spec in ROUTES {
-            let path = spec.path.replace("{app}", "leetcode-backend").replace("{run}", "run-1").replace("{job}", "0b9f5c2e-8a1d-4c3e-9f7a-1234567890ab").replace("{name}", "pool-cooldowns.json");
+            let path = spec.path.replace("{verb}", "backup").replace("{app}", "leetcode-backend").replace("{run}", "run-1").replace("{job}", "0b9f5c2e-8a1d-4c3e-9f7a-1234567890ab").replace("{name}", "pool-cooldowns.json");
             let route = resolved(spec.method, &path).unwrap_or_else(|| panic!("{} {path} reaches no route", spec.method));
             assert_eq!(route.spec_id(), spec.id, "{} {path}", spec.method);
             assert!(matches(spec, spec.method, &path));

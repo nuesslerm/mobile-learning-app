@@ -47,7 +47,7 @@ async fn given_bad_input_when_a_redeploy_or_a_retire_is_posted_then_each_is_refu
     let control = world.signed("POST", "/services/vm-ops-api/retire", b"").await;
 
     // Then each is the status and body Node answers
-    assert_eq!((unknown.status, unknown.body.as_str()), (404, r#"{"error":"unknown app","knownApps":["leetcode-backend","remote-chat-agent","leetcode-auth-cookie-capture","agent-shell","ci-runner","vnc-auth-session","reporting-service","libs-proxy","t3-serve","orca-serve"]}"#));
+    assert_eq!((unknown.status, unknown.body.as_str()), (404, r#"{"error":"unknown app","knownApps":["leetcode-backend","remote-chat-agent","leetcode-auth-cookie-capture","agent-shell","ci-runner","vnc-auth-session","reporting-service","t3-serve","orca-serve"]}"#));
     assert_eq!((bad_tag.status, bad_tag.body.as_str()), (400, r#"{"error":"invalid tag format"}"#));
     assert_eq!((bad_recreate.status, bad_recreate.body.as_str()), (400, r#"{"error":"invalid recreate mode -- accepted value: 'all'"}"#));
     assert_eq!((managed.status, managed.body.as_str()), (400, r#"{"error":"not a retired app","app":"leetcode-backend"}"#));

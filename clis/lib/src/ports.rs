@@ -64,6 +64,11 @@ pub trait IndexSource {
     fn file(&self, sparse_path: &str) -> Result<Option<String>, Failure>;
 }
 
+/// Whether a library may be published now: its files committed, pushed and free of credentials.
+pub trait Guard {
+    fn check(&self, library: &Library) -> Result<(), Failure>;
+}
+
 /// The tracked files of one name (`Cargo.lock`, `Cargo.toml`) in a checkout or at a git revision: `(repo-relative path, text)`.
 pub trait Checkout {
     fn files(&self, file_name: &str) -> Result<Vec<(String, String)>, Failure>;

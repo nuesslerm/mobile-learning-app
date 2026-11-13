@@ -1,7 +1,7 @@
 //! Flow tests of the control surface: each request enters through the router `main` serves, built by `api::app` from ports whose
 //! outside world is doubled (see `flow/harness.rs`). Given/When/Then.
-#[path = "flow/android_lab.rs"]
-mod android_lab;
+#[path = "flow/clis_install.rs"]
+mod clis_install;
 #[path = "flow/drill.rs"]
 mod drill;
 #[path = "flow/harness.rs"]
