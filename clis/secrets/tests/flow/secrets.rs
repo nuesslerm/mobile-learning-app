@@ -22,6 +22,7 @@ const READ: &str = EDIT;
 /// is logged with its token, and a write fails with STUB_WRITE_FAIL.
 const STUB_BWS: &str = r#"echo "$* | token=$BWS_ACCESS_TOKEN url=$BWS_SERVER_URL" >> "$STUB_DIR/bws.log"
 if [ "$1 $2" = "secret list" ]; then
+  if [ -n "$STUB_FAIL_ONCE" ] && [ ! -f "$STUB_DIR/failed-once" ]; then touch "$STUB_DIR/failed-once"; echo "Received error message from server: [500 Internal Server Error]" >&2; exit 1; fi
   [ -n "$STUB_VAULT_DOWN" ] && { echo "[503 Service Unavailable]" >&2; exit 1; }
   f="$STUB_DIR/list-$BWS_ACCESS_TOKEN.json"
   if [ -f "$f" ]; then cat "$f"; else echo "[401 Unauthorized]" >&2; exit 1; fi
@@ -118,6 +119,20 @@ impl Vault {
 
 fn listed(token: &str) -> String {
     format!("secret list --output json | token={token} url=")
+}
+
+#[test]
+fn given_the_vault_answers_500_once_when_a_secret_is_read_then_the_listing_is_retried_and_answers() {
+    // Given a vault that fails the first listing with a 500 and holds the key
+    let v = Vault::new();
+    v.holds(READ, json!([groq()]));
+
+    // When the key is read
+    let got = v.read(&["get", GROQ], &[("STUB_FAIL_ONCE", "1")]);
+
+    // Then the value is printed after a second listing
+    assert_eq!((got.exit_code, got.stdout.as_str()), (0, "gsk_abcdefghijkl\n"), "{}", got.stderr);
+    assert_eq!(v.calls(), [listed(READ), listed(READ)]);
 }
 
 #[test]
