@@ -22,6 +22,7 @@ tags: [ci, pipeline, concurrency, hosted, vm, wf-build, deploy]
 | Test shards | `HOSTED_SHARDS` (default 6) |
 | `wf-build` legs | x64 and arm64 |
 | Image builds | in parallel, `max-parallel: 20` |
+| Deploy legs | one at a time (`max-parallel: 1`): parallel compose pulls on the VM race in containerd's content store (`failed commit on ref ... no such file or directory`) |
 | Device | the SDK emulator on the runner (`WF_ANDROID_PROVIDER=emulator`) |
 
 ## Job order
