@@ -58,7 +58,7 @@ run reads only, and for a dirty tree the paths), `cache.put.dropped` (warn),
 Better Stack source named by BETTERSTACK_METRICS_HOST and BETTERSTACK_METRICS_TOKEN
 (labels as scope, name): ci.cache.requests{kind,result}, ci.cache.step_seconds{kind,verb},
 ci.cache.degraded{kind,reason}, ci.cache.seeded{kind,checked|present}, ci.nx.tasks{stage,outcome}, ci.nx.replay_ratio{stage},
-ci.gate.seeded{stage}, ci.drift.tasks_drifted. Best effort: at most 2 seconds, never
+ci.gate.seeded{stage}, ci.drift.tasks_drifted. Best effort: at most 6 seconds, never
 a failed run; WF_CI_METRICS=off turns them off.
 
 The verbs print one JSON object on stdout, documented under each verb; none

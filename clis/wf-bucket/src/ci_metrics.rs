@@ -1,10 +1,11 @@
 //! The cache layers' structured events and gauges. An event is one logfmt line on stderr (stdout carries a verb's JSON); the
 //! gauges go to the Better Stack source `vm-health-metrics` over the OTLP sink of `clis/telemetry`. Both are best effort: a
-//! missing key, a refusing source or a slow one costs at most `BUDGET` and never fails a run.
+//! missing key, a refusing source or a slow one costs at most `BUDGET` (6 s) and never fails a run.
 //!
 //! A `Reading` has two labels, `scope` and `name`, so a metric's two labels are those two in the order its name documents
 //! (`ci.cache.requests{kind,result}` is scope=kind, name=result); a metric with one label puts `ALL` in `name`.
 use blob_cache::domain::Stats;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc};
 use std::time::{Duration, SystemTime};
 use telemetry::{Destination, MetricsSink, OtlpMetricsSink, Reading};
@@ -12,7 +13,8 @@ use wf_kit::logfmt;
 
 const SOURCE: &str = "ci-cache";
 const SERVICE: &str = "wf-ci";
-const BUDGET: Duration = Duration::from_secs(2);
+// Vault resolution, the TLS handshake and the export each cost seconds on a cold runner; 2 s dropped the batch every time.
+const BUDGET: Duration = Duration::from_secs(6);
 const HOST: &str = "BETTERSTACK_METRICS_HOST";
 const TOKEN: &str = "BETTERSTACK_METRICS_TOKEN";
 
@@ -90,17 +92,26 @@ fn resolve() -> Option<Arc<dyn MetricsSink>> {
     Some(Arc::new(OtlpMetricsSink::new(destination, SERVICE)))
 }
 
-/// Resolution and the request both run on a thread of their own, so the run waits at most `budget` for either.
+/// Resolution and the request both run on a thread of their own, so the run waits at most `budget` for either; a timeout names the
+/// stage it was in, so a slow vault is told apart from a slow source.
 fn send_via(readings: Vec<Reading>, sink: impl FnOnce() -> Option<Arc<dyn MetricsSink>> + Send + 'static, budget: Duration) {
     let (done, answer) = mpsc::channel();
     let count = readings.len();
+    let resolved = Arc::new(AtomicBool::new(false));
+    let flag = resolved.clone();
     std::thread::spawn(move || {
-        let sent = sink().map(|sink| sink.record(&readings));
+        let sent = sink().map(|sink| {
+            flag.store(true, Ordering::SeqCst);
+            sink.record(&readings)
+        });
         let _ = done.send(sent);
     });
     match answer.recv_timeout(budget) {
         Ok(Some(Ok(()))) | Ok(None) => {}
         Ok(Some(Err(error))) => event("warn", "ci.metrics.refused", &[("readings", count.to_string()), ("error", error)]),
-        Err(_) => event("warn", "ci.metrics.timeout", &[("readings", count.to_string()), ("budget_ms", budget.as_millis().to_string())]),
+        Err(_) => {
+            let stage = if resolved.load(Ordering::SeqCst) { "send" } else { "resolve" };
+            event("warn", "ci.metrics.timeout", &[("readings", count.to_string()), ("budget_ms", budget.as_millis().to_string()), ("stage", stage.to_string())]);
+        }
     }
 }

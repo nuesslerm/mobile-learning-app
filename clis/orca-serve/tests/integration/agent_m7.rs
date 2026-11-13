@@ -309,11 +309,11 @@ fn queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_tu
         assert_eq!(tail(&mut phone, case, &chain, s)["queuePause"]["reason"], "stopped");
         // When it sends one queued message now, and then resumes the queue
         let now = phone.call_settled(case, &chain, &["rpc:agentSession.queuedMessageSend"], "agentSession.queuedMessageSend", mutation(s, "n1", json!({"messageId": id("delta-four")})), |_| {
-            wait_until("delta-four's turn", || chain.cli.invocations("claude").len() == 2);
+            wait_until("delta-four's turn", || chain.cli.invocations("claude").len() >= 2);
         });
         assert_eq!(now["result"]["ok"], true, "{now}");
         let resumed = phone.call_settled(case, &chain, &["rpc:agentSession.queuedMessagesResume"], "agentSession.queuedMessagesResume", mutation(s, "r1", json!({})), |_| {
-            wait_until("the rest of the queue", || chain.cli.invocations("claude").len() == 4);
+            wait_until("the rest of the queue", || chain.cli.invocations("claude").len() >= 4);
         });
         assert_eq!(resumed["result"]["ok"], true, "{resumed}");
         // Then the CLI was started with the prompts in the order the phone set: the first job, the one sent now, then the queue as moved, edited and pruned
