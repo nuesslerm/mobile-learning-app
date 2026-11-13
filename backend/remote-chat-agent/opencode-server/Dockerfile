@@ -67,3 +67,4 @@ COPY backend/remote-chat-agent/opencode-server/docker-entrypoint.sh /usr/local/b
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["opencode", "serve", "--hostname", "0.0.0.0", "--port", "4096"]
+# 13 Nov: touched on purpose to prove a gradual redeploy: only this image changes, so only the opencode sidecar is recreated.
