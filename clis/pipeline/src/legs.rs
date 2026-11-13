@@ -37,6 +37,10 @@ const DEPLOY_LEGS: &[Leg] = &[
 ];
 
 /// The mobile app's pnpm package: what the EAS planner counts changes against (no service runs it).
+/// The agent workspace: no package of its own, planned from the hash of its image inputs like vm-ops-api, and deployed last so a redeploy that restarts it
+/// (which ends the exec jobs running in it) comes after every other leg.
+const AGENT_SHELL: &str = "agent-shell";
+
 pub const APP_PACKAGE: &str = "mla-tamagui";
 
 /* ---------- plan ---------- */
@@ -188,7 +192,7 @@ pub(crate) fn expected_revisions(packages: &[&str], sha: &str, dir: &Path) -> Ve
 /// EAS Update was published from and the backend hosts it dials that have moved: `deploy` (its `ship_eas`) holds the pointer, which this crate cannot reach.
 pub fn plan(force: bool, also: &[String], since: Option<&str>, github_output: bool, latest_update: impl FnOnce() -> Result<(String, Vec<String>), String>) -> Result<Option<i32>, String> {
     let (legs, update): (Vec<(&str, Vec<String>)>, Vec<String>) = if force {
-        (std::iter::once(VM_OPS_API).chain(DEPLOY_LEGS.iter().map(|l| l.app)).map(|a| (a, vec!["--force".to_string()])).collect(), vec!["--force".to_string()])
+        (std::iter::once(VM_OPS_API).chain(DEPLOY_LEGS.iter().map(|l| l.app)).chain(std::iter::once(AGENT_SHELL)).map(|a| (a, vec!["--force".to_string()])).collect(), vec!["--force".to_string()])
     } else {
         let mut reasons = Reasons { affected: Vec::new(), dir: None };
         let running = |app: &str| since.map(str::to_string).or_else(|| running_commit(app));
@@ -199,6 +203,10 @@ pub fn plan(force: bool, also: &[String], since: Option<&str>, github_output: bo
                 legs.push((leg.app, why));
             }
         }
+        let why = image_changes(None, running(AGENT_SHELL), AGENT_SHELL)?;
+        if !why.is_empty() {
+            legs.push((AGENT_SHELL, why));
+        }
         // first: the other legs deploy through it, so a change to how it deploys reaches them in the same run
         let vm_ops = since.map(str::to_string).or_else(|| running_commit(VM_OPS_API));
         // the watchdog and the Rust port are its images; its compose project is part of the leg's hash
@@ -208,7 +216,7 @@ pub fn plan(force: bool, also: &[String], since: Option<&str>, github_output: bo
         }
         // `--also`: named services deploy whatever changed
         for name in also {
-            let Some(app) = std::iter::once(VM_OPS_API).chain(DEPLOY_LEGS.iter().map(|l| l.app)).find(|a| a == name) else { continue };
+            let Some(app) = std::iter::once(VM_OPS_API).chain(DEPLOY_LEGS.iter().map(|l| l.app)).chain(std::iter::once(AGENT_SHELL)).find(|a| a == name) else { continue };
             if !legs.iter().any(|(a, _)| *a == app) {
                 let leg = (app, vec!["forced".to_string()]);
                 if app == VM_OPS_API { legs.insert(0, leg) } else { legs.push(leg) }
