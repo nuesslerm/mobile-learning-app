@@ -29,8 +29,8 @@ jobs:
       runner: '["self-hosted","vm"]'
       deploy_runner: '["self-hosted","vm"]'
       shards: 1
-      # exactly one flavor ships a push (the repository variable SHIP_FLAVOR, vm unless it says hosted); the pipeline is the same on both
-      ship: ${{ vars.SHIP_FLAVOR != 'hosted' }}
+      # the self-hosted flavor ships nothing any more: the GitHub-hosted run (ci-hosted.yml) ships, until this workflow is deleted
+      ship: false
       deploy: true
       e2e: true
     secrets:
