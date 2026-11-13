@@ -1,6 +1,9 @@
 Usage: wf ship [options] [service...]
 
 Redeploy a service through vm-ops-api at a tag CI pushed. Nothing here builds an image: CI builds and pushes every image of a push to dev on a GitHub-hosted runner (`wf ship build <app> --tag <tag>`, see `wf ship build --help`), and `wf ship <service> --ref <sha> --redeploy-only --tag sha-<8>` redeploys what it pushed. A hand build is docker buildx in agent-shell's own docker, never into a production tag.
+For an app that runs several images (remote-chat-agent, agent-shell) a redeploy is gradual: it asks the running containers which commit each service's image was built
+from, hashes each image at that commit and at --ref, and sends `tags=service:tag` for the services whose image changed only (possibly none), so the others keep the tag
+they run and are not recreated. A commit that cannot be read or hashed moves the service; --recreate-all and --wipe-state move every service to --tag.
 A redeploy prints the seconds of each of its steps (`phase <name>: <n> s`): with --smoke, a smoke test (the pushed image run once as a throwaway container on a spare port beside the live one; a failure prints that container's log and swaps nothing) and a tailnet probe; the pull and swap; and, with --wait-serving, one bounded /health check.
 `wf ship vm-ops-api --ref <commit> --redeploy-only --tag <tag>` (--ref must name a commit) asks POST /redeploy?ref=<sha>&tag=<tag> to prove the image and swap vm-ops-api itself in; a swap that fails is recorded in /redeploy/status and --wait-serving reports it at once.
 --wait-serving: the deploy is done only when the service serves the --ref commit (its /health), within 2 minutes; a service with no /health (vnc-auth-session, leetcode-auth-cookie-capture) is confirmed by the sha tag of its running image. CI's deploy legs use it.
