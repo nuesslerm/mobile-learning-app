@@ -15,7 +15,7 @@ tags: [ci, pipeline, concurrency, hosted, vm, wf-build, deploy]
 
 # The CI pipeline
 
-`.github/workflows/pipeline.yml` is one reusable workflow, called by `ci-hosted.yml` ("CI (GitHub-hosted)": ships, deploys, runs the device suites) on every push to `dev` and by `cold-ci.yml` weekly. It runs on GitHub-hosted runners, up to 20 jobs at once (free plan limit). The self-hosted flavor (`deploy.yml`, the VM's own runner, one job at a time) was deleted on 2026-11-13; the VM runner container still serves `vm-state-backup.yml`, `record-references.yml` and `parity.yml`.
+`.github/workflows/pipeline.yml` is one reusable workflow, called by `ci-hosted.yml` ("CI (GitHub-hosted)": ships, deploys, runs the device suites) on every push to `dev` and by `cold-ci.yml` weekly. It runs on GitHub-hosted runners, up to 20 jobs at once (free plan limit). The self-hosted flavor (`deploy.yml`, the VM's own runner, one job at a time) was deleted on 2026-11-13; the VM runner container still serves `vm-state-backup.yml`.
 
 | | |
 | --- | --- |

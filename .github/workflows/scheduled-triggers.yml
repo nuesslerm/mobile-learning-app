@@ -70,7 +70,7 @@ jobs:
             if anywhere arm64; then start hosted-minutes.yml '{"runner":"ubuntu-24.04-arm"}'; else start hosted-minutes.yml; fi
           fi
           ! atstart '[hosted-tailnet]' || start hosted-tailnet.yml
-          if online '\[record ' || online '\[replay '; then start record-references.yml; fi
+          if online '\[record ' || online '\[replay '; then start mimic-record.yml; fi
           ! anywhere '[gem-sync' || start repomix-gemini-context.yml
           ! online '\[track ' || start track-contracts.yml
           ! anywhere '[vm-state-backup]' || start vm-state-backup.yml

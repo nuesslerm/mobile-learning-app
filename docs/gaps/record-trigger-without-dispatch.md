@@ -2,7 +2,7 @@
 status: open
 area: ci
 paths:
-  - ".github/workflows/record-references.yml"
+  - ".github/workflows/mimic-record.yml"
   - "clis/mimic/src/marker.rs"
   - "clis/mimic/src/job_verb.rs"
 opened: 2026-11-07
@@ -15,7 +15,7 @@ links: []
 
 Agent sessions in this repo reach GitHub through an egress proxy that answers 403 to `workflow_dispatch` and to the Actions API (listing runs, downloading an artifact), so a dispatched
 capture could be started and read only by a human. The same constraint shaped the Gem sync: an EMPTY commit to `dev` whose message carries a marker is a plain `git push`, which the proxy
-allows, and `deploy.yml` ignores it (its `paths` filter needs a changed file). `record-references.yml` follows that pattern (`[record <set>...]`, `[replay <set>...]`, parsed by `wf mimic trigger`).
+allows, and `deploy.yml` ignores it (its `paths` filter needs a changed file). `mimic-record.yml` follows that pattern (`[record <set>...]`, `[replay <set>...]`, parsed by `wf mimic trigger`).
 For the same reason the cassette set also travels through the verification-artifacts bucket (`wf mimic publish` / `fetch`, plain HTTPS), with the Actions artifact as the human-facing copy.
 
 ## What has not been seen

@@ -2,7 +2,7 @@ name: Track contracts
 
 # Follows the real T3 and Orca servers the phone apps are conformed to. For each app the marker names, `wf parity track plan` compares the pin
 # (tooling/t3-conformance/t3-pin.json, tooling/orca-conformance/orca-pin.json) with the newest release (npm `t3`; the newest GitHub release of
-# stablyai/orca). An app that is not behind is done. For an app that is, the legs of the record machinery of record-references.yml record each of
+# stablyai/orca). An app that is not behind is done. For an app that is, the legs of the record machinery of mimic-record.yml record each of
 # its cassette sets against the newest release (the pin is bumped in the runner's checkout only, nothing is committed), resumable in chunks, and
 # replay the new set against our candidate; the last job rebuilds the method lists and coverage tables from the new source and publishes the
 # drift report with the new contracts as one artifact and as a run bundle (`wf test publish`, verification/test-runs/<runId>/).

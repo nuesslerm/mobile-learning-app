@@ -1,4 +1,4 @@
-name: Record references
+name: Mimic record
 
 # Long reference-capture jobs on GitHub-hosted runners: record a pinned reference server or CLI into a cassette set, or replay a recorded set against its
 # candidates and publish the diff. They run one set at a time, niced, on a runner that never joins the tailnet (the reference's code reaches nothing of ours), and open no
