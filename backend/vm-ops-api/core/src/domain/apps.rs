@@ -111,6 +111,16 @@ pub fn pinned_services(app: &str) -> &'static [&'static str] {
     }
 }
 
+/// The compose services of an app that each run an image of their own, with the variable that names that image's tag (the compose file reads
+/// it as `${VAR:-${IMAGE_TAG:-latest}}`). A gradual redeploy gives each its own tag, so a service whose tag did not change is not recreated.
+pub fn service_tag_vars(app: &str) -> &'static [(&'static str, &'static str)] {
+    match app {
+        "remote-chat-agent" => &[("agent", "AGENT_IMAGE_TAG"), ("opencode", "OPENCODE_IMAGE_TAG"), ("stt", "STT_IMAGE_TAG")],
+        "agent-shell" => &[("app", "APP_IMAGE_TAG"), ("agent-sessions", "SESSIONS_IMAGE_TAG"), ("agent-dind", "DIND_IMAGE_TAG")],
+        _ => &[],
+    }
+}
+
 /// How a redeploy proves a built image before it swaps anything in: a throwaway container of `service` runs on `SMOKE_PORT` in the
 /// netns of the running one, and `probe` (a command inside it, with `{port}` the spare port) must pass. The apps without an HTTP
 /// health have none.

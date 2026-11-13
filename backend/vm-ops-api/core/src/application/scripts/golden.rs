@@ -23,12 +23,12 @@ fn last(args: Vec<String>) -> String {
 }
 
 fn app_redeploy() -> Vec<String> {
-    let request = AppRedeploy { app: "remote-chat-agent", host_dir: "/home/ubuntu/rca", compose_file: "docker-compose.prod.yml", tag: "t1", reference: "dev", wipe_state: false, recreate_all: false };
+    let request = AppRedeploy { app: "remote-chat-agent", host_dir: "/home/ubuntu/rca", compose_file: "docker-compose.prod.yml", tag: "t1", reference: "dev", wipe_state: false, recreate_all: false, service_tags: &[] };
     app_redeploy_sibling_args(&env(), &request)
 }
 
 fn app_smoke() -> Vec<String> {
-    let request = AppRedeploy { app: "leetcode-auth-cookie-capture", host_dir: "/home/ubuntu/leetcode-auth-cookie-capture", compose_file: "docker-compose.capture.yml", tag: "t1", reference: "dev", wipe_state: false, recreate_all: false };
+    let request = AppRedeploy { app: "leetcode-auth-cookie-capture", host_dir: "/home/ubuntu/leetcode-auth-cookie-capture", compose_file: "docker-compose.capture.yml", tag: "t1", reference: "dev", wipe_state: false, recreate_all: false, service_tags: &[] };
     app_smoke_sibling_args(&env(), &request).expect("an app with a smoke test")
 }
 

@@ -173,7 +173,7 @@ services:
     logging: *logging
 
   agent-dind:
-    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${IMAGE_TAG:-latest}
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${DIND_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: agent-shell-dind
     network_mode: service:tailscale
     # The ONLY service that runs the nested dockerd (Dockerfile's own
@@ -227,7 +227,7 @@ services:
     volumes: [droid-socket:/run/dind, droid-data:/var/lib/docker]
 
   agent-sessions:
-    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${IMAGE_TAG:-latest}
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${SESSIONS_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: agent-shell-sessions
     network_mode: service:tailscale
     environment:
@@ -252,7 +252,7 @@ services:
     logging: *logging
 
   app:
-    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${IMAGE_TAG:-latest}
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${APP_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: agent-shell
     # Agent sessions run their builds, recordings and tests here. Under contention the cores go by share: the other containers have 1024, so 128
     # keeps agent jobs below the services (6 Nov: an agent's VM jobs held 120 percent of the 200 for 80 minutes); an idle VM still lets it use every core.

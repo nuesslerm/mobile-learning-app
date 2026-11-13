@@ -294,6 +294,28 @@ case!(redeploy_wipes_state_recreates_all_or_takes_the_narrow_path_by_app, ["POST
     assert!(scripts[4].contains("up -d --no-deps agent") && !scripts[4].contains(" down "), "{}", scripts[4]);
 });
 
+case!(redeploy_with_tags_names_the_changed_service_and_refuses_tags_the_app_does_not_fit, ["POST /services/:app/redeploy"], {
+    // Given an app sibling that exits 0
+    let svc = redeploy_world("", "", 0).start();
+
+    // When remote-chat-agent is redeployed with the tag of its stt service only, as wf ship sends it for an app whose other images did not change
+    let r = post_empty(&svc, &redeploy("remote-chat-agent", "?tag=sha-new00001&tags=stt:sha-new00001"));
+
+    // Then it is 200, and its script exports the stt tag and settles the others from their running containers
+    assert_eq!(r.status, 200, "{}", r.body);
+    let script = siblings(&svc)[1].last().cloned().unwrap_or_default();
+    assert!(script.contains("export STT_IMAGE_TAG='sha-new00001'") && script.contains("ps -q agent") && script.contains("ps -q opencode"), "{script}");
+
+    // When the tags name a service the app has no image for, or a tag that is not one
+    let calls = svc.world().docker_calls().len();
+    let unknown = post_empty(&svc, &redeploy("leetcode-backend", "?tags=app:sha-new00001"));
+    let bad = post_empty(&svc, &redeploy("remote-chat-agent", "?tags=stt:-bad"));
+
+    // Then both are 400 and no sibling ran
+    assert_eq!((unknown.status, bad.status), (400, 400), "{} {}", unknown.body, bad.body);
+    assert_eq!(svc.world().docker_calls().len(), calls);
+});
+
 case!(redeploy_whose_app_sibling_exits_1_is_502_with_history_failed, ["POST /services/:app/redeploy"], {
     // Given an app sibling that prints its progress, fails to pull and exits 1
     let err = "Error response from daemon: manifest for ns/leetcode-backend:sha-89abcde not found\n";

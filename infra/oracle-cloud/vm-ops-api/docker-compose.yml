@@ -49,7 +49,7 @@ services:
   # (health, reads, redeploy of a pushed tag; its own seed); the shared netns puts both on vm-ops-api-main and nothing is
   # published, so infra/tailscale/policy.hujson decides who reaches which.
   ops-api:
-    image: ${IMAGE_NAMESPACE:-nuesslerm}/vm-ops-api-rs:${IMAGE_TAG:-latest}
+    image: ${IMAGE_NAMESPACE:-nuesslerm}/vm-ops-api-rs:${OPS_API_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     restart: unless-stopped
     network_mode: service:tailscale
     environment:
@@ -93,7 +93,7 @@ services:
 
   # Own container so a broken ops-api never takes the recreate loop down with it.
   watchdog:
-    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/watchdog:${IMAGE_TAG:-latest}
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/watchdog:${WATCHDOG_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: watchdog
     restart: unless-stopped
     environment:

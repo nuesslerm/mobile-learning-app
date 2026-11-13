@@ -47,6 +47,13 @@ impl RedeployEnv {
     }
 }
 
+/// One service of a gradual redeploy: the tag its image runs after it, none when the service keeps the tag it runs now.
+pub struct ServiceTag {
+    pub service: &'static str,
+    pub var: &'static str,
+    pub tag: Option<String>,
+}
+
 /// An app redeploy, validated.
 pub struct AppRedeploy<'a> {
     pub app: &'a str,
@@ -56,6 +63,8 @@ pub struct AppRedeploy<'a> {
     pub reference: &'a str,
     pub wipe_state: bool,
     pub recreate_all: bool,
+    /// Empty for a redeploy that moves every service to `tag`; else one entry per service that runs an image of its own.
+    pub service_tags: &'a [ServiceTag],
 }
 
 /// One line of the redeploy history.
@@ -108,9 +117,27 @@ fn sync_env_lines(dir: &str, for_app: &str, host_label: &str, local_dir: &str) -
 }
 
 /// A watchdog recreate reads the project's .env, so the running tag goes in it, through a temp file that a failure removes.
-/// Compose takes the last of two IMAGE_TAG lines, so the pin wins over an `.env.defaults` default.
-fn pin_image_tag(dir: &str, tag: &str) -> String {
-    format!("if cp -p {dir}/.env {dir}/.env.tmp && echo \"IMAGE_TAG={tag}\" >> {dir}/.env.tmp && mv -f {dir}/.env.tmp {dir}/.env; then :; else rm -f {dir}/.env.tmp; false; fi")
+/// Compose takes the last of two IMAGE_TAG lines, so the pin wins over an `.env.defaults` default. A gradual redeploy pins each service's
+/// own tag too, the value the script settled on (`export`ed before the pull), so a recreate of one service keeps the others' tags.
+fn pin_image_tag(dir: &str, tag: &str, service_tags: &[ServiceTag]) -> String {
+    let services: String = service_tags.iter().map(|s| format!(" && {{ [ -z \"${{{var}:-}}\" ] || echo \"{var}=${{{var}}}\" >> {dir}/.env.tmp; }}", var = s.var)).collect();
+    format!("if cp -p {dir}/.env {dir}/.env.tmp && echo \"IMAGE_TAG={tag}\" >> {dir}/.env.tmp{services} && mv -f {dir}/.env.tmp {dir}/.env; then :; else rm -f {dir}/.env.tmp; false; fi")
+}
+
+/// What a gradual redeploy exports before the pull: the tag a request names for a service, or the tag its running container has (none
+/// when it is not running: the service then takes `IMAGE_TAG`). Compose recreates a service only when its resolved image changed.
+fn service_tag_lines(request: &AppRedeploy) -> Vec<String> {
+    request
+        .service_tags
+        .iter()
+        .map(|s| match &s.tag {
+            Some(tag) => format!("export {}={}", s.var, shell_quote(tag)),
+            None => format!(
+                "id=$(docker compose -f {} ps -q {} 2>/dev/null | head -n 1); if [ -n \"$id\" ]; then img=$(docker inspect -f '{{{{.Config.Image}}}}' \"$id\" 2>/dev/null || true); [ -z \"${{img##*:}}\" ] || [ \"${{img##*:}}\" = \"$img\" ] || export {}=\"${{img##*:}}\"; fi",
+                request.compose_file, s.service, s.var
+            ),
+        })
+        .collect()
 }
 
 /// Every sibling mounts this directory, so a flock on it is one lock for the whole host: pulls share it, a prune takes it alone.
@@ -186,6 +213,7 @@ fn app_front_lines(env: &RedeployEnv, request: &AppRedeploy) -> Vec<String> {
     lines.push(format!("if [ ! -f {host_dir}/.env.local ] && [ -f /home/ubuntu/vm-ops-api/.env.local ]; then cp /home/ubuntu/vm-ops-api/.env.local {host_dir}/.env.local; fi"));
     lines.extend(sync_env_lines(host_dir, request.app, &env.host_label, host_dir));
     lines.push(stamp("env synced"));
+    lines.extend(service_tag_lines(request));
     lines.push(compose_pull_command(request));
     lines.push(stamp("pulled"));
     lines
@@ -211,7 +239,7 @@ pub fn app_redeploy_sibling_args(env: &RedeployEnv, request: &AppRedeploy) -> Ve
     let host_dir = request.host_dir;
     let mut lines = app_front_lines(env, request);
     lines.push(compose_up_command(request));
-    lines.push(pin_image_tag(host_dir, request.tag));
+    lines.push(pin_image_tag(host_dir, request.tag, request.service_tags));
     lines.push(stamp("compose done"));
     // Every deploy leaves the previous tag's images unused, its build layers cached and its smoke containers stopped; without this the
     // host disk filled up (95%). Only above 70% used, because the prune itself takes tens of seconds that the redeploy would otherwise
@@ -292,7 +320,7 @@ pub fn self_redeploy_sibling_args(env: &RedeployEnv, tag: &str, reference: &str,
     swapped.extend(SWAP_FILES.iter().map(|file| format!("mv -f {stage}/{file} {vm_dir}/{file}")));
     swapped.push(format!("rm -f {marker}"));
     swapped.push(format!("( cd {vm_dir} && docker compose up -d --wait --wait-timeout {UP_WAIT_SECONDS} )"));
-    swapped.push(pin_image_tag(vm_dir, tag));
+    swapped.push(pin_image_tag(vm_dir, tag, &[]));
     let swap_paths = SWAP_FILES.iter().map(|file| format!("{vm_dir}/{file}")).collect::<Vec<_>>().join(" ");
     let keeps = SWAP_FILES.iter().map(|file| format!("keep {vm_dir}/{file}")).collect::<Vec<_>>().join(" && ");
     // Restores the stack that was running: its tag when this service knows it, else the old .env's pin or `latest`.
