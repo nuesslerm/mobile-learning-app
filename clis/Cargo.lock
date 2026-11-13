@@ -697,7 +697,6 @@ dependencies = [
  "blob-cache",
  "cli-http",
  "hex",
- "libc",
  "pipeline",
  "rca-core",
  "regex",

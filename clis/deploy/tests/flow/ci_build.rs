@@ -100,11 +100,10 @@ fn a_failed_push_stops_the_build_without_leaking_the_credential_and_a_bad_comman
     assert!(calls(&s).iter().all(|c| !c.contains("opencode-server")));
     assert!(!r.stdout.contains(TOKEN) && !r.stderr.contains(TOKEN));
 
-    // Given no credential, an unknown app, an app with no image or an unsafe tag, Then it fails before any docker call
+    // Given no credential, an unknown app or an unsafe tag, Then it fails before any docker call
     for (args, message) in [
         (vec!["ship", "build", "remote-chat-agent", "--tag", "t1"], "DOCKERHUB_TOKEN is not set"),
         (vec!["ship", "build", "nope", "--tag", "t1"], "nope builds no image"),
-        (vec!["ship", "build", "ci-runner", "--tag", "t1"], "ci-runner builds no image"),
         (vec!["ship", "build", "reporting-service", "--tag", "a b"], "unsafe tag"),
     ] {
         let s = Ship::new();
@@ -135,41 +134,16 @@ fn with_cache_push_each_built_image_exports_its_layer_cache_to_the_registry_ref_
 
 #[test]
 fn the_images_flag_names_what_an_app_builds_without_a_credential_or_a_docker_call() {
-    // Given no credential and a docker stub, When an app with images and an app with none are asked
+    // Given no credential and a docker stub, When an app with images is asked
     let s = Ship::new();
     fake_docker(&s);
     let with = s.wf(&["ship", "build", "remote-chat-agent", "--images"], &[]);
-    let none = s.wf(&["ship", "build", "ci-runner", "--images"], &[]);
 
-    // Then each answers one JSON line with its images (empty for the imageless app), and docker was never called
+    // Then it answers one JSON line with its images, and docker was never called
     let names = |r: &RunResult| serde_json::from_str::<serde_json::Value>(r.stdout.trim()).unwrap()["images"].clone();
-    assert_eq!((with.exit_code, none.exit_code), (0, 0), "{}{}", with.stderr, none.stderr);
+    assert_eq!(with.exit_code, 0, "{}", with.stderr);
     assert_eq!(names(&with), serde_json::json!(["remote-chat-agent", "remote-chat-agent-stt", "opencode-server"]));
-    assert_eq!(names(&none), serde_json::json!([]));
     assert!(calls(&s).is_empty());
-}
-
-#[test]
-fn a_tls_daemon_named_by_the_environment_gets_a_docker_context_the_builder_is_created_on_and_a_plain_one_gets_none() {
-    // Given a stub docker and an app to build
-    let s = Ship::new();
-    fake_docker(&s);
-
-    // When it is built against a TLS daemon (DOCKER_TLS_VERIFY and DOCKER_CERT_PATH, as the runner has for its builder sidecar)
-    let r = build(&s, "leetcode-backend", &[("DOCKER_TLS_VERIFY", "1"), ("DOCKER_CERT_PATH", "/certs/client")]);
-
-    // Then a context carrying the TLS files is created and the buildx builder is created on it
-    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
-    let log = calls(&s);
-    assert!(log.iter().any(|l| l == "context create ci-sidecar --docker host=tcp://127.0.0.1:2376,ca=/certs/client/ca.pem,cert=/certs/client/cert.pem,key=/certs/client/key.pem"), "{log:?}");
-    assert!(log.iter().any(|l| l.starts_with("buildx create --name ci-builder") && l.ends_with(" ci-sidecar")), "{log:?}");
-
-    // And a plain daemon needs no context
-    let plain = Ship::new();
-    fake_docker(&plain);
-    let r = build(&plain, "leetcode-backend", &[]);
-    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
-    assert!(calls(&plain).iter().all(|l| !l.starts_with("context ")), "{:?}", calls(&plain));
 }
 
 fn promote(s: &Ship, args: &[&str], env: &[(&str, &str)]) -> RunResult {
@@ -216,7 +190,7 @@ fn a_promotion_without_a_tag_or_a_credential_or_for_an_app_without_images_calls_
     for (args, env_token, message) in [
         (vec!["vm-ops-api"], true, "ship promote needs --tag <tag>"),
         (vec!["vm-ops-api", "--tag", "a b"], true, "unsafe tag"),
-        (vec!["ci-runner", "--tag", "t1"], true, "ci-runner builds no image"),
+        (vec!["nope", "--tag", "t1"], true, "nope builds no image"),
         (vec!["vm-ops-api", "--tag", "t1"], false, "DOCKERHUB_TOKEN is not set"),
     ] {
         let s = Ship::new();

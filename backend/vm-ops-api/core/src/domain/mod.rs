@@ -13,7 +13,6 @@ pub mod js;
 pub mod json_body;
 pub mod provision_ref;
 pub mod request;
-pub mod request_env;
 pub mod run_log;
 pub mod run_meta;
 pub mod state_job;

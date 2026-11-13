@@ -10,8 +10,8 @@ whole Always-Free A1 allowance), running every app. The former `light`/`heavy`
 pair is gone; see `infra/oracle-cloud/README.md`'s "Why one VM".
 The loop: push to `dev`. The deploy leg of each app builds its image (and the sidecar images its
 compose pulls on the same tag, e.g. `remote-chat-agent-stt`) in the CI job
-(`wf ship build <app> --tag sha-<8>` through `.github/actions/build-image`, on the runner's builder
-sidecar, `linux/arm64`) and pushes them to Docker Hub, then runs
+(`wf ship build <app> --tag sha-<8>` through `.github/actions/build-image`, on the GitHub-hosted
+runner, `linux/arm64`) and pushes them to Docker Hub, then runs
 `wf ship --redeploy-only --smoke <app> --ref <sha> --tag sha-<8>`, which calls
 `POST /services/<app>/redeploy?tag=&ref=` on `vm-ops-api` (bearer-token-gated, tailnet-only) to
 pull+restart with the compose file and `.env.defaults` fetched from that ref. Nothing else builds

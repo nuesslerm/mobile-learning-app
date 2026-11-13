@@ -13,7 +13,7 @@ links: []
 
 ## What is broken
 
-The first real run worked (2026-10-27, `repomix-gemini-context.yml` on the VM runner, run 40600211256, 8 minutes): the draft of `ARCHITECTURE.md` came from the rca service on its first attempt with the inputs inline in the prompt (225 s in a sandbox run), the full repomix pack followed (15.6 M characters, 1,257 files), and the bundle was copied over the Drive file `repomix-context.md` in the folder `Gemini Gem context` (read back: 15,603,239 bytes, `ARCHITECTURE.md` first, then the pack). What has not been seen:
+The first real run worked (2026-10-27, `repomix-gemini-context.yml` on the then self-hosted VM runner (it runs hosted now), run 40600211256, 8 minutes): the draft of `ARCHITECTURE.md` came from the rca service on its first attempt with the inputs inline in the prompt (225 s in a sandbox run), the full repomix pack followed (15.6 M characters, 1,257 files), and the bundle was copied over the Drive file `repomix-context.md` in the folder `Gemini Gem context` (read back: 15,603,239 bytes, `ARCHITECTURE.md` first, then the pack). What has not been seen:
 
 - a second run over the same file (the nightly at 03:17 UTC): the file id must stay and the size and modified time must change.
 - the Gem's answers from that one file (the three questions of `gemini-gem-large-doc-grounding`), which need the Gem in the Gemini app.
@@ -32,15 +32,15 @@ Read the file id and `modifiedTime` of `repomix-context.md` after the next night
 ## 2026-10-31 change
 
 - `dev` → `main` (#349, 56f0d54) put the workflow with its `schedule` on `main`, so a scheduled run can now start; none has been seen yet.
-- The manual dispatch is gone. The sync is triggered by an empty commit to `dev` whose message carries `[gem-sync]` (`git commit --allow-empty -m "[gem-sync]" && git push origin dev`); `deploy.yml` now starts only when a push changes a file, so that commit starts no CI run. Not yet seen live: a `[gem-sync]` push that runs the Gem job and no CI run.
+- The manual dispatch is gone. The sync is triggered by an empty commit to `dev` whose message carries `[gem-sync]` (`git commit --allow-empty -m "[gem-sync]" && git push origin dev`); the CI pipeline starts an empty commit only with a `[services:...]` or `[cache:...]` tag, so that commit starts no CI run. Not yet seen live: a `[gem-sync]` push that runs the Gem job and no CI run.
 - The schedule is a test phase (every ten minutes, reusing the cached `ARCHITECTURE.md`), to see runs queue in the `gemini-context` concurrency group and overwrite the same Drive file; it goes back to nightly afterwards.
 - Every upload now reads the destination back and writes `uploaded file id=… size=… modified=…` to the job summary (one file of that name, the bundle's size, modified within 15 minutes), so "the same file id, a newer modified time" is read from the run, not remembered. Tests: 3 unit (verdict and time parsing), the flow tests, and `tests/integration.rs` (the workflow's own environment and sequence over a local folder; Drive itself is proven only by the live runs).
 - Still open: the live runs above, the Gem's answers, `ARCHITECTURE.md` read end to end, the nine orphaned Google Docs.
 
 ## 2026-10-31 live check of the empty-commit trigger
 
-- Empty commit 286e746 (`[gem-sync]`): no `deploy.yml` run started (a path filter needs a changed file), and the Gem run's job was skipped, because the push payload of an empty commit has `added`, `modified` and `removed` as `null`, not `[]`, so the job-level expression over them was false. A `gate` job now counts the files with `jq` (`null` has length 0) and logs `{"added":null,"modified":null,"removed":null}`.
-- Empty commit 123535c (`[gem-sync]`): again no `deploy.yml` run; `gate` and the sync both green (run 41220136392; it queued behind the CI run of the commit before it on the one runner). The sync's flow (5) and integration (5) tests passed, then it drafted `ARCHITECTURE.md`, packed 1,279 files (15,873,496 chars) and uploaded; the read-back wrote `uploaded file id=1eraRTRw… size=15881840 modified=2026-10-31T16:56:06.654Z`. First Drive upload since 29 Oct, so the rca draft and the vault login both worked today.
+- Empty commit 286e746 (`[gem-sync]`): no CI run started, and the Gem run's job was skipped, because the push payload of an empty commit has `added`, `modified` and `removed` as `null`, not `[]`, so the job-level expression over them was false. A `gate` job now counts the files with `jq` (`null` has length 0) and logs `{"added":null,"modified":null,"removed":null}`.
+- Empty commit 123535c (`[gem-sync]`): again no CI run; `gate` and the sync both green (run 41220136392; it queued behind the CI run of the commit before it on the one runner). The sync's flow (5) and integration (5) tests passed, then it drafted `ARCHITECTURE.md`, packed 1,279 files (15,873,496 chars) and uploaded; the read-back wrote `uploaded file id=1eraRTRw… size=15881840 modified=2026-10-31T16:56:06.654Z`. First Drive upload since 29 Oct, so the rca draft and the vault login both worked today.
 - Still not seen: a scheduled run (needs the ten-minute cron on `main`), the same file id on a second run, queued runs in the concurrency group, the Gem's answers.
 
 ## 2026-10-31 evening: GitHub's schedule is hours late here

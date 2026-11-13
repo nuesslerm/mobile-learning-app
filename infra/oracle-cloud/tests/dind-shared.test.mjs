@@ -9,9 +9,9 @@ import { loadCompose } from './compose-load.mjs';
 const dir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const raw = (app) => parse(readFileSync(join(dir, app, 'docker-compose.prod.yml'), 'utf8'), { merge: true });
 const base = parse(readFileSync(join(dir, 'dind.yml'), 'utf8')).services.dind;
-const DAEMONS = [['ci-runner', 'builder'], ['ci-runner', 'droid'], ['agent-shell', 'agent-droid']];
+const DAEMONS = [['agent-shell', 'agent-droid']];
 
-describe('given the docker-in-docker daemons of ci-runner and agent-shell', () => {
+describe('given the docker-in-docker daemon of agent-shell', () => {
   it('when a daemon is declared, then it extends the one definition in dind.yml and repeats none of it', () => {
     for (const [app, name] of DAEMONS) {
       const service = raw(app).services[name];
@@ -40,16 +40,10 @@ describe('given the docker-in-docker daemons of ci-runner and agent-shell', () =
     }
   });
 
-  it('when the Android verbs run, then the runner and the agent-shell tools reach the device through DEVICE_DOCKER_HOST on the droid socket, builds untouched', () => {
-    const runner = raw('ci-runner').services['gh-runner'];
+  it('when the Android verbs run, then the agent-shell tools reach the device through DEVICE_DOCKER_HOST on the droid socket, builds untouched', () => {
     const app = raw('agent-shell').services.app;
-    for (const service of [runner, app]) {
-      assert.equal(service.environment.DEVICE_DOCKER_HOST, 'unix:///run/droid/docker.sock');
-      assert.ok(service.volumes.includes('droid-socket:/run/droid'));
-    }
-    assert.equal(runner.environment.DOCKER_HOST, 'unix:///run/builder/docker.sock');
-    assert.ok(runner.volumes.includes('builder-socket:/run/builder'));
+    assert.equal(app.environment.DEVICE_DOCKER_HOST, 'unix:///run/droid/docker.sock');
+    assert.ok(app.volumes.includes('droid-socket:/run/droid'));
     assert.equal(app.environment.DOCKER_HOST, 'unix:///run/dind/docker.sock');
-    assert.ok(runner.depends_on.includes('droid'));
   });
 });

@@ -13,10 +13,10 @@
 	// Tailscale IP addresses, and subnet ranges.
 	"grants": [
 		// Everything that exists today keeps the access it has: members (the sandbox, phones), the VM nodes and the
-		// vnc spike reach every node on every port, as the old `*` to `*` grant let them. The two CI tags are left out of
+		// vnc spike reach every node on every port, as the old `*` to `*` grant let them. The CI tag is left out of
 		// `src` on purpose: a grant only allows, so a node can be kept out of an allow-all only by not naming its tag.
 		// Admin port 8080 of vm-ops-api and agent-shell (ssh, exec-script) are therefore open to these sources and
-		// closed to the CI tags. Narrowing 8080 to agent-shell alone needs agent-shell to get a tag of its own (every
+		// closed to the CI tag. Narrowing 8080 to agent-shell alone needs agent-shell to get a tag of its own (every
 		// VM node shares the one tagged TS_VM_AUTH_KEY): see docs/plans/ci-scoped-vault-access/plan.md, Phase 3.
 		{
 			"src": ["autogroup:member", "tag:mobile-learning", "tag:vnc-spike"],
@@ -24,12 +24,11 @@
 			"ip":  ["*"],
 		},
 
-		// The VM runner (`tag:ci-self-hosted`, its own tailnet node once it joins with its own auth key) and a GitHub-hosted
-		// runner (`tag:ci-gh-hosted`) reach the VM services only on the ports a CI job calls: vm-ops-api's CI port and its
+		// A GitHub-hosted runner (`tag:ci-gh-hosted`) reaches the VM services only on the ports a CI job calls: vm-ops-api's CI port and its
 		// smoke twin, the health ports of the apps a deploy leg verifies and reporting-service. Not 8080
 		// (vm-ops-api admin: the generic exec-script), not 22 (agent-shell), nothing else. Anything not granted is denied.
 		{
-			"src": ["tag:ci-self-hosted", "tag:ci-gh-hosted"],
+			"src": ["tag:ci-gh-hosted"],
 			"dst": ["tag:mobile-learning"],
 			"ip": [
 				"tcp:8081",  // vm-ops-api CI port
@@ -106,17 +105,11 @@
 	"tagOwners": {
 		"tag:vnc-spike":       ["owner@example.com"],
 		"tag:mobile-learning": ["owner@example.com", "tag:mobile-learning"],
-		"tag:ci-self-hosted":       ["owner@example.com", "tag:mobile-learning"],
-		"tag:ci-gh-hosted":       ["owner@example.com", "tag:mobile-learning"],
+		"tag:ci-gh-hosted":   ["owner@example.com", "tag:mobile-learning"],
 	},
 
 	// Tailscale checks these on every `test` and `apply` of tailscale-acl.yml and refuses a policy that breaks one.
 	"tests": [
-		{
-			"src":    "tag:ci-self-hosted",
-			"accept": ["tag:mobile-learning:8081"],
-			"deny":   ["tag:mobile-learning:8080", "tag:mobile-learning:22", "tag:mobile-learning:5555"],
-		},
 		{
 			"src":    "tag:ci-gh-hosted",
 			"accept": ["tag:mobile-learning:8081"],

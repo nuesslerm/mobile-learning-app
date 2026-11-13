@@ -348,7 +348,7 @@ sandbox, rather than assuming cache export is "free" next to the build.
 The since-deleted `.github/workflows/build-images.yml` used `cache-from`/`cache-to
 type=gha` for its own builds — a different mechanism appropriate for GitHub Actions
 runners, which have persistent access to the GHA cache namespace. Images are now
-built on the VM by `wf ship` in the `deploy.yml` CI pipeline instead. The
+built by `wf ship build` in the hosted CI pipeline (`pipeline.yml`, the `build-image` action) instead. The
 registry-backed `type=registry` cache in `scripts/build-and-push-image.sh` (and, until it was deleted, vm-ops-api's
 `build-and-push.sh`) exists specifically for the
 sandbox/local fallback path, which has no such persistent runner-scoped cache

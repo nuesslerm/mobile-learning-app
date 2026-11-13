@@ -112,7 +112,7 @@ services:
       - /home/ubuntu:/home/ubuntu:ro
 
 volumes:
-  # Written by the runner in the agent-shell project (the clis job of pipeline.yml, installed through vm-ops-api's POST /clis/install); external here so this project never removes it.
+  # Written by the clis job of pipeline.yml, installed through vm-ops-api's POST /clis/install; external here so this project never removes it.
   clis:
     external: true
     name: clis

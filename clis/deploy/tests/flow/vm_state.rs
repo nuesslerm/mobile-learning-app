@@ -599,11 +599,11 @@ fn from_a_caller_an_app_without_state_volumes_is_refused_before_agent_shell_is_a
     vm.replies(&[answers::reply(503, &answers::agent_shell_not_running())]);
 
     // When it backs it up
-    let r = run_wf(&["vm", "state", "backup", "--app", "ci-runner"], &vm.opts().cwd(&repo_root()));
+    let r = run_wf(&["vm", "state", "backup", "--app", "remote-chat-agent"], &vm.opts().cwd(&repo_root()));
 
     // Then the refusal names the app and the VM was never called
     assert_eq!((r.exit_code, line(&r)["ok"].clone()), (1, json!(false)), "{r:?}");
-    assert!(line(&r)["error"].as_str().unwrap().contains("ci-runner declares no stateVolumes"), "{r:?}");
+    assert!(line(&r)["error"].as_str().unwrap().contains("remote-chat-agent declares no stateVolumes"), "{r:?}");
     assert!(vm.requests().is_empty());
 
     // and an agent-shell that is down is an answer with the next step, not a hang

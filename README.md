@@ -1,5 +1,5 @@
 # mobile-learning-app
-> This is a public copy of a private project, exported without history. It holds no secret in git: the credentials CI needs are GitHub Actions secrets of this repository, and the one CI pipeline runs identically on a GitHub-hosted and a self-hosted runner, only from pushes to the protected `dev` branch, never from pull requests (see `SECURITY.md`).
+> This is a public copy of a private project, exported without history. It holds no secret in git: the credentials CI needs are GitHub Actions secrets of this repository, and the one CI pipeline runs on GitHub-hosted runners only, only from pushes to the protected `dev` branch, never from pull requests (see `SECURITY.md`).
 
 Monorepo for the mla-tamagui mobile learning app and the tooling, backend services, and infrastructure around it.
 

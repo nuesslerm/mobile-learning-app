@@ -5,7 +5,6 @@ use crate::application::ports::{Clock, Event, EventLog, SiblingResult, Siblings}
 use crate::application::scripts::redeploy::{append_history_args, app_redeploy_sibling_args, app_smoke_sibling_args, pair_sibling_args, retire_sibling_args, smoke_stop_sibling_args, AppRedeploy, HistoryEntry, RedeployEnv};
 use crate::domain::apps::{compose_file, host_allowed_apps, is_known_app, is_retirable};
 use crate::domain::js::JsString;
-use crate::domain::request_env::{parse_env_body, EnvBodyError};
 use crate::domain::provision_ref::resolve_provision_ref;
 use crate::domain::validators::{is_valid_image_tag, is_valid_provision_ref, is_valid_recreate_mode, is_valid_requester_label};
 use std::sync::Arc;
@@ -24,8 +23,6 @@ pub struct AppRequest<'a> {
     pub recreate: Option<&'a str>,
     pub wipe_state: Option<&'a str>,
     pub requested_by: Option<&'a str>,
-    /// The request body: KEY=VALUE lines for the names the app declares.
-    pub env_body: &'a [u8],
 }
 
 /// Why a request is refused with its own reply, before any effect.
@@ -39,7 +36,6 @@ pub enum Refused {
     InvalidRecreate,
     NotARetiredApp,
     NotAPairableApp,
-    InvalidEnvBody(EnvBodyError),
 }
 
 /// A redeploy that ran, whatever its exit code was.
@@ -94,12 +90,6 @@ struct Checked<'a> {
     compose: &'static str,
     tag: &'a str,
     reference: String,
-    request_env: Vec<(String, String)>,
-}
-
-/// The value of a request env variable never reaches a reply: the sibling's output has it replaced.
-fn scrubbed(text: &str, request_env: &[(String, String)]) -> String {
-    request_env.iter().fold(text.to_string(), |text, (_, value)| text.replace(value.as_str(), "***"))
 }
 
 pub struct Redeploy {
@@ -135,14 +125,13 @@ impl Redeploy {
         if request.recreate.is_some_and(|mode| !is_valid_recreate_mode(mode)) {
             return Err(Refused::InvalidRecreate);
         }
-        let request_env = parse_env_body(app, request.env_body).map_err(Refused::InvalidEnvBody)?;
-        Ok(Checked { compose, tag, reference, request_env })
+        Ok(Checked { compose, tag, reference })
     }
 
     /// Checks the request, and only then runs the history append, the app's sibling and the closing append.
     pub async fn redeploy_app(&self, request: &AppRequest<'_>) -> Result<AppDone, Refused> {
         let app = request.app;
-        let Checked { compose, tag, reference, request_env } = self.checked(request)?;
+        let Checked { compose, tag, reference } = self.checked(request)?;
         let wipe_state = request.wipe_state.is_some_and(|value| matches!(value.to_lowercase().as_str(), "1" | "true"));
         let requested_by = request.requested_by.filter(|label| is_valid_requester_label(label)).unwrap_or(UNKNOWN_REQUESTER);
         let image = self.env.sibling_image();
@@ -156,7 +145,7 @@ impl Redeploy {
         self.log.emit(event(Event::info("redeploy.started")));
         self.siblings.run(&history("redeploy.triggered", None)).await;
         let host_dir = format!("/home/ubuntu/{app}");
-        let script = AppRedeploy { app, host_dir: &host_dir, compose_file: compose, tag, reference: &reference, wipe_state, recreate_all: request.recreate == Some("all"), request_env: &request_env };
+        let script = AppRedeploy { app, host_dir: &host_dir, compose_file: compose, tag, reference: &reference, wipe_state, recreate_all: request.recreate == Some("all") };
         let result = self.siblings.run(&app_redeploy_sibling_args(&self.env, &script)).await;
         let succeeded = result.code == Some(0);
         self.siblings.run(&history(if succeeded { "redeploy.succeeded" } else { "redeploy.failed" }, result.code)).await;
@@ -169,8 +158,8 @@ impl Redeploy {
             wipe_state,
             exit_code: result.code,
             server_script_sha: self.server_script_sha.clone(),
-            stdout: JsString::from(scrubbed(&result.stdout, &request_env).as_str()).last(REDEPLOY_TAIL_UNITS),
-            stderr: JsString::from(scrubbed(&result.stderr, &request_env).as_str()).last(REDEPLOY_TAIL_UNITS),
+            stdout: JsString::from(result.stdout.as_str()).last(REDEPLOY_TAIL_UNITS),
+            stderr: JsString::from(result.stderr.as_str()).last(REDEPLOY_TAIL_UNITS),
         })
     }
 
@@ -178,9 +167,9 @@ impl Redeploy {
     /// a failure removes it and carries its log. An app with no smoke test answers exit 0 and says so.
     pub async fn smoke_app(&self, request: &AppRequest<'_>) -> Result<AppDone, Refused> {
         let app = request.app;
-        let Checked { compose, tag, reference, .. } = self.checked(request)?;
+        let Checked { compose, tag, reference } = self.checked(request)?;
         let host_dir = format!("/home/ubuntu/{app}");
-        let script = AppRedeploy { app, host_dir: &host_dir, compose_file: compose, tag, reference: &reference, wipe_state: false, recreate_all: false, request_env: &[] };
+        let script = AppRedeploy { app, host_dir: &host_dir, compose_file: compose, tag, reference: &reference, wipe_state: false, recreate_all: false };
         let result = match app_smoke_sibling_args(&self.env, &script) {
             Some(args) => self.siblings.run(&args).await,
             None => SiblingResult { code: Some(0), stdout: format!("[smoke] {app} has no smoke test\n"), stderr: String::new() },

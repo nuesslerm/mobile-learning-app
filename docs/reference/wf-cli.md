@@ -1790,9 +1790,6 @@ to finish is not live and valid. Checks run in parallel:
   runner-disk     10 GB free on the checkout's volume
   runner-memory   1 GB available
   github          the token is valid and 200 API calls are left
-  runner-version  the gh-runner image compose pins is not a minor behind GitHub's latest
-                  runner release (a warning only: a runner left behind restarts in a
-                  loop trying to update and its jobs store no log)
 
 Prints one JSON line {ok, failed: [names], checks: [{check, ok, required,
 detail, next}]} and a table in the job summary; exit 1 when a required check
@@ -3783,7 +3780,7 @@ whose message carries a marker; it is the one place the marker is parsed.
 
 Marker grammar (one marker per message, on a line of its own that begins with `[`;
 prose that mentions it mid-line, and a message without one, start nothing):
-  [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on the VM runner
+  [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on a hosted runner
   [replay <set>...]                              replay each set against its candidates, publish the diff
   <set>      a cassette set: its directory name, or its path from the repository root;
              the directory holds a mimic.toml (a bare name that matches two is refused)
@@ -5181,7 +5178,6 @@ wf ship leetcode-backend --ref dev --redeploy-only --tag sha-1a2b3c4d
 Usage: wf ship [options] [service...]
 
 Redeploy a service through vm-ops-api at a tag CI pushed. Nothing here builds an image: CI builds and pushes every image of a push to dev on the runner (`wf ship build <app> --tag <tag>`, see `wf ship build --help`), and `wf ship <service> --ref <sha> --redeploy-only --tag sha-<8>` redeploys what it pushed. A hand build is docker buildx in agent-shell's own docker, never into a production tag.
-`wf ship ci-runner --ref <ref>` mints a one-hour runner registration token with VM_PROVISION_GITHUB_TOKEN and redeploys the runner with it as RUNNER_TOKEN, plus a one-hour single-use tag:ci-self-hosted Tailscale key as TS_CI_RUNNER_AUTH_KEY so the runner node joins with its own tag (when no key can be minted it prints one line and the runner keeps joining with the shared key); the PAT and both values go nowhere else and are never printed. With --wipe-state the runner's volumes (its tailnet identity and registration) are wiped first, which moves an existing node onto the new tag; a key already in TS_CI_RUNNER_AUTH_KEY in the environment is sent as is instead of minted (mint it where the Tailscale credentials are readable).
 A redeploy prints the seconds of each of its steps (`phase <name>: <n> s`): with --smoke, a smoke test (the pushed image run once as a throwaway container on a spare port beside the live one; a failure prints that container's log and swaps nothing) and a tailnet probe; the pull and swap; and, with --wait-serving, one bounded /health check. An app with no image (ci-runner) redeploys at latest.
 `wf ship vm-ops-api --ref <commit> --redeploy-only --tag <tag>` (--ref must name a commit) asks POST /redeploy?ref=<sha>&tag=<tag> to prove the image and swap vm-ops-api itself in; a swap that fails is recorded in /redeploy/status and --wait-serving reports it at once.
 --wait-serving: the deploy is done only when the service serves the --ref commit (its /health), within 2 minutes; a service with no /health (vnc-auth-session, leetcode-auth-cookie-capture) is confirmed by the sha tag of its running image. CI's deploy legs use it.
@@ -5325,8 +5321,8 @@ Usage: wf ship build [options] <app>
 
 Build the images of an app, and the sidecar images its compose pulls on the same
 tag, with the docker CLI against whatever DOCKER_HOST names, and push them to
-docker.io/nuesslerm. In CI that is the builder sidecar of the VM runner, or the
-local daemon of a hosted runner (the build-image action). It never touches the VM
+docker.io/nuesslerm. In CI that is the local daemon of the hosted runner (the
+build-image action). It never touches the VM
 or vm-ops-api. An image whose input hash (nx-<hash>) is already in the registry is
 re-tagged for the commit, never rebuilt. Prints one JSON line:
 {"app","tag","commit","images":[{"image","ref","reused","pushed"}]}.
@@ -6420,7 +6416,7 @@ Options:
 
 #### `wf vm net resolve`
 
-The name each tailnet host answers to now: the base name, else the first of `<name>-1` .. `<name>-5` that resolves (a name drifts to a suffix while a stale record holds it). Resolves through this machine's resolver, so run it where MagicDNS answers (the VM's runner, a machine on the tailnet).
+The name each tailnet host answers to now: the base name, else the first of `<name>-1` .. `<name>-5` that resolves (a name drifts to a suffix while a stale record holds it). Resolves through this machine's resolver, so run it where MagicDNS answers (a VM app, a machine on the tailnet).
 
 Usage: `wf vm net resolve [options] <name...>`
 
@@ -6438,7 +6434,7 @@ Usage: wf vm net resolve [options] <name...>
 The name each tailnet host answers to now: the base name, else the first of
 <name>-1 .. <name>-5 that resolves (a name drifts to a suffix while a stale
 record holds it). Resolves through this machine's resolver, so run it where
-MagicDNS answers (the VM's runner, a machine on the tailnet).
+MagicDNS answers (a VM app, a machine on the tailnet).
 
 Options:
   -h, --help  display help for command
@@ -6520,9 +6516,6 @@ Commands:
                               pipe it)
   ci-port [options]           Check that the CI port answers /health with the
                               CI seed and 404s an admin-only route
-  runner-check [options]      Check, inside a CI job on the self-hosted runner,
-                              that the job has the builder sidecar and nothing
-                              of the host (booleans only)
   redeploy-self [tag]         Have vm-ops-api build its OWN image at the dev
                               head and swap itself in, fire-and-forget (poll
                               `wf vm ops health` afterward to confirm)
@@ -6847,56 +6840,6 @@ Example:
 
 </details>
 
-#### `wf vm ops runner-check`
-
-Read-only. Run inside a CI job on the self-hosted runner, it checks that the job has the builder sidecar and none of the host: (a) DOCKER_HOST is set and `docker info` through it answers with a server name; (b) the host docker socket does not exist; (c) PID 1's environment (names only, read from /proc/1/environ) holds no ACCESS_TOKEN, no VM_PROVISION_GITHUB_TOKEN and no BWS_ variable other than the job token BWS_CI_DEPLOY_ACCESS_TOKEN; (d) a TCP connect to the agent-shell dind address (AGENT_SHELL_DIND_ADDR, host:port) is refused or times out. No such address is configured today, so the probe is skipped and the output says so.
-
-Usage: `wf vm ops runner-check [options]`
-
-Examples:
-
-```sh
-wf vm ops runner-check --json
-```
-
-<details><summary>Full help</summary>
-
-```text
-Usage: wf vm ops runner-check [options]
-
-Read-only. Run inside a CI job on the self-hosted runner, it checks that the job
-has the builder sidecar and none of the host: (a) DOCKER_HOST is set and
-`docker info` through it answers with a server name; (b) the host docker socket
-does not exist; (c) PID 1's environment (names only, read from /proc/1/environ)
-holds no ACCESS_TOKEN, no VM_PROVISION_GITHUB_TOKEN and no BWS_ variable other
-than the job token BWS_CI_DEPLOY_ACCESS_TOKEN;
-(d) a TCP connect to the agent-shell dind address (AGENT_SHELL_DIND_ADDR,
-host:port) is refused or times out. No such address is configured today, so
-the probe is skipped and the output says so.
-
-Options:
-  --proc-root <dir>          Read <dir>/1/environ instead of /proc/1/environ
-                             (tests)
-  --docker-sock-path <path>  Check this path instead of /var/run/docker.sock
-                             (tests)
-  --json                     Accepted; the output is always JSON
-  -h, --help                 display help for command
-
-Output: one JSON line on stdout {ok, docker_host_answers, docker_server,
-host_docker_sock_absent, pid1_env_readable, pid1_env_clean,
-pid1_offending_names?, agent_shell_dind_unreachable, agent_shell_dind_probe?,
-must_not_reach?};
-names and booleans, never a value. Exit 0 when every required check holds
-(an unreadable PID 1 environment fails), else 1.
-
-Environment: DOCKER_HOST, AGENT_SHELL_DIND_ADDR (optional), RUNNER_CHECK_MUST_NOT_REACH (optional: comma-separated host:port a job must not reach, e.g. the admin port of vm-ops-api; each answers unreachable, reachable or unresolved in `must_not_reach`, and anything but unreachable fails, because a name that does not resolve proves nothing).
-
-Example:
-  wf vm ops runner-check --json
-```
-
-</details>
-
 #### `wf vm ops token-permissions`
 
 Asks GitHub, with read-only GETs, what VM_PROVISION_GITHUB_TOKEN may do on nuesslerm/expo-hello-world-app-2: /user (is the token accepted, when does it expire), /repos/{repo} (Metadata and the permissions block), /actions/runners (a 200 proves Administration: read) and /contents/README.md (Contents: read). Nothing is created. Run it on agent-shell, which holds the token; it is the VM-side check that replaced the runner's verify of this key.
@@ -6940,7 +6883,7 @@ Example (from anywhere on the tailnet; the script is one line):
 
 #### `wf vm ops cancel-run`
 
-Cancels CI runs of dev, of both flavors (deploy.yml, self-hosted, and ci-hosted.yml, GitHub-hosted), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token cannot. Where that token is not in the environment (a sandbox), the verb runs itself on agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run (its run number as the Actions tab shows it, or its id); it must exist among the latest 100 runs of dev and not have completed. --queued cancels every run that is still waiting for a runner (queued, waiting, pending, requested) and leaves running ones alone. --all cancels every run that has not finished.
+Cancels CI runs of dev (ci-hosted.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token cannot. Where that token is not in the environment (a sandbox), the verb runs itself on agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run (its run number as the Actions tab shows it, or its id); it must exist among the latest 100 runs of dev and not have completed. --queued cancels every run that is still waiting for a runner (queued, waiting, pending, requested) and leaves running ones alone. --all cancels every run that has not finished.
 
 Usage: `wf vm ops cancel-run (--run <number> | --queued | --all) [options]`
 
@@ -6955,8 +6898,7 @@ wf vm ops cancel-run --all
 ```text
 Usage: wf vm ops cancel-run (--run <number> | --queued | --all) [options]
 
-Cancels CI runs of dev, of both flavors (deploy.yml, self-hosted, and ci-hosted.yml,
-GitHub-hosted), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
+Cancels CI runs of dev (ci-hosted.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
 cannot. Where that token is not in the environment (a sandbox), the verb runs itself on
 agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run
 (its run number as the Actions tab shows it, or its id); it must exist among the

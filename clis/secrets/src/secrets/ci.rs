@@ -40,8 +40,7 @@ pub fn scope_token(scope: Scope) -> Option<String> {
     token_var(scope).and_then(var)
 }
 
-/// A CI run that was given at least one scope token reads by scope; with none it reads as it always did (the VM runner's
-/// container-level token) until that token is removed.
+/// A CI run that was given at least one scope token reads by scope; with none it reads unscoped, as agent-shell and the sandbox do.
 pub fn scoped_mode() -> bool {
     in_ci() && (scope_token(Scope::CiOpen).is_some() || scope_token(Scope::CiDeploy).is_some())
 }

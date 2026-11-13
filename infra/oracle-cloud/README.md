@@ -625,9 +625,9 @@ bearer token (`VM_OPS_API_AUTH_TOKEN`, constant-time-compared in `backend/vm-ops
 same posture as any other public API secured by a credential rather than a
 network boundary.
 
-**How code changes reach the VM without SSH.** CI (`.github/workflows/deploy.yml`)
+**How code changes reach the VM without SSH.** CI (`.github/workflows/pipeline.yml`)
 ships vm-ops-api as its first deploy leg: the job builds and pushes `vm-ops-api-rs` and the
-watchdog as `sha-<short>` on the runner's builder sidecar, then
+watchdog as `sha-<short>` on the hosted runner, then
 `wf ship vm-ops-api --ref <sha> --redeploy-only --tag sha-<short> --wait-serving`
 calls `POST /redeploy?ref=<sha>&tag=sha-<short>`; vm-ops-api (the Rust service, image
 `vm-ops-api-rs`) builds nothing, it proves the pushed image as a throwaway container and

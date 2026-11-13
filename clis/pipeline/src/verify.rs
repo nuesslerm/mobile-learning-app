@@ -606,14 +606,13 @@ pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
 
 /* ---------- the apps a path reaches ---------- */
 
-pub const APP_PATHS: [(&str, &str); 14] = [
+pub const APP_PATHS: [(&str, &str); 13] = [
     ("frontend/mla-tamagui", "mla-tamagui"),
     ("infra/oracle-cloud/vm-ops-api", "vm-ops-api"),
     ("infra/oracle-cloud/watchdog", "vm-ops-api"),
     ("backend/watchdog", "vm-ops-api"),
     ("backend/vm-ops-api", "vm-ops-api"),
     ("infra/oracle-cloud/agent-shell", "agent-shell"),
-    ("infra/oracle-cloud/ci-runner", "ci-runner"),
     ("clis/vnc-auth-capture", "vnc-auth-session"),
     ("backend/leetcode-backend", "leetcode-backend"),
     ("backend/remote-chat-agent", "remote-chat-agent"),

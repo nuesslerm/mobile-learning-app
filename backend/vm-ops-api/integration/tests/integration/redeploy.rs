@@ -9,12 +9,11 @@ use vm_ops_api_integration::{
     assert_golden, case, sibling_image, siblings_json, Reply, Service, ToolRule, World, IMAGE_TAG,
 };
 
-const KNOWN_APPS: [&str; 9] = [
+const KNOWN_APPS: [&str; 8] = [
     "leetcode-backend",
     "remote-chat-agent",
     "leetcode-auth-cookie-capture",
     "agent-shell",
-    "ci-runner",
     "vnc-auth-session",
     "reporting-service",
     "t3-serve",
@@ -119,7 +118,7 @@ case!(redeploy_checks_the_app_then_the_host_then_the_tag_ref_and_recreate, ["POS
     // Given the service on host main
     let svc = world().start();
     // When an unknown app, vm-ops-api, which is no managed app, or metro-runner, which is no app any more, is redeployed
-    // with a bad tag, Then it is 404 with the seven known apps: the app is checked first
+    // with a bad tag, Then it is 404 with the eight known apps: the app is checked first
     for app in ["nope", "vm-ops-api", "metro-runner"] {
         let r = post_empty(&svc, &redeploy(app, "?tag=-bad"));
         expect_json(&r, 404, &json!({ "error": "unknown app", "knownApps": KNOWN_APPS }));
@@ -293,28 +292,6 @@ case!(redeploy_wipes_state_recreates_all_or_takes_the_narrow_path_by_app, ["POST
     assert!(scripts[2].contains(full_down) && !scripts[2].contains(wiped), "{}", scripts[2]);
     assert!(scripts[3].contains("up -d --no-deps app") && !scripts[3].contains(" down "), "{}", scripts[3]);
     assert!(scripts[4].contains("up -d --no-deps agent") && !scripts[4].contains(" down "), "{}", scripts[4]);
-});
-
-case!(redeploy_of_agent_shell_touches_nothing_of_ci_runner_and_ci_runner_redeploys_alone_in_its_own_project, ["POST /services/:app/redeploy"], {
-    // Given an app sibling that exits 0
-    let svc = redeploy_world("", "", 0).start();
-    // When agent-shell is redeployed with the full down and up, and then ci-runner is redeployed
-    for app in ["agent-shell", "ci-runner"] {
-        let r = post_empty(&svc, &redeploy(app, "?recreate=all"));
-        assert_eq!(r.status, 200, "{app}: {}", r.body);
-    }
-    let scripts: Vec<String> = siblings(&svc).iter().skip(1).step_by(3).map(|s| s.last().cloned().unwrap_or_default()).collect();
-    let (shell, runner) = (&scripts[0], &scripts[1]);
-    // Then agent-shell's `down` and `up` run in its own directory, so compose's project is agent-shell and never ci-runner's
-    assert!(shell.contains("cd /home/ubuntu/agent-shell && docker compose -f docker-compose.prod.yml down"), "{shell}");
-    assert!(!shell.contains("ci-runner"), "{shell}");
-    // And ci-runner provisions its own compose file and env group and runs in its own directory, touching nothing of agent-shell
-    assert!(runner.contains("infra/oracle-cloud/ci-runner/docker-compose.prod.yml"), "{runner}");
-    assert!(runner.contains("wf secret sync-env --for ci-runner"), "{runner}");
-    assert!(runner.contains("cd /home/ubuntu/ci-runner && docker compose -f docker-compose.prod.yml down"), "{runner}");
-    assert!(!runner.contains("agent-shell"), "{runner}");
-    // And both create the shared `clis` volume first, so the external declaration in each project resolves
-    assert!(shell.contains("docker volume create clis") && runner.contains("docker volume create clis"));
 });
 
 case!(redeploy_whose_app_sibling_exits_1_is_502_with_history_failed, ["POST /services/:app/redeploy"], {

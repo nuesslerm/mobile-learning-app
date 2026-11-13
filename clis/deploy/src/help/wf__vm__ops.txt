@@ -26,9 +26,6 @@ Commands:
                               pipe it)
   ci-port [options]           Check that the CI port answers /health with the
                               CI seed and 404s an admin-only route
-  runner-check [options]      Check, inside a CI job on the self-hosted runner,
-                              that the job has the builder sidecar and nothing
-                              of the host (booleans only)
   token-permissions [options]  Read-only GitHub probes of what
                               VM_PROVISION_GITHUB_TOKEN may do (run on
                               agent-shell); prints yes/no per probe

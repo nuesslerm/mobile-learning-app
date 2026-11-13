@@ -144,7 +144,7 @@ impl Github {
             .env("GITHUB_API_URL", &self.url())
             .env("GITHUB_SERVER_URL", "https://github.com")
             .env("GITHUB_REF_NAME", "dev")
-            .env("RUNNER_NAME", "vm-main")
+            .env("RUNNER_NAME", "github-actions-1")
             .env("WF_CI_LOG_CACHE", &log_cache())
             .env("NO_PROXY", "127.0.0.1")
             .env("no_proxy", "127.0.0.1");
@@ -208,7 +208,7 @@ fn a_red_run_gets_one_commit_comment_with_a_table_of_what_failed_and_no_secret_i
 
     // And a reader finds the verdict, the commit and the run, and the report: each job's cache hit rate, the Nx replays, the docker
     // layers, the EAS seconds, and for each crate whether its tests ran or were replayed
-    assert!(body.starts_with("<!-- ci-comment run:77 runner:vm-main -->\n"), "{body}");
+    assert!(body.starts_with("<!-- ci-comment run:77 runner:github-actions-1 -->\n"), "{body}");
     assert!(body.lines().nth(1).is_some_and(|title| title.contains("failed") && title.contains("0123456")), "{body}");
     for link in ["https://github.com/o/r/commit/0123456789abcdef0123456789abcdef01234567", "https://github.com/o/r/actions/runs/77"] {
         assert!(body.contains(link), "{link} missing: {body}");
@@ -307,7 +307,7 @@ fn a_re_run_of_the_same_run_updates_its_comment_instead_of_posting_a_second() {
     assert_eq!(patches.len(), 1, "{patches:?}");
     assert_eq!(patches[0].url, "/repos/o/r/comments/9001");
     let body = posted_body(&patches[0]);
-    assert!(body.starts_with("<!-- ci-comment run:77 runner:vm-main -->") && body.contains("flow-tests") && body.contains("3m 05s"), "{body}");
+    assert!(body.starts_with("<!-- ci-comment run:77 runner:github-actions-1 -->") && body.contains("flow-tests") && body.contains("3m 05s"), "{body}");
 }
 
 #[test]
@@ -377,7 +377,7 @@ fn a_green_run_whose_cache_writes_were_refused_for_a_full_tenancy_says_so_in_the
 fn the_pull_request_keeps_only_the_comment_of_the_run_that_reported_last() {
     // Given a pull request that carries the CI comments of two earlier reports and an unrelated comment
     let github = Github::start();
-    let older = "<!-- ci-comment run:76 runner:vm-main -->\nolder run";
+    let older = "<!-- ci-comment run:76 runner:github-actions-1 -->\nolder run";
     let live = "<!-- ci-live run:75 -->\nan earlier live comment";
     github.serve_with(&red_run(), json!([]), json!([{ "id": 3, "body": older }, { "id": 4, "body": live }, { "id": 5, "body": "a human's remark" }]), created(), updated());
 
@@ -863,7 +863,7 @@ fn preflight_names_every_check_that_failed_and_what_to_do_about_it() {
     let github = Github::start();
     github.server.routes(&[("GET /rate_limit", MockReply::json(401, json!({ "message": "Bad credentials" })))]);
     let r = run_wf(
-        &["ci", "preflight", "--skip", "workspace,toolchain,secrets,runner,ledger"],
+        &["ci", "preflight", "--skip", "workspace,toolchain,secrets,ledger"],
         &ci_opts()
             .env("GITHUB_TOKEN", TOKEN)
             .env("GITHUB_REPOSITORY", "o/r")
@@ -887,35 +887,6 @@ fn preflight_names_every_check_that_failed_and_what_to_do_about_it() {
 }
 
 #[test]
-fn preflight_warns_when_the_pinned_runner_is_behind_github_and_stays_quiet_when_it_is_not() {
-    // Given the runner version compose pins and a GitHub whose latest runner release is a minor ahead, then the same one
-    let pinned = std::fs::read_to_string(wf_kit::root::repo_root().join("infra/oracle-cloud/ci-runner/docker-compose.prod.yml")).unwrap();
-    let tag = pinned.split("github-runner:").nth(1).unwrap().split(|c: char| !(c.is_ascii_digit() || c == '.')).next().unwrap().to_string();
-    let parts: Vec<u64> = tag.split('.').map(|p| p.parse().unwrap()).collect();
-    let preflight = |latest: String| {
-        let github = Github::start();
-        github.server.routes(&[("GET /rate_limit", MockReply::json(200, json!({ "resources": { "core": { "remaining": 4000 } } }))), ("GET /repos/actions/runner/releases/latest", MockReply::json(200, json!({ "tag_name": format!("v{latest}") })))]);
-        let r = run_wf(
-            &["ci", "preflight", "--skip", "workspace,toolchain,secrets,runner,ledger,build-cache,services"],
-            &ci_opts().env("GITHUB_TOKEN", TOKEN).env("GITHUB_REPOSITORY", "o/r").env("GITHUB_RUN_ID", "77").env("GITHUB_SHA", SHA).env("GITHUB_API_URL", &github.url()).env("WF_TAILNET_SOCKS", "").env("NO_PROXY", "127.0.0.1").env("no_proxy", "127.0.0.1"),
-        );
-        let out = last_json(&r);
-        let check = out["checks"].as_array().unwrap().iter().find(|c| c["check"] == "runner-version").cloned().unwrap();
-        (r.exit_code, check)
-    };
-
-    // When wf runs the preflight against a newer minor
-    let (code, behind) = preflight(format!("{}.{}.0", parts[0], parts[1] + 1));
-    // Then the check warns, names both versions and what to do, and does not stop the run
-    assert_eq!((code, behind["ok"].clone(), behind["required"].clone()), (0, json!(false), json!(false)), "{behind}");
-    assert!(behind["detail"].as_str().unwrap().contains(&tag) && behind["next"].as_str().unwrap().contains("redeploy ci-runner"), "{behind}");
-
-    // And against the pinned version itself it passes
-    let (_, current) = preflight(tag.clone());
-    assert_eq!(current["ok"], json!(true), "{current}");
-}
-
-#[test]
 fn preflight_passes_when_what_it_checks_is_live() {
     // Given a GitHub that accepts the token and a service that is up
     let github = Github::start();
@@ -923,7 +894,7 @@ fn preflight_passes_when_what_it_checks_is_live() {
     let service = MockServer::start(None);
     service.routes(&[("GET /health", MockReply::json(200, json!({ "ok": true })))]);
     let r = run_wf(
-        &["ci", "preflight", "--skip", "workspace,toolchain,secrets,runner,ledger,build-cache"],
+        &["ci", "preflight", "--skip", "workspace,toolchain,secrets,ledger,build-cache"],
         &ci_opts()
             .env("GITHUB_TOKEN", TOKEN)
             .env("GITHUB_REPOSITORY", "o/r")
@@ -980,7 +951,7 @@ fn the_live_comment_of_a_new_run_replaces_the_old_one_at_the_bottom_and_shows_wh
     let created = github.sent("POST");
     assert_eq!(created.len(), 1, "{:?}", github.server.requests());
     let body = posted_body(&created[0]);
-    assert!(body.contains("CI (self-hosted) running") && body.contains("1 running") && body.contains("1 waiting"), "{body}");
+    assert!(body.contains("CI (GitHub-hosted) running") && body.contains("1 running") && body.contains("1 waiting"), "{body}");
     assert!(body.contains("flow-tests") && body.contains("in: Flow tests") && body.contains("clis") && body.contains("waiting"), "{body}");
 }
 

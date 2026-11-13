@@ -1,5 +1,5 @@
 //! `wf ship build <app> --tag <tag>` and `wf ship promote <app> --tag <tag>`: builds the images of an app (and the sidecars its compose pulls on the same tag) with the docker CLI
-//! against whatever `DOCKER_HOST` names, and pushes them. In the VM runner that is the builder sidecar, on a hosted runner the local
+//! against whatever `DOCKER_HOST` names, and pushes them. On a hosted runner that is the local
 //! daemon; the `build-image` action calls it. The registry credential is read from `DOCKERHUB_TOKEN`, given to `docker login` on stdin only.
 use crate::build_image as bi;
 use serde_json::{json, Value};
@@ -9,7 +9,6 @@ use std::process::{Command, Stdio};
 use wf_kit::args::parse;
 
 const NAMESPACE: &str = "nuesslerm";
-const CONTEXT: &str = "ci-sidecar";
 const BUILDER: &str = "ci-builder";
 const DEFAULT_PLATFORM: &str = "linux/arm64";
 
@@ -64,29 +63,11 @@ fn ok(docker: &dyn Docker, args: &[String], stdin: Option<&str>) -> Result<(), S
     }
 }
 
-/// The docker context for a TLS daemon named by the environment (the runner's builder sidecar), created once; `None` when DOCKER_HOST is plain.
-fn tls_context(docker: &dyn Docker) -> Result<Option<String>, String> {
-    let (Some(host), Some(certs)) = (std::env::var("DOCKER_HOST").ok().filter(|h| !h.is_empty()), std::env::var("DOCKER_CERT_PATH").ok().filter(|c| !c.is_empty())) else { return Ok(None) };
-    if std::env::var("DOCKER_TLS_VERIFY").map_or(true, |v| v.is_empty()) {
-        return Ok(None);
-    }
-    if docker.run(&strings(&["context", "inspect", CONTEXT]), None)? != 0 {
-        let endpoint = format!("host={host},ca={certs}/ca.pem,cert={certs}/cert.pem,key={certs}/key.pem");
-        ok(docker, &strings(&["context", "create", CONTEXT, "--docker", &endpoint]), None)?;
-    }
-    Ok(Some(CONTEXT.to_string()))
-}
-
 /// Logs in (the credential on stdin only) and selects the builder, creating it on the first call of a job.
 fn prepare(docker: &dyn Docker, login: (&str, &str)) -> Result<(), String> {
     ok(docker, &strings(&["login", "-u", login.0, "--password-stdin"]), Some(login.1))?;
     if docker.run(&strings(&["buildx", "inspect", BUILDER]), None)? != 0 {
-        let mut create = strings(&["buildx", "create", "--name", BUILDER, "--driver", "docker-container", "--bootstrap"]);
-        // buildx will not build a builder from DOCKER_TLS_VERIFY and DOCKER_CERT_PATH: it wants a docker context that carries the TLS files
-        if let Some(context) = tls_context(docker)? {
-            create.push(context);
-        }
-        ok(docker, &create, None)?;
+        ok(docker, &strings(&["buildx", "create", "--name", BUILDER, "--driver", "docker-container", "--bootstrap"]), None)?;
     }
     ok(docker, &strings(&["buildx", "use", BUILDER]), None)
 }

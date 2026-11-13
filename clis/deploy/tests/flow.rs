@@ -12,14 +12,10 @@ mod check;
 mod ci_build;
 #[path = "flow/ci_port.rs"]
 mod ci_port;
-#[path = "flow/ci_runner.rs"]
-mod ci_runner;
 #[path = "flow/deploy_legs.rs"]
 mod deploy_legs;
 #[path = "flow/report.rs"]
 mod report;
-#[path = "flow/runner_check.rs"]
-mod runner_check;
 #[path = "flow/ship.rs"]
 mod ship;
 #[path = "flow/tailnet.rs"]

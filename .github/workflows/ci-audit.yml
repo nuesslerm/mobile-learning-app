@@ -1,7 +1,7 @@
 name: CI audit
 
 # The audit of CI on dev (`wf ci audit`, thresholds in .github/ci-audit.json, procedure docs/runbooks/nightly-audit.md): the runs of the last 24 hours
-# of deploy.yml and ci-hosted.yml judged for waste (VM CPU-seconds, cache health, the pnpm store, the Nx hit ratio, hash drift, waits and idle gaps).
+# of ci-hosted.yml judged for waste (VM CPU-seconds, cache health, the pnpm store, the Nx hit ratio, hash drift, waits and idle gaps).
 # The weekly run (and a dispatch with replay=true) also replays the two package test stages on dev's head through the Nx cache and with --fresh: a kind
 # that passes cached and fails fresh is a stale or poisoned entry, so the cache moves to a new generation (`wf cache purge nx`). The job prints one JSON verdict
 # (schema in `wf ci audit --help`), uploads it as the artifact ci-audit.json and never fails on a finding: the nightly Claude clock reads it.
@@ -44,7 +44,7 @@ jobs:
   audit:
     name: audit
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') }}
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_CI_AUDIT || '["ubuntu-24.04"]') }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 150
     permissions:
       contents: read

@@ -5,8 +5,6 @@
 mod agent_deps;
 mod build_image;
 mod ci_build;
-mod ci_runner;
-mod runner_check;
 mod cancel_run;
 mod install_clis;
 mod token_permissions;

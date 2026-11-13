@@ -1,4 +1,4 @@
-//! `wf vm ops health|stats|host|logs|probe|pair|ci-port|runner-check|token-permissions|cancel-run|install-clis` and `wf vm ledger cat`: the commands that
+//! `wf vm ops health|stats|host|logs|probe|pair|ci-port|token-permissions|cancel-run|install-clis` and `wf vm ledger cat`: the commands that
 //! talk to vm-ops-api.
 use wf_kit::args::parse;
 use wf_vmops::services::health_url;
@@ -226,10 +226,6 @@ pub fn run(args: &[String]) -> Option<i32> {
         }
         "pair" => parse(rest, &[], &[]).filter(|p| p.positional.len() == 1).and_then(|p| pair(&p.positional[0])),
         "ci-port" => parse(rest, &[], &[]).filter(|p| p.positional.is_empty()).and_then(|_| ci_port_check()),
-        "runner-check" => {
-            let p = parse(rest, &["proc-root", "docker-sock-path"], &["json"]).filter(|p| p.positional.is_empty())?;
-            crate::runner_check::run(p.opts.get("proc-root").map(String::as_str), p.opts.get("docker-sock-path").map(String::as_str))
-        }
         "token-permissions" => parse(rest, &[], &[]).filter(|p| p.positional.is_empty()).and_then(|_| crate::token_permissions::run()),
         "cancel-run" => {
             let p = parse(rest, &["run"], &["queued", "all"]).filter(|p| p.positional.is_empty())?;

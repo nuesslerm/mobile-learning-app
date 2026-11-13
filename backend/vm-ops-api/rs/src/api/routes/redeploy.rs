@@ -23,7 +23,6 @@ fn refused(refused: Refused, app: &str) -> Reply {
         Refused::InvalidRecreate => error(400, RECREATE),
         Refused::NotARetiredApp => Reply::json(400, &json!({ "error": "not a retired app", "app": app })),
         Refused::NotAPairableApp => Reply::json(400, &json!({ "error": "not a pairable app", "app": app })),
-        Refused::InvalidEnvBody(rule) => error(400, rule.rule()),
     }
 }
 
@@ -60,7 +59,7 @@ pub async fn app(call: &Call<'_>, state: &AppState) -> Reply {
     let target = call.target;
     let app = target.parts[1].as_str();
     let [tag, reference, recreate, wipe_state, requested_by] = ["tag", "ref", "recreate", "wipeState", "requestedBy"].map(|name| target.query_param(name));
-    let request = AppRequest { app, tag: tag.as_deref(), reference: reference.as_deref(), recreate: recreate.as_deref(), wipe_state: wipe_state.as_deref(), requested_by: requested_by.as_deref(), env_body: call.body };
+    let request = AppRequest { app, tag: tag.as_deref(), reference: reference.as_deref(), recreate: recreate.as_deref(), wipe_state: wipe_state.as_deref(), requested_by: requested_by.as_deref() };
     match state.redeploy.redeploy_app(&request).await {
         Ok(done) => app_reply(&done),
         Err(why) => refused(why, app),

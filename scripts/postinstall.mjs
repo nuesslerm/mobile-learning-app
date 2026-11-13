@@ -50,8 +50,8 @@ function ensureRegistrySymlink() {
 if (process.env.DOCKER_BUILD === 'true') {
   // Nothing: the image builds only its own service.
 } else if (process.env.CI === 'true') {
-  // A workflow gets wf from .github/actions/install-wf (incremental, on the runner's own volume); a cold release build
-  // here took the VM's runner 15 to 40 minutes per job and starved Metro and the device.
+  // A workflow gets wf from the wf-build artifact or .github/actions/install-wf; a cold release build here costs
+  // 15 to 40 minutes per job.
   console.warn('[postinstall] CI: the wf binary comes from install-wf, not built here');
 } else {
   // The wf CLI is a Rust binary: cargo builds it once (and again when a source changed), with the t3-serve, rca-exec and wf-mimic

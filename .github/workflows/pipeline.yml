@@ -68,7 +68,7 @@ jobs:
   wf-build:
     name: wf-build${{ matrix.arch == 'arm64' && ' (arm64)' || '' }}
     runs-on: ${{ matrix.arch == 'arm64' && fromJSON(inputs.deploy_runner) || fromJSON(inputs.runner) }}
-    # a recreated VM has an empty wf volume: the first run cold-builds wf here (up to an hour)
+    # a cold cache builds wf here (up to an hour)
     timeout-minutes: 70
     concurrency:
       group: ${{ format('hosted-wf-build-{0}-{1}', github.run_id, matrix.arch) }}
@@ -252,14 +252,7 @@ jobs:
           args=(--github-output)
           read -ra extra <<< "$FORCE_SHIP"
           args+=("${extra[@]}")
-          # The published wf predates a change that moves a path it knows (a rename) and then fails here, which skips the clis job that
-          # would publish the new one: retry with this commit's wf, which wf-build already installed on this runner.
-          wf ship --changed "${args[@]}" || {
-            this="/opt/clis/$(git rev-parse HEAD:clis)/wf"
-            [ -x "$this" ] || exit 1
-            echo "the published wf failed; retrying with this commit's wf" >&2
-            "$this" ship --changed "${args[@]}"
-          }
+          wf ship --changed "${args[@]}"
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
@@ -420,7 +413,7 @@ jobs:
           bins="$RUNNER_TEMP/bins"; out="$RUNNER_TEMP/out"; mkdir -p "$out"
           for dir in "$bins"/*/; do
             [ -f "${dir}wf" ] || continue
-            # the machine that built it decides the name: the VM builds arm64, a hosted x64 runner x64
+            # the machine that built it decides the name: an arm64 runner builds arm64, an x64 runner x64
             if file -b "${dir}wf" | grep -q 'ARM aarch64'; then arch=arm64; else arch=x64; fi
             stage=$(mktemp -d)
             for b in wf t3-serve rca-exec wf-mimic; do [ -f "${dir}$b" ] && install -m 0755 "${dir}$b" "$stage/$b"; done
@@ -521,7 +514,7 @@ jobs:
     name: deploy (${{ matrix.app }})
     needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deploy-build, clis, wf-build]
     # a red test deploys nothing; a stage the plan left empty is skipped, not failed
-    if: ${{ !cancelled() && inputs.deploy && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && needs.deploy-build.result == 'success' && (needs.clis.result == 'success' || (inputs.flavor == 'hosted' && needs.wf-build.result == 'success')) && needs.plan.outputs.legs != '[]' }}
+    if: ${{ !cancelled() && inputs.deploy && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && needs.deploy-build.result == 'success' && (needs.clis.result == 'success' || needs.wf-build.result == 'success') && needs.plan.outputs.legs != '[]' }}
     runs-on: ${{ fromJSON(inputs.deploy_runner) }}
     timeout-minutes: 100
     concurrency:

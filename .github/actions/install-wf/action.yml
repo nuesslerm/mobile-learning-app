@@ -1,30 +1,19 @@
 name: Install wf
 description: >-
-  The one `wf` on the VM: a static (musl) binary built from clis/ with the deploy profile, incrementally in a target
-  directory on the runner, installed once per clis/ tree under /opt/clis/<tree>/ beside the binaries it runs for `wf t3`
-  and `wf exec`, and put on PATH. A job whose clis/ tree is already installed builds nothing. It never points /opt/clis/current anywhere: the clis job
-  of pipeline.yml publishes the build as the wf-latest release and vm-ops-api installs it (POST /clis/install) (the containers mount /opt/clis and run current/wf).
+  A static (musl) `wf` built from clis/ with the deploy profile, installed once per clis/ tree into the runner tool cache
+  beside the binaries it runs for `wf t3` and `wf exec`, and put on PATH. A job whose clis/ tree is already installed builds nothing.
 runs:
   using: composite
   steps:
-    - name: Remove untracked files an earlier job left in the reused workspace
-      # checkout runs with clean: false (node_modules and caches stay), so a stray file such as ARCHITECTURE.md survives; the build cache
-      # refuses writes from a dirty tree (18:24 on 30 Oct: 0 of 12 hits, nothing saved). Ignored files stay.
-      shell: bash
-      run: git clean -fd
     - shell: bash
       env:
-        # incremental in a target directory beside the checkout, on the runner's work volume, so it outlives the runner
-        # container: a change recompiles only its crates; no cache leaves the VM
         CARGO_TARGET_DIR: ${{ github.workspace }}/../../wf-cargo-target
         CARGO_PROFILE_DEPLOY_INCREMENTAL: "true"
       run: |
         tree=$(git rev-parse HEAD:clis)
-        # no package ships a wf bin any more; one left in the runner's kept node_modules would shadow this wf inside pnpm run
+        # no package ships a wf bin any more; one left in node_modules would shadow this wf inside pnpm run
         rm -f node_modules/.bin/wf
-        # /opt/clis is the volume the VM's containers mount; a hosted runner keeps its build in its tool cache
-        root=/opt/clis; sudo=$([ "$(id -u)" = 0 ] || echo sudo)
-        { mkdir -p "$root" 2>/dev/null && [ -w "$root" ]; } || root=$RUNNER_TOOL_CACHE/clis
+        root=$RUNNER_TOOL_CACHE/clis; sudo=$([ "$(id -u)" = 0 ] || echo sudo)
         dir=$root/$tree
         # wf runs `t3`, `exec` and `mimic` as the binaries beside it (clis/wf/src/external.rs); each is also its package's name
         bins="t3-serve rca-exec wf-mimic wf"

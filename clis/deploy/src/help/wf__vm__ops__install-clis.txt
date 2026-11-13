@@ -3,7 +3,7 @@ Usage: wf vm ops install-clis --sha256 <hex> [options]
 Asks vm-ops-api (its CI port) to install the wf build CI published as the wf-latest
 release on the VM's clis volume: a sibling fetches wf-linux-arm64.tar.gz, installs it only
 when it hashes to --sha256, and points /opt/clis/current at it. For a runner that cannot
-write to the VM's disk (a GitHub-hosted one); the VM's own runner does not need it.
+write to the VM's disk (a GitHub-hosted one).
 
 Options:
   --sha256 <hex>  The sha256 of the arm64 tarball CI built (64 lowercase hex digits)

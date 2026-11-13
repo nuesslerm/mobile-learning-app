@@ -56,8 +56,6 @@ pub struct AppRedeploy<'a> {
     pub reference: &'a str,
     pub wipe_state: bool,
     pub recreate_all: bool,
-    /// Variables a request body set, appended to the app's `.env` last. Values travel in the sibling's env, never the script text.
-    pub request_env: &'a [(String, String)],
 }
 
 /// One line of the redeploy history.
@@ -173,11 +171,6 @@ fn sibling_env_args(tag: &str, env: &RedeployEnv) -> Vec<String> {
     ["-e".to_string(), format!("IMAGE_TAG={tag}"), "-e".to_string(), format!("IMAGE_NAMESPACE={}", env.image_namespace), "-e".to_string(), format!("GITHUB_RAW_TOKEN={}", env.provision_token)].to_vec()
 }
 
-/// Each variable is written from the sibling's own env, after the generated `.env` and its local overrides.
-fn request_env_lines(dir: &str, request_env: &[(String, String)]) -> Vec<String> {
-    request_env.iter().map(|(name, _)| format!("printf '%s=%s\\n' {name} \"${name}\" >> {dir}/.env")).collect()
-}
-
 /// Provision, env sync and pull: what a smoke test and a redeploy of an app both start with.
 fn app_front_lines(env: &RedeployEnv, request: &AppRedeploy) -> Vec<String> {
     let (host_dir, reference) = (request.host_dir, request.reference);
@@ -192,7 +185,6 @@ fn app_front_lines(env: &RedeployEnv, request: &AppRedeploy) -> Vec<String> {
     lines.push(stamp("provisioned"));
     lines.push(format!("if [ ! -f {host_dir}/.env.local ] && [ -f /home/ubuntu/vm-ops-api/.env.local ]; then cp /home/ubuntu/vm-ops-api/.env.local {host_dir}/.env.local; fi"));
     lines.extend(sync_env_lines(host_dir, request.app, &env.host_label, host_dir));
-    lines.extend(request_env_lines(host_dir, request.request_env));
     lines.push(stamp("env synced"));
     lines.push(compose_pull_command(request));
     lines.push(stamp("pulled"));
@@ -208,9 +200,6 @@ fn app_sibling_argv(env: &RedeployEnv, request: &AppRedeploy, lines: &[String]) 
     // the image's /usr/local/bin/wf links into this volume (the VM's one wf build); without it `wf secret sync-env` is not found
     args.extend(strings(&["-v", CLIS, "-w", host_dir]));
     args.extend(sibling_env_args(request.tag, env));
-    for (name, value) in request.request_env {
-        args.extend(["-e".to_string(), format!("{name}={value}")]);
-    }
     args.push(env.sibling_image());
     args.extend(strings(&["sh", "-c"]));
     args.push(lines.join("\n"));

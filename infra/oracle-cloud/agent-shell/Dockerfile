@@ -181,8 +181,8 @@ RUN curl -fsSL -o /tmp/rclone.zip https://downloads.rclone.org/v1.68.2/rclone-v1
     && unzip -p /tmp/rclone.zip '*/rclone' > /usr/local/bin/rclone && chmod 0755 /usr/local/bin/rclone \
     && rm -f /tmp/rclone.zip
 
-# The OCI CLI, for `wf cache guard --local`: the CI runner asks this container, which holds the OCI secrets, to measure and evict
-# Object Storage through vm-ops-api's exec route, so no OCI key ever sits on the runner. ~/.oci/config is written at first use from the
+# The OCI CLI, for `wf cache guard --local`: a CI job asks this container, which holds the OCI secrets, to measure and evict
+# Object Storage through vm-ops-api's exec route, so no OCI key ever sits on the CI runner. ~/.oci/config is written at first use from the
 # vault by the guard itself (the same OCI_* secrets `wf vm creds sync` reads). A venv keeps its dependencies off the system python;
 # the version is pinned (the guard deletes with the admin key), so a bump is a reviewed change.
 RUN apt-get update && apt-get install -y --no-install-recommends python3-venv \

@@ -34,7 +34,7 @@ jobs:
   sync:
     name: Build and upload the Gem bundle
     if: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') }}
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_GEM_SYNC || '["ubuntu-24.04"]') }}
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
     permissions:
       contents: read

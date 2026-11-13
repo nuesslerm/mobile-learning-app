@@ -26,7 +26,7 @@ reported as `unchecked` and never blocks.
 
 A deploy then has four phases, and `wf ship` prints the seconds of each (`phase <name>: <n> s`):
 
-1. **Build** is a step of the CI job on the runner's builder sidecar (the `build-image` action, `wf ship build`; the VM-side `wf ship --build-only` is retired): its exit code is the result. A `docker login` that is unset or
+1. **Build** is a step of the CI job on the hosted runner's docker daemon (the `build-image` action, `wf ship build`; the VM-side `wf ship --build-only` is retired): its exit code is the result. A `docker login` that is unset or
    rejected ends the build (`${DOCKERHUB_TOKEN:?}`, `exit 1`) before any image is built.
 2. **Smoke test** is its own step between the build and the swap: `POST /services/<app>/smoke` (vm-ops-api: `POST /redeploy/smoke`) runs the
    pulled image as a throwaway container (same env and mounts, compose's `run --no-deps`) on the spare port 18999 in the netns of the

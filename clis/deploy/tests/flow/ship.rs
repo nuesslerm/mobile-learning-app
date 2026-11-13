@@ -357,7 +357,7 @@ fn ship_status_reports_every_service_and_vm_ops_api_and_retire_removes_an_app() 
 
     // Given no app names, Then every known app is asked about, in order, then health and the redeploy state, and nothing is asked
     // of the Metro (its container is no app of the sweep, and the dev-bridge is not read)
-    let apps = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
+    let apps = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
     let mut replies: Vec<String> = apps.iter().map(|app| answers::reply(200, &answers::ps(app, &[]))).collect();
     replies.extend([answers::reply(200, &status), answers::reply(200, &history)]);
     s.vm.replies(&replies);
@@ -1047,14 +1047,9 @@ fn a_change_to_one_compose_project_moves_the_deploy_hash_of_that_app_alone() {
     let changed = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/docker-compose.prod.yml");
     let after = hashes(&changed);
 
-    // Then agent-shell's deploy hash moves and no other app's does (the runner has its own project, so its compose file is not an input of any app)
+    // Then agent-shell's deploy hash moves and no other app's does
     let moved: Vec<&str> = before.iter().zip(&after).filter(|(b, a)| b.1 != a.1).map(|(b, _)| b.0.as_str()).collect();
     assert_eq!(moved, ["agent-shell"]);
-
-    // And a change to the runner's compose file moves no app's hash at all
-    let runner = commit_touching(clone.path(), "infra/oracle-cloud/ci-runner/docker-compose.prod.yml");
-    let after_runner = hashes(&runner);
-    assert_eq!(before, after_runner);
 }
 
 /// The commit of this repository that `HEAD` names, which `wf ship vm-ops-api --ref HEAD` resolves to the same 40 characters.
@@ -1109,7 +1104,7 @@ fn vm_ops_api_redeploys_a_tag_ci_already_pushed_without_building_and_still_prove
 }
 
 #[test]
-fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_an_app_without_an_image_has_nothing_to_prove() {
+fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_smoke_without_redeploy_only_is_refused() {
     // Given a service with a smoke test
     let s = Ship::new();
     s.vm.replies_then_last(&[&gate_up("remote-chat-agent")[..], &[answers::reply(200, &redeployed("remote-chat-agent", "sha-abc", "dev"))]].concat());
@@ -1130,11 +1125,7 @@ fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_an_app_wit
     assert_eq!(r.exit_code, 1, "{}", r.stderr);
     assert!(s.vm.requests().iter().all(|q| !q.url.contains("/redeploy")), "{:?}", s.vm.requests().iter().map(|q| q.url.clone()).collect::<Vec<_>>());
 
-    // Given an app with no image, Then --smoke sends only the redeploy; and --smoke without --redeploy-only is refused
-    let s = Ship::new();
-    s.vm.replies_then_last(&[answers::reply(200, &redeployed("ci-runner", "sha-abc", "dev"))]);
-    let r = s.wf(&["ship", "ci-runner", "--redeploy-only", "--smoke", "--ref", "dev", "--tag", "sha-abc"], &[]);
-    assert_eq!((r.exit_code, s.vm.requests().len()), (0, 1), "{}", r.stderr);
+    // Given --smoke without --redeploy-only, Then it is refused
     let r = s.wf(&["ship", "remote-chat-agent", "--smoke", "--ref", "dev"], &[]);
     assert!(r.exit_code == 1 && r.stderr.contains("--smoke applies to --redeploy-only"), "{}", r.stderr);
 }

@@ -10,9 +10,6 @@ use serde_json::Value;
 const DEFAULT_API: &str = "https://api.tailscale.com/api/v2";
 const AUTH_KEY_SECRET: &str = "TS_VM_AUTH_KEY";
 const VM_TAG: &str = "tag:mobile-learning";
-const RUNNER_TAG: &str = "tag:ci-self-hosted";
-const RUNNER_KEY_SECONDS: u64 = 3600;
-const RUNNER_KEY_DESCRIPTION: &str = "wf-ship-ci-runner";
 const KEY_DESCRIPTION: &str = "wf-rotate-TS-VM-AUTH-KEY";
 const MAX_KEY_DAYS: f64 = 90.0;
 const DEFAULT_STALE_MINUTES: f64 = 10.0;
@@ -433,21 +430,6 @@ fn rotate_apply(expiry_days: f64) -> Res<i32> {
         n(MAX_KEY_DAYS)
     );
     Ok(0)
-}
-
-/// A single-use, one-hour, preauthorized key of the CI runner's own tag, minted at ship time and never stored or printed.
-pub fn mint_runner_auth_key() -> Result<String, String> {
-    let run = || -> Res<String> {
-        let mut c = Client::new()?;
-        let body = serde_json::json!({
-            "capabilities": { "devices": { "create": { "reusable": false, "ephemeral": false, "preauthorized": true, "tags": [RUNNER_TAG] } } },
-            "expirySeconds": RUNNER_KEY_SECONDS,
-            "description": RUNNER_KEY_DESCRIPTION,
-        });
-        let reply = c.call_with("POST", &format!("/tailnet/{}/keys", c.tailnet), Some(&body.to_string()))?;
-        reply["key"].as_str().filter(|k| !k.is_empty()).map(String::from).ok_or_else(|| Fail("Tailscale key creation returned no key.".into()))
-    };
-    run().map_err(|Fail(m)| m)
 }
 
 fn n(v: f64) -> String {

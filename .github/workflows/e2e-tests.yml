@@ -87,7 +87,7 @@ permissions:
 env:
   # the flow-tests job of the CI run saves the pnpm store; these jobs never repeat the pack
   WF_PNPM_SAVE_JOB: flow-tests
-  # vm-ops-api's CI port; the android lease (`wf android start-device`) is an exec-script and stays on the admin port, as in deploy.yml
+  # vm-ops-api's CI port; the android lease (`wf android start-device`) is an exec-script and stays on the admin port
   WF_VM_CI_PORT: "8081"
 
 jobs:
@@ -206,7 +206,7 @@ jobs:
           EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN=$(wf secret get VM_GATEWAY_AUTH_SEED --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no VM_GATEWAY_AUTH_SEED to bake in as the backend token"; exit 1; }
           echo "::add-mask::$EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN"
           export EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN
-          # the app's BetterStack forwarder, as the EAS Update bakes it (deploy.yml): the browser runs log through the same Logger
+          # the app's BetterStack forwarder, as the EAS Update bakes it: the browser runs log through the same Logger
           # path; half a pair bakes in neither
           [ -n "${EXPO_PUBLIC_BETTERSTACK_TOKEN:-}" ] || EXPO_PUBLIC_BETTERSTACK_TOKEN=$(wf secret get EXPO_PUBLIC_BETTERSTACK_TOKEN --backend bitwarden 2>/dev/null) || EXPO_PUBLIC_BETTERSTACK_TOKEN=""
           [ -n "${EXPO_PUBLIC_BETTERSTACK_HOST:-}" ] || EXPO_PUBLIC_BETTERSTACK_HOST=$(wf secret get BETTERSTACK_INGEST_HOST --backend bitwarden 2>/dev/null) || EXPO_PUBLIC_BETTERSTACK_HOST=""
