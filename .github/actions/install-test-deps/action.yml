@@ -111,3 +111,7 @@ runs:
         # shellcheck disable=SC2012
         ls "$HOME/.rustup/toolchains/"*"/bin" | tr '\n' ' '; echo; cargo --version
         echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+    # the build-cache shim serves compiles from the bucket through its own WebDAV endpoint, so sccache needs no key here; a failed download leaves compiles uncached
+    - uses: ./.github/actions/install-sccache
+      if: ${{ inputs.rust == 'true' }}
+      continue-on-error: true

@@ -185,6 +185,12 @@ jobs:
           install: "false"
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      # the guard runs while the plan is made; the last step collects it. The runner kills what still carries the step's tracking id when the step ends
+      - name: Start the storage guard
+        continue-on-error: true
+        run: |
+          env -u RUNNER_TRACKING_ID setsid nohup timeout 60 wf cache guard > "$RUNNER_TEMP/guard.json" 2> "$RUNNER_TEMP/guard.err" &
+          echo $! > "$RUNNER_TEMP/guard.pid"
       - name: Commit tags
         id: tags
         env:
@@ -253,6 +259,18 @@ jobs:
           read -ra extra <<< "$FORCE_SHIP"
           args+=("${extra[@]}")
           wf ship --changed "${args[@]}"
+      - name: Collect the storage guard
+        if: ${{ always() }}
+        continue-on-error: true
+        run: |
+          pid=$(cat "$RUNNER_TEMP/guard.pid" 2>/dev/null || true)
+          for _ in 1 2 3 4 5; do [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+          line=$(tail -n 1 "$RUNNER_TEMP/guard.json" 2>/dev/null || true)
+          if [ -z "$line" ]; then echo "wf: storage guard produced no line yet"; exit 0; fi
+          echo "wf: storage guard $line"
+          { echo "### Storage guard"; echo '```json'; echo "$line"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          action=$(printf '%s' "$line" | jq -r '.action // "unknown"' 2>/dev/null || echo unknown)
+          [ "$action" = none ] || echo "::warning title=storage guard::action $action"
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
