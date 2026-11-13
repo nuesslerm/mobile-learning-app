@@ -57,10 +57,14 @@ pub(crate) struct Chain {
 }
 
 pub(crate) async fn chain(env: &Env) -> Chain {
+    chain_with(env, Options::default()).await
+}
+
+async fn chain_with(env: &Env, options: Options) -> Chain {
     let cli = ScriptedCli::install();
     let path = Path::first(&cli);
     let repo = TempRepo::new();
-    let svc = service_spawning(env, Options::default(), Arc::new(Processes::at(env.providers_root().to_string_lossy())));
+    let svc = service_spawning(env, options, Arc::new(Processes::at(env.providers_root().to_string_lossy())));
     let port = svc.listen().await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
     let token = svc.mint("flow mapper").await;
@@ -386,4 +390,53 @@ async fn given_the_service_secret_when_it_is_presented_to_the_agent_socket_then_
         assert_eq!((status, answer["code"].clone(), with_header), (401, json!("UNAUTHORIZED"), 401), "{method} {path}");
     }
     assert_eq!(handshake(open_port, "/agent/v1/socket", &[]).await.err(), Some(401));
+}
+
+/// The same chain after its service and executor were stopped and started again over the same home, repository and bearer.
+async fn restarted(old: Chain, env: &Env, options: Options) -> Chain {
+    let Chain { _svc, cli, repo, exec, token, _path, .. } = old;
+    drop(exec);
+    drop(_svc);
+    let svc = service_spawning(env, options, Arc::new(Processes::at(env.providers_root().to_string_lossy())));
+    let port = svc.listen().await;
+    let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
+    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token, _path }
+}
+
+fn opencode_said(session: &str, text: &str) -> String {
+    json!({"type": "text", "timestamp": 1, "sessionID": session, "part": {"text": text}}).to_string()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_an_opencode_thread_whose_turn_named_a_session_when_the_service_and_executor_restart_then_the_next_turn_resumes_that_session() {
+    // Given an opencode thread whose first turn printed lines carrying the CLI's own session id, and a second turn scripted behind it
+    let env = Env::process(&[]);
+    let state = env.home.join("rca-state");
+    std::fs::create_dir_all(&state).unwrap();
+    let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
+    let chain = chain_with(&env, options()).await;
+    chain.cli.script("opencode", &Script::of(vec![
+        Turn::replaying(&[opencode_said("ses_resume_1", "first answer")]),
+        Turn::replaying(&[opencode_said("ses_resume_1", "second answer")]),
+    ]));
+    let mut agent = chain.agent().await;
+    let made = agent.ask("thread.create", json!({"thread": "t1", "title": "Notes", "workspace": "w1", "driver": "opencode"})).await;
+    assert!(made.get("result").is_some(), "{made}");
+    agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+    let first = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "one"})).await;
+    assert!(first.get("result").is_some(), "{first}");
+    agent.events_through("turn.finished").await;
+    // When the service and the executor restart over the same home and a second turn starts on the same thread
+    drop(agent);
+    let chain = restarted(chain, &env, options()).await;
+    let mut agent = chain.agent().await;
+    agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+    let second = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "two"})).await;
+    assert!(second.get("result").is_some(), "{second}");
+    agent.events_through("turn.finished").await;
+    // Then the first run of the CLI started a conversation of its own and the second one went on in the session the first named
+    let starts = chain.cli.invocations("opencode");
+    assert_eq!(starts.len(), 2, "{starts:?}");
+    let session_of = |argv: &Vec<String>| argv.iter().position(|a| a == "--session").map(|i| argv[i + 1].clone());
+    assert_eq!((session_of(&starts[0].argv), session_of(&starts[1].argv)), (None, Some("ses_resume_1".to_string())), "{:?}", starts.iter().map(|s| s.argv.clone()).collect::<Vec<_>>());
 }
