@@ -62,6 +62,8 @@ env:
   WF_PNPM_SAVE_JOB: flow-tests
   WF_VM_CI_PORT: "8081"
   BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+  # The shared build cache lived in the Oracle tenancy, which is unreachable since 13 Nov: every layer runs cold and Cache health stays green. Remove this line when a store is back.
+  WF_BLOB_CACHE: "off"
 
 jobs:
   # This commit's wf, built once for each kind of machine that runs it: x64 for the jobs, arm64 for the deploy legs (the images the VM runs are arm64).
