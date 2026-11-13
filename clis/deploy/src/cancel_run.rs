@@ -1,5 +1,5 @@
 //! `wf vm ops cancel-run`: cancels one CI run (`--run <number>`), every CI run of `dev` still waiting for a runner (`--queued`) or every one
-//! that has not finished (`--all`), of both flavors (`deploy.yml`, the self-hosted one, and `ci-hosted.yml`). The sandbox's own GitHub token
+//! that has not finished (`--all`), of the CI workflow (`ci-hosted.yml`). The sandbox's own GitHub token
 //! cannot cancel, agent-shell holds the PAT that can: where the PAT is not in the environment the verb runs itself there, through `wf vm exec`.
 //! The PAT is used and dropped; only run numbers, ids and HTTP statuses are printed, never the token or a reply body.
 use cli_http::Request;
@@ -59,7 +59,7 @@ impl GithubRuns for GithubRest {
     }
 }
 
-const WORKFLOWS: [&str; 2] = ["deploy.yml", "ci-hosted.yml"];
+const WORKFLOWS: [&str; 1] = ["ci-hosted.yml"];
 
 fn runs_path(workflow: &str) -> String {
     format!("/repos/{REPO}/actions/workflows/{workflow}/runs?branch=dev&per_page=100")

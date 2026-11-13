@@ -1,7 +1,6 @@
 Usage: wf vm ops cancel-run (--run <number> | --queued | --all) [options]
 
-Cancels CI runs of dev, of both flavors (deploy.yml, self-hosted, and ci-hosted.yml,
-GitHub-hosted), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
+Cancels CI runs of dev (ci-hosted.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
 cannot. Where that token is not in the environment (a sandbox), the verb runs itself on
 agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run
 (its run number as the Actions tab shows it, or its id); it must exist among the

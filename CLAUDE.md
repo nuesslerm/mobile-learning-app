@@ -30,9 +30,9 @@ Prefer none. Comment only a non-obvious why, 2 lines max.
 
 Search `wf --help` first. A wrapper script that sets up env or flags is a smell; fix the `wf` command.
 
-## CI runs on the VM
+## CI runs on GitHub-hosted runners
 
-Pushing to `dev` runs one pipeline, the reusable `pipeline.yml`: `deploy.yml` ("CI (self-hosted)") calls it on the VM's own Actions runner (one job at a time), `ci-hosted.yml` on GitHub-hosted runners; every test stage replays through the Nx cache. The local gate is lefthook pre-commit (`wf check --staged`): a red hook is the failure to fix, never to bypass. Production ships only by a push to `dev`: CI builds the images on its runner and the legs redeploy that tag (`wf ship --redeploy-only`); agent sessions cannot dispatch workflows and nothing else builds a production image. Every stage, the deploy flow, the hand-deployed apps and the record triggers: `docs/solutions/ci/ci-pipeline-on-the-vm.md`.
+Pushing to `dev` runs one pipeline, the reusable `pipeline.yml`, called by `ci-hosted.yml` on GitHub-hosted runners; every test stage replays through the Nx cache. The local gate is lefthook pre-commit (`wf check --staged`): a red hook is the failure to fix, never to bypass. Production ships only by a push to `dev`: CI builds the images on its runner and the legs redeploy that tag (`wf ship --redeploy-only`); agent sessions cannot dispatch workflows and nothing else builds a production image. Every stage, the deploy flow, the hand-deployed apps and the record triggers: `docs/solutions/ci/ci-pipeline-on-the-vm.md`.
 
 ## Never wait on CI
 

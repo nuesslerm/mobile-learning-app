@@ -4,9 +4,7 @@ use crate::support::{run_wf, MockReply, MockServer, RunOpts};
 use serde_json::{json, Value};
 
 const PAT: &str = "github_pat_11AAAAAAA0zzzzzzzzzzzz_secretsecretsecret";
-const LIST: &str = "GET /repos/nuesslerm/mobile-learning-app/actions/workflows/deploy.yml/runs?branch=dev&per_page=100";
-
-const LIST_HOSTED: &str = "GET /repos/nuesslerm/mobile-learning-app/actions/workflows/ci-hosted.yml/runs?branch=dev&per_page=100";
+const LIST: &str = "GET /repos/nuesslerm/mobile-learning-app/actions/workflows/ci-hosted.yml/runs?branch=dev&per_page=100";
 
 fn cancel_route(id: u64) -> String {
     format!("POST /repos/nuesslerm/mobile-learning-app/actions/runs/{id}/cancel")
@@ -20,14 +18,8 @@ fn github(cancel_status: u16) -> MockServer {
         { "id": 9001, "run_number": 1228, "status": "in_progress" },
         { "id": 9000, "run_number": 1227, "status": "completed" },
     ] });
-    let hosted = json!({ "workflow_runs": [
-        { "id": 8002, "run_number": 640, "status": "in_progress" },
-        { "id": 8001, "run_number": 639, "status": "completed" },
-    ] });
     server.routes(&[
         (LIST, MockReply::json(200, runs)),
-        (LIST_HOSTED, MockReply::json(200, hosted)),
-        (&cancel_route(8002), MockReply::json(cancel_status, json!({}))),
         (&cancel_route(9003), MockReply::json(cancel_status, json!({ "message": "reply-body-xyz" }))),
         (&cancel_route(9002), MockReply::json(cancel_status, json!({}))),
         (&cancel_route(9001), MockReply::json(cancel_status, json!({}))),
@@ -125,20 +117,20 @@ fn a_refused_cancel_fails_the_verb_and_a_missing_token_asks_github_nothing() {
 }
 
 #[test]
-fn all_cancels_every_unfinished_run_of_both_flavors() {
-    // Given runs of both flavors: waiting and running ones of the self-hosted CI, a running one of the GitHub-hosted CI, and finished ones
+fn all_cancels_every_unfinished_run() {
+    // Given waiting and running runs of the CI and a finished one
     let server = github(202);
 
     // When the verb runs with --all and the PAT in its environment
     let r = run(&server, &["--all"], Some(PAT));
 
-    // Then every run that has not finished is cancelled, the hosted one included, and the finished ones are left alone
+    // Then every run that has not finished is cancelled and the finished one is left alone
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     let report: Value = serde_json::from_str(&r.stdout).unwrap();
     assert_eq!(report["ok"], json!(true));
     let mut posted = posts(&server);
     posted.sort();
-    let mut want: Vec<String> = [9003, 9002, 9001, 8002].map(|id| cancel_route(id).trim_start_matches("POST ").to_string()).to_vec();
+    let mut want: Vec<String> = [9003, 9002, 9001].map(|id| cancel_route(id).trim_start_matches("POST ").to_string()).to_vec();
     want.sort();
     assert_eq!(posted, want);
 }

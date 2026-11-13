@@ -1,14 +1,13 @@
 name: CI (GitHub-hosted)
 
-# The GitHub-hosted flavor of the CI: pipeline.yml with hosted runners, running next to the VM run so the two can be compared
-# (docs/solutions/ci/hosted-minutes.md). It ships nothing (no latest image, no EAS update: production comes only from the VM CI, whose images are
-# arm64) and runs the browser and Android suites on its own runner (the SDK emulator, see wf android start-device); its pull request comment is its own (WF_CI_LABEL). Every push spends free minutes (2000 a month for the account):
-# the repo variable HOSTED_CI=off switches it off at once, HOSTED_DEPLOY=off stops the deploy legs, HOSTED_SHARDS sets the machines per test stage.
+# The CI: pipeline.yml on GitHub-hosted runners. It ships (latest images, the EAS update, the wf release), deploys and runs the browser and Android
+# suites on its own runner (the SDK emulator, see wf android start-device). Every push spends minutes; the repo variable HOSTED_CI=off switches it
+# off at once, HOSTED_DEPLOY=off stops the deploy legs, HOSTED_SHARDS sets the machines per test stage (docs/solutions/ci/hosted-minutes.md).
 on:
   push:
     branches: [dev]
 
-# One run at a time, as in the CI: a newer push waits and replaces a run still waiting (never one that is going), so every run that starts is measured to its end.
+# One run at a time: a newer push waits and replaces a run still waiting (never one that is going), so every run that starts is measured to its end.
 concurrency:
   group: ci-hosted-${{ github.ref }}
   cancel-in-progress: false
@@ -47,7 +46,6 @@ jobs:
     if: ${{ needs.trigger.outputs.go == 'true' }}
     uses: ./.github/workflows/pipeline.yml
     with:
-      flavor: hosted
       runner: '"ubuntu-24.04"'
       deploy_runner: '"ubuntu-24.04-arm"'
       shards: ${{ fromJSON(vars.HOSTED_SHARDS || '6') }}

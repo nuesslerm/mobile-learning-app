@@ -1,42 +1,36 @@
 name: Setup job
 description: >-
-  What a job of pipeline.yml needs before its own steps, per flavor. `vm`: pnpm, node, bws, sccache and the wf the VM holds, then the pnpm
-  store and the install. `hosted`: the hosted-setup action (tailnet, toolchains, the wf artifact). The caller has checked the repository out.
+  What a job of pipeline.yml needs before its own steps on a GitHub-hosted runner: the tailnet, toolchains and the wf artifact (the hosted-setup
+  action), or for a job that builds wf itself (`wf-source: none`) only the tailnet and the vault client. The caller has checked the repository out.
 inputs:
-  flavor:
-    description: vm or hosted
-    required: true
   wf-source:
-    description: >-
-      none (no wf: the job builds it), current (vm: the wf the previous push published), tree (vm: this commit's wf, the published one when it
-      did not build) or artifact (hosted: the artifact the wf-build job uploaded)
-    default: tree
+    description: "none (no wf, the job builds it) or artifact (the artifact the wf-build job uploaded)"
+    default: artifact
   artifact:
-    description: The artifact holding the binaries on a hosted runner (clis for x64, clis-arm for arm64)
+    description: The artifact holding the binaries (clis for x64, clis-arm for arm64)
     default: clis
   job:
-    description: The job's name (the hosted runner sampler's file name)
+    description: The job's name (the runner sampler's file name)
     required: true
   install:
     description: Fill the pnpm store from the bucket and run pnpm install
     default: "true"
   ts-client-id:
-    description: The hosted-join Tailscale OAuth client id
+    description: The Tailscale OAuth client id
     default: ""
   ts-secret:
     description: Its secret
     default: ""
   keep-android:
-    description: Keep the Android SDK on a hosted runner (the Android e2e job's emulator)
+    description: Keep the Android SDK on the runner (the Android e2e job's emulator)
     default: "false"
   apt-packages:
-    description: System packages a hosted job needs, installed before the tailnet join (see the hosted-apt action)
+    description: System packages a job needs, installed before the tailnet join (see the hosted-apt action)
     default: ""
 runs:
   using: composite
   steps:
-    - name: The hosted runner's environment
-      if: ${{ inputs.flavor == 'hosted' }}
+    - name: The runner's environment
       shell: bash
       run: |
         # the tailnet joins in kernel mode here: wf routes by the environment, not through the userspace SOCKS listener it defaults to
@@ -44,14 +38,13 @@ runs:
         echo "BWS_SERVER_URL=https://vault.bitwarden.eu" >> "$GITHUB_ENV"
 
     - uses: ./.github/actions/hosted-dns
-      if: ${{ inputs.flavor == 'hosted' }}
     - uses: ./.github/actions/hosted-apt
-      if: ${{ inputs.flavor == 'hosted' && inputs.apt-packages != '' }}
+      if: ${{ inputs.apt-packages != '' }}
       with:
         packages: ${{ inputs.apt-packages }}
 
     - uses: ./.github/actions/hosted-setup
-      if: ${{ inputs.flavor == 'hosted' && inputs.wf-source != 'none' }}
+      if: ${{ inputs.wf-source != 'none' }}
       with:
         job: ${{ inputs.job }}
         ts-client-id: ${{ inputs.ts-client-id }}
@@ -60,12 +53,12 @@ runs:
         clis-artifact: ${{ inputs.artifact }}
         keep-android: ${{ inputs.keep-android }}
     - uses: ./.github/actions/hosted-stats
-      if: ${{ inputs.flavor == 'hosted' && inputs.wf-source == 'none' }}
+      if: ${{ inputs.wf-source == 'none' }}
       with:
         mode: start
         job: ${{ inputs.job }}
     - name: Join the tailnet as tag:ci-gh-hosted
-      if: ${{ inputs.flavor == 'hosted' && inputs.wf-source == 'none' }}
+      if: ${{ inputs.wf-source == 'none' }}
       uses: tailscale/github-action@99a8333667fff04fdd6cffb46dfd409f8329a7bf # v4.3.0
       with:
         oauth-client-id: ${{ inputs.ts-client-id }}
@@ -73,43 +66,4 @@ runs:
         tags: tag:ci-gh-hosted
         use-cache: 'false'
     - uses: ./.github/actions/install-bws
-      if: ${{ inputs.flavor == 'hosted' && inputs.wf-source == 'none' }}
-
-    - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
-      if: ${{ inputs.flavor == 'vm' }}
-      with:
-        run_install: false
-    - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-      if: ${{ inputs.flavor == 'vm' }}
-      with:
-        node-version: 22.22.0
-    - uses: ./.github/actions/install-bws
-      if: ${{ inputs.flavor == 'vm' }}
-    - uses: ./.github/actions/install-sccache
-      if: ${{ inputs.flavor == 'vm' }}
-    - name: The wf the previous push published
-      if: ${{ inputs.flavor == 'vm' && inputs.wf-source == 'current' }}
-      uses: ./.github/actions/install-wf
-      with:
-        current: "true"
-    - name: This commit's wf
-      id: wf
-      if: ${{ inputs.flavor == 'vm' && inputs.wf-source == 'tree' }}
-      continue-on-error: true
-      uses: ./.github/actions/install-wf
-    - name: The published wf, when this commit's did not build
-      if: ${{ inputs.flavor == 'vm' && inputs.wf-source == 'tree' && steps.wf.outcome == 'failure' }}
-      uses: ./.github/actions/install-wf
-      with:
-        current: "true"
-    - name: Restore the pnpm store
-      if: ${{ inputs.flavor == 'vm' && inputs.install == 'true' }}
-      shell: bash
-      continue-on-error: true
-      run: wf cache restore pnpm
-    - name: pnpm install
-      if: ${{ inputs.flavor == 'vm' && inputs.install == 'true' }}
-      shell: bash
-      run: pnpm install --frozen-lockfile
-    - uses: ./.github/actions/hosted-dns
-      if: ${{ inputs.flavor == 'hosted' }}
+      if: ${{ inputs.wf-source == 'none' }}

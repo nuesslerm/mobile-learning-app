@@ -68,8 +68,6 @@ jobs:
           use-cache: 'false'
       - uses: ./.github/actions/install-bws
       - uses: ./.github/actions/build-wf
-        with:
-          flavor: hosted
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Install gcloud

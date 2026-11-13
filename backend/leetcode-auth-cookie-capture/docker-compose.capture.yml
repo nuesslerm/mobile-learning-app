@@ -85,11 +85,11 @@ services:
     # so it DOES get auto-restarted, unlike the previous one-shot design.
     restart: unless-stopped
     volumes:
-      # The VM's one wf build (the clis job of pipeline.yml, installed by clis-sync); the image links /usr/local/bin/wf to current/wf here.
+      # The VM's one wf build (the clis job of pipeline.yml, installed through vm-ops-api's POST /clis/install); the image links /usr/local/bin/wf to current/wf here.
       - clis:/opt/clis:ro
 
 volumes:
-  # Written by the runner in the agent-shell project (the clis job of pipeline.yml, installed by clis-sync); external here so this project never removes it.
+  # Written by the runner in the agent-shell project (the clis job of pipeline.yml, installed through vm-ops-api's POST /clis/install); external here so this project never removes it.
   clis:
     external: true
     name: clis

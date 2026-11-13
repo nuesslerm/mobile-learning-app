@@ -3,7 +3,7 @@ description: >-
   The one `wf` on the VM: a static (musl) binary built from clis/ with the deploy profile, incrementally in a target
   directory on the runner, installed once per clis/ tree under /opt/clis/<tree>/ beside the binaries it runs for `wf t3`
   and `wf exec`, and put on PATH. A job whose clis/ tree is already installed builds nothing. It never points /opt/clis/current anywhere: the clis job
-  of pipeline.yml publishes the build as the wf-latest release and the VM's clis-sync container installs it (the containers mount /opt/clis and run current/wf).
+  of pipeline.yml publishes the build as the wf-latest release and vm-ops-api installs it (POST /clis/install) (the containers mount /opt/clis and run current/wf).
 inputs:
   live:
     description: "true brings the run's pull request comment up to date as this job starts (false leaves it alone: the preflight job starts it itself). Job logs were missing from 31 Oct 00:19 UTC until the runner was moved to 2.338.2, which was not this update's doing"

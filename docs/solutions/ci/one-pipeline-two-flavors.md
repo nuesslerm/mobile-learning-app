@@ -1,5 +1,5 @@
 ---
-title: "One pipeline, two flavors: how pipeline.yml runs on the VM and on GitHub-hosted runners"
+title: "The CI pipeline: how pipeline.yml runs on GitHub-hosted runners"
 date: 2026-11-09
 category: ci
 module: ci-pipeline
@@ -9,23 +9,20 @@ severity: medium
 applies_when:
   - "Changing the job order, concurrency or runners of the CI pipeline"
   - "Asking why a stage waits for another, or why two CI runs block each other"
-  - "Reading a hosted or self-hosted run and wanting to know what each job is for"
+  - "Reading a run and wanting to know what each job is for"
 tags: [ci, pipeline, concurrency, hosted, vm, wf-build, deploy]
 ---
 
-# One pipeline, two flavors
+# The CI pipeline
 
-`.github/workflows/pipeline.yml` is one reusable workflow with an input `flavor` (`vm` or `hosted`). The two flavors have the same job graph. They differ only in where the jobs run and how many run at once.
+`.github/workflows/pipeline.yml` is one reusable workflow, called by `ci-hosted.yml` ("CI (GitHub-hosted)": ships, deploys, runs the device suites) on every push to `dev` and by `cold-ci.yml` weekly. It runs on GitHub-hosted runners, up to 20 jobs at once (free plan limit). The self-hosted flavor (`deploy.yml`, the VM's own runner, one job at a time) was deleted on 2026-11-13; the VM runner container still serves `vm-state-backup.yml`, `record-references.yml` and `parity.yml`.
 
-| | `hosted` | `vm` |
-| --- | --- | --- |
-| Caller | `ci-hosted.yml` ("CI (GitHub-hosted)", ships nothing) | `deploy.yml` ("CI (self-hosted)", the production pipeline: ships, deploys, runs the device suites) |
-| Runners | GitHub-hosted, up to 20 jobs at once (free plan limit) | the VM's own runner, one job at a time |
-| Test shards | `HOSTED_SHARDS` (default 6) | 1 |
-| `wf-build` legs | x64 and arm64 | x64 |
-| Image builds | in parallel, `max-parallel: 20` | one leg at a time |
-
-Parallelism is a property of the runner, not of the graph: the VM runs the same graph and the single runner serializes it.
+| | |
+| --- | --- |
+| Test shards | `HOSTED_SHARDS` (default 6) |
+| `wf-build` legs | x64 and arm64 |
+| Image builds | in parallel, `max-parallel: 20` |
+| Device | the SDK emulator on the runner (`WF_ANDROID_PROVIDER=emulator`) |
 
 ## Job order
 
@@ -97,21 +94,9 @@ Image builds fetch the shared libraries from the public libs bucket over plain H
 
 ## Concurrency groups
 
-```mermaid
-flowchart LR
-  subgraph hosted["hosted"]
-    hw["workflow: ci-hosted-ref"]
-    hd["deploy lock: hosted-deploy-app"]
-  end
-  subgraph vm["self-hosted"]
-    vw["workflow: ci-ref"]
-    vd["deploy lock: prefix + deploy-app"]
-  end
-```
-
-- The two flavors use different group names, so a hosted run never replaces or queues behind a self-hosted run of a later commit, and the other way round.
-- GitHub replaces a *pending* run in a group and never a running one, so within one flavor a newer push supersedes a queued run only.
-- The deploy lock is per app and per flavor with `cancel-in-progress: false`: two deploys of one app never overlap, deploys of different apps do.
+- The workflow group is `ci-hosted-<ref>`; the deploy lock is `hosted-deploy-<app>`.
+- GitHub replaces a *pending* run in a group and never a running one, so a newer push supersedes a queued run only.
+- The deploy lock is per app with `cancel-in-progress: false`: two deploys of one app never overlap, deploys of different apps do.
 
 ## Commit tags
 
@@ -129,14 +114,7 @@ Numbers of the first cold hosted run and the VM warm-cache run: `hosted-minutes.
 
 ## Not done yet
 
-- A no-drift check (flow test) that the two callers differ only in `with:`, triggers, name, group and permissions.
 - One green full cold hosted run of this structure with every deploy leg (tracked in issue #367).
 - Cold runs come from the `[cache:no]` commit tag: `wf ci audit` judges a run cold when its head commit carries it (or when it was dispatched by hand). The weekly cold run is `cold-ci.yml` (schedule and dispatch, hosted flavor, nothing deployed or shipped): it calls this pipeline with the `fresh` and `services: all` inputs, which do what the `[cache:no]` and `[services:all]` tags do for a commit that carries none, and `wf ci audit` judges a scheduled run cold.
 
 Related: `ci-pipeline-on-the-vm.md` (the VM pipeline in detail), `hosted-minutes.md` (billing and timings), `job-secret-needs.md` (vault scope per job; `clis/secrets/src/data/job-scopes.json`), `cache-layers.md`.
-
-## Android device on the VM flavor
-
-The VM flavor runs the redroid device in the runner's own docker, with `wf android start-device --local`: the `droid` daemon of the `ci-runner` project (a docker-in-docker daemon on a unix socket, `DEVICE_DOCKER_HOST=unix:///run/droid/docker.sock`; the Android verbs only, builds keep the `builder`). The device shares the runner's network namespace, so adb is `localhost:5555` and no tailnet grant or vm-ops-api route is involved. The hosted flavor brings its own emulator. agent-shell has its own `agent-droid` daemon the same way.
-
-All three daemons (`builder`, `droid`, `agent-droid`) extend the one definition in `infra/oracle-cloud/dind.yml`; vm-ops-api provisions that file one level above each app's directory (`shared_files` in `core/src/domain/apps.rs`), the place it has in the repo. A compose file that extends it must be redeployed by a vm-ops-api that knows the file, so deploy vm-ops-api first.

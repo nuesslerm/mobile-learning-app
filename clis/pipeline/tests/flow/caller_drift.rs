@@ -1,5 +1,5 @@
-//! The two CI callers share one pipeline (docs/solutions/ci/one-pipeline-two-flavors.md): `deploy.yml` (self-hosted) and `ci-hosted.yml`
-//! (GitHub-hosted) may differ in their triggers, name, concurrency group, permissions and `with:`, and in nothing that is job logic.
+//! The CI callers (`ci-hosted.yml`, `cold-ci.yml`) share one pipeline: they hold their triggers, name, concurrency group, permissions and
+//! `with:`, and no job logic.
 use crate::support::repo_root;
 use std::collections::BTreeSet;
 
@@ -43,20 +43,6 @@ fn set(items: &[&str]) -> BTreeSet<String> {
 }
 
 #[test]
-fn the_self_hosted_caller_has_one_job_that_only_calls_the_shared_pipeline() {
-    // Given the self-hosted caller
-    let vm = workflow("deploy.yml");
-
-    // When its jobs and their content are read
-    let names = jobs(&vm);
-
-    // Then it holds the one `run` job, a call of pipeline.yml with no runner of its own and no steps
-    assert_eq!(names, set(&["run"]), "deploy.yml jobs");
-    assert!(vm.contains("    uses: ./.github/workflows/pipeline.yml\n"), "deploy.yml calls pipeline.yml");
-    assert!(!vm.contains("runs-on:") && !vm.contains("steps:"), "deploy.yml holds job logic");
-}
-
-#[test]
 fn the_hosted_caller_adds_only_a_trigger_gate_and_calls_the_same_pipeline() {
     // Given the hosted caller
     let hosted = workflow("ci-hosted.yml");
@@ -72,33 +58,21 @@ fn the_hosted_caller_adds_only_a_trigger_gate_and_calls_the_same_pipeline() {
 }
 
 #[test]
-fn the_two_callers_pass_the_same_inputs_except_the_comment_label_and_every_input_is_declared() {
-    // Given both callers' `with:` and the pipeline's declared inputs
-    let vm = keys_under(job_block(&workflow("deploy.yml"), "run"), "    with:");
-    let hosted = keys_under(job_block(&workflow("ci-hosted.yml"), "run"), "    with:");
-    let declared = keys_under(&workflow("pipeline.yml"), "    inputs:");
+fn every_input_and_secret_a_caller_passes_is_declared_by_the_pipeline() {
+    // Given the callers' `with:` and `secrets:` and the pipeline's declared inputs and secrets
+    let declared_inputs = keys_under(&workflow("pipeline.yml"), "    inputs:");
+    let declared_secrets = keys_under(&workflow("pipeline.yml"), "    secrets:");
 
-    // When they are compared
-    let only_hosted: BTreeSet<String> = hosted.difference(&vm).cloned().collect();
-    let only_vm: BTreeSet<String> = vm.difference(&hosted).cloned().collect();
-    let undeclared: Vec<&String> = vm.union(&hosted).filter(|k| !declared.contains(*k)).collect();
+    for caller in ["ci-hosted.yml", "cold-ci.yml"] {
+        // When what each passes is compared with what the pipeline declares
+        let run = job_block(&workflow(caller), "run").to_string();
+        let inputs = keys_under(&run, "    with:");
+        let secrets = keys_under(&run, "    secrets:");
+        let undeclared: Vec<&String> = inputs.iter().filter(|k| !declared_inputs.contains(*k)).collect();
+        let unknown: Vec<&String> = secrets.iter().filter(|k| !declared_secrets.contains(*k)).collect();
 
-    // Then the hosted caller adds only `label`, the self-hosted one lacks nothing, and the pipeline declares every input passed
-    assert_eq!(only_hosted, set(&["label"]), "inputs only the hosted caller passes");
-    assert!(only_vm.is_empty(), "inputs only the self-hosted caller passes: {only_vm:?}");
-    assert!(undeclared.is_empty(), "inputs passed but not declared by pipeline.yml: {undeclared:?}");
-}
-
-#[test]
-fn the_self_hosted_caller_passes_no_secret_the_hosted_one_does_not() {
-    // Given both callers' `secrets:`
-    let vm = keys_under(job_block(&workflow("deploy.yml"), "run"), "    secrets:");
-    let hosted = keys_under(job_block(&workflow("ci-hosted.yml"), "run"), "    secrets:");
-
-    // When the self-hosted names are checked against the hosted ones
-    let missing: Vec<&String> = vm.difference(&hosted).collect();
-
-    // Then the hosted caller passes every secret the self-hosted one does, and its own tailnet-join pair on top
-    assert!(missing.is_empty(), "secrets only the self-hosted caller passes: {missing:?}");
-    assert_eq!(hosted.difference(&vm).cloned().collect::<BTreeSet<_>>(), set(&["TS_HOSTED_OAUTH_CLIENT_ID", "TS_HOSTED_OAUTH_CLIENT_SECRET"]));
+        // Then the pipeline declares all of them
+        assert!(undeclared.is_empty(), "{caller} passes inputs pipeline.yml does not declare: {undeclared:?}");
+        assert!(unknown.is_empty(), "{caller} passes secrets pipeline.yml does not declare: {unknown:?}");
+    }
 }

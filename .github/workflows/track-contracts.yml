@@ -76,7 +76,6 @@ jobs:
       - uses: ./.github/actions/install-bws
       - uses: ./.github/actions/build-wf
         with:
-          flavor: hosted
           upload: "true"
       - name: Compare each pin with the newest release
         id: plan
