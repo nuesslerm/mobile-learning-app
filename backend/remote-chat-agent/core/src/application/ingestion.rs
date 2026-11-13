@@ -185,12 +185,14 @@ async fn run(ingestions: &Arc<Ingestions>, wiring: &Arc<Wiring>, entry: &Arc<Act
             // the conversation is still there (the backend's, or the one the thread already names): losing the stream must not make the next turn start a new one
             // the lost stream keeps the session id: opencode still holds the conversation, and the next turn must go on in it
             let kept = wiring.backend.session_for(thread_id).or_else(|| engine.with_thread(thread_id, |t| t.and_then(|t| t.session.as_ref()).and_then(|s| s.provider_session_id.clone())).unwrap_or(None));
+            // a lost stream is a turn cut off by a restart, not one the model failed: it is reported interrupted, and a timeout stays an error
+            let status = if timed_out { "error" } else { "interrupted" };
             dispatch(
                 engine,
                 Command {
                     command_id: format!("provider:stream-lost:{}", engine.new_id()),
                     thread_id: thread_id.to_string(),
-                    body: Body::SessionSet { session: Session { cli: provider.clone(), provider_session_id: kept, status: "error".into(), active_turn_id: None, last_error: Some(reason) } },
+                    body: Body::SessionSet { session: Session { cli: provider.clone(), provider_session_id: kept, status: status.into(), active_turn_id: None, last_error: Some(reason) } },
                 },
             );
         }
@@ -288,7 +290,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn given_an_opencode_thread_with_a_session_when_its_event_stream_is_lost_then_the_thread_keeps_the_session_in_error_and_the_next_turn_goes_on_in_it() {
+    async fn given_an_opencode_thread_with_a_session_when_its_event_stream_is_lost_then_the_thread_keeps_the_session_interrupted_and_the_next_turn_goes_on_in_it() {
         // Given an opencode thread whose turn runs in session ses_1 and whose event stream is open
         let store: Arc<MemoryStore> = Arc::default();
         let opencode = Arc::new(Opencode::default());
@@ -300,7 +302,7 @@ mod tests {
         until("the turn runs in its session", || opencode.feed.lock().unwrap().is_some() && session_of(&engine).is_some_and(|s| s.status == "running" && s.provider_session_id.as_deref() == Some("ses_1"))).await;
         // When the stream is lost while the turn still runs
         opencode.feed.lock().unwrap().take();
-        until("the thread's session errors", || session_of(&engine).is_some_and(|s| s.status == "error")).await;
+        until("the thread's session is interrupted", || session_of(&engine).is_some_and(|s| s.status == "interrupted")).await;
         // Then the thread keeps its provider session id
         assert_eq!(session_of(&engine).and_then(|s| s.provider_session_id).as_deref(), Some("ses_1"));
         // And after a service restart that loses the backend's own map, the next turn is sent in that session without starting another

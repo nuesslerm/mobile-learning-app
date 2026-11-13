@@ -441,7 +441,8 @@ async fn given_subscriptions_when_threads_change_turns_run_and_the_service_resta
             }
             oc.end_streams();
         }
-        let failed = ws.next(|f| is_event(f, id, "thread.session-set") && f["item"]["event"]["payload"]["session"]["status"] == "error").await;
+        let status = if id == "ws-broken" { "interrupted" } else { "error" };
+        let failed = ws.next(|f| is_event(f, id, "thread.session-set") && f["item"]["event"]["payload"]["session"]["status"] == status).await;
         assert_eq!(failed["item"]["event"]["payload"]["session"]["lastError"], reason, "{id}");
         ws.send(json!({ "kind": "unsubscribe", "id": id })).await;
     }
@@ -803,8 +804,8 @@ async fn given_a_turn_running_in_an_opencode_session_when_opencode_restarts_and_
     }
     // When opencode restarts: every event stream it served ends
     oc.end_streams();
-    // Then the thread ends in error and still holds oc-ses-1
-    let failed = ws.next(|f| is_event(f, "oc", "thread.session-set") && f["item"]["event"]["payload"]["session"]["status"] == "error").await;
+    // Then the thread reports the turn interrupted and still holds oc-ses-1
+    let failed = ws.next(|f| is_event(f, "oc", "thread.session-set") && f["item"]["event"]["payload"]["session"]["status"] == "interrupted").await;
     assert_eq!(failed["item"]["event"]["payload"]["session"]["lastError"], "opencode ended its event stream");
     assert_eq!(failed["item"]["event"]["payload"]["session"]["providerSessionId"], "oc-ses-1", "{failed}");
     // And the next turn goes to that session, and no second session is created
