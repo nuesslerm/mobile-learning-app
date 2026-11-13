@@ -6,6 +6,9 @@ use super::*;
 
 /// A candidate answers from memory on loopback: a frame that is coming arrives within this, so the recorded reference's longer quiet window is not waited out per case.
 const LOCAL_QUIET_MS: u64 = 120;
+/// How long a request waits for the first thing the server answers (a reply, an error or the close): the chain behind t3-serve is slower on a loaded
+/// runner than the quiet window, and a request the real server always answers must not read as unanswered because the machine was busy.
+const FIRST_ANSWER_MS: u64 = 3000;
 use mimic_core::allowlist::Allowlist;
 use mimic_core::cassette::{Cassette, Dir, DriverInfo, Step};
 use mimic_core::differ::Verdict;
@@ -131,13 +134,16 @@ impl Session {
         self.ws.as_mut().ok_or("no socket is open")?.send(Message::text(text)).map_err(|e| e.to_string())
     }
 
-    /// Everything the server sends until it is quiet; a chunk is acknowledged as the recorded client did.
-    fn settle(&mut self, wait: Duration) -> Result<(), String> {
+    /// Everything the server sends until it is quiet; a chunk is acknowledged as the recorded client did. With `first`, the wait for the first
+    /// thing the server sends is that long instead (a request is always answered), and the quiet window `wait` applies after it.
+    fn settle_with(&mut self, wait: Duration, first: Option<Duration>) -> Result<(), String> {
+        let mut answered = first.is_none();
         loop {
             let Some(ws) = self.ws.as_mut() else { return Ok(()) };
-            ws.get_ref().set_read_timeout(Some(wait)).map_err(|e| e.to_string())?;
+            ws.get_ref().set_read_timeout(Some(if answered { wait } else { first.unwrap_or(wait) })).map_err(|e| e.to_string())?;
             match ws.read() {
                 Ok(Message::Text(t)) => {
+                    answered = true;
                     let text = t.as_str().to_string();
                     self.push(Dir::S2c, &text);
                     if let Ok(frame) = serde_json::from_str::<Value>(&text) {
@@ -147,6 +153,7 @@ impl Session {
                     }
                 }
                 Ok(Message::Close(frame)) => {
+                    answered = true;
                     let (code, reason) = frame.map_or((None, String::new()), |f| (Some(u16::from(f.code)), f.reason.to_string()));
                     self.events.push(WireEvent::WsClose { dir: Some(Dir::S2c), code, reason });
                 }
@@ -160,6 +167,10 @@ impl Session {
                 Err(e) => return Err(e.to_string()),
             }
         }
+    }
+
+    fn settle(&mut self, wait: Duration) -> Result<(), String> {
+        self.settle_with(wait, None)
     }
 }
 
@@ -221,7 +232,8 @@ impl Candidate<'_> {
                 }
                 "ws-send" => {
                     session.send(&arg.to_string())?;
-                    session.settle(session.settle)?;
+                    let first = (arg["_tag"] == "Request").then(|| Duration::from_millis(FIRST_ANSWER_MS));
+                    session.settle_with(session.settle, first)?;
                 }
                 "ws-close" => {
                     let (code, reason) = (arg["code"].as_u64().unwrap_or(1000) as u16, arg["reason"].as_str().unwrap_or_default().to_string());
