@@ -436,8 +436,6 @@ jobs:
           gh release upload wf-latest "$out"/* --clobber
       # vm-ops-api installs what was just published, if it is the build named by the sha256.
       - name: Install the build on the VM
-        # the first run that carries the route reaches this before vm-ops-api is redeployed with it; drop this line once a run has installed through it
-        continue-on-error: true
         run: |
           sha=$(cut -d' ' -f1 "$RUNNER_TEMP/out/wf-linux-arm64.tar.gz.sha256")
           wf vm ops install-clis --sha256 "$sha"
