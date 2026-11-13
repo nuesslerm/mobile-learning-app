@@ -1,12 +1,12 @@
 Usage: wf mimic trigger [options]
 
 Read the marker of a commit message and say which capture jobs it asks for. The
-record-references workflow runs this on the head commit of every push to dev
+mimic-record workflow runs this on the head commit of every push to dev
 whose message carries a marker; it is the one place the marker is parsed.
 
 Marker grammar (one marker per message, on a line of its own that begins with `[`;
 prose that mentions it mid-line, and a message without one, start nothing):
-  [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on the VM runner
+  [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on a hosted runner
   [replay <set>...]                              replay each set against its candidates, publish the diff
   <set>      a cassette set: its directory name, or its path from the repository root;
              the directory holds a mimic.toml (a bare name that matches two is refused)

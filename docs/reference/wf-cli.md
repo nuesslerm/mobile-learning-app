@@ -3775,7 +3775,7 @@ Usage: `wf mimic trigger [options]`
 Usage: wf mimic trigger [options]
 
 Read the marker of a commit message and say which capture jobs it asks for. The
-record-references workflow runs this on the head commit of every push to dev
+mimic-record workflow runs this on the head commit of every push to dev
 whose message carries a marker; it is the one place the marker is parsed.
 
 Marker grammar (one marker per message, on a line of its own that begins with `[`;
@@ -3857,7 +3857,7 @@ Output (schema mimic-provision/1):
 
 ### `wf mimic job`
 
-One capture job of the record-references workflow, for a set that is already
+One capture job of the mimic-record workflow, for a set that is already
 
 Usage: `wf mimic job [options] <record|replay> <set>`
 
@@ -3866,7 +3866,7 @@ Usage: `wf mimic job [options] <record|replay> <set>`
 ```text
 Usage: wf mimic job [options] <record|replay> <set>
 
-One capture job of the record-references workflow, for a set that is already
+One capture job of the mimic-record workflow, for a set that is already
 provisioned (wf mimic provision).
 
 record: runs `wf mimic record <set> --resume --max-minutes <chunk>` again and again
