@@ -253,9 +253,10 @@ pub fn app_redeploy_sibling_args(env: &RedeployEnv, request: &AppRedeploy) -> Ve
 pub fn app_smoke_sibling_args(env: &RedeployEnv, request: &AppRedeploy) -> Option<Vec<String>> {
     let check = smoke(request.app)?;
     let mut lines = app_front_lines(env, request);
-    // A first deploy has no sidecar yet, and the throwaway container joins the sidecar's network namespace.
+    // A first deploy has no sidecar yet, and the throwaway container joins the sidecar's network namespace. A sidecar that runs is left as it is: the
+    // smoke test takes no service out of the tag it runs, which only the redeploy after it moves (and only the services that changed).
     let compose = format!("docker compose -f {}", request.compose_file);
-    lines.push(format!("cd {} && {compose} up -d --no-deps $({compose} config --services | grep -vx {})", request.host_dir, check.service));
+    lines.push(format!("cd {} && {compose} up -d --no-deps --no-recreate $({compose} config --services | grep -vx {})", request.host_dir, check.service));
     lines.extend(smoke_lines(&format!("cd {}", request.host_dir), &format!("docker compose -f {}", request.compose_file), request.app, check.service, check.probe, check.port_env, check.env));
     Some(app_sibling_argv(env, request, &lines))
 }
