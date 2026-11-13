@@ -17,4 +17,5 @@ pub mod provider_dirs;
 pub mod provider_login;
 pub mod secrets;
 pub mod system;
+pub mod workspace_ledger;
 pub mod ws_channel;

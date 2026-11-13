@@ -76,7 +76,10 @@ impl AttachmentParts {
 /// until the rest of its owner set (`workspace.activate`, `repo.hooks`) is served. `accounts` (provider logins, usage) and `git.ai` (commit messages) stand on `accounts`: directories of the providers, their login commands and a model API. `agent.threads` and its three sub-groups, `agent.requests`, `agent.queue` and `agent.lifecycle`, share one
 /// runner of the CLIs `spawner` starts, in the executor root, against a thread engine of its own; the runner also answers the MCP tools that wait for a person.
 pub fn agent_api(config: &Config, spawner: Arc<dyn Spawner>, state: Arc<dyn StateStore>, bearers: Arc<dyn DeviceBearers>, accounts: Accounts, schedule_parts: ScheduleParts, attachment_parts: AttachmentParts) -> AgentApi {
-    let executors: Arc<Registry> = Arc::default();
+    let executors: Arc<Registry> = Arc::new(match &config.state_dir {
+        Some(dir) => Registry::with_ledger(Arc::new(infrastructure::workspace_ledger::WorkspaceFile::at(std::path::Path::new(dir).join("agent-api").join("workspaces.json")))),
+        None => Registry::default(),
+    });
     let threads = Arc::new(EngineThreads::new(thread_engine(config)));
     let mcp = Arc::new(LoopbackMcp::new(config.port));
     let runner = Runner::new(threads.clone(), executors.clone(), spawner, mcp.clone(), std::path::PathBuf::from(&config.exec_root));

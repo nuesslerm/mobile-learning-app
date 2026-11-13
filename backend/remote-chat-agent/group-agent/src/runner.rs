@@ -133,7 +133,14 @@ pub struct Runner {
 
 impl Runner {
     pub fn new(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, spawner: Arc<dyn Spawner>, mcp: Arc<dyn McpEndpoint>, cli_cwd: PathBuf) -> Arc<Runner> {
-        Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::new(spawner)), mcp, cli_cwd, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() })
+        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::new(spawner)), mcp, cli_cwd, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
+        let me = Arc::downgrade(&runner);
+        runner.engine.on_settled(Arc::new(move |thread| {
+            if let Some(runner) = me.upgrade() {
+                runner.resume_queue_later(thread);
+            }
+        }));
+        runner
     }
 
     pub fn engine(&self) -> &Arc<dyn ThreadEngine> {
@@ -263,6 +270,28 @@ impl Runner {
         });
     }
 
+    /// After a restart settled the thread's turn as interrupted: starts the next queued prompt once the workspace's executor is back. The interrupted
+    /// turn itself is never run again, it may have had side effects; a prompt sent after it resumes the kept session.
+    fn resume_queue_later(&self, thread: &str) {
+        let Ok(handle) = tokio::runtime::Handle::try_current() else {
+            tracing::warn!(event = "agent_queue.resume_no_runtime", thread = %thread);
+            return;
+        };
+        let (runner, thread) = (self.arc(), thread.to_string());
+        handle.spawn(async move {
+            let Some(item) = runner.engine.queue(&thread).ok().flatten().and_then(|(_, items)| items.into_iter().next()) else { return };
+            let workspace = item.workspace.or_else(|| runner.thread(&thread).ok().and_then(|view| view.workspace)).unwrap_or_default();
+            for _ in 0..RESTART_WINDOW_POLLS {
+                if runner.executors.get(&workspace).is_some() {
+                    runner.start_next(&thread).await;
+                    return;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            }
+            tracing::warn!(event = "agent_queue.resume_no_executor", thread = %thread, workspace = %workspace);
+        });
+    }
+
     /// The first prompt of the thread's queue, when the thread may start it by itself: it is active, its queue is not held and no turn runs.
     fn next_item(&self, thread: &str) -> Option<QueueItem> {
         let (held, items) = self.engine.queue(thread).ok().flatten()?;
@@ -343,6 +372,9 @@ impl Runner {
         }
     }
 }
+
+/// How many 500 ms polls a restarted service waits for the executor of a queued prompt to connect again (15 minutes, rca-exec's default reconnect window).
+const RESTART_WINDOW_POLLS: u32 = 1800;
 
 enum Started {
     Running(String),

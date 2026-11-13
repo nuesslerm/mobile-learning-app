@@ -433,10 +433,84 @@ async fn given_an_opencode_thread_whose_turn_named_a_session_when_the_service_an
     agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
     let second = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "two"})).await;
     assert!(second.get("result").is_some(), "{second}");
-    agent.events_through("turn.finished").await;
+    history_with_finishes(&mut agent, "t1", 2).await;
     // Then the first run of the CLI started a conversation of its own and the second one went on in the session the first named
     let starts = chain.cli.invocations("opencode");
     assert_eq!(starts.len(), 2, "{starts:?}");
     let session_of = |argv: &Vec<String>| argv.iter().position(|a| a == "--session").map(|i| argv[i + 1].clone());
     assert_eq!((session_of(&starts[0].argv), session_of(&starts[1].argv)), (None, Some("ses_resume_1".to_string())), "{:?}", starts.iter().map(|s| s.argv.clone()).collect::<Vec<_>>());
+}
+
+async fn history_kinds(agent: &mut Agent, thread: &str) -> Vec<(String, Value)> {
+    let history = agent.ask("thread.history", json!({"thread": thread})).await;
+    history["result"]["events"].as_array().unwrap().iter().map(|e| (e["type"].as_str().unwrap().to_string(), if e["type"] == "error" { e["message"].clone() } else { e["reason"].clone() })).collect()
+}
+
+/// The history of the thread once it holds `count` finished turns (a subscription replays the finishes of before).
+async fn history_with_finishes(agent: &mut Agent, thread: &str, count: usize) -> Vec<(String, Value)> {
+    for _ in 0..300 {
+        let kinds = history_kinds(agent, thread).await;
+        if kinds.iter().filter(|(kind, _)| kind == "turn.finished").count() >= count {
+            return kinds;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    panic!("the thread never held {count} finished turns");
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_an_opencode_turn_interrupted_by_a_restart_with_a_prompt_queued_behind_it_then_the_queue_runs_in_the_kept_session_and_a_continue_resumes_it_too() {
+    // Given an opencode thread whose first turn announced its session and is still running, with one more prompt queued behind it
+    let env = Env::process(&[]);
+    let state = env.home.join("rca-state");
+    std::fs::create_dir_all(&state).unwrap();
+    let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
+    // The first service runs on a runtime of its own that is shut down to crash it: the turn it runs and the queue behind it record nothing more
+    let first_run = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
+    let chain = std::thread::scope(|scope| {
+        scope.spawn(|| first_run.block_on(async {
+            let chain = chain_with(&env, options()).await;
+            chain.cli.script("opencode", &Script::of(vec![
+                Turn::replaying(&[opencode_said("ses_queue_1", "working")]).then_sleeping(60_000),
+                Turn::replaying(&[opencode_said("ses_queue_1", "queued answer")]),
+                Turn::replaying(&[opencode_said("ses_queue_1", "continued")]),
+            ]));
+            let mut agent = chain.agent().await;
+            let made = agent.ask("thread.create", json!({"thread": "t1", "title": "Notes", "workspace": "w1", "driver": "opencode"})).await;
+            assert!(made.get("result").is_some(), "{made}");
+            agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+            let first = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "one"})).await;
+            assert!(first.get("result").is_some(), "{first}");
+            agent.events_through("message.delta").await;
+            agent.events_through("message.delta").await;
+            let queued = agent.ask("queue.add", json!({"thread": "t1", "item": "q1", "prompt": "two"})).await;
+            assert!(queued.get("result").is_some(), "{queued}");
+            drop(agent);
+            chain
+        })).join().unwrap()
+    });
+    // When the service crashes and the service and the executor start again over the same state dir
+    first_run.shutdown_background();
+    let chain = restarted(chain, &env, options()).await;
+    let mut agent = chain.agent().await;
+    let kinds_seen = history_with_finishes(&mut agent, "t1", 2).await;
+    // Then the first turn is reported finished as interrupted, the queued prompt ran after the restart, and the thread is idle
+    let finishes: Vec<Value> = kinds_seen.iter().filter(|(kind, _)| kind == "turn.finished").map(|(_, reason)| reason.clone()).collect();
+    assert_eq!(finishes, [json!("interrupted"), json!("completed")], "{kinds_seen:?}");
+    assert!(kinds_seen.iter().any(|(kind, _)| kind == "queue.started"), "{kinds_seen:?}");
+    assert_eq!(agent.ask("thread.get", json!({"thread": "t1"})).await["result"]["thread"]["status"], json!("idle"));
+    // And the queued prompt's CLI went on in the first turn's session
+    let session_of = |argv: &Vec<String>| argv.iter().position(|a| a == "--session").map(|i| argv[i + 1].clone());
+    let starts = chain.cli.invocations("opencode");
+    assert_eq!(starts.len(), 2, "{starts:?}");
+    assert_eq!((session_of(&starts[0].argv), session_of(&starts[1].argv)), (None, Some("ses_queue_1".to_string())));
+    // When a follow-up prompt "continue" starts a turn
+    agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+    let again = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "continue"})).await;
+    assert!(again.get("result").is_some(), "{again}");
+    history_with_finishes(&mut agent, "t1", 3).await;
+    // Then its CLI resumes the same session
+    let starts = chain.cli.invocations("opencode");
+    assert_eq!(starts.len(), 3, "{starts:?}");
+    assert_eq!(session_of(&starts[2].argv), Some("ses_queue_1".to_string()), "{:?}", starts[2].argv);
 }

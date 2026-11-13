@@ -3,6 +3,7 @@
 use agent_api_agent::{lifecycle, queue, requests, ThreadView};
 use agent_api_proto::Event;
 use async_trait::async_trait;
+use std::sync::Arc;
 
 /// The engine could not read or write its log.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -97,6 +98,9 @@ pub trait ThreadEngine: Send + Sync {
     fn record(&self, thread: &str, turn: Option<&str>, event: agent_api_agent::ThreadEvent) -> Result<u64, EngineError>;
     /// A fresh id, for a thread the caller did not name and for a turn.
     fn new_id(&self) -> String;
+
+    /// Registers what the engine calls, with the thread, for each thread whose running turn it settled as interrupted when it started.
+    fn on_settled(&self, _hook: Arc<dyn Fn(&str) + Send + Sync>) {}
 
     // What follows is the thread's lifecycle (`agent.requests`, `agent.queue`, `agent.lifecycle`). An engine that keeps none, such as the double
     // of the threads group, refuses it all.

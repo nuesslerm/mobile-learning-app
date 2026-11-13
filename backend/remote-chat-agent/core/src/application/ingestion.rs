@@ -196,3 +196,118 @@ async fn run(ingestions: &Arc<Ingestions>, wiring: &Arc<Wiring>, entry: &Arc<Act
     }
     tracing::info!(thread_id, cli = %provider, "ingestion.ended");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::application::ports::SendTurn;
+    use crate::application::reactor::Orchestrator;
+    use crate::application::store::MemoryStore;
+    use crate::domain::agent::AgentEvent;
+    use crate::testing::{CountingIds, FixedClock};
+    use async_trait::async_trait;
+    use serde_json::{Map, Value};
+    use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
+
+    /// An opencode that holds one session per thread, whose event stream the test cuts on demand.
+    #[derive(Default)]
+    struct Opencode {
+        sessions: Mutex<HashMap<String, String>>,
+        started: Mutex<Vec<String>>,
+        adopted: Mutex<Vec<(String, String)>>,
+        sent: Mutex<Vec<Option<String>>>,
+        feed: Mutex<Option<UnboundedSender<AgentEvent>>>,
+    }
+
+    #[async_trait]
+    impl Backend for Opencode {
+        fn provider(&self) -> &str {
+            "opencode"
+        }
+        async fn start_session(&self, thread_id: &str, _runtime_mode: &str) -> Result<String, String> {
+            self.started.lock().unwrap().push(thread_id.into());
+            self.sessions.lock().unwrap().insert(thread_id.into(), "ses_1".into());
+            Ok("ses_1".into())
+        }
+        async fn send_turn(&self, input: &SendTurn<'_>) -> Result<(), String> {
+            self.sent.lock().unwrap().push(self.sessions.lock().unwrap().get(input.thread_id).cloned());
+            Ok(())
+        }
+        async fn interrupt_turn(&self, _thread_id: &str) -> Result<(), String> {
+            Ok(())
+        }
+        async fn respond_to_request(&self, _thread_id: &str, _request_id: &str, _decision: &str) -> Result<(), String> {
+            Ok(())
+        }
+        async fn respond_to_user_input(&self, _thread_id: &str, _request_id: &str, _answers: &Map<String, Value>) -> Result<(), String> {
+            Ok(())
+        }
+        async fn stop_session(&self, _thread_id: &str) -> Result<(), String> {
+            Ok(())
+        }
+        fn session_for(&self, thread_id: &str) -> Option<String> {
+            self.sessions.lock().unwrap().get(thread_id).cloned()
+        }
+        fn adopt_session(&self, thread_id: &str, session_id: &str) {
+            self.adopted.lock().unwrap().push((thread_id.into(), session_id.into()));
+            self.sessions.lock().unwrap().insert(thread_id.into(), session_id.into());
+        }
+        async fn open_events(&self, _directory: &str) -> Result<EventStream, String> {
+            let (tx, rx) = unbounded_channel();
+            *self.feed.lock().unwrap() = Some(tx);
+            Ok(Box::pin(futures_util::stream::unfold(rx, |mut rx| async { rx.recv().await.map(|event| (Ok(event), rx)) })))
+        }
+    }
+
+    fn orchestrator_over(store: Arc<MemoryStore>, opencode: &Arc<Opencode>) -> (Arc<Engine>, Arc<Orchestrator>) {
+        let engine = Arc::new(Engine::new(Box::new(store), "/work".into(), Arc::new(FixedClock(1_700_000_000_000)), Arc::new(CountingIds::default())));
+        let options = Options { tool_data: false, turn_deadline: None };
+        let backend: Arc<dyn Backend> = opencode.clone();
+        (engine.clone(), Orchestrator::new(engine, vec![backend], options))
+    }
+
+    fn start_turn(engine: &Engine, message: &str) {
+        let body = Body::TurnStart { message_id: message.into(), text: "go".into(), attachments: None, model_selection: None, runtime_mode: "full-access".into(), interaction_mode: "default".into(), source_proposed_plan: None, bootstrap: None };
+        let receipt = engine.dispatch(Command { command_id: format!("c-{message}"), thread_id: "t1".into(), body }, "client").unwrap();
+        assert!(receipt.accepted, "{:?}", receipt.error);
+    }
+
+    fn session_of(engine: &Engine) -> Option<Session> {
+        engine.with_thread("t1", |t| t.and_then(|t| t.session.clone())).unwrap()
+    }
+
+    async fn until(what: &str, mut done: impl FnMut() -> bool) {
+        for _ in 0..500 {
+            if done() {
+                return;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        panic!("{what}");
+    }
+
+    #[tokio::test]
+    async fn given_an_opencode_thread_with_a_session_when_its_event_stream_is_lost_then_the_thread_keeps_the_session_in_error_and_the_next_turn_goes_on_in_it() {
+        // Given an opencode thread whose turn runs in session ses_1 and whose event stream is open
+        let store: Arc<MemoryStore> = Arc::default();
+        let opencode = Arc::new(Opencode::default());
+        let (engine, _orchestrator) = orchestrator_over(store.clone(), &opencode);
+        let selection = ModelSelection { cli: "opencode".into(), provider_id: None, model_id: None };
+        let create = Body::Create { title: "t".into(), cwd: Some("/work".into()), model_selection: selection, runtime_mode: "full-access".into(), interaction_mode: "default".into(), branch: None, worktree_path: None };
+        assert!(engine.dispatch(Command { command_id: "c-create".into(), thread_id: "t1".into(), body: create }, "client").unwrap().accepted);
+        start_turn(&engine, "m1");
+        until("the turn runs in its session", || opencode.feed.lock().unwrap().is_some() && session_of(&engine).is_some_and(|s| s.status == "running" && s.provider_session_id.as_deref() == Some("ses_1"))).await;
+        // When the stream is lost while the turn still runs
+        opencode.feed.lock().unwrap().take();
+        until("the thread's session errors", || session_of(&engine).is_some_and(|s| s.status == "error")).await;
+        // Then the thread keeps its provider session id
+        assert_eq!(session_of(&engine).and_then(|s| s.provider_session_id).as_deref(), Some("ses_1"));
+        // And after a service restart that loses the backend's own map, the next turn is sent in that session without starting another
+        let restarted = Arc::new(Opencode::default());
+        let (engine, _orchestrator) = orchestrator_over(store, &restarted);
+        start_turn(&engine, "m2");
+        until("the next turn is sent", || !restarted.sent.lock().unwrap().is_empty()).await;
+        assert_eq!(*restarted.sent.lock().unwrap(), [Some("ses_1".to_string())]);
+        assert_eq!((restarted.started.lock().unwrap().len(), restarted.adopted.lock().unwrap().clone()), (0, vec![("t1".to_string(), "ses_1".to_string())]));
+    }
+}

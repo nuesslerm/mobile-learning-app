@@ -41,6 +41,8 @@ mod agent_terminal;
 mod agent_threads;
 #[path = "flow/agent_workspace.rs"]
 mod agent_workspace;
+#[path = "flow/agent_workspaces.rs"]
+mod agent_workspaces;
 #[path = "flow/contracts.rs"]
 mod contracts;
 #[path = "flow/control.rs"]
