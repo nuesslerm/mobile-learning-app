@@ -4,6 +4,7 @@
 mod agent_shell;
 mod auth;
 mod clis_install;
+mod state_job;
 mod helpers;
 mod pipeline;
 mod ports;

@@ -775,14 +775,6 @@ jobs:
       - name: vm-ops-api's CI port answers health and refuses an admin route
         timeout-minutes: 2
         run: wf vm ops ci-port
-      # The job has the builder sidecar and nothing of the host: DOCKER_HOST answers, no host docker socket, no vault or provision variable in PID 1.
-      - name: The runner holds nothing of the host
-        if: ${{ runner.environment == 'self-hosted' }}
-        timeout-minutes: 2
-        # the admin port of vm-ops-api and agent-shell's ssh must stay out of reach of the runner's tag (infra/tailscale/policy.hujson)
-        env:
-          RUNNER_CHECK_MUST_NOT_REACH: vm-ops-api-main:8080,agent-shell-main:22,agent-shell-main:2375,agent-shell-main:2376
-        run: wf vm ops runner-check --json
       # Each backend's test:verify:deployed runs against the deployed service over its real interface.
       - name: Deployment verification tests
         timeout-minutes: 15

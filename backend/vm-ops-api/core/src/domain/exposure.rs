@@ -62,6 +62,9 @@ pub const ROUTES: &[RouteSpec] = &[
     spec("SelfSmokeStop", "POST", "/redeploy/smoke/stop", Shared),
     // The wf build CI published, installed on the VM by a sibling: a hosted runner cannot write to the VM, and only CI calls this.
     spec("ClisInstall", "POST", "/clis/install", CiOnly),
+    // The fixed backup and verify of the VM's state volumes, started on agent-shell for a hosted runner that cannot reach the exec route; and their status.
+    spec("StateJobStart", "POST", "/state/{verb}", CiOnly),
+    spec("StateJobStatus", "GET", "/state/jobs/{job}", CiOnly),
     spec("Logs", "GET", "/services/{app}/logs", AdminOnly),
     spec("Retire", "POST", "/services/{app}/retire", AdminOnly),
     spec("AppPair", "POST", "/services/{app}/pair", AdminOnly),

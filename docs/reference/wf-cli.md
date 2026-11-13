@@ -7040,7 +7040,9 @@ Usage: wf vm state [options] [command]
 Backup and restore of the VM's sensitive state (the stateVolumes of
 infra/oracle-cloud/vm-apps.json) as restic snapshots in the versioned Object
 Storage bucket mobile-learning-vm-state: incremental, encrypted with
-VM_STATE_RESTIC_PASSWORD, deduplicated, 14 snapshots kept per volume
+VM_STATE_RESTIC_PASSWORD, deduplicated, 14 snapshots kept per volume. In a CI job
+(WF_VM_CI_PORT set) backup and verify run through vm-ops-api's CI port, which
+starts one fixed script on agent-shell and fetches the plan itself.
 
 Options:
   -h, --help                  display help for command
@@ -7100,7 +7102,7 @@ Usage: `wf vm state backup [options]`
 | Option | Meaning |
 |---|---|
 | `--app <name>` | only this app |
-| `--local` | the agent-shell side: run here (needs restic, rclone, sqlite3, the OCI key, the volumes mounted); --plan <hex> carries the volumes |
+| `--local` | the agent-shell side: run here (needs restic, rclone, sqlite3, the OCI key, the volumes mounted); --plan <hex> carries the volumes, or --apps-file <path> a vm-apps.json |
 
 <details><summary>Full help</summary>
 
@@ -7143,7 +7145,7 @@ password is never printed.
 Options:
   --app <name>  only this app
   --local       the agent-shell side: run here (needs restic, rclone, sqlite3, the OCI
-                key, the volumes mounted); --plan <hex> carries the volumes
+                key, the volumes mounted); --plan <hex> carries the volumes, or --apps-file <path> a vm-apps.json
   -h, --help    display help for command
 ```
 

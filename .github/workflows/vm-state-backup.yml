@@ -7,7 +7,8 @@ name: VM state backup
 # of it (docs/runbooks/vm-recreate.md, "State backup"). The job runs `wf vm state backup`, then `wf vm state verify` (a real restore of the
 # newest snapshot of EVERY declared volume into a scratch directory, PRAGMA integrity_check on its databases, then the `verified` tag that
 # cloud-init restores from). A volume that is missing, damaged or over its measured cap, or a repository over its budget, fails the job. It
-# runs on the VM's runner: every verb asks agent-shell through vm-ops-api's exec route, so the runner holds no OCI key and no restic password.
+# runs on a GitHub-hosted runner that joins the tailnet as tag:ci-gh-hosted: each verb asks vm-ops-api's CI port (POST /state/<verb>) to start one fixed
+# script on agent-shell, which fetches the plan itself, so the runner holds no OCI key and no restic password and can start nothing else there.
 #
 # WHEN. Once a night, from GitHub's `schedule` (02:30 UTC; GitHub starts scheduled runs late in a private repo, sometimes hours, and the time of
 # day does not matter to a backup), and by hand (Actions, Run workflow) or for an EMPTY commit to dev whose message carries [vm-state-backup]
@@ -46,16 +47,26 @@ jobs:
   backup:
     name: backup and verify
     if: ${{ github.event_name == 'schedule' || github.ref == 'refs/heads/dev' }}
-    runs-on: [self-hosted, vm]
+    runs-on: ubuntu-24.04
     timeout-minutes: 90
+    env:
+      BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+      BWS_SERVER_URL: https://vault.bitwarden.eu
+      # vm-ops-api's CI port: `wf vm state` starts the fixed backup and verify jobs there (POST /state/<verb>)
+      WF_VM_CI_PORT: "8081"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           ref: dev
-          clean: false
-      - uses: ./.github/actions/install-wf
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-job
         with:
-          current: "true"
+          wf-source: none
+          job: vm-state-backup
+          install: "false"
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - uses: ./.github/actions/build-wf
       - name: Back up every state volume
         id: backup
         run: |

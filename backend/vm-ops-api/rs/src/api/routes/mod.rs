@@ -7,6 +7,7 @@ use vm_ops_api_core::domain::request::Target;
 
 mod agent_shell;
 mod clis_install;
+mod state_job;
 mod drill;
 mod health;
 mod logs;
@@ -47,6 +48,8 @@ pub enum RouteId {
     SelfSmoke,
     SelfSmokeStop,
     ClisInstall,
+    StateJobStart,
+    StateJobStatus,
 }
 
 impl RouteId {
@@ -85,6 +88,8 @@ impl RouteId {
             RouteId::SelfSmoke => "SelfSmoke",
             RouteId::SelfSmokeStop => "SelfSmokeStop",
             RouteId::ClisInstall => "ClisInstall",
+            RouteId::StateJobStart => "StateJobStart",
+            RouteId::StateJobStatus => "StateJobStatus",
                         }
     }
 
@@ -134,6 +139,7 @@ pub fn resolve(method: &str, target: &Target) -> Option<RouteId> {
         "GET" if target.is_path("/opencode-log/api/runs") => Some(RouteId::OpencodeRuns),
         "GET" if opencode_log::run_id_of_detail(target).is_some() => Some(RouteId::OpencodeRun),
         "GET" if target.is_path("/redeploy/status") => Some(RouteId::RedeployStatus),
+        "GET" if state_job::is_status(target) => Some(RouteId::StateJobStatus),
         "POST" if app_route(target, "redeploy") => Some(RouteId::AppRedeploy),
         "POST" if app_route(target, "smoke") => Some(RouteId::AppSmoke),
         "POST" if smoke_stop_route(target) => Some(RouteId::AppSmokeStop),
@@ -153,6 +159,7 @@ pub fn resolve(method: &str, target: &Target) -> Option<RouteId> {
         "POST" if target.is_path("/redeploy/smoke") => Some(RouteId::SelfSmoke),
         "POST" if target.is_path("/redeploy/smoke/stop") => Some(RouteId::SelfSmokeStop),
         "POST" if target.is_path("/clis/install") => Some(RouteId::ClisInstall),
+        "POST" if state_job::is_start(target) => Some(RouteId::StateJobStart),
         _ => None,
     }
 }
@@ -186,6 +193,8 @@ pub async fn handle(route: RouteId, call: &Call<'_>, state: &AppState) -> Result
         RouteId::SelfSmoke => Ok(self_redeploy::smoke(call, state).await),
         RouteId::SelfSmokeStop => Ok(self_redeploy::smoke_stop(call, state).await),
         RouteId::ClisInstall => clis_install::answer(call, state).await,
+        RouteId::StateJobStart => state_job::start(call, state).await,
+        RouteId::StateJobStatus => state_job::status(call, state).await,
     }
 }
 
@@ -194,7 +203,7 @@ mod tests {
     use super::*;
     use vm_ops_api_core::domain::exposure::{matches, ROUTES};
 
-    const ALL: [RouteId; 27] = [
+    const ALL: [RouteId; 29] = [
         RouteId::Health,
         RouteId::Ps,
         RouteId::Stats,
@@ -222,13 +231,15 @@ mod tests {
         RouteId::SelfSmoke,
         RouteId::SelfSmokeStop,
         RouteId::ClisInstall,
+        RouteId::StateJobStart,
+        RouteId::StateJobStatus,
     ];
 
     #[test]
     fn given_the_route_table_when_each_pattern_is_resolved_then_it_reaches_the_route_that_names_it() {
         assert_eq!(ALL.len(), ROUTES.len());
         for spec in ROUTES {
-            let path = spec.path.replace("{app}", "leetcode-backend").replace("{run}", "run-1").replace("{job}", "0b9f5c2e-8a1d-4c3e-9f7a-1234567890ab").replace("{name}", "pool-cooldowns.json");
+            let path = spec.path.replace("{verb}", "backup").replace("{app}", "leetcode-backend").replace("{run}", "run-1").replace("{job}", "0b9f5c2e-8a1d-4c3e-9f7a-1234567890ab").replace("{name}", "pool-cooldowns.json");
             let route = resolved(spec.method, &path).unwrap_or_else(|| panic!("{} {path} reaches no route", spec.method));
             assert_eq!(route.spec_id(), spec.id, "{} {path}", spec.method);
             assert!(matches(spec, spec.method, &path));

@@ -14,4 +14,5 @@ pub mod redeploy_status;
 pub mod scripts;
 pub mod self_redeploy;
 pub mod startup;
+pub mod state_job;
 pub mod stats;

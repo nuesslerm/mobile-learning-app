@@ -14,7 +14,7 @@ use std::time::Duration;
 use wf_kit::args::{parse_spec, Positional, Spec};
 use wf_kit::root::repo_root;
 
-const SPEC: Spec = Spec { values: &["app", "plan"], flags: &["local"], positional: Positional::None, ..Spec::NONE };
+const SPEC: Spec = Spec { values: &["app", "plan", "apps-file"], flags: &["local"], positional: Positional::None, ..Spec::NONE };
 const VERBS: [&str; 4] = ["backup", "restore", "list", "verify"];
 /// What the runner waits for agent-shell, by verb: a backup reads the volumes, a verify restores the newest snapshots to check them.
 const LIMIT_MS: [(&str, u64); 4] = [("backup", 40 * 60_000), ("restore", 40 * 60_000), ("verify", 20 * 60_000), ("list", 5 * 60_000)];
@@ -25,7 +25,12 @@ const SCRATCH: &str = "/scratch";
 
 fn plans_of_repo(only: Option<&str>) -> Result<Vec<AppPlan>, String> {
     let text = std::fs::read_to_string(repo_root().join("infra/oracle-cloud/vm-apps.json")).map_err(|e| format!("infra/oracle-cloud/vm-apps.json: {e} (run from the repository)"))?;
-    let all = plan::from_apps(&text)?;
+    plans_of_text(&text, only)
+}
+
+/// The plans of a `vm-apps.json`, held to the committed budgets.
+fn plans_of_text(text: &str, only: Option<&str>) -> Result<Vec<AppPlan>, String> {
+    let all = plan::from_apps(text)?;
     let committed = blob_cache::domain::Budget::committed();
     let (repository, bucket) = (plan::repository_budget_bytes(&all), plan::bucket_budget_bytes(&all));
     if repository != committed.vm_state_repository_bytes || bucket != committed.vm_state_bytes {
@@ -55,8 +60,41 @@ fn script(verb: &str, plans: &[AppPlan]) -> String {
     )
 }
 
+/// The job a CI runner asks vm-ops-api's CI port to run (`POST /state/<verb>`: the fixed script, which fetches the plan itself), waited for by polling
+/// its status; what the exec route's capture returns, so the answer is read the same way.
+fn capture_ci(verb: &str, limit: u64) -> Result<(i64, String), String> {
+    use wf_vmops::vmops::send_routed;
+    let started = send_routed("POST", &format!("/state/{verb}"), Some(""), Duration::from_secs(60))?;
+    let job = serde_json::from_str::<Value>(&started.text()).ok().and_then(|v| v["jobId"].as_str().map(String::from));
+    let Some(job) = job.filter(|_| started.status == 202) else { return Err(format!("vm-ops-api refused the {verb} job ({}): {}", started.status, started.text().chars().take(200).collect::<String>())) };
+    let deadline = std::time::Instant::now() + Duration::from_millis(limit);
+    let mut last_error = String::new();
+    while std::time::Instant::now() < deadline {
+        match send_routed("GET", &format!("/state/jobs/{job}"), None, Duration::from_secs(60)) {
+            Ok(reply) if reply.status == 200 => {
+                let body: Value = serde_json::from_str(&reply.text()).unwrap_or(Value::Null);
+                if body["running"] == false {
+                    return Ok((body["exitCode"].as_i64().unwrap_or(0), body["output"].as_str().unwrap_or_default().to_string()));
+                }
+            }
+            Ok(reply) => last_error = format!("status {}", reply.status),
+            Err(error) => last_error = error,
+        }
+        std::thread::sleep(Duration::from_secs(5));
+    }
+    Err(format!("job {job} did not finish within {}s{}", limit / 1000, if last_error.is_empty() { String::new() } else { format!(" (last poll: {last_error})") }))
+}
+
+fn capture(verb: &str, plans: &[AppPlan], limit: u64) -> Result<(i64, String), String> {
+    if wf_vmops::vmops::ci_port().is_some() {
+        capture_ci(verb, limit)
+    } else {
+        wf_vmops::vm_exec::capture_within(&script(verb, plans), Duration::from_millis(limit))
+    }
+}
+
 fn relay_once(verb: &str, plans: &[AppPlan], limit: u64) -> Value {
-    match wf_vmops::vm_exec::capture_within(&script(verb, plans), Duration::from_millis(limit)) {
+    match capture(verb, plans, limit) {
         Err(why) => refusal(verb, format!("agent-shell did not answer: {why}"), "wf vm ops health; wf vm recover if vm-ops-api or agent-shell is down"),
         Ok((code, output)) => output
             .lines()
@@ -203,9 +241,10 @@ fn sweep_stale_scratch() {
 
 /// The agent-shell side: the plan arrives as `--plan` (agent-shell has no checkout), the keys come from the environment or the vault.
 fn local_run(verb: &str, p: &wf_kit::args::Parsed) -> Value {
-    let plans = match p.val("plan") {
-        Some(word) => plan::decode(word),
-        None => plans_of_repo(p.val("app")),
+    let plans = match (p.val("plan"), p.val("apps-file")) {
+        (Some(word), _) => plan::decode(word),
+        (None, Some(file)) => std::fs::read_to_string(file).map_err(|e| format!("{file}: {e}")).and_then(|text| plans_of_text(&text, p.val("app"))),
+        (None, None) => plans_of_repo(p.val("app")),
     };
     let mut plans = match plans {
         Ok(plans) => plans,

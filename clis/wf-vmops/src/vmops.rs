@@ -70,6 +70,8 @@ pub const CI_ROUTES: &[(&str, &str)] = &[
     ("POST", "/redeploy/smoke"),
     ("POST", "/redeploy/smoke/stop"),
     ("POST", "/clis/install"),
+    ("POST", "/state/{verb}"),
+    ("GET", "/state/jobs/{job}"),
 ];
 
 /// Which port and seed a call goes to: a CI job's own, or the admin's.

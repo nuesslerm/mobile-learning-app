@@ -7,6 +7,7 @@ use std::time::Duration;
 use vm_ops_api_core::application::access::Gate;
 use vm_ops_api_core::application::agent_shell::AgentShell;
 use vm_ops_api_core::application::clis_install::ClisInstall;
+use vm_ops_api_core::application::state_job::StateJobs;
 use vm_ops_api_core::application::drill::Drill;
 use vm_ops_api_core::application::health::{Build, Health};
 use vm_ops_api_core::application::logs::Logs;
@@ -86,6 +87,7 @@ pub struct AppState {
     run_writes: Arc<RunWrites>,
     drill: Arc<Drill>,
     clis_install: Arc<ClisInstall>,
+    state_jobs: Arc<StateJobs>,
     redeploy: Arc<Redeploy>,
     redeploy_status: Arc<RedeployStatus>,
     self_redeploy: Arc<SelfRedeploy>,
@@ -104,6 +106,7 @@ pub fn routers(ports: Ports, settings: Settings) -> Routers {
         env: settings.redeploy.clone(),
     }));
     let agent_shell = Arc::new(AgentShell::new(ports.containers.clone(), ports.ids, ports.clock.clone(), ports.log.clone()));
+    let state_jobs = Arc::new(StateJobs::new(agent_shell.clone()));
     let run_writes = Arc::new(RunWrites::new(ports.run_log.clone(), ports.clock.clone()));
     let drill = Arc::new(Drill::new(ports.siblings.clone(), settings.sibling_image.clone(), OWN_CONTAINER.to_string()));
     let clis_install = Arc::new(ClisInstall::new(ports.siblings.clone(), settings.sibling_image.clone()));
@@ -124,6 +127,7 @@ pub fn routers(ports: Ports, settings: Settings) -> Routers {
         run_writes,
         drill,
         clis_install,
+        state_jobs,
         redeploy,
         redeploy_status,
         self_redeploy,

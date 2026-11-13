@@ -14,8 +14,6 @@ runs:
   steps:
     - name: This commit's wf
       uses: ./.github/actions/install-wf
-      with:
-        live: "false"
     - name: The binaries as one artifact
       if: ${{ inputs.upload == 'true' }}
       shell: bash

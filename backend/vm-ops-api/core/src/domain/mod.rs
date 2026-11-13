@@ -16,5 +16,6 @@ pub mod request;
 pub mod request_env;
 pub mod run_log;
 pub mod run_meta;
+pub mod state_job;
 pub mod tar;
 pub mod validators;

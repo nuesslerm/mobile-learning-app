@@ -36,4 +36,4 @@ password is never printed.
 Options:
   --app <name>  only this app
   --local       the agent-shell side: run here (needs restic, rclone, sqlite3, the OCI
-                key, the volumes mounted); --plan <hex> carries the volumes
+                key, the volumes mounted); --plan <hex> carries the volumes, or --apps-file <path> a vm-apps.json

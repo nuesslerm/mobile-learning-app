@@ -5,7 +5,7 @@ use crate::support::{repo_root, run_wf, RunOpts, RunResult};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use wf_vmops::testing::{answers, FakeVm};
+use wf_vmops::testing::{answers, FakeVm, CI_VM_SEED};
 
 const DAY_MS: i64 = 86_400_000;
 const T0: i64 = 1_793_000_000_000;
@@ -773,4 +773,39 @@ fn a_restore_never_touches_agent_shells_own_workspace_and_says_it_is_restored_on
     }
     assert!(vm.requests().is_empty());
     assert!(files(&s.dir.path().join("vol/agent-shell/agent-workspace")).is_empty());
+}
+
+#[test]
+fn from_a_ci_job_a_verify_is_started_and_read_back_over_the_ci_port_and_never_the_exec_route() {
+    // Given vm-ops-api that starts the fixed verify job and then reports it finished with its one result line
+    let vm = FakeVm::start();
+    let job = answers::job_id(1);
+    let printed = json!({ "event": "vm-state", "verb": "verify", "ok": true, "apps": [] });
+    vm.replies(&[answers::reply(202, &answers::job_started(&job)), answers::reply(200, &answers::job(&job, Some(0), &format!("{printed}\n")))]);
+
+    // When a CI job (the CI port and seed in its environment) verifies
+    let opts = vm.opts().cwd(&repo_root()).env("WF_VM_CI_PORT", "8081").env("VM_OPS_API_CI_AUTH_TOKEN", CI_VM_SEED);
+    let r = run_wf(&["vm", "state", "verify"], &opts);
+
+    // Then the answer is the job's line, and both calls went to the CI port with the CI seed: the start, then the status of that job
+    assert_eq!((r.exit_code, line(&r)["ok"].clone()), (0, json!(true)), "{r:?}");
+    assert_eq!(vm.tailnet.destinations(), ["vm-ops-api-main:8081", "vm-ops-api-main:8081"]);
+    let requests = vm.requests();
+    vm.assert_signed_with(CI_VM_SEED, &requests[0], "POST", "/state/verify", "");
+    vm.assert_signed_with(CI_VM_SEED, &requests[1], "GET", &format!("/state/jobs/{job}"), "");
+}
+
+#[test]
+fn the_agent_shell_side_reads_its_plan_from_a_vm_apps_file_and_refuses_one_the_budgets_do_not_fit() {
+    // Given a vm-apps.json that is not the committed one, so its volumes do not add up to the committed budgets
+    let state = State::new();
+    let file = state.dir.path().join("vm-apps.json");
+    std::fs::write(&file, r#"[{"name":"orca-serve","stateVolumes":[{"name":"orca-state","path":"/state/orca-serve/orca-state","maxBytes":1}]}]"#).unwrap();
+
+    // When the agent-shell side is run on it
+    let r = run_wf(&["vm", "state", "verify", "--local", "--apps-file", &file.display().to_string()], &state.env_opts().cwd(&repo_root()));
+
+    // Then it is refused for the budgets, naming the files that hold them, and nothing reached a repository
+    assert_eq!((r.exit_code, line(&r)["ok"].clone()), (1, json!(false)), "{r:?}");
+    assert!(line(&r)["error"].as_str().unwrap().contains("budget"), "{r:?}");
 }
