@@ -207,7 +207,7 @@ impl Runner {
             prompt: with_context(merge.as_ref(), &input.prompt),
             runtime_mode: input.runtime_mode.clone().unwrap_or_else(|| "full-access".into()),
             interaction_mode: input.interaction_mode.clone().unwrap_or_else(|| "default".into()),
-            resume: if driver == Driver::ClaudeAgent { self.engine.provider_session(thread).unwrap_or(None) } else { None },
+            resume: self.engine.provider_session(thread, driver.id()).unwrap_or(None),
         };
         command_for_remote(driver, &request, &self.mcp.url(thread)).map_err(|why| Refusal::new(code::UNKNOWN_DRIVER, format!("{}: {}", message::unknown_driver(&input.driver), why.0)))?;
         let claim = self.in_flight.claim(thread, &turn).ok_or_else(running)?;

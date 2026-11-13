@@ -32,8 +32,10 @@ impl Turns {
         let (running, thread, stopped) = (self.running.clone(), thread.to_string(), process.kill.clone());
         tokio::spawn(async move {
             let mut failed: Option<String> = None;
+            let mut announced: Option<String> = None;
             while let Some(line) = process.lines.next().await {
-                let session = session_of(driver, &line).map(ExecEvent::Session);
+                // opencode names its conversation on every line: say it once
+                let session = session_of(driver, &line).filter(|id| announced.as_deref() != Some(id)).inspect(|id| announced = Some(id.clone())).map(ExecEvent::Session);
                 for event in session.into_iter().chain(translate(driver, &line)) {
                     if let ExecEvent::Error(m) = &event {
                         failed.get_or_insert_with(|| m.clone());
@@ -107,20 +109,24 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn given_a_claude_cli_that_announces_its_conversation_when_a_turn_runs_then_the_session_is_the_first_event_and_the_other_drivers_have_none() {
-        // Given Claude Code printing its init line and a text, and opencode printing a line that carries a session_id
+    async fn given_a_cli_that_announces_its_conversation_when_a_turn_runs_then_the_session_is_the_first_event_and_said_once_and_codex_has_none() {
+        // Given Claude Code printing its init line and a text, opencode printing two lines that carry its sessionID, and Codex printing a line with a session_id
         let spawner = ScriptedSpawner::new();
         spawner.script("claude", CliScript { lines: vec![r#"{"type":"system","subtype":"init","session_id":"s-9"}"#.into(), r#"{"type":"assistant","message":{"content":[{"type":"text","text":"hi"}]}}"#.into()], ..CliScript::default() });
-        spawner.script("opencode", CliScript { lines: vec![r#"{"type":"system","subtype":"init","session_id":"s-9"}"#.into()], ..CliScript::default() });
+        spawner.script("opencode", CliScript { lines: vec![r#"{"type":"step_start","sessionID":"ses_9"}"#.into(), r#"{"type":"step_finish","sessionID":"ses_9"}"#.into()], ..CliScript::default() });
+        spawner.script("codex", CliScript { lines: vec![r#"{"type":"system","subtype":"init","session_id":"s-9"}"#.into()], ..CliScript::default() });
         let turns = turns(&spawner);
         // When each turn runs
         let (command, _) = request(Driver::ClaudeAgent, "a");
         let claude = drain(turns.launch(Driver::ClaudeAgent, "a", command, Path::new("/w")).await.unwrap()).await;
         let (command, _) = request(Driver::Opencode, "b");
         let opencode = drain(turns.launch(Driver::Opencode, "b", command, Path::new("/w")).await.unwrap()).await;
-        // Then Claude Code's events open with its session and opencode's have none
+        let (command, _) = request(Driver::Codex, "c");
+        let codex = drain(turns.launch(Driver::Codex, "c", command, Path::new("/w")).await.unwrap()).await;
+        // Then Claude Code's and opencode's events open with their session, once, and Codex's have none
         assert_eq!(claude, vec![ExecEvent::Session("s-9".into()), ExecEvent::Text("hi".into()), ExecEvent::Done]);
-        assert_eq!(opencode, vec![ExecEvent::Done]);
+        assert_eq!(opencode, vec![ExecEvent::Session("ses_9".into()), ExecEvent::Done]);
+        assert_eq!(codex, vec![ExecEvent::Done]);
     }
 
     #[tokio::test]

@@ -10,8 +10,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use wf_kit::args::{parse_spec, Parsed, Positional, Spec};
 
-const SERVE: Spec = Spec { values: &["rca-url", "workspace", "executor", "root", "worktree-base", "browse-allow", "secret-env"], flags: &["reconnect", "git-hooks"], positional: Positional::None, ..Spec::NONE };
+const SERVE: Spec = Spec { values: &["rca-url", "workspace", "executor", "root", "worktree-base", "browse-allow", "secret-env", "reconnect-for"], flags: &["reconnect", "git-hooks"], positional: Positional::None, ..Spec::NONE };
 const DEFAULT_BEARER_ENV: &str = "CHAT_AGENT_API_SECRET";
+/// How long `--reconnect` keeps trying to reach rca again: a redeploy of rca (pull, up, two verifications) on the VM takes minutes, not seconds.
+const DEFAULT_RECONNECT_SECS: u64 = 900;
 
 pub fn run(args: &[String]) -> Option<i32> {
     let (verb, rest) = args.split_first()?;
@@ -30,15 +32,21 @@ pub fn serve_alone(args: &[String]) -> Option<i32> {
     serve_verb(&parse_spec(args, &SERVE)?)
 }
 
-/// Opens the channel again after it dropped, for the same executor: its ptys and processes go on. Gives up after about a minute.
-fn reattach(url: &str, id: Option<&str>, workspace: &str, bearer: &str, executor: &Arc<dyn ToolExecutor>) -> Option<ExecChannel> {
-    for _ in 0..300 {
-        std::thread::sleep(std::time::Duration::from_millis(200));
+/// Opens the channel again after it dropped, for the same executor: its ptys and processes go on. Tries with a pause that doubles from 200 ms to 5 s,
+/// for `window`; None when rca did not come back in that time.
+fn reattach(url: &str, id: Option<&str>, workspace: &str, bearer: &str, executor: &Arc<dyn ToolExecutor>, window: std::time::Duration) -> Option<ExecChannel> {
+    let deadline = std::time::Instant::now() + window;
+    let mut pause = std::time::Duration::from_millis(200);
+    loop {
+        std::thread::sleep(pause);
         if let Ok(channel) = ExecChannel::open_as(url, id, workspace, bearer, executor.clone()) {
             return Some(channel);
         }
+        if std::time::Instant::now() >= deadline {
+            return None;
+        }
+        pause = (pause * 2).min(std::time::Duration::from_secs(5));
     }
-    None
 }
 
 fn failure(error: impl Into<String>, next: &str, extra: Value) -> i32 {
@@ -84,15 +92,23 @@ fn serve_verb(p: &Parsed) -> Option<i32> {
     }
     println!("{attached}");
     let reconnect = p.flag("reconnect");
+    let window = std::time::Duration::from_secs(p.val("reconnect-for").and_then(|s| s.parse().ok()).unwrap_or(DEFAULT_RECONNECT_SECS));
     let mut outcome = channel.wait();
+    let mut gave_up = false;
     while reconnect && !matches!(outcome, Ok(Some(exec_proto::REPLACED))) {
-        match reattach(url, p.val("executor"), workspace, &bearer, &executor) {
+        match reattach(url, p.val("executor"), workspace, &bearer, &executor, window) {
             Some(again) => {
                 println!("{}", json!({"ok": true, "event": "reattached", "workspace": workspace}));
                 outcome = again.wait();
             }
-            None => break,
+            None => {
+                gave_up = true;
+                break;
+            }
         }
+    }
+    if gave_up {
+        return Some(failure(format!("could not reconnect to rca within {}s", window.as_secs()), "restart rca-exec serve once rca is back; its ptys and processes did not survive", json!({"event": "gave_up"})));
     }
     Some(match outcome {
         Ok(Some(exec_proto::REPLACED)) => failure("replaced by a newer executor for this workspace", "stop the other executor of this workspace, or give each one its own --workspace", json!({"closeCode": exec_proto::REPLACED})),

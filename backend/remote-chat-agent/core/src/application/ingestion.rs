@@ -182,12 +182,14 @@ async fn run(ingestions: &Arc<Ingestions>, wiring: &Arc<Wiring>, entry: &Arc<Act
         let settled = engine.with_thread(thread_id, |t| t.and_then(|t| t.session.as_ref()).is_none_or(|s| s.status != "running")).unwrap_or(true);
         if !settled {
             tracing::warn!(thread_id, reason = %reason, "ingestion.stream_lost");
+            // the conversation is still there (the backend's, or the one the thread already names): losing the stream must not make the next turn start a new one
+            let kept = wiring.backend.session_for(thread_id).or_else(|| engine.with_thread(thread_id, |t| t.and_then(|t| t.session.as_ref()).and_then(|s| s.provider_session_id.clone())).unwrap_or(None));
             dispatch(
                 engine,
                 Command {
                     command_id: format!("provider:stream-lost:{}", engine.new_id()),
                     thread_id: thread_id.to_string(),
-                    body: Body::SessionSet { session: Session { cli: provider.clone(), provider_session_id: None, status: "error".into(), active_turn_id: None, last_error: Some(reason) } },
+                    body: Body::SessionSet { session: Session { cli: provider.clone(), provider_session_id: kept, status: "error".into(), active_turn_id: None, last_error: Some(reason) } },
                 },
             );
         }

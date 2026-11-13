@@ -517,7 +517,7 @@ async fn given_a_thread_whose_cli_announced_a_conversation_when_the_next_turn_ru
     rig.spawner.script("claude", script(&[init("s-7"), said("hi")], false));
     rig.start("t", "first").await;
     rig.idle("t").await;
-    rig.until("the session is kept", |r| r.engine.provider_session("t").unwrap().is_some()).await;
+    rig.until("the session is kept", |r| r.engine.provider_session("t", "claudeAgent").unwrap().is_some()).await;
     // When the next turn runs
     rig.start("t", "second").await;
     rig.idle("t").await;
@@ -535,7 +535,7 @@ async fn given_a_thread_whose_cli_announced_a_conversation_when_the_next_turn_ru
     rig.start("t", "third").await;
     rig.idle("t").await;
     assert!(!rig.spawner.spawned()[2].args.contains(&"--resume".to_string()));
-    assert_eq!(rig.engine.provider_session("t").unwrap().as_deref(), Some("s-7"));
+    assert_eq!(rig.engine.provider_session("t", "claudeAgent").unwrap().as_deref(), Some("s-7"));
 }
 
 #[tokio::test]

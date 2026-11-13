@@ -133,8 +133,8 @@ pub trait ThreadEngine: Send + Sync {
         unserved()
     }
 
-    /// The conversation of the thread's CLI that its next turn goes on with.
-    fn provider_session(&self, _thread: &str) -> Result<Option<String>, EngineError> {
+    /// The conversation of the thread's CLI `driver` (the CLI's id) that its next turn goes on with: none when the thread's conversation is another CLI's.
+    fn provider_session(&self, _thread: &str, _driver: &str) -> Result<Option<String>, EngineError> {
         unserved()
     }
 

@@ -182,12 +182,12 @@ impl ThreadEngine for EngineThreads {
         Ok(self.engine.neutral_thread(thread).map_err(failed)?.and_then(|t| t.lifecycle.pending_merge_back).map(|p| (p.source, p.context)))
     }
 
-    fn provider_session(&self, thread: &str) -> Result<Option<String>, EngineError> {
-        Ok(self.engine.neutral_thread(thread).map_err(failed)?.and_then(|t| t.thread.session).and_then(|s| s.provider_session_id))
+    fn provider_session(&self, thread: &str, driver: &str) -> Result<Option<String>, EngineError> {
+        Ok(self.engine.neutral_thread(thread).map_err(failed)?.and_then(|t| t.thread.session).filter(|s| s.cli == driver).and_then(|s| s.provider_session_id))
     }
 
     fn set_session(&self, thread: &str, driver: &str, turn: &str, session: &str) -> Result<(), EngineError> {
-        if self.provider_session(thread)?.as_deref() == Some(session) {
+        if self.provider_session(thread, driver)?.as_deref() == Some(session) {
             return Ok(());
         }
         // `running` for the turn that announced it: the thread's turn is settled by its own finish, which comes next
