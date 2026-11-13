@@ -975,6 +975,38 @@ fn a_run_with_no_pull_request_makes_no_live_comment() {
     assert_eq!((r.exit_code, github.sent("POST").len()), (0, 0), "{}{}", r.stdout, r.stderr);
 }
 
+#[test]
+fn a_slow_github_makes_the_live_comment_give_up_within_the_bound_and_never_fail_the_step() {
+    // Given a GitHub that answers every request only after 20 s, and a bound of 1.5 s
+    let github = live_github(json!([]));
+    github.server.delay(std::time::Duration::from_secs(20));
+    let started = std::time::Instant::now();
+
+    // When the run's job updates the live comment
+    let r = github.ci_wf_with(&["live"], &[("WF_CI_LIVE_BOUND_MS", "1500")]);
+
+    // Then it exits 0 well inside the 20 s, says in one line that it gave up and why, and posted nothing
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(started.elapsed() < std::time::Duration::from_secs(10), "took {:?}", started.elapsed());
+    assert!(r.stderr.contains("wf ci live: gave up after 1.5s: GitHub did not finish answering"), "{}", r.stderr);
+    assert!(r.stdout.contains("\"posted\":false"), "{}", r.stdout);
+    assert_eq!(github.sent("POST").len() + github.sent("PATCH").len(), 0);
+}
+
+#[test]
+fn a_github_that_answers_502_makes_the_live_comment_log_why_and_exit_0() {
+    // Given a GitHub whose pull request lookup answers 502
+    let github = Github::start();
+    github.server.routes(&[("GET /repos/o/r/pulls?head=o:dev&state=open&per_page=1", MockReply::json(502, json!({ "message": "Bad Gateway" })))]);
+
+    // When the run updates the live comment
+    let r = github.ci_wf(&["live"]);
+
+    // Then it exits 0 and names the failure
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(r.stderr.contains("wf ci live:") && r.stderr.contains("502"), "{}", r.stderr);
+}
+
 fn write_sized(path: &std::path::Path, bytes: usize) {
     std::fs::create_dir_all(path.parent().unwrap()).unwrap();
     std::fs::write(path, vec![b'x'; bytes]).unwrap();
