@@ -135,6 +135,19 @@ impl Reasons {
     }
 }
 
+/// Why the app's own image is not the one built at `sha`: empty when its hash is the same at `sha` as at HEAD.
+fn primary_image_changes(dir: Option<&Path>, sha: &str, image: &str) -> Result<Vec<String>, String> {
+    if !git_ok(dir, &["cat-file", "-e", &format!("{sha}^{{commit}}")]) {
+        return Ok(vec![format!("its running commit {sha} is not in this checkout")]);
+    }
+    let now = crate::image_hash::hash(dir, "HEAD", image)?;
+    Ok(match crate::image_hash::hash(dir, sha, image) {
+        Ok(then) if then == now => Vec::new(),
+        Ok(then) => vec![format!("its own image ({image}) inputs changed since {sha}: {then} -> {now}")],
+        Err(e) => vec![format!("its own image inputs at {sha} cannot be hashed: {e}")],
+    })
+}
+
 /// The images among `images` whose hash differs between the commit a service runs and HEAD (`then` and `now` hash one image); an image that cannot be
 /// hashed at either commit counts as changed, since nothing shows it unchanged.
 fn changed_images<'a>(images: &[&'a str], then: &dyn Fn(&str) -> Result<String, String>, now: &dyn Fn(&str) -> Result<String, String>) -> Vec<&'a str> {
@@ -179,7 +192,12 @@ fn expected_commit(dir: &Path, app: &str, running: Option<String>, sha: &str) ->
     if sha.starts_with(&running) {
         return (sha.to_string(), "its image is built from the pushed commit".into());
     }
-    match image_changes(Some(dir), Some(running.clone()), app) {
+    // an app whose services run images of their own is checked on its own image alone: a sidecar's change moves that sidecar, not the commit the app reports
+    let changes = match crate::image_hash::service_images(app).first() {
+        Some(own) => primary_image_changes(Some(dir), &running, own.image),
+        None => image_changes(Some(dir), Some(running.clone()), app),
+    };
+    match changes {
         Ok(why) if why.is_empty() => (running, "nothing its image is built from changed since".into()),
         Ok(why) => (sha.to_string(), why.join("; ")),
         Err(e) => (sha.to_string(), e),

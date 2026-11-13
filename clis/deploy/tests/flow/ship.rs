@@ -498,7 +498,7 @@ fn the_retired_build_only_flag_is_refused_as_an_unknown_option_that_names_the_ci
 const AS_CI_JOB: [(&str, &str); 2] = [("WF_VM_CI_PORT", "8081"), ("VM_OPS_API_CI_AUTH_TOKEN", CI_VM_SEED)];
 
 #[test]
-fn a_gradual_redeploy_names_only_the_services_whose_image_inputs_changed_and_always_the_app_s_own() {
+fn a_gradual_redeploy_names_only_the_services_whose_image_inputs_changed() {
     let s = Ship::new();
     let running = |opencode_image: &str| {
         answers::reply(200, &answers::ps("remote-chat-agent", &[
@@ -514,17 +514,17 @@ fn a_gradual_redeploy_names_only_the_services_whose_image_inputs_changed_and_alw
     s.vm.replies_then_last(&[running("reg/opencode-server:sha-abc123"), up.clone()]);
     let r = s.wf(&redeploy, &[("STUB_HASH", "same")]);
 
-    // Then only the app's own service is named, so opencode and stt keep the tag they run
+    // Then no service is named (tags present and empty), so every service keeps the tag it runs
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
-    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456&tags=agent%3Asha-def456"));
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456&tags="));
 
     // Given opencode runs a tag that is no commit, so it cannot be shown unchanged, When the tag is redeployed
     s.vm.replies_then_last(&[running("reg/opencode-server:latest"), up.clone()]);
     let r = s.wf(&redeploy, &[("STUB_HASH", "same")]);
 
-    // Then opencode moves with the app's own service, and stt stays
+    // Then opencode alone is named: the app's own service and stt keep the tag they run
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
-    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456&tags=agent%3Asha-def456%2Copencode%3Asha-def456"));
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456&tags=opencode%3Asha-def456"));
 
     // Given the checkout cannot hash the running commits (the empty tree has no Dockerfile), When the tag is redeployed, Then every service moves: no tags are sent
     s.vm.replies_then_last(&[running("reg/opencode-server:sha-abc123"), up]);

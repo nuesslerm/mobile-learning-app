@@ -182,8 +182,8 @@ pub(crate) fn redeploy(app: &str, git_ref: &str, tag: &str, wipe_state: bool, re
 }
 
 /// The `service:tag` list of a gradual redeploy: every service of `app` that runs an image of its own whose image inputs differ between the commit
-/// it runs and `git_ref`, and always the app's own service. None when every service moves (the plain redeploy says the same) or when the
-/// running commits cannot be read: a service that cannot be shown unchanged is moved.
+/// it runs and `git_ref` (empty when none does). None when every service moves (the plain redeploy says the same) or when the running commits
+/// cannot be read: a service that cannot be shown unchanged is moved.
 fn service_tags(app: &str, git_ref: &str, tag: &str) -> Option<String> {
     let services = pipeline::image_hash::service_images(app);
     if services.is_empty() {
@@ -206,7 +206,7 @@ fn service_tags(app: &str, git_ref: &str, tag: &str) -> Option<String> {
             _ => false,
         }
     };
-    let moved: Vec<String> = services.iter().enumerate().filter(|(i, svc)| *i == 0 || !unchanged(svc)).map(|(_, svc)| format!("{}:{tag}", svc.service)).collect();
+    let moved: Vec<String> = services.iter().filter(|svc| !unchanged(svc)).map(|svc| format!("{}:{tag}", svc.service)).collect();
     (moved.len() < services.len()).then(|| moved.join(","))
 }
 

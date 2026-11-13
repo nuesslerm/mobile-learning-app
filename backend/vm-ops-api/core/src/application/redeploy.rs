@@ -23,7 +23,7 @@ pub struct AppRequest<'a> {
     pub recreate: Option<&'a str>,
     pub wipe_state: Option<&'a str>,
     pub requested_by: Option<&'a str>,
-    /// `service:tag` pairs, comma separated: the tags of the services whose image changed, so the others keep the tag they run.
+    /// `service:tag` pairs, comma separated, possibly none: the tags of the services whose image changed, so the others keep the tag they run.
     pub tags: Option<&'a str>,
 }
 
@@ -98,8 +98,9 @@ struct Checked<'a> {
     service_tags: Vec<ServiceTag>,
 }
 
-/// The services of `app` with the tag a `service:tag,...` list gives each, none for a service the list leaves out. A service the app does not have,
-/// a service named twice and a tag that is not a tag refuse the whole request.
+/// The services of `app` with the tag a `service:tag,...` list gives each, none for a service the list leaves out (an empty list leaves out every
+/// one: nothing moves but what the compose file itself changed). A service the app does not have, a service named twice and a tag that is not
+/// a tag refuse the whole request.
 fn parse_service_tags(app: &str, tags: &str) -> Result<Vec<ServiceTag>, Refused> {
     let vars = service_tag_vars(app);
     let mut given: Vec<(&str, &str)> = Vec::new();
@@ -109,9 +110,6 @@ fn parse_service_tags(app: &str, tags: &str) -> Result<Vec<ServiceTag>, Refused>
             return Err(Refused::InvalidServiceTags);
         }
         given.push((service, tag));
-    }
-    if given.is_empty() {
-        return Err(Refused::InvalidServiceTags);
     }
     Ok(vars.iter().map(|(service, var)| ServiceTag { service, var, tag: given.iter().find(|(name, _)| name == service).map(|(_, tag)| (*tag).to_string()) }).collect())
 }
@@ -371,6 +369,20 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn given_an_empty_tags_list_when_redeployed_then_every_service_keeps_the_tag_it_runs() {
+        // Given remote-chat-agent on host main
+        let rig = rig(running(0, "ok"), "main");
+
+        // When it is redeployed with tags present and empty (no image changed)
+        rig.redeploy.redeploy_app(&AppRequest { tag: Some("sha-new00001"), tags: Some(""), ..request("remote-chat-agent") }).await.expect("a redeploy");
+
+        // Then no service is given a tag, and each one's tag is settled from its running container
+        let script = script_of(&rig);
+        assert!(!script.contains("export STT_IMAGE_TAG='") && !script.contains("export AGENT_IMAGE_TAG='") && !script.contains("export OPENCODE_IMAGE_TAG='"), "{script}");
+        assert!(script.contains("ps -q agent") && script.contains("ps -q opencode") && script.contains("ps -q stt"), "{script}");
+    }
+
+    #[tokio::test]
     async fn given_tags_that_do_not_fit_the_app_when_redeployed_then_the_request_is_refused_before_any_effect() {
         // Given leetcode-backend (one image, no per-service tags) and remote-chat-agent on host main
         let rig = rig(running(0, "ok"), "main");
@@ -380,14 +392,13 @@ mod tests {
             async move { redeploy.redeploy_app(&request).await.err() }
         };
 
-        // When the tags name a service the app has no image for, repeat one, give a bad tag, omit the colon or are empty
+        // When the tags name a service the app has no image for, repeat one, give a bad tag or omit the colon
         let all = [
             refused("leetcode-backend", "app:sha-new00001").await,
             refused("remote-chat-agent", "nope:sha-new00001").await,
             refused("remote-chat-agent", "stt:sha-a,stt:sha-b").await,
             refused("remote-chat-agent", "stt:-bad").await,
             refused("remote-chat-agent", "stt").await,
-            refused("remote-chat-agent", "").await,
         ];
 
         // Then each is refused and no sibling ran

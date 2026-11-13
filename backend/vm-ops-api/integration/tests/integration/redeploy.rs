@@ -306,6 +306,12 @@ case!(redeploy_with_tags_names_the_changed_service_and_refuses_tags_the_app_does
     let script = siblings(&svc)[1].last().cloned().unwrap_or_default();
     assert!(script.contains("export STT_IMAGE_TAG='sha-new00001'") && script.contains("ps -q agent") && script.contains("ps -q opencode"), "{script}");
 
+    // When the same app is redeployed with tags present and empty (no image changed), Then it is 200 and no service is given a tag
+    let r = post_empty(&svc, &redeploy("remote-chat-agent", "?tag=sha-new00001&tags="));
+    assert_eq!(r.status, 200, "{}", r.body);
+    let script = siblings(&svc)[4].last().cloned().unwrap_or_default();
+    assert!(!script.contains("export STT_IMAGE_TAG='") && script.contains("ps -q stt"), "{script}");
+
     // When the tags name a service the app has no image for, or a tag that is not one
     let calls = svc.world().docker_calls().len();
     let unknown = post_empty(&svc, &redeploy("leetcode-backend", "?tags=app:sha-new00001"));
