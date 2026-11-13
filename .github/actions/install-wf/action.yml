@@ -4,10 +4,6 @@ description: >-
   directory on the runner, installed once per clis/ tree under /opt/clis/<tree>/ beside the binaries it runs for `wf t3`
   and `wf exec`, and put on PATH. A job whose clis/ tree is already installed builds nothing. It never points /opt/clis/current anywhere: the clis job
   of pipeline.yml publishes the build as the wf-latest release and vm-ops-api installs it (POST /clis/install) (the containers mount /opt/clis and run current/wf).
-inputs:
-  current:
-    description: Use the wf the previous push published (/opt/clis/current) without building, for the jobs that run before this push's clis build
-    default: "false"
 runs:
   using: composite
   steps:
@@ -22,7 +18,6 @@ runs:
         # container: a change recompiles only its crates; no cache leaves the VM
         CARGO_TARGET_DIR: ${{ github.workspace }}/../../wf-cargo-target
         CARGO_PROFILE_DEPLOY_INCREMENTAL: "true"
-        CURRENT: ${{ inputs.current }}
       run: |
         tree=$(git rev-parse HEAD:clis)
         # no package ships a wf bin any more; one left in the runner's kept node_modules would shadow this wf inside pnpm run
@@ -30,11 +25,6 @@ runs:
         # /opt/clis is the volume the VM's containers mount; a hosted runner keeps its build in its tool cache
         root=/opt/clis; sudo=$([ "$(id -u)" = 0 ] || echo sudo)
         { mkdir -p "$root" 2>/dev/null && [ -w "$root" ]; } || root=$RUNNER_TOOL_CACHE/clis
-        if [ "$CURRENT" = "true" ] && [ -x "$root/current/wf" ]; then
-          echo "$root/current" >> "$GITHUB_PATH"
-          echo "wf $(readlink "$root/current") (the published one; this push's clis build comes later)"
-          exit 0
-        fi
         dir=$root/$tree
         # wf runs `t3`, `exec` and `mimic` as the binaries beside it (clis/wf/src/external.rs); each is also its package's name
         bins="t3-serve rca-exec wf-mimic wf"
