@@ -185,7 +185,7 @@ async fn run(ingestions: &Arc<Ingestions>, wiring: &Arc<Wiring>, entry: &Arc<Act
             // the conversation is still there (the backend's, or the one the thread already names): losing the stream must not make the next turn start a new one
             // the lost stream keeps the session id: opencode still holds the conversation, and the next turn must go on in it
             let kept = wiring.backend.session_for(thread_id).or_else(|| engine.with_thread(thread_id, |t| t.and_then(|t| t.session.as_ref()).and_then(|s| s.provider_session_id.clone())).unwrap_or(None));
-            // a lost stream is a turn cut off by a restart, not one the model failed: it is reported interrupted, and a timeout stays an error
+            // a lost stream is a turn cut off by a restart, not one the model failed: it is reported interrupted, and a timeout stays an error (proved live on a real opencode restart)
             let status = if timed_out { "error" } else { "interrupted" };
             dispatch(
                 engine,
