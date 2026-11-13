@@ -63,6 +63,26 @@ fn ok(docker: &dyn Docker, args: &[String], stdin: Option<&str>) -> Result<(), S
     }
 }
 
+const BUILD_ATTEMPTS: u32 = 4;
+
+/// A build resolves its base images from the registry inside the buildx builder, which a pre-pull into the daemon store cannot reach, so a registry blip
+/// (a 504 on a pinned FROM) is survived by running the whole build again; the layer cache makes a retry cheap. Backoff is 15 s, 30 s, 45 s
+/// (`WF_BUILD_RETRY_DELAY_MS` overrides the step), and the last attempt's error is the verb's.
+fn ok_retrying(docker: &dyn Docker, args: &[String], stdin: Option<&str>) -> Result<(), String> {
+    let step: u64 = std::env::var("WF_BUILD_RETRY_DELAY_MS").ok().and_then(|v| v.parse().ok()).unwrap_or(15_000);
+    let mut attempt = 1;
+    loop {
+        match ok(docker, args, stdin) {
+            Err(e) if attempt < BUILD_ATTEMPTS => {
+                eprintln!("[ci-build] attempt {attempt}/{BUILD_ATTEMPTS} failed ({e}); retrying");
+                std::thread::sleep(std::time::Duration::from_millis(step * attempt as u64));
+                attempt += 1;
+            }
+            result => return result,
+        }
+    }
+}
+
 /// Logs in (the credential on stdin only) and selects the builder, creating it on the first call of a job.
 fn prepare(docker: &dyn Docker, login: (&str, &str)) -> Result<(), String> {
     ok(docker, &strings(&["login", "-u", login.0, "--password-stdin"]), Some(login.1))?;
@@ -96,7 +116,7 @@ fn run_build(docker: &dyn Docker, b: &Build) -> Result<Value, String> {
         if reused {
             // a one-line layer on the image of this hash names the commit the tag is for
             let layer = format!("FROM {existing}\nENV GIT_COMMIT={}\n", b.commit);
-            ok(docker, &strings(&["buildx", "build", "--platform", b.platform, "-t", &tagged, "--push", "-"]), Some(&layer))?;
+            ok_retrying(docker, &strings(&["buildx", "build", "--platform", b.platform, "-t", &tagged, "--push", "-"]), Some(&layer))?;
         } else {
             let cache = format!("type=registry,ref={reference}:buildcache");
             let mut args = strings(&[
@@ -111,7 +131,7 @@ fn run_build(docker: &dyn Docker, b: &Build) -> Result<Value, String> {
             }
             args.extend(strings(if b.no_push { &["--output", "type=cacheonly"] } else { &["--push"] }));
             args.push(spec.context.to_string());
-            ok(docker, &args, None)?;
+            ok_retrying(docker, &args, None)?;
         }
         if b.no_push {
             eprintln!("[ci-build] built {tagged} (not pushed)");

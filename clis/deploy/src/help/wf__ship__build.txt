@@ -9,6 +9,8 @@ re-tagged for the commit, never rebuilt. Prints one JSON line:
 {"app","tag","commit","images":[{"image","ref","reused","pushed"}]}.
 DOCKERHUB_TOKEN (and DOCKERHUB_USERNAME, default nuesslerm) are read from the
 environment and given to `docker login` on stdin; they are never printed.
+A failed build (a registry 504 on a base image) is run again, up to 4 attempts
+with 15 s, 30 s, 45 s backoff; only the last attempt's failure fails the verb.
 
 Options:
   --tag <tag>        Docker tag to push (required)

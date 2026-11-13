@@ -15,6 +15,7 @@ fn fake_docker(s: &Ship) {
          echo \"DOCKER_HOST=$DOCKER_HOST\" >> \"$STUB_DIR/docker.env\"\n\
          case \"$*\" in *--password-stdin*|*\" -\") { cat; echo --; } >> \"$STUB_DIR/docker.stdin\";; esac\n\
          if [ -n \"$DOCKER_FAIL_ON\" ]; then case \"$*\" in *\"$DOCKER_FAIL_ON\"*) echo \"fake daemon: failed\" >&2; exit 7;; esac; fi\n\
+         if [ -n \"$DOCKER_FLAKY_BUILDS\" ]; then case \"$*\" in \"buildx build\"*) n=$(cat \"$STUB_DIR/flaky.count\" 2>/dev/null || echo 0); n=$((n+1)); echo $n > \"$STUB_DIR/flaky.count\"; if [ $n -le $DOCKER_FLAKY_BUILDS ]; then echo \"registry: 504 Gateway Time-out\" >&2; exit 9; fi;; esac; fi\n\
          case \"$*\" in\n\
            \"buildx inspect\"*|\"context inspect\"*) exit 1;;\n\
            \"buildx imagetools inspect\"*) for h in $DOCKER_HAS; do case \"$*\" in *\"$h\"*) exit 0;; esac; done; exit 1;;\n\
@@ -94,7 +95,7 @@ fn a_failed_push_stops_the_build_without_leaking_the_credential_and_a_bad_comman
     // Given a daemon that refuses a build, When the app is built, Then it fails with the exit code and builds no later image
     let s = Ship::new();
     fake_docker(&s);
-    let r = build(&s, "remote-chat-agent", &[("DOCKER_FAIL_ON", "remote-chat-agent-stt")]);
+    let r = build(&s, "remote-chat-agent", &[("DOCKER_FAIL_ON", "remote-chat-agent-stt"), ("WF_BUILD_RETRY_DELAY_MS", "1")]);
     assert_eq!(r.exit_code, 1);
     assert!(r.stderr.contains("docker buildx build failed with exit code 7"), "{}", r.stderr);
     assert!(calls(&s).iter().all(|c| !c.contains("opencode-server")));
@@ -269,3 +270,33 @@ fn with_fresh_every_image_is_rebuilt_without_the_layer_cache_even_when_the_regis
     assert!(r.stdout.contains("\"reused\": false") && !r.stdout.contains("\"reused\": true"), "{}", r.stdout);
 }
 
+
+#[test]
+fn a_build_that_meets_a_registry_504_twice_is_run_again_and_proceeds_on_the_third_attempt() {
+    // Given a registry that answers 504 to the first two builds of an image and then succeeds
+    let s = Ship::new();
+    fake_docker(&s);
+
+    // When the app is built
+    let r = build(&s, "leetcode-backend", &[("DOCKER_FLAKY_BUILDS", "2"), ("WF_BUILD_RETRY_DELAY_MS", "1")]);
+
+    // Then the same build ran three times, the verb succeeded and the image is reported pushed
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(calls(&s).iter().filter(|c| c.starts_with("buildx build")).count(), 3);
+    assert!(r.stdout.contains("\"pushed\": true"), "{}", r.stdout);
+}
+
+#[test]
+fn a_build_the_registry_never_answers_is_attempted_four_times_and_then_fails_with_the_registry_error() {
+    // Given a registry that always answers 504
+    let s = Ship::new();
+    fake_docker(&s);
+
+    // When the app is built
+    let r = build(&s, "leetcode-backend", &[("DOCKER_FLAKY_BUILDS", "99"), ("WF_BUILD_RETRY_DELAY_MS", "1")]);
+
+    // Then it tried four times, failed, and the registry's 504 is in the output
+    assert_eq!(r.exit_code, 1);
+    assert_eq!(calls(&s).iter().filter(|c| c.starts_with("buildx build")).count(), 4);
+    assert!(r.stderr.contains("504 Gateway Time-out") && r.stderr.contains("docker buildx build failed with exit code 9"), "{}", r.stderr);
+}
