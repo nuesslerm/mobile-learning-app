@@ -49,7 +49,7 @@ Status: proposed, 2026-11-02 (owner direction, revised twice that day; this is t
 4. **The executor and the first adapter**: `t3 serve` at the workspace host executes the actions for the first provider the spike cleared, and the output streams back as T3 events. Functional test: a T3 turn edits a file and runs a command in `t3 serve`'s own directory and not in the service's, with the streamed events asserted.
 4b. **Each further adapter, with its functional tests, before it counts as supported.**
 5. **The workspace host runs `t3 serve`** (the existing workspace-host container); the service drops `/workspace` and the file routes (section C).
-6. **Git at the workspace host** with the shared VM token; `GITHUB_TOKEN` leaves the service's compose file (broker plan).
+6. **Git at the workspace host** with the shared VM token; `GITHUB_TOKEN` is gone from the vault and the registry since 13 Nov (broker plan); `VM_PROVISION_GITHUB_TOKEN` is the one GitHub credential.
 7. **The voice API and other model APIs** under their own user.
 
 ## Not done and risks

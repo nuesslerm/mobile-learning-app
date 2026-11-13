@@ -815,9 +815,9 @@ This repo is private, so an unauthenticated `raw.githubusercontent.com` fetch
 404s (confirmed directly) — provisioning needs **`VM_PROVISION_GITHUB_TOKEN`**,
 a fine-grained PAT scoped to **`Contents: Read` only**, on this one repo, set
 via `wf secret set VM_PROVISION_GITHUB_TOKEN` (see the secrets registry entry
-for the exact GitHub UI steps). Deliberately much narrower than `GITHUB_TOKEN`
-(remote-chat-agent's clone/push/PR credential) — provisioning has no business
-holding write/PR/actions scope. Without it, provisioning a not-yet-deployed
+for the exact GitHub UI steps). It is now the one GitHub credential (rca's old
+`GITHUB_TOKEN` is deleted from the vault), so grant it only the scopes its
+consumers need. Without it, provisioning a not-yet-deployed
 app fails with a clear `GET ... -> 404`; redeploying an already-provisioned
 app is unaffected.
 

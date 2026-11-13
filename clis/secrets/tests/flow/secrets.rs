@@ -881,3 +881,40 @@ fn verify_of_a_group_skips_the_key_the_app_reads_only_on_the_vm() {
     assert_eq!(finding(&report, "VM_PROVISION_GITHUB_TOKEN"), Value::Null, "{report}");
     assert_ne!(finding(&report, "VM_OPS_API_AUTH_TOKEN"), Value::Null, "{report}");
 }
+
+fn compose_files(dir: &std::path::Path, out: &mut Vec<PathBuf>) {
+    for entry in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        let name = entry.file_name().to_string_lossy().to_string();
+        if path.is_dir() {
+            if name != "node_modules" && name != "target" && !name.starts_with('.') {
+                compose_files(&path, out);
+            }
+        } else if name.starts_with("docker-compose") && name.ends_with(".yml") {
+            out.push(path);
+        }
+    }
+}
+
+#[test]
+fn the_vault_holds_no_github_token_key_and_no_compose_file_hands_one_to_a_container() {
+    // Given the registry after the owner deleted rca's GITHUB_TOKEN, and every compose file under backend/ and infra/
+    let mut files = Vec::new();
+    for dir in ["backend", "infra"] {
+        compose_files(&repo_root().join(dir), &mut files);
+    }
+    let token = Regex::new(r"(^|[^A-Za-z0-9_])(GITHUB_TOKEN|GH_TOKEN)\b").unwrap();
+
+    // When the registry's keys and env vars, and each compose file's lines, are searched for either name
+    let named: Vec<String> = registry().iter().filter(|(k, e)| matches!(k.as_str(), "GITHUB_TOKEN" | "GH_TOKEN") || matches!(e["envVar"].as_str(), Some("GITHUB_TOKEN" | "GH_TOKEN"))).map(|(k, _)| k.clone()).collect();
+    let passed: Vec<String> = files
+        .iter()
+        .flat_map(|f| std::fs::read_to_string(f).unwrap().lines().filter(|l| !l.trim_start().starts_with('#') && token.is_match(l)).map(|l| format!("{}: {}", f.strip_prefix(repo_root()).unwrap().display(), l.trim())).collect::<Vec<_>>())
+        .collect();
+
+    // Then VM_PROVISION_GITHUB_TOKEN is the only GitHub credential: no such key, and no container receives one
+    assert!(!files.is_empty());
+    assert!(named.is_empty(), "{named:?}");
+    assert!(passed.is_empty(), "{passed:?}");
+    assert!(registry().contains_key("VM_PROVISION_GITHUB_TOKEN"));
+}

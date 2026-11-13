@@ -2759,7 +2759,7 @@ Usage: `wf knowledge index [options]`
 | `--prompt <path>` | --gemini: the ARCHITECTURE.md prompt (default: "docs/gemini-context/architecture-prompt.md") |
 | `--cache-dir <path>` | --gemini: gitignored scratch dir for the skeleton, the pack and the bundle (default: ".gemini-context-cache") |
 | `--manifest <path>` | --gemini: committed record of the last upload (default: "docs/gemini-context/manifest.json") |
-| `--no-summary` | --gemini: reuse the cached ARCHITECTURE.md, skip the model |
+| `--no-summary` | --gemini: reuse the cached ARCHITECTURE.md, skip the model (no cache: falls back to a full summary run) |
 | `--dry-run` | --gemini: build the bundle, skip the upload and the manifest |
 
 Examples:
@@ -2791,7 +2791,7 @@ Options:
                       pack and the bundle (default: ".gemini-context-cache")
   --manifest <path>   --gemini: committed record of the last upload (default:
                       "docs/gemini-context/manifest.json")
-  --no-summary        --gemini: reuse the cached ARCHITECTURE.md, skip the model
+  --no-summary        --gemini: reuse the cached ARCHITECTURE.md, skip the model (no cache: falls back to a full summary run)
   --dry-run           --gemini: build the bundle, skip the upload and the
                       manifest
   -h, --help          display help for command

@@ -37,9 +37,9 @@ three compose files (`backend/leetcode-backend/docker-compose.prod.yml`,
 only writer was that forwarder, so the source now receives nothing.
 `EXPO_PUBLIC_BETTERSTACK_OTLP_TOKEN` is still described as read by the removed app's logging OTel
 bridge once U12 ships, and no code or deploy group outside the registry reads it (only archived
-docs mention it). `GITHUB_TOKEN` still justifies Pages=Read+Write with the removed app's
-`deploy:web:pages` GitHub Pages deploy, a script no `package.json` defines any more, although the
-key itself is live: remote-chat-agent reads it (`backend/remote-chat-agent/group-workspace/src/worktrees.rs`).
+docs mention it). `GITHUB_TOKEN` justified Pages=Read+Write with the removed app's
+`deploy:web:pages` GitHub Pages deploy; the owner deleted the key from the vault on 13 Nov and its
+registry entry is gone (`VM_PROVISION_GITHUB_TOKEN` is the one GitHub credential), so it needs no decision.
 `EXPO_TOKEN` still cites `pnpm --filter mobile-learning-app run publish:eas` and the deleted
 eas-simulator skill, but its consumer
 survives as `pnpm --filter mla-tamagui run publish:eas`, which `wf ship eas`
@@ -58,8 +58,7 @@ or keep the keys and reword the descriptions to name their surviving consumer. `
 have one, so for them the question is whether anything should write to the "Mobile Learning App"
 source again; if nothing will, they go with the source.
 
-`EXPO_TOKEN` and `GITHUB_TOKEN` are live keys, so neither faces a drop-or-keep decision.
+`EXPO_TOKEN` is a live key, so it faces no drop-or-keep decision (`GITHUB_TOKEN` was deleted on 13 Nov).
 `EXPO_TOKEN` needs `mobile-learning-app` reworded to `mla-tamagui` and the eas-simulator skill
-replaced by `wf ship eas`, which touch no vault value and are not blocked. For `GITHUB_TOKEN` the open question is whether to drop Pages=Read+Write
-from the PAT or re-justify it with a surviving consumer. The `CH_BACKEND_*` OTel bridge path is likewise a reword of entries whose reader is live. Dropping
+replaced by `wf ship eas`, which touch no vault value and are not blocked. The `CH_BACKEND_*` OTel bridge path is likewise a reword of entries whose reader is live. Dropping
 `EXPO_PUBLIC_BETTERSTACK_TOKEN` also means taking it out of those six groups and three compose files.

@@ -11,7 +11,6 @@ Pre-2026-10 history: [archive](archive/README.md).
 - browser-harness · A browser-harness screenshot once came back as the frame's chrome tiled 22 times · 28d · [browser-harness-screenshot-tiled-chrome](gaps/browser-harness-screenshot-tiled-chrome.md)
 - browser-harness · video-check finds no tap dot in a recording made while the machine is CPU-starved · 23d · [video-check-misses-tap-dot-under-load](gaps/video-check-misses-tap-dot-under-load.md)
 - ci · The record-references trigger is a commit marker, not a dispatch, and has not run live · 4d · [record-trigger-without-dispatch](gaps/record-trigger-without-dispatch.md)
-- ci · Nothing watches the tailnet auth key's expiry · 0d · [tailnet-key-expiry-unwatched](gaps/tailnet-key-expiry-unwatched.md)
 - coding-agent · The Build/Plan segmented control overlaps its neighbours at 393 px · 38d · [coding-agent-segmented-control-overlap](gaps/coding-agent-segmented-control-overlap.md)
 - device-lab · device-lab: the live agent is unreachable from the sandbox (blocked) · 37d · [device-lab-live-agent-unreachable](gaps/device-lab-live-agent-unreachable.md)
 - device-lab · `wf browser draw-strokes-on --source template` does not follow the template on the Tamil write pad · 33d · [device-lab-tamil-template-trace](gaps/device-lab-tamil-template-trace.md)

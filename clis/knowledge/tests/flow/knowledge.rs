@@ -149,7 +149,7 @@ fn knowledge_ranks_the_gaps_and_learnings_a_file_touches_indexes_the_gaps_and_fi
 #[test]
 fn knowledge_builds_one_bundle_with_the_architecture_first_and_a_dry_run_uploads_and_records_nothing() {
     // Given a repository whose model answers with an architecture document
-    let g = Gem::new(&["# Architecture\\nui to domain"]);
+    let g = Gem::new(&["# Architecture\\nui to domain", "# Architecture\\nui to domain"]);
     // When the bundle is built with --dry-run
     let out = g.index(&["--dry-run"]);
     // Then ARCHITECTURE.md is the first Doc, the full pack the next, and no manifest is written
@@ -163,10 +163,12 @@ fn knowledge_builds_one_bundle_with_the_architecture_first_and_a_dry_run_uploads
     // When it is rebuilt with --no-summary, Then the cached architecture is reused and the model is not asked
     assert_eq!(g.index(&["--dry-run", "--no-summary"]).exit_code, 0);
     assert_eq!(g.asks(), 1);
-    // and with nothing cached, --no-summary refuses
+    // Given a fresh runner with nothing cached, When --no-summary runs, Then it does not fail, says it fell back and asks the model
     std::fs::remove_file(g.repo.join(".gemini-context-cache/ARCHITECTURE.md")).unwrap();
     let out = g.index(&["--dry-run", "--no-summary"]);
-    assert!(out.exit_code == 1 && out.stderr.contains("--no-summary needs a cached"), "{}", out.stderr);
+    assert_eq!(out.exit_code, 0, "{}", out.stderr);
+    assert!(out.stdout.contains("--no-summary fell back to a full summary run"), "{}", out.stdout);
+    assert_eq!(g.asks(), 2);
 }
 
 #[test]
