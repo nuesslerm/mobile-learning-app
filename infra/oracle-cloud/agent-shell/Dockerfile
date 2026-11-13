@@ -168,7 +168,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       rsync \
       less \
       file \
-      restic \
+      bzip2 \
       unzip \
       curl \
       ca-certificates \
@@ -180,6 +180,12 @@ RUN curl -fsSL -o /tmp/rclone.zip https://downloads.rclone.org/v1.68.2/rclone-v1
     && echo "c6e9d4cf9c88b279f6ad80cd5675daebc068e404890fa7e191412c1bc7a4ac5f  /tmp/rclone.zip" | sha256sum -c - \
     && unzip -p /tmp/rclone.zip '*/rclone' > /usr/local/bin/rclone && chmod 0755 /usr/local/bin/rclone \
     && rm -f /tmp/rclone.zip
+
+# Debian's restic is 0.14, which does not take `restore <snapshot>:<subfolder>` (what `wf vm state verify` and `restore` ask for), so restic is the pinned upstream binary.
+RUN curl -fsSL -o /tmp/restic.bz2 https://github.com/restic/restic/releases/download/v0.17.3/restic_0.17.3_linux_arm64.bz2 \
+    && echo "db27b803534d301cef30577468cf61cb2e242165b8cd6d8cd6efd7001be2e557  /tmp/restic.bz2" | sha256sum -c - \
+    && bunzip2 -c /tmp/restic.bz2 > /usr/local/bin/restic && chmod 0755 /usr/local/bin/restic \
+    && rm -f /tmp/restic.bz2
 
 # The OCI CLI, for `wf cache guard --local`: a CI job asks this container, which holds the OCI secrets, to measure and evict
 # Object Storage through vm-ops-api's exec route, so no OCI key ever sits on the CI runner. ~/.oci/config is written at first use from the
