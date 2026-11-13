@@ -400,7 +400,7 @@ jobs:
       - uses: ./.github/actions/setup-job
         with:
           wf-source: artifact
-          artifact: clis
+          artifact: clis-arm
           job: clis
           install: "false"
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
