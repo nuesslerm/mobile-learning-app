@@ -203,16 +203,17 @@ pub fn plan(force: bool, also: &[String], since: Option<&str>, github_output: bo
                 legs.push((leg.app, why));
             }
         }
-        let why = image_changes(None, running(AGENT_SHELL), AGENT_SHELL)?;
-        if !why.is_empty() {
-            legs.push((AGENT_SHELL, why));
-        }
         // first: the other legs deploy through it, so a change to how it deploys reaches them in the same run
         let vm_ops = since.map(str::to_string).or_else(|| running_commit(VM_OPS_API));
         // the watchdog and the Rust port are its images; its compose project is part of the leg's hash
         let why = image_changes(None, vm_ops, VM_OPS_API)?;
         if !why.is_empty() {
             legs.insert(0, (VM_OPS_API, why));
+        }
+        // last: a redeploy recreates its containers and ends the exec jobs running in them, so every other leg is done first
+        let why = image_changes(None, running(AGENT_SHELL), AGENT_SHELL)?;
+        if !why.is_empty() {
+            legs.push((AGENT_SHELL, why));
         }
         // `--also`: named services deploy whatever changed
         for name in also {

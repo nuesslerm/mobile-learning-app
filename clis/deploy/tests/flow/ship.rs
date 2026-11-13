@@ -9,7 +9,7 @@ use pipeline::copy_closure::{copy_problems, copy_sources};
 use std::time::Duration;
 
 const BASE: &str = "http://vm-ops-api-main:8080";
-const ALL_APPS: [&str; 8] = ["vm-ops-api", "remote-chat-agent", "leetcode-backend", "leetcode-auth-cookie-capture", "reporting-service", "t3-serve", "orca-serve", "vnc-auth-session"];
+const ALL_APPS: [&str; 9] = ["vm-ops-api", "remote-chat-agent", "leetcode-backend", "leetcode-auth-cookie-capture", "reporting-service", "t3-serve", "orca-serve", "vnc-auth-session", "agent-shell"];
 /// The exec-script job a promotion starts, with the id the start route mints.
 const JOB1: &str = "0b9f5c2e-8a1d-4c3e-9f7a-000000000001";
 
@@ -126,6 +126,8 @@ const PLANNED: [(&str, &str); 7] = [("remote-chat-agent", "remote-chat-agent"), 
 fn running(vm_ops_commit: &str) -> Vec<String> {
     let mut replies: Vec<String> = PLANNED.iter().map(|(app, image)| ps(app, &format!("reg/{image}:sha-abc123"))).collect();
     replies.push(health(vm_ops_commit));
+    // the plan asks about agent-shell last
+    replies.push(ps("agent-shell", "reg/agent-shell:sha-abc123"));
     replies
 }
 
@@ -162,6 +164,7 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     // Given every service and vm-ops-api run commits whose image inputs hash the same as HEAD's (the stub reads each as HEAD), When the plan is made
     let mut replies: Vec<String> = PLANNED.iter().zip(["abc123", "abc123", "def456", "abc123", "abc123", "abc123", "abc123", "fed789"]).map(|((app, image), sha)| ps(app, &format!("reg/{image}:sha-{sha}"))).collect();
     replies.push(health("aaaaaaa"));
+    replies.push(ps("agent-shell", "reg/agent-shell:sha-abc123"));
     s.vm.replies(&replies);
     s.latest_update("abc123");
     let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[{\"name\":\"@app/unrelated\"}]")]);
@@ -1037,7 +1040,7 @@ fn a_change_to_one_compose_project_moves_the_deploy_hash_of_that_app_alone() {
     let clone = tempfile::tempdir().unwrap();
     let status = std::process::Command::new("git").args(["clone", "-q", "--shared", "--no-checkout"]).arg(repo_root()).arg(clone.path()).status().unwrap();
     assert!(status.success());
-    let hashes = |rev: &str| -> Vec<(String, String)> { ALL_APPS.iter().chain(["agent-shell"].iter()).map(|app| (app.to_string(), pipeline::image_hash::leg_hash(Some(clone.path()), rev, app).unwrap())).collect() };
+    let hashes = |rev: &str| -> Vec<(String, String)> { ALL_APPS.iter().map(|app| (app.to_string(), pipeline::image_hash::leg_hash(Some(clone.path()), rev, app).unwrap())).collect() };
     let before = hashes("HEAD");
 
     // When only the compose file of agent-shell changes
