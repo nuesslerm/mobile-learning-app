@@ -201,10 +201,7 @@ fn service_tags(app: &str, git_ref: &str, tag: &str) -> Option<String> {
     };
     let unchanged = |svc: &pipeline::image_hash::ServiceImage| -> bool {
         let Some(sha) = running_sha(svc.container, svc.image) else { return false };
-        match (pipeline::image_hash::hash(None, &sha, svc.image), pipeline::image_hash::hash(None, git_ref, svc.image)) {
-            (Ok(then), Ok(now)) => then == now,
-            _ => false,
-        }
+        pipeline::image_hash::unchanged_between(None, &sha, git_ref, svc.image)
     };
     let moved: Vec<String> = services.iter().filter(|svc| !unchanged(svc)).map(|svc| format!("{}:{tag}", svc.service)).collect();
     (moved.len() < services.len()).then(|| moved.join(","))

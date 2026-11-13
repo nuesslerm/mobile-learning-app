@@ -269,6 +269,11 @@ pub fn hash(dir: Option<&Path>, rev: &str, image: &str) -> Result<String, String
     Ok(hash.trim().chars().take(24).collect())
 }
 
+/// Whether `image` hashes the same at commits `a` and `b`; an image that cannot be hashed at either is not shown unchanged.
+pub fn unchanged_between(dir: Option<&Path>, a: &str, b: &str, image: &str) -> bool {
+    matches!((hash(dir, a, image), hash(dir, b, image)), (Ok(x), Ok(y)) if x == y)
+}
+
 /// The hash of everything a deploy of `app` is built from at `rev`: its images' hashes and its compose project, which no image holds
 /// (the `docker-compose*` files beside its Dockerfile; for vm-ops-api, the compose projects it swaps itself and the watchdog in from).
 pub fn leg_hash(dir: Option<&Path>, rev: &str, app: &str) -> Result<String, String> {

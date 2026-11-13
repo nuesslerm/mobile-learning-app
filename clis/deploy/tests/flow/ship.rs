@@ -1113,6 +1113,26 @@ fn a_change_to_the_tools_layer_of_agent_shell_moves_its_image_hash_and_leaves_it
     assert_eq!(moved(&before, &hashes(&sessions)), ["agent-shell-sessions"]);
 }
 
+#[test]
+fn an_app_serves_the_commit_its_own_image_was_built_from_when_only_a_sidecar_image_changed() {
+    // Given a throwaway clone of this repository at its HEAD (no checkout)
+    let clone = tempfile::tempdir().unwrap();
+    let status = std::process::Command::new("git").args(["clone", "-q", "--shared", "--no-checkout"]).arg(repo_root()).arg(clone.path()).status().unwrap();
+    assert!(status.success());
+    let unchanged = |rev: &str, image: &str| pipeline::image_hash::unchanged_between(Some(clone.path()), "HEAD", rev, image);
+
+    // When only the opencode image's Dockerfile changes, Then remote-chat-agent's own image is unchanged and opencode's is not
+    let opencode = commit_touching(clone.path(), "backend/remote-chat-agent/opencode-server/Dockerfile");
+    assert_eq!((unchanged(&opencode, "remote-chat-agent"), unchanged(&opencode, "opencode-server")), (true, false));
+
+    // When the app's own Dockerfile changes, Then its own image is changed
+    let own = commit_touching(clone.path(), "backend/remote-chat-agent/Dockerfile");
+    assert!(!unchanged(&own, "remote-chat-agent"));
+
+    // And a commit the clone does not know cannot be shown unchanged
+    assert!(!unchanged("0000000000000000000000000000000000000000", "remote-chat-agent"));
+}
+
 /// The commit of this repository that `HEAD` names, which `wf ship vm-ops-api --ref HEAD` resolves to the same 40 characters.
 fn head() -> String {
     let out = std::process::Command::new("git").args(["rev-parse", "HEAD"]).current_dir(repo_root()).output().unwrap();
