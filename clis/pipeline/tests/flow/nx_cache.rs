@@ -478,6 +478,35 @@ fn nx_reruns_a_package_or_crate_task_exactly_when_its_sources_or_a_dependency_s_
     assert_eq!(w.run_stage("flow-tests", &flows, &[]).1, ran(&[]));
 }
 
+#[test]
+fn a_change_to_only_a_service_s_container_files_or_docs_reruns_none_of_its_typecheck_lint_or_unit_tests() {
+    let w = Workspace::copy();
+    let tasks = ["typecheck", "lint", "unit"];
+    let plan = w.plan("typecheck-lint-unit-tests", ["@app/remote-chat-agent", "@app/leetcode-backend"].iter().flat_map(|p| tasks.iter().map(move |k| json!({ "kind": k, "package": p }))).collect());
+    let all = |name: &str, scripts: &[&str]| -> BTreeSet<String> { scripts.iter().map(|s| format!("{name} {s}")).collect() };
+    let agent = all("@app/remote-chat-agent", &["typecheck", "lint", "test:unit"]);
+
+    // Given every task passed once
+    let (r, did) = w.run_stage("typecheck-lint-unit-tests", &plan, &[]);
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(did, agent.union(&all("@app/leetcode-backend", &["typecheck", "lint", "test:unit"])).cloned().collect::<BTreeSet<_>>());
+    // When only a Dockerfile, a compose file or a doc of the package changes, Then none of them runs again
+    let replayed = [
+        ("the agent's Dockerfile", "backend/remote-chat-agent/Dockerfile"),
+        ("the opencode image's Dockerfile", "backend/remote-chat-agent/opencode-server/Dockerfile"),
+        ("the agent's compose file", "backend/remote-chat-agent/docker-compose.prod.yml"),
+        ("a doc beside the sources", "backend/remote-chat-agent/core/NOTES.md"),
+        ("the backend's Dockerfile", "backend/leetcode-backend/Dockerfile"),
+        ("the backend's compose file", "backend/leetcode-backend/docker-compose.yml"),
+    ];
+    for (what, file) in replayed {
+        w.with_edit(file, || assert_eq!(w.run_stage("typecheck-lint-unit-tests", &plan, &[]).1, ran(&[]), "{what}: {file}"));
+    }
+    // And when a source or a test of the package changes, Then its tasks run again
+    w.with_edit("backend/remote-chat-agent/tests/e2e/added.ts", || assert_eq!(w.run_stage("typecheck-lint-unit-tests", &plan, &[]).1, agent, "a TypeScript test"));
+    w.with_edit("backend/remote-chat-agent/core/src/lib.rs", || assert_eq!(w.run_stage("typecheck-lint-unit-tests", &plan, &[]).1, set(&["@app/remote-chat-agent typecheck", "@app/remote-chat-agent test:unit"]), "a source of a crate the package runs: its dependency, not the package's own file"));
+}
+
 /// The crates with flow tests that build `on`, directly or through other workspace crates, read from `cargo metadata` rather than listed by hand.
 fn workspace_packages() -> Vec<Value> {
     let out = Command::new("cargo").args(["metadata", "--format-version", "1", "--no-deps", "--offline", "--manifest-path"]).arg(repo_root().join("clis/Cargo.toml")).output().unwrap();

@@ -36,6 +36,23 @@
   },
   "nx": {
     "targets": {
+      "lint": {
+        "inputs": [
+          "withoutDeployFiles"
+        ]
+      },
+      "typecheck": {
+        "inputs": [
+          "withoutDeployFiles",
+          "^production"
+        ]
+      },
+      "test:unit": {
+        "inputs": [
+          "withoutDeployFiles",
+          "^production"
+        ]
+      },
       "test:flow": {
         "inputs": [
           "default",

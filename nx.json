@@ -41,6 +41,12 @@
       "{projectRoot}/**/*",
       "sharedGlobals"
     ],
+    "withoutDeployFiles": [
+      "default",
+      "!{projectRoot}/**/Dockerfile*",
+      "!{projectRoot}/**/docker-compose*",
+      "!{projectRoot}/**/*.md"
+    ],
     "production": [
       "{projectRoot}/**/*",
       "!{projectRoot}/**/*.test.*",
