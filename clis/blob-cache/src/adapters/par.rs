@@ -13,7 +13,12 @@ const TRANSFER: Duration = Duration::from_secs(120);
 // The same ceiling for an object streamed to or from a file (the pnpm store, about 0.6 GB).
 const FILE_TRANSFER: Duration = Duration::from_secs(15 * 60);
 
+/// Pauses before the retries of a request that failed in transit or was answered 408, 429 or 5xx: a blip of the store or the network must not turn a
+/// whole run's cache cold (the breaker opens on the first failure that reaches it), and a store that is down still fails within a second.
+const BACKOFF: [Duration; 2] = [Duration::from_millis(200), Duration::from_millis(800)];
+
 /// What a request sends.
+#[derive(Clone, Copy)]
 enum Payload<'a> {
     Empty,
     Bytes(&'a [u8]),
@@ -49,16 +54,36 @@ impl OciParStore {
         Request::new(method, &format!("{base}{key}")).via(self.via.clone()).connect_timeout(CONNECT).response_timeout(RESPONSE).timeout(ceiling)
     }
 
-    fn send(&self, method: &str, base: &str, key: &Key, payload: Payload, if_none_match: bool) -> Result<Response, StoreError> {
-        let mut request = match payload {
-            Payload::Empty => self.request(method, base, key, TRANSFER),
-            Payload::Bytes(body) => self.request(method, base, key, TRANSFER).header("Content-Type", "application/octet-stream").body(body),
-            Payload::File(path) => self.request(method, base, key, FILE_TRANSFER).header("Content-Type", "application/octet-stream").body_file(path),
-        };
-        if if_none_match {
-            request = request.header("If-None-Match", "*");
+    /// Asks again after each pause of `BACKOFF` while the attempt failed in transit or was answered with a status worth another try.
+    fn with_retries(&self, mut attempt: impl FnMut() -> Result<Response, String>) -> Result<Response, String> {
+        let mut retried = 0;
+        loop {
+            let result = attempt();
+            let again = match &result {
+                Err(_) => true,
+                Ok(response) => matches!(response.status, 408 | 429 | 500..=599),
+            };
+            if !again || retried >= BACKOFF.len() {
+                return result;
+            }
+            std::thread::sleep(BACKOFF[retried]);
+            retried += 1;
         }
-        request.send().map_err(|error| self.unreachable(method, key, &error))
+    }
+
+    fn send(&self, method: &str, base: &str, key: &Key, payload: Payload, if_none_match: bool) -> Result<Response, StoreError> {
+        self.with_retries(|| {
+            let mut request = match payload {
+                Payload::Empty => self.request(method, base, key, TRANSFER),
+                Payload::Bytes(body) => self.request(method, base, key, TRANSFER).header("Content-Type", "application/octet-stream").body(body),
+                Payload::File(path) => self.request(method, base, key, FILE_TRANSFER).header("Content-Type", "application/octet-stream").body_file(path),
+            };
+            if if_none_match {
+                request = request.header("If-None-Match", "*");
+            }
+            request.send()
+        })
+        .map_err(|error| self.unreachable(method, key, &error))
     }
 
     fn unreachable(&self, method: &str, key: &Key, error: &str) -> StoreError {
@@ -123,7 +148,7 @@ impl BlobStore for OciParStore {
     }
 
     fn get_file(&self, key: &Key, dest: &Path) -> Result<bool, StoreError> {
-        let response = self.request("GET", &self.read, key, FILE_TRANSFER).send_to_file(dest).map_err(|error| self.unreachable("GET", key, &error))?;
+        let response = self.with_retries(|| self.request("GET", &self.read, key, FILE_TRANSFER).send_to_file(dest)).map_err(|error| self.unreachable("GET", key, &error))?;
         match response.status {
             200 => Ok(true),
             404 => Ok(false),
