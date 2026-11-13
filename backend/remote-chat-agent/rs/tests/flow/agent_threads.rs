@@ -556,3 +556,41 @@ async fn given_a_restart_whose_executor_attaches_late_when_a_prompt_is_queued_th
     assert_eq!(starts.len(), 2, "{starts:?}");
     assert_eq!(session_of(&starts[1].argv), Some("ses_queue_1".to_string()));
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_an_executor_that_dies_during_a_tool_call_when_it_is_served_again_then_the_turn_ended_failed_and_the_next_turn_goes_on_in_the_kept_session() {
+    // Given a claude thread whose turn announced its session and is waiting on a command at the executor
+    let env = Env::process(&[]);
+    let mut chain = chain(&env).await;
+    let init = json!({"type": "system", "subtype": "init", "session_id": "ses_exec_1"}).to_string();
+    chain.script(vec![
+        Turn::replaying(&[init.clone(), said("starting")]).then_calling("k1", "run_command", json!({"command": "sleep 3"})).then_line(&said("never said")),
+        Turn::replaying(&[init, said("back again")]),
+    ]);
+    let mut agent = chain.agent().await;
+    create(&mut agent, "t1").await;
+    agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+    start_turn(&mut agent, "t1").await;
+    agent.events_through("tool.started").await;
+    // When the executor process is killed (the agent-shell it runs in restarts) and served again for the same workspace
+    drop(chain.exec.take());
+    let end = agent.events_through("turn.finished").await;
+    let port = chain.port;
+    chain.exec = Some(tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &chain.repo, SECRET)));
+    // Then the turn ended failed with the executor gone
+    let error = end.iter().find(|e| e.kind == "error").unwrap_or_else(|| panic!("no error event in {:?}", kinds(&end)));
+    assert_eq!(error.data["code"], json!("EXECUTOR_GONE"));
+    assert_eq!(end.last().unwrap().data["reason"], json!("failed"));
+    // And the next turn runs through the new executor in the session the first turn announced
+    let mut agent = chain.agent().await;
+    agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+    let again = start_turn(&mut agent, "t1").await;
+    assert!(again.get("result").is_some(), "{again}");
+    let seen = history_with_finishes(&mut agent, "t1", 2).await;
+    let finishes: Vec<Value> = seen.iter().filter(|(kind, _)| kind == "turn.finished").map(|(_, reason)| reason.clone()).collect();
+    assert_eq!(finishes, [json!("failed"), json!("completed")], "{seen:?}");
+    let resumed = |argv: &Vec<String>| argv.iter().position(|a| a == "--resume").map(|i| argv[i + 1].clone());
+    let starts = chain.cli.invocations("claude");
+    assert_eq!(starts.len(), 2, "{starts:?}");
+    assert_eq!((resumed(&starts[0].argv), resumed(&starts[1].argv)), (None, Some("ses_exec_1".to_string())), "{:?}", starts.iter().map(|s| s.argv.clone()).collect::<Vec<_>>());
+}
