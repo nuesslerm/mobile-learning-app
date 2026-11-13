@@ -173,7 +173,7 @@ services:
     logging: *logging
 
   agent-dind:
-    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${DIND_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell-dind:${DIND_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: agent-shell-dind
     network_mode: service:tailscale
     # The ONLY service that runs the nested dockerd (Dockerfile's own
@@ -227,7 +227,7 @@ services:
     volumes: [droid-socket:/run/dind, droid-data:/var/lib/docker]
 
   agent-sessions:
-    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell:${SESSIONS_IMAGE_TAG:-${IMAGE_TAG:-latest}}
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-shell-sessions:${SESSIONS_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: agent-shell-sessions
     network_mode: service:tailscale
     environment:

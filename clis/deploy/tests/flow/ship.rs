@@ -1089,6 +1089,30 @@ fn a_change_to_one_compose_project_moves_the_deploy_hash_of_that_app_alone() {
     assert_eq!(moved, ["agent-shell"]);
 }
 
+#[test]
+fn a_change_to_the_tools_layer_of_agent_shell_moves_its_image_hash_and_leaves_its_sessions_and_dind_images_alone() {
+    // Given a throwaway clone of this repository at its HEAD (no checkout)
+    let clone = tempfile::tempdir().unwrap();
+    let status = std::process::Command::new("git").args(["clone", "-q", "--shared", "--no-checkout"]).arg(repo_root()).arg(clone.path()).status().unwrap();
+    assert!(status.success());
+    let images = ["agent-shell", "agent-shell-sessions", "agent-shell-dind"];
+    let hashes = |rev: &str| -> Vec<String> { images.iter().map(|image| pipeline::image_hash::hash(Some(clone.path()), rev, image).unwrap()).collect() };
+    let moved = |before: &[String], after: &[String]| -> Vec<&'static str> { images.iter().copied().zip(before.iter().zip(after)).filter(|(_, (b, a))| b != a).map(|(image, _)| image).collect() };
+    let before = hashes("HEAD");
+
+    // When only the tools Dockerfile changes, Then only the tools image moves
+    let tools = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/Dockerfile");
+    assert_eq!(moved(&before, &hashes(&tools)), ["agent-shell"]);
+
+    // When the entrypoint the three roles share changes, Then all three move
+    let entrypoint = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/entrypoint.sh");
+    assert_eq!(moved(&before, &hashes(&entrypoint)), images);
+
+    // When only the sessions Dockerfile changes (its pinned tools tag, say), Then only the sessions image moves
+    let sessions = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/Dockerfile.sessions");
+    assert_eq!(moved(&before, &hashes(&sessions)), ["agent-shell-sessions"]);
+}
+
 /// The commit of this repository that `HEAD` names, which `wf ship vm-ops-api --ref HEAD` resolves to the same 40 characters.
 fn head() -> String {
     let out = std::process::Command::new("git").args(["rev-parse", "HEAD"]).current_dir(repo_root()).output().unwrap();

@@ -135,6 +135,12 @@ impl Reasons {
     }
 }
 
+/// The images among `images` whose hash differs between the commit a service runs and HEAD (`then` and `now` hash one image); an image that cannot be
+/// hashed at either commit counts as changed, since nothing shows it unchanged.
+fn changed_images<'a>(images: &[&'a str], then: &dyn Fn(&str) -> Result<String, String>, now: &dyn Fn(&str) -> Result<String, String>) -> Vec<&'a str> {
+    images.iter().copied().filter(|image| !matches!((then(image), now(image)), (Ok(a), Ok(b)) if a == b)).collect()
+}
+
 /// Why a service ships: empty when the hash of what its images are built from is the same at `running`, the commit it runs, as at HEAD.
 fn image_changes(dir: Option<&Path>, running: Option<String>, app: &str) -> Result<Vec<String>, String> {
     let Some(sha) = running else { return Ok(vec!["its running commit is unknown".into()]) };
@@ -144,7 +150,11 @@ fn image_changes(dir: Option<&Path>, running: Option<String>, app: &str) -> Resu
     let now = crate::image_hash::leg_hash(dir, "HEAD", app)?;
     Ok(match crate::image_hash::leg_hash(dir, &sha, app) {
         Ok(then) if then == now => Vec::new(),
-        Ok(then) => vec![format!("its image inputs changed since {sha}: {then} -> {now}")],
+        Ok(then) => {
+            let moved = changed_images(&crate::image_hash::images_of(app), &|image| crate::image_hash::hash(dir, &sha, image), &|image| crate::image_hash::hash(dir, "HEAD", image));
+            let what = if moved.is_empty() { "its compose project".to_string() } else { moved.join(", ") };
+            vec![format!("its image inputs changed since {sha} ({what}): {then} -> {now}")]
+        }
         Err(e) => vec![format!("its image inputs at {sha} cannot be hashed: {e}")],
     })
 }
@@ -256,4 +266,22 @@ pub fn plan(force: bool, also: &[String], since: Option<&str>, github_output: bo
         }
     }
     Ok(Some(0))
+}
+
+#[cfg(test)]
+mod changed_images_tests {
+    use super::changed_images;
+
+    #[test]
+    fn given_the_hashes_of_three_images_when_one_moved_and_one_cannot_be_hashed_then_those_two_are_named() {
+        // Given three images, the second moved between the two commits and the third cannot be hashed at the running one
+        let then = |image: &str| if image == "stt" { Err("no Dockerfile".to_string()) } else { Ok(format!("{image}-1")) };
+        let now = |image: &str| Ok(if image == "opencode-server" { "opencode-server-2".to_string() } else { format!("{image}-1") });
+
+        // When the changed images are listed
+        let moved = changed_images(&["remote-chat-agent", "opencode-server", "stt"], &then, &now);
+
+        // Then the moved one and the one that cannot be shown unchanged are named, in order
+        assert_eq!(moved, ["opencode-server", "stt"]);
+    }
 }

@@ -37,6 +37,8 @@ pub const IMAGES: &[Image] = &[
     image("vm-ops-api-rs", "backend/vm-ops-api/Dockerfile", ".", &["backend/vm-ops-api/rs"]),
     image("watchdog", "infra/oracle-cloud/watchdog/Dockerfile", ".", &["backend/watchdog/rs"]),
     image("agent-shell", "infra/oracle-cloud/agent-shell/Dockerfile", ".", &[]),
+    image("agent-shell-sessions", "infra/oracle-cloud/agent-shell/Dockerfile.sessions", ".", &[]),
+    image("agent-shell-dind", "infra/oracle-cloud/agent-shell/Dockerfile.dind", ".", &[]),
     image("logger-cli", "infra/oracle-cloud/logger-cli/Dockerfile", ".", &[]),
     image("vnc-auth-capture", "clis/vnc-auth-capture/Dockerfile", ".", &[]),
 ];
@@ -49,6 +51,7 @@ pub fn release_companions(app: &str) -> &'static [&'static str] {
     match app {
         "remote-chat-agent" => &["remote-chat-agent-stt", "opencode-server"],
         "vm-ops-api" => &["vm-ops-api-rs", "watchdog"],
+        "agent-shell" => &["agent-shell-sessions", "agent-shell-dind"],
         _ => &[],
     }
 }
@@ -68,7 +71,7 @@ const fn service_image(service: &'static str, container: &'static str, image: &'
 /// service whose image inputs did not change is left on the tag it runs; a service listed here is one the redeploy request may tag alone.
 pub fn service_images(app: &str) -> &'static [ServiceImage] {
     const RCA: [ServiceImage; 3] = [service_image("agent", "remote-chat-agent", "remote-chat-agent"), service_image("opencode", "remote-chat-agent-opencode", "opencode-server"), service_image("stt", "remote-chat-agent-stt", "remote-chat-agent-stt")];
-    const AGENT_SHELL: [ServiceImage; 3] = [service_image("app", "agent-shell", "agent-shell"), service_image("agent-sessions", "agent-shell-sessions", "agent-shell"), service_image("agent-dind", "agent-shell-dind", "agent-shell")];
+    const AGENT_SHELL: [ServiceImage; 3] = [service_image("app", "agent-shell", "agent-shell"), service_image("agent-sessions", "agent-shell-sessions", "agent-shell-sessions"), service_image("agent-dind", "agent-shell-dind", "agent-shell-dind")];
     match app {
         "remote-chat-agent" => &RCA,
         "agent-shell" => &AGENT_SHELL,
