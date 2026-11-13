@@ -2,6 +2,17 @@
   "schema": "mimic-known-gaps/1",
   "gaps": [
     {
+      "id": "t3-command-checkpoint.rollback",
+      "row": "command:checkpoint.rollback",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
       "id": "t3-command-provider-session.detach",
       "row": "command:provider-session.detach",
       "severity": "breaking",
@@ -24,6 +35,17 @@
       ]
     },
     {
+      "id": "t3-command-run.interrupt",
+      "row": "command:run.interrupt",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
       "id": "t3-command-thread.active.reorder",
       "row": "command:thread.active.reorder",
       "severity": "breaking",
@@ -32,6 +54,17 @@
         "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
         "steps.ws:s2c:1.[0].payload.exit.cause missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.value extra drift"
+      ]
+    },
+    {
+      "id": "t3-command-thread.guest-message.dismiss",
+      "row": "command:thread.guest-message.dismiss",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
       ]
     },
     {
@@ -48,6 +81,17 @@
     {
       "id": "t3-command-thread.model-selection.set",
       "row": "command:thread.model-selection.set",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-command-thread.pull-request.link",
+      "row": "command:thread.pull-request.link",
       "severity": "breaking",
       "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
       "diffs": [
@@ -198,6 +242,17 @@
       ]
     },
     {
+      "id": "t3-rpc-orchestration.getThreadProjection",
+      "row": "rpc:orchestration.getThreadProjection",
+      "severity": "breaking",
+      "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
       "id": "t3-rpc-projects.listEntries",
       "row": "rpc:projects.listEntries",
       "severity": "breaking",
@@ -206,6 +261,15 @@
         "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
         "steps.ws:s2c:1.[0].payload.exit.cause missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.value extra drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-pullRequests.comment",
+      "row": "rpc:pullRequests.comment",
+      "severity": "drift",
+      "class": "rpc-exit: the defect text of the failure differs",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
       ]
     },
     {
@@ -249,10 +313,11 @@
     {
       "id": "t3-rpc-subscribeServerConfig",
       "row": "rpc:subscribeServerConfig",
-      "severity": "drift",
-      "class": "frames: extra or missing frames",
+      "severity": "breaking",
+      "class": "server config: the environment machine and the remote open targets differ",
       "diffs": [
-        "steps.ws:s2c:1.[0] extra drift"
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.platform.machine missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.remoteOpenTargets changed breaking"
       ]
     },
     {
