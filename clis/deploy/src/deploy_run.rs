@@ -146,6 +146,11 @@ fn vm_images(names: &[String]) -> Result<Vec<String>, Fail> {
 pub(crate) fn redeploy(app: &str, git_ref: &str, tag: &str, wipe_state: bool, recreate_all: bool) -> Result<Value, String> {
     let delay = env_ms("WF_DEPLOY_RETRY_MS", 15_000);
     let mut query = format!("tag={}&ref={}", encode_form(tag), encode_form(git_ref));
+    if !wipe_state && !recreate_all {
+        if let Some(tags) = service_tags(app, git_ref, tag) {
+            query.push_str(&format!("&tags={}", encode_form(&tags)));
+        }
+    }
     if wipe_state {
         query.push_str("&wipeState=1");
     }
@@ -174,6 +179,35 @@ pub(crate) fn redeploy(app: &str, git_ref: &str, tag: &str, wipe_state: bool, re
             }
         }
     }
+}
+
+/// The `service:tag` list of a gradual redeploy: every service of `app` that runs an image of its own whose image inputs differ between the commit
+/// it runs and `git_ref`, and always the app's own service. None when every service moves (the plain redeploy says the same) or when the
+/// running commits cannot be read: a service that cannot be shown unchanged is moved.
+fn service_tags(app: &str, git_ref: &str, tag: &str) -> Option<String> {
+    let services = pipeline::image_hash::service_images(app);
+    if services.is_empty() {
+        return None;
+    }
+    let containers = wf_vmops::services::ps(app).ok()?;
+    let running_sha = |container: &str, image: &str| -> Option<String> {
+        let marker = format!("/{image}:sha-");
+        containers
+            .iter()
+            .filter(|c| c.get("name").and_then(Value::as_str) == Some(container) && c.get("state").and_then(Value::as_str) == Some("running"))
+            .filter_map(|c| c.get("image").and_then(Value::as_str))
+            .find_map(|i| i.rsplit_once(&marker[..]).map(|(_, sha)| sha.to_string()))
+            .filter(|sha| !sha.is_empty() && sha.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+    };
+    let unchanged = |svc: &pipeline::image_hash::ServiceImage| -> bool {
+        let Some(sha) = running_sha(svc.container, svc.image) else { return false };
+        match (pipeline::image_hash::hash(None, &sha, svc.image), pipeline::image_hash::hash(None, git_ref, svc.image)) {
+            (Ok(then), Ok(now)) => then == now,
+            _ => false,
+        }
+    };
+    let moved: Vec<String> = services.iter().enumerate().filter(|(i, svc)| *i == 0 || !unchanged(svc)).map(|(_, svc)| format!("{}:{tag}", svc.service)).collect();
+    (moved.len() < services.len()).then(|| moved.join(","))
 }
 
 fn print_json(v: &Value) {

@@ -498,6 +498,42 @@ fn the_retired_build_only_flag_is_refused_as_an_unknown_option_that_names_the_ci
 const AS_CI_JOB: [(&str, &str); 2] = [("WF_VM_CI_PORT", "8081"), ("VM_OPS_API_CI_AUTH_TOKEN", CI_VM_SEED)];
 
 #[test]
+fn a_gradual_redeploy_names_only_the_services_whose_image_inputs_changed_and_always_the_app_s_own() {
+    let s = Ship::new();
+    let running = |opencode_image: &str| {
+        answers::reply(200, &answers::ps("remote-chat-agent", &[
+            ("remote-chat-agent", "running", "Up 2 hours", "reg/remote-chat-agent:sha-abc123"),
+            ("remote-chat-agent-opencode", "running", "Up 2 hours", opencode_image),
+            ("remote-chat-agent-stt", "running", "Up 2 hours", "reg/remote-chat-agent-stt:sha-abc123"),
+        ]))
+    };
+    let up = answers::reply(200, &redeployed("remote-chat-agent", "sha-def456", "def456"));
+    let redeploy = ["ship", "remote-chat-agent", "--ref", "def456", "--redeploy-only", "--tag", "sha-def456"];
+
+    // Given every image runs a commit whose inputs hash the same as the target's, When the tag is redeployed
+    s.vm.replies_then_last(&[running("reg/opencode-server:sha-abc123"), up.clone()]);
+    let r = s.wf(&redeploy, &[("STUB_HASH", "same")]);
+
+    // Then only the app's own service is named, so opencode and stt keep the tag they run
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456&tags=agent%3Asha-def456"));
+
+    // Given opencode runs a tag that is no commit, so it cannot be shown unchanged, When the tag is redeployed
+    s.vm.replies_then_last(&[running("reg/opencode-server:latest"), up.clone()]);
+    let r = s.wf(&redeploy, &[("STUB_HASH", "same")]);
+
+    // Then opencode moves with the app's own service, and stt stays
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456&tags=agent%3Asha-def456%2Copencode%3Asha-def456"));
+
+    // Given the checkout cannot hash the running commits (the empty tree has no Dockerfile), When the tag is redeployed, Then every service moves: no tags are sent
+    s.vm.replies_then_last(&[running("reg/opencode-server:sha-abc123"), up]);
+    let r = s.wf(&redeploy, &[("GIT_AS", "4b825dc642cb6eb9a060e54bf8d69288fbee4904")]);
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456"));
+}
+
+#[test]
 fn a_ci_job_redeploys_over_the_ci_port_with_the_ci_seed_and_a_caller_without_a_ci_port_uses_the_admin_port_and_seed() {
     let s = Ship::new();
     let up = redeployed("leetcode-backend", "sha-1234567", "dev");
@@ -541,11 +577,12 @@ fn a_redeploy_of_a_tag_is_sent_once_retried_only_when_unanswered_and_a_bad_comma
     let s = Ship::new();
 
     // Given a tag, When it is redeployed from a ref, Then that tag is asked for and the reply printed
+    // (remote-chat-agent runs three images, so its running containers are asked first: none are listed here, so every service moves)
     let up = redeployed("remote-chat-agent", "v1", "main");
-    s.vm.replies_then_last(&[answers::reply(200, &up)]);
+    s.vm.replies_then_last(&[answers::reply(200, &answers::ps("remote-chat-agent", &[])), answers::reply(200, &up)]);
     let r = s.wf(&["ship", "remote-chat-agent", "--ref", "main", "--redeploy-only", "--tag", "v1"], &[]);
     assert_eq!((r.exit_code, r.stdout.clone()), (0, format!("{}\n", serde_json::to_string_pretty(&up).unwrap())));
-    assert_eq!(s.url(1), format!("{BASE}/services/remote-chat-agent/redeploy?tag=v1&ref=main"));
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=v1&ref=main"));
 
     // Given no tag, Then latest is redeployed; Given characters that need encoding, Then they are form-encoded, and a tag
     // docker refuses is refused
@@ -1107,7 +1144,7 @@ fn vm_ops_api_redeploys_a_tag_ci_already_pushed_without_building_and_still_prove
 fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_smoke_without_redeploy_only_is_refused() {
     // Given a service with a smoke test
     let s = Ship::new();
-    s.vm.replies_then_last(&[&gate_up("remote-chat-agent")[..], &[answers::reply(200, &redeployed("remote-chat-agent", "sha-abc", "dev"))]].concat());
+    s.vm.replies_then_last(&[&gate_up("remote-chat-agent")[..], &[answers::reply(200, &answers::ps("remote-chat-agent", &[])), answers::reply(200, &redeployed("remote-chat-agent", "sha-abc", "dev"))]].concat());
 
     // When its pushed tag is redeployed with --smoke
     let r = s.wf(&["ship", "remote-chat-agent", "--redeploy-only", "--smoke", "--ref", "dev", "--tag", "sha-abc"], &[]);
@@ -1116,7 +1153,7 @@ fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_smoke_with
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     assert_eq!(s.url(1), format!("{BASE}/services/remote-chat-agent/smoke?tag=sha-abc&ref=dev"));
     assert_eq!(s.url(3), format!("{BASE}/services/remote-chat-agent/smoke/stop"));
-    assert_eq!(s.url(4), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-abc&ref=dev"));
+    assert_eq!(s.url(5), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-abc&ref=dev"));
 
     // Given a smoke test that fails, Then nothing is redeployed
     let s = Ship::new();
