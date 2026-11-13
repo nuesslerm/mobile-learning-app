@@ -125,6 +125,15 @@ impl Planner {
                 session_reused = false;
                 self.run_turn(&prompt, None, variant, agent.as_deref(), &model, budget).await.map_err(|e| self.failed(&key, e, budget_ms))?
             }
+            // The provider can fail a turn once and answer the next (an empty turn, a stall, a refused or dropped request): one more turn on a fresh
+            // session, after a pause, is cheaper than a 500 the speaker has to repeat. A timeout or a missing directory is not retried.
+            Err(e) if retryable(&e) => {
+                tracing::warn!(error = %e.message(), "voice_plan.turn_retried");
+                self.sessions.lock().unwrap_or_else(|e| e.into_inner()).remove(&key);
+                session_reused = false;
+                tokio::time::sleep(RETRY_PAUSE).await;
+                self.run_turn(&prompt, None, variant, agent.as_deref(), &model, budget).await.map_err(|e| self.failed(&key, e, budget_ms))?
+            }
             Err(e) => return Err(self.failed(&key, e, budget_ms)),
         };
 
@@ -171,6 +180,15 @@ impl Planner {
         }
         PlanError::new("llm_error", format!("LLM stream failed: {}", failure.message()))
     }
+}
+
+/// The pause before the retry of a turn the provider failed.
+const RETRY_PAUSE: Duration = Duration::from_millis(500);
+
+/// Whether a failed turn is worth one more try: the provider's own errors, an empty or stalled turn and the network, not the caller's time
+/// budget and not a configuration that no second turn changes.
+fn retryable(failure: &Failure) -> bool {
+    !matches!(failure, Failure::Budget { .. } | Failure::DirectoryNotVisible { .. })
 }
 
 fn fenced() -> &'static Regex {
