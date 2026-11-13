@@ -1,7 +1,7 @@
 name: Record references
 
-# Long reference-capture jobs on the VM runner: record a pinned reference server or CLI into a cassette set, or replay a recorded set against its
-# candidates and publish the diff. They queue behind CI on the one runner (label vm, one job at a time, no hosted minutes), run niced, and open no
+# Long reference-capture jobs on GitHub-hosted runners: record a pinned reference server or CLI into a cassette set, or replay a recorded set against its
+# candidates and publish the diff. They run one set at a time, niced, on a runner that never joins the tailnet (the reference's code reaches nothing of ours), and open no
 # inbound port. The grammar of the marker, the provisioning of a set's reference and the chunked job are `wf mimic trigger|provision|job` and the
 # `[provision]` block of the set's mimic.toml (docs/runbooks/record-reference-servers-on-the-vm.md): a new clone of a CLI or server is data in
 # its set, never a change here.
@@ -31,10 +31,24 @@ permissions:
   contents: read
 
 jobs:
+  wf:
+    name: Build wf
+    if: ${{ github.ref == 'refs/heads/dev' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+          fetch-depth: 1
+      - uses: ./.github/actions/build-wf
+        with:
+          upload: "true"
   plan:
     name: Read the marker
     if: ${{ github.ref == 'refs/heads/dev' }}
-    runs-on: [self-hosted, vm]
+    needs: wf
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     outputs:
       action: ${{ steps.marker.outputs.action }}
@@ -53,7 +67,14 @@ jobs:
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           run_install: false
-      - uses: ./.github/actions/install-wf
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: clis
+          path: ${{ runner.temp }}/wf-bin
+      - name: wf on PATH
+        run: |
+          chmod 755 "$RUNNER_TEMP"/wf-bin/*
+          echo "$RUNNER_TEMP/wf-bin" >> "$GITHUB_PATH"
       - name: Parse the marker
         id: marker
         env:
@@ -83,12 +104,12 @@ jobs:
     name: ${{ needs.plan.outputs.action }} ${{ matrix.name }}
     needs: plan
     if: ${{ github.ref == 'refs/heads/dev' }}
-    runs-on: [self-hosted, vm]
+    runs-on: ubuntu-24.04
     permissions:
       # write: only to delete the checkpoint artifacts of a record that finished
       actions: write
       contents: read
-    # Not a concurrency group: it would keep one waiting leg and drop the rest. The one runner runs one job at a time, in this order.
+    # Not a concurrency group: it would keep one waiting leg and drop the rest. max-parallel runs the legs one at a time, in this order.
     timeout-minutes: 240
     strategy:
       fail-fast: false
@@ -134,7 +155,14 @@ jobs:
         uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           run_install: false
-      - uses: ./.github/actions/install-wf
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: clis
+          path: ${{ runner.temp }}/wf-bin
+      - name: wf on PATH
+        run: |
+          chmod 755 "$RUNNER_TEMP"/wf-bin/*
+          echo "$RUNNER_TEMP/wf-bin" >> "$GITHUB_PATH"
       - name: Find the checkpoint of an earlier run
         id: checkpoint
         if: ${{ env.ACTION == 'record' && env.FRESH != 'true' }}
@@ -217,6 +245,7 @@ jobs:
         if: ${{ success() && env.ACTION == 'record' }}
         env:
           SECRETS_BACKEND: bitwarden
+          BWS_SERVER_URL: https://vault.bitwarden.eu
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
         run: wf mimic publish "$SET_DIR" --run "$GITHUB_RUN_ID"
       - name: Drop the checkpoints of the finished record

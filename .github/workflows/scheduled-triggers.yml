@@ -1,7 +1,7 @@
 name: Scheduled triggers
 
 # The one workflow that listens to a push for the runs a commit tag asks for. A Claude scheduled task pushes an EMPTY commit to dev whose message carries
-# a tag ([vm-state-backup], [parity], [ci-audit], ...), for the runs a schedule cannot start (GitHub starts its own `schedule` hours late, and only from main). This job is skipped
+# a tag ([vm-state-backup], [ci-audit], ...), for the runs a schedule cannot start (GitHub starts its own `schedule` hours late, and only from main). This job is skipped
 # at once (no runner) on every push that carries no tag, so the pull request lists one skipped check instead of one per workflow; on a tagged push it
 # checks that the commit changed no file and starts the workflow the tag names (each of them takes `message` and `sha` as dispatch inputs and only runs on dev).
 # deploy.yml starts only when a push changes a file, so an empty commit starts no CI run and cannot displace a waiting one.
@@ -22,7 +22,6 @@ jobs:
         contains(github.event.head_commit.message, '[ci-audit]') ||
         startsWith(github.event.head_commit.message, '[hosted-minutes ') ||
         startsWith(github.event.head_commit.message, '[hosted-tailnet]') ||
-        startsWith(github.event.head_commit.message, '[parity]') ||
         startsWith(github.event.head_commit.message, '[record ') ||
         startsWith(github.event.head_commit.message, '[replay ') ||
         contains(github.event.head_commit.message, format('{0}[record ', fromJSON('"\n"'))) ||
@@ -71,7 +70,6 @@ jobs:
             if anywhere arm64; then start hosted-minutes.yml '{"runner":"ubuntu-24.04-arm"}'; else start hosted-minutes.yml; fi
           fi
           ! atstart '[hosted-tailnet]' || start hosted-tailnet.yml
-          ! atstart '[parity]' || start parity.yml
           if online '\[record ' || online '\[replay '; then start record-references.yml; fi
           ! anywhere '[gem-sync' || start repomix-gemini-context.yml
           ! online '\[track ' || start track-contracts.yml
