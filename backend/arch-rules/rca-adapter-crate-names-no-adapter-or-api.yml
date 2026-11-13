@@ -1,0 +1,17 @@
+id: rca-adapter-crate-names-no-adapter-or-api
+language: rust
+severity: error
+message: "An adapter crate of the remote-chat-agent workspace (opencode, speech, host) implements ports of rca-service-core and names no other adapter crate and not the service crate (rca-service, its api layer); rs wires the adapters together."
+note: "Add a new infrastructure adapter crate's `files` glob here and its name to the two regexes."
+files:
+  - "**/remote-chat-agent/opencode/src/**/*.rs"
+  - "**/remote-chat-agent/speech/src/**/*.rs"
+  - "**/remote-chat-agent/host/src/**/*.rs"
+rule:
+  any:
+    - kind: use_declaration
+      regex: '^use (::)?(rca_service|remote_chat_agent_(opencode|speech|host))(::|;|\s|$)'
+    - kind: scoped_identifier
+      regex: '^(::)?(rca_service|remote_chat_agent_(opencode|speech|host))::'
+    - kind: extern_crate_declaration
+      regex: '^extern crate (rca_service|remote_chat_agent_(opencode|speech|host))\b'
