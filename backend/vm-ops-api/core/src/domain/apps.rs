@@ -105,6 +105,16 @@ pub fn replaceable_services(app: &str) -> Option<&'static [&'static str]> {
     }
 }
 
+/// The compose services a plain redeploy never recreates: brought up only when missing (`up --no-recreate`), so neither a new image tag nor a changed
+/// config replaces them. agent-shell's login and session container and its nested docker daemons hold live sessions and builds; they move on purpose,
+/// with a full recreate (`recreate=all`).
+pub fn pinned_services(app: &str) -> &'static [&'static str] {
+    match app {
+        "agent-shell" => &["agent-sessions", "agent-dind", "agent-droid"],
+        _ => &[],
+    }
+}
+
 /// The env variable names a redeploy request body may set for `app`: a per-app declaration, none for an app that does not list one.
 pub fn request_env_names(app: &str) -> &'static [&'static str] {
     match app {
@@ -133,7 +143,7 @@ pub const SMOKE_CI_PORT: u16 = 18998;
 
 /// The apps a deploy cannot smoke-test, each with why: a second copy would not be proof, or would disturb the live one.
 pub const SMOKE_EXEMPT: [(&str, &str); 2] = [
-    ("agent-shell", "deployed by hand: the pipeline must not restart the shell sessions"),
+    ("agent-shell", "its sessions and docker daemons are pinned (never recreated by a plain redeploy), and a second copy of the tools container proves nothing the image build does not"),
     ("ci-runner", "deployed by hand, and a second runner would register a second runner with the same name and take a job, so a copy is no proof"),
 ];
 
@@ -273,6 +283,14 @@ mod tests {
         assert_eq!(repo_path("orca-serve"), "clis/orca-serve");
         for app in ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "reporting-service"] {
             assert_eq!(repo_path(app), format!("backend/{app}"));
+        }
+    }
+
+    #[test]
+    fn given_the_apps_when_their_pinned_services_are_read_then_only_agent_shell_pins_its_sessions_and_its_docker_daemons() {
+        assert_eq!(pinned_services("agent-shell"), ["agent-sessions", "agent-dind", "agent-droid"]);
+        for app in KNOWN_APPS.iter().filter(|a| **a != "agent-shell") {
+            assert!(pinned_services(app).is_empty(), "{app}");
         }
     }
 

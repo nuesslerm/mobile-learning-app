@@ -1,7 +1,7 @@
 //! The `docker run` argv of every sibling that deploys: the app redeploy, the self-swap, the history append and the retire. Each
 //! script is pinned by its snapshot (`golden`).
 use crate::application::scripts::{HELPER_APPEND_ENV_LOCAL, HELPER_PROVISION, HELPER_VERIFY_ENV, IMAGE_REPO};
-use crate::domain::apps::{repo_path, replaceable_services, shared_files, smoke, SMOKE_CI_PORT, SMOKE_PORT};
+use crate::domain::apps::{pinned_services, repo_path, replaceable_services, shared_files, smoke, SMOKE_CI_PORT, SMOKE_PORT};
 use crate::domain::js;
 use crate::domain::provision_ref::raw_url;
 use serde_json::{json, Map, Value};
@@ -129,7 +129,7 @@ fn compose_pull_command(request: &AppRedeploy) -> String {
     format!("flock -s {DOCKER_LOCK} sh -c '{pull}'")
 }
 
-/// The swap: replaceable apps restart only their app service.
+/// The swap: replaceable apps restart only their app service; the pinned services are left running.
 fn compose_up_command(request: &AppRedeploy) -> String {
     let (host_dir, app) = (request.host_dir, request.app);
     let compose = format!("docker compose -f {}", request.compose_file);
@@ -139,11 +139,15 @@ fn compose_up_command(request: &AppRedeploy) -> String {
         return format!("cd {host_dir} && {compose} down ; {VOLUMES} ; {wipe}{compose} up -d");
     };
     let narrow = replaceable.join(" ");
-    let narrow_pattern = replaceable.join("|");
+    let pinned = pinned_services(app);
+    let skipped = replaceable.iter().chain(pinned).copied().collect::<Vec<_>>().join("|");
     // Creates missing sidecars and recreates any whose resolved config changed (a rotated secret in .env reaches its sidecar);
-    // an unchanged container keeps running. The replaceable service is left to the second command: one `up` that recreates it
+    // an unchanged container keeps running. The replaceable service is left to its own command at the end: one `up` that recreates it
     // followed at once by another found the old container still being removed ("removal ... is already in progress").
-    format!("{VOLUMES} ; cd {host_dir} && {compose} up -d --no-deps $({compose} config --services | grep -vxE '{narrow_pattern}') ; {compose} up -d --no-deps {narrow}")
+    let sidecars = format!("{compose} up -d --no-deps $({compose} config --services | grep -vxE '{skipped}')");
+    // The pinned services (live sessions and builds) are only created when missing, never replaced by a plain redeploy.
+    let pinned_up = if pinned.is_empty() { String::new() } else { format!(" ; {compose} up -d --no-deps --no-recreate {}", pinned.join(" ")) };
+    format!("{VOLUMES} ; cd {host_dir} && {sidecars}{pinned_up} ; {compose} up -d --no-deps {narrow}")
 }
 
 /// Runs `service` of the pulled image as a throwaway container on the spare port, in the netns of the running one, until `probe`
