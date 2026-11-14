@@ -59,7 +59,6 @@ permissions:
 env:
   WF_CI_LABEL: ${{ inputs.label }}
   npm_config_manage_package_manager_versions: "false"
-  WF_PNPM_SAVE_JOB: flow-tests
   WF_VM_CI_PORT: "8081"
   BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
   # The shared build cache lived in the Oracle tenancy, which is unreachable since 13 Nov: every layer runs cold and Cache health stays green. Remove this line when a store is back.
@@ -301,13 +300,9 @@ jobs:
         with:
           wf-source: artifact
           job: flow-tests-${{ matrix.shard }}
+          save-pnpm: ${{ matrix.shard == 1 }}
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
-      - name: Save the pnpm store
-        if: ${{ matrix.shard == 1 }}
-        continue-on-error: true
-        timeout-minutes: 15
-        run: wf cache save pnpm
       - uses: ./.github/actions/install-test-deps
         with:
           playwright: "true"
@@ -321,11 +316,20 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      - uses: ./.github/actions/nx-cache
+        with:
+          mode: restore
+          stage: flow-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       # A push that changes a crate every service builds runs everything cold (10 to 24 minutes); a pass is cached, so the next push replays it
       - name: Flow tests
         timeout-minutes: 30
         # two tasks at a time on 2 OCPUs: four cold builds at once stalled the whole VM for 20 minutes
         run: wf test run --stage flow-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
+      - uses: ./.github/actions/nx-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: flow-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       - name: Publish the flow run bundle
         if: always()
         timeout-minutes: 5
@@ -383,17 +387,29 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
-      - name: Restore the app build state
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache restore metro
+      - uses: ./.github/actions/metro-cache
+        with:
+          mode: restore
+          scope: typecheck
+          suffix: ${{ matrix.shard }}
+      - uses: ./.github/actions/nx-cache
+        with:
+          mode: restore
+          stage: typecheck-lint-unit-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       - name: Typecheck, lint and unit tests
         timeout-minutes: 20
         run: wf test run --stage typecheck-lint-unit-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
-      - name: Save the app build state
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache save metro
+      - uses: ./.github/actions/nx-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: typecheck-lint-unit-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
+      - uses: ./.github/actions/metro-cache
+        if: ${{ success() }}
+        with:
+          mode: save
+          scope: typecheck
+          suffix: ${{ matrix.shard }}
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
@@ -677,6 +693,10 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      - uses: ./.github/actions/nx-cache
+        with:
+          mode: restore
+          stage: integration-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       # Each built binary run as a black box (vm-ops-api's suite, the services') with every dependency a fake, through the Nx cache;
       # a suite writes its run record to $WF_TEST_OUTPUT_DIR/<suite>/report.json
       - name: Integration tests
@@ -684,6 +704,11 @@ jobs:
         env:
           WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
         run: wf test run --stage integration-tests --plan "$RUNNER_TEMP/plan.json" --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
+      - uses: ./.github/actions/nx-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: integration-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       - name: Publish the integration run bundles
         if: always()
         timeout-minutes: 5
@@ -748,12 +773,21 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      - uses: ./.github/actions/nx-cache
+        with:
+          mode: restore
+          stage: cli-e2e-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       # A real Chromium and ffmpeg driven through each CLI binary, network peers on loopback, with the freshly built CLIs
       - name: CLI e2e tests
         timeout-minutes: 60
         env:
           WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
         run: wf test run --stage cli-e2e-tests --plan "$RUNNER_TEMP/plan.json" --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}"
+      - uses: ./.github/actions/nx-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: cli-e2e-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
@@ -824,10 +858,10 @@ jobs:
           job: eas-update
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
-      - name: Restore the app build state
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache restore metro
+      - uses: ./.github/actions/metro-cache
+        with:
+          mode: restore
+          scope: export
       - name: Publish the EAS Update
         if: ${{ inputs.ship }}
         timeout-minutes: 20
@@ -881,11 +915,11 @@ jobs:
           EXPO_PUBLIC_DEVICE_LAB: "1"
           NX_DAEMON: "false"
         run: pnpm exec nx run mla-tamagui:export:eas --skip-nx-cache
-      - name: Save the app build state
-        if: ${{ inputs.ship }}
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache save metro
+      - uses: ./.github/actions/metro-cache
+        if: ${{ inputs.ship && success() }}
+        with:
+          mode: save
+          scope: export
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:

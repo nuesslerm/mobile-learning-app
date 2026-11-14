@@ -34,6 +34,23 @@ A Rust service that has its own Cargo workspace (`backend/<service>/Cargo.toml` 
 - A crate with a `tests/integration.rs` has a `cargo-integration` task next to `cargo-flow`, keyed like it plus `[package.metadata.integration]` (`inputs`, `uses`). It is in the weekly drift audit's target list (`TARGETS` in `clis/pipeline/src/nx_drift.rs`) with the other cached targets: a target missing there can move its hash with the checkout's path or the environment unseen, so add a new kind of cached target to that list when `tooling/nx/cargo-crates.js` starts to create it.
 - `clis/pipeline/tests/flow/nx_crates.rs` holds these keys: a fixture of three cargo workspaces under the real `nx.json`, plugins and Nx, one planted change per case through `wf test run --stage`.
 
+## CI today: the GitHub Actions cache
+
+The Oracle bucket is gone and `pipeline.yml` sets `WF_BLOB_CACHE: "off"`, so hosted CI uses `actions/cache` (pinned by SHA) until another store exists. The `wf cache` verbs and their code stay for the sandbox, for when a store is configured; the sandbox does not share this cache.
+
+| Layer | Path | Key | Restore keys | Saved when |
+|---|---|---|---|---|
+| pnpm | `pnpm store path` (a step reads it) | `pnpm-<os>-<arch>-<hash of pnpm-lock.yaml>` | `pnpm-<os>-<arch>-` | `flow-tests` shard 1, after a green install, exact key missed |
+| metro | `frontend/mla-tamagui/node_modules/.cache/app-build` (Metro's transform cache and tsc build info) | `metro-<scope>-<os>-<arch>-<YYYY-MM>-<hash of pnpm-lock.yaml, package.json, metro.config.js, babel.config.js, tsconfig.json>` | `metro-<scope>-<os>-<arch>-` | not cancelled, exact key missed (`export` scope in eas-update only on `ship`) |
+| nx | `~/.nx/*/cache` and `~/.nx/*/databases` (Nx's local cache and its index) | `nx-<stage>-<shard>of<count>-<os>-<arch>-<run_id>-<attempt>` | `nx-<stage>-<shard>of<count>-<os>-<arch>-` | not cancelled, more entries than restored, under 3 GB |
+| sccache | none | none | none | not wired |
+
+- Metro's key is per input hash, not per commit: Metro and tsc key their own entries by file content, so one entry serves every commit until an input changes, and the month in the key refreshes it once a month. A per-commit key would write a near-duplicate entry for each push into the shared quota. The `typecheck` and `export` scopes keep tsc's state and Metro's apart. The cost is that source edits do not reach the cache until the month or an input changes.
+- Nx's key is unique per run so a later run restores the newest entry of its shard prefix. A save is skipped when no task result was added (every task replayed), which stops identical copies filling the quota. Workflows only restore and save the directories; `wf` gives Nx its environment (`clis/pipeline` flow test `no_workflow_or_action_sets_the_nx_cache_environment_wf_gives_nx`). A changed shard count starts a new prefix. Each job prints the directory size before saving and refuses a save over 3 GB (`::warning::`).
+- Every restore writes one line to the job summary (layer, hit, partial with the matched restore key, or miss, and the restored size), through `.github/actions/cache-summary`.
+- Limits: the repository shares 10 GB across all caches, evicted least recently used first, and an entry unused for 7 days expires. Caches saved on `dev` are readable by runs on `dev`; `dev` is not the default branch, so `main` and pull requests do not see them and a run on `main` cannot seed `dev`.
+- sccache is still cold: it reaches Rust compiles only through the loopback shim, which needs a blob store, and none is declared. Wiring it to `actions/cache` is a later change.
+
 ## The tenancy cap and the storage guard
 
 The 20 GB Object Storage cap is the tenancy's, not the bucket's: build-cache, verification-artifacts, pnpm-cache, goldens and tfstate share it, and `always-free-quota.tf` stops writes at it. On 6 Nov it was full and every cache PUT was refused with HTTP 400 `StorageQuotaExceeded`, silently (a rejected PUT only skips the entry, so runs stayed green and cold). Two things now keep that loud and rare:

@@ -86,7 +86,6 @@ permissions:
 
 env:
   # the flow-tests job of the CI run saves the pnpm store; these jobs never repeat the pack
-  WF_PNPM_SAVE_JOB: flow-tests
   # vm-ops-api's CI port; the android lease (`wf android start-device`) is an exec-script and stays on the admin port
   WF_VM_CI_PORT: "8081"
 
@@ -181,11 +180,11 @@ jobs:
         run: |
           sudo=$([ "$(id -u)" = 0 ] || echo sudo)
           command -v ffmpeg >/dev/null || { $sudo dpkg --configure -a; $sudo apt-get update -qq && $sudo apt-get install -y -qq ffmpeg; }
-      - name: Restore the app build state
+      - uses: ./.github/actions/metro-cache
         if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache restore metro
+        with:
+          mode: restore
+          scope: export
       - name: Export the web app
         if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
         timeout-minutes: 15
@@ -222,13 +221,13 @@ jobs:
             echo "### Web export"
             jq -r '"\(if .reused then "Kept" else "Built" end) the export of inputs `\(.inputs)` (commit `\(.sha[:9])`), build \(.buildS) s, flags `\(.flags)`; baked: \(.baked | keys | join(", "))"' "$RUNNER_TEMP/export.json"
             jq -r '"Memory of the build: largest process \(.memory.peakRssMb // "-") MB, VM MemAvailable low \(.memory.vmMemAvailableMinMb // "-") MB"' "$RUNNER_TEMP/export.json"
-            echo "Metro transform cache on this runner: $(du -sm frontend/mla-tamagui/node_modules/.cache/metro 2>/dev/null | cut -f1) MB"
+            echo "Metro transform cache on this runner: $(du -sm frontend/mla-tamagui/node_modules/.cache/app-build/metro 2>/dev/null | cut -f1) MB"
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Save the app build state
-        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache save metro
+      - uses: ./.github/actions/metro-cache
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true' && success()
+        with:
+          mode: save
+          scope: export
       - name: Bring the device up
         # The device holds about 1.3 GB under test; it runs only for this job, and only when an Android test runs
         # (docs/gaps/vm-memory-saturation.md).

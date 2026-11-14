@@ -1,0 +1,64 @@
+name: Nx local cache
+description: >-
+  Restores or saves the Nx local cache of one test stage shard with actions/cache. It only moves the directories Nx keeps and sets no Nx
+  environment (the test runner provides it). Restore runs before the test stage, save after it. The saved key is unique per run so a later run restores the newest.
+inputs:
+  mode:
+    description: restore or save
+    required: true
+  stage:
+    description: The stage and shard, such as flow-tests-1of2 (a changed shard count is a different partition)
+    required: true
+  max-mb:
+    description: A save is skipped when the directories are larger than this
+    default: "3072"
+runs:
+  using: composite
+  steps:
+    - name: Restore the Nx cache
+      id: restore
+      if: ${{ inputs.mode == 'restore' }}
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: |
+          ~/.nx/*/cache
+          ~/.nx/*/databases
+        key: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-
+    - name: Note what was restored
+      if: ${{ inputs.mode == 'restore' }}
+      shell: bash
+      run: ls -1 ~/.nx/*/cache 2>/dev/null | wc -l > "$RUNNER_TEMP/nx-cache.entries" || echo 0 > "$RUNNER_TEMP/nx-cache.entries"
+    - uses: ./.github/actions/cache-summary
+      if: ${{ inputs.mode == 'restore' }}
+      with:
+        layer: nx
+        hit: ${{ steps.restore.outputs.cache-hit }}
+        matched-key: ${{ steps.restore.outputs.cache-matched-key }}
+        paths: ~/.nx/*/cache ~/.nx/*/databases
+    - name: Measure the Nx cache
+      id: measure
+      if: ${{ inputs.mode == 'save' }}
+      shell: bash
+      env:
+        MAX_MB: ${{ inputs.max-mb }}
+      run: |
+        before=$(cat "$RUNNER_TEMP/nx-cache.entries" 2>/dev/null || echo 0)
+        now=$(ls -1 ~/.nx/*/cache 2>/dev/null | wc -l)
+        mb=$(du -smc ~/.nx/*/cache ~/.nx/*/databases 2>/dev/null | tail -1 | cut -f1)
+        mb=${mb:-0}
+        save=true
+        # an unchanged entry count means every task replayed: a new copy would only churn the repository's cache quota
+        if [ "$now" -le "$before" ]; then save=false; why="no new task results ($before entries restored, $now now)"; fi
+        if [ "$mb" -gt "$MAX_MB" ]; then save=false; why="over the size limit"; echo "::warning::Nx cache is $mb MB, over $MAX_MB MB: not saved"; fi
+        echo "save=$save" >> "$GITHUB_OUTPUT"
+        echo "- **nx** ($GITHUB_JOB) before save: $mb MB, $now entries, $([ "$save" = true ] && echo saving || echo "not saving, $why")" >> "$GITHUB_STEP_SUMMARY"
+    - name: Save the Nx cache
+      if: ${{ inputs.mode == 'save' && steps.measure.outputs.save == 'true' }}
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: |
+          ~/.nx/*/cache
+          ~/.nx/*/databases
+        key: nx-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ github.run_id }}-${{ github.run_attempt }}
