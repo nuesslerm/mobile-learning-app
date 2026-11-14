@@ -34,7 +34,7 @@ permissions: {}
 env:
   WF_BLOB_CACHE: "off"
   NX_DAEMON: "false"
-  CI: "1"
+  CI: "true"
   npm_config_manage_package_manager_versions: "false"
   GH_TOKEN: ${{ github.token }}
 
