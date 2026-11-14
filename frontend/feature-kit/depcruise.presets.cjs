@@ -19,6 +19,8 @@ const options = () => ({
 
 // A resolved package path ends in `node_modules/<pkg>/…`; one the cruise could not resolve is the bare specifier.
 const pkgPath = (alternatives) => `(^|/)node_modules/(${alternatives})(/|$)|^(${alternatives})(/|$)`;
+/** `src` is a directory under the cruise cwd, or '.' when the package keeps its rings at its root. */
+const pfx = (src) => (src === '.' ? '' : `${src}/`);
 const rule = (name, comment, from, to) => ({ name, comment, severity: 'error', from, to });
 const noCircular = () => rule('no-circular', 'a cycle is an error', {}, { circular: true });
 const dirs = (names) => `(${names.join('|')})`;
@@ -143,12 +145,12 @@ function appShell({ shell = ['app', 'app-shell'], lib = 'lib' } = {}) {
 }
 
 /** Flat `src/`: relative modules and an allow-list of pure dependencies only. */
-function pure({ allow = ['zod'] } = {}) {
+function pure({ allow = ['zod'], src = 'src' } = {}) {
   return {
     forbidden: [
-      rule('pure-no-node', 'no node built-ins', { path: '^src/', pathNot: TESTS }, NODE_BUILTINS),
-      rule('pure-npm-allow-list', `only ${allow.join(', ')}`, { path: '^src/', pathNot: TESTS }, { dependencyTypes: EXTERNAL, pathNot: pkgPath(allow.map((a) => a.replace(/[/@]/g, '\\$&')).join('|')) }),
-      rule('pure-no-workspace-package', 'no workspace package', { path: '^src/', pathNot: TESTS }, { path: '^\\.\\./', pathNot: '(^|/)node_modules/' }),
+      rule('pure-no-node', 'no node built-ins', { path: `^${pfx(src)}`, pathNot: TESTS }, NODE_BUILTINS),
+      rule('pure-npm-allow-list', `only ${allow.join(', ')}`, { path: `^${pfx(src)}`, pathNot: TESTS }, { dependencyTypes: EXTERNAL, pathNot: pkgPath(allow.map((a) => a.replace(/[/@]/g, '\\$&')).join('|')) }),
+      rule('pure-no-workspace-package', 'no workspace package', { path: `^${pfx(src)}`, pathNot: TESTS }, { path: '^\\.\\./', pathNot: '(^|/)node_modules/' }),
       noCircular(),
     ],
     options: options(),
@@ -156,8 +158,8 @@ function pure({ allow = ['zod'] } = {}) {
 }
 
 /** Core, ports, adapters, testing: a library's folder names mapped to roles. */
-function hexagonal({ core = ['core'], ports = ['ports'], adapters = ['adapters'], testing = ['testing'], coreNpm = [] } = {}) {
-  const group = (names) => `^src/${dirs(names)}/`;
+function hexagonal({ core = ['core'], ports = ['ports'], adapters = ['adapters'], testing = ['testing'], coreNpm = [], src = 'src' } = {}) {
+  const group = (names) => `^${pfx(src)}${dirs(names)}/`;
   const prod = { pathNot: TESTS };
   return {
     forbidden: [
@@ -171,8 +173,8 @@ function hexagonal({ core = ['core'], ports = ['ports'], adapters = ['adapters']
         { path: `${group(core)}|${group(ports)}`, ...prod },
         { path: pkgPath('expo[^/]*|@expo|react-native|@react-native|@react-native-async-storage'), pathNot: coreNpm.length ? pkgPath(coreNpm.join('|')) : '^$' },
       ),
-      rule('library-does-not-import-the-app', 'no library imports frontend/mla-tamagui', { path: '^src/' }, { path: '(^|/)mla-tamagui/' }),
-      rule('library-imports-only-logging', 'a hexagonal library may import @lib/logging only', { path: '^src/' }, { path: '(^|/)frontend/libraries/(?!logging/)|^\\.\\./(?!logging/)[^/]+/src/' }),
+      rule('library-does-not-import-the-app', 'no library imports frontend/mla-tamagui', { path: `^${pfx(src)}` }, { path: '(^|/)mla-tamagui/' }),
+      rule('library-imports-only-logging', 'a hexagonal library may import @lib/logging only', { path: `^${pfx(src)}` }, { path: '(^|/)frontend/libraries/(?!logging/)|^\\.\\./(?!logging/)[^/]+/src/' }),
       noCircular(),
     ],
     options: options(),
@@ -180,15 +182,15 @@ function hexagonal({ core = ['core'], ports = ['ports'], adapters = ['adapters']
 }
 
 /** theme -> primitives, icons -> ui -> composites; lib is a leaf. */
-function component() {
+function component({ src = 'src' } = {}) {
   const rings = { theme: ['lib'], primitives: ['theme', 'lib'], icons: ['lib'], ui: ['theme', 'primitives', 'icons', 'lib'], composites: ['theme', 'primitives', 'icons', 'ui', 'lib'], lib: [] };
   return {
     forbidden: [
       ...Object.entries(rings).map(([ring, may]) => {
         const banned = Object.keys(rings).filter((o) => o !== ring && !may.includes(o));
-        return rule(`${ring}-imports-${may.length ? may.join('-') : 'nothing'}`, `${ring} may import ${may.join(', ') || 'no other layer'}`, { path: `^src/${ring}(/|\\.tsx?$)`, pathNot: TESTS }, { path: `^src/${dirs(banned)}(/|\\.tsx?$)` });
+        return rule(`${ring}-imports-${may.length ? may.join('-') : 'nothing'}`, `${ring} may import ${may.join(', ') || 'no other layer'}`, { path: `^${pfx(src)}${ring}(/|\\.tsx?$)`, pathNot: TESTS }, { path: `^${pfx(src)}${dirs(banned)}(/|\\.tsx?$)` });
       }),
-      rule('library-does-not-import-the-app', 'no library imports frontend/mla-tamagui', { path: '^src/' }, { path: '(^|/)mla-tamagui/' }),
+      rule('library-does-not-import-the-app', 'no library imports frontend/mla-tamagui', { path: `^${pfx(src)}` }, { path: '(^|/)mla-tamagui/' }),
       noCircular(),
     ],
     options: options(),
@@ -196,10 +198,10 @@ function component() {
 }
 
 /** A test harness is feature-agnostic: it imports no app or feature code. */
-function harness() {
+function harness({ src = 'src' } = {}) {
   return {
     forbidden: [
-      rule('harness-imports-no-app-or-feature', 'never imports app or feature code', { path: '^src/' }, { path: '(^|/)mla-tamagui/|(^|/)features/' }),
+      rule('harness-imports-no-app-or-feature', 'never imports app or feature code', { path: `^${pfx(src)}` }, { path: '(^|/)mla-tamagui/|(^|/)features/' }),
       noCircular(),
     ],
     options: options(),

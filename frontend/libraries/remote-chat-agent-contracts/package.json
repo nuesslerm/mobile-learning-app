@@ -19,7 +19,7 @@
     "build": "tsc -p tsconfig.build.json",
     "prepare": "pnpm run build",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs --ignore-known",
     "test": "vitest run",
     "test:unit": "vitest run"
   },
@@ -28,7 +28,8 @@
   },
   "devDependencies": {
     "@typescript/native": "catalog:",
-    "@types/node": "^22.0.0"
+    "@types/node": "^22.0.0",
+    "dependency-cruiser": "^17.4.3"
   },
   "peerDependencies": {
     "typescript": "catalog:",

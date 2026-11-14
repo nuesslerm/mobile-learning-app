@@ -10,7 +10,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs --ignore-known",
     "test": "vitest run",
     "test:unit": "vitest run",
     "test:watch": "vitest"
@@ -28,6 +28,7 @@
     }
   },
   "devDependencies": {
-    "@typescript/native": "catalog:"
+    "@typescript/native": "catalog:",
+    "dependency-cruiser": "^17.4.3"
   }
 }

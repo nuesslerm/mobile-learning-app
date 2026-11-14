@@ -30,7 +30,7 @@
     "build:babel": "tsc -p tsconfig.babel.json && node -e \"require('fs').writeFileSync('dist/babel/package.json','{\\\"type\\\":\\\"commonjs\\\"}\\n')\"",
     "prepare": "pnpm run build:babel",
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs --ignore-known",
     "test": "vitest run",
     "test:unit": "vitest run --exclude 'tests/e2e/**' --exclude 'tests/integration/**' --exclude '**/*.integration.test.*' --exclude '**/*.e2e.test.*'",
     "test:integration": "vitest run tests/integration"
@@ -72,7 +72,8 @@
     "@types/babel__core": "^7.20.5",
     "@types/node": "^22.13.1",
     "loglayer": "^9.2.0",
-    "oxlint": "catalog:"
+    "oxlint": "catalog:",
+    "dependency-cruiser": "^17.4.3"
   },
   "engines": {
     "node": ">=18.0.0"
