@@ -5,7 +5,7 @@
 //! unsupported. Verbs: `check`, `ship`, `offload` (`run`, `ask`, `plan` and `worker` only say they are gone). Devices: `android`, `browser`. Nouns: `vm`, `secret`, `repo`, `cache`, `lib`, `t3`, `exec`, `mimic`, `parity`, `ci`.
 //! `t3`, `exec` and `mimic` run separate binaries (`external`), and so does `help` for them.
 use crate::{external, log_emit};
-use pipeline::{dead_refs, e2e_run, export_site, test_results, visual};
+use pipeline::{arch_rules, dead_refs, e2e_run, export_site, test_results, visual};
 use wf_kit::args::{parse_spec, probe, Positional, Spec};
 use pipeline::verify;
 
@@ -82,13 +82,16 @@ fn check(rest: &[String]) -> Option<i32> {
             return Some(dead_refs::run(&wf_kit::root::repo_root(), !left.is_empty()));
         }
     }
+    if rest == ["--arch"] {
+        return Some(arch_rules::run(&wf_kit::root::repo_root()));
+    }
     let args = without(rest, "--deployed").unwrap_or_else(|| rest.to_vec());
     // The mode is the one whose option is on the line, wherever it stands.
     let modes = probe(&args, &[&verify::STAGED, &pipeline::pushed::PUSHED, &deploy::verify_tier3::DRY_RUN, &verify::BUDGET, &deploy::verify_tier3::SPEC])?;
     if modes.flag("pushed") {
         pipeline::pushed::run(&args)
     } else if modes.flag("staged") {
-        verify::staged(&args, dead_refs::gate)
+        verify::staged(&args, |root| dead_refs::gate(root).or_else(|| arch_rules::gate(root)))
     } else if modes.flag("dry-run") {
         deploy::verify_tier3::dry_run(&args)
     } else if modes.flag("budget") || modes.flag("blast-radius") || modes.flag("unused-deps") || modes.flag("workspace-crossings") || modes.flag("ts-packages") || modes.flag("cargo-inputs") {

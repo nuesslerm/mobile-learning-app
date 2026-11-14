@@ -11,6 +11,7 @@ mod ci_live;
 mod ci_preflight;
 mod ci_tidy;
 mod ci_insights;
+pub mod arch_rules;
 pub mod blast_radius;
 pub mod cargo_deps;
 pub mod cargo_inputs;

@@ -72,4 +72,8 @@ Options:
                      Lua device:<method> or pnpm script that no longer exists
                      (goals: their verbs and methods; with --staged: as the
                      index holds it, what a commit would record)
+  --arch             fail when an architecture baseline or ast-grep ignores
+                     list grew past `git merge-base HEAD origin/dev` or names a
+                     wildcard path, or an ast-grep rule has no test with a
+                     valid and an invalid case (also run by --staged)
   -h, --help         display help for command
