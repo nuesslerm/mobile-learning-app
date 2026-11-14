@@ -26,7 +26,8 @@ pre-commit:
     - name: verify
       # ESLint per owning package, simplicity budget, wf bundle freshness, affected typecheck/test:unit/test:flow (use-cases/verify/gate.ts).
       # 8GB heap: type-aware linting of a huge staged set OOMs at Node's default; it is a limit, not a reservation.
-      run: NODE_OPTIONS=--max-old-space-size=8192 wf check --staged
+      # Through the lazy launcher: it builds the `wf` of the checked-out tree (cargo's own freshness), so the gate is never an older build on PATH.
+      run: NODE_OPTIONS=--max-old-space-size=8192 cargo run -q --locked --manifest-path clis/Cargo.toml -p wf-lazy -- check --staged
 
     - name: secrets
       # Registry drift and a scope on every key (the secrets flow tests `secrets::registry_scope_...`), plus guard coverage and no vault key in .env.defaults (the secrets flow test `secrets::the_value_revealing_subcommands_...`); each half runs only when its own files are staged.

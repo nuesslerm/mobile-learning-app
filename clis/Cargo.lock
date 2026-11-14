@@ -3994,6 +3994,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "wf-lazy"
+version = "0.1.0"
+dependencies = [
+ "tempfile",
+]
+
+[[package]]
 name = "wf-lib"
 version = "0.1.0"
 dependencies = [
