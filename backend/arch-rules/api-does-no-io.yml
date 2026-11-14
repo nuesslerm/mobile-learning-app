@@ -1,0 +1,14 @@
+id: api-does-no-io
+language: rust
+severity: error
+message: The api layer does no file, socket, process or environment access beyond serving HTTP; it calls application ports.
+files:
+  - "**/src/api/**/*.rs"
+ignores:
+  # The listener is bound where the server starts.
+  - "**/vm-ops-api/rs/src/api/serve.rs"
+  # Two handlers read the process's own directories; each moves behind a port with the rca settings unit.
+  - "**/remote-chat-agent/rs/src/api/routes/voice.rs"
+  - "**/remote-chat-agent/rs/src/api/ws/methods.rs"
+rule:
+  matches: does-system-io
