@@ -30,13 +30,13 @@ pre-commit:
 
     - name: secrets
       # Registry drift and a scope on every key (the secrets flow tests `secrets::registry_scope_...`), plus guard coverage and no vault key in .env.defaults (the secrets flow test `secrets::the_value_revealing_subcommands_...`); each half runs only when its own files are staged.
-      glob: '{clis/secrets/src/data/registry.json,libraries/hook-runtime/src/deny.json,scripts/guards/block-secret-exposure.mjs,**/.env.defaults,.env.defaults}'
+      glob: '{clis/secrets/src/data/registry.json,libraries/hook-runtime/src/deny.json,libraries/hook-runtime/src/guards/block-secret-exposure.mjs,**/.env.defaults,.env.defaults}'
       run: >-
         staged="$(printf '%s\n' {staged_files})" &&
         { ! printf '%s\n' "$staged" | grep -qx 'clis/secrets/src/data/registry.json' ||
           { wf secret doctor --backend bitwarden --if-available &&
             WF_BIN="$(command -v wf)" cargo test --manifest-path clis/Cargo.toml -p secrets --test flow secrets::registry_scope; }; } &&
-        { ! printf '%s\n' "$staged" | grep -qxE 'libraries/hook-runtime/src/deny\.json|scripts/guards/block-secret-exposure\.mjs|(.*/)?\.env\.defaults' ||
+        { ! printf '%s\n' "$staged" | grep -qxE 'libraries/hook-runtime/src/deny\.json|libraries/hook-runtime/src/guards/block-secret-exposure\.mjs|(.*/)?\.env\.defaults' ||
           WF_BIN="$(command -v wf)" cargo test --manifest-path clis/Cargo.toml -p secrets --test flow secrets::the_value_revealing; }
 
     - name: service-architecture

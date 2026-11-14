@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, describe, expect, it } from 'vitest';
 
-const SCRIPT = fileURLToPath(new URL('./block-raw-playwright.mjs', import.meta.url));
+const SCRIPT = fileURLToPath(new URL('../../src/guards/block-raw-playwright.mjs', import.meta.url));
 const dir = mkdtempSync(join(tmpdir(), 'raw-pw-guard-'));
 const PKG = ['play', 'wright'].join('');
 writeFileSync(join(dir, 'shot.cjs'), `const { chromium } = require('/repo/node_modules/.pnpm/${PKG}@1.62.1/node_modules/${PKG}');\n`);

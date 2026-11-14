@@ -43,7 +43,7 @@ if (RAW_PLAYWRIGHT_RE.test(command)) {
 }
 
 // Second path: a referenced script file, not the inline command itself.
-// Skips scripts/guards/ -- this file (and any sibling guard script) legitimately
+// Skips libraries/hook-runtime/src/guards/ -- this file (and any sibling guard script) legitimately
 // names these patterns as regex source text, not usage, and would otherwise
 // false-positive on itself the moment a command references its own path.
 // Script paths are often written through a shell variable assigned earlier in
@@ -67,7 +67,7 @@ const FILE_TOKEN_RE = /(?:^|[\s'"])([^\s'"]+\.(?:m?js|cjs|ts))(?=[\s'"]|$)/g;
 let match;
 while ((match = FILE_TOKEN_RE.exec(scanned)) !== null) {
   const candidate = expandVars(match[1]);
-  if (candidate.includes('scripts/guards/')) continue;
+  if (candidate.includes('libraries/hook-runtime/src/guards/')) continue;
   // Fail closed: a script path the guard cannot resolve is one it cannot read.
   if (/\$\{?[A-Za-z_]/.test(candidate)) process.exit(0);
   const resolved = candidate.startsWith('/') ? candidate : resolve(process.cwd(), candidate);

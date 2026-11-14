@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
-const SCRIPT = fileURLToPath(new URL('./block-secret-exposure.mjs', import.meta.url));
+const SCRIPT = fileURLToPath(new URL('../../src/guards/block-secret-exposure.mjs', import.meta.url));
 
 function fires(guardCommand) {
   try {

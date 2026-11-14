@@ -652,7 +652,7 @@ fn read(rel: &str) -> String {
 fn the_value_revealing_subcommands_are_refused_to_agents_by_both_guards_and_no_default_file_holds_a_vault_key() {
     // Given the subcommands that print a real secret value: get and env (list is masked, sync-env redacts by default)
     // When the exposure guard script's list is read
-    let source = read("scripts/guards/block-secret-exposure.mjs");
+    let source = read("libraries/hook-runtime/src/guards/block-secret-exposure.mjs");
     let list = Regex::new(r"WF_SECRETS_VALUE_REVEALING_SUBCOMMANDS\s*=\s*\[([^\]]*)\]").unwrap().captures(&source).map(|c| c[1].to_string()).unwrap_or_default();
     let mut scripted: Vec<String> = Regex::new(r"'([^']+)'").unwrap().captures_iter(&list).map(|m| m[1].to_string()).collect();
     scripted.sort();
@@ -660,7 +660,7 @@ fn the_value_revealing_subcommands_are_refused_to_agents_by_both_guards_and_no_d
     assert_eq!(scripted, VALUE_REVEALING_SUBCOMMANDS.map(String::from));
 
     // When the guard judges each redirected to a file, and each discarded beside an unrelated dump
-    let blocks = |command: &str| Command::new("node").arg(repo_root().join("scripts/guards/block-secret-exposure.mjs")).env("GUARD_COMMAND", command).status().unwrap().success();
+    let blocks = |command: &str| Command::new("node").arg(repo_root().join("libraries/hook-runtime/src/guards/block-secret-exposure.mjs")).env("GUARD_COMMAND", command).status().unwrap().success();
     for subcommand in VALUE_REVEALING_SUBCOMMANDS {
         // Then only the redirect is blocked
         assert_eq!((blocks(&format!("wf secret {subcommand} KEY > /tmp/leak.txt")), blocks(&format!("wf secret {subcommand} KEY >/dev/null; head -c 40 README.md"))), (true, false), "{subcommand}");

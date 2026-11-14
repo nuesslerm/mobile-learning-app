@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PostToolUse hook, the `mask-reads` token-diet lever.
 //
-// The shipped `scripts/hooks/mask-large-output.mjs` only APPENDS a one-line
+// The shipped `libraries/hook-runtime/src/hooks/mask-large-output.mjs` only APPENDS a one-line
 // pointer after a big Bash result; the full result still enters context and is
 // re-read on every later call (the 81% cache-read share in the token map). This
 // variant uses `updatedToolOutput`, which REPLACES what the model sees, so a big
