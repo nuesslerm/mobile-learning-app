@@ -93,13 +93,7 @@
   },
   "allowed_edges": {},
   "allowed_unused": {
-    "leetcode-auth-cookie-capture-rs -> leetcode-auth-cookie-capture-core": "declared but named by no source of the crate when the check went repo-wide; remove the dependency with its owner's change, which then removes this entry",
-    "rca-service -> exec-preview": "declared but named by no source of the crate when the check went repo-wide; remove the dependency with its owner's change, which then removes this entry",
-    "rca-service -> rca-group-preview": "declared but named by no source of the crate when the check went repo-wide; remove the dependency with its owner's change, which then removes this entry",
-    "rca-service -> rca-group-workspace": "declared but named by no source of the crate when the check went repo-wide; remove the dependency with its owner's change, which then removes this entry",
-    "rca-service-core -> exec-fs": "declared but named by no source of the crate when the check went repo-wide; remove the dependency with its owner's change, which then removes this entry",
-    "rca-service-core -> exec-proto": "declared but named by no source of the crate when the check went repo-wide; remove the dependency with its owner's change, which then removes this entry",
-    "rca-service-core -> exec-pty": "declared but named by no source of the crate when the check went repo-wide; remove the dependency with its owner's change, which then removes this entry",
-    "reporting-service-rs -> reporting-service-core": "declared but named by no source of the crate when the check went repo-wide; remove the dependency with its owner's change, which then removes this entry"
+    "leetcode-auth-cookie-capture-rs -> leetcode-auth-cookie-capture-core": "false positive: the crate is used under its renamed library name, which the check does not resolve; fix the check to read the library name, then this entry goes",
+    "reporting-service-rs -> reporting-service-core": "false positive: the crate is used under its renamed library name, which the check does not resolve; fix the check to read the library name, then this entry goes"
   }
 }
