@@ -1,21 +1,21 @@
 {
-  "version": "0.1.6",
+  "version": "0.1.9",
   "conformedStable": "0.1.6",
-  "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e",
+  "commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76",
   "protocol": 2,
   "databaseMigration": 76,
-  "release": "https://github.com/pingdotgg/t3code/releases/download/v0.1.6",
+  "release": "https://github.com/pingdotgg/t3code/releases/download/v0.1.9",
   "platforms": {
     "linux-x64": {
-      "bytes": 123152548,
-      "sha256": "7cf31da90dee41f524dd5b679ebb6d404637ca5d9dc6fd8bc019511d57bb77e6"
+      "bytes": 149119656,
+      "sha256": "0141025335da334759cecd8db3483e09772f3600ca03674698524e7d94291362"
     },
     "linux-arm64": {
-      "bytes": 118909565,
-      "sha256": "b708f059200776f50623a766854841e40eda0bb67614211cf8b6909295ce20da"
+      "bytes": 140086303,
+      "sha256": "52023bc5728a4dee4de361ad6fef7c236f1efb2742ff25e29d5c55e2fb662eea"
     }
   },
   "npm": {
-    "integrity": "sha512-Gxiu4vniyTDKcXlyzA8yRQ7/xDB7DXork97rFbX66NXH7NGV8NJPBZi0/+tEMS8KmkUK4rVmPH9zMFKiWe30mg=="
+    "integrity": "sha512-kcSIUmdrRmmDYy2LSdiYDUnz2/BjpyzJiBEAQjH3vfR6tCKBGSMst5Q5Ds/F7CYzSc/5eLdAoXt/6NMYWuZKMA=="
   }
 }

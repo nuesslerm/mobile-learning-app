@@ -1,0 +1,15 @@
+{
+ "schema": "mimic-stability-allowlist/1",
+ "entries": [
+  {
+   "id": "orca-accounts.list-invalid-drop-refreshUsage",
+   "cause": "volatile",
+   "reason": "the rate-limit snapshot carries an updatedAt that moves between two records of the live orcad; the per-provider keys are masked only for the valid case"
+  },
+  {
+   "id": "orca-diagnostics.memory-invalid-no-payload",
+   "cause": "volatile",
+   "reason": "the memory report carries collectedAt, host memory figures and an app history whose length grows with each call"
+  }
+ ]
+}

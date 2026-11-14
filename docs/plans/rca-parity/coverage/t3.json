@@ -4,24 +4,29 @@
   "generatedBy": "wf parity coverage --app t3",
   "pin": {
     "file": "tooling/t3-conformance/t3-pin.json",
-    "version": "0.1.6",
-    "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e"
+    "version": "0.1.9",
+    "commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76"
   },
   "summary": {
-    "rows": 205,
+    "rows": 222,
     "served": 169,
-    "pending": 0,
+    "pending": 17,
     "notOffered": 36,
     "excluded": 0,
     "flagged": 0,
     "answeredByMapper": 0,
     "byKind": {
       "command": 40,
-      "http": 13,
+      "http": 23,
       "mutation": 3,
-      "rpc": 149
+      "rpc": 156
     },
-    "pendingByMilestone": {}
+    "pendingByMilestone": {
+      "M4": 4,
+      "M9": 2,
+      "M10": 1,
+      "M12": 10
+    }
   },
   "rows": [
     {
@@ -874,6 +879,76 @@
       }
     },
     {
+      "id": "http:voice.cancelModelDownload",
+      "kind": "http",
+      "name": "voice.cancelModelDownload",
+      "state": "pending",
+      "milestone": "M12"
+    },
+    {
+      "id": "http:voice.cloudKeys",
+      "kind": "http",
+      "name": "voice.cloudKeys",
+      "state": "pending",
+      "milestone": "M12"
+    },
+    {
+      "id": "http:voice.cloudModels",
+      "kind": "http",
+      "name": "voice.cloudModels",
+      "state": "pending",
+      "milestone": "M12"
+    },
+    {
+      "id": "http:voice.downloadModel",
+      "kind": "http",
+      "name": "voice.downloadModel",
+      "state": "pending",
+      "milestone": "M12"
+    },
+    {
+      "id": "http:voice.models",
+      "kind": "http",
+      "name": "voice.models",
+      "state": "pending",
+      "milestone": "M12"
+    },
+    {
+      "id": "http:voice.selectModel",
+      "kind": "http",
+      "name": "voice.selectModel",
+      "state": "pending",
+      "milestone": "M12"
+    },
+    {
+      "id": "http:voice.setCloudKey",
+      "kind": "http",
+      "name": "voice.setCloudKey",
+      "state": "pending",
+      "milestone": "M12"
+    },
+    {
+      "id": "http:voice.status",
+      "kind": "http",
+      "name": "voice.status",
+      "state": "pending",
+      "milestone": "M12"
+    },
+    {
+      "id": "http:voice.transcribe",
+      "kind": "http",
+      "name": "voice.transcribe",
+      "state": "pending",
+      "milestone": "M12"
+    },
+    {
+      "id": "http:voice.transcribeCloud",
+      "kind": "http",
+      "name": "voice.transcribeCloud",
+      "state": "pending",
+      "milestone": "M12"
+    },
+    {
       "id": "mutation:project.create",
       "kind": "mutation",
       "name": "project.create",
@@ -1232,6 +1307,13 @@
       }
     },
     {
+      "id": "rpc:orchestration.getNativeChildWork",
+      "kind": "rpc",
+      "name": "orchestration.getNativeChildWork",
+      "state": "pending",
+      "milestone": "M4"
+    },
+    {
       "id": "rpc:orchestration.getOlderSettledThreads",
       "kind": "rpc",
       "name": "orchestration.getOlderSettledThreads",
@@ -1258,6 +1340,13 @@
       }
     },
     {
+      "id": "rpc:orchestration.getThreadLinkMetadata",
+      "kind": "rpc",
+      "name": "orchestration.getThreadLinkMetadata",
+      "state": "pending",
+      "milestone": "M4"
+    },
+    {
       "id": "rpc:orchestration.getThreadProjection",
       "kind": "rpc",
       "name": "orchestration.getThreadProjection",
@@ -1269,6 +1358,13 @@
         "agent": [],
         "executor": []
       }
+    },
+    {
+      "id": "rpc:orchestration.getThreadTitles",
+      "kind": "rpc",
+      "name": "orchestration.getThreadTitles",
+      "state": "pending",
+      "milestone": "M4"
     },
     {
       "id": "rpc:orchestration.getTurnDiff",
@@ -1367,6 +1463,14 @@
         "agent": [],
         "executor": []
       }
+    },
+    {
+      "id": "rpc:orchestration.subscribePromptSuggestion",
+      "kind": "rpc",
+      "name": "orchestration.subscribePromptSuggestion",
+      "subscription": true,
+      "state": "pending",
+      "milestone": "M4"
     },
     {
       "id": "rpc:orchestration.subscribeShell",
@@ -1698,6 +1802,13 @@
         "agent": [],
         "executor": []
       }
+    },
+    {
+      "id": "rpc:provider.auth.removeMethod",
+      "kind": "rpc",
+      "name": "provider.auth.removeMethod",
+      "state": "pending",
+      "milestone": "M10"
     },
     {
       "id": "rpc:provider.auth.respond",
@@ -2754,6 +2865,14 @@
       }
     },
     {
+      "id": "rpc:subscribeVcsBranch",
+      "kind": "rpc",
+      "name": "subscribeVcsBranch",
+      "subscription": true,
+      "state": "pending",
+      "milestone": "M9"
+    },
+    {
       "id": "rpc:subscribeVcsStatus",
       "kind": "rpc",
       "name": "subscribeVcsStatus",
@@ -2959,6 +3078,13 @@
         "agent": [],
         "executor": []
       }
+    },
+    {
+      "id": "rpc:vcs.refreshBranch",
+      "kind": "rpc",
+      "name": "vcs.refreshBranch",
+      "state": "pending",
+      "milestone": "M9"
     },
     {
       "id": "rpc:vcs.refreshStatus",

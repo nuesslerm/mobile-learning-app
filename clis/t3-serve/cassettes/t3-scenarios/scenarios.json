@@ -3,10 +3,10 @@
  "app": "t3",
  "source": "clis/t3-serve/cassettes/t3-api",
  "counts": {
-  "endpoints": 304,
-  "scenarios": 140,
-  "populated": 138,
-  "emptyOnly": 166
+  "endpoints": 331,
+  "scenarios": 144,
+  "populated": 142,
+  "emptyOnly": 189
  },
  "scenarios": [
   {
@@ -332,6 +332,13 @@
    ]
   },
   {
+   "id": "t3-scn-command-thread.tag.set",
+   "kind": "derived",
+   "rows": [
+    "command:thread.tag.set"
+   ]
+  },
+  {
    "id": "t3-scn-command-thread.title.regeneration.complete",
    "kind": "derived",
    "rows": [
@@ -500,6 +507,13 @@
    ]
   },
   {
+   "id": "t3-scn-rpc-orchestration.getNativeChildWork",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.getNativeChildWork"
+   ]
+  },
+  {
    "id": "t3-scn-rpc-orchestration.getThreadFamily",
    "kind": "derived",
    "rows": [
@@ -560,6 +574,13 @@
    "kind": "derived",
    "rows": [
     "rpc:orchestration.subscribeCommandOutput"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-orchestration.subscribePromptSuggestion",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.subscribePromptSuggestion"
    ]
   },
   {
@@ -766,13 +787,6 @@
    ]
   },
   {
-   "id": "t3-scn-rpc-pullRequests.reviewerCandidates",
-   "kind": "derived",
-   "rows": [
-    "rpc:pullRequests.reviewerCandidates"
-   ]
-  },
-  {
    "id": "t3-scn-rpc-pullRequests.reviewGuide",
    "kind": "derived",
    "rows": [
@@ -906,6 +920,13 @@
    ]
   },
   {
+   "id": "t3-scn-rpc-subscribeVcsBranch",
+   "kind": "derived",
+   "rows": [
+    "rpc:subscribeVcsBranch"
+   ]
+  },
+  {
    "id": "t3-scn-rpc-subscribeWorktreeSetup",
    "kind": "derived",
    "rows": [
@@ -945,6 +966,13 @@
    "kind": "derived",
    "rows": [
     "rpc:vcs.pull"
+   ]
+  },
+  {
+   "id": "t3-scn-rpc-vcs.refreshBranch",
+   "kind": "derived",
+   "rows": [
+    "rpc:vcs.refreshBranch"
    ]
   },
   {
@@ -1348,6 +1376,13 @@
    ]
   },
   {
+   "row": "command:thread.tag.set",
+   "state": "populated",
+   "via": [
+    "t3-scn-command-thread.tag.set"
+   ]
+  },
+  {
    "row": "command:thread.title.regeneration.complete",
    "state": "populated",
    "via": [
@@ -1598,6 +1633,102 @@
   },
   {
    "row": "http:pullRequests.diff",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.cancelModelDownload",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.cloudKeys",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.cloudModels",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.downloadModel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.linkModels",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.models",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.postProcess",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.prepareModel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.removeModel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.selectModel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.setCloudKey",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.status",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.transcribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.transcribeCloud",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.updateAcceleration",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: an http route names no entity"
+  },
+  {
+   "row": "http:voice.updateModelUnloadTimeout",
    "state": "empty-only",
    "via": [],
    "reason": "stateless: an http route names no entity"
@@ -1856,6 +1987,13 @@
    ]
   },
   {
+   "row": "rpc:orchestration.getNativeChildWork",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.getNativeChildWork"
+   ]
+  },
+  {
    "row": "rpc:orchestration.getOlderSettledThreads",
    "state": "empty-only",
    "via": [],
@@ -1869,6 +2007,12 @@
    ]
   },
   {
+   "row": "rpc:orchestration.getThreadLinkMetadata",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
    "row": "rpc:orchestration.getThreadProjection",
    "state": "populated",
    "via": [
@@ -1876,6 +2020,12 @@
     "t3-story-thread-lifecycle",
     "t3-story-turn-and-history"
    ]
+  },
+  {
+   "row": "rpc:orchestration.getThreadTitles",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
   },
   {
    "row": "rpc:orchestration.getTurnDiff",
@@ -1942,6 +2092,13 @@
    "state": "populated",
    "via": [
     "t3-scn-rpc-orchestration.subscribeCommandOutput"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.subscribePromptSuggestion",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-orchestration.subscribePromptSuggestion"
    ]
   },
   {
@@ -2149,6 +2306,12 @@
    "reason": "stateless: names no stored entity, the empty-state answer is the answer"
   },
   {
+   "row": "rpc:provider.auth.removeMethod",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
    "row": "rpc:provider.auth.respond",
    "state": "empty-only",
    "via": [],
@@ -2341,10 +2504,9 @@
   },
   {
    "row": "rpc:pullRequests.reviewerCandidates",
-   "state": "populated",
-   "via": [
-    "t3-scn-rpc-pullRequests.reviewerCandidates"
-   ]
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
   },
   {
    "row": "rpc:pullRequests.reviewGuide",
@@ -2639,6 +2801,12 @@
    ]
   },
   {
+   "row": "rpc:server.listTextGeneratorModels",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
    "row": "rpc:server.logoutAcpRegistry",
    "state": "empty-only",
    "via": [],
@@ -2658,6 +2826,12 @@
   },
   {
    "row": "rpc:server.probe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:server.reclaimDatabaseSpace",
    "state": "empty-only",
    "via": [],
    "reason": "stateless: names no stored entity, the empty-state answer is the answer"
@@ -2804,6 +2978,12 @@
    "reason": "stateless: names no stored entity, the empty-state answer is the answer"
   },
   {
+   "row": "rpc:sourceControl.star",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
    "row": "rpc:sourceControl.starred",
    "state": "empty-only",
    "via": [],
@@ -2862,6 +3042,13 @@
    "state": "empty-only",
    "via": [],
    "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:subscribeVcsBranch",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-subscribeVcsBranch"
+   ]
   },
   {
    "row": "rpc:subscribeVcsStatus",
@@ -2951,6 +3138,13 @@
    "state": "populated",
    "via": [
     "t3-scn-rpc-vcs.pull"
+   ]
+  },
+  {
+   "row": "rpc:vcs.refreshBranch",
+   "state": "populated",
+   "via": [
+    "t3-scn-rpc-vcs.refreshBranch"
    ]
   },
   {

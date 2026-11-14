@@ -47,6 +47,27 @@
       }
     },
     {
+      "row": "rpc:accounts.antigravityChatAuthApply",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:accounts.antigravityChatAuthGet",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
       "row": "rpc:accounts.antigravityChatSignInCancel",
       "status": "case",
       "input": "schema",
@@ -206,8 +227,9 @@
       "row": "rpc:accounts.list",
       "status": "case",
       "input": "schema",
-      "cases": 4,
+      "cases": 5,
       "classes": {
+        "boundary": 1,
         "invalid": 3,
         "valid": 1
       }
@@ -425,6 +447,26 @@
       }
     },
     {
+      "row": "rpc:agentActivity.clear",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:agentActivity.setRead",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:agentHooks.prepareCodexForWslPane",
       "status": "case",
       "input": "schema",
@@ -433,6 +475,17 @@
         "boundary": 1,
         "invalid": 3,
         "valid": 1
+      }
+    },
+    {
+      "row": "rpc:agentSession.accountUsage",
+      "status": "case",
+      "input": "empty",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 3
       }
     },
     {
@@ -859,6 +912,17 @@
       }
     },
     {
+      "row": "rpc:agentSession.sendRecorded",
+      "status": "case",
+      "input": "empty",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 3
+      }
+    },
+    {
       "row": "rpc:agentSession.setOption",
       "status": "case",
       "input": "empty",
@@ -1032,6 +1096,17 @@
       }
     },
     {
+      "row": "rpc:aiVault.prepareSessionHandoff",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:aiVault.prepareSessionResume",
       "status": "case",
       "input": "schema",
@@ -1165,9 +1240,9 @@
       "row": "rpc:automation.create",
       "status": "case",
       "input": "empty",
-      "cases": 5,
+      "cases": 6,
       "classes": {
-        "boundary": 1,
+        "boundary": 2,
         "empty": 1,
         "invalid": 3
       }
@@ -1332,6 +1407,17 @@
       }
     },
     {
+      "row": "rpc:browser.clientHost.commandResultChunk",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:browser.clientHost.fileChannel.abort",
       "status": "case",
       "input": "schema",
@@ -1366,6 +1452,28 @@
     },
     {
       "row": "rpc:browser.clientHost.pageMetadata",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:browser.clientHost.requestResult",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:browser.clientPage.initializationAction",
       "status": "case",
       "input": "schema",
       "cases": 5,
@@ -1516,6 +1624,28 @@
         "boundary": 1,
         "invalid": 3,
         "valid": 1
+      }
+    },
+    {
+      "row": "rpc:browser.extensionList",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:browser.extensionReload",
+      "status": "case",
+      "input": "empty",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 2
       }
     },
     {
@@ -1891,6 +2021,17 @@
       "reason": "streaming method: the script op carries request and response only"
     },
     {
+      "row": "rpc:browser.screencast.ack",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:browser.screencast.unsubscribe",
       "status": "case",
       "input": "schema",
@@ -1903,12 +2044,11 @@
     {
       "row": "rpc:browser.screenshot",
       "status": "case",
-      "input": "schema",
-      "cases": 4,
+      "input": "empty",
+      "cases": 2,
       "classes": {
-        "boundary": 1,
-        "invalid": 2,
-        "valid": 1
+        "empty": 1,
+        "invalid": 1
       }
     },
     {
@@ -2013,12 +2153,11 @@
     {
       "row": "rpc:browser.snapshot",
       "status": "case",
-      "input": "schema",
-      "cases": 4,
+      "input": "empty",
+      "cases": 2,
       "classes": {
-        "boundary": 1,
-        "invalid": 2,
-        "valid": 1
+        "empty": 1,
+        "invalid": 1
       }
     },
     {
@@ -2084,6 +2223,17 @@
       "classes": {
         "boundary": 1,
         "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:browser.tabAnnotations",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
         "valid": 1
       }
     },
@@ -2760,6 +2910,16 @@
       }
     },
     {
+      "row": "rpc:environment.doctor",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:files.browseServerDir",
       "status": "case",
       "input": "schema",
@@ -2826,6 +2986,17 @@
     },
     {
       "row": "rpc:files.delete",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:files.formatText",
       "status": "case",
       "input": "schema",
       "cases": 6,
@@ -2985,6 +3156,17 @@
       }
     },
     {
+      "row": "rpc:files.readTerminalArtifactChunk",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:files.readTerminalArtifactPreview",
       "status": "case",
       "input": "schema",
@@ -3104,6 +3286,16 @@
       }
     },
     {
+      "row": "rpc:files.statTerminalArtifact",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:files.unwatch",
       "status": "case",
       "input": "schema",
@@ -3176,9 +3368,9 @@
       "row": "rpc:folderWorkspace.create",
       "status": "case",
       "input": "schema",
-      "cases": 5,
+      "cases": 6,
       "classes": {
-        "boundary": 1,
+        "boundary": 2,
         "invalid": 3,
         "valid": 1
       }
@@ -3187,8 +3379,9 @@
       "row": "rpc:folderWorkspace.delete",
       "status": "case",
       "input": "schema",
-      "cases": 4,
+      "cases": 5,
       "classes": {
+        "boundary": 1,
         "invalid": 3,
         "valid": 1
       }
@@ -3236,6 +3429,16 @@
     },
     {
       "row": "rpc:git.abortRebase",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:git.atRiskLocalFiles",
       "status": "case",
       "input": "schema",
       "cases": 4,
@@ -3334,10 +3537,21 @@
       "row": "rpc:git.checkout",
       "status": "case",
       "input": "schema",
-      "cases": 4,
+      "cases": 5,
       "classes": {
+        "boundary": 1,
         "invalid": 3,
         "valid": 1
+      }
+    },
+    {
+      "row": "rpc:git.cherryPick",
+      "status": "case",
+      "input": "empty",
+      "cases": 4,
+      "classes": {
+        "empty": 1,
+        "invalid": 3
       }
     },
     {
@@ -3389,6 +3603,16 @@
       "classes": {
         "invalid": 3,
         "valid": 1
+      }
+    },
+    {
+      "row": "rpc:git.createBranch",
+      "status": "case",
+      "input": "empty",
+      "cases": 4,
+      "classes": {
+        "empty": 1,
+        "invalid": 3
       }
     },
     {
@@ -3541,6 +3765,17 @@
       }
     },
     {
+      "row": "rpc:git.refs",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:git.remoteCommitUrl",
       "status": "case",
       "input": "empty",
@@ -3563,6 +3798,36 @@
     },
     {
       "row": "rpc:git.resolveConflict",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:git.revert",
+      "status": "case",
+      "input": "empty",
+      "cases": 4,
+      "classes": {
+        "empty": 1,
+        "invalid": 3
+      }
+    },
+    {
+      "row": "rpc:git.sequencerAbort",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:git.sequencerContinue",
       "status": "case",
       "input": "schema",
       "cases": 4,
@@ -3599,6 +3864,16 @@
       "cases": 5,
       "classes": {
         "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:git.switchBranch",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
         "invalid": 3,
         "valid": 1
       }
@@ -4152,6 +4427,17 @@
     },
     {
       "row": "rpc:github.updatePRTitle",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:github.uploadAttachment",
       "status": "case",
       "input": "schema",
       "cases": 6,
@@ -5552,12 +5838,34 @@
       }
     },
     {
+      "row": "rpc:mobileWeb.bundle.brotliRange",
+      "status": "case",
+      "input": "empty",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 3
+      }
+    },
+    {
       "row": "rpc:mobileWeb.bundle.chunk",
       "status": "case",
       "input": "empty",
       "cases": 5,
       "classes": {
         "boundary": 1,
+        "empty": 1,
+        "invalid": 3
+      }
+    },
+    {
+      "row": "rpc:mobileWeb.bundle.localeCatalog",
+      "status": "case",
+      "input": "empty",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
         "empty": 1,
         "invalid": 3
       }
@@ -5768,66 +6076,7 @@
       }
     },
     {
-      "row": "rpc:orchestration.ask",
-      "status": "case",
-      "input": "empty",
-      "cases": 4,
-      "classes": {
-        "boundary": 1,
-        "empty": 1,
-        "invalid": 2
-      }
-    },
-    {
-      "row": "rpc:orchestration.callerShow",
-      "status": "case",
-      "input": "empty",
-      "cases": 2,
-      "classes": {
-        "empty": 1,
-        "invalid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.check",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "boundary": 1,
-        "invalid": 2,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.crewSubscribe",
-      "status": "skipped",
-      "reason": "streaming method: the script op carries request and response only"
-    },
-    {
-      "row": "rpc:orchestration.dispatch",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.dispatchShow",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "boundary": 1,
-        "invalid": 2,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.federationAck",
+      "row": "rpc:pairing.createOffer",
       "status": "case",
       "input": "schema",
       "cases": 6,
@@ -5835,464 +6084,6 @@
         "boundary": 2,
         "invalid": 3,
         "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.federationAttachStart",
-      "status": "case",
-      "input": "schema",
-      "cases": 6,
-      "classes": {
-        "boundary": 2,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.federationFleetSnapshot",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.federationImport",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.federationPull",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.federationRead",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.federationReadOutput",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.federationRelease",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.federationRetain",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.federationShow",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.federationStop",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.gateCreate",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.gateList",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "boundary": 1,
-        "invalid": 2,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.gateResolve",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.inbox",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "boundary": 1,
-        "invalid": 2,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.partyLocation",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.partyOpen",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.reply",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.requestShow",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.reset",
-      "status": "case",
-      "input": "empty",
-      "cases": 4,
-      "classes": {
-        "boundary": 1,
-        "empty": 1,
-        "invalid": 2
-      }
-    },
-    {
-      "row": "rpc:orchestration.run",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.runCreate",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.runCurrent",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.runList",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 2,
-        "invalid": 2,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.runShow",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.runStop",
-      "status": "case",
-      "input": "schema",
-      "cases": 2,
-      "classes": {
-        "invalid": 1,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.runUse",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.send",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.sessionAddress",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.taskCreate",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.taskList",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "boundary": 1,
-        "invalid": 2,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.taskUpdate",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerAbandon",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerAutoClose",
-      "status": "case",
-      "input": "empty",
-      "cases": 4,
-      "classes": {
-        "boundary": 1,
-        "empty": 1,
-        "invalid": 2
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerChatTouch",
-      "status": "case",
-      "input": "empty",
-      "cases": 4,
-      "classes": {
-        "boundary": 1,
-        "empty": 1,
-        "invalid": 2
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerKeepOpen",
-      "status": "case",
-      "input": "empty",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "empty": 1,
-        "invalid": 3
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerList",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 2,
-        "invalid": 2,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerRead",
-      "status": "case",
-      "input": "schema",
-      "cases": 5,
-      "classes": {
-        "boundary": 1,
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerRelease",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerRetain",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerShow",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerStart",
-      "status": "case",
-      "input": "empty",
-      "cases": 6,
-      "classes": {
-        "boundary": 2,
-        "empty": 1,
-        "invalid": 3
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerStop",
-      "status": "case",
-      "input": "schema",
-      "cases": 4,
-      "classes": {
-        "invalid": 3,
-        "valid": 1
-      }
-    },
-    {
-      "row": "rpc:orchestration.workerTerminalUserInput",
-      "status": "case",
-      "input": "empty",
-      "cases": 4,
-      "classes": {
-        "boundary": 1,
-        "empty": 1,
-        "invalid": 2
       }
     },
     {
@@ -6304,6 +6095,16 @@
         "boundary": 1,
         "invalid": 3,
         "valid": 1
+      }
+    },
+    {
+      "row": "rpc:pairing.exchangeTicket",
+      "status": "case",
+      "input": "empty",
+      "cases": 4,
+      "classes": {
+        "empty": 1,
+        "invalid": 3
       }
     },
     {
@@ -6337,6 +6138,38 @@
         "boundary": 2,
         "empty": 1,
         "invalid": 3
+      }
+    },
+    {
+      "row": "rpc:plugins.catalogAdd",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:plugins.catalogList",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "rpc:plugins.catalogRemove",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
       }
     },
     {
@@ -6417,6 +6250,17 @@
     },
     {
       "row": "rpc:plugins.getLogs",
+      "status": "case",
+      "input": "empty",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "empty": 1,
+        "invalid": 3
+      }
+    },
+    {
+      "row": "rpc:plugins.install",
       "status": "case",
       "input": "empty",
       "cases": 6,
@@ -6564,6 +6408,27 @@
       }
     },
     {
+      "row": "rpc:plugins.uninstall",
+      "status": "case",
+      "input": "empty",
+      "cases": 4,
+      "classes": {
+        "empty": 1,
+        "invalid": 3
+      }
+    },
+    {
+      "row": "rpc:plugins.update",
+      "status": "case",
+      "input": "empty",
+      "cases": 5,
+      "classes": {
+        "boundary": 2,
+        "empty": 1,
+        "invalid": 2
+      }
+    },
+    {
       "row": "rpc:preflight.check",
       "status": "case",
       "input": "schema",
@@ -6638,6 +6503,17 @@
       }
     },
     {
+      "row": "rpc:projectGroup.checkHooks",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:projectGroup.create",
       "status": "case",
       "input": "schema",
@@ -6702,6 +6578,17 @@
     },
     {
       "row": "rpc:projectGroup.update",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:projectGroup.updateMany",
       "status": "case",
       "input": "schema",
       "cases": 5,
@@ -6831,11 +6718,23 @@
       }
     },
     {
+      "row": "rpc:repo.checkCloneTarget",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:repo.clone",
       "status": "case",
       "input": "schema",
-      "cases": 4,
+      "cases": 5,
       "classes": {
+        "boundary": 1,
         "invalid": 3,
         "valid": 1
       }
@@ -6969,6 +6868,17 @@
       }
     },
     {
+      "row": "rpc:repo.setHidden",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:repo.setupScriptImports",
       "status": "case",
       "input": "schema",
@@ -7048,6 +6958,16 @@
     },
     {
       "row": "rpc:runtime.clientEvents.unsubscribe",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:runtimeEnvironment.wakeRecipeVm",
       "status": "case",
       "input": "schema",
       "cases": 4,
@@ -7406,8 +7326,9 @@
       "row": "rpc:skills.autoUpdateBundledOrca",
       "status": "case",
       "input": "schema",
-      "cases": 4,
+      "cases": 5,
       "classes": {
+        "boundary": 1,
         "invalid": 3,
         "valid": 1
       }
@@ -7674,11 +7595,12 @@
     {
       "row": "rpc:speech.models.list",
       "status": "case",
-      "input": "empty",
-      "cases": 2,
+      "input": "schema",
+      "cases": 4,
       "classes": {
-        "empty": 1,
-        "invalid": 1
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
       }
     },
     {
@@ -7838,12 +7760,33 @@
       }
     },
     {
+      "row": "rpc:terminal.ackOutput",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:terminal.adoptOrphans",
       "status": "case",
       "input": "schema",
       "cases": 6,
       "classes": {
         "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:terminal.agentId",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
         "invalid": 3,
         "valid": 1
       }
@@ -7968,6 +7911,17 @@
       }
     },
     {
+      "row": "rpc:terminal.inferCodexQuestionSkip",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:terminal.inspectProcess",
       "status": "case",
       "input": "schema",
@@ -8004,6 +7958,17 @@
       "row": "rpc:terminal.multiplex",
       "status": "skipped",
       "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:terminal.openInputSession",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
     },
     {
       "row": "rpc:terminal.read",
@@ -8453,6 +8418,60 @@
       }
     },
     {
+      "row": "rpc:workspaceCleanup.preview",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:workspaceCleanup.report",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "rpc:workspaceCleanup.reportUnsavedEditors",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:workspaceCleanup.runNow",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:workspaceCleanup.scan",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:workspacePorts.kill",
       "status": "case",
       "input": "schema",
@@ -8517,6 +8536,17 @@
     },
     {
       "row": "rpc:worktree.adoptProvisionedRoot",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:worktree.archive",
       "status": "case",
       "input": "schema",
       "cases": 5,
@@ -8612,12 +8642,34 @@
       }
     },
     {
+      "row": "rpc:worktree.previewNestedRemoval",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:worktree.ps",
       "status": "case",
       "input": "schema",
       "cases": 5,
       "classes": {
         "boundary": 2,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:worktree.resolveCallerParent",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
         "invalid": 2,
         "valid": 1
       }
@@ -8645,7 +8697,29 @@
       }
     },
     {
+      "row": "rpc:worktree.restore",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
       "row": "rpc:worktree.rm",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:worktree.runApprovedSetup",
       "status": "case",
       "input": "schema",
       "cases": 5,
@@ -8670,8 +8744,9 @@
       "row": "rpc:worktree.show",
       "status": "case",
       "input": "schema",
-      "cases": 4,
+      "cases": 5,
       "classes": {
+        "boundary": 1,
         "invalid": 3,
         "valid": 1
       }
@@ -8729,7 +8804,17 @@
       "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
     },
     {
-      "row": "http:mobile/src/transport/mobile-relay-resume-director.ts#1",
+      "row": "http:mobile/src/query/host-query.ts#1",
+      "status": "skipped",
+      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+    },
+    {
+      "row": "http:mobile/src/query/host-query.ts#2",
+      "status": "skipped",
+      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+    },
+    {
+      "row": "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1",
       "status": "skipped",
       "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
     },

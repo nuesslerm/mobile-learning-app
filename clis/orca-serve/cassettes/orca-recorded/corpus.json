@@ -3909,78 +3909,6 @@
           ]
         },
         {
-          "id": "orca-orchestration.partyLocation",
-          "row": "rpc:orchestration.partyLocation",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "orchestration.partyLocation",
-                "params": {
-                  "address": "a"
-                },
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:schema"
-          ]
-        },
-        {
-          "id": "orca-orchestration.partyOpen",
-          "row": "rpc:orchestration.partyOpen",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "orchestration.partyOpen",
-                "params": {
-                  "address": "a"
-                },
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:schema"
-          ]
-        },
-        {
-          "id": "orca-orchestration.workerAutoClose",
-          "row": "rpc:orchestration.workerAutoClose",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "orchestration.workerAutoClose",
-                "params": {},
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:empty"
-          ]
-        },
-        {
-          "id": "orca-orchestration.workerKeepOpen",
-          "row": "rpc:orchestration.workerKeepOpen",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "orchestration.workerKeepOpen",
-                "params": {},
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:empty"
-          ]
-        },
-        {
           "id": "orca-pairing.getEndpoints",
           "row": "rpc:pairing.getEndpoints",
           "op": "script",
@@ -4727,7 +4655,7 @@
             ]
           },
           "tags": [
-            "input:empty"
+            "input:schema"
           ]
         },
         {
@@ -5289,6 +5217,240 @@
                 "method": "worktree.sleep",
                 "params": {
                   "worktree": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentActivity.clear",
+          "row": "rpc:agentActivity.clear",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentActivity.clear",
+                "params": {
+                  "paneKeys": [
+                    "a"
+                  ]
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentActivity.setRead",
+          "row": "rpc:agentActivity.setRead",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentActivity.setRead",
+                "params": {
+                  "paneKeys": [
+                    "a"
+                  ],
+                  "read": true
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentSession.cancelUsageLimitContinue",
+          "row": "rpc:agentSession.cancelUsageLimitContinue",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.cancelUsageLimitContinue",
+                "params": {
+                  "sessionId": "a",
+                  "turnItemId": "a",
+                  "resetsAt": 0
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentSession.continueInterrupted",
+          "row": "rpc:agentSession.continueInterrupted",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.continueInterrupted",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.rewind",
+          "row": "rpc:agentSession.rewind",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.rewind",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.sendRecorded",
+          "row": "rpc:agentSession.sendRecorded",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.sendRecorded",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-browser.screencast.ack",
+          "row": "rpc:browser.screencast.ack",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.screencast.ack",
+                "params": {
+                  "subscriptionId": "a",
+                  "seq": 0
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.pathsExist",
+          "row": "rpc:files.pathsExist",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.pathsExist",
+                "params": {
+                  "worktree": "a",
+                  "relativePaths": []
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-stats.summary",
+          "row": "rpc:stats.summary",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "stats.summary",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-terminal.ackOutput",
+          "row": "rpc:terminal.ackOutput",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.ackOutput",
+                "params": {
+                  "streamToken": "a",
+                  "units": 1
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.openInputSession",
+          "row": "rpc:terminal.openInputSession",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.openInputSession",
+                "params": {
+                  "terminal": "a",
+                  "client": {
+                    "id": "a",
+                    "type": "mobile"
+                  }
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.read",
+          "row": "rpc:terminal.read",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.read",
+                "params": {
+                  "terminal": "a"
                 },
                 "timeout_ms": 8000
               }

@@ -56,15 +56,44 @@
       "input": "empty"
     },
     {
+      "row": "rpc:agentActivity.clear",
+      "status": "case",
+      "case": "orca-agentActivity.clear",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:agentActivity.setRead",
+      "status": "case",
+      "case": "orca-agentActivity.setRead",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:agentSession.agents",
+      "status": "skipped",
+      "reason": "not registered in the pinned methods dir (dynamic registration)"
+    },
+    {
       "row": "rpc:agentSession.cancel",
       "status": "case",
       "case": "orca-agentSession.cancel",
       "input": "empty"
     },
     {
+      "row": "rpc:agentSession.cancelUsageLimitContinue",
+      "status": "case",
+      "case": "orca-agentSession.cancelUsageLimitContinue",
+      "input": "schema"
+    },
+    {
       "row": "rpc:agentSession.commands",
       "status": "case",
       "case": "orca-agentSession.commands",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.continueInterrupted",
+      "status": "case",
+      "case": "orca-agentSession.continueInterrupted",
       "input": "empty"
     },
     {
@@ -188,9 +217,21 @@
       "input": "empty"
     },
     {
+      "row": "rpc:agentSession.rewind",
+      "status": "case",
+      "case": "orca-agentSession.rewind",
+      "input": "empty"
+    },
+    {
       "row": "rpc:agentSession.send",
       "status": "case",
       "case": "orca-agentSession.send",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:agentSession.sendRecorded",
+      "status": "case",
+      "case": "orca-agentSession.sendRecorded",
       "input": "empty"
     },
     {
@@ -395,6 +436,12 @@
       "reason": "streaming method: the script op carries request and response only"
     },
     {
+      "row": "rpc:browser.screencast.ack",
+      "status": "case",
+      "case": "orca-browser.screencast.ack",
+      "input": "schema"
+    },
+    {
       "row": "rpc:browser.screencast.unsubscribe",
       "status": "case",
       "case": "orca-browser.screencast.unsubscribe",
@@ -458,6 +505,12 @@
       "row": "rpc:files.openDiff",
       "status": "case",
       "case": "orca-files.openDiff",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:files.pathsExist",
+      "status": "case",
+      "case": "orca-files.pathsExist",
       "input": "schema"
     },
     {
@@ -1214,7 +1267,17 @@
       "reason": "not registered in the pinned methods dir (dynamic registration)"
     },
     {
+      "row": "rpc:mobileWeb.bundle.brotliRange",
+      "status": "skipped",
+      "reason": "not registered in the pinned methods dir (dynamic registration)"
+    },
+    {
       "row": "rpc:mobileWeb.bundle.chunk",
+      "status": "skipped",
+      "reason": "not registered in the pinned methods dir (dynamic registration)"
+    },
+    {
+      "row": "rpc:mobileWeb.bundle.localeCatalog",
       "status": "skipped",
       "reason": "not registered in the pinned methods dir (dynamic registration)"
     },
@@ -1281,28 +1344,9 @@
       "input": "schema"
     },
     {
-      "row": "rpc:orchestration.partyLocation",
-      "status": "case",
-      "case": "orca-orchestration.partyLocation",
-      "input": "schema"
-    },
-    {
-      "row": "rpc:orchestration.partyOpen",
-      "status": "case",
-      "case": "orca-orchestration.partyOpen",
-      "input": "schema"
-    },
-    {
-      "row": "rpc:orchestration.workerAutoClose",
-      "status": "case",
-      "case": "orca-orchestration.workerAutoClose",
-      "input": "empty"
-    },
-    {
-      "row": "rpc:orchestration.workerKeepOpen",
-      "status": "case",
-      "case": "orca-orchestration.workerKeepOpen",
-      "input": "empty"
+      "row": "rpc:pairing.exchangeTicket",
+      "status": "skipped",
+      "reason": "not registered in the pinned methods dir (dynamic registration)"
     },
     {
       "row": "rpc:pairing.getEndpoints",
@@ -1558,7 +1602,7 @@
       "row": "rpc:speech.models.list",
       "status": "case",
       "case": "orca-speech.models.list",
-      "input": "empty"
+      "input": "schema"
     },
     {
       "row": "rpc:ssh.connect",
@@ -1579,9 +1623,21 @@
       "input": "empty"
     },
     {
+      "row": "rpc:stats.summary",
+      "status": "case",
+      "case": "orca-stats.summary",
+      "input": "empty"
+    },
+    {
       "row": "rpc:status.get",
       "status": "case",
       "case": "orca-status.get",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.ackOutput",
+      "status": "case",
+      "case": "orca-terminal.ackOutput",
       "input": "schema"
     },
     {
@@ -1612,6 +1668,18 @@
       "row": "rpc:terminal.list",
       "status": "case",
       "case": "orca-terminal.list",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.openInputSession",
+      "status": "case",
+      "case": "orca-terminal.openInputSession",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:terminal.read",
+      "status": "case",
+      "case": "orca-terminal.read",
       "input": "schema"
     },
     {
@@ -1776,7 +1844,17 @@
       "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
     },
     {
-      "row": "http:mobile/src/transport/mobile-relay-resume-director.ts#1",
+      "row": "http:mobile/src/query/host-query.ts#1",
+      "status": "skipped",
+      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+    },
+    {
+      "row": "http:mobile/src/query/host-query.ts#2",
+      "status": "skipped",
+      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
+    },
+    {
+      "row": "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1",
       "status": "skipped",
       "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
     },

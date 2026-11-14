@@ -61,7 +61,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -86,7 +87,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -165,7 +167,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -190,7 +193,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -269,7 +273,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -294,7 +299,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -373,7 +379,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -398,7 +405,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -477,7 +485,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -502,7 +511,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -581,7 +591,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -606,7 +617,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -697,7 +709,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -722,7 +735,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -801,7 +815,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -826,7 +841,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -905,7 +921,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -930,7 +947,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1009,7 +1027,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1034,7 +1053,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1113,7 +1133,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1138,7 +1159,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1217,7 +1239,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1242,7 +1265,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1321,7 +1345,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1346,7 +1371,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1425,7 +1451,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1450,7 +1477,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1561,7 +1589,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1586,7 +1615,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "http": {
@@ -1663,7 +1693,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1688,7 +1719,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "http": {
@@ -1765,7 +1797,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1790,7 +1823,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "http": {
@@ -1867,7 +1901,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1892,7 +1927,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1971,7 +2007,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -1996,7 +2033,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2071,7 +2109,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2096,7 +2135,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2171,7 +2211,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2196,7 +2237,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2271,7 +2313,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2296,7 +2339,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2371,7 +2415,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2396,7 +2441,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2471,7 +2517,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2496,7 +2543,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2571,7 +2619,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2596,7 +2645,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2671,7 +2721,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2696,7 +2747,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2771,7 +2823,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2796,7 +2849,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2871,7 +2925,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2896,7 +2951,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2971,7 +3027,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -2996,7 +3053,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3071,7 +3129,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3096,7 +3155,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3173,7 +3233,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3198,7 +3259,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3273,7 +3335,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3298,7 +3361,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3373,7 +3437,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3398,7 +3463,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3473,7 +3539,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3498,7 +3565,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3573,7 +3641,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3598,7 +3667,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3673,7 +3743,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3698,7 +3769,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3773,7 +3845,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3798,7 +3871,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3873,7 +3947,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3898,7 +3973,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3973,7 +4049,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -3998,7 +4075,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4073,7 +4151,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4098,7 +4177,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4173,7 +4253,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4198,7 +4279,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4273,7 +4355,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4298,7 +4381,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4373,7 +4457,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4398,7 +4483,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4473,7 +4559,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4498,7 +4585,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4573,7 +4661,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4598,7 +4687,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4673,7 +4763,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4698,7 +4789,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4773,7 +4865,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4798,7 +4891,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4873,7 +4967,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4898,7 +4993,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4973,7 +5069,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -4998,7 +5095,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5073,7 +5171,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5098,7 +5197,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5173,7 +5273,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5198,7 +5299,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5273,7 +5375,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5298,7 +5401,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5373,7 +5477,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5398,7 +5503,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5473,7 +5579,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5498,7 +5605,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5573,7 +5681,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5598,7 +5707,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5673,7 +5783,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5698,7 +5809,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5773,7 +5885,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5798,7 +5911,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5873,7 +5987,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5898,7 +6013,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5973,7 +6089,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -5998,7 +6115,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6073,7 +6191,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6098,7 +6217,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6173,7 +6293,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6198,7 +6319,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6273,7 +6395,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6298,7 +6421,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6373,7 +6497,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6398,7 +6523,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6473,7 +6599,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6498,7 +6625,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6573,7 +6701,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6598,7 +6727,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6673,7 +6803,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6698,7 +6829,8 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6773,7 +6905,8 @@
                     "workspaceRoot": "{workspace}"
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
@@ -6798,13 +6931,530 @@
                     "worktreePath": null
                   },
                   "headers": []
-                }
+                },
+                "await": "exit"
               },
               {
                 "ws-send": {
                   "_tag": "Request",
                   "id": "1",
                   "tag": "worktreeSetup.cancel",
+                  "payload": {},
+                  "headers": []
+                }
+              },
+              {
+                "ws-close": {}
+              }
+            ],
+            "settle_ms": 400
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "t3-http-voice.cloudModels",
+          "row": "http:voice.cloudModels",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/oauth/token",
+                  "headers": {
+                    "accept": "*/*",
+                    "content-type": "application/x-www-form-urlencoded"
+                  },
+                  "body": {
+                    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                    "subject_token_type": "urn:t3:params:oauth:token-type:environment-bootstrap",
+                    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "subject_token": "{credential}",
+                    "client_label": "t3-conformance",
+                    "client_os": "linux",
+                    "client_device_type": "bot"
+                  }
+                }
+              },
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/api/auth/websocket-ticket/rpc",
+                  "headers": {
+                    "accept": "*/*",
+                    "authorization": "Bearer {access_token}"
+                  },
+                  "body": null
+                }
+              },
+              {
+                "ws-open": {
+                  "path": "/ws?orchestrationProtocol=2&wsTicket={ticket}"
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "p1",
+                  "tag": "projects.mutate",
+                  "payload": {
+                    "commandId": "conformance-cmd-project-create",
+                    "projectId": "conformance-project",
+                    "title": "Conformance project",
+                    "type": "project.create",
+                    "workspaceRoot": "{workspace}"
+                  },
+                  "headers": []
+                },
+                "await": "exit"
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "p2",
+                  "tag": "orchestration.dispatchCommand",
+                  "payload": {
+                    "branch": null,
+                    "commandId": "conformance-cmd-thread-create",
+                    "createdBy": "user",
+                    "creationSource": "mobile",
+                    "interactionMode": "default",
+                    "modelSelection": {
+                      "instanceId": "codex",
+                      "model": "gpt-5"
+                    },
+                    "projectId": "conformance-project",
+                    "runtimeMode": "full-access",
+                    "threadId": "conformance-thread",
+                    "title": "Conformance thread",
+                    "type": "thread.create",
+                    "worktreePath": null
+                  },
+                  "headers": []
+                },
+                "await": "exit"
+              },
+              {
+                "http": {
+                  "method": "GET",
+                  "path": "/api/voice/cloud/openrouter/models",
+                  "headers": {
+                    "accept": "*/*",
+                    "authorization": "Bearer {access_token}"
+                  },
+                  "body": null
+                }
+              },
+              {
+                "ws-close": {}
+              }
+            ],
+            "settle_ms": 400
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "t3-http-voice.selectModel",
+          "row": "http:voice.selectModel",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/oauth/token",
+                  "headers": {
+                    "accept": "*/*",
+                    "content-type": "application/x-www-form-urlencoded"
+                  },
+                  "body": {
+                    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                    "subject_token_type": "urn:t3:params:oauth:token-type:environment-bootstrap",
+                    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "subject_token": "{credential}",
+                    "client_label": "t3-conformance",
+                    "client_os": "linux",
+                    "client_device_type": "bot"
+                  }
+                }
+              },
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/api/auth/websocket-ticket/rpc",
+                  "headers": {
+                    "accept": "*/*",
+                    "authorization": "Bearer {access_token}"
+                  },
+                  "body": null
+                }
+              },
+              {
+                "ws-open": {
+                  "path": "/ws?orchestrationProtocol=2&wsTicket={ticket}"
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "p1",
+                  "tag": "projects.mutate",
+                  "payload": {
+                    "commandId": "conformance-cmd-project-create",
+                    "projectId": "conformance-project",
+                    "title": "Conformance project",
+                    "type": "project.create",
+                    "workspaceRoot": "{workspace}"
+                  },
+                  "headers": []
+                },
+                "await": "exit"
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "p2",
+                  "tag": "orchestration.dispatchCommand",
+                  "payload": {
+                    "branch": null,
+                    "commandId": "conformance-cmd-thread-create",
+                    "createdBy": "user",
+                    "creationSource": "mobile",
+                    "interactionMode": "default",
+                    "modelSelection": {
+                      "instanceId": "codex",
+                      "model": "gpt-5"
+                    },
+                    "projectId": "conformance-project",
+                    "runtimeMode": "full-access",
+                    "threadId": "conformance-thread",
+                    "title": "Conformance thread",
+                    "type": "thread.create",
+                    "worktreePath": null
+                  },
+                  "headers": []
+                },
+                "await": "exit"
+              },
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/api/voice/models/select",
+                  "headers": {
+                    "accept": "*/*",
+                    "authorization": "Bearer {access_token}"
+                  },
+                  "body": ""
+                }
+              },
+              {
+                "ws-close": {}
+              }
+            ],
+            "settle_ms": 400
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "t3-http-voice.transcribe",
+          "row": "http:voice.transcribe",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/oauth/token",
+                  "headers": {
+                    "accept": "*/*",
+                    "content-type": "application/x-www-form-urlencoded"
+                  },
+                  "body": {
+                    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                    "subject_token_type": "urn:t3:params:oauth:token-type:environment-bootstrap",
+                    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "subject_token": "{credential}",
+                    "client_label": "t3-conformance",
+                    "client_os": "linux",
+                    "client_device_type": "bot"
+                  }
+                }
+              },
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/api/auth/websocket-ticket/rpc",
+                  "headers": {
+                    "accept": "*/*",
+                    "authorization": "Bearer {access_token}"
+                  },
+                  "body": null
+                }
+              },
+              {
+                "ws-open": {
+                  "path": "/ws?orchestrationProtocol=2&wsTicket={ticket}"
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "p1",
+                  "tag": "projects.mutate",
+                  "payload": {
+                    "commandId": "conformance-cmd-project-create",
+                    "projectId": "conformance-project",
+                    "title": "Conformance project",
+                    "type": "project.create",
+                    "workspaceRoot": "{workspace}"
+                  },
+                  "headers": []
+                },
+                "await": "exit"
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "p2",
+                  "tag": "orchestration.dispatchCommand",
+                  "payload": {
+                    "branch": null,
+                    "commandId": "conformance-cmd-thread-create",
+                    "createdBy": "user",
+                    "creationSource": "mobile",
+                    "interactionMode": "default",
+                    "modelSelection": {
+                      "instanceId": "codex",
+                      "model": "gpt-5"
+                    },
+                    "projectId": "conformance-project",
+                    "runtimeMode": "full-access",
+                    "threadId": "conformance-thread",
+                    "title": "Conformance thread",
+                    "type": "thread.create",
+                    "worktreePath": null
+                  },
+                  "headers": []
+                },
+                "await": "exit"
+              },
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/api/voice/transcribe",
+                  "headers": {
+                    "accept": "*/*",
+                    "authorization": "Bearer {access_token}"
+                  },
+                  "body": ""
+                }
+              },
+              {
+                "ws-close": {}
+              }
+            ],
+            "settle_ms": 400
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "t3-rpc-orchestration.getThreadLinkMetadata",
+          "row": "rpc:orchestration.getThreadLinkMetadata",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/oauth/token",
+                  "headers": {
+                    "accept": "*/*",
+                    "content-type": "application/x-www-form-urlencoded"
+                  },
+                  "body": {
+                    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                    "subject_token_type": "urn:t3:params:oauth:token-type:environment-bootstrap",
+                    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "subject_token": "{credential}",
+                    "client_label": "t3-conformance",
+                    "client_os": "linux",
+                    "client_device_type": "bot"
+                  }
+                }
+              },
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/api/auth/websocket-ticket/rpc",
+                  "headers": {
+                    "accept": "*/*",
+                    "authorization": "Bearer {access_token}"
+                  },
+                  "body": null
+                }
+              },
+              {
+                "ws-open": {
+                  "path": "/ws?orchestrationProtocol=2&wsTicket={ticket}"
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "p1",
+                  "tag": "projects.mutate",
+                  "payload": {
+                    "commandId": "conformance-cmd-project-create",
+                    "projectId": "conformance-project",
+                    "title": "Conformance project",
+                    "type": "project.create",
+                    "workspaceRoot": "{workspace}"
+                  },
+                  "headers": []
+                },
+                "await": "exit"
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "p2",
+                  "tag": "orchestration.dispatchCommand",
+                  "payload": {
+                    "branch": null,
+                    "commandId": "conformance-cmd-thread-create",
+                    "createdBy": "user",
+                    "creationSource": "mobile",
+                    "interactionMode": "default",
+                    "modelSelection": {
+                      "instanceId": "codex",
+                      "model": "gpt-5"
+                    },
+                    "projectId": "conformance-project",
+                    "runtimeMode": "full-access",
+                    "threadId": "conformance-thread",
+                    "title": "Conformance thread",
+                    "type": "thread.create",
+                    "worktreePath": null
+                  },
+                  "headers": []
+                },
+                "await": "exit"
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "1",
+                  "tag": "orchestration.getThreadLinkMetadata",
+                  "payload": {},
+                  "headers": []
+                }
+              },
+              {
+                "ws-close": {}
+              }
+            ],
+            "settle_ms": 400
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "t3-rpc-provider.auth.removeMethod",
+          "row": "rpc:provider.auth.removeMethod",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/oauth/token",
+                  "headers": {
+                    "accept": "*/*",
+                    "content-type": "application/x-www-form-urlencoded"
+                  },
+                  "body": {
+                    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+                    "subject_token_type": "urn:t3:params:oauth:token-type:environment-bootstrap",
+                    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+                    "subject_token": "{credential}",
+                    "client_label": "t3-conformance",
+                    "client_os": "linux",
+                    "client_device_type": "bot"
+                  }
+                }
+              },
+              {
+                "http": {
+                  "method": "POST",
+                  "path": "/api/auth/websocket-ticket/rpc",
+                  "headers": {
+                    "accept": "*/*",
+                    "authorization": "Bearer {access_token}"
+                  },
+                  "body": null
+                }
+              },
+              {
+                "ws-open": {
+                  "path": "/ws?orchestrationProtocol=2&wsTicket={ticket}"
+                }
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "p1",
+                  "tag": "projects.mutate",
+                  "payload": {
+                    "commandId": "conformance-cmd-project-create",
+                    "projectId": "conformance-project",
+                    "title": "Conformance project",
+                    "type": "project.create",
+                    "workspaceRoot": "{workspace}"
+                  },
+                  "headers": []
+                },
+                "await": "exit"
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "p2",
+                  "tag": "orchestration.dispatchCommand",
+                  "payload": {
+                    "branch": null,
+                    "commandId": "conformance-cmd-thread-create",
+                    "createdBy": "user",
+                    "creationSource": "mobile",
+                    "interactionMode": "default",
+                    "modelSelection": {
+                      "instanceId": "codex",
+                      "model": "gpt-5"
+                    },
+                    "projectId": "conformance-project",
+                    "runtimeMode": "full-access",
+                    "threadId": "conformance-thread",
+                    "title": "Conformance thread",
+                    "type": "thread.create",
+                    "worktreePath": null
+                  },
+                  "headers": []
+                },
+                "await": "exit"
+              },
+              {
+                "ws-send": {
+                  "_tag": "Request",
+                  "id": "1",
+                  "tag": "provider.auth.removeMethod",
                   "payload": {},
                   "headers": []
                 }

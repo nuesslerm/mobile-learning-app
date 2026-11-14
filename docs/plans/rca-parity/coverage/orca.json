@@ -4,29 +4,31 @@
   "generatedBy": "wf parity coverage --app orca",
   "pin": {
     "file": "tooling/orca-conformance/orca-pin.json",
-    "version": "1.4.214",
-    "commit": "dc7cd7bebbf9eb45d79edc89f3f836c75be78dea"
+    "version": "1.4.259",
+    "commit": "980c0024741812bd7ae934c0c22144d9926a784e"
   },
   "summary": {
-    "rows": 301,
+    "rows": 315,
     "served": 135,
-    "pending": 135,
-    "notOffered": 19,
-    "excluded": 9,
+    "pending": 155,
+    "notOffered": 15,
+    "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
     "byKind": {
-      "http": 7,
-      "rpc": 293,
+      "http": 9,
+      "rpc": 305,
       "transport": 1
     },
     "pendingByMilestone": {
-      "M7": 2,
-      "M8": 19,
+      "M5": 5,
+      "M6": 1,
+      "M7": 10,
+      "M8": 22,
       "M9": 4,
-      "M10": 9,
-      "M11": 16,
-      "M12": 85
+      "M10": 10,
+      "M11": 17,
+      "M12": 86
     }
   },
   "rows": [
@@ -74,9 +76,23 @@
       "reason": "third-party fetch: the troubleshooter probes DNS over dns.google; no host is involved"
     },
     {
-      "id": "http:mobile/src/transport/mobile-relay-resume-director.ts#1",
+      "id": "http:mobile/src/query/host-query.ts#1",
       "kind": "http",
-      "name": "mobile/src/transport/mobile-relay-resume-director.ts#1",
+      "name": "mobile/src/query/host-query.ts#1",
+      "state": "pending",
+      "milestone": "M5"
+    },
+    {
+      "id": "http:mobile/src/query/host-query.ts#2",
+      "kind": "http",
+      "name": "mobile/src/query/host-query.ts#2",
+      "state": "pending",
+      "milestone": "M5"
+    },
+    {
+      "id": "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1",
+      "kind": "http",
+      "name": "mobile/src/transport/relay/mobile-relay-resume-director.ts#1",
       "state": "not-offered",
       "milestone": "M5",
       "reason": "proposed default awaiting owner confirmation (decision 1): the phone posts /v1/resolve to the relay director a pairing offer names (directorUrl), which only pairing.provisionRelay mints, and that is not offered; a directly paired phone never calls it, and this host runs no director",
@@ -209,6 +225,27 @@
       }
     },
     {
+      "id": "rpc:agentActivity.clear",
+      "kind": "rpc",
+      "name": "agentActivity.clear",
+      "state": "pending",
+      "milestone": "M7"
+    },
+    {
+      "id": "rpc:agentActivity.setRead",
+      "kind": "rpc",
+      "name": "agentActivity.setRead",
+      "state": "pending",
+      "milestone": "M7"
+    },
+    {
+      "id": "rpc:agentSession.agents",
+      "kind": "rpc",
+      "name": "agentSession.agents",
+      "state": "pending",
+      "milestone": "M7"
+    },
+    {
       "id": "rpc:agentSession.cancel",
       "kind": "rpc",
       "name": "agentSession.cancel",
@@ -227,6 +264,13 @@
       }
     },
     {
+      "id": "rpc:agentSession.cancelUsageLimitContinue",
+      "kind": "rpc",
+      "name": "agentSession.cancelUsageLimitContinue",
+      "state": "pending",
+      "milestone": "M7"
+    },
+    {
       "id": "rpc:agentSession.commands",
       "kind": "rpc",
       "name": "agentSession.commands",
@@ -243,6 +287,13 @@
           "skill_scan"
         ]
       }
+    },
+    {
+      "id": "rpc:agentSession.continueInterrupted",
+      "kind": "rpc",
+      "name": "agentSession.continueInterrupted",
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.conversationCommand",
@@ -579,6 +630,13 @@
       "decidedBy": "M7"
     },
     {
+      "id": "rpc:agentSession.rewind",
+      "kind": "rpc",
+      "name": "agentSession.rewind",
+      "state": "pending",
+      "milestone": "M7"
+    },
+    {
       "id": "rpc:agentSession.send",
       "kind": "rpc",
       "name": "agentSession.send",
@@ -598,6 +656,13 @@
           "write_file"
         ]
       }
+    },
+    {
+      "id": "rpc:agentSession.sendRecorded",
+      "kind": "rpc",
+      "name": "agentSession.sendRecorded",
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.setOption",
@@ -647,9 +712,8 @@
       "id": "rpc:agentSession.threadGoal",
       "kind": "rpc",
       "name": "agentSession.threadGoal",
-      "state": "excluded",
-      "milestone": "M7",
-      "reason": "not on the paired-phone allowlist (MOBILE_RPC_METHOD_ROUTES): the host refuses it to a phone"
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.unsubscribe",
@@ -987,6 +1051,13 @@
       "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there are no frames of a page to stream"
     },
     {
+      "id": "rpc:browser.screencast.ack",
+      "kind": "rpc",
+      "name": "browser.screencast.ack",
+      "state": "pending",
+      "milestone": "M12"
+    },
+    {
       "id": "rpc:browser.screencast.unsubscribe",
       "kind": "rpc",
       "name": "browser.screencast.unsubscribe",
@@ -1095,6 +1166,13 @@
       "milestone": "M6",
       "reason": "proposed default awaiting owner confirmation: it opens a diff tab in the desktop's own window and this host has no desktop",
       "decidedBy": "M6"
+    },
+    {
+      "id": "rpc:files.pathsExist",
+      "kind": "rpc",
+      "name": "files.pathsExist",
+      "state": "pending",
+      "milestone": "M6"
     },
     {
       "id": "rpc:files.read",
@@ -1902,9 +1980,8 @@
       "id": "rpc:github.prComments",
       "kind": "rpc",
       "name": "github.prComments",
-      "state": "excluded",
-      "milestone": "M11",
-      "reason": "not on the paired-phone allowlist (MOBILE_RPC_METHOD_ROUTES): the host refuses it to a phone"
+      "state": "pending",
+      "milestone": "M11"
     },
     {
       "id": "rpc:github.prFileContents",
@@ -2565,6 +2642,13 @@
       }
     },
     {
+      "id": "rpc:mobileWeb.bundle.brotliRange",
+      "kind": "rpc",
+      "name": "mobileWeb.bundle.brotliRange",
+      "state": "pending",
+      "milestone": "M5"
+    },
+    {
       "id": "rpc:mobileWeb.bundle.chunk",
       "kind": "rpc",
       "name": "mobileWeb.bundle.chunk",
@@ -2579,6 +2663,13 @@
         "diff": "clean",
         "cassette": "recorded"
       }
+    },
+    {
+      "id": "rpc:mobileWeb.bundle.localeCatalog",
+      "kind": "rpc",
+      "name": "mobileWeb.bundle.localeCatalog",
+      "state": "pending",
+      "milestone": "M5"
     },
     {
       "id": "rpc:mobileWeb.bundle.manifest",
@@ -2696,40 +2787,11 @@
       "reverify": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to end"
     },
     {
-      "id": "rpc:orchestration.partyLocation",
+      "id": "rpc:pairing.exchangeTicket",
       "kind": "rpc",
-      "name": "orchestration.partyLocation",
-      "state": "not-offered",
-      "milestone": "M7",
-      "reason": "proposed default awaiting owner confirmation (decision 1): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate",
-      "decidedBy": "M7"
-    },
-    {
-      "id": "rpc:orchestration.partyOpen",
-      "kind": "rpc",
-      "name": "orchestration.partyOpen",
-      "state": "not-offered",
-      "milestone": "M7",
-      "reason": "proposed default awaiting owner confirmation (decision 1): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database",
-      "decidedBy": "M7"
-    },
-    {
-      "id": "rpc:orchestration.workerAutoClose",
-      "kind": "rpc",
-      "name": "orchestration.workerAutoClose",
-      "state": "not-offered",
-      "milestone": "M7",
-      "reason": "proposed default awaiting owner confirmation (decision 1): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers",
-      "decidedBy": "M7"
-    },
-    {
-      "id": "rpc:orchestration.workerKeepOpen",
-      "kind": "rpc",
-      "name": "orchestration.workerKeepOpen",
-      "state": "not-offered",
-      "milestone": "M7",
-      "reason": "proposed default awaiting owner confirmation (decision 1): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers",
-      "decidedBy": "M7"
+      "name": "pairing.exchangeTicket",
+      "state": "pending",
+      "milestone": "M5"
     },
     {
       "id": "rpc:pairing.getEndpoints",
@@ -3271,6 +3333,13 @@
       "decidedBy": "M12"
     },
     {
+      "id": "rpc:stats.summary",
+      "kind": "rpc",
+      "name": "stats.summary",
+      "state": "pending",
+      "milestone": "M10"
+    },
+    {
       "id": "rpc:status.get",
       "kind": "rpc",
       "name": "status.get",
@@ -3284,6 +3353,13 @@
         ],
         "executor": []
       }
+    },
+    {
+      "id": "rpc:terminal.ackOutput",
+      "kind": "rpc",
+      "name": "terminal.ackOutput",
+      "state": "pending",
+      "milestone": "M8"
     },
     {
       "id": "rpc:terminal.clearBuffer",
@@ -3351,6 +3427,20 @@
           "pty_list"
         ]
       }
+    },
+    {
+      "id": "rpc:terminal.openInputSession",
+      "kind": "rpc",
+      "name": "terminal.openInputSession",
+      "state": "pending",
+      "milestone": "M8"
+    },
+    {
+      "id": "rpc:terminal.read",
+      "kind": "rpc",
+      "name": "terminal.read",
+      "state": "pending",
+      "milestone": "M8"
     },
     {
       "id": "rpc:terminal.rename",

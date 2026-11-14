@@ -1,31 +1,32 @@
 {
-  "content_hash": "sha256:f1ce638574549328e47bb9243c783bc1f5dad880f1f27b2d8bd6736e433937cd",
+  "content_hash": "sha256:3caa9213212ccddd4287ea90fb5c80c771d8167475160b0e7bf1bb6aa0c0ba4b",
   "corpus": {
-    "hash": "sha256:a2512deb0fdcf140e3664ccb6f1de1bf4a263bee97ee8b46813b3472d81eac30",
+    "hash": "sha256:f236127c9665d0b99588bda728ffa06de8cd324c7209cdd901d76d552421ef52",
     "path": "corpus.json"
   },
-  "interactions": 1248,
+  "interactions": 1349,
   "provenance": {
-    "corpus_hash": "sha256:a2512deb0fdcf140e3664ccb6f1de1bf4a263bee97ee8b46813b3472d81eac30",
+    "corpus_hash": "sha256:f236127c9665d0b99588bda728ffa06de8cd324c7209cdd901d76d552421ef52",
     "driver": {
       "name": "t3",
       "protocol": "mimic-driver/1",
       "version": "0.1.0"
     },
     "kind": "recorded",
-    "recorded_at": "2026-11-07T03:10:47.584Z",
-    "recorded_on": "vm",
+    "recorded_at": "2026-11-14T23:06:29.195Z",
+    "recorded_on": "ci",
     "rules_hash": "sha256:6b10632552cd321ad6e912b8d3b8a67873d76b5fcf593eab124464553e485fca",
     "seed": 0,
-    "source": "R2c: t3 crawl",
+    "source": "record-references run 43651197829",
     "target": {
-      "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e",
+      "commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76",
       "name": "t3",
       "pin_file": "../../../../tooling/t3-conformance/t3-pin.json",
-      "pin_hash": "sha256:554025cc9fbd290ae2829c6bd80054587238f356315fd7e76ab984357cef47a0",
-      "version": "0.1.6"
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1",
+      "version": "0.1.9"
     },
     "tool": {
+      "git": "358739bbb13f7b1ba2d89e04351b1206245cb616",
       "mimic": "0.1.0"
     }
   },

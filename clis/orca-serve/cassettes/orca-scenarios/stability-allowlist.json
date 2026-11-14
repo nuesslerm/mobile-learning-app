@@ -1,0 +1,30 @@
+{
+ "schema": "mimic-stability-allowlist/1",
+ "entries": [
+  {
+   "id": "orca-scn-repo.setHidden",
+   "cause": "volatile",
+   "reason": "answered differently on the two records of the live reference at this pin; the moving value is not masked by a rule yet"
+  },
+  {
+   "id": "orca-scn-worktree.listRetiredNames",
+   "cause": "volatile",
+   "reason": "answered differently on the two records of the live reference at this pin; the moving value is not masked by a rule yet"
+  },
+  {
+   "id": "orca-story-state-after-repo",
+   "cause": "volatile",
+   "reason": "answered differently on the two records of the live reference at this pin; the moving value is not masked by a rule yet"
+  },
+  {
+   "id": "orca-scn-repo.show",
+   "cause": "volatile",
+   "reason": "answered differently on the two records of the live reference at this pin; the moving value is not masked by a rule yet"
+  },
+  {
+   "id": "orca-scn-repo.update",
+   "cause": "volatile",
+   "reason": "answered differently on the two records of the live reference at this pin; the moving value is not masked by a rule yet"
+  }
+ ]
+}

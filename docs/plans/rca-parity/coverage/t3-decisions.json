@@ -37,6 +37,8 @@
     "rpc:subscribeTerminalMetadata": "M8",
     "rpc:vcs.*": "M9",
     "rpc:subscribeVcsStatus": "M9",
+    "rpc:subscribeVcsBranch": "M9",
+    "http:voice.*": "M12",
     "rpc:git.runStackedAction": "M9",
     "rpc:review.*": "M9",
     "rpc:provider.*": "M10",
