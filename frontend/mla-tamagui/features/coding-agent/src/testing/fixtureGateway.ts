@@ -1,4 +1,4 @@
-// features/coding-agent/src/data/fixtureGateway.ts
+// features/coding-agent/src/testing/fixtureGateway.ts
 //
 // `OrchestrationGateway` implementation that drives the UI from
 // `FIXTURE_THREADS` + `FIXTURE_SERVER_CONFIG` without any network IO.

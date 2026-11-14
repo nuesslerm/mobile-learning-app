@@ -1,4 +1,4 @@
-// features/coding-agent/src/fixtures/serverConfig.ts
+// features/coding-agent/src/testing/fixtures/serverConfig.ts
 //
 // Deterministic `server.probe` fixture: opencode is the default CLI with two
 // models, claude is reachable with two models (one flagged legacy so the

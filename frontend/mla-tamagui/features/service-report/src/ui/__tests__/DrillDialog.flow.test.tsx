@@ -48,7 +48,7 @@ const UPTIME_REPORT_2 = {
 
 function renderScreen(fetchHealthReportHistory: ReturnType<typeof vi.fn>) {
   return app.render('/service-report', {
-    overrides: { 'service-report': { fetchHealthReportHistory } },
+    overrides: { 'service-report': { healthReports: { fetchHistory: fetchHealthReportHistory } } },
   });
 }
 

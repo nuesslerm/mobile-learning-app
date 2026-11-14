@@ -1,4 +1,4 @@
-// features/coding-agent/src/fixtures/index.ts
+// features/coding-agent/src/testing/fixtures/index.ts
 //
 // Barrel for the deterministic fixtures consumed by the impl, the mocks
 // package, and the storybook proposals. Pure data, no React, no IO.

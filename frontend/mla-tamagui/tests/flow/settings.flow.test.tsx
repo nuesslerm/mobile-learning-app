@@ -4,7 +4,7 @@ import {
   userEvent,
 } from '@lib/flow-test-harness';
 import { usePresetThemeStore } from '@lib/tamagui-design-system';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import { app } from './app';
 
@@ -50,19 +50,13 @@ describe('Settings flow (index and appearance screens)', () => {
     expect(router.calls()).toHaveLength(1);
   });
 
-  it('given the Appearance screen with preset tiles, when a preset tile is pressed, then setActiveTheme was called with that preset id and the store holds it', async () => {
-    // oxlint-disable-next-line no-restricted-properties -- spy on a project store action until the settings unit asserts the rendered theme instead
-    const setActiveTheme = vi.spyOn(
-      usePresetThemeStore.getState(),
-      'setActiveTheme'
-    );
+  it('given the Appearance screen with preset tiles, when a preset tile is pressed, then the store holds that preset as the active theme', async () => {
     await app.render('/settings/appearance');
 
     await userEvent.click(
       screen.getByTestId('AppearanceSettingsScreen-ThemeTilePress-forest-fresh')
     );
 
-    expect(setActiveTheme).toHaveBeenCalledWith('forest-fresh');
     expect(usePresetThemeStore.getState().activeThemeId).toBe('forest-fresh');
   });
 

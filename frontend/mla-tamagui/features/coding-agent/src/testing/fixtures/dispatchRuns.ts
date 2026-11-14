@@ -1,4 +1,4 @@
-// features/coding-agent/src/fixtures/dispatchRuns.ts
+// features/coding-agent/src/testing/fixtures/dispatchRuns.ts
 //
 // Deterministic `DispatchRunDetail` fixtures driving the dispatch-runs UI
 // (list summary + detail transcript) and the e2e fake server. Parsed at

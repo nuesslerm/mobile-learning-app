@@ -5,7 +5,7 @@ import { app } from '../../__tests__/flowApp';
 
 function renderScreen(fetchHealthReportHistory: ReturnType<typeof vi.fn>) {
   return app.render('/service-report', {
-    overrides: { 'service-report': { fetchHealthReportHistory } },
+    overrides: { 'service-report': { healthReports: { fetchHistory: fetchHealthReportHistory } } },
   });
 }
 

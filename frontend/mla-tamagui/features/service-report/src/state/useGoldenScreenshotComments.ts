@@ -8,10 +8,7 @@ import { Logger } from '@lib/logging';
 import type { GoldenScreenshotComment } from '../domain';
 import { useCallback, useEffect, useState } from 'react';
 
-import {
-  fetchGoldenScreenshotComments,
-  postGoldenScreenshotComment,
-} from '../data/goldenScreenshotCommentsClient';
+import { useServiceReportPorts } from './ports';
 
 
 type GoldenScreenshotCommentsState =
@@ -35,6 +32,7 @@ export type UseGoldenScreenshotCommentsResult =
 export function useGoldenScreenshotComments(
   screenshotKey: string | undefined
 ): UseGoldenScreenshotCommentsResult {
+  const { goldenComments } = useServiceReportPorts();
   const [state, setState] = useState<GoldenScreenshotCommentsState>({
     status: 'loading',
   });
@@ -42,7 +40,8 @@ export function useGoldenScreenshotComments(
   const refresh = useCallback(() => {
     if (!screenshotKey) return;
     setState({ status: 'loading' });
-    fetchGoldenScreenshotComments(screenshotKey)
+    goldenComments
+      .fetch(screenshotKey)
       .then((result) => {
         if (result.status === 'ready') {
           setState({ status: 'ready', comments: result.comments });
@@ -57,7 +56,7 @@ export function useGoldenScreenshotComments(
           error: err instanceof Error ? err.message : String(err),
         });
       });
-  }, [screenshotKey]);
+  }, [screenshotKey, goldenComments]);
 
   useEffect(() => {
     refresh();
@@ -71,7 +70,7 @@ export function useGoldenScreenshotComments(
       if (!screenshotKey) {
         return { ok: false, error: 'No screenshot selected' };
       }
-      const result = await postGoldenScreenshotComment({
+      const result = await goldenComments.post({
         screenshotKey,
         ...input,
       });
@@ -87,7 +86,7 @@ export function useGoldenScreenshotComments(
       });
       return { ok: false, error };
     },
-    [screenshotKey, refresh]
+    [screenshotKey, refresh, goldenComments]
   );
 
   return { ...state, refresh, post };

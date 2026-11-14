@@ -1,4 +1,4 @@
-// features/coding-agent/src/fixtures/threads.ts
+// features/coding-agent/src/testing/fixtures/threads.ts
 //
 // Deterministic `OrchestrationThread` fixtures that drive the coding-agent UI
 // and the mock WS server. Every fixture satisfies `OrchestrationThreadSchema`

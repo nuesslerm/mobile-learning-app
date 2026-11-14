@@ -20,8 +20,12 @@ import { z } from 'zod';
 
 import { encodeBase64 } from '../domain/base64';
 import { deriveCommentsUrl } from '../domain/deriveCommentsUrl';
-
-const DEFAULT_ORDS_USER = 'health_rpt';
+import type {
+  GoldenCommentsPort,
+  GoldenScreenshotCommentsResult,
+  OrdsConnection,
+  PostGoldenScreenshotCommentResult,
+} from '../domain/ports';
 
 const ENV_BASE_URL_NAME = 'EXPO_PUBLIC_HEALTH_REPORTS_ORDS_BASE_URL';
 const ENV_PASSWORD_NAME = 'EXPO_PUBLIC_HEALTH_REPORTS_ORDS_PASSWORD';
@@ -38,34 +42,15 @@ const ordsCommentsEnvelopeSchema = z.object({
   items: z.array(ordsCommentRowSchema),
 });
 
-export type GoldenScreenshotCommentsResult =
-  | { status: 'not-configured'; reason: string }
-  | { status: 'unreachable'; error: string }
-  | { status: 'ready'; comments: GoldenScreenshotComment[] };
-
-export type PostGoldenScreenshotCommentResult =
-  | { status: 'not-configured'; reason: string }
-  | { status: 'error'; error: string }
-  | { status: 'ok' };
-
-type OrdsConfig = { commentsUrl: string; user: string; password: string };
-
-function loadConfig(): OrdsConfig | null {
-  const healthReportsBaseUrl =
-    process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_BASE_URL;
-  const password = process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_PASSWORD;
-  if (!healthReportsBaseUrl || !password) return null;
-  const user =
-    process.env.EXPO_PUBLIC_HEALTH_REPORTS_ORDS_USER || DEFAULT_ORDS_USER;
-  return {
-    commentsUrl: deriveCommentsUrl(healthReportsBaseUrl),
-    user,
-    password,
-  };
+function authHeader(config: { user: string; password: string }): string {
+  return `Basic ${encodeBase64(`${config.user}:${config.password}`)}`;
 }
 
-function authHeader(config: OrdsConfig): string {
-  return `Basic ${encodeBase64(`${config.user}:${config.password}`)}`;
+type CommentsConfig = { commentsUrl: string; user: string; password: string };
+
+function commentsConfig(connection: OrdsConnection | undefined): CommentsConfig | null {
+  if (!connection) return null;
+  return { commentsUrl: deriveCommentsUrl(connection.baseUrl), user: connection.user, password: connection.password };
 }
 
 function rowToComment(row: {
@@ -84,10 +69,12 @@ function rowToComment(row: {
   });
 }
 
-export async function fetchGoldenScreenshotComments(
+async function fetchGoldenScreenshotComments(
+  connection: OrdsConnection | undefined,
+  fetchImpl: typeof fetch,
   screenshotKey: string
 ): Promise<GoldenScreenshotCommentsResult> {
-  const config = loadConfig();
+  const config = commentsConfig(connection);
   if (!config) {
     return {
       status: 'not-configured',
@@ -101,7 +88,7 @@ export async function fetchGoldenScreenshotComments(
 
   let response: Response;
   try {
-    response = await fetch(url, {
+    response = await fetchImpl(url, {
       method: 'GET',
       headers: { Authorization: authHeader(config) },
     });
@@ -152,12 +139,12 @@ export async function fetchGoldenScreenshotComments(
   return { status: 'ready', comments };
 }
 
-export async function postGoldenScreenshotComment(input: {
-  screenshotKey: string;
-  author?: string;
-  commentText: string;
-}): Promise<PostGoldenScreenshotCommentResult> {
-  const config = loadConfig();
+async function postGoldenScreenshotComment(
+  connection: OrdsConnection | undefined,
+  fetchImpl: typeof fetch,
+  input: { screenshotKey: string; author?: string; commentText: string }
+): Promise<PostGoldenScreenshotCommentResult> {
+  const config = commentsConfig(connection);
   if (!config) {
     return {
       status: 'not-configured',
@@ -178,7 +165,7 @@ export async function postGoldenScreenshotComment(input: {
 
   let response: Response;
   try {
-    response = await fetch(config.commentsUrl, {
+    response = await fetchImpl(config.commentsUrl, {
       method: 'POST',
       headers: {
         Authorization: authHeader(config),
@@ -203,4 +190,11 @@ export async function postGoldenScreenshotComment(input: {
   }
 
   return { status: 'ok' };
+}
+
+export function createOrdsGoldenComments(connection: OrdsConnection | undefined, fetchImpl: typeof fetch = fetch): GoldenCommentsPort {
+  return {
+    fetch: (screenshotKey) => fetchGoldenScreenshotComments(connection, fetchImpl, screenshotKey),
+    post: (input) => postGoldenScreenshotComment(connection, fetchImpl, input),
+  };
 }

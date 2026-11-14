@@ -1,4 +1,4 @@
-// features/coding-agent/src/fixtures/__tests__/dispatchRuns.test.ts
+// features/coding-agent/src/testing/fixtures/__tests__/dispatchRuns.test.ts
 //
 // Smoke tests for the deterministic `FIXTURE_DISPATCH_RUNS` fixtures:
 // every fixture satisfies `DispatchRunDetail` (parsed at module load), and

@@ -1,4 +1,4 @@
-// features/coding-agent/src/fixtures/__tests__/fixtures.test.ts
+// features/coding-agent/src/testing/fixtures/__tests__/fixtures.test.ts
 //
 // Smoke tests for the deterministic fixtures: every `FIXTURE_THREADS` entry
 // round-trips through `OrchestrationThreadSchema` (the schema that the wire

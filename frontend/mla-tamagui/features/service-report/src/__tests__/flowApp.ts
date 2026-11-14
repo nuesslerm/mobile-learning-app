@@ -6,4 +6,5 @@ export const app = createFlowApp({
   routes: import.meta.glob<{ default: ComponentType }>('../routes/**/*.tsx'),
   routesRoot: '../routes/',
   basePath: '/service-report',
+  includeRootLayout: true,
 });
