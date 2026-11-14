@@ -1,0 +1,2092 @@
+[
+  {
+    "type": "dependency",
+    "from": "features/tamil-writing/ui/TracingCanvasSkia.tsx",
+    "to": "lib/skiaWeb.ts",
+    "unresolvedTo": "@/lib/skiaWeb",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "feature-does-not-import-the-shell"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "features/settings/src/index.ts",
+    "unresolvedTo": "@feature/settings",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "feature-is-a-leaf"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/DashboardsIndexScreen.tsx",
+    "to": "features/settings/src/index.ts",
+    "unresolvedTo": "@feature/settings",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "feature-is-a-leaf"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/InfraDashboardScreen.tsx",
+    "to": "features/settings/src/index.ts",
+    "unresolvedTo": "@feature/settings",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "feature-is-a-leaf"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/tamil-writing/ui/TracingCanvasSkia.tsx",
+    "to": "lib/skiaWeb.ts",
+    "unresolvedTo": "@/lib/skiaWeb",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "features-do-not-import-the-shell"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "../../node_modules/.pnpm/expo-router@57.0.19_5a82f9231c1f9267acb05b06380940d8/node_modules/expo-router/build/index.js",
+    "unresolvedTo": "expo-router",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.86.3_@babel+core@7._a71b1ba98a19f9077db55c4362bf342d/node_modules/react-native/index.js",
+    "unresolvedTo": "react-native",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "../libraries/app-config/src/index.ts",
+    "unresolvedTo": "@lib/app-config",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "../libraries/app-di/src/index.tsx",
+    "unresolvedTo": "@lib/app-di",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "../libraries/tamagui-design-system/index.ts",
+    "unresolvedTo": "@lib/tamagui-design-system",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "../libraries/tamagui-design-system/primitives.tsx",
+    "unresolvedTo": "@lib/tamagui-design-system/primitives",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "features/dashboards/data/reportingGateway.ts",
+    "unresolvedTo": "./data/reportingGateway",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "features/dashboards/data/reportingSchema.ts",
+    "unresolvedTo": "./data/reportingSchema",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/AgentsDashboardScreen.tsx",
+    "to": "features/settings/src/index.ts",
+    "unresolvedTo": "@feature/settings",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/DashboardsIndexScreen.tsx",
+    "to": "../../node_modules/.pnpm/expo-router@57.0.19_5a82f9231c1f9267acb05b06380940d8/node_modules/expo-router/build/index.js",
+    "unresolvedTo": "expo-router",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/DashboardsIndexScreen.tsx",
+    "to": "../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.86.3_@babel+core@7._a71b1ba98a19f9077db55c4362bf342d/node_modules/react-native/index.js",
+    "unresolvedTo": "react-native",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/DashboardsIndexScreen.tsx",
+    "to": "../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/DashboardsIndexScreen.tsx",
+    "to": "../libraries/app-config/src/index.ts",
+    "unresolvedTo": "@lib/app-config",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/DashboardsIndexScreen.tsx",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/DashboardsIndexScreen.tsx",
+    "to": "../libraries/tamagui-design-system/icons.ts",
+    "unresolvedTo": "@lib/tamagui-design-system/icons",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/DashboardsIndexScreen.tsx",
+    "to": "../libraries/tamagui-design-system/index.ts",
+    "unresolvedTo": "@lib/tamagui-design-system",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/DashboardsIndexScreen.tsx",
+    "to": "features/dashboards/data/reportingGateway.ts",
+    "unresolvedTo": "./data/reportingGateway",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/DashboardsIndexScreen.tsx",
+    "to": "features/settings/src/index.ts",
+    "unresolvedTo": "@feature/settings",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/InfraDashboardScreen.tsx",
+    "to": "../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.86.3_@babel+core@7._a71b1ba98a19f9077db55c4362bf342d/node_modules/react-native/index.js",
+    "unresolvedTo": "react-native",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/InfraDashboardScreen.tsx",
+    "to": "../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/InfraDashboardScreen.tsx",
+    "to": "../libraries/app-config/src/index.ts",
+    "unresolvedTo": "@lib/app-config",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/InfraDashboardScreen.tsx",
+    "to": "../libraries/app-di/src/index.tsx",
+    "unresolvedTo": "@lib/app-di",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/InfraDashboardScreen.tsx",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/InfraDashboardScreen.tsx",
+    "to": "../libraries/tamagui-design-system/index.ts",
+    "unresolvedTo": "@lib/tamagui-design-system",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/InfraDashboardScreen.tsx",
+    "to": "../libraries/tamagui-design-system/primitives.tsx",
+    "unresolvedTo": "@lib/tamagui-design-system/primitives",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/InfraDashboardScreen.tsx",
+    "to": "features/dashboards/data/reportingGateway.ts",
+    "unresolvedTo": "./data/reportingGateway",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/InfraDashboardScreen.tsx",
+    "to": "features/dashboards/data/reportingSchema.ts",
+    "unresolvedTo": "./data/reportingSchema",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/dashboards/InfraDashboardScreen.tsx",
+    "to": "features/settings/src/index.ts",
+    "unresolvedTo": "@feature/settings",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/applyVoiceEdit.ts",
+    "to": "../libraries/voice-edit-dsl/src/index.ts",
+    "unresolvedTo": "@lib/voice-edit-dsl",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/cm6Bundle.src.ts",
+    "to": "../../node_modules/.pnpm/@codemirror+autocomplete@6.20.3/node_modules/@codemirror/autocomplete/dist/index.cjs",
+    "unresolvedTo": "@codemirror/autocomplete",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/cm6Bundle.src.ts",
+    "to": "../../node_modules/.pnpm/@codemirror+commands@6.10.4/node_modules/@codemirror/commands/dist/index.cjs",
+    "unresolvedTo": "@codemirror/commands",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/cm6Bundle.src.ts",
+    "to": "../../node_modules/.pnpm/@codemirror+lang-cpp@6.0.3/node_modules/@codemirror/lang-cpp/dist/index.cjs",
+    "unresolvedTo": "@codemirror/lang-cpp",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/cm6Bundle.src.ts",
+    "to": "../../node_modules/.pnpm/@codemirror+lang-python@6.2.1/node_modules/@codemirror/lang-python/dist/index.cjs",
+    "unresolvedTo": "@codemirror/lang-python",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/cm6Bundle.src.ts",
+    "to": "../../node_modules/.pnpm/@codemirror+language@6.12.4/node_modules/@codemirror/language/dist/index.cjs",
+    "unresolvedTo": "@codemirror/language",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/cm6Bundle.src.ts",
+    "to": "../../node_modules/.pnpm/@codemirror+state@6.7.1/node_modules/@codemirror/state/dist/index.cjs",
+    "unresolvedTo": "@codemirror/state",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/cm6Bundle.src.ts",
+    "to": "../../node_modules/.pnpm/@codemirror+theme-one-dark@6.1.3/node_modules/@codemirror/theme-one-dark/dist/index.cjs",
+    "unresolvedTo": "@codemirror/theme-one-dark",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/cm6Bundle.src.ts",
+    "to": "../../node_modules/.pnpm/@codemirror+view@6.43.6/node_modules/@codemirror/view/dist/index.cjs",
+    "unresolvedTo": "@codemirror/view",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/cm6Bundle.src.ts",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/editing.ts",
+    "to": "features/leetcode/code-editor/core/types.ts",
+    "unresolvedTo": "./types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/editorHtml.ts",
+    "to": "features/leetcode/code-editor/core/cm6Bundle.ts",
+    "unresolvedTo": "./cm6Bundle",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "to": "../../node_modules/.pnpm/react-native-webview@13.16.1_react-native@0.86.3_@babel+core@7.29.7_@react-native+metro_29af57cbe802f34cb08ac0e4e4532564/node_modules/react-native-webview/index.js",
+    "unresolvedTo": "react-native-webview",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "to": "../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.86.3_@babel+core@7._a71b1ba98a19f9077db55c4362bf342d/node_modules/react-native/index.js",
+    "unresolvedTo": "react-native",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "to": "../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "to": "../libraries/tamagui-design-system/index.ts",
+    "unresolvedTo": "@lib/tamagui-design-system",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "to": "features/leetcode/code-editor/core/editorHtml.ts",
+    "unresolvedTo": "./editorHtml",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "to": "features/leetcode/code-editor/core/editorSettings.ts",
+    "unresolvedTo": "./editorSettings",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "to": "features/leetcode/code-editor/core/types.ts",
+    "unresolvedTo": "./types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "to": "features/leetcode/domain/ports.ts",
+    "unresolvedTo": "../../domain/ports",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/editorSettings.ts",
+    "to": "../../node_modules/.pnpm/zustand@5.0.14_@types+react@19.2.17_immer@11.1.8_react@19.2.3_use-sync-external-store@1.6.0_react@19.2.3_/node_modules/zustand/index.js",
+    "unresolvedTo": "zustand",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/editorSettings.ts",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/editorSettings.ts",
+    "to": "features/leetcode/code-editor/highlighting/palettes.ts",
+    "unresolvedTo": "../highlighting/palettes",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/toolbarKeys.ts",
+    "to": "../../node_modules/.pnpm/lucide-react-native@1.17.0_patch_hash=1fc755e52ddf964b0b56abb493918a46a9aa864211172430e_1c6c806922ef1ddb25e318b3cca55bd8/node_modules/lucide-react-native/dist/cjs/lucide-react-native.js",
+    "unresolvedTo": "lucide-react-native",
+    "dependencyTypes": [
+      "npm",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/toolbarKeys.ts",
+    "to": "../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": [
+      "npm",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/toolbarKeys.ts",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/toolbarKeys.ts",
+    "to": "../libraries/tamagui-design-system/icons.ts",
+    "unresolvedTo": "@lib/tamagui-design-system/icons",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/toolbarKeys.ts",
+    "to": "features/leetcode/code-editor/core/editing.ts",
+    "unresolvedTo": "./editing",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/toolbarKeys.ts",
+    "to": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "unresolvedTo": "./EditorInput",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/toolbarKeys.ts",
+    "to": "features/leetcode/code-editor/core/types.ts",
+    "unresolvedTo": "./types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/core/toolbarKeys.ts",
+    "to": "features/leetcode/domain/index.ts",
+    "unresolvedTo": "../../domain",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/ActionToolbar.tsx",
+    "to": "../../node_modules/.pnpm/expo-clipboard@57.0.1_expo@57.0.20_react-native@0.86.3_@babel+core@7.29.7_@react-native_fe53ac0b6e4a5ca68ed94b4b44aa3e66/node_modules/expo-clipboard/build/Clipboard.js",
+    "unresolvedTo": "expo-clipboard",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/ActionToolbar.tsx",
+    "to": "../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.86.3_@babel+core@7._a71b1ba98a19f9077db55c4362bf342d/node_modules/react-native/index.js",
+    "unresolvedTo": "react-native",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/ActionToolbar.tsx",
+    "to": "../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/ActionToolbar.tsx",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/ActionToolbar.tsx",
+    "to": "../libraries/tamagui-design-system/icons.ts",
+    "unresolvedTo": "@lib/tamagui-design-system/icons",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/ActionToolbar.tsx",
+    "to": "../libraries/tamagui-design-system/index.ts",
+    "unresolvedTo": "@lib/tamagui-design-system",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/ActionToolbar.tsx",
+    "to": "features/leetcode/code-editor/core/editing.ts",
+    "unresolvedTo": "../core/editing",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/ActionToolbar.tsx",
+    "to": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "unresolvedTo": "../core/EditorInput",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/ActionToolbar.tsx",
+    "to": "features/leetcode/code-editor/core/types.ts",
+    "unresolvedTo": "../core/types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/EditorHelperRails.tsx",
+    "to": "../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/EditorHelperRails.tsx",
+    "to": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "unresolvedTo": "../core/EditorInput",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/EditorHelperRails.tsx",
+    "to": "features/leetcode/code-editor/core/types.ts",
+    "unresolvedTo": "../core/types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/EditorHelperRails.tsx",
+    "to": "features/leetcode/code-editor/helperbars/ActionToolbar.tsx",
+    "unresolvedTo": "./ActionToolbar",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/EditorHelperRails.tsx",
+    "to": "features/leetcode/code-editor/helperbars/SyntaxToolbar.tsx",
+    "unresolvedTo": "./SyntaxToolbar",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/SyntaxToolbar.tsx",
+    "to": "../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/SyntaxToolbar.tsx",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/SyntaxToolbar.tsx",
+    "to": "../libraries/tamagui-design-system/icons.ts",
+    "unresolvedTo": "@lib/tamagui-design-system/icons",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/SyntaxToolbar.tsx",
+    "to": "../libraries/tamagui-design-system/index.ts",
+    "unresolvedTo": "@lib/tamagui-design-system",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/SyntaxToolbar.tsx",
+    "to": "features/leetcode/code-editor/core/EditorInput.tsx",
+    "unresolvedTo": "../core/EditorInput",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/SyntaxToolbar.tsx",
+    "to": "features/leetcode/code-editor/core/toolbarKeys.ts",
+    "unresolvedTo": "../core/toolbarKeys",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/SyntaxToolbar.tsx",
+    "to": "features/leetcode/code-editor/core/types.ts",
+    "unresolvedTo": "../core/types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/SyntaxToolbar.tsx",
+    "to": "features/leetcode/domain/index.ts",
+    "unresolvedTo": "../../domain",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/helperbars/SyntaxToolbar.tsx",
+    "to": "features/leetcode/state/toolbarConfigStore.ts",
+    "unresolvedTo": "../../state/toolbarConfigStore",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/code-editor/highlighting/palettes.ts",
+    "to": "../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.86.3_@babel+core@7._a71b1ba98a19f9077db55c4362bf342d/node_modules/react-native/index.js",
+    "unresolvedTo": "react-native",
+    "dependencyTypes": [
+      "npm",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/index.ts",
+    "to": "features/leetcode/plan/state/planStore.ts",
+    "unresolvedTo": "./state/planStore",
+    "dependencyTypes": [
+      "local",
+      "export"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/index.ts",
+    "to": "features/leetcode/plan/ui/PlanTab.tsx",
+    "unresolvedTo": "./ui/PlanTab",
+    "dependencyTypes": [
+      "local",
+      "export"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/planStore.ts",
+    "to": "../../node_modules/.pnpm/@react-native-async-storage+async-storage@2.2.0_react-native@0.86.3_@babel+core@7.29.7__e331857d0c5aa37f89b29f1da94edbbd/node_modules/@react-native-async-storage/async-storage/lib/commonjs/index.js",
+    "unresolvedTo": "@react-native-async-storage/async-storage",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/planStore.ts",
+    "to": "../../node_modules/.pnpm/zod@4.4.3/node_modules/zod/index.cjs",
+    "unresolvedTo": "zod",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/planStore.ts",
+    "to": "../../node_modules/.pnpm/zustand@5.0.14_@types+react@19.2.17_immer@11.1.8_react@19.2.3_use-sync-external-store@1.6.0_react@19.2.3_/node_modules/zustand/index.js",
+    "unresolvedTo": "zustand",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/planStore.ts",
+    "to": "../../node_modules/.pnpm/zustand@5.0.14_@types+react@19.2.17_immer@11.1.8_react@19.2.3_use-sync-external-store@1.6.0_react@19.2.3_/node_modules/zustand/middleware.js",
+    "unresolvedTo": "zustand/middleware",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/planStore.ts",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/planStore.ts",
+    "to": "../libraries/voice-edit-dsl/src/index.ts",
+    "unresolvedTo": "@lib/voice-edit-dsl",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/useLiveTranscript.ts",
+    "to": "../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.86.3_@babel+core@7._a71b1ba98a19f9077db55c4362bf342d/node_modules/react-native/index.js",
+    "unresolvedTo": "react-native",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/useLiveTranscript.ts",
+    "to": "../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/useLiveTranscript.ts",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/useLiveTranscript.ts",
+    "to": "features/leetcode/data/voiceEditIdentity.ts",
+    "unresolvedTo": "../../data/voiceEditIdentity",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/useLiveTranscript.ts",
+    "to": "features/leetcode/di/LeetCodeContainer.tsx",
+    "unresolvedTo": "../../di/LeetCodeContainer",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/useLiveTranscript.ts",
+    "to": "features/leetcode/state/useVoiceRecording.ts",
+    "unresolvedTo": "../../state/useVoiceRecording",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/usePlanRealize.ts",
+    "to": "../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.86.3_@babel+core@7._a71b1ba98a19f9077db55c4362bf342d/node_modules/react-native/index.js",
+    "unresolvedTo": "react-native",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/usePlanRealize.ts",
+    "to": "../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/usePlanRealize.ts",
+    "to": "../libraries/logging/src/index.ts",
+    "unresolvedTo": "@lib/logging",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/usePlanRealize.ts",
+    "to": "../libraries/voice-edit-dsl/src/index.ts",
+    "unresolvedTo": "@lib/voice-edit-dsl",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/usePlanRealize.ts",
+    "to": "features/leetcode/data/voiceEditIdentity.ts",
+    "unresolvedTo": "../../data/voiceEditIdentity",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/usePlanRealize.ts",
+    "to": "features/leetcode/data/voiceEditTransport.ts",
+    "unresolvedTo": "../../data/voiceEditTransport",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/usePlanRealize.ts",
+    "to": "features/leetcode/di/LeetCodeContainer.tsx",
+    "unresolvedTo": "../../di/LeetCodeContainer",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/usePlanRealize.ts",
+    "to": "features/leetcode/plan/state/planStore.ts",
+    "unresolvedTo": "../state/planStore",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/ui/PlanTab.tsx",
+    "to": "../../node_modules/.pnpm/react-native@0.86.3_@babel+core@7.29.7_@react-native+metro-config@0.86.3_@babel+core@7._a71b1ba98a19f9077db55c4362bf342d/node_modules/react-native/index.js",
+    "unresolvedTo": "react-native",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/ui/PlanTab.tsx",
+    "to": "../../node_modules/.pnpm/react@19.2.3/node_modules/react/index.js",
+    "unresolvedTo": "react",
+    "dependencyTypes": [
+      "npm",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/ui/PlanTab.tsx",
+    "to": "../libraries/tamagui-design-system/icons.ts",
+    "unresolvedTo": "@lib/tamagui-design-system/icons",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/ui/PlanTab.tsx",
+    "to": "../libraries/tamagui-design-system/index.ts",
+    "unresolvedTo": "@lib/tamagui-design-system",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/ui/PlanTab.tsx",
+    "to": "../libraries/tamagui-design-system/primitives.tsx",
+    "unresolvedTo": "@lib/tamagui-design-system/primitives",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/ui/PlanTab.tsx",
+    "to": "../libraries/voice-edit-dsl/src/index.ts",
+    "unresolvedTo": "@lib/voice-edit-dsl",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/ui/PlanTab.tsx",
+    "to": "features/leetcode/plan/state/planStore.ts",
+    "unresolvedTo": "../state/planStore",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/ui/PlanTab.tsx",
+    "to": "features/leetcode/plan/state/useLiveTranscript.ts",
+    "unresolvedTo": "../state/useLiveTranscript",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/ui/PlanTab.tsx",
+    "to": "features/leetcode/plan/state/usePlanRealize.ts",
+    "unresolvedTo": "../state/usePlanRealize",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "cycle",
+    "from": "lib/device-lab/alert.ts",
+    "to": "lib/device-lab/index.ts",
+    "unresolvedTo": "./index",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "lib/device-lab/index.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      },
+      {
+        "name": "lib/device-lab/alert.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/routes/_layout.tsx",
+    "to": "features/leetcode/data/ExpoAudioRecorderAdapter.tsx",
+    "unresolvedTo": "../data/ExpoAudioRecorderAdapter",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "routes-imports-di-ui"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/routes/[id]/description.tsx",
+    "to": "features/leetcode/data/problemCatalog.ts",
+    "unresolvedTo": "../../data/problemCatalog",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "routes-imports-di-ui"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/routes/[id]/history.tsx",
+    "to": "features/leetcode/state/codeHistoryRequestStore.ts",
+    "unresolvedTo": "../../state/codeHistoryRequestStore",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "routes-imports-di-ui"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/state/useVoiceEdit.ts",
+    "to": "features/leetcode/data/voiceEditIdentity.ts",
+    "unresolvedTo": "../data/voiceEditIdentity",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/state/useVoiceEdit.ts",
+    "to": "features/leetcode/di/LeetCodeContainer.tsx",
+    "unresolvedTo": "../di/LeetCodeContainer",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/state/useVoiceRecording.ts",
+    "to": "features/leetcode/di/LeetCodeContainer.tsx",
+    "unresolvedTo": "../di/LeetCodeContainer",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/ui/AlternativePicker.tsx",
+    "to": "features/leetcode/data/voiceEditIdentity.ts",
+    "unresolvedTo": "../data/voiceEditIdentity",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/ui/LoginScreen.tsx",
+    "to": "features/leetcode/di/LeetCodeContainer.tsx",
+    "unresolvedTo": "../di/LeetCodeContainer",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/ui/ProblemEditorScreen.tsx",
+    "to": "features/leetcode/data/problemCatalog.ts",
+    "unresolvedTo": "../data/problemCatalog",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/ui/ProblemEditorScreen.tsx",
+    "to": "features/leetcode/data/voiceEditIdentity.ts",
+    "unresolvedTo": "../data/voiceEditIdentity",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/ui/ProblemEditorScreen.tsx",
+    "to": "features/leetcode/di/LeetCodeContainer.tsx",
+    "unresolvedTo": "../di/LeetCodeContainer",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/ui/ProblemListScreen.tsx",
+    "to": "features/leetcode/data/problemCatalog.ts",
+    "unresolvedTo": "../data/problemCatalog",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/tamil-writing/ui/TamilCourseScreen.tsx",
+    "to": "features/tamil-writing/data/tamilCourse.ts",
+    "unresolvedTo": "../data/tamilCourse",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/tamil-writing/ui/TamilLessonScreen.tsx",
+    "to": "features/tamil-writing/data/tamilCourse.ts",
+    "unresolvedTo": "../data/tamilCourse",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/tamil-writing/ui/TamilReviewScreen.tsx",
+    "to": "features/tamil-writing/data/tamilCourse.ts",
+    "unresolvedTo": "../data/tamilCourse",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/tamil-writing/ui/TamilWriteScreen.tsx",
+    "to": "features/tamil-writing/data/tamilWritingCheck.ts",
+    "unresolvedTo": "../data/tamilWritingCheck",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  }
+]

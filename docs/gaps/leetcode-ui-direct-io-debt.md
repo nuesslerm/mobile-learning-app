@@ -42,7 +42,7 @@ Out of date above:
 
 ## Re-checked 2026-10-20 (D4b)
 
-The oxlint rule `no-direct-io-in-feature-ui` is gone (it enforced a layering convention, and the review found nothing it caught that the rest of the gates miss). The import half lives on in dependency-cruiser's `ui-never-imports-data` (`frontend/mla-tamagui/.dependency-cruiser.cjs`, run by `pnpm --filter mla-tamagui run arch`) with the same three files exempt, so the debt above is unchanged: those three files still import `../data/` or `react-native-webview`.
+The oxlint rule `no-direct-io-in-feature-ui` is gone (it enforced a layering convention, and the review found nothing it caught that the rest of the gates miss). The import half lives on in dependency-cruiser's `ui-imports-domain-state` rule from the `hexagonalFeature` preset (`frontend/mla-tamagui/.dependency-cruiser.cjs`, run by `pnpm --filter mla-tamagui run lint`) with those files in the known-violations baseline, so the debt above is unchanged: those three files still import `../data/` or `react-native-webview`.
 
 ## Re-checked 2026-10-21
 

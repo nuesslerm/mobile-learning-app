@@ -1,0 +1,428 @@
+[
+  {
+    "type": "dependency",
+    "from": "src/fixtures/dispatchRuns.ts",
+    "to": "src/domain/dispatchRuns.ts",
+    "unresolvedTo": "../domain/dispatchRuns",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/fixtures/index.ts",
+    "to": "src/fixtures/dispatchRuns.ts",
+    "unresolvedTo": "./dispatchRuns",
+    "dependencyTypes": [
+      "local",
+      "export"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/fixtures/index.ts",
+    "to": "src/fixtures/serverConfig.ts",
+    "unresolvedTo": "./serverConfig",
+    "dependencyTypes": [
+      "local",
+      "export"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/fixtures/index.ts",
+    "to": "src/fixtures/threads.ts",
+    "unresolvedTo": "./threads",
+    "dependencyTypes": [
+      "local",
+      "export"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/fixtures/serverConfig.ts",
+    "to": "../../../libraries/remote-chat-agent-contracts/src/orchestration/index.ts",
+    "unresolvedTo": "@app/remote-chat-agent-contracts/orchestration",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/fixtures/threads.ts",
+    "to": "../../../libraries/remote-chat-agent-contracts/src/orchestration/index.ts",
+    "unresolvedTo": "@app/remote-chat-agent-contracts/orchestration",
+    "dependencyTypes": [
+      "aliased",
+      "aliased-tsconfig",
+      "aliased-tsconfig-paths",
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "cycle",
+    "from": "src/domain/threadFeed.ts",
+    "to": "src/domain/workLog.ts",
+    "unresolvedTo": "./workLog",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "src/domain/workLog.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      },
+      {
+        "name": "src/domain/threadFeed.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/useGateway.ts",
+    "to": "../../../libraries/app-di/src/index.tsx",
+    "unresolvedTo": "@lib/app-di",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "only-di-reads-app-di"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/ui/DispatchRunScreen.tsx",
+    "to": "../../../libraries/app-di/src/index.tsx",
+    "unresolvedTo": "@lib/app-di",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "only-di-reads-app-di"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/ui/ThreadListScreen.tsx",
+    "to": "../../../libraries/app-di/src/index.tsx",
+    "unresolvedTo": "@lib/app-di",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "only-di-reads-app-di"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/routes/[threadId]/settings.tsx",
+    "to": "src/state/threadSettingsRequestStore.ts",
+    "unresolvedTo": "../../state/threadSettingsRequestStore",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "routes-imports-di-ui"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/dispatchRunsStore.ts",
+    "to": "src/data/dispatchRunsGateway.ts",
+    "unresolvedTo": "../data/dispatchRunsGateway",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/gatewayStore.ts",
+    "to": "src/data/orchestrationGateway.ts",
+    "unresolvedTo": "../data/orchestrationGateway",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/outboxStore.ts",
+    "to": "src/data/outboxStorage.ts",
+    "unresolvedTo": "../data/outboxStorage",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/serverConfigStore.ts",
+    "to": "src/data/orchestrationGateway.ts",
+    "unresolvedTo": "../data/orchestrationGateway",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/threadShellStore.ts",
+    "to": "src/data/orchestrationGateway.ts",
+    "unresolvedTo": "../data/orchestrationGateway",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/useDispatchRuns.ts",
+    "to": "src/data/dispatchRunsGateway.ts",
+    "unresolvedTo": "../data/dispatchRunsGateway",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/useGateway.ts",
+    "to": "src/data/codingAgentConfig.ts",
+    "unresolvedTo": "../data/codingAgentConfig",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/useGateway.ts",
+    "to": "src/data/orchestrationGateway.ts",
+    "unresolvedTo": "../data/orchestrationGateway",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/useGateway.ts",
+    "to": "src/data/wsGateway.ts",
+    "unresolvedTo": "../data/wsGateway",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/useShellSubscription.ts",
+    "to": "src/data/orchestrationGateway.ts",
+    "unresolvedTo": "../data/orchestrationGateway",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/useThreadCommands.ts",
+    "to": "src/data/orchestrationGateway.ts",
+    "unresolvedTo": "../data/orchestrationGateway",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/useThreadSubscription.ts",
+    "to": "src/data/orchestrationGateway.ts",
+    "unresolvedTo": "../data/orchestrationGateway",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/ui/ConnectionBanner.tsx",
+    "to": "src/data/orchestrationGateway.ts",
+    "unresolvedTo": "../data/orchestrationGateway",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/ui/DispatchRunScreen.tsx",
+    "to": "src/data/dispatchRunsGateway.ts",
+    "unresolvedTo": "../data/dispatchRunsGateway",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/ui/DispatchRunScreen.tsx",
+    "to": "src/data/orchestrationGateway.ts",
+    "unresolvedTo": "../data/orchestrationGateway",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/ui/ThreadListScreen.tsx",
+    "to": "src/data/orchestrationGateway.ts",
+    "unresolvedTo": "../data/orchestrationGateway",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/ui/ThreadSettingsSheet.tsx",
+    "to": "src/data/codingAgentConfig.ts",
+    "unresolvedTo": "../data/codingAgentConfig",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "ui-imports-domain-state"
+    }
+  }
+]

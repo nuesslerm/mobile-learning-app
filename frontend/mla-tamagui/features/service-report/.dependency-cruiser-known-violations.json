@@ -1,0 +1,44 @@
+[
+  {
+    "type": "dependency",
+    "from": "src/state/useHealthReportHistory.ts",
+    "to": "../../../libraries/app-di/src/index.tsx",
+    "unresolvedTo": "@lib/app-di",
+    "dependencyTypes": [
+      "undetermined",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "only-di-reads-app-di"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/useGoldenScreenshotComments.ts",
+    "to": "src/data/goldenScreenshotCommentsClient.ts",
+    "unresolvedTo": "../data/goldenScreenshotCommentsClient",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/state/useHealthReportHistory.ts",
+    "to": "src/data/ordsClient.ts",
+    "unresolvedTo": "../data/ordsClient",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "state-imports-domain"
+    }
+  }
+]
