@@ -1,4 +1,4 @@
-import { LoadSkiaWeb, WithSkiaWeb } from '@/lib/skiaWeb';
+import { LoadSkiaWeb, WithSkiaWeb } from '@lib/tamagui-design-system/lib/skiaWeb';
 import {
   Canvas,
   Circle,

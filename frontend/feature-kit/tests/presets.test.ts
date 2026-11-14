@@ -101,14 +101,14 @@ for (const { preset, config, rules, entries = ['src'] } of CASES) describe(prese
 const kit = path.join(planted, '..', '..');
 const frontend = path.join(kit, '..');
 
-function oxlintRules(variant: 'clean' | 'dirty'): Record<string, string[]> {
+function oxlintRules(variant: 'clean' | 'dirty', fixture = 'oxlint', config = path.join(frontend, '.oxlintrc.json')): Record<string, string[]> {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'oxlint-planted-'));
   try {
-    cpSync(path.join(planted, 'oxlint', variant), dir, { recursive: true });
-    const config = readFileSync(path.join(frontend, '.oxlintrc.json'), 'utf8')
+    cpSync(path.join(planted, fixture, variant), dir, { recursive: true });
+    const configText = readFileSync(config, 'utf8')
       .replace('./libraries/eslint-plugin-mobile-learn', path.join(frontend, 'libraries', 'eslint-plugin-mobile-learn'))
       .replace('"typeAware": true', '"typeAware": false');
-    writeFileSync(path.join(dir, '.oxlintrc.json'), config);
+    writeFileSync(path.join(dir, '.oxlintrc.json'), configText);
     const run = spawnSync(path.join(frontend, 'mla-tamagui', 'node_modules', '.bin', 'oxlint'), ['-c', '.oxlintrc.json', '--format=unix', '.'], { cwd: dir, encoding: 'utf8' });
     const found: Record<string, string[]> = {};
     for (const line of run.stdout.split('\n')) {
@@ -135,6 +135,24 @@ describe('oxlint arch overrides', () => {
       'libraries/gesture-geometry/src/b.ts': ['no-restricted-imports'],
       'mla-tamagui/tests/flow/spy.flow.test.tsx': ['no-restricted-properties'],
       'libraries/gesture-geometry/src/m.test.ts': ['no-restricted-properties'],
+    });
+  });
+});
+
+describe('oxlint type-4 tool rules (.oxlintrc.arch.json)', () => {
+  const arch = path.join(frontend, '..', '.oxlintrc.arch.json');
+  it('Given a core that uses node:path, node:url and node:crypto, When linted, Then nothing is reported', () => {
+    assert.deepEqual(oxlintRules('clean', 'oxlintArch', arch), {});
+  });
+  it('Given the offending lines, When linted, Then each file reports exactly its rule', () => {
+    assert.deepEqual(oxlintRules('dirty', 'oxlintArch', arch), {
+      'src/core/proc.mjs': ['no-restricted-globals'],
+      'src/core/viaGlobal.mjs': ['no-restricted-properties'],
+      'src/core/nodeFs.mjs': ['no-restricted-imports'],
+      'src/core/bareFs.mjs': ['no-restricted-imports'],
+      'src/core/react.mjs': ['no-restricted-imports'],
+      'src/core/toAdapter.mjs': ['no-restricted-imports'],
+      'src/ui/toAdapter.mjs': ['no-restricted-imports'],
     });
   });
 });

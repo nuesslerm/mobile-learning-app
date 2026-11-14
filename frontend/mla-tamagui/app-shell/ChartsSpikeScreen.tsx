@@ -1,4 +1,4 @@
-import { LoadSkiaWeb, WithSkiaWeb } from '@/lib/skiaWeb';
+import { LoadSkiaWeb, WithSkiaWeb } from '@lib/tamagui-design-system/lib/skiaWeb';
 import { useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 import { Text, View } from '@lib/tamagui-design-system/primitives';

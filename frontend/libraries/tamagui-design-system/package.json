@@ -12,6 +12,10 @@
     "./theme": "./theme/index.ts",
     "./theme/*": "./theme/*.ts",
     "./primitives": "./primitives.tsx",
+    "./lib/skiaWeb": {
+      "browser": "./lib/skiaWeb.web.ts",
+      "default": "./lib/skiaWeb.ts"
+    },
     "./lib/*": "./lib/*.ts"
   },
   "scripts": {

@@ -6,8 +6,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ExpoAudioRecorderProvider,
   useExpoAudioRecordingPort,
-} from '../../features/leetcode/data/ExpoAudioRecorderAdapter';
-import { forgetLoggedLines, loggedLines } from './loggedLines';
+} from '../ExpoAudioRecorderAdapter';
+import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
 
 function Wrapper({ children }: { children: ReactNode }) {
   return (

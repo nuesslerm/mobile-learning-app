@@ -1,0 +1,51 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  // Type 4 (small tool): `src/core/` holds the rules and takes its ports as parameters; `src/ui/` exists only for a page.
+  // Run by each tool's `lint` with `-c ../../.oxlintrc.arch.json` (docs/solutions/architecture/hexagonal-architecture-by-package-type.md).
+  "rules": {},
+  "overrides": [
+    {
+      // core imports the core, node:path, node:url and node:crypto only; no ambient globals, directly or through globalThis
+      "files": ["**/src/core/**"],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          { "name": "process", "message": "core reads no process state; an adapter passes values in." },
+          { "name": "window", "message": "core touches no page globals." },
+          { "name": "document", "message": "core touches no page globals." },
+          { "name": "location", "message": "core touches no page globals." }
+        ],
+        "no-restricted-properties": [
+          "error",
+          { "object": "globalThis", "property": "process", "message": "core reads no process state." },
+          { "object": "globalThis", "property": "window", "message": "core touches no page globals." },
+          { "object": "globalThis", "property": "document", "message": "core touches no page globals." },
+          { "object": "globalThis", "property": "location", "message": "core touches no page globals." }
+        ],
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "regex": "^(node:)?(assert|buffer|child_process|cluster|dgram|dns|events|fs|fs/promises|http|http2|https|module|net|os|perf_hooks|process|readline|stream|timers|tls|tty|util|v8|vm|worker_threads|zlib)$",
+                "message": "core imports only node:path, node:url and node:crypto from node; I/O is an adapter's job."
+              },
+              { "regex": "^react(-dom|-native)?(/.*)?$", "message": "core is not a UI." },
+              { "regex": "(^|/)(adapters|ui)(/|$)", "message": "core never imports an adapter or the page." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // ui is a page: it reaches the core, never an adapter
+      "files": ["**/src/ui/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          { "patterns": [{ "regex": "(^|/)adapters(/|$)", "message": "ui reaches the core, never an adapter; an entry file composes them." }] }
+        ]
+      }
+    }
+  ]
+}
