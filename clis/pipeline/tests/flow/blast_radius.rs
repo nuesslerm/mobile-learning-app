@@ -300,3 +300,22 @@ fn an_unused_workspace_dependency_passes_only_while_listed_with_a_reason_and_a_s
     assert_eq!(r.exit_code, 1, "{}", r.stderr);
     assert!(r.stderr.contains("allowed_unused `app -> base` is no longer an unused"), "{}", r.stderr);
 }
+
+#[test]
+fn a_dependency_named_in_code_by_the_library_name_of_the_crate_it_points_at_is_used() {
+    // Given a crate `user` that depends on `kit-core`, whose `[lib] name` is `kit`, and names only `kit::` in its source
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    krate(root, "kit-core", &[]);
+    put(root, "clis/kit-core/Cargo.toml", "[package]\nname = \"kit-core\"\n[lib]\nname = \"kit\"\n");
+    krate(root, "user", &[]);
+    put(root, "clis/user/Cargo.toml", "[package]\nname = \"user\"\n[dependencies]\nkit-core = { path = \"../kit-core\" }\n");
+    put(root, "clis/user/src/lib.rs", "use kit::thing;\n");
+    budget(root, json!({ "kit-core": 1, "user": 0 }), json!({}));
+
+    // When the check runs
+    let r = run(root, "--blast-radius");
+
+    // Then the dependency is not reported as unused
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+}

@@ -52,6 +52,8 @@ struct Dep {
     key: String,
     production: bool,
     target: Option<String>,
+    // the target crate's `[lib] name`, which its dependants use in code when it differs from the package name
+    lib: Option<String>,
 }
 
 /// The crates of the repo and the edges between them.
@@ -99,6 +101,10 @@ pub fn load(root: &Path) -> Graph {
             Some((dir, (id, name)))
         })
         .collect();
+    let lib_of: BTreeMap<&str, String> = packages
+        .iter()
+        .filter_map(|(d, (id, _))| manifests.get(*d).and_then(|m| m.get("lib")).and_then(|l| l.get("name")).and_then(Value::as_str).map(|n| (id.as_str(), n.to_string())))
+        .collect();
     let by_dir: BTreeMap<&PathBuf, &str> = packages.iter().map(|(d, (id, _))| (*d, id.as_str())).collect();
     let by_name: BTreeMap<(PathBuf, &str), &str> = packages.iter().map(|(d, (id, name))| ((workspace_of(d, &roots), name.as_str()), id.as_str())).collect();
     let (mut members, mut sizes) = (Vec::new(), BTreeMap::new());
@@ -117,7 +123,8 @@ pub fn load(root: &Path) -> Graph {
                     let package = base.get("package").and_then(Value::as_str).unwrap_or(key);
                     let by_path = base.get("path").and_then(Value::as_str).and_then(|p| by_dir.get(&normalize(&from.join(p))));
                     let target = by_path.or_else(|| by_name.get(&(workspace.clone(), package))).filter(|t| **t != id.as_str()).map(|t| t.to_string());
-                    deps.push(Dep { key: key.clone(), production, target });
+                    let lib = target.as_deref().and_then(|t| lib_of.get(t)).cloned();
+                    deps.push(Dep { key: key.clone(), production, target, lib });
                 }
             }
         };
@@ -314,7 +321,13 @@ fn unused(graph: &Graph, local_only: bool) -> Vec<(String, String)> {
     for member in &graph.members {
         let mut words = BTreeSet::new();
         rust_words(&member.dir, &member.dir, &mut words);
-        let keys: BTreeSet<&str> = member.deps.iter().filter(|d| !local_only || d.target.is_some()).map(|d| d.key.as_str()).filter(|key| !words.contains(&key.replace('-', "_"))).collect();
+        let keys: BTreeSet<&str> = member
+            .deps
+            .iter()
+            .filter(|d| !local_only || d.target.is_some())
+            .filter(|d| !words.contains(&d.key.replace('-', "_")) && !d.lib.as_ref().is_some_and(|l| words.contains(l)))
+            .map(|d| d.key.as_str())
+            .collect();
         found.extend(keys.into_iter().map(|dep| (member.id.clone(), dep.to_string())));
     }
     found
