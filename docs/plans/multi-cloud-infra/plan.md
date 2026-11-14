@@ -43,9 +43,10 @@ Terraform root `infra/oracle-cloud` (A1 shape, VCN, buckets, quota and budget gu
 
 - One value per role and plane, the scheme picks the adapter: `par+https://…` (today), `dav+https://host:port/o/` (bearer server), `s3://bucket/prefix?endpoint=…&region=…&path_style=1&conditional=0` (R2, Hetzner Object Storage, B2, AWS, MinIO), `file:///dir`.
 - Read and write stay separate credentials, and write stays dev-push only (the write secret is withheld elsewhere). Tokens and S3 keys never go in the URL (error scrubbing redacts URLs).
-- A comma list is a priority list: primary first, fallback after. The legacy keys (`BUILD_CACHE_*_PAR_URL`, `VERIFICATION_ARTIFACTS_*`, `GOLDEN_SCREENSHOTS_*`) stay as aliases.
-- An optional store (a laptop that may be off) degrades to cold, and `ci_cache_health` reports it as a note, not a failure (today it treats unreachable as red).
-- Adapters: generalise `par.rs` into `http.rs` with an `Auth` strategy (None = PAR, Bearer, SigV4); S3 SigV4 hand-rolled on `hmac` and `sha2` (about 150 lines, UNSIGNED-PAYLOAD over HTTPS); a `wf bucket serve --dir --listen --token-file` verb on `tiny_http` for a laptop or any host. Callers hard-coded to `OciParStore` (`wf-bucket/src/cache.rs`, `ci_preflight.rs`) take the resolved store.
+- A comma list names the stores of a role, all of them real members: reads try them in order, writes go to every one. It is not a fallback chain. The legacy keys (`BUILD_CACHE_*_PAR_URL`, `VERIFICATION_ARTIFACTS_*`, `GOLDEN_SCREENSHOTS_*`) stay as aliases.
+- A store is declared and then required, or it is not declared. There is no optional store: a declared store that is unreachable fails `ci_cache_health` as today, so a cold cache is never silent. The only other state is no store declared, which is `WF_BLOB_CACHE=off`.
+- A laptop is therefore either wired in properly as a store (always on, a stable tailnet name, an ACL rule for the runners, a token) or it is a development host (the `local` profile in section 5), not a CI store.
+- Adapters: generalise `par.rs` into `http.rs` with an `Auth` strategy (None = PAR, Bearer, SigV4); S3 SigV4 hand-rolled on `hmac` and `sha2` (about 150 lines, UNSIGNED-PAYLOAD over HTTPS); a `wf bucket serve --dir --listen --token-file` verb on `tiny_http` for any always-on host (a laptop only if it is wired in as one). Callers hard-coded to `OciParStore` (`wf-bucket/src/cache.rs`, `ci_preflight.rs`) take the resolved store.
 
 ### 4. Images follow the host architecture
 
@@ -74,7 +75,7 @@ Terraform root `infra/oracle-cloud` (A1 shape, VCN, buckets, quota and budget gu
 
 Each unit is 1 to 3 files, flow-tested, landed on `dev`.
 
-1. Blob adapters (no account needed): `http.rs` with `Auth`, SigV4 against an in-process S3 double, `wf bucket serve`; the scheme resolver and priority list; callers take the resolved store; optional-store rule in `ci_cache_health`; flow tests with the fake PAR server pattern and an S3 double. Then `WF_BLOB_CACHE=off` can go.
+1. Blob adapters (no account needed): `http.rs` with `Auth`, SigV4 against an in-process S3 double, `wf bucket serve`; the scheme resolver and the store list; callers take the resolved store; flow tests with the fake PAR server pattern and an S3 double. Then `WF_BLOB_CACHE=off` can go.
 2. Host profiles: `infra/hosts.json`, the validator, generated allow-list, `--host` in `wf-vmops` and the literals.
 3. Cloud-init and provider modules: extract `infra/modules/cloud-init`, `host-oracle` (a refactor of the existing code, behaviour unchanged), `stacks/main`; then `host-hetzner`; S3-shaped state restore.
 4. `wf vm` verbs per provider: `creds sync --provider`, `terraform --stack`, `HostPower` adapters.
