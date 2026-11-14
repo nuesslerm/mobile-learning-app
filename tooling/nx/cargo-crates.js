@@ -343,7 +343,7 @@ exports.createNodes = [
         ? { 'cargo-unit': rustTask(checks, `cargo test --locked -p ${c.name} ${existsSync(join(root, c.dir, 'src', 'lib.rs')) ? '--lib' : '--bins'} --manifest-path ${c.manifest}`) }
         : {};
       const clippy = {
-        'cargo-clippy': rustTask(checks, `cargo clippy --locked -p ${c.name} --all-targets --manifest-path ${c.manifest} -- -D warnings`),
+        'cargo-clippy': rustTask([...checks, 'archRules'], `cargo clippy --locked -p ${c.name} --all-targets --manifest-path ${c.manifest} -- -D warnings`),
       };
       const own = (f) => join(c.dir, f);
       const testTarget = (file, command, inputs) =>

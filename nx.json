@@ -45,6 +45,9 @@
       "{workspaceRoot}/clis/sgconfig.yml",
       "{workspaceRoot}/backend/arch-rules/**",
       "{workspaceRoot}/backend/arch-tests/**",
+      "{workspaceRoot}/backend/arch-utils/**",
+      "{workspaceRoot}/clis/arch-rules/**",
+      "{workspaceRoot}/clis/arch-utils/**",
       "{workspaceRoot}/clis/rule-tests/**"
     ],
     "default": [
