@@ -85,3 +85,22 @@ Cause groups of the breaking rows (phone rows only: `orca-methods.json` marks 29
 | `orca-crawl` (3,682 compared) | 658 | 613 | 2,669 | 2,618 | 26 | 24 |
 
 Together the three groups removed 68 breaking interactions (23 in `orca-recorded`, 45 in `orca-crawl`) and 10 drift ones. Counts are interactions listed in `known-gaps.json` by severity. Left in the largest unfixable-here groups: unserved desktop-only rows (`method_not_found`, drift for invalid payloads, breaking for valid ones), GitHub Projects and GitLab items (rca holds no issue or project data), `agentSession.createSupport` and attachment rows (rca capability), `status.get` capabilities and degradations, the `settings.update` of `machineName`. The chain evidence for `coverage` was regenerated from a run that includes the `mimic_` tests (without them the `mobileWeb.bundle.chunk` row loses its evidence).
+
+## T3 gaps by cause (14 Nov, from `t3-crawl/known-gaps.json`: 98 groups, 859 cases, 677 breaking)
+
+Cases per class with the shared path prefix elided (a case can sit in more than one group). Causes found by reading one recorded case per class.
+
+| Cases | Severity | Difference | Cause |
+|---|---|---|---|
+| 231 | breaking | `exit.cause.[*].defect` missing | The real server decodes the command payload strictly and dies with a schema message; `t3-serve` accepts the shape and answers a declared `Fail`. Needs strict per-command validation. |
+| 156 | breaking | `exit.cause.[*].error.cause` missing | A declared error whose real form carries the underlying cause; ours omits it. |
+| 100 | drift | `exit.cause.[*].defect` changed | Same die as the first row, our message text differs from Effect's. |
+| 58 | breaking | HTTP `body` kind | Our HTTP answer has another JSON kind than the real body (auth, webhooks). |
+| 56 | breaking | `exit.value` missing | A success answer with no value where the real server returns one. |
+| 39 | breaking | `error.reason` missing | A declared error without its `reason` field. |
+| 33 | breaking | `exit.cause` missing | An exit with no cause where the real server fails. |
+| 25, 16, 8 | drift | `error.detail`, `error._tag`, `error.message` changed | Our error texts and tags differ. |
+| 13 | drift | extra `s2c` frame | We push a frame the real server does not. |
+| 13 | breaking | `values` missing | A subscription answered without its first `values`. |
+
+Rows below 10 cases (HTTP bodies `error`, `_tag`, `revoked`, `cloudUserId`, `platform.machine`, `authorization_servers`; `exit.cause.[*].error.hostId`, `projectId`; `exit.value.refs`) are single-field gaps in the same adapters. Nothing here is fixed yet.
