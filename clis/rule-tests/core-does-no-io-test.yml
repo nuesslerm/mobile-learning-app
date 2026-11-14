@@ -1,0 +1,10 @@
+id: core-does-no-io
+valid:
+  - "use std::collections::HashMap;"
+  - "fn f(out: &mut dyn std::io::Write) {}"
+invalid:
+  - "use std::fs;"
+  - "use std::{fs, io};"
+  - "fn f() { let v = std::env::var(\"X\"); }"
+  - "fn f() { std::process::Command::new(\"git\"); }"
+  - "use reqwest::Client;"

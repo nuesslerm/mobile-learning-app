@@ -10,7 +10,7 @@
     "submodule:init": "git submodule update --init --recommend-shallow --depth 1",
     "sync:agent-config": "wf agent-config sync",
     "sync:check": "wf agent-config sync --check",
-    "arch:services": "ls-lint --config .ls-lint.yml && ast-grep scan --config backend/sgconfig.yml && ast-grep test --config backend/sgconfig.yml --skip-snapshot-tests",
+    "arch:services": "ls-lint --config .ls-lint.yml && ast-grep scan --config backend/sgconfig.yml && ast-grep test --config backend/sgconfig.yml --skip-snapshot-tests && ast-grep scan --config clis/sgconfig.yml && ast-grep test --config clis/sgconfig.yml --skip-snapshot-tests",
     "lint": "oxlint -c .oxlintrc.json --deny-warnings --ignore-pattern=frontend/**",
     "typecheck": "tsc --noEmit",
     "skills:install": "skills experimental_install",
