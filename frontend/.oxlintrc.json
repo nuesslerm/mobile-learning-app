@@ -3,7 +3,7 @@
   // The React Native app, its feature packages and the frontend libraries. A rule is here only when it catches a defect
   // the typecheck, the tests and review do not, mostly one that shows only on a device. Everything is an error or off.
   "plugins": ["typescript", "react"],
-  "jsPlugins": [{ "name": "mobile-learn", "specifier": "../libraries/eslint-plugin-mobile-learn/dist/esm/index.js" }],
+  "jsPlugins": [{ "name": "mobile-learn", "specifier": "./libraries/eslint-plugin-mobile-learn/dist/esm/index.js" }],
   "categories": { "correctness": "error" },
   // type-aware rules run through oxlint-tsgolint (typescript-go) with each file's nearest tsconfig
   "options": { "typeAware": true },
