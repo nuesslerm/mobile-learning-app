@@ -11,7 +11,8 @@ use serde_json::{json, Value};
 use std::collections::{BTreeMap, HashMap};
 
 pub const REFERENCE: &str = "references/orca";
-const ROUTES_FILE: &str = "src/main/runtime/runtime-rpc/runtime-rpc-mobile-method-routing.ts";
+// Orca moved the file between releases (1.4.258: runtime/rpc/server): the first of these the checkout has is read.
+const ROUTES_FILES: [&str; 2] = ["src/main/runtime/rpc/server/runtime-rpc-mobile-method-routing.ts", "src/main/runtime/runtime-rpc/runtime-rpc-mobile-method-routing.ts"];
 const ROUTES: &str = "MOBILE_RPC_METHOD_ROUTES";
 const PHONE_DIRS: [&str; 5] = ["mobile/app", "mobile/src", "mobile/modules", "mobile/packages", "mobile/web-entry"];
 const EXTS: [&str; 6] = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".mts"];
@@ -166,8 +167,8 @@ fn allowlist(files: &BTreeMap<String, Vec<Token>>) -> Result<BTreeMap<String, (S
             }
         }
     }
-    let path = format!("{REFERENCE}/{ROUTES_FILE}");
-    let toks = files.get(&path).ok_or_else(|| format!("{path} is missing: the scan reads the phone allowlist ({ROUTES}) there"))?;
+    let path = ROUTES_FILES.iter().map(|f| format!("{REFERENCE}/{f}")).find(|p| files.contains_key(p)).unwrap_or_else(|| format!("{REFERENCE}/{}", ROUTES_FILES[0]));
+    let toks = files.get(&path).ok_or_else(|| format!("none of {ROUTES_FILES:?} exists in {REFERENCE}: the scan reads the phone allowlist ({ROUTES}) there"))?;
     let start = (0..toks.len().saturating_sub(1)).find(|&i| toks[i].ident() == Some(ROUTES)).ok_or_else(|| format!("{path} no longer declares {ROUTES}"))?;
     let open = (start..toks.len()).find(|&i| toks[i].is("(")).unwrap_or(start);
     let close = closing(toks, open);
@@ -320,7 +321,7 @@ mod tests {
     fn the_allowlist_follows_spreads_and_marks_flag_gated_entries() {
         // Given a routes map over two arrays, one spreading a third and a flag-gated pair
         let files: BTreeMap<String, Vec<Token>> = [(
-            format!("{REFERENCE}/{ROUTES_FILE}"),
+            format!("{REFERENCE}/{}", ROUTES_FILES[0]),
             lex("const SESSION = ['s.a'] as const\nexport const DESK = ['d.a', ...(FLAG ? (['d.f1', 'd.f2'] as const) : [])] as const\nexport const HOST = ['h.a', ...SESSION, 'h.b'] as const\nexport const MOBILE_RPC_METHOD_ROUTES = new Map([\n  ...DESK.map((m) => [m, 'paired-desktop'] as const),\n  ...HOST.map((m) => [m, 'execution-host'] as const)\n])\n"),
         )]
         .into();
