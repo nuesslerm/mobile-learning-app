@@ -101,6 +101,11 @@ impl Env {
         }
     }
 
+    /// The variables the real provider CLIs choose from in this flow: the process's own for a flow that holds the process environment.
+    pub fn inherited(&self) -> Vec<(String, String)> {
+        std::env::vars().collect()
+    }
+
     /// Where the providers' directories are in this flow: below the home, as the service's `Accounts::real` is given.
     pub fn providers_root(&self) -> PathBuf {
         self.home.join("providers")

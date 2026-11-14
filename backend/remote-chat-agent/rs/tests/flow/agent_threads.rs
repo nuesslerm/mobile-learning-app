@@ -64,7 +64,7 @@ async fn chain_with(env: &Env, options: Options) -> Chain {
     let cli = ScriptedCli::install();
     let path = Path::first(&cli);
     let repo = TempRepo::new();
-    let svc = service_spawning(env, options, Arc::new(Processes::at(env.providers_root().to_string_lossy())));
+    let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
     let port = svc.listen().await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
     let token = svc.mint("flow mapper").await;
@@ -397,7 +397,7 @@ async fn restarted(old: Chain, env: &Env, options: Options) -> Chain {
     let Chain { _svc, cli, repo, exec, token, _path, .. } = old;
     drop(exec);
     drop(_svc);
-    let svc = service_spawning(env, options, Arc::new(Processes::at(env.providers_root().to_string_lossy())));
+    let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
     let port = svc.listen().await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
     Chain { _svc: svc, port, cli, repo, exec: Some(exec), token, _path }
@@ -526,7 +526,7 @@ async fn restarted_with_a_late_executor(old: Chain, env: &Env, options: Options,
     let Chain { _svc, cli, repo, exec, token, _path, .. } = old;
     drop(exec);
     drop(_svc);
-    let svc = service_spawning(env, options, Arc::new(Processes::at(env.providers_root().to_string_lossy())));
+    let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
     let port = svc.listen().await;
     tokio::time::sleep(delay).await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
