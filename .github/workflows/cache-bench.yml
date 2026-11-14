@@ -80,6 +80,8 @@ jobs:
           # shellcheck source=/dev/null
           . "$BENCH_LIB"
           mark cold
+          git config --global gc.auto 0
+          git config --global maintenance.auto false
           git submodule update --init --recommend-shallow --depth 1 references/orca references/t3code
           setv cold "$(since cold)"
           setv cache_mb "$(mbof .git/modules/references)"
@@ -109,6 +111,8 @@ jobs:
           . "$BENCH_LIB"
           setv restore "$(since restore)"
           mark warm
+          git config --global gc.auto 0
+          git config --global maintenance.auto false
           git submodule update --init --recommend-shallow --depth 1 references/orca references/t3code
           setv warm "$(since warm)"
           ok=true; for t in orca t3code; do git -C "references/$t" rev-parse --verify HEAD >/dev/null 2>&1 || ok=false; done
