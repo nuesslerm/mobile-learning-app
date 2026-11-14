@@ -54,3 +54,20 @@ ls:
   backend/*/host/src:
     .dir: regex:src
     .rs: regex:(lib|proc|exec|file_store|files|docs|runs|tests)
+  libraries/hook-runtime/src:
+    .dir: kebab-case
+    .mjs: kebab-case
+    .mts: kebab-case
+    .json: kebab-case
+  scripts:
+    .dir: kebab-case
+    .mjs: kebab-case
+    .sh: kebab-case
+  scripts/*:
+    .dir: kebab-case
+    .mjs: kebab-case
+    .sh: kebab-case
+  tooling/browser-harness/*/src:
+    .dir: kebab-case
+    .ts: camelCase | PascalCase
+    .tsx: camelCase | PascalCase

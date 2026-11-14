@@ -42,7 +42,7 @@ pre-commit:
     - name: service-architecture
       # Folder layout (ls-lint) and the direction of imports between the layers (ast-grep) of the Rust services, and the purity of the wire-contract
       # crates and of rca-exec's domain module (their rules and rule tests); well under a second.
-      glob: '{backend/**/*.rs,libraries/agent-api/**/*.rs,clis/rca-exec/src/domain.rs,.ls-lint.yml,backend/sgconfig.yml,backend/arch-rules/**,backend/arch-utils/**,backend/arch-tests/**,libraries/rca-core/**/*.rs,clis/sgconfig.yml,clis/arch-rules/**,clis/arch-utils/**,clis/rule-tests/**}'
+      glob: '{backend/**/*.rs,libraries/agent-api/**/*.rs,clis/rca-exec/src/domain.rs,.ls-lint.yml,backend/sgconfig.yml,backend/arch-rules/**,backend/arch-utils/**,backend/arch-tests/**,libraries/rca-core/**/*.rs,clis/sgconfig.yml,clis/arch-rules/**,clis/arch-utils/**,clis/rule-tests/**,libraries/hook-runtime/src/**,tooling/browser-harness/*/src/**,scripts/**}'
       run: pnpm run arch:services
 
     - name: workflows
