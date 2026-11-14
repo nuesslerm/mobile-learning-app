@@ -145,7 +145,7 @@ fn handle(state: &State, request: Request) {
 fn file_of(root: &Path, key: &Key) -> Option<(PathBuf, u64)> {
     let path = root.join(key.as_str());
     let meta = std::fs::metadata(&path).ok()?;
-    meta.is_file().then(|| (path, meta.len()))
+    meta.is_file().then_some((path, meta.len()))
 }
 
 fn read(state: &State, request: Request, key: &Key) {
