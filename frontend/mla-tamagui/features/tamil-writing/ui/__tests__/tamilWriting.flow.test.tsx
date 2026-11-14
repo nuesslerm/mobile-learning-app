@@ -7,17 +7,17 @@ import {
   userEvent,
   waitFor,
 } from '@lib/flow-test-harness';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { app } from './app';
-import { forgetLoggedLines, loggedLines } from './loggedLines';
-import { useTamilProgressStore } from '../../features/tamil-writing/state/tamilProgressStore';
+import { app } from '../../../../tests/flow/app';
+import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
+import { createHttpWritingCheck } from '../../testing';
+import { useTamilProgressStore } from '../../state/tamilProgressStore';
 
 describe('Tamil writing course flow', () => {
   beforeEach(() => {
     useTamilProgressStore.setState({ characters: {}, totalAttempts: 0 });
   });
-  afterEach(() => vi.unstubAllGlobals());
 
   it('given the course catalogue, when the list renders, then every lesson gets a row with its Tamil title', async () => {
     await app.render('/tamil');
@@ -248,17 +248,12 @@ describe('Tamil writing course flow', () => {
     // Given the marker behind a gateway: one 502 page, then a verdict
     await forgetLoggedLines();
     expectWarning(/tamil\.write\.check_failed/);
-    const passThrough = globalThis.fetch;
     const answers = [
       new Response('<html>Bad Gateway</html>', { status: 502 }),
       new Response(JSON.stringify({ ok: true, score: 87, summary: 'Reads as அ.', fix: 'Longer bar.' }), { status: 200 }),
     ];
-    vi.stubGlobal('fetch', (input: RequestInfo | URL, init?: RequestInit) =>
-      String(input).endsWith('/api/tamil/check')
-        ? Promise.resolve(answers.shift() ?? Response.error())
-        : passThrough(input, init)
-    );
-    await app.render('/tamil/write/uyir-a');
+    const marker = createHttpWritingCheck('http://marker.test', (async () => answers.shift() ?? Response.error()) as typeof fetch);
+    await app.render('/tamil/write/uyir-a', { overrides: { tamilWriting: { writingCheck: marker } } });
     const surface = await waitFor(() => screen.getByTestId('TamilWriteCanvasSurface'));
     fireEvent.pointerDown(surface, { clientX: 10, clientY: 10, pointerId: 1 });
     fireEvent.pointerMove(surface, { clientX: 40, clientY: 40, pointerId: 1 });

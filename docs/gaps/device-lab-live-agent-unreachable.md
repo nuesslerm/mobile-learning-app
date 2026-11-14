@@ -3,7 +3,7 @@ status: blocked
 area: device-lab
 paths:
   - "frontend/mla-tamagui/lib/device-lab/**"
-  - "frontend/mla-tamagui/features/tamil-writing/data/tamilWritingCheck.ts"
+  - "frontend/mla-tamagui/features/tamil-writing/data/httpWritingCheck.ts"
   - "frontend/mla-tamagui/features/leetcode/data/voiceEditTransport.ts"
   - "docs/plans/device-lab/**"
   - "backend/remote-chat-agent/**"

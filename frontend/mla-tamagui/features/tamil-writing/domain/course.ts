@@ -1,4 +1,4 @@
-import type { TamilCharacter } from '../domain/characters';
+import type { TamilCharacter } from './characters';
 import {
   TAMIL_CHARACTERS,
   TAMIL_LESSONS,
@@ -8,7 +8,7 @@ import {
   lessonsBySection,
   type LessonGroup,
   type TamilLesson,
-} from '../domain/lessons';
+} from './lessons';
 
 /**
  * The course, as the UI sees it. Mirrors `ProblemCatalog`'s shape so the two

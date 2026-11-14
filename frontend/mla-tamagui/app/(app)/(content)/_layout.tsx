@@ -24,18 +24,8 @@ export default function ContentLayout() {
         name="coding-agent/runs/[runId]"
         options={{ headerShown: false }}
       />
-      {/* Both Tamil screens carry their own header: the course screen a
-          collapsing hero, the lesson screen a ScreenHeader whose title is the
-          lesson's own Tamil name. */}
-      <Stack.Screen name="tamil/index" options={{ headerShown: false }} />
-      <Stack.Screen name="tamil/[lessonId]" options={{ headerShown: false }} />
-      <Stack.Screen name="tamil/review" options={{ headerShown: false }} />
-      <Stack.Screen name="tamil/tracks/index" options={{ headerShown: false }} />
-      <Stack.Screen name="tamil/tracks/[trackId]" options={{ headerShown: false }} />
-      {/* Left unregistered, expo-router draws its own bar with the route's
-          file name -- "tamil/write/[characterId]" sat above the screen's
-          real header. */}
-      <Stack.Screen name="tamil/write/[subjectId]" options={{ headerShown: false }} />
+      {/* The Tamil screens carry their own headers; the tamil/ layout mounts the feature's container and owns the nested Stack. */}
+      <Stack.Screen name="tamil" options={{ headerShown: false }} />
       {/* settings and service-report are files in THIS group, so their
           screens register here. Registered on the root Stack instead, expo-router
           reports `No route named "settings" exists in nested children` and the

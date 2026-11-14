@@ -35,13 +35,13 @@ async function activeGuidePoints(session: FlowSession): Promise<GuidePoint[]> {
 describe('Tamil practice strokes', () => {
   beforeEach(async () => {
     const { useTamilProgressStore } = await import(
-      '../../features/tamil-writing/state/tamilProgressStore'
+      '../../state/tamilProgressStore'
     );
     useTamilProgressStore.setState({ characters: {}, totalAttempts: 0 });
   });
 
   it('given the uyir-a pad, when each wrong stroke is drawn, then it is refused with its own reason and leaves no ink', async () => {
-    const { app } = await import('./app');
+    const { app } = await import('../../../../tests/flow/app');
     const session = await app.render('/tamil/uyir-1');
     await import('@lib/flow-test-harness').then(({ waitFor }) =>
       waitFor(() => {
@@ -88,7 +88,7 @@ describe('Tamil practice strokes', () => {
   });
 
   it('given the reference stroke, when it is written, then it is accepted and the pad advances', async () => {
-    const { app } = await import('./app');
+    const { app } = await import('../../../../tests/flow/app');
     const session = await app.render('/tamil/uyir-1');
     await import('@lib/flow-test-harness').then(({ waitFor }) =>
       waitFor(() => {
@@ -115,7 +115,7 @@ describe('Tamil practice strokes', () => {
   });
 
   it('given every stroke of the letter, when they are written in order, then the letter is finished and scored', async () => {
-    const { app } = await import('./app');
+    const { app } = await import('../../../../tests/flow/app');
     const session = await app.render('/tamil/uyir-1');
     await import('@lib/flow-test-harness').then(({ waitFor }) =>
       waitFor(() => {

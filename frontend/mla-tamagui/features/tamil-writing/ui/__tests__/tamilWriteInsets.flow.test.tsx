@@ -1,7 +1,16 @@
 import { renderScreen, screen, setSafeAreaDevice } from '@lib/flow-test-harness';
 import { describe, expect, it } from 'vitest';
 
-import { TamilWriteScreen } from '../../features/tamil-writing/ui/TamilWriteScreen';
+import { TamilWritingPortsProvider } from '../../state/ports';
+import { createFakeWritingCheck } from '../../testing';
+import { TamilWriteScreen } from '../TamilWriteScreen';
+
+const ports = { writingCheck: createFakeWritingCheck([]) };
+const screenUnderTest = (
+  <TamilWritingPortsProvider value={ports}>
+    <TamilWriteScreen subjectId="uyir-a" />
+  </TamilWritingPortsProvider>
+);
 
 /** Tamagui puts a pixel padding in the class name (`_pb-34px`), where jsdom has no stylesheet to compute one from. */
 function paddingBottomAbove(testId: string): number {
@@ -18,7 +27,7 @@ describe('TamilWriteScreen bottom controls', () => {
     setSafeAreaDevice('iphone-15-pro');
 
     // When the screen renders
-    renderScreen(<TamilWriteScreen subjectId="uyir-a" />);
+    renderScreen(screenUnderTest);
 
     // Then the container holding "Check my writing" pads its bottom by at least the inset
     expect(paddingBottomAbove('TamilWriteCheck')).toBeGreaterThanOrEqual(34);
@@ -29,7 +38,7 @@ describe('TamilWriteScreen bottom controls', () => {
     setSafeAreaDevice('iphone-se');
 
     // When the screen renders
-    renderScreen(<TamilWriteScreen subjectId="uyir-a" />);
+    renderScreen(screenUnderTest);
 
     // Then the 12 px margin is kept
     expect(paddingBottomAbove('TamilWriteCheck')).toBe(12);

@@ -15,4 +15,4 @@ export { TamilWriteScreen } from './ui/TamilWriteScreen';
 export { TamilTracksScreen } from './ui/TamilTracksScreen';
 export { TamilTrackScreen } from './ui/TamilTrackScreen';
 
-export { tamilPageParams } from './data/pageParams';
+export { tamilPageParams } from './di/pageParams';

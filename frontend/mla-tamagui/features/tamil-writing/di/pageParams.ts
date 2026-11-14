@@ -1,6 +1,6 @@
 import { TRACKS } from '../domain/tracks';
 
-import { TamilCourse } from './tamilCourse';
+import { TamilCourse } from '../domain/course';
 
 /** The ids the web export writes a page for (the routes' `generateStaticParams`); an unlisted id gets the template page. */
 export const tamilPageParams = {
