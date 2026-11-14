@@ -13,8 +13,8 @@ import {
 } from '@app/remote-chat-agent-contracts/orchestration';
 import { describe, expect, it } from 'vitest';
 
-import { buildThreadFeed } from '../../domain/threadFeed';
-import { derivePendingApprovals } from '../../domain/pendingRequests';
+import { buildThreadFeed } from '../../../domain/threadFeed';
+import { derivePendingApprovals } from '../../../domain/pendingRequests';
 import { FIXTURE_THREADS, type FixtureId } from '../threads';
 
 describe('FIXTURE_THREADS', () => {

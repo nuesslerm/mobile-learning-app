@@ -26,6 +26,8 @@ type FlowRenderOptions = {
 
 type FlowRenderHookOptions = {
   overrides?: Record<string, object>;
+  /** A feature's container, mounted inside the overrides provider as its route layout is. */
+  wrapper?: ComponentType<{ children: ReactNode }>;
 };
 
 export type FlowApp = {
@@ -217,11 +219,12 @@ export function createFlowApp(cfg: CreateFlowAppConfig): FlowApp {
       return act(() => createSession(renderRoute(routeOpts)));
     },
     renderHook<R>(hook: () => R, opts: FlowRenderHookOptions = {}) {
+      const Wrapper = opts.wrapper;
       return renderHookBase(hook, {
         wrapper: ({ children }) => (
           <FlowProviders>
             <DependencyOverridesProvider overrides={opts.overrides ?? {}}>
-              {children}
+              {Wrapper ? <Wrapper>{children}</Wrapper> : children}
             </DependencyOverridesProvider>
           </FlowProviders>
         ),

@@ -12,18 +12,7 @@ export default function ContentLayout() {
     <Stack>
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="showcase" options={{ title: 'Design system' }} />
-      <Stack.Screen
-        name="coding-agent/index"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="coding-agent/[threadId]"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="coding-agent/runs/[runId]"
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="coding-agent" options={{ headerShown: false }} />
       {/* The Tamil screens carry their own headers; the tamil/ layout mounts the feature's container and owns the nested Stack. */}
       <Stack.Screen name="tamil" options={{ headerShown: false }} />
       {/* settings and service-report are files in THIS group, so their

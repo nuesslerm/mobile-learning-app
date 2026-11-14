@@ -21,7 +21,7 @@ import { ProviderName } from '@app/remote-chat-agent-contracts/orchestration';
 import { create } from 'zustand';
 import type { ServerProbeResult } from '@app/remote-chat-agent-contracts/orchestration';
 
-import type { OrchestrationGateway } from '../data/orchestrationGateway';
+import type { OrchestrationGateway } from '../domain/ports';
 
 type ServerConfigState = {
   probe: ServerProbeResult | null;

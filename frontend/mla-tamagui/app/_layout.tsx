@@ -110,7 +110,7 @@ export default function RootLayout() {
               {/* Full screens, so they keep a header -- but it has to be the
                   app's own, or the title falls back to the route pattern. */}
               <Stack.Screen
-                name="coding-agent/[threadId]/settings"
+                name="coding-agent"
                 options={{
                   presentation: 'transparentModal',
                   headerShown: false,

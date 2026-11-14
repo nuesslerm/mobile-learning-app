@@ -9,11 +9,6 @@ import {
 } from '@lib/tamagui-design-system';
 
 import { useDispatchRuns } from '../state/useDispatchRuns';
-import type { CodingAgentTransport } from '../state/gatewayStore';
-
-export type DispatchRunsSectionProps = {
-  transport: CodingAgentTransport;
-};
 
 const STATUS_DOT_COLOR = {
   running: '$accent9',
@@ -47,19 +42,10 @@ function statusColor(
   return STATUS_DOT_COLOR.finishedFailed;
 }
 
-function DispatchRunRow({
-  run,
-  transport,
-}: {
-  run: DispatchRunMeta;
-  transport: CodingAgentTransport;
-}): React.ReactElement {
+function DispatchRunRow({ run }: { run: DispatchRunMeta }): React.ReactElement {
   const costLabel =
     run.status === 'finished' && run.cost !== null ? `$${run.cost.toFixed(4)}` : null;
-  const href =
-    transport.length > 0
-      ? `/coding-agent/runs/${run.runId}?transport=${transport}`
-      : `/coding-agent/runs/${run.runId}`;
+  const href = `/coding-agent/runs/${run.runId}`;
   return (
     <ListItem
       variant="grouped"
@@ -107,10 +93,8 @@ function DispatchRunRow({
   );
 }
 
-export function DispatchRunsSection({
-  transport,
-}: DispatchRunsSectionProps): React.ReactElement | null {
-  const { runs, enabled } = useDispatchRuns(transport);
+export function DispatchRunsSection(): React.ReactElement | null {
+  const { runs, enabled } = useDispatchRuns();
   if (!enabled || runs.length === 0) {
     return null;
   }
@@ -121,7 +105,7 @@ export function DispatchRunsSection({
       </Text>
       <InsetGroup testID="DispatchRunsSection">
         {runs.map((run) => (
-          <DispatchRunRow key={run.runId} run={run} transport={transport} />
+          <DispatchRunRow key={run.runId} run={run} />
         ))}
       </InsetGroup>
     </View>

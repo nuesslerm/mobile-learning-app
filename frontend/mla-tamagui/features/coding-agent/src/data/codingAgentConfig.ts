@@ -15,32 +15,16 @@
 // site works across cold start (no token yet) and a session that has been
 // authenticated previously; a missing token is not an error — the server
 // may be running with auth disabled.
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { appConfig } from '@lib/app-config';
 import { toWsUrl } from '../domain';
-import { Logger } from '@lib/logging';
-
-export const CODING_AGENT_TOKEN_STORAGE_KEY = 'coding-agent.token';
-
-type CodingAgentStorage = {
-  getItem(key: string): Promise<string | null>;
-};
+import type { TokenStorePort } from '../domain/ports';
 
 export type CodingAgentConfig = {
   wsUrl: string;
   token?: string;
 };
 
-export type ResolveCodingAgentConfigOptions = {
-  storage?: CodingAgentStorage;
-};
-
-const defaultStorage: CodingAgentStorage = AsyncStorage;
-
-export async function resolveCodingAgentConfig(
-  options: ResolveCodingAgentConfigOptions = {},
-): Promise<CodingAgentConfig> {
-  const storage = options.storage ?? defaultStorage;
+export async function resolveCodingAgentConfig(tokenStore: TokenStorePort): Promise<CodingAgentConfig> {
   // `codingAgentWsUrl` lives behind `EXPO_PUBLIC_CODING_AGENT_WS_URL`; the
   // shared `EnvConfig` type doesn't list it yet (it's wired in a follow-up
   // plan task), so we read it through a narrow cast rather than widening
@@ -56,21 +40,6 @@ export async function resolveCodingAgentConfig(
   }
   const wsUrl =
     explicitWsUrl ?? (agentBaseUrl !== undefined ? toWsUrl(agentBaseUrl) : '');
-  const stored = await readToken(storage);
-  return stored !== undefined ? { wsUrl, token: stored } : { wsUrl };
-}
-
-async function readToken(
-  storage: CodingAgentStorage,
-): Promise<string | undefined> {
-  try {
-    const value = await storage.getItem(CODING_AGENT_TOKEN_STORAGE_KEY);
-    if (value !== null && value.length > 0) return value;
-    return undefined;
-  } catch (cause) {
-    Logger.withError(cause).withMetadata({
-      key: CODING_AGENT_TOKEN_STORAGE_KEY,
-    }).warn('coding-agent.config.token_read_failed');
-    return undefined;
-  }
+  const stored = await tokenStore.read();
+  return stored !== null ? { wsUrl, token: stored } : { wsUrl };
 }

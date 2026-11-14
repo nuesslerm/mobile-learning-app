@@ -14,4 +14,4 @@ export * from './toolPayload';
 export * from './workLog';
 export * from './wsUrl';
 
-export * from '../fixtures';
+export * from './ports';

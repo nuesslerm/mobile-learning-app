@@ -13,7 +13,7 @@ import { useEffect } from 'react';
 import type {
   OrchestrationGatewayStatus,
   OrchestrationShellListener,
-} from '../data/orchestrationGateway';
+} from '../domain/ports';
 import { useGatewayStore } from '../state/gatewayStore';
 import { useThreadShellStore } from '../state/threadShellStore';
 

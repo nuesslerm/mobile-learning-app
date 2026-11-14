@@ -25,7 +25,7 @@ import {
   loadOutbox,
   saveOutbox,
   type OutboxStorageOptions,
-} from '../data/outboxStorage';
+} from './outboxStorage';
 
 type OutboxStoreState = {
   items: OutboxItem[];

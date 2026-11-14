@@ -7,30 +7,10 @@
 // adjacent entries with the same collapse key merge, and overflow of a group
 // folds behind a `work-toggle` row.
 
+import type { ThreadFeedEntry, WorkLogEntry, WorkLogKind, WorkLogStatus } from './feedTypes';
 import type { OrchestrationThreadActivity } from './orchestration';
 
-import type { ThreadFeedEntry } from './threadFeed';
-
-export type WorkLogKind =
-  | 'command'
-  | 'file_change'
-  | 'file_read'
-  | 'web_search'
-  | 'mcp'
-  | 'tool'
-  | 'diff';
-
-export type WorkLogStatus = 'running' | 'done' | 'failed' | 'declined';
-
-export interface WorkLogEntry {
-  id: string;
-  kind: WorkLogKind;
-  title: string;
-  detail?: string;
-  status: WorkLogStatus;
-  diff?: string;
-  output?: string;
-}
+export type { WorkLogEntry, WorkLogKind, WorkLogStatus } from './feedTypes';
 
 export const MAX_VISIBLE_WORK_LOG_ENTRIES = 1;
 

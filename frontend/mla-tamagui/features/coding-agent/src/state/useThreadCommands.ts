@@ -16,7 +16,7 @@ import {
   type ThreadId,
 } from '@app/remote-chat-agent-contracts/orchestration';
 
-import type { OrchestrationGateway } from '../data/orchestrationGateway';
+import type { OrchestrationGateway } from '../domain/ports';
 import {
   getDefaultInteractionMode,
   getDefaultRuntimeMode,

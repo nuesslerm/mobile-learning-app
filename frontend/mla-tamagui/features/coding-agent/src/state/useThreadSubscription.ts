@@ -15,7 +15,7 @@ import type { ThreadId } from '@app/remote-chat-agent-contracts/orchestration';
 import type {
   OrchestrationGatewayStatus,
   OrchestrationThreadListener,
-} from '../data/orchestrationGateway';
+} from '../domain/ports';
 import { useGatewayStore } from '../state/gatewayStore';
 import {
   threadSessionFields,

@@ -26,7 +26,7 @@ import {
 } from '@app/remote-chat-agent-contracts/orchestration';
 import { create } from 'zustand';
 
-import type { OrchestrationGateway } from '../data/orchestrationGateway';
+import type { OrchestrationGateway } from '../domain/ports';
 
 export type CreateThreadInput = {
   title: string;

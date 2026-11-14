@@ -39,12 +39,8 @@ import {
   type ThreadTurnStartCommand,
   type ThreadUserInputRespondCommand,
 } from '@app/remote-chat-agent-contracts/orchestration';
-import {
-  FIXTURE_SERVER_CONFIG,
-  FIXTURE_THREADS,
-  applyThreadDetailEvent,
-  type FixtureId,
-} from '../domain';
+import { applyThreadDetailEvent } from '../domain';
+import { FIXTURE_SERVER_CONFIG, FIXTURE_THREADS, type FixtureId } from './fixtures';
 
 import type {
   OrchestrationGateway,
@@ -52,7 +48,7 @@ import type {
   OrchestrationShellListener,
   OrchestrationStatusListener,
   OrchestrationThreadListener,
-} from './orchestrationGateway';
+} from '../domain/ports';
 
 const STREAMING_TICK_MS = 400;
 const FX_THREAD_PREFIX = 'fx-thread-';

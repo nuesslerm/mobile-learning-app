@@ -1,8 +1,6 @@
 import { useCallback, useMemo } from 'react';
 import { Linking } from 'react-native';
 import { router } from 'expo-router';
-import { useDependencyOverrides } from '@lib/app-di';
-import { appConfig } from '@lib/app-config';
 import { buildDispatchRunFeed } from '../domain';
 import { Logger } from '@lib/logging';
 import {
@@ -13,10 +11,7 @@ import {
   View,
 } from '@lib/tamagui-design-system';
 
-import type { OrchestrationGateway } from '../data/orchestrationGateway';
-import { dispatchRunDashboardUrl } from '../data/dispatchRunsGateway';
 import { useDispatchRun } from '../state/useDispatchRuns';
-import type { CodingAgentTransport } from '../state/gatewayStore';
 import { ThreadFeed } from './feed/ThreadFeed';
 
 const COST_FORMAT = new Intl.NumberFormat('en-US', {
@@ -24,7 +19,6 @@ const COST_FORMAT = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 4,
 });
 
-const FIXTURE_DASHBOARD_BASE_URL = 'http://vm-ops-api-main:8080';
 
 function formatSubtitle(
   detail:
@@ -52,21 +46,7 @@ export type DispatchRunScreenProps = {
 export function DispatchRunScreen({
   runId,
 }: DispatchRunScreenProps): React.ReactElement {
-  const { gateway: overriddenGateway } =
-    useDependencyOverrides<{ gateway: OrchestrationGateway }>('coding-agent');
-  const dispatchTransport: CodingAgentTransport =
-    overriddenGateway !== undefined ? 'fixture' : 'ws';
-  const { detail, status, error, dashboardUrl } = useDispatchRun(
-    dispatchTransport,
-    runId,
-  );
-
-  const effectiveDashboardUrl = useMemo(() => {
-    if (dashboardUrl !== undefined) return dashboardUrl;
-    if (dispatchTransport !== 'fixture') return undefined;
-    const baseUrl = appConfig.vmOpsApiBaseUrl ?? FIXTURE_DASHBOARD_BASE_URL;
-    return dispatchRunDashboardUrl(baseUrl, runId);
-  }, [dashboardUrl, dispatchTransport, runId]);
+  const { detail, status, error, dashboardUrl: effectiveDashboardUrl } = useDispatchRun(runId);
 
   const feedView = useMemo(() => {
     if (detail === undefined) {

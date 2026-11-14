@@ -18,7 +18,9 @@ import { app } from './flowApp';
 import {
   createFixtureGateway,
   type FixtureGateway,
-} from '../data/fixtureGateway';
+} from '../testing/fixtureGateway';
+import { CodingAgentContainer } from '../di/CodingAgentContainer';
+import { createFixturePorts } from '../testing';
 import { useGateway } from '../state/useGateway';
 import { useThreadCommands } from '../state/useThreadCommands';
 import { useThreadFeed } from '../state/useThreadFeed';
@@ -57,7 +59,8 @@ describe('threadFlow (fixture transport)', () => {
   it('given the fixture transport for fx-thread-fx-approval, when the fixture snapshot lands, then the feed has the fixture entries with a pending approval and respondApproval dispatches thread.approval.respond', async () => {
     // Given a renderHook composition of useGateway() + useThreadSubscription + useThreadFeed + useThreadCommands for fx-thread-fx-approval, with the gateway replaced by the fixture override
     const { result } = app.renderHook(() => useThreadFlow(THREAD_ID), {
-      overrides: { 'coding-agent': { gateway: createFixtureGateway() } },
+      overrides: { 'coding-agent': createFixturePorts() },
+      wrapper: CodingAgentContainer,
     });
 
     // When the fixture gateway creates and the snapshot is applied to the thread detail store

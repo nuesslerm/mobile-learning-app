@@ -1,4 +1,4 @@
-// features/coding-agent/src/data/outboxStorage.ts
+// features/coding-agent/src/state/outboxStorage.ts
 //
 // AsyncStorage-backed persistence for the offline command queue (`OutboxItem[]`).
 // The pure queue ops live in `src/domain/outbox.ts` so
