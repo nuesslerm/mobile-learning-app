@@ -120,6 +120,8 @@ fn isolate(command: &mut Command) {
     }
     // CI's e2e job exports a speed; only a test that sets one runs faster than a user
     command.env_remove("WF_TEST_SPEED");
+    // the pipeline's kill switch for a store that is gone must not turn a test of the cache off
+    command.env_remove("WF_BLOB_CACHE");
     command.env("WF_TAILNET_SOCKS", "127.0.0.1:1").env("SECRETS_BACKEND", "macos").env("SECRETS_LOG_BETTERSTACK", "false");
     // the developer's ~/.config/wf/.env holds real keys; a test that wants one gives wf its own HOME
     let real = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| "/tmp".into()));
