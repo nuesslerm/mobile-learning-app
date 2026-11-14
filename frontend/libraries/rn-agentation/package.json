@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:unit": "vitest run",
-    "lint": "depcruise src --config .dependency-cruiser.cjs --ignore-known"
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs --ignore-known"
   },
   "peerDependencies": {
     "@react-native-async-storage/async-storage": "*",

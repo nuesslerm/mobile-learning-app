@@ -20,6 +20,8 @@ export interface DocumentNode {
 export interface DocumentTreeDriverOptions {
   inspectedView?: unknown;
   logger?: AgentationLogger;
+  /** Loads React Native's element inspector; the default imports it lazily. A rejection means the inspector is unavailable. */
+  loadInspector?: () => Promise<{ inspectorFn: unknown; findNodeHandle: unknown }>;
   /**
    * CSS selectors whose matched subtrees are excluded from the snapshot.
    * Useful for skipping dev-only UI (debug sheets, in-app overlays) that

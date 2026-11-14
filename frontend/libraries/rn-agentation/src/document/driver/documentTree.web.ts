@@ -166,9 +166,8 @@ export function createWebDocumentTreeDriver(options?: DocumentTreeDriverOptions)
     for (const selector of ignoredSelectors) {
       try {
         if (el.closest(selector)) return true;
-      } catch {
-        // Skip invalid selectors silently — one bad caller value shouldn't
-        // break every snapshot.
+      } catch (err) {
+        logger.withMetadata({ err: String(err), selector }).info('agentation.web_driver.invalid_selector');
       }
     }
     return false;

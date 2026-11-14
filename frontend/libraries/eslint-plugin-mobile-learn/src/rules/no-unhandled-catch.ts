@@ -35,6 +35,10 @@ function containsLoggerCall(node: Statement | undefined): boolean {
       if (callee.type === 'MemberExpression') {
         const obj = callee.object;
         // logger.withError(err) / logger.withMetadata({ err }) / log.error(...)
+        if (obj.type === 'MemberExpression' && obj.property.type === 'Identifier' && /^(logger|log)$|Log(ger)?$/.test(obj.property.name)) {
+          found = true;
+          return;
+        }
         if (
           obj.type === 'Identifier' &&
           (obj.name === 'logger' ||
@@ -69,6 +73,37 @@ function containsLoggerCall(node: Statement | undefined): boolean {
   return found;
 }
 
+function children(n: Node): Node[] {
+  const out: Node[] = [];
+  for (const key of Object.keys(n)) {
+    if (key === 'parent') continue;
+    const value = (n as unknown as Record<string, unknown>)[key];
+    for (const item of Array.isArray(value) ? value : [value]) {
+      if (item && typeof (item as Node).type === 'string') out.push(item as Node);
+    }
+  }
+  return out;
+}
+
+function references(n: Node, name: string): boolean {
+  if (n.type === 'Identifier') return n.name === name;
+  return children(n).some((c) => references(c, name));
+}
+
+// The error is handed on instead of swallowed: returned in a value, or given to a state setter (`setError(err)`).
+function handsOnError(n: Node, name: string | undefined): boolean {
+  if (n.type === 'ReturnStatement' && n.argument) {
+    const a = n.argument;
+    // a fallback built from real work (an in-memory store, a computed value) is a handled failure; `return null` is a swallow
+    const trivial = a.type === 'Literal' || (a.type === 'Identifier' && a.name === 'undefined');
+    return (name !== undefined && references(a, name)) || !trivial;
+  }
+  if (n.type === 'CallExpression' && n.callee.type === 'Identifier' && /^set[A-Z]/.test(n.callee.name)) {
+    return name !== undefined && n.arguments.some((a) => references(a as Node, name));
+  }
+  return children(n).some((c) => handsOnError(c, name));
+}
+
 const rule: Rule = {
   meta: {
     type: 'problem',
@@ -88,7 +123,9 @@ const rule: Rule = {
         const catchNode = node as CatchClause;
         const hasThrow = catchNode.body.body.some(containsThrow);
         const hasLog = catchNode.body.body.some((stmt) => containsLoggerCall(stmt));
-        if (!hasThrow && !hasLog) {
+        const name = catchNode.param?.type === 'Identifier' ? catchNode.param.name : undefined;
+        const handsOn = catchNode.body.body.some((stmt) => handsOnError(stmt, name));
+        if (!hasThrow && !hasLog && !handsOn) {
           context.report({
             node: node as unknown as { range: [number, number] },
             messageId: 'noUnhandledCatch',

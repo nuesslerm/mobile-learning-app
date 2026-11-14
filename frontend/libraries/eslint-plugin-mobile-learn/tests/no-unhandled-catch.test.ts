@@ -35,8 +35,50 @@ ruleTester.run('no-unhandled-catch', rule as unknown as Parameters<typeof ruleTe
         }
       `,
     },
+    {
+      code: `
+        try { return parse(x); }
+        catch (e) {
+          return { valid: false, reason: e instanceof Error ? e.message : String(e) };
+        }
+      `,
+    },
+    {
+      code: `
+        try { await refresh(); }
+        catch (e) {
+          setError(e instanceof Error ? e : new Error(String(e)));
+        }
+      `,
+    },
+    {
+      code: `
+        try { return require('peer'); }
+        catch {
+          const mem = new Map();
+          return { getItem: (k) => mem.get(k) };
+        }
+      `,
+    },
+    {
+      code: `
+        try { await run(); }
+        catch (e) {
+          this.logger.withMetadata({ err: String(e) }).info('run.failed');
+        }
+      `,
+    },
   ],
   invalid: [
+    {
+      code: `
+        try { return parse(x); }
+        catch (e) {
+          return null;
+        }
+      `,
+      errors: [{ messageId: 'noUnhandledCatch' }],
+    },
     {
       code: `
         try { await doSomething(); }
