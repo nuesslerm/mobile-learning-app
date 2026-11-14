@@ -1,0 +1,2 @@
+import 'expo-clipboard';
+export {};

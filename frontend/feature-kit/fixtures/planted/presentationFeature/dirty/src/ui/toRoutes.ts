@@ -1,0 +1,2 @@
+import '../routes/index';
+export {};

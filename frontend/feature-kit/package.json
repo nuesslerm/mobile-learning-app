@@ -1,0 +1,20 @@
+{
+  "name": "@lib/feature-kit",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:unit": "vitest run --config vitest.arch.config.ts"
+  },
+  "devDependencies": {
+    "dependency-cruiser": "^17.4.3"
+  },
+  "peerDependencies": {
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "peerDependenciesMeta": {
+    "typescript": { "optional": true },
+    "vitest": { "optional": true }
+  }
+}

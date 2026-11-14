@@ -2,6 +2,7 @@ packages:
   - backend/*
   - clis/*
   - tooling/browser-harness/*
+  - frontend/feature-kit
   - frontend/mla-tamagui
   - frontend/mla-tamagui/features/coding-agent
   - frontend/mla-tamagui/features/service-report
