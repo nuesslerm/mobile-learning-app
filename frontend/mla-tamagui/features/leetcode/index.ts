@@ -12,7 +12,7 @@ export { ProblemListScreen } from './ui/ProblemListScreen';
 export { useLeetCodeAuthStore } from './state/authStore';
 export { usePlanStore } from './plan';
 
-// Port contracts -- pure types consumed by screens and harness doubles
+// Ports -- pure types consumed by screens and harness doubles
 export type {
   LeetCodeGatewayPort,
   LeetCodePorts,

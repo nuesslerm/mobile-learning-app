@@ -7,9 +7,9 @@ import {
 import type { ClientEditStat, EditSource, VoiceEditResponse } from '@lib/voice-edit-dsl';
 import { Platform } from 'react-native';
 
-import type { VoiceEditTransportPort } from '../domain/ports';
+import { VoiceEditTransportError, type VoiceEditTransportPort } from '../domain/ports';
 
-import { errorStatus } from './voiceEditIdentity';
+import { errorStatus } from '../domain/voiceEditIdentity';
 
 export type VoiceTranscribeRequest = {
   audioUri: string;
@@ -33,16 +33,6 @@ type VoicePlanRequest = {
 
 /** Wall time of the whole HTTP call as the client saw it -- request sent to body parsed. */
 export type Timed<T> = T & { wallMs: number };
-
-export class VoiceEditTransportError extends Error {
-  constructor(
-    public readonly status: number,
-    message: string
-  ) {
-    super(message);
-    this.name = 'VoiceEditTransportError';
-  }
-}
 
 // Whisper transcription + the LLM planning step routinely take 20-70s in
 // practice, so this has to be generous -- but a plain `fetch()` with no

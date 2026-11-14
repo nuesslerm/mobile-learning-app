@@ -8,7 +8,7 @@ import { Fragment, useCallback, useMemo } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
-import { ProblemCatalog } from '../data/problemCatalog';
+import { ProblemCatalog } from '../domain/problemCatalog';
 import { useLeetCodeAuthStore } from '../state/authStore';
 
 const CONTENT_STYLE = { paddingBottom: 24 } as const;

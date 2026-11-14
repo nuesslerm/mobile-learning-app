@@ -47,7 +47,7 @@ import React from 'react';
 import { ScrollView, TextInput, type LayoutChangeEvent } from 'react-native';
 import { XStack, YStack, useTheme } from '@lib/tamagui-design-system/primitives';
 
-import { useLeetCodePorts } from '../di/LeetCodeContainer';
+import { useLeetCodePorts } from '../state/ports';
 import {
   EditorInput,
   type EditorInputHandle,
@@ -55,8 +55,8 @@ import {
 import { applyVoiceEdit } from '../code-editor/core/applyVoiceEdit';
 import { type Selection } from '../code-editor/core/types';
 import { EditorHelperRails } from '../code-editor/helperbars/EditorHelperRails';
-import { ProblemCatalog } from '../data/problemCatalog';
-import { compactVoiceError } from '../data/voiceEditIdentity';
+import { ProblemCatalog } from '../domain/problemCatalog';
+import { compactVoiceError } from '../domain/voiceEditIdentity';
 import { useVoiceEdit } from '../state/useVoiceEdit';
 import { useLeetCodeAuthStore } from '../state/authStore';
 import { useCodeHistoryRequestStore } from '../state/codeHistoryRequestStore';

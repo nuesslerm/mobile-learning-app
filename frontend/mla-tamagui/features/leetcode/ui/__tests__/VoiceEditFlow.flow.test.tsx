@@ -7,7 +7,7 @@ import {
   waitFor,
 } from '@lib/flow-test-harness';
 
-import { app } from '../../../../flow/app';
+import { app } from '../../../../tests/flow/app';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -15,7 +15,7 @@ import {
   type LeetCodePorts,
   type RunResponse,
   type VoiceEditTransportPort,
-} from '../../../../../features/leetcode';
+} from '../..';
 
 
 

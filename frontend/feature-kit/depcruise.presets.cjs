@@ -118,7 +118,7 @@ function appShell({ shell = ['app', 'app-shell'], lib = 'lib' } = {}) {
     forbidden: [
       rule('shell-uses-feature-barrels-only', 'a feature is reached through its barrel, routes/* or testing', { path: `^${dirs([...shell, lib])}/` }, { path: '^features/[^/]+/(domain|data|state|ui|di)/' }),
       rule('features-do-not-import-the-shell', 'nothing under features/ imports the shell', { path: '^features/' }, { path: `^${dirs([...shell, lib])}/` }),
-      rule('lib-only-for-the-shell', 'lib/ is imported only by app/ and app-shell/', { path: `^(?!${shellDirs}/|${lib}/)`, pathNot: ['^node_modules/', '^features/'] }, { path: `^${lib}/` }),
+      rule('lib-only-for-the-shell', 'lib/ is imported only by app/ and app-shell/', { path: `^(?!${shellDirs}/|${lib}/)`, pathNot: ['^node_modules/', '^features/', '^tests/', ...TESTS] }, { path: `^${lib}/` }),
       noCircular(),
     ],
     options: options(),

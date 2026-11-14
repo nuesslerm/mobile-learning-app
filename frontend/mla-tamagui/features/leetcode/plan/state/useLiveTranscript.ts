@@ -2,8 +2,8 @@ import { Logger } from '@lib/logging';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
-import { errorStatus } from '../../data/voiceEditIdentity';
-import { useLeetCodePorts } from '../../di/LeetCodeContainer';
+import { errorStatus } from '../../domain/voiceEditIdentity';
+import { useLeetCodePorts } from '../../state/ports';
 import { useVoiceRecording } from '../../state/useVoiceRecording';
 
 const DEFAULT_CHUNK_MS = 1500;

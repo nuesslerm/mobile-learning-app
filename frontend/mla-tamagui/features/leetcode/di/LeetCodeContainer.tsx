@@ -1,11 +1,12 @@
 import { useDependencyOverrides } from '@lib/app-di';
 import { appConfig } from '@lib/app-config';
-import { createContext, useContext, useMemo, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 
 import type { AudioRecordingPort, LeetCodePorts } from '../domain/ports';
-import { useExpoAudioRecordingPort } from '../data/ExpoAudioRecorderAdapter';
+import { ExpoAudioRecorderProvider, useExpoAudioRecordingPort } from '../data/ExpoAudioRecorderAdapter';
 import { createLiveVoiceEditTransport } from '../data/voiceEditTransport';
 import { createLiveLeetCodeGateway } from '../data/webBridgeClient';
+import { LeetCodeContainerProvider } from '../state/ports';
 
 const DEFAULT_BACKEND_BASE_URL = 'http://localhost:8789';
 
@@ -23,32 +24,7 @@ export function createDefaultContainer(
   };
 }
 
-const LeetCodeContainerContext = createContext<LeetCodePorts | null>(null);
-
-export function LeetCodeContainerProvider({
-  value,
-  children,
-}: {
-  value: LeetCodePorts;
-  children: ReactNode;
-}) {
-  return (
-    <LeetCodeContainerContext.Provider value={value}>
-      {children}
-    </LeetCodeContainerContext.Provider>
-  );
-}
-
-export function useLeetCodePorts(): LeetCodePorts {
-  const ports = useContext(LeetCodeContainerContext);
-  if (!ports) {
-    throw new Error('LeetCodeContainerProvider missing');
-  }
-  return ports;
-}
-
-// Must render inside ExpoAudioRecorderProvider: the audio port comes from its context.
-export function LeetCodeLiveContainer({ children }: { children: ReactNode }) {
+function LeetCodePortsFromOverrides({ children }: { children: ReactNode }) {
   const o = useDependencyOverrides<LeetCodePorts>('leetcode');
   const audio = useExpoAudioRecordingPort();
   const ports = useMemo(
@@ -56,4 +32,12 @@ export function LeetCodeLiveContainer({ children }: { children: ReactNode }) {
     [o, audio]
   );
   return <LeetCodeContainerProvider value={ports}>{children}</LeetCodeContainerProvider>;
+}
+
+export function LeetCodeLiveContainer({ children }: { children: ReactNode }) {
+  return (
+    <ExpoAudioRecorderProvider>
+      <LeetCodePortsFromOverrides>{children}</LeetCodePortsFromOverrides>
+    </ExpoAudioRecorderProvider>
+  );
 }

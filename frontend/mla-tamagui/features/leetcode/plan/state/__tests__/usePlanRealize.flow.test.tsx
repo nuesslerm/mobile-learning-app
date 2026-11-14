@@ -15,10 +15,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   usePlanRealize,
   type PlanRealizeOutcome,
-} from '../../features/leetcode/plan/state/usePlanRealize';
-import { ExpoAudioRecorderProvider } from '../../features/leetcode/data/ExpoAudioRecorderAdapter';
-import { LeetCodeLiveContainer } from '../../features/leetcode/di/LeetCodeContainer';
-import { usePlanStore } from '../../features/leetcode/plan/state/planStore';
+} from '../usePlanRealize';
+import { LeetCodeLiveContainer } from '../../../di/LeetCodeContainer';
+import { usePlanStore } from '../planStore';
 
 const sendVoicePlan = vi.fn<(body: unknown) => Promise<unknown>>();
 const sendEditStats = vi.fn(async (_row: unknown) => undefined);
@@ -35,9 +34,7 @@ function renderInLeetcode<T>(hook: () => T) {
     return (
       <FlowProviders>
         <DependencyOverridesProvider overrides={overrides}>
-          <ExpoAudioRecorderProvider>
             <LeetCodeLiveContainer>{children}</LeetCodeLiveContainer>
-          </ExpoAudioRecorderProvider>
         </DependencyOverridesProvider>
       </FlowProviders>
     );

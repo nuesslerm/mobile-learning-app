@@ -6,7 +6,7 @@ import { X } from '@lib/tamagui-design-system/icons';
 import { useCallback } from 'react';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
-import { compactVoiceError } from '../data/voiceEditIdentity';
+import { compactVoiceError } from '../domain/voiceEditIdentity';
 
 export type AlternativePickerProps = {
   transcript: string;

@@ -11,11 +11,11 @@ import {
   type FlowSession,
 } from '@lib/flow-test-harness';
 
-import { app } from '../../../../flow/app';
-import { forgetLoggedLines, loggedLines } from '../../../../flow/loggedLines';
+import { app } from '../../../../tests/flow/app';
+import { forgetLoggedLines, loggedLines } from '../../../../tests/flow/loggedLines';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createLiveLeetCodeGateway } from '../../../../../features/leetcode/data/webBridgeClient';
+import { createLiveLeetCodeGateway } from '../../data/webBridgeClient';
 
 // Native Expo/RN modules the screen's module graph pulls in but that cannot
 // load under jsdom. They are never exercised here -- the ports (audio, voice)
@@ -33,7 +33,7 @@ import {
   type LeetCodePorts,
   type RunResponse,
   type VoiceEditTransportPort,
-} from '../../../../../features/leetcode';
+} from '../..';
 
 const ACCEPTED_RUN: RunResponse = {
   source: 'backend-run',

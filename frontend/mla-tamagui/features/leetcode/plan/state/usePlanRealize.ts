@@ -10,15 +10,16 @@ import {
 import { useCallback, useState } from 'react';
 import { Platform } from 'react-native';
 
-import { VoiceEditTransportError, type ClientEditStat } from '../../data/voiceEditTransport';
-import { useLeetCodePorts } from '../../di/LeetCodeContainer';
+import { VoiceEditTransportError } from '../../domain/ports';
+import type { ClientEditStat } from '@lib/voice-edit-dsl';
+import { useLeetCodePorts } from '../../state/ports';
 import { usePlanStore } from '../state/planStore';
 
 import {
   compactVoiceError,
   errorStatus,
   newEditId,
-} from '../../data/voiceEditIdentity';
+} from '../../domain/voiceEditIdentity';
 
 export type PlanRealizeOutcome = 'applied' | 'invalid' | 'error';
 

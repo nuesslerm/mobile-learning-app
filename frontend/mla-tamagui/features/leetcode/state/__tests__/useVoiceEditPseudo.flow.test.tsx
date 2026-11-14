@@ -9,10 +9,9 @@ import { DependencyOverridesProvider } from '@lib/app-di';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { VoiceEditTransportPort } from '../../features/leetcode/domain/ports';
-import { ExpoAudioRecorderProvider } from '../../features/leetcode/data/ExpoAudioRecorderAdapter';
-import { LeetCodeLiveContainer } from '../../features/leetcode/di/LeetCodeContainer';
-import { useVoiceEdit } from '../../features/leetcode/state/useVoiceEdit';
+import type { VoiceEditTransportPort } from '../../domain/ports';
+import { LeetCodeLiveContainer } from '../../di/LeetCodeContainer';
+import { useVoiceEdit } from '../useVoiceEdit';
 
 const STUB = "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        ";
 
@@ -42,9 +41,7 @@ function Wrapper({ children }: { children: ReactNode }) {
   return (
     <FlowProviders>
       <DependencyOverridesProvider overrides={overrides}>
-        <ExpoAudioRecorderProvider>
           <LeetCodeLiveContainer>{children}</LeetCodeLiveContainer>
-        </ExpoAudioRecorderProvider>
       </DependencyOverridesProvider>
     </FlowProviders>
   );

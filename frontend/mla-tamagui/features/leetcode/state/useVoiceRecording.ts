@@ -2,7 +2,7 @@ import { Logger } from '@lib/logging';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import type { VoiceRecording } from '../domain/ports';
-import { useLeetCodePorts } from '../di/LeetCodeContainer';
+import { useLeetCodePorts } from './ports';
 
 const BAR_COUNT = 14;
 

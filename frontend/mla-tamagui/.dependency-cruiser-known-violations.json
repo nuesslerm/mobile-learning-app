@@ -1537,8 +1537,8 @@
   {
     "type": "dependency",
     "from": "features/leetcode/plan/state/useLiveTranscript.ts",
-    "to": "features/leetcode/data/voiceEditIdentity.ts",
-    "unresolvedTo": "../../data/voiceEditIdentity",
+    "to": "features/leetcode/domain/voiceEditIdentity.ts",
+    "unresolvedTo": "../../domain/voiceEditIdentity",
     "dependencyTypes": [
       "local",
       "import"
@@ -1551,8 +1551,8 @@
   {
     "type": "dependency",
     "from": "features/leetcode/plan/state/useLiveTranscript.ts",
-    "to": "features/leetcode/di/LeetCodeContainer.tsx",
-    "unresolvedTo": "../../di/LeetCodeContainer",
+    "to": "features/leetcode/state/ports.tsx",
+    "unresolvedTo": "../../state/ports",
     "dependencyTypes": [
       "local",
       "import"
@@ -1641,8 +1641,8 @@
   {
     "type": "dependency",
     "from": "features/leetcode/plan/state/usePlanRealize.ts",
-    "to": "features/leetcode/data/voiceEditIdentity.ts",
-    "unresolvedTo": "../../data/voiceEditIdentity",
+    "to": "features/leetcode/domain/ports.ts",
+    "unresolvedTo": "../../domain/ports",
     "dependencyTypes": [
       "local",
       "import"
@@ -1655,22 +1655,8 @@
   {
     "type": "dependency",
     "from": "features/leetcode/plan/state/usePlanRealize.ts",
-    "to": "features/leetcode/data/voiceEditTransport.ts",
-    "unresolvedTo": "../../data/voiceEditTransport",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "module-in-a-ring"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/plan/state/usePlanRealize.ts",
-    "to": "features/leetcode/di/LeetCodeContainer.tsx",
-    "unresolvedTo": "../../di/LeetCodeContainer",
+    "to": "features/leetcode/domain/voiceEditIdentity.ts",
+    "unresolvedTo": "../../domain/voiceEditIdentity",
     "dependencyTypes": [
       "local",
       "import"
@@ -1685,6 +1671,20 @@
     "from": "features/leetcode/plan/state/usePlanRealize.ts",
     "to": "features/leetcode/plan/state/planStore.ts",
     "unresolvedTo": "../state/planStore",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "module-in-a-ring"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "features/leetcode/plan/state/usePlanRealize.ts",
+    "to": "features/leetcode/state/ports.tsx",
+    "unresolvedTo": "../../state/ports",
     "dependencyTypes": [
       "local",
       "import"
@@ -1864,174 +1864,6 @@
         ]
       }
     ]
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/routes/_layout.tsx",
-    "to": "features/leetcode/data/ExpoAudioRecorderAdapter.tsx",
-    "unresolvedTo": "../data/ExpoAudioRecorderAdapter",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "routes-imports-di-ui"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/routes/[id]/description.tsx",
-    "to": "features/leetcode/data/problemCatalog.ts",
-    "unresolvedTo": "../../data/problemCatalog",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "routes-imports-di-ui"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/routes/[id]/history.tsx",
-    "to": "features/leetcode/state/codeHistoryRequestStore.ts",
-    "unresolvedTo": "../../state/codeHistoryRequestStore",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "routes-imports-di-ui"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/state/useVoiceEdit.ts",
-    "to": "features/leetcode/data/voiceEditIdentity.ts",
-    "unresolvedTo": "../data/voiceEditIdentity",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "state-imports-domain"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/state/useVoiceEdit.ts",
-    "to": "features/leetcode/di/LeetCodeContainer.tsx",
-    "unresolvedTo": "../di/LeetCodeContainer",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "state-imports-domain"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/state/useVoiceRecording.ts",
-    "to": "features/leetcode/di/LeetCodeContainer.tsx",
-    "unresolvedTo": "../di/LeetCodeContainer",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "state-imports-domain"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/ui/AlternativePicker.tsx",
-    "to": "features/leetcode/data/voiceEditIdentity.ts",
-    "unresolvedTo": "../data/voiceEditIdentity",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "ui-imports-domain-state"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/ui/LoginScreen.tsx",
-    "to": "features/leetcode/di/LeetCodeContainer.tsx",
-    "unresolvedTo": "../di/LeetCodeContainer",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "ui-imports-domain-state"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/ui/ProblemEditorScreen.tsx",
-    "to": "features/leetcode/data/problemCatalog.ts",
-    "unresolvedTo": "../data/problemCatalog",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "ui-imports-domain-state"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/ui/ProblemEditorScreen.tsx",
-    "to": "features/leetcode/data/voiceEditIdentity.ts",
-    "unresolvedTo": "../data/voiceEditIdentity",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "ui-imports-domain-state"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/ui/ProblemEditorScreen.tsx",
-    "to": "features/leetcode/di/LeetCodeContainer.tsx",
-    "unresolvedTo": "../di/LeetCodeContainer",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "ui-imports-domain-state"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "features/leetcode/ui/ProblemListScreen.tsx",
-    "to": "features/leetcode/data/problemCatalog.ts",
-    "unresolvedTo": "../data/problemCatalog",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "ui-imports-domain-state"
-    }
   },
   {
     "type": "dependency",

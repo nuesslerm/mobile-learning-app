@@ -12,12 +12,12 @@ import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
 import type { Timed } from '../domain/ports';
-import { useLeetCodePorts } from '../di/LeetCodeContainer';
+import { useLeetCodePorts } from './ports';
 import {
   compactVoiceError,
   errorStatus,
   newEditId,
-} from '../data/voiceEditIdentity';
+} from '../domain/voiceEditIdentity';
 
 import { selectAutoApplyAlternative } from './selectAutoApplyAlternative';
 import { useVoiceRecording, type VoiceRecording } from './useVoiceRecording';

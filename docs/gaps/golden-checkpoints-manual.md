@@ -4,7 +4,7 @@ area: flow-tests
 paths:
   - "frontend/mla-tamagui/tests/goldens/**"
   - "frontend/mla-tamagui/tests/flow/tamil-strokes.flow.test.tsx"
-  - "frontend/mla-tamagui/tests/features/leetcode/ui/__tests__/ProblemEditor.flow.test.tsx"
+  - "frontend/mla-tamagui/features/leetcode/ui/__tests__/ProblemEditor.flow.test.tsx"
 opened: 2026-10-04
 last_verified: 2026-10-20
 links: []

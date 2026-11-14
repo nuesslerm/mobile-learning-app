@@ -9,9 +9,8 @@ import { DependencyOverridesProvider } from '@lib/app-di';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { ExpoAudioRecorderProvider } from '../../features/leetcode/data/ExpoAudioRecorderAdapter';
-import { LeetCodeLiveContainer } from '../../features/leetcode/di/LeetCodeContainer';
-import { useLiveTranscript } from '../../features/leetcode/plan/state/useLiveTranscript';
+import { LeetCodeLiveContainer } from '../../../di/LeetCodeContainer';
+import { useLiveTranscript } from '../useLiveTranscript';
 
 type Transcript = { transcript: string; wallMs: number };
 const sentChunkIndexes: (number | undefined)[] = [];
@@ -54,9 +53,7 @@ describe('useLiveTranscript', () => {
       return (
         <FlowProviders>
           <DependencyOverridesProvider overrides={overrides}>
-            <ExpoAudioRecorderProvider>
               <LeetCodeLiveContainer>{children}</LeetCodeLiveContainer>
-            </ExpoAudioRecorderProvider>
           </DependencyOverridesProvider>
         </FlowProviders>
       );

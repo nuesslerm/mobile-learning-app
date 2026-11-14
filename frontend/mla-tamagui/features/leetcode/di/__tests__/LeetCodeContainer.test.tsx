@@ -10,10 +10,9 @@ import type {
 } from '../../domain/ports';
 import {
   createDefaultContainer,
-  LeetCodeContainerProvider,
   LeetCodeLiveContainer,
-  useLeetCodePorts,
 } from '../LeetCodeContainer';
+import { LeetCodeContainerProvider, useLeetCodePorts } from '../../state/ports';
 
 const { expoAudioPort, useExpoAudioRecordingPortMock } = vi.hoisted(() => {
   const port: AudioRecordingPort = {
@@ -29,6 +28,7 @@ const { expoAudioPort, useExpoAudioRecordingPortMock } = vi.hoisted(() => {
 // environment; mock it so the default audio is observable without a provider.
 vi.mock('../../data/ExpoAudioRecorderAdapter', () => ({
   useExpoAudioRecordingPort: useExpoAudioRecordingPortMock,
+  ExpoAudioRecorderProvider: ({ children }: { children: unknown }) => children,
 }));
 
 describe('createDefaultContainer', () => {

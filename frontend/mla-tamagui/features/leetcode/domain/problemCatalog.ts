@@ -14,7 +14,7 @@ import {
   type Blind75Category,
   type Blind75Problem,
   type Difficulty,
-} from '../domain';
+} from './models';
 import { Logger } from '@lib/logging';
 
 import blind75Data from './blind75.json';

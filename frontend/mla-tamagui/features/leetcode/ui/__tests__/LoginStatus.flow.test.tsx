@@ -1,11 +1,11 @@
 import { act, screen, waitFor } from '@lib/flow-test-harness';
 import { describe, expect, it, vi } from 'vitest';
 
-import { app } from '../../../../flow/app';
+import { app } from '../../../../tests/flow/app';
 import type {
   LeetCodeGatewayPort,
   RunResponse,
-} from '../../../../../features/leetcode';
+} from '../..';
 
 const MINIMAL_RUN: RunResponse = {
   source: 'backend-run',

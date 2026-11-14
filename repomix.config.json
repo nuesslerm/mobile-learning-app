@@ -44,7 +44,7 @@
       "lefthook_output.txt",
       "gate-output.txt",
       "frontend/mla-tamagui/features/leetcode/code-editor/core/cm6Bundle.ts",
-      "frontend/mla-tamagui/features/leetcode/data/blind75.json"
+      "frontend/mla-tamagui/features/leetcode/domain/blind75.json"
     ]
   },
   "security": {

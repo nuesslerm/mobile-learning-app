@@ -146,3 +146,13 @@ export interface LeetCodePorts {
   voice: VoiceEditTransportPort;
   audio: AudioRecordingPort;
 }
+
+export class VoiceEditTransportError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string
+  ) {
+    super(message);
+    this.name = 'VoiceEditTransportError';
+  }
+}
