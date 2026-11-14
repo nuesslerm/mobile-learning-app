@@ -52,10 +52,40 @@ runs:
       run: |
         sudo=$([ "$(id -u)" = 0 ] || echo sudo)
         printf 'Acquire::Retries "3";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' | $sudo tee /etc/apt/apt.conf.d/80ci-retries >/dev/null
+    # the two shallow clones take 56 s in every job that reads references/ (bench, run 43558013495): their git objects are cached by the pinned commits
+    - name: Key of the reference trees' git objects
+      id: refs-key
+      if: ${{ inputs.references == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
+      shell: bash
+      run: echo "key=refs-$(git ls-tree HEAD references/orca references/t3code | sha1sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+    - name: Restore the reference trees' git objects
+      id: refs-cache
+      if: ${{ inputs.references == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: .git/modules/references
+        key: ${{ steps.refs-key.outputs.key }}
+    - uses: ./.github/actions/cache-summary
+      if: ${{ inputs.references == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') }}
+      with:
+        layer: references
+        hit: ${{ steps.refs-cache.outputs.cache-hit }}
+        matched-key: ${{ steps.refs-cache.outputs.cache-matched-key }}
+        paths: .git/modules/references
     - name: Reference trees
       if: ${{ inputs.references == 'true' }}
       shell: bash
-      run: git submodule update --init --recommend-shallow --depth 1 references/orca references/t3code
+      run: |
+        # an automatic gc rewrites a pack while the cache save archives it (the bench save failed on that)
+        git config --global gc.auto 0
+        git config --global maintenance.auto false
+        git submodule update --init --recommend-shallow --depth 1 references/orca references/t3code
+    - name: Save the reference trees' git objects
+      if: ${{ inputs.references == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && steps.refs-cache.outputs.cache-hit != 'true' }}
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: .git/modules/references
+        key: ${{ steps.refs-key.outputs.key }}
     - name: Chromium for Playwright
       if: ${{ inputs.playwright == 'true' }}
       shell: bash

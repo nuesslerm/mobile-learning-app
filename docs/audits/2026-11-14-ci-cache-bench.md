@@ -19,7 +19,7 @@ Test type: live, on GitHub-hosted runners (`cache-bench.yml`, run 43558013495, c
 | 7 | pnpm store | 12.9 | 705 MB | 0.02 | off |
 | 8 | rustup toolchain | 4.3 | 202 MB | 0.02 | drop |
 | 9 | cargo registry and git | 0.5 | 146 MB | 0.003 | drop |
-| – | submodules | not measured: the save failed (below) | | | open |
+| – | submodules | not measured: the save failed (below) | 489 MB raw | | cached by pinned commits; measured on the pipeline |
 
 Rust compile baseline with nothing cached: 172.1 s. sccache cold 182.2 s (a 10 s tax on a miss), warm 84.6 s with 444 hits and 1 miss out of 555 requests. Target directory cold 195.3 s, warm 105.8 s.
 
@@ -46,7 +46,7 @@ The end-to-end drop is not attributable to one layer: the long flow shard went f
 
 1. Keep metro, nx. Add sccache (`SCCACHE_DIR`, local disk): `wf-build`, and `flow-tests`, `integration-tests` and `cli-e2e-tests` (shard 1 saves). Turn pnpm, toolchain and cargo-fetch off. Playwright waits for a fresh-runner measurement (restore plus `playwright install-deps`).
 2. One switch decides the backend, so a blob store can replace or supplement the Actions cache later (below).
-3. Re-measure submodules with the fixed bench, then either cache them or stop cloning them in jobs that never read `references/`.
+3. Cache the reference trees' git objects (`install-test-deps`, keyed on the two pinned commits): a flow shard spends 56 s of its 105 s of `install-test-deps` on the serial clone (run 43559002207, job 132339407616; Playwright 25 s, apt 18 s, pnpm 27 s). The layer is read off the pipeline (the `references` summary line and the step seconds) and by the next bench run.
 4. Re-run the bench whenever the pipeline changes shape, or when the blob store is back (`CACHE_BACKENDS=blob` rows against the same commands).
 
 ## The switch
