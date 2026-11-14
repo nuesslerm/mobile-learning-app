@@ -10,5 +10,6 @@ runs:
         arch=$(uname -m)
         curl -fsSL "https://github.com/mozilla/sccache/releases/download/${tag}/sccache-${tag}-${arch}-unknown-linux-musl.tar.gz" -o /tmp/sccache.tgz
         tar -xzf /tmp/sccache.tgz -C /tmp
-        install -m 0755 "/tmp/sccache-${tag}-${arch}-unknown-linux-musl/sccache" /usr/local/bin/sccache
+        sudo=$([ "$(id -u)" = 0 ] || echo sudo)
+        $sudo install -m 0755 "/tmp/sccache-${tag}-${arch}-unknown-linux-musl/sccache" /usr/local/bin/sccache
         sccache --version

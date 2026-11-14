@@ -59,16 +59,22 @@ permissions:
 env:
   WF_CI_LABEL: ${{ inputs.label }}
   npm_config_manage_package_manager_versions: "false"
-  WF_PNPM_SAVE_JOB: flow-tests
   WF_VM_CI_PORT: "8081"
   BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+  # Where the cache layers live. gha (default) is the GitHub Actions cache; blob is a store declared in BUILD_CACHE_READ_STORES and BUILD_CACHE_WRITE_STORES
+  # (the Oracle bucket is gone since 13 Nov, so none is declared); `gha,blob` uses both. The repository variable CACHE_BACKENDS sets it, no workflow edit.
+  # WF_BLOB_CACHE=off keeps the build-cache shim away from a store that does not exist. Layers on gha: sccache (wf-build and the three test stages), metro, nx and the reference trees' git objects.
+  # CACHE_PNPM=on brings the pnpm store back (docs/audits/2026-11-14-ci-cache-bench.md: it does not pay).
+  CACHE_BACKENDS: ${{ vars.CACHE_BACKENDS || 'gha' }}
+  CACHE_PNPM: ${{ vars.CACHE_PNPM || 'off' }}
+  WF_BLOB_CACHE: ${{ contains(vars.CACHE_BACKENDS || 'gha', 'blob') && 'on' || 'off' }}
 
 jobs:
   # This commit's wf, built once for each kind of machine that runs it: x64 for the jobs, arm64 for the deploy legs (the images the VM runs are arm64).
   wf-build:
     name: wf-build${{ matrix.arch == 'arm64' && ' (arm64)' || '' }}
     runs-on: ${{ matrix.arch == 'arm64' && fromJSON(inputs.deploy_runner) || fromJSON(inputs.runner) }}
-    # a recreated VM has an empty wf volume: the first run cold-builds wf here (up to an hour)
+    # a cold cache builds wf here (up to an hour)
     timeout-minutes: 70
     concurrency:
       group: ${{ format('hosted-wf-build-{0}-{1}', github.run_id, matrix.arch) }}
@@ -90,12 +96,21 @@ jobs:
           apt-packages: build-essential musl-tools
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - uses: ./.github/actions/sccache-cache
+        with:
+          mode: restore
+          stage: wf-build
       - name: This commit's wf
         timeout-minutes: 65
         uses: ./.github/actions/build-wf
         with:
           name: ${{ matrix.arch == 'arm64' && 'clis-arm' || 'clis' }}
           upload: true
+      - uses: ./.github/actions/sccache-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: wf-build
       - name: Start the comment on the pull request
         if: ${{ matrix.arch == 'x64' }}
         continue-on-error: true
@@ -185,6 +200,12 @@ jobs:
           install: "false"
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      # the guard runs while the plan is made; the last step collects it. The runner kills what still carries the step's tracking id when the step ends
+      - name: Start the storage guard
+        continue-on-error: true
+        run: |
+          env -u RUNNER_TRACKING_ID setsid nohup timeout 60 wf cache guard > "$RUNNER_TEMP/guard.json" 2> "$RUNNER_TEMP/guard.err" &
+          echo $! > "$RUNNER_TEMP/guard.pid"
       - name: Commit tags
         id: tags
         env:
@@ -252,14 +273,19 @@ jobs:
           args=(--github-output)
           read -ra extra <<< "$FORCE_SHIP"
           args+=("${extra[@]}")
-          # The published wf predates a change that moves a path it knows (a rename) and then fails here, which skips the clis job that
-          # would publish the new one: retry with this commit's wf, which wf-build already installed on this runner.
-          wf ship --changed "${args[@]}" || {
-            this="/opt/clis/$(git rev-parse HEAD:clis)/wf"
-            [ -x "$this" ] || exit 1
-            echo "the published wf failed; retrying with this commit's wf" >&2
-            "$this" ship --changed "${args[@]}"
-          }
+          wf ship --changed "${args[@]}"
+      - name: Collect the storage guard
+        if: ${{ always() }}
+        continue-on-error: true
+        run: |
+          pid=$(cat "$RUNNER_TEMP/guard.pid" 2>/dev/null || true)
+          for _ in 1 2 3 4 5; do [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+          line=$(tail -n 1 "$RUNNER_TEMP/guard.json" 2>/dev/null || true)
+          if [ -z "$line" ]; then echo "wf: storage guard produced no line yet"; exit 0; fi
+          echo "wf: storage guard $line"
+          { echo "### Storage guard"; echo '```json'; echo "$line"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          action=$(printf '%s' "$line" | jq -r '.action // "unknown"' 2>/dev/null || echo unknown)
+          [ "$action" = none ] || echo "::warning title=storage guard::action $action"
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
@@ -288,13 +314,9 @@ jobs:
         with:
           wf-source: artifact
           job: flow-tests-${{ matrix.shard }}
+          save-pnpm: ${{ matrix.shard == 1 }}
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
-      - name: Save the pnpm store
-        if: ${{ matrix.shard == 1 }}
-        continue-on-error: true
-        timeout-minutes: 15
-        run: wf cache save pnpm
       - uses: ./.github/actions/install-test-deps
         with:
           playwright: "true"
@@ -308,17 +330,42 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      - uses: ./.github/actions/sccache-cache
+        with:
+          mode: restore
+          stage: flow-tests
+      - uses: ./.github/actions/nx-cache
+        with:
+          mode: restore
+          stage: flow-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       # A push that changes a crate every service builds runs everything cold (10 to 24 minutes); a pass is cached, so the next push replays it
       - name: Flow tests
         timeout-minutes: 30
         # two tasks at a time on 2 OCPUs: four cold builds at once stalled the whole VM for 20 minutes
         run: wf test run --stage flow-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
+      - uses: ./.github/actions/nx-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: flow-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
+      - uses: ./.github/actions/sccache-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: flow-tests
+          save: ${{ matrix.shard == 1 }}
       - name: Publish the flow run bundle
         if: always()
         timeout-minutes: 5
         run: |
           if [ -f frontend/mla-tamagui/.flow-report/report.json ]; then
-            WF_SITE=ci wf test publish frontend/mla-tamagui/.flow-report
+            if out=$(WF_SITE=ci wf test publish frontend/mla-tamagui/.flow-report); then
+              printf '%s\n' "$out"
+            else
+              printf '%s\n' "$out"
+              # the artifact store is a convenience for reading the run: a store that refuses the PUT must not fail a green job
+              case "$out" in *"report PUT failed"*) echo "::warning::the flow run bundle was not published: the artifact store refused it" ;; *) exit 1 ;; esac
+            fi
           else
             echo "no flow report this run (the app's package graph did not change)"
           fi
@@ -364,17 +411,29 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
-      - name: Restore the app build state
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache restore metro
+      - uses: ./.github/actions/metro-cache
+        with:
+          mode: restore
+          scope: typecheck
+          suffix: ${{ matrix.shard }}
+      - uses: ./.github/actions/nx-cache
+        with:
+          mode: restore
+          stage: typecheck-lint-unit-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       - name: Typecheck, lint and unit tests
         timeout-minutes: 20
         run: wf test run --stage typecheck-lint-unit-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
-      - name: Save the app build state
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache save metro
+      - uses: ./.github/actions/nx-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: typecheck-lint-unit-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
+      - uses: ./.github/actions/metro-cache
+        if: ${{ success() }}
+        with:
+          mode: save
+          scope: typecheck
+          suffix: ${{ matrix.shard }}
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
@@ -387,7 +446,7 @@ jobs:
   clis:
     name: clis
     needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, wf-build]
-    if: ${{ !cancelled() && inputs.ship && needs.wf-build.result == 'success' && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' }}
+    if: ${{ !cancelled() && inputs.ship && inputs.deploy && needs.wf-build.result == 'success' && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' }}
     # the install call below needs an arm64 wf and the tailnet, which the deploy runner joins
     runs-on: ${{ fromJSON(inputs.deploy_runner) }}
     timeout-minutes: 10
@@ -400,7 +459,7 @@ jobs:
       - uses: ./.github/actions/setup-job
         with:
           wf-source: artifact
-          artifact: clis
+          artifact: clis-arm
           job: clis
           install: "false"
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
@@ -420,7 +479,7 @@ jobs:
           bins="$RUNNER_TEMP/bins"; out="$RUNNER_TEMP/out"; mkdir -p "$out"
           for dir in "$bins"/*/; do
             [ -f "${dir}wf" ] || continue
-            # the machine that built it decides the name: the VM builds arm64, a hosted x64 runner x64
+            # the machine that built it decides the name: an arm64 runner builds arm64, an x64 runner x64
             if file -b "${dir}wf" | grep -q 'ARM aarch64'; then arch=arm64; else arch=x64; fi
             stage=$(mktemp -d)
             for b in wf t3-serve rca-exec wf-mimic; do [ -f "${dir}$b" ] && install -m 0755 "${dir}$b" "$stage/$b"; done
@@ -436,8 +495,6 @@ jobs:
           gh release upload wf-latest "$out"/* --clobber
       # vm-ops-api installs what was just published, if it is the build named by the sha256.
       - name: Install the build on the VM
-        # the first run that carries the route reaches this before vm-ops-api is redeployed with it; drop this line once a run has installed through it
-        continue-on-error: true
         run: |
           sha=$(cut -d' ' -f1 "$RUNNER_TEMP/out/wf-linux-arm64.tar.gz.sha256")
           wf vm ops install-clis --sha256 "$sha"
@@ -523,7 +580,7 @@ jobs:
     name: deploy (${{ matrix.app }})
     needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deploy-build, clis, wf-build]
     # a red test deploys nothing; a stage the plan left empty is skipped, not failed
-    if: ${{ !cancelled() && inputs.deploy && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && needs.deploy-build.result == 'success' && (needs.clis.result == 'success' || (inputs.flavor == 'hosted' && needs.wf-build.result == 'success')) && needs.plan.outputs.legs != '[]' }}
+    if: ${{ !cancelled() && inputs.deploy && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && needs.deploy-build.result == 'success' && (needs.clis.result == 'success' || needs.wf-build.result == 'success') && needs.plan.outputs.legs != '[]' }}
     runs-on: ${{ fromJSON(inputs.deploy_runner) }}
     timeout-minutes: 100
     concurrency:
@@ -531,7 +588,7 @@ jobs:
       cancel-in-progress: false
     strategy:
       fail-fast: false
-      max-parallel: 20
+      max-parallel: 1
       matrix:
         include: ${{ fromJSON(needs.plan.outputs.legs) }}
     steps:
@@ -660,6 +717,14 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      - uses: ./.github/actions/sccache-cache
+        with:
+          mode: restore
+          stage: integration-tests
+      - uses: ./.github/actions/nx-cache
+        with:
+          mode: restore
+          stage: integration-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       # Each built binary run as a black box (vm-ops-api's suite, the services') with every dependency a fake, through the Nx cache;
       # a suite writes its run record to $WF_TEST_OUTPUT_DIR/<suite>/report.json
       - name: Integration tests
@@ -667,6 +732,17 @@ jobs:
         env:
           WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
         run: wf test run --stage integration-tests --plan "$RUNNER_TEMP/plan.json" --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
+      - uses: ./.github/actions/nx-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: integration-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
+      - uses: ./.github/actions/sccache-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: integration-tests
+          save: ${{ matrix.shard == 1 }}
       - name: Publish the integration run bundles
         if: always()
         timeout-minutes: 5
@@ -681,7 +757,7 @@ jobs:
             if ! out=$(WF_SITE=ci wf test publish "$dir"); then
               printf '%s\n' "$out"
               # the wf this job runs is the previous push's; one from before the integration platform refuses the record
-              case "$out" in *"not a test harness platform: 'integration'"*) echo "::warning::$dir not published: this push's clis build adds the integration platform" ;; *) exit 1 ;; esac
+              case "$out" in *"not a test harness platform: 'integration'"*) echo "::warning::$dir not published: this push's clis build adds the integration platform" ;; *"report PUT failed"*) echo "::warning::$dir not published: the artifact store refused it" ;; *) exit 1 ;; esac
             else
               printf '%s\n' "$out"
             fi
@@ -731,12 +807,31 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      - uses: ./.github/actions/sccache-cache
+        with:
+          mode: restore
+          stage: cli-e2e-tests
+      - uses: ./.github/actions/nx-cache
+        with:
+          mode: restore
+          stage: cli-e2e-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       # A real Chromium and ffmpeg driven through each CLI binary, network peers on loopback, with the freshly built CLIs
       - name: CLI e2e tests
         timeout-minutes: 60
         env:
           WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
         run: wf test run --stage cli-e2e-tests --plan "$RUNNER_TEMP/plan.json" --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}"
+      - uses: ./.github/actions/nx-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: cli-e2e-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
+      - uses: ./.github/actions/sccache-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: cli-e2e-tests
+          save: ${{ matrix.shard == 1 }}
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
@@ -790,7 +885,7 @@ jobs:
   eas-update:
     name: eas-update
     needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, clis]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && (needs.clis.result == 'success' || !inputs.ship) && needs.plan.outputs.eas_update == 'true' }}
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && (needs.clis.result == 'success' || !inputs.ship || !inputs.deploy) && needs.plan.outputs.eas_update == 'true' }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 25
     concurrency:
@@ -807,10 +902,10 @@ jobs:
           job: eas-update
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
-      - name: Restore the app build state
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache restore metro
+      - uses: ./.github/actions/metro-cache
+        with:
+          mode: restore
+          scope: export
       - name: Publish the EAS Update
         if: ${{ inputs.ship }}
         timeout-minutes: 20
@@ -822,12 +917,23 @@ jobs:
         run: |
           set -o pipefail
           # the backend hosts the app dials, under the tailnet names the backends answer to now
-          hosts=$(wf vm net resolve leetcode-backend-prod remote-chat-agent-prod)
-          EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL="http://$(jq -r '."leetcode-backend-prod"' <<<"$hosts"):8789"
-          EXPO_PUBLIC_AGENT_BASE_URL="http://$(jq -r '."remote-chat-agent-prod"' <<<"$hosts"):8787"
+          hosts=$(timeout 15 wf vm net resolve leetcode-backend-prod remote-chat-agent-prod 2>/dev/null) || hosts='{}'
+          leetcode_host=$(jq -r '."leetcode-backend-prod" // empty' <<<"$hosts" 2>/dev/null || true)
+          agent_host=$(jq -r '."remote-chat-agent-prod" // empty' <<<"$hosts" 2>/dev/null || true)
+          # with no VM the hosts do not resolve: the update still ships (the UI works), with placeholder backend addresses
+          if [ -n "$leetcode_host" ] && [ -n "$agent_host" ]; then backends=on; else
+            backends=off; leetcode_host=127.0.0.1; agent_host=127.0.0.1
+            echo "::warning::the backend hosts do not resolve (no VM): this update bakes in placeholder backend addresses"
+          fi
+          EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL="http://$leetcode_host:8789"
+          EXPO_PUBLIC_AGENT_BASE_URL="http://$agent_host:8787"
           export EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL EXPO_PUBLIC_AGENT_BASE_URL
           # from the vault at step time (the runner's container env no longer holds it), never the step's env:, which the log header prints
-          EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN=$(wf secret get VM_GATEWAY_AUTH_SEED --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no VM_GATEWAY_AUTH_SEED to bake in as the backend token"; exit 1; }
+          if [ "$backends" = on ]; then
+            EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN=$(wf secret get VM_GATEWAY_AUTH_SEED --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no VM_GATEWAY_AUTH_SEED to bake in as the backend token"; exit 1; }
+          else
+            EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN=no-backend
+          fi
           echo "::add-mask::$EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN"
           export EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN
           # the app's BetterStack forwarder: the mobile source's ingest pair, from the vault at job time (the runner's bws
@@ -847,7 +953,7 @@ jobs:
             unset EXPO_PUBLIC_BETTERSTACK_TOKEN EXPO_PUBLIC_BETTERSTACK_HOST
             forwarder="off (the vault gave no${missing})"
           fi
-          wf ship eas --platform all --branch dev --pointer --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas.log"
+          wf ship eas --platform all --branch dev ${{ inputs.e2e && '--pointer' || '' }} --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas.log"
           summary=$(tail -1 "$RUNNER_TEMP/eas.log")
           {
             echo "### EAS Update"
@@ -864,11 +970,11 @@ jobs:
           EXPO_PUBLIC_DEVICE_LAB: "1"
           NX_DAEMON: "false"
         run: pnpm exec nx run mla-tamagui:export:eas --skip-nx-cache
-      - name: Save the app build state
-        if: ${{ inputs.ship }}
-        continue-on-error: true
-        timeout-minutes: 5
-        run: wf cache save metro
+      - uses: ./.github/actions/metro-cache
+        if: ${{ inputs.ship && success() }}
+        with:
+          mode: save
+          scope: export
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:

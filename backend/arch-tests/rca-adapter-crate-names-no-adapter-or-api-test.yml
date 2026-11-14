@@ -1,0 +1,18 @@
+id: rca-adapter-crate-names-no-adapter-or-api
+valid:
+  - use rca_service_core::application::ports::Ports;
+  - use remote_chat_agent_core::domain::ids::IdSource;
+  - use crate::http::Http;
+  - use std::sync::Arc;
+  - 'fn f() { rca_service_core::application::log::now_ms(); }'
+invalid:
+  - use rca_service::api::app::App;
+  - use rca_service;
+  - use ::rca_service::main;
+  - use remote_chat_agent_host::System;
+  - use remote_chat_agent_speech::{Speech, Engine};
+  - use remote_chat_agent_opencode::Http;
+  - use rca_service::{api, infrastructure};
+  - extern crate remote_chat_agent_host;
+  - 'fn f() { remote_chat_agent_speech::resolve_engine(); }'
+  - 'fn f() { rca_service::api::auth::unauthorized(); }'

@@ -18,6 +18,7 @@ type Listener = (event: unknown) => void;
 
 const listeners = new Map<string, Listener[]>();
 
+// oxlint-disable-next-line no-restricted-properties -- mocks a platform or native module the library reaches without a port; Phase 4 gives it one and deletes the mock
 vi.mock('react-native', () => ({
   Platform: { OS: 'ios' },
   Keyboard: {
@@ -31,6 +32,7 @@ vi.mock('react-native', () => ({
   },
 }));
 
+// oxlint-disable-next-line no-restricted-properties -- mocks a platform or native module the library reaches without a port; Phase 4 gives it one and deletes the mock
 vi.mock('@lib/logging', () => ({
   Logger: {
     info: vi.fn(),

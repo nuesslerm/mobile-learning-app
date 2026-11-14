@@ -44,5 +44,5 @@ Connect, list the projects and chats, open one, send a message and watch it stre
 
 ## Afterwards
 
-- Findings go in `#79` (an entry under "needs the owner" or "an agent can fix this"); do not paste a link or code into it.
+- Findings go in issue #80, section "H. Owner" (a new checkbox; #79 is closed); do not paste a link or code into it.
 - Revoke a test device when done: for Orca remove its entry from `devices.json` on the `orca-state` volume; a T3 device that has paired stays in the store and no revoke verb is known to this page, so note it in #365 if it matters.

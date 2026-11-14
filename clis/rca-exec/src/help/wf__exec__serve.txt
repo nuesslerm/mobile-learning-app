@@ -1,4 +1,4 @@
-Usage: wf exec serve --rca-url <url> --workspace <id> --root <dir> [--executor <id>] [--worktree-base <dir>] [--browse-allow <dirs>] [--reconnect] [--git-hooks] [--secret-env NAME]
+Usage: wf exec serve --rca-url <url> --workspace <id> --root <dir> [--executor <id>] [--worktree-base <dir>] [--browse-allow <dirs>] [--reconnect] [--reconnect-for <secs>] [--git-hooks] [--secret-env NAME]
 
 Attach this directory to the rca service as an executor: open
 GET /exec/v2/executors?workspace=<id> (a WebSocket, Authorization: Bearer) and
@@ -24,7 +24,10 @@ Options:
                               --root and --worktree-base
   --reconnect                 When the channel drops (not a close with 4001), open
                               it again for the same executor: its ptys go on and
-                              rca re-attaches to them by byte offset
+                              rca re-attaches to them by byte offset; the pause
+                              doubles from 200 ms to 5 s
+  --reconnect-for <secs>      How long --reconnect keeps trying (default 900); then
+                              it prints {"event":"gave_up"} and exits 1
   --git-hooks                 Let the repository's own hooks run in the git actions
                               (commit, merge, rebase, checkout, ...); off by default
   --secret-env <NAME>         The environment variable holding the bearer (default

@@ -270,7 +270,7 @@ pub(crate) fn wait_serving(app: &str, sha: &str, timeout: Duration, failed: impl
             Ok(c) => c,
             Err(why) => return Ok(format!("not confirmed: {why}")),
         };
-        if let Some(c) = reported.as_deref().filter(|c| commit_matches(Some(c), sha) || descends_from(c, sha)) {
+        if let Some(c) = reported.as_deref().filter(|c| commit_matches(Some(c), sha) || descends_from(c, sha) || own_image_unchanged(app, c, sha)) {
             return Ok(format!("serving {c} after {} s", started.elapsed().as_secs()));
         }
         if let Some(why) = failed() {
@@ -281,6 +281,13 @@ pub(crate) fn wait_serving(app: &str, sha: &str, timeout: Duration, failed: impl
         }
         std::thread::sleep(Duration::from_secs(10));
     }
+}
+
+/// Whether the commit `app` serves was built from the same inputs of the app's own image as `sha`: a gradual redeploy that moved only a sidecar
+/// leaves the app's own service on the commit it was built from, and that is the commit it should serve.
+fn own_image_unchanged(app: &str, serving: &str, sha: &str) -> bool {
+    let Some(own) = pipeline::image_hash::service_images(app).first() else { return false };
+    pipeline::image_hash::unchanged_between(None, serving, sha, own.image)
 }
 
 fn commit_matches(reported: Option<&str>, sha: &str) -> bool {

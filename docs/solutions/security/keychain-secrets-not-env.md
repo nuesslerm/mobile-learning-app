@@ -57,7 +57,7 @@ A `.env` file with a real secret is a leaked credential the moment it lands in g
 - Sharing a secret between two apps or two env-var names.
 - Reviewing a PR that introduces a `process.env.SOMETHING_SECRET` read.
 - Debugging "secret not found at runtime" — usually means the registry entry was added without a corresponding `wf secret set` (macOS) or vault item (production).
-- Preparing a production deploy: the CI jobs on the VM's runner install `bws` (`.github/actions/install-bws/action.yml`) and read the vault with the read-only `BWS_ADMIN_ACCESS_TOKEN` the `gh-runner` container is given (`infra/oracle-cloud/agent-shell/docker-compose.prod.yml`); the `tailscale-*.yml` workflows on hosted runners (dispatched by hand; `tailscale-auth-key-expiry.yml` also runs weekly) read it through `bitwarden/sm-action` with their own read-only `BWS_CI_DEPLOY_ACCESS_TOKEN`, and the expiry watch also hands that token to wf as `BWS_ACCESS_TOKEN`. The target host holds its own read-only machine token, which is what `sync-env` uses.
+- Preparing a production deploy: the CI jobs on hosted runners install `bws` (`.github/actions/install-bws/action.yml`); the `tailscale-*.yml` workflows (dispatched by hand; `tailscale-auth-key-expiry.yml` also runs weekly) read it through `bitwarden/sm-action` with their own read-only `BWS_CI_DEPLOY_ACCESS_TOKEN`, and the expiry watch also hands that token to wf as `BWS_ACCESS_TOKEN`. The target host holds its own read-only machine token, which is what `sync-env` uses.
 
 ## Examples
 

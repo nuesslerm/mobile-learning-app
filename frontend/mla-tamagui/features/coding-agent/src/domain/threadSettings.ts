@@ -7,7 +7,7 @@
 // disabled preference cannot silently hide the option from users on launch —
 // the caller's UI hides the row when the preference is off.
 
-import type { InteractionMode, RuntimeMode } from '../contracts/orchestration';
+import type { InteractionMode, RuntimeMode } from './orchestration';
 
 export interface RuntimeModeOption {
   readonly mode: RuntimeMode;

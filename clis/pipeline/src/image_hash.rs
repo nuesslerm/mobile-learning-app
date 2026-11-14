@@ -37,6 +37,8 @@ pub const IMAGES: &[Image] = &[
     image("vm-ops-api-rs", "backend/vm-ops-api/Dockerfile", ".", &["backend/vm-ops-api/rs"]),
     image("watchdog", "infra/oracle-cloud/watchdog/Dockerfile", ".", &["backend/watchdog/rs"]),
     image("agent-shell", "infra/oracle-cloud/agent-shell/Dockerfile", ".", &[]),
+    image("agent-shell-sessions", "infra/oracle-cloud/agent-shell/Dockerfile.sessions", ".", &[]),
+    image("agent-shell-dind", "infra/oracle-cloud/agent-shell/Dockerfile.dind", ".", &[]),
     image("logger-cli", "infra/oracle-cloud/logger-cli/Dockerfile", ".", &[]),
     image("vnc-auth-capture", "clis/vnc-auth-capture/Dockerfile", ".", &[]),
 ];
@@ -49,6 +51,30 @@ pub fn release_companions(app: &str) -> &'static [&'static str] {
     match app {
         "remote-chat-agent" => &["remote-chat-agent-stt", "opencode-server"],
         "vm-ops-api" => &["vm-ops-api-rs", "watchdog"],
+        "agent-shell" => &["agent-shell-sessions", "agent-shell-dind"],
+        _ => &[],
+    }
+}
+
+/// A compose service that runs an image of its own: the container it runs in and the image it is built from.
+pub struct ServiceImage {
+    pub service: &'static str,
+    pub container: &'static str,
+    pub image: &'static str,
+}
+
+const fn service_image(service: &'static str, container: &'static str, image: &'static str) -> ServiceImage {
+    ServiceImage { service, container, image }
+}
+
+/// The compose services of `app` that run an image of their own, the app's own service first (a gradual redeploy always moves that one). A
+/// service whose image inputs did not change is left on the tag it runs; a service listed here is one the redeploy request may tag alone.
+pub fn service_images(app: &str) -> &'static [ServiceImage] {
+    const RCA: [ServiceImage; 3] = [service_image("agent", "remote-chat-agent", "remote-chat-agent"), service_image("opencode", "remote-chat-agent-opencode", "opencode-server"), service_image("stt", "remote-chat-agent-stt", "remote-chat-agent-stt")];
+    const AGENT_SHELL: [ServiceImage; 3] = [service_image("app", "agent-shell", "agent-shell"), service_image("agent-sessions", "agent-shell-sessions", "agent-shell-sessions"), service_image("agent-dind", "agent-shell-dind", "agent-shell-dind")];
+    match app {
+        "remote-chat-agent" => &RCA,
+        "agent-shell" => &AGENT_SHELL,
         _ => &[],
     }
 }
@@ -241,6 +267,11 @@ pub fn hash(dir: Option<&Path>, rev: &str, image: &str) -> Result<String, String
     let digest = format!("{}\n{lock}", tree.files(&sources, &|file| ignore.excludes(&in_context(spec.context, file)))?);
     let hash = tree.git(&["hash-object", "--stdin"], Some(&digest))?;
     Ok(hash.trim().chars().take(24).collect())
+}
+
+/// Whether `image` hashes the same at commits `a` and `b`; an image that cannot be hashed at either is not shown unchanged.
+pub fn unchanged_between(dir: Option<&Path>, a: &str, b: &str, image: &str) -> bool {
+    matches!((hash(dir, a, image), hash(dir, b, image)), (Ok(x), Ok(y)) if x == y)
 }
 
 /// The hash of everything a deploy of `app` is built from at `rev`: its images' hashes and its compose project, which no image holds

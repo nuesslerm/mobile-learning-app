@@ -12,7 +12,7 @@ import type {
 import { act } from '@lib/flow-test-harness';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { useThreadCommands } from '../integration/useThreadCommands';
+import { useThreadCommands } from '../state/useThreadCommands';
 import { useComposerStore } from '../state/composerStore';
 import { useGatewayStore } from '../state/gatewayStore';
 import { useOutboxStore } from '../state/outboxStore';

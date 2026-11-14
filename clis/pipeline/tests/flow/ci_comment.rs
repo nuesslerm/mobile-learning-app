@@ -144,7 +144,7 @@ impl Github {
             .env("GITHUB_API_URL", &self.url())
             .env("GITHUB_SERVER_URL", "https://github.com")
             .env("GITHUB_REF_NAME", "dev")
-            .env("RUNNER_NAME", "vm-main")
+            .env("RUNNER_NAME", "github-actions-1")
             .env("WF_CI_LOG_CACHE", &log_cache())
             .env("NO_PROXY", "127.0.0.1")
             .env("no_proxy", "127.0.0.1");
@@ -208,7 +208,7 @@ fn a_red_run_gets_one_commit_comment_with_a_table_of_what_failed_and_no_secret_i
 
     // And a reader finds the verdict, the commit and the run, and the report: each job's cache hit rate, the Nx replays, the docker
     // layers, the EAS seconds, and for each crate whether its tests ran or were replayed
-    assert!(body.starts_with("<!-- ci-comment run:77 runner:vm-main -->\n"), "{body}");
+    assert!(body.starts_with("<!-- ci-comment run:77 runner:github-actions-1 -->\n"), "{body}");
     assert!(body.lines().nth(1).is_some_and(|title| title.contains("failed") && title.contains("0123456")), "{body}");
     for link in ["https://github.com/o/r/commit/0123456789abcdef0123456789abcdef01234567", "https://github.com/o/r/actions/runs/77"] {
         assert!(body.contains(link), "{link} missing: {body}");
@@ -307,7 +307,7 @@ fn a_re_run_of_the_same_run_updates_its_comment_instead_of_posting_a_second() {
     assert_eq!(patches.len(), 1, "{patches:?}");
     assert_eq!(patches[0].url, "/repos/o/r/comments/9001");
     let body = posted_body(&patches[0]);
-    assert!(body.starts_with("<!-- ci-comment run:77 runner:vm-main -->") && body.contains("flow-tests") && body.contains("3m 05s"), "{body}");
+    assert!(body.starts_with("<!-- ci-comment run:77 runner:github-actions-1 -->") && body.contains("flow-tests") && body.contains("3m 05s"), "{body}");
 }
 
 #[test]
@@ -377,7 +377,7 @@ fn a_green_run_whose_cache_writes_were_refused_for_a_full_tenancy_says_so_in_the
 fn the_pull_request_keeps_only_the_comment_of_the_run_that_reported_last() {
     // Given a pull request that carries the CI comments of two earlier reports and an unrelated comment
     let github = Github::start();
-    let older = "<!-- ci-comment run:76 runner:vm-main -->\nolder run";
+    let older = "<!-- ci-comment run:76 runner:github-actions-1 -->\nolder run";
     let live = "<!-- ci-live run:75 -->\nan earlier live comment";
     github.serve_with(&red_run(), json!([]), json!([{ "id": 3, "body": older }, { "id": 4, "body": live }, { "id": 5, "body": "a human's remark" }]), created(), updated());
 
@@ -863,7 +863,7 @@ fn preflight_names_every_check_that_failed_and_what_to_do_about_it() {
     let github = Github::start();
     github.server.routes(&[("GET /rate_limit", MockReply::json(401, json!({ "message": "Bad credentials" })))]);
     let r = run_wf(
-        &["ci", "preflight", "--skip", "workspace,toolchain,secrets,runner,ledger"],
+        &["ci", "preflight", "--skip", "workspace,toolchain,secrets,ledger"],
         &ci_opts()
             .env("GITHUB_TOKEN", TOKEN)
             .env("GITHUB_REPOSITORY", "o/r")
@@ -886,33 +886,52 @@ fn preflight_names_every_check_that_failed_and_what_to_do_about_it() {
     assert!(out["checks"].as_array().unwrap().iter().filter(|c| c["ok"] == false).all(|c| !c["next"].as_str().unwrap().is_empty()), "{out}");
 }
 
+fn build_cache_check(stores: &str) -> Value {
+    let github = Github::start();
+    github.server.routes(&[("GET /rate_limit", MockReply::json(200, json!({ "resources": { "core": { "remaining": 4000 } } })))]);
+    let r = run_wf(
+        &["ci", "preflight", "--skip", "workspace,toolchain,secrets,ledger"],
+        &ci_opts()
+            .env("GITHUB_TOKEN", TOKEN)
+            .env("GITHUB_REPOSITORY", "o/r")
+            .env("GITHUB_RUN_ID", "77")
+            .env("GITHUB_SHA", SHA)
+            .env("GITHUB_API_URL", &github.url())
+            .env("BUILD_CACHE_READ_STORES", stores)
+            .env("BUILD_CACHE_WRITE_STORES", stores)
+            .env("BUILD_CACHE_READ_PAR_URL", "")
+            .env("BUILD_CACHE_WRITE_PAR_URL", "")
+            .env("WF_PREFLIGHT_HEALTH", "svc=http://127.0.0.1:9/health")
+            .env("WF_TAILNET_SOCKS", "")
+            .env("NO_PROXY", "127.0.0.1")
+            .env("no_proxy", "127.0.0.1"),
+    );
+    last_json(&r)["checks"].as_array().unwrap().iter().find(|c| c["check"] == "build-cache").cloned().unwrap_or_else(|| panic!("no build-cache check: {}{}", r.stdout, r.stderr))
+}
+
 #[test]
-fn preflight_warns_when_the_pinned_runner_is_behind_github_and_stays_quiet_when_it_is_not() {
-    // Given the runner version compose pins and a GitHub whose latest runner release is a minor ahead, then the same one
-    let pinned = std::fs::read_to_string(wf_kit::root::repo_root().join("infra/oracle-cloud/ci-runner/docker-compose.prod.yml")).unwrap();
-    let tag = pinned.split("github-runner:").nth(1).unwrap().split(|c: char| !(c.is_ascii_digit() || c == '.')).next().unwrap().to_string();
-    let parts: Vec<u64> = tag.split('.').map(|p| p.parse().unwrap()).collect();
-    let preflight = |latest: String| {
-        let github = Github::start();
-        github.server.routes(&[("GET /rate_limit", MockReply::json(200, json!({ "resources": { "core": { "remaining": 4000 } } }))), ("GET /repos/actions/runner/releases/latest", MockReply::json(200, json!({ "tag_name": format!("v{latest}") })))]);
-        let r = run_wf(
-            &["ci", "preflight", "--skip", "workspace,toolchain,secrets,runner,ledger,build-cache,services"],
-            &ci_opts().env("GITHUB_TOKEN", TOKEN).env("GITHUB_REPOSITORY", "o/r").env("GITHUB_RUN_ID", "77").env("GITHUB_SHA", SHA).env("GITHUB_API_URL", &github.url()).env("WF_TAILNET_SOCKS", "").env("NO_PROXY", "127.0.0.1").env("no_proxy", "127.0.0.1"),
-        );
-        let out = last_json(&r);
-        let check = out["checks"].as_array().unwrap().iter().find(|c| c["check"] == "runner-version").cloned().unwrap();
-        (r.exit_code, check)
-    };
+fn preflight_fails_on_a_declared_store_that_is_down_and_names_it_without_its_link() {
+    // Given a declared store that answers nothing
+    let list = "par+http://127.0.0.1:9/p/LINK-SECRET/o/";
 
-    // When wf runs the preflight against a newer minor
-    let (code, behind) = preflight(format!("{}.{}.0", parts[0], parts[1] + 1));
-    // Then the check warns, names both versions and what to do, and does not stop the run
-    assert_eq!((code, behind["ok"].clone(), behind["required"].clone()), (0, json!(false), json!(false)), "{behind}");
-    assert!(behind["detail"].as_str().unwrap().contains(&tag) && behind["next"].as_str().unwrap().contains("redeploy ci-runner"), "{behind}");
+    // When the preflight runs
+    let check = build_cache_check(list);
 
-    // And against the pinned version itself it passes
-    let (_, current) = preflight(tag.clone());
-    assert_eq!(current["ok"], json!(true), "{current}");
+    // Then the build-cache check failed, says which store and what to do, and repeats no link
+    assert_eq!(check["ok"], false, "{check}");
+    let text = check.to_string();
+    assert!(text.contains("par+http://127.0.0.1:9") && !text.contains("LINK-SECRET") && !check["next"].as_str().unwrap().is_empty(), "{check}");
+}
+
+#[test]
+fn preflight_passes_with_no_store_declared_when_every_entry_is_disabled() {
+    // Given a store list whose only entry is disabled
+    // When the preflight runs
+    let check = build_cache_check("-par+http://127.0.0.1:9/p/LINK-SECRET/o/");
+
+    // Then the check passes and says no store is declared, and the disabled store was not needed
+    assert_eq!(check["ok"], true, "{check}");
+    assert!(check["detail"].as_str().unwrap().contains("no store declared"), "{check}");
 }
 
 #[test]
@@ -923,7 +942,7 @@ fn preflight_passes_when_what_it_checks_is_live() {
     let service = MockServer::start(None);
     service.routes(&[("GET /health", MockReply::json(200, json!({ "ok": true })))]);
     let r = run_wf(
-        &["ci", "preflight", "--skip", "workspace,toolchain,secrets,runner,ledger,build-cache"],
+        &["ci", "preflight", "--skip", "workspace,toolchain,secrets,ledger,build-cache"],
         &ci_opts()
             .env("GITHUB_TOKEN", TOKEN)
             .env("GITHUB_REPOSITORY", "o/r")
@@ -980,7 +999,7 @@ fn the_live_comment_of_a_new_run_replaces_the_old_one_at_the_bottom_and_shows_wh
     let created = github.sent("POST");
     assert_eq!(created.len(), 1, "{:?}", github.server.requests());
     let body = posted_body(&created[0]);
-    assert!(body.contains("CI (self-hosted) running") && body.contains("1 running") && body.contains("1 waiting"), "{body}");
+    assert!(body.contains("CI (GitHub-hosted) running") && body.contains("1 running") && body.contains("1 waiting"), "{body}");
     assert!(body.contains("flow-tests") && body.contains("in: Flow tests") && body.contains("clis") && body.contains("waiting"), "{body}");
 }
 
@@ -1002,6 +1021,38 @@ fn a_run_with_no_pull_request_makes_no_live_comment() {
     github.server.routes(&[("GET /repos/o/r/pulls?head=o:dev&state=open&per_page=1", MockReply::json(200, json!([])))]);
     let r = github.ci_wf(&["live", "start"]);
     assert_eq!((r.exit_code, github.sent("POST").len()), (0, 0), "{}{}", r.stdout, r.stderr);
+}
+
+#[test]
+fn a_slow_github_makes_the_live_comment_give_up_within_the_bound_and_never_fail_the_step() {
+    // Given a GitHub that answers every request only after 20 s, and a bound of 1.5 s
+    let github = live_github(json!([]));
+    github.server.delay(std::time::Duration::from_secs(20));
+    let started = std::time::Instant::now();
+
+    // When the run's job updates the live comment
+    let r = github.ci_wf_with(&["live"], &[("WF_CI_LIVE_BOUND_MS", "1500")]);
+
+    // Then it exits 0 well inside the 20 s, says in one line that it gave up and why, and posted nothing
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(started.elapsed() < std::time::Duration::from_secs(10), "took {:?}", started.elapsed());
+    assert!(r.stderr.contains("wf ci live: gave up after 1.5s: GitHub did not finish answering"), "{}", r.stderr);
+    assert!(r.stdout.contains("\"posted\":false"), "{}", r.stdout);
+    assert_eq!(github.sent("POST").len() + github.sent("PATCH").len(), 0);
+}
+
+#[test]
+fn a_github_that_answers_502_makes_the_live_comment_log_why_and_exit_0() {
+    // Given a GitHub whose pull request lookup answers 502
+    let github = Github::start();
+    github.server.routes(&[("GET /repos/o/r/pulls?head=o:dev&state=open&per_page=1", MockReply::json(502, json!({ "message": "Bad Gateway" })))]);
+
+    // When the run updates the live comment
+    let r = github.ci_wf(&["live"]);
+
+    // Then it exits 0 and names the failure
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(r.stderr.contains("wf ci live:") && r.stderr.contains("502"), "{}", r.stderr);
 }
 
 fn write_sized(path: &std::path::Path, bytes: usize) {

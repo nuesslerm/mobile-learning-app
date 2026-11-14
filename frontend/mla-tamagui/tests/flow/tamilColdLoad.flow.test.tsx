@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import * as lessonRoute from '../../app/(app)/(content)/tamil/[lessonId]';
 import * as trackRoute from '../../app/(app)/(content)/tamil/tracks/[trackId]';
 import * as writeRoute from '../../app/(app)/(content)/tamil/write/[subjectId]';
-import { TamilCourse } from '../../features/tamil-writing/data/tamilCourse';
+import { TamilCourse } from '../../features/tamil-writing/domain/course';
 import { TRACKS } from '../../features/tamil-writing/domain/tracks';
 
 import { app } from './app';

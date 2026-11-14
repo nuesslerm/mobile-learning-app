@@ -221,10 +221,10 @@ is itself a cache mount. The current Dockerfiles are mixed:
 
 **6. Registry-backed BuildKit cache for cross-sandbox / cross-machine builds.**
 
-`scripts/build-and-push-image.sh` and vm-ops-api's `build-and-push.sh` (deleted with the Node service)
+the deleted `build-and-push-image.sh` (repo root) and vm-ops-api's `build-and-push.sh` (deleted with the Node service)
 switched from separate `docker build` + `docker push` calls to a single combined
 `docker buildx build` invocation with registry cache flags. On 2026-07-30 both used
-`mode=min`; the current `scripts/build-and-push-image.sh` (lines 82-93 and 268) reads:
+`mode=min`; the current the deleted `build-and-push-image.sh` (repo root) (lines 82-93 and 268) reads:
 
 ```bash
 TARGET_PLATFORM="${TARGET_PLATFORM:-linux/arm64}"
@@ -332,7 +332,7 @@ exported far less data and was the only practical choice given that sandbox's
 bandwidth.
 
 vm-ops-api's `build-and-push.sh` (since deleted) kept `mode=min`.
-`scripts/build-and-push-image.sh` has since gone back to `mode=max` (line 93), and its
+the deleted `build-and-push-image.sh` (repo root) has since gone back to `mode=max` (line 93), and its
 comment (lines 83-92) gives the reason: in a multi-stage Dockerfile the expensive
 steps run in the build stage and none of their layers survive into the final image,
 which is exactly the set `mode=min` exports, so a second build of an unchanged tree
@@ -348,8 +348,8 @@ sandbox, rather than assuming cache export is "free" next to the build.
 The since-deleted `.github/workflows/build-images.yml` used `cache-from`/`cache-to
 type=gha` for its own builds — a different mechanism appropriate for GitHub Actions
 runners, which have persistent access to the GHA cache namespace. Images are now
-built on the VM by `wf ship` in the `deploy.yml` CI pipeline instead. The
-registry-backed `type=registry` cache in `scripts/build-and-push-image.sh` (and, until it was deleted, vm-ops-api's
+built by `wf ship build` in the hosted CI pipeline (`pipeline.yml`, the `build-image` action) instead. The
+registry-backed `type=registry` cache in the deleted `build-and-push-image.sh` (repo root) (and, until it was deleted, vm-ops-api's
 `build-and-push.sh`) exists specifically for the
 sandbox/local fallback path, which has no such persistent runner-scoped cache
 available. The two were deliberately parallel, not competing, caching strategies for

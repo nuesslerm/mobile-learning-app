@@ -1,0 +1,2 @@
+import '../adapters/a';
+export {};

@@ -13,7 +13,7 @@ import { MessageSquare, Sparkles, Zap } from '@lib/tamagui-design-system/icons';
 import * as React from 'react';
 import { ScrollView } from 'react-native';
 
-import { backTo } from './backTo';
+import { backTo } from '@lib/tamagui-design-system/lib/backTo';
 
 type CategoryId = 'push' | 'digest' | 'updates';
 

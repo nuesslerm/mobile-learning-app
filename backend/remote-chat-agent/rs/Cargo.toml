@@ -84,7 +84,6 @@ rca-cli-driver = { path = "../cli-driver" }
 rca-exec-channel = { path = "../exec-channel" }
 rca-agent-core = { path = "../agent-core" }
 rca-group-agent = { path = "../group-agent" }
-rca-group-workspace = { path = "../group-workspace" }
 rca-group-terminal = { path = "../group-terminal" }
 rca-group-git = { path = "../group-git" }
 rca-group-accounts = { path = "../group-accounts" }
@@ -120,11 +119,9 @@ agent-api-schedules = { path = "../../../libraries/agent-api/agent-api-schedules
 agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments", features = ["testing"] }
 agent-api-catalog = { path = "../../../libraries/agent-api/agent-api-catalog", features = ["testing"] }
 agent-api-preview = { path = "../../../libraries/agent-api/agent-api-preview", features = ["testing"] }
-exec-preview = { path = "../../../libraries/agent-api/exec-preview" }
 rca-group-schedules = { path = "../group-schedules", features = ["testing"] }
 rca-group-attachments = { path = "../group-attachments", features = ["testing"] }
 rca-group-catalog = { path = "../group-catalog", features = ["testing"] }
-rca-group-preview = { path = "../group-preview", features = ["testing"] }
 image = { version = "0.25", default-features = false, features = ["png"] }
 zip = { version = "2", default-features = false, features = ["deflate"] }
 service-kit = { version = "0.1", registry = "mla", features = ["e2e", "blackbox"] }

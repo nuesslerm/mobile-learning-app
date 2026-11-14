@@ -65,7 +65,7 @@ RUN curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
 # from Docker's own official apt repo -- NOT Debian bookworm's plain
 # `docker.io` package, which was the first thing tried here. Confirmed
 # live: `docker.io` has no `buildx` CLI plugin at all (Debian doesn't
-# package it), so scripts/build-and-push-image.sh failed immediately on
+# package it), so the old repo-root build script failed immediately on
 # `docker buildx build` with "unknown shorthand flag: 'f' in -f" -- the CLI's own
 # fallback parse of an unrecognized `buildx` subcommand, not a real flag
 # error. This is the exact same repo (download.docker.com) and package
@@ -168,7 +168,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       rsync \
       less \
       file \
-      restic \
+      bzip2 \
       unzip \
       curl \
       ca-certificates \
@@ -181,8 +181,14 @@ RUN curl -fsSL -o /tmp/rclone.zip https://downloads.rclone.org/v1.68.2/rclone-v1
     && unzip -p /tmp/rclone.zip '*/rclone' > /usr/local/bin/rclone && chmod 0755 /usr/local/bin/rclone \
     && rm -f /tmp/rclone.zip
 
-# The OCI CLI, for `wf cache guard --local`: the CI runner asks this container, which holds the OCI secrets, to measure and evict
-# Object Storage through vm-ops-api's exec route, so no OCI key ever sits on the runner. ~/.oci/config is written at first use from the
+# Debian's restic is 0.14, which does not take `restore <snapshot>:<subfolder>` (what `wf vm state verify` and `restore` ask for), so restic is the pinned upstream binary (a bump is a reviewed change: version and checksum from the release's SHA256SUMS). (a pinned-leg proof of 13 Nov ran on this file.)
+RUN curl -fsSL -o /tmp/restic.bz2 https://github.com/restic/restic/releases/download/v0.17.3/restic_0.17.3_linux_arm64.bz2 \
+    && echo "db27b803534d301cef30577468cf61cb2e242165b8cd6d8cd6efd7001be2e557  /tmp/restic.bz2" | sha256sum -c - \
+    && bunzip2 -c /tmp/restic.bz2 > /usr/local/bin/restic && chmod 0755 /usr/local/bin/restic \
+    && rm -f /tmp/restic.bz2
+
+# The OCI CLI, for `wf cache guard --local`: a CI job asks this container, which holds the OCI secrets, to measure and evict
+# Object Storage through vm-ops-api's exec route, so no OCI key ever sits on the CI runner. ~/.oci/config is written at first use from the
 # vault by the guard itself (the same OCI_* secrets `wf vm creds sync` reads). A venv keeps its dependencies off the system python;
 # the version is pinned (the guard deletes with the admin key), so a bump is a reviewed change.
 RUN apt-get update && apt-get install -y --no-install-recommends python3-venv \

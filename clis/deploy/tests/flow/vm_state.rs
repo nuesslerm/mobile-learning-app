@@ -599,11 +599,11 @@ fn from_a_caller_an_app_without_state_volumes_is_refused_before_agent_shell_is_a
     vm.replies(&[answers::reply(503, &answers::agent_shell_not_running())]);
 
     // When it backs it up
-    let r = run_wf(&["vm", "state", "backup", "--app", "ci-runner"], &vm.opts().cwd(&repo_root()));
+    let r = run_wf(&["vm", "state", "backup", "--app", "remote-chat-agent"], &vm.opts().cwd(&repo_root()));
 
     // Then the refusal names the app and the VM was never called
     assert_eq!((r.exit_code, line(&r)["ok"].clone()), (1, json!(false)), "{r:?}");
-    assert!(line(&r)["error"].as_str().unwrap().contains("ci-runner declares no stateVolumes"), "{r:?}");
+    assert!(line(&r)["error"].as_str().unwrap().contains("remote-chat-agent declares no stateVolumes"), "{r:?}");
     assert!(vm.requests().is_empty());
 
     // and an agent-shell that is down is an answer with the next step, not a hang
@@ -808,4 +808,38 @@ fn the_agent_shell_side_reads_its_plan_from_a_vm_apps_file_and_refuses_one_the_b
     // Then it is refused for the budgets, naming the files that hold them, and nothing reached a repository
     assert_eq!((r.exit_code, line(&r)["ok"].clone()), (1, json!(false)), "{r:?}");
     assert!(line(&r)["error"].as_str().unwrap().contains("budget"), "{r:?}");
+}
+
+#[test]
+fn a_passphrase_protected_oci_key_reaches_rclone_decrypted_in_a_private_directory_that_is_gone_after_the_run_and_the_passphrase_stays_off_every_command_line() {
+    // Given an agent-shell whose OCI key is encrypted (pass_phrase in ~/.oci/config) and stubs for oci, openssl and restic that record what they get
+    let s = State::new();
+    let home = s.dir.path().join("home");
+    write(home.join(".oci/config"), "[DEFAULT]\nuser=u\nregion=eu-frankfurt-1\nkey_file=/nowhere/oci_api_key.pem\npass_phrase=hunter2-passphrase\n");
+    let bin = s.dir.path().join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    let seen = s.dir.path().join("seen");
+    std::fs::create_dir_all(&seen).unwrap();
+    crate::support::create_stub(&bin.join("oci"), "echo '{\"data\":\"ns\"}'");
+    crate::support::create_stub(&bin.join("openssl"), &format!("echo \"$@\" > {d}/openssl-args; echo \"$WF_OCI_KEY_PASS\" > {d}/openssl-pass; printf 'PLAIN-KEY'", d = seen.display()));
+    crate::support::create_stub(&bin.join("restic"), &format!("cp \"$RCLONE_CONFIG_OOS_CONFIG_FILE\" {d}/config; cp \"$(sed -n 's/^key_file=//p' \"$RCLONE_CONFIG_OOS_CONFIG_FILE\")\" {d}/key; echo \"$RCLONE_CONFIG_OOS_CONFIG_FILE\" > {d}/path; stat -c %a \"$RCLONE_CONFIG_OOS_CONFIG_FILE\" > {d}/mode; exit 1", d = seen.display()));
+    let plan = s.plan("orca-serve", "orca-state", &[], BIG);
+
+    // When a backup runs against the bucket repository (no WF_VM_STATE_REPO)
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").unwrap_or_default());
+    let opts = RunOpts::default().clean_env().env("HOME", &home.display().to_string()).env("PATH", &path).env("VM_STATE_RESTIC_PASSWORD", PASSWORD).env("WF_VM_STATE_ROOT", &s.dir.path().join("vol").display().to_string()).env("TMPDIR", &s.scratch().display().to_string());
+    let r = s.local_with("backup", &plan, T0, opts);
+
+    // Then restic got a config without the passphrase pointing at a decrypted key, both private, the directory is removed after the run,
+    // and the passphrase was passed to openssl through the environment only
+    let read = |n: &str| std::fs::read_to_string(seen.join(n)).unwrap_or_default();
+    let config = read("config");
+    assert!(!config.contains("pass_phrase") && !config.contains("hunter2") && !config.contains("/nowhere/"), "{config}");
+    assert!(config.contains("key_file=") && config.contains("region=eu-frankfurt-1"), "{config}");
+    assert_eq!(read("key"), "PLAIN-KEY", "{r:?}");
+    assert_eq!(read("mode").trim(), "600");
+    assert!(!Path::new(read("path").trim()).exists(), "the decrypted key outlived the run");
+    assert!(read("openssl-args").contains("env:WF_OCI_KEY_PASS") && !read("openssl-args").contains("hunter2"), "{}", read("openssl-args"));
+    assert_eq!(read("openssl-pass").trim(), "hunter2-passphrase");
+    assert!(!r.stdout.contains("hunter2") && !r.stderr.contains("hunter2"), "{r:?}");
 }

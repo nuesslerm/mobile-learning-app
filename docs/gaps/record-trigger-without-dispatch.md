@@ -15,14 +15,14 @@ links: []
 
 Agent sessions in this repo reach GitHub through an egress proxy that answers 403 to `workflow_dispatch` and to the Actions API (listing runs, downloading an artifact), so a dispatched
 capture could be started and read only by a human. The same constraint shaped the Gem sync: an EMPTY commit to `dev` whose message carries a marker is a plain `git push`, which the proxy
-allows, and `deploy.yml` ignores it (its `paths` filter needs a changed file). `mimic-record.yml` follows that pattern (`[record <set>...]`, `[replay <set>...]`, parsed by `wf mimic trigger`).
+allows, and the CI pipeline ignores it (`ci-hosted.yml` starts an empty commit only with a `[services:...]` or `[cache:...]` tag). `mimic-record.yml` follows that pattern (`[record <set>...]`, `[replay <set>...]`, parsed by `wf mimic trigger`).
 For the same reason the cassette set also travels through the verification-artifacts bucket (`wf mimic publish` / `fetch`, plain HTTPS), with the Actions artifact as the human-facing copy.
 
 ## What has not been seen
 
-- A live run: no marker commit has been pushed. Unseen: the gate letting a `[record ...]` commit through and `deploy.yml` starting nothing, the matrix running legs one at a time behind a CI run, the
+- A live run: no marker commit has been pushed. Unseen: the gate letting a `[record ...]` commit through and the CI pipeline starting nothing, the matrix running legs one at a time, the
   checkpoint artifact round trip (`mimic-checkpoint-<set>`, found with the artifacts API and restored with `actions/download-artifact` across runs), `nice -n 19` through `wf`, and a real
-  provision of the Orca source and the pinned T3 release on the runner (cold install and build time, disk under the work root `~/.cache/mimic-work`).
+  provision of the Orca source and the pinned T3 release on the hosted runner (cold install and build time, disk under the work root `~/.cache/mimic-work`).
 - `wf mimic record --resume --max-minutes <n>` exists (it stops at a batch boundary after n minutes, a decimal is fine, with its state under `<set>/raw/checkpoint`, and prints `complete:false`; one flow test through the `wf-mimic` binary against the toy reference covers the stop, the resume to the uninterrupted set and the refusal of a changed corpus or rules), but no real T3 or Orca record has run it: the batch size of a real reference against `--max-minutes` is unmeasured.
 - The checkpoint artifact holds the unmasked raw capture for 3 days (a private Actions artifact, readable by anyone with read access to the repository). It is uploaded only after a clean out-of-budget exit and only when a scan for Bearer-token and JWT shapes finds nothing, which is a heuristic: other secrets in raw captures are not detected. Moving it to a private bucket path needs a private write path in `wf-bucket`.
 - Toolchain steps other than node (`actions/setup-python`, `actions/setup-go`, `rustup`) and the checkpoint deletion (`actions: write`) are checked by actionlint and the matrix-key contract test only.

@@ -2,6 +2,7 @@ packages:
   - backend/*
   - clis/*
   - tooling/browser-harness/*
+  - frontend/feature-kit
   - frontend/mla-tamagui
   - frontend/mla-tamagui/features/coding-agent
   - frontend/mla-tamagui/features/service-report
@@ -10,11 +11,12 @@ packages:
   - frontend/libraries/app-config
   - frontend/libraries/app-di
   - libraries/browser-client
-  - libraries/eslint-plugin-mobile-learn
+  - frontend/libraries/eslint-plugin-mobile-learn
   - frontend/libraries/flow-test-harness
   - frontend/libraries/gesture-geometry
   - libraries/hook-runtime
   - frontend/libraries/logging
+  - frontend/libraries/remote-chat-agent-contracts
   - frontend/libraries/rn-agentation
   - frontend/libraries/tamagui-design-system
   - frontend/libraries/voice-edit-dsl

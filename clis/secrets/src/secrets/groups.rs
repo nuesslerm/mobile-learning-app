@@ -5,8 +5,8 @@
 // keys are deliberately NOT optional: absent-and-skipped produced an agent that deployed clean and failed on first use. A
 // broken backend still fails for optional keys too; the skip applies only to a genuine "not in the vault". The write-capable
 // BWS_ADMIN_ACCESS_TOKEN appears in NO group, so no deploy can deliver it to a VM.
-// `vm_only` keys of a group (a subset of its required/optional) are read where the app runs, never by a CI job: the runner's
-// verify and `scope-check` skip them. The sets live in groups.json, which Terraform also reads so a fresh VM's cloud-init writes the same env before any wf exists.
+// `vm_only` keys of a group (a subset of its required/optional) are read where the app runs, never by a CI job: `wf secret verify`
+// and `scope-check` skip them. The sets live in groups.json, which Terraform also reads so a fresh VM's cloud-init writes the same env before any wf exists.
 pub struct Group {
     pub app: String,
     pub required: Vec<String>,

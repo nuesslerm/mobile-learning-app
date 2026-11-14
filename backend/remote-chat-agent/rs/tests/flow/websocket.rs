@@ -441,7 +441,8 @@ async fn given_subscriptions_when_threads_change_turns_run_and_the_service_resta
             }
             oc.end_streams();
         }
-        let failed = ws.next(|f| is_event(f, id, "thread.session-set") && f["item"]["event"]["payload"]["session"]["status"] == "error").await;
+        let status = if id == "ws-broken" { "interrupted" } else { "error" };
+        let failed = ws.next(|f| is_event(f, id, "thread.session-set") && f["item"]["event"]["payload"]["session"]["status"] == status).await;
         assert_eq!(failed["item"]["event"]["payload"]["session"]["lastError"], reason, "{id}");
         ws.send(json!({ "kind": "unsubscribe", "id": id })).await;
     }
@@ -776,6 +777,41 @@ async fn given_a_turn_running_in_an_opencode_session_when_only_the_agent_restart
     // the prompt itself).
     after.dispatch("t2", turn("ws-restart", "again", false, "default")).await;
     eventually("the queued prompt reached opencode", || oc.find("POST", "*/prompt_async").len() == 2).await;
+    assert_eq!(oc.find("POST", "*/prompt_async")[1].path, "/session/oc-ses-1/prompt_async");
+    assert_eq!(oc.find("POST", "/session").len(), 1);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn given_a_turn_running_in_an_opencode_session_when_opencode_restarts_and_ends_its_streams_then_the_thread_errors_keeps_the_session_and_the_next_turn_goes_to_it() {
+    // Given a turn running in oc-ses-1 that has said something, the thread followed
+    let env = Env::new(&[]);
+    let svc = service(&env, Options::default());
+    let oc = Arc::clone(&svc.opencode);
+    oc.on_prompt(Arc::new(|p: &Prompt| vec![says(&p.session, "thinking")]));
+    let served = svc.serve();
+    let mut ws = served.connect(&format!("?token={SECRET}")).await.unwrap();
+    ws.first().await;
+    ws.send(json!({ "kind": "subscribe", "id": "oc", "method": "orchestration.subscribeThread", "params": { "threadId": "ws-oc-restart" } })).await;
+    ws.next(|f| f["id"] == "oc" && f["item"]["kind"] == "synchronized").await;
+    ws.dispatch("t1", turn("ws-oc-restart", "go", true, "default")).await;
+    let mut said = thread(&mut ws, "ws-oc-restart").await;
+    for _ in 0..300 {
+        if said["messages"].as_array().unwrap().iter().any(|m| m["role"] == "assistant") {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+        said = thread(&mut ws, "ws-oc-restart").await;
+    }
+    // When opencode restarts: every event stream it served ends
+    oc.end_streams();
+    // Then the thread reports the turn interrupted and still holds oc-ses-1
+    let failed = ws.next(|f| is_event(f, "oc", "thread.session-set") && f["item"]["event"]["payload"]["session"]["status"] == "interrupted").await;
+    assert_eq!(failed["item"]["event"]["payload"]["session"]["lastError"], "opencode ended its event stream");
+    assert_eq!(failed["item"]["event"]["payload"]["session"]["providerSessionId"], "oc-ses-1", "{failed}");
+    // And the next turn goes to that session, and no second session is created
+    oc.on_prompt(Arc::new(|p: &Prompt| vec![says(&p.session, "back"), idle(&p.session)]));
+    ws.dispatch("t2", turn("ws-oc-restart", "again", false, "default")).await;
+    eventually("the next prompt reached opencode", || oc.find("POST", "*/prompt_async").len() == 2).await;
     assert_eq!(oc.find("POST", "*/prompt_async")[1].path, "/session/oc-ses-1/prompt_async");
     assert_eq!(oc.find("POST", "/session").len(), 1);
 }

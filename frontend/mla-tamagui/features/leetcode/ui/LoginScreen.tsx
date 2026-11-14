@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { YStack } from '@lib/tamagui-design-system/primitives';
 
-import { useLeetCodePorts } from '../di/LeetCodeContainer';
+import { useLeetCodePorts } from '../state/ports';
 import { useLeetCodeAuthStore } from '../state/authStore';
 
 import { deriveCaptureBannerMessage } from './captureBannerMessage';

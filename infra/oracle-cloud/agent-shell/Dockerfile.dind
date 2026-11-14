@@ -1,0 +1,11 @@
+# The dind container of agent-shell: the tools image at one pinned tag plus this role's own files (its sshd config and entrypoint).
+# A change to the tools layer (packages, CLIs) moves the `agent-shell` image and leaves this image's hash alone, so a deploy never
+# replaces the dind container for it. The pin moves only by editing AGENT_SHELL_TAG below, on purpose, and the container itself
+# only on a full recreate (`recreate=all`). The tag must be one CI pushed for `agent-shell`.
+ARG IMAGE_NAMESPACE=nuesslerm
+ARG AGENT_SHELL_TAG=sha-bb6e8dc5
+FROM docker.io/${IMAGE_NAMESPACE}/agent-shell:${AGENT_SHELL_TAG}
+
+COPY infra/oracle-cloud/agent-shell/sshd_config /etc/ssh/sshd_config
+COPY infra/oracle-cloud/agent-shell/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh

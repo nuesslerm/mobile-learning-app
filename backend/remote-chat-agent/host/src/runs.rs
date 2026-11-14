@@ -2,7 +2,7 @@
 //! into events, plus the diff of what the attempt wrote. The cooldown ledger, the run log and the process and file work go through the
 //! ports a `HostSetup` carries.
 
-use rca_core::opencode::ToolEvent;
+use rca_core::opencode::{OpencodeTokens, ToolEvent};
 use rca_ladder::pool_ledger::Ledger;
 use rca_ladder::run::{AttemptMetrics, AttemptOutput, RunHost};
 use rca_ladder::store::CooldownStore;
@@ -264,8 +264,21 @@ impl RunHost for Host<'_> {
         AttemptOutput { text: captured.text, tool_events: events, structured: true, error }
     }
 
-    fn metrics(&mut self, _index: usize) -> Option<AttemptMetrics> {
-        None
+    fn metrics(&mut self, index: usize) -> Option<AttemptMetrics> {
+        let usage = self.usages.get(&index)?;
+        Some(metrics_of(usage, self.sessions.get(&index).cloned()))
+    }
+}
+
+fn metrics_of(usage: &one_shot::Usage, session: Option<String>) -> AttemptMetrics {
+    let n = |v: Option<f64>| v.unwrap_or(0.0);
+    let (input, output, reasoning) = (n(usage.input), n(usage.output), n(usage.reasoning));
+    let (cache_read, cache_write) = (n(usage.cache_read), n(usage.cache_write));
+    AttemptMetrics {
+        tokens: Some(OpencodeTokens { input, output, reasoning, cache_read, cache_write, total: input + output + reasoning + cache_read + cache_write }),
+        cost: None,
+        opencode_session_id: session,
+        summary_chars: None,
     }
 }
 
@@ -313,5 +326,19 @@ impl AttemptHost for Host<'_> {
 
     fn usage(&self, attempt: usize) -> Option<one_shot::Usage> {
         self.usages.get(&attempt).cloned()
+    }
+}
+
+#[cfg(test)]
+mod metrics_tests {
+    use super::*;
+
+    #[test]
+    fn given_partial_usage_when_converted_then_missing_counts_are_zero_and_total_sums() {
+        let usage = one_shot::Usage { input: Some(10.0), output: Some(5.0), reasoning: None, cache_read: Some(100.0), cache_write: None };
+        let m = metrics_of(&usage, Some("s1".into()));
+        let t = m.tokens.expect("tokens");
+        assert_eq!((t.input, t.output, t.reasoning, t.cache_read, t.cache_write, t.total), (10.0, 5.0, 0.0, 100.0, 0.0, 115.0));
+        assert_eq!(m.opencode_session_id.as_deref(), Some("s1"));
     }
 }

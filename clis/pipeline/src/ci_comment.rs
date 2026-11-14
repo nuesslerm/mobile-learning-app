@@ -845,7 +845,7 @@ fn body(env: &Env, jobs: &[Value], logs: &[Result<String, String>], failures: &[
         (false, true) => ("passed", "✅"),
         (false, false) => ("failed", "❌"),
     };
-    let title = format!("## {mark} CI ({}) {verdict} · `{short}` · {}{}", env.label.as_deref().unwrap_or("self-hosted"), env.branch, wall.as_ref().map_or(String::new(), |w| format!(" · {w}")));
+    let title = format!("## {mark} CI ({}) {verdict} · `{short}` · {}{}", env.label.as_deref().unwrap_or("GitHub-hosted"), env.branch, wall.as_ref().map_or(String::new(), |w| format!(" · {w}")));
     let mut out = format!("{}\n{title}\n[Commit `{short}`]({base}/commit/{}) · [run {}]({run}) · runner `{}`\n\n", live_marker(env), env.sha, env.run, env.runner);
     out.push_str(failures_block(failures, skipped).trim_start_matches('\n'));
 

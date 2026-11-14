@@ -153,6 +153,10 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
     for found in &crossings {
         wf_kit::wf_err!("wf: workspace crossing rule broken ({found})");
     }
+    let ts_packages = crate::ts_packages::check(root).findings;
+    for found in &ts_packages {
+        wf_kit::wf_err!("wf: ts package rule broken ({found})");
+    }
     let cargo_inputs = crate::cargo_inputs::check(root).findings;
     for found in &cargo_inputs {
         wf_kit::wf_err!("wf: cargo task hashes npm packages ({found})");
@@ -184,6 +188,8 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
         Budget { name: "concepts-dangling-links", value: dangling_links(root, "CONCEPTS.md")?, limit: 0, gated: true },
         // A core does no I/O: no I/O crate, and no tokio I/O feature, in its manifest or in the workspace tokio it inherits.
         Budget { name: "backend-core-io-violations", value: crate::core_purity::count(root), limit: 0, gated: true },
+        // `service-core` asks the system for time, random ids and file existence directly in this many places; each moves behind a port, so the limit only goes down.
+        Budget { name: "core-ambient-calls", value: crate::core_purity::ambient_calls(root), limit: 17, gated: true },
         // The plan's dependency rules between crates: exec-testkit is a dev-dependency of its few users only (`TESTKIT_USERS` in `cargo_deps`), and an adapter library
         // depends on nothing that consumes it (Cargo allows that cycle through a dev-dependency).
         Budget { name: "cargo-dep-violations", value: cargo_deps.len(), limit: 0, gated: true },
@@ -191,6 +197,8 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
         Budget { name: "blast-radius-violations", value: blast_radius.len(), limit: 0, gated: true },
         // A path dependency across a Cargo workspace boundary is on the checked-in list, and the list only shrinks (`workspace_crossings`).
         Budget { name: "workspace-crossing-violations", value: crossings.len(), limit: 0, gated: true },
+        // A TypeScript package lives in frontend/ unless it is on the checked-in list, and the list only shrinks (`ts_packages`).
+        Budget { name: "ts-package-violations", value: ts_packages.len(), limit: 0, gated: true },
         // No CI job asks for a key past its class: an open job reads ci-open and public keys, no job reads a vm key (`wf secret scope-check`).
         Budget { name: "ci-scope-violations", value: scope_check.len(), limit: 0, gated: true },
         // Every third-party action is pinned to a commit sha, so a moved tag cannot change what a job runs (`workflow_hygiene`).
@@ -606,14 +614,13 @@ pub fn staged(args: &[String], dead_refs: DeadRefs) -> Option<i32> {
 
 /* ---------- the apps a path reaches ---------- */
 
-pub const APP_PATHS: [(&str, &str); 14] = [
+pub const APP_PATHS: [(&str, &str); 13] = [
     ("frontend/mla-tamagui", "mla-tamagui"),
     ("infra/oracle-cloud/vm-ops-api", "vm-ops-api"),
     ("infra/oracle-cloud/watchdog", "vm-ops-api"),
     ("backend/watchdog", "vm-ops-api"),
     ("backend/vm-ops-api", "vm-ops-api"),
     ("infra/oracle-cloud/agent-shell", "agent-shell"),
-    ("infra/oracle-cloud/ci-runner", "ci-runner"),
     ("clis/vnc-auth-capture", "vnc-auth-session"),
     ("backend/leetcode-backend", "leetcode-backend"),
     ("backend/remote-chat-agent", "remote-chat-agent"),
@@ -643,7 +650,7 @@ pub fn apps_for_paths(paths: &[String]) -> Vec<&'static str> {
     apps
 }
 
-pub const BUDGET: Spec = Spec { flags: &["budget", "strict", "blast-radius", "unused-deps", "workspace-crossings", "cargo-inputs"], positional: Positional::None, ..Spec::NONE };
+pub const BUDGET: Spec = Spec { flags: &["budget", "strict", "blast-radius", "unused-deps", "workspace-crossings", "ts-packages", "cargo-inputs"], positional: Positional::None, ..Spec::NONE };
 
 /// `check --budget [--strict]`.
 pub fn budget(args: &[String]) -> Option<i32> {
@@ -663,6 +670,14 @@ pub fn budget(args: &[String]) -> Option<i32> {
         println!("{}", report.json);
         for found in &report.findings {
             wf_kit::wf_err!("wf: workspace crossing rule broken ({found})");
+        }
+        return Some(i32::from(!report.findings.is_empty()));
+    }
+    if p.flag("ts-packages") {
+        let report = crate::ts_packages::check(&root);
+        println!("{}", report.json);
+        for found in &report.findings {
+            wf_kit::wf_err!("wf: ts package rule broken ({found})");
         }
         return Some(i32::from(!report.findings.is_empty()));
     }

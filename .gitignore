@@ -32,7 +32,7 @@ pnpm-error.*
 *.pem
 
 # Transient sandbox-proxy CA copy created (and normally trap-cleaned) by
-# scripts/build-and-push-image.sh / infra/oracle-cloud/agent-shell/build-and-push.sh
+# infra/oracle-cloud/agent-shell/build-and-push.sh
 # while a build is in flight -- never meant to be committed.
 .sandbox-proxy-ca.crt
 

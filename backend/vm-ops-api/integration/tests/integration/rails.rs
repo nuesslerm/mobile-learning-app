@@ -1,4 +1,4 @@
-//! The harness's own safety rails, which keep every case off the real VM and away from the runner's credentials. These
+//! The harness's own safety rails, which keep every case off the real VM and away from the test machine's credentials. These
 //! start no service: a rail that holds panics before any child starts, and the child they would start is the fake-tool
 //! printing the names of its variables (never their values, which the report of a failed case would carry), or a helper
 //! line that only echoes its words. The last case runs the `docker` double itself, to show it records a sibling and
@@ -123,7 +123,7 @@ case!(the_child_gets_only_the_variables_the_harness_sets, {
     assert!(std::env::var_os("VM_OPS_API_CMD").is_some(), "run the suite through test:integration, which sets VM_OPS_API_CMD");
     // When a child starts in a world exactly as the service would
     let printed = start_in(&world());
-    // Then every variable it sees is one the harness set, so nothing of the runner's environment reaches the child
+    // Then every variable it sees is one the harness set, so nothing of the test machine's environment reaches the child
     let names: Vec<&str> = printed.lines().collect();
     assert!(names.contains(&"VM_OPS_API_AUTH_TOKEN"), "{printed}");
     let stray: Vec<&&str> = names.iter().filter(|n| !CHILD_ENV.contains(n)).collect();

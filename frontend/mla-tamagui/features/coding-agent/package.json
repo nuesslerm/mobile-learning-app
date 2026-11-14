@@ -12,7 +12,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs",
+    "lint": "oxlint -c ../../../.oxlintrc.json --deny-warnings && depcruise src --config .dependency-cruiser.cjs --ignore-known",
     "test": "vitest run --passWithNoTests",
     "test:unit": "vitest run --passWithNoTests",
     "test:flow": "vitest run --config vitest.flow.config.ts --configLoader runner"

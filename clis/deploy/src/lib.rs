@@ -5,8 +5,6 @@
 mod agent_deps;
 mod build_image;
 mod ci_build;
-mod ci_runner;
-mod runner_check;
 mod cancel_run;
 mod install_clis;
 mod token_permissions;
@@ -27,6 +25,7 @@ mod host_history;
 mod vm_ops;
 mod vm_recover;
 mod vm_state;
+mod vm_stock;
 pub mod verify_tier3;
 
 use wf_kit::args::probe;
@@ -78,6 +77,7 @@ pub fn run_vm(rest: &[String]) -> Option<i32> {
         },
         "terraform" => infra::run_tf(tail),
         "state" => vm_state::run(tail),
+        "stock" => vm_stock::run(tail),
         "net" => net(tail),
         _ => None,
     }

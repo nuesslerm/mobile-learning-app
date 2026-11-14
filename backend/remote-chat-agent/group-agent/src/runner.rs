@@ -133,7 +133,14 @@ pub struct Runner {
 
 impl Runner {
     pub fn new(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, spawner: Arc<dyn Spawner>, mcp: Arc<dyn McpEndpoint>, cli_cwd: PathBuf) -> Arc<Runner> {
-        Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::new(spawner)), mcp, cli_cwd, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() })
+        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::new(spawner)), mcp, cli_cwd, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
+        let me = Arc::downgrade(&runner);
+        runner.engine.on_settled(Arc::new(move |thread| {
+            if let Some(runner) = me.upgrade() {
+                runner.resume_queue_later(thread);
+            }
+        }));
+        runner
     }
 
     pub fn engine(&self) -> &Arc<dyn ThreadEngine> {
@@ -207,7 +214,7 @@ impl Runner {
             prompt: with_context(merge.as_ref(), &input.prompt),
             runtime_mode: input.runtime_mode.clone().unwrap_or_else(|| "full-access".into()),
             interaction_mode: input.interaction_mode.clone().unwrap_or_else(|| "default".into()),
-            resume: if driver == Driver::ClaudeAgent { self.engine.provider_session(thread).unwrap_or(None) } else { None },
+            resume: self.engine.provider_session(thread, driver.id()).unwrap_or(None),
         };
         command_for_remote(driver, &request, &self.mcp.url(thread)).map_err(|why| Refusal::new(code::UNKNOWN_DRIVER, format!("{}: {}", message::unknown_driver(&input.driver), why.0)))?;
         let claim = self.in_flight.claim(thread, &turn).ok_or_else(running)?;
@@ -260,6 +267,28 @@ impl Runner {
         let (runner, thread) = (self.arc(), thread.to_string());
         tokio::spawn(async move {
             runner.start_next(&thread).await;
+        });
+    }
+
+    /// After a restart settled the thread's turn as interrupted: starts the next queued prompt once the workspace's executor is back. The interrupted
+    /// turn itself is never run again, it may have had side effects; a prompt sent after it resumes the kept session.
+    fn resume_queue_later(&self, thread: &str) {
+        let Ok(handle) = tokio::runtime::Handle::try_current() else {
+            tracing::warn!(event = "agent_queue.resume_no_runtime", thread = %thread);
+            return;
+        };
+        let (runner, thread) = (self.arc(), thread.to_string());
+        handle.spawn(async move {
+            let Some(item) = runner.engine.queue(&thread).ok().flatten().and_then(|(_, items)| items.into_iter().next()) else { return };
+            let workspace = item.workspace.or_else(|| runner.thread(&thread).ok().and_then(|view| view.workspace)).unwrap_or_default();
+            for _ in 0..RESTART_WINDOW_POLLS {
+                if runner.executors.get(&workspace).is_some() {
+                    runner.start_next(&thread).await;
+                    return;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            }
+            tracing::warn!(event = "agent_queue.resume_no_executor", thread = %thread, workspace = %workspace);
         });
     }
 
@@ -343,6 +372,9 @@ impl Runner {
         }
     }
 }
+
+/// How many 500 ms polls a restarted service waits for the executor of a queued prompt to connect again (15 minutes, rca-exec's default reconnect window).
+const RESTART_WINDOW_POLLS: u32 = 1800;
 
 enum Started {
     Running(String),

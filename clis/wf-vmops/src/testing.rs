@@ -134,7 +134,7 @@ pub mod answers {
 
     /// Any app route for a name outside the seven managed apps.
     pub fn unknown_app() -> Value {
-        json!({ "error": "unknown app", "knownApps": ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"] })
+        json!({ "error": "unknown app", "knownApps": ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"] })
     }
 
     /// The 502 of a handler that threw.

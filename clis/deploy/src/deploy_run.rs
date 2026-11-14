@@ -1,5 +1,5 @@
-//! `wf ship <service>`: redeploy an app at a tag CI already pushed (or an app with no image) through vm-ops-api, or move `latest` with
-//! `--promote-latest`. Nothing here builds an image: CI does, on the runner (`wf ship build`). `--json`, a missing `--ref` and help are
+//! `wf ship <service>`: redeploy an app at a tag CI already pushed through vm-ops-api, or move `latest` with
+//! `--promote-latest`. Nothing here builds an image: CI does, on a hosted runner (`wf ship build`). `--json`, a missing `--ref` and help are
 //! left to the TypeScript CLI.
 use wf_kit::args::parse;
 use crate::build_image as bi;
@@ -143,10 +143,14 @@ fn vm_images(names: &[String]) -> Result<Vec<String>, Fail> {
 
 /// The redeploy is idempotent (pull the tag, up -d), so riding out vm-ops-api restarting is safe: retry only a
 /// request that never got an HTTP answer.
-/// `env` is the body of the request: `KEY=value` lines the service appends to the app's `.env` (a registration token, never a vault secret).
-pub(crate) fn redeploy(app: &str, git_ref: &str, tag: &str, wipe_state: bool, recreate_all: bool, env: Option<&str>) -> Result<Value, String> {
+pub(crate) fn redeploy(app: &str, git_ref: &str, tag: &str, wipe_state: bool, recreate_all: bool) -> Result<Value, String> {
     let delay = env_ms("WF_DEPLOY_RETRY_MS", 15_000);
     let mut query = format!("tag={}&ref={}", encode_form(tag), encode_form(git_ref));
+    if !wipe_state && !recreate_all {
+        if let Some(tags) = service_tags(app, git_ref, tag) {
+            query.push_str(&format!("&tags={}", encode_form(&tags)));
+        }
+    }
     if wipe_state {
         query.push_str("&wipeState=1");
     }
@@ -157,7 +161,6 @@ pub(crate) fn redeploy(app: &str, git_ref: &str, tag: &str, wipe_state: bool, re
     let opts = Opts {
         timeout_sec: 90,
         ok_statuses: &[200, 202],
-        body: env.map(String::from),
         ..Opts::post()
     };
     let mut attempt = 1;
@@ -176,6 +179,32 @@ pub(crate) fn redeploy(app: &str, git_ref: &str, tag: &str, wipe_state: bool, re
             }
         }
     }
+}
+
+/// The `service:tag` list of a gradual redeploy: every service of `app` that runs an image of its own whose image inputs differ between the commit
+/// it runs and `git_ref` (empty when none does). None when every service moves (the plain redeploy says the same) or when the running commits
+/// cannot be read: a service that cannot be shown unchanged is moved.
+fn service_tags(app: &str, git_ref: &str, tag: &str) -> Option<String> {
+    let services = pipeline::image_hash::service_images(app);
+    if services.is_empty() {
+        return None;
+    }
+    let containers = wf_vmops::services::ps(app).ok()?;
+    let running_sha = |container: &str, image: &str| -> Option<String> {
+        let marker = format!("/{image}:sha-");
+        containers
+            .iter()
+            .filter(|c| c.get("name").and_then(Value::as_str) == Some(container) && c.get("state").and_then(Value::as_str) == Some("running"))
+            .filter_map(|c| c.get("image").and_then(Value::as_str))
+            .find_map(|i| i.rsplit_once(&marker[..]).map(|(_, sha)| sha.to_string()))
+            .filter(|sha| !sha.is_empty() && sha.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+    };
+    let unchanged = |svc: &pipeline::image_hash::ServiceImage| -> bool {
+        let Some(sha) = running_sha(svc.container, svc.image) else { return false };
+        pipeline::image_hash::unchanged_between(None, &sha, git_ref, svc.image)
+    };
+    let moved: Vec<String> = services.iter().filter(|svc| !unchanged(svc)).map(|svc| format!("{}:{tag}", svc.service)).collect();
+    (moved.len() < services.len()).then(|| moved.join(","))
 }
 
 fn print_json(v: &Value) {
@@ -201,14 +230,6 @@ fn promote_latest(r: &Request) -> Result<(), Fail> {
     }
 }
 
-/// `--smoke`: the pushed tag of an app with an image runs as a throwaway container before the swap, as after a build; an imageless app has none.
-fn preflight_smoke(app: &str, git_ref: &str, tag: &str) -> Result<(), Fail> {
-    if wf_vmops::services::is_imageless(app) {
-        return Ok(());
-    }
-    crate::smoke::gate(app, git_ref, tag).map_err(wf_error)
-}
-
 fn run_request(r: &Request) -> Result<(), Fail> {
     if r.promote_latest {
         return promote_latest(r);
@@ -220,16 +241,16 @@ fn run_request(r: &Request) -> Result<(), Fail> {
         return Err(wf_error("ship takes exactly one <service>"));
     }
     let app = &r.apps[0];
-    if r.redeploy_only || wf_vmops::services::is_imageless(app) {
+    if r.redeploy_only {
         let tag = r
             .tag
             .as_deref()
             .filter(|t| !t.is_empty())
             .unwrap_or("latest");
         if r.smoke {
-            preflight_smoke(app, &r.git_ref, tag)?;
+            crate::smoke::gate(app, &r.git_ref, tag).map_err(wf_error)?;
         }
-        print_json(&redeploy(app, &r.git_ref, tag, r.wipe_state, r.recreate_all, None).map_err(wf_error)?);
+        print_json(&redeploy(app, &r.git_ref, tag, r.wipe_state, r.recreate_all).map_err(wf_error)?);
         return Ok(());
     }
     release_image(app)?;

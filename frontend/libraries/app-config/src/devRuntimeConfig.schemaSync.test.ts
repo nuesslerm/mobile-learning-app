@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { ALLOWED_ROUTES } from './devRuntimeConfig';
 
+// oxlint-disable-next-line no-restricted-properties -- app-config reads the launch args and a JSON file at import; its unit deletes these mocks
 vi.mock('./nativeLaunchArgs', () => ({
   LaunchArguments: { value: vi.fn() },
 }));

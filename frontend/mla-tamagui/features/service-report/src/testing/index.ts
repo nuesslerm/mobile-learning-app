@@ -1,7 +1,7 @@
 import {
   sortReportsByGeneratedAtDesc,
   type HealthReport,
-} from '../contracts';
+} from '../domain';
 
 import type { HealthReportHistoryResult } from '../data/ordsClient';
 

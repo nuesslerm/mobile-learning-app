@@ -243,7 +243,7 @@ impl Bitwarden {
             env.push(("SSL_CERT_FILE".into(), SYSTEM_CA_BUNDLE_PATH.into()));
         }
         // a dropped connection to the vault is common from the VM and the sandbox and passes on a retry; a bad token does not
-        let transient = |d: &str| ["connection error", "close_notify", "error sending request", "error decoding response body", "timed out"].iter().any(|m| d.contains(m));
+        let transient = |d: &str| ["connection error", "close_notify", "error sending request", "error decoding response body", "timed out", "500 Internal Server Error", "502 Bad Gateway", "504 Gateway Timeout"].iter().any(|m| d.contains(m));
         let mut attempt = run_cli("bws", &["secret", "list", "--output", "json"], &env, true);
         for wait in [2, 5, 10] {
             match &attempt {

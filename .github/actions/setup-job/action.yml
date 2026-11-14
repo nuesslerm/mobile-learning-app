@@ -15,6 +15,9 @@ inputs:
   install:
     description: Fill the pnpm store from the bucket and run pnpm install
     default: "true"
+  save-pnpm:
+    description: Save the pnpm store to the GitHub Actions cache after the install when the exact key missed
+    default: "false"
   ts-client-id:
     description: The Tailscale OAuth client id
     default: ""
@@ -50,6 +53,7 @@ runs:
         ts-client-id: ${{ inputs.ts-client-id }}
         ts-secret: ${{ inputs.ts-secret }}
         install: ${{ inputs.install }}
+        save-pnpm: ${{ inputs.save-pnpm }}
         clis-artifact: ${{ inputs.artifact }}
         keep-android: ${{ inputs.keep-android }}
     - uses: ./.github/actions/hosted-stats

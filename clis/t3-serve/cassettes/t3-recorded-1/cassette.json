@@ -1,5 +1,5 @@
 {
-  "content_hash": "sha256:db193e175ae04e49096ffb710a62c998dd732e2f6cea0e14ac28c8ad27b112fa",
+  "content_hash": "sha256:8caad3bad93874328db197d6bddd889af877b10d6b1660b490c9a421c6f84005",
   "corpus": {
     "hash": "sha256:278a371f4cc3c615fced1f36c80f0500602fbdc03d5ea22e21d46953f6ddab7d",
     "path": "corpus.json"
@@ -13,11 +13,11 @@
       "version": "0.1.0"
     },
     "kind": "recorded",
-    "recorded_at": "2026-11-06T14:35:23.800Z",
-    "recorded_on": "vm",
+    "recorded_at": "2026-11-13T06:21:21.703Z",
+    "recorded_on": "ci",
     "rules_hash": "sha256:93b384cdbd8e3ad346bdd5674a5775f99bb8d4ab64cedd9a631d2abf57ac4407",
     "seed": 0,
-    "source": "R1: every phone row, real server, scripted inputs (shard 1 of 3)",
+    "source": "record-references run 43377614300",
     "target": {
       "commit": "2359643cffa6ba9ee84d6f2694b935de54a8013e",
       "name": "t3",
@@ -26,7 +26,7 @@
       "version": "0.1.6"
     },
     "tool": {
-      "git": "2e3a145ff92f2fe8a32db6c002f246581044fdf4",
+      "git": "86a99a68072d1da021d2028e8b095edd1cc88d1e",
       "mimic": "0.1.0"
     }
   },

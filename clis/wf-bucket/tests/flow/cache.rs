@@ -249,6 +249,41 @@ fn purge_moves_the_next_reader_to_a_new_empty_namespace_with_no_list_and_no_dele
 }
 
 #[test]
+fn purge_through_a_list_of_two_stores_reads_the_number_from_the_first_hit_and_writes_the_next_one_to_both() {
+    // Given two PAR buckets declared as the stores of the build cache, the first at generation 3, and the legacy keys pointing elsewhere
+    let (first, second, legacy) = (Bucket::start(), Bucket::start(), Bucket::start());
+    first.put("meta/generation", "3");
+    let list = format!("par+{},par+{}", first.url, second.url);
+    let opts = RunOpts::default().env("BUILD_CACHE_READ_STORES", &list).env("BUILD_CACHE_WRITE_STORES", &list).env("BUILD_CACHE_READ_PAR_URL", &legacy.url).env("BUILD_CACHE_WRITE_PAR_URL", &legacy.url);
+
+    // When the operator purges nx
+    let r = run_wf(&["cache", "purge", "nx"], &opts);
+
+    // Then the next generation is in both stores, and the legacy bucket, which the list overrides, was never asked
+    assert_eq!((r.exit_code, last_json(&r)), (0, json!({ "ok": true, "kind": "nx", "generation": 4 })), "{r:?}");
+    assert_eq!((first.holds("meta/generation").as_deref(), second.holds("meta/generation").as_deref()), (Some("4"), Some("4")));
+    assert!(legacy.seen.lock().unwrap().is_empty());
+    assert!(!format!("{}{}", r.stdout, r.stderr).contains(TOKEN), "no verb prints a link: {r:?}");
+}
+
+#[test]
+fn a_list_of_only_disabled_stores_runs_the_command_with_no_server_and_asks_no_bucket() {
+    // Given a store list whose only entry is disabled with a leading dash, and legacy keys that would otherwise serve
+    let bucket = Bucket::start();
+    let list = format!("-par+{}", bucket.url);
+    let opts = with_links(&bucket.url).env("BUILD_CACHE_READ_STORES", &list).env("BUILD_CACHE_WRITE_STORES", &list);
+
+    // When a command runs under `wf cache nx`
+    let r = run_wf(&["cache", "nx", "--", "sh", "-c", "echo [$NX_SELF_HOSTED_REMOTE_CACHE_SERVER]; exit 3"], &opts);
+
+    // Then it ran cold, as under WF_BLOB_CACHE=off: no server address, one line saying why, and no request reached the bucket
+    assert_eq!(r.exit_code, 3, "{r:?}");
+    assert_eq!(r.stdout.trim(), "[]", "{r:?}");
+    assert!(r.stderr.contains("wf: build cache disabled for this run, no store declared"), "{r:?}");
+    assert!(bucket.seen.lock().unwrap().is_empty());
+}
+
+#[test]
 fn nx_runs_a_command_with_the_nx_server_in_its_environment_and_returns_its_exit_code() {
     // Given a bucket behind the two PAR links
     let bucket = Bucket::start();

@@ -17,7 +17,7 @@ import type {
   EditorConfig,
   FromEditorMessage,
   ToEditorMessage,
-} from '../../contracts/ports';
+} from '../../domain/ports';
 import { buildEditorHtml } from './editorHtml';
 import {
   getCodeFont,

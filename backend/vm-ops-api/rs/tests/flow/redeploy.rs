@@ -47,7 +47,7 @@ async fn given_bad_input_when_a_redeploy_or_a_retire_is_posted_then_each_is_refu
     let control = world.signed("POST", "/services/vm-ops-api/retire", b"").await;
 
     // Then each is the status and body Node answers
-    assert_eq!((unknown.status, unknown.body.as_str()), (404, r#"{"error":"unknown app","knownApps":["leetcode-backend","remote-chat-agent","leetcode-auth-cookie-capture","agent-shell","ci-runner","vnc-auth-session","reporting-service","t3-serve","orca-serve"]}"#));
+    assert_eq!((unknown.status, unknown.body.as_str()), (404, r#"{"error":"unknown app","knownApps":["leetcode-backend","remote-chat-agent","leetcode-auth-cookie-capture","agent-shell","vnc-auth-session","reporting-service","t3-serve","orca-serve"]}"#));
     assert_eq!((bad_tag.status, bad_tag.body.as_str()), (400, r#"{"error":"invalid tag format"}"#));
     assert_eq!((bad_recreate.status, bad_recreate.body.as_str()), (400, r#"{"error":"invalid recreate mode -- accepted value: 'all'"}"#));
     assert_eq!((managed.status, managed.body.as_str()), (400, r#"{"error":"not a retired app","app":"leetcode-backend"}"#));
@@ -175,73 +175,4 @@ async fn given_any_other_app_or_a_failing_pair_sibling_when_paired_then_it_is_40
     assert_eq!((failed.status, failed.body.contains("FAKE-CREDENTIAL")), (502, false));
     assert!(failed.body.starts_with(r#"{"ok":false,"error":"#), "{}", failed.body);
     assert!(!format!("{:?}", world.log.events()).contains("FAKE-CREDENTIAL"));
-}
-
-const RUNNER_TOKEN: &str = "AAAA-fake_registration-token-9Z";
-
-fn ci_runner_world() -> super::harness::World {
-    let siblings = FakeSiblings::new().with_run(HISTORY, vec![SiblingResult::exited(0, "", "")]).with_run("[redeploy] start", vec![SiblingResult::exited(0, &format!("compose done\nconfig token {RUNNER_TOKEN}\n"), &format!("warn {RUNNER_TOKEN}"))]);
-    world_with(false, Doubles { siblings, ..Doubles::default() })
-}
-
-#[tokio::test]
-async fn given_a_runner_token_body_when_ci_runner_is_redeployed_then_it_is_written_to_the_env_after_the_local_overrides_and_is_in_no_log_script_or_reply() {
-    // Given the ci-runner redeploy sibling, which echoes the token on both streams
-    let world = ci_runner_world();
-
-    // When ci-runner is redeployed with a RUNNER_TOKEN body
-    let reply = world.signed("POST", "/services/ci-runner/redeploy?tag=sha-89abcde", format!("RUNNER_TOKEN={RUNNER_TOKEN}\n").as_bytes()).await;
-
-    // Then it is 200 and the variable reaches the sibling's env, and the script writes it to .env after append-env-local and verify-env
-    assert_eq!(reply.status, 200, "{}", reply.body);
-    let ran = argvs(&world);
-    let sibling = &ran[1];
-    let at = sibling.iter().position(|arg| arg == &format!("RUNNER_TOKEN={RUNNER_TOKEN}")).expect("the variable in the sibling env");
-    assert_eq!(sibling[at - 1], "-e");
-    let script = sibling.last().expect("a script");
-    let order = ["append-env-local", "verify-env", "printf '%s=%s\\n' RUNNER_TOKEN \"$RUNNER_TOKEN\" >> /home/ubuntu/ci-runner/.env", "docker compose"].map(|part| script.find(part).unwrap_or_else(|| panic!("{part} in {script}")));
-    assert!(order.windows(2).all(|pair| pair[0] < pair[1]), "{order:?}");
-    // And the value is in no stored script, reply, event or other sibling's argv
-    assert!(!script.contains(RUNNER_TOKEN), "{script}");
-    assert!(!reply.body.contains(RUNNER_TOKEN) && reply.body.contains("***"), "{}", reply.body);
-    assert!(!format!("{:?}", world.log.events()).contains(RUNNER_TOKEN));
-    assert!(ran.iter().enumerate().filter(|(i, _)| *i != 1).all(|(_, args)| !args.concat().contains(RUNNER_TOKEN)));
-}
-
-#[tokio::test]
-async fn given_a_body_that_breaks_a_rule_when_ci_runner_is_redeployed_then_it_is_400_naming_the_rule_without_the_value_and_nothing_runs() {
-    // Given the service
-    let world = ci_runner_world();
-    let long = format!("RUNNER_TOKEN={}", "a".repeat(257));
-
-    // When an unlisted name, a value with a newline, a space, a shell metacharacter, a too long value, a second line and a too big body are posted
-    let bodies: [(&str, Vec<u8>, &str); 7] = [
-        ("unlisted", b"GITHUB_PAT=abc123".to_vec(), "env name is not on this app's allow-list"),
-        ("newline", b"RUNNER_TOKEN=abc\nINJECT=1".to_vec(), "env name is not on this app's allow-list"),
-        ("space", b"RUNNER_TOKEN=abc def".to_vec(), "env value must be 1 to 256 characters of [A-Za-z0-9_-] (a tskey-auth-* key for TS_CI_RUNNER_AUTH_KEY, at most 160)"),
-        ("meta", b"RUNNER_TOKEN=abc$(touch${IFS}x)".to_vec(), "env value must be 1 to 256 characters of [A-Za-z0-9_-] (a tskey-auth-* key for TS_CI_RUNNER_AUTH_KEY, at most 160)"),
-        ("long", long.into_bytes(), "env value must be 1 to 256 characters of [A-Za-z0-9_-] (a tskey-auth-* key for TS_CI_RUNNER_AUTH_KEY, at most 160)"),
-        ("twice", b"RUNNER_TOKEN=abc\nRUNNER_TOKEN=def".to_vec(), "env name is set twice"),
-        ("big", vec![b'a'; 1025], "env body exceeds 1024 bytes"),
-    ];
-    for (label, body, rule) in bodies {
-        let reply = world.signed("POST", "/services/ci-runner/redeploy", &body).await;
-
-        // Then each is 400 with the rule and none of the body
-        assert_eq!((reply.status, reply.body.as_str()), (400, format!(r#"{{"error":"{rule}"}}"#).as_str()), "{label}");
-    }
-    assert!(argvs(&world).is_empty(), "{:?}", argvs(&world));
-}
-
-#[tokio::test]
-async fn given_an_app_that_declares_no_env_names_when_redeployed_with_a_runner_token_body_then_it_is_400_and_no_sibling_runs() {
-    // Given the service
-    let world = ci_runner_world();
-
-    // When the same RUNNER_TOKEN body is posted for leetcode-backend
-    let reply = world.signed("POST", "/services/leetcode-backend/redeploy", format!("RUNNER_TOKEN={RUNNER_TOKEN}").as_bytes()).await;
-
-    // Then it is 400 naming the rule, the value is not echoed, and nothing ran
-    assert_eq!((reply.status, reply.body.as_str()), (400, r#"{"error":"this app accepts no env body"}"#));
-    assert!(argvs(&world).is_empty());
 }

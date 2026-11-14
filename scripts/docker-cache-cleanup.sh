@@ -4,7 +4,7 @@ set -euo pipefail
 # Caps local Docker/BuildKit build-cache growth after a build. Discovered
 # 2026-07-30: a buildx docker-container builder's cache is a *volume*, not a
 # layer the daemon garbage-collects on its own -- `--cache-to type=registry`
-# (scripts/build-and-push-image.sh, infra/oracle-cloud/agent-shell/build-and-push.sh)
+# (infra/oracle-cloud/agent-shell/build-and-push.sh)
 # writes into it on every build with no eviction, so it grew to 16GB+ across
 # one session's worth of rebuilds. Called automatically at the end of both
 # those scripts so no one has to remember to run this by hand.

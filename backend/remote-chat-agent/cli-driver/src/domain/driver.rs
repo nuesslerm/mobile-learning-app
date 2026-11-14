@@ -83,7 +83,13 @@ pub fn command_for(driver: Driver, req: &TurnRequest) -> Command {
             };
             args(&["exec", "--json", "--skip-git-repo-check", "--sandbox", sandbox])
         }
-        Driver::Opencode => args(&["run", "--format", "json"]),
+        Driver::Opencode => {
+            let mut base = args(&["run", "--format", "json"]);
+            if let Some(session) = &req.resume {
+                base.extend(args(&["--session", session]));
+            }
+            base
+        }
     };
     if let Some(model) = &req.model {
         a.extend(args(&[if driver == Driver::Codex || driver == Driver::Opencode { "-m" } else { "--model" }, model]));
@@ -156,6 +162,11 @@ mod tests {
         // And the prompt still follows -p, and a driver that cannot resume ignores the conversation
         assert_eq!((asks.args[0].as_str(), asks.args[1].as_str()), ("-p", "hi there"));
         assert!(!command_for(Driver::Opencode, &asking).args.contains(&"--resume".to_string()));
+        // And opencode goes on with its own conversation by --session, while Codex has none to go on with
+        let opencode = command_for(Driver::Opencode, &asking);
+        assert!(opencode.args.windows(2).any(|w| w == ["--session", "s-1"]), "{:?}", opencode.args);
+        assert!(!command_for(Driver::Opencode, &req(None)).args.contains(&"--session".to_string()));
+        assert!(!command_for(Driver::Codex, &asking).args.iter().any(|a| a == "--session" || a == "--resume"));
     }
 
     #[test]

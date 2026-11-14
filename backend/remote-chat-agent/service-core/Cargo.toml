@@ -53,10 +53,7 @@ agent-api-service = { path = "../../../libraries/agent-api/agent-api-service" }
 agent-api-state = { path = "../../../libraries/agent-api/agent-api-state" }
 agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent" }
 agent-api-workspace = { path = "../../../libraries/agent-api/agent-api-workspace" }
-exec-proto = { path = "../../../libraries/agent-api/exec-proto" }
-exec-fs = { path = "../../../libraries/agent-api/exec-fs" }
 exec-git = { path = "../../../libraries/agent-api/exec-git" }
-exec-pty = { path = "../../../libraries/agent-api/exec-pty" }
 agent-api-terminal = { path = "../../../libraries/agent-api/agent-api-terminal" }
 agent-api-git = { path = "../../../libraries/agent-api/agent-api-git" }
 

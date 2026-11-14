@@ -28,9 +28,29 @@ export function DependencyOverridesProvider(props: {
   );
 }
 
+declare const keyType: unique symbol;
+
+/** A typed name for one feature's overrides: the container and the flow test share it, so both see the same port type. */
+export type OverrideKey<T extends object> = {
+  readonly name: string;
+  readonly [keyType]?: T;
+};
+
+export function overrideKey<T extends object>(name: string): OverrideKey<T> {
+  return { name } as OverrideKey<T>;
+}
+
+export function useDependencyOverrides<T extends object>(
+  key: OverrideKey<T>
+): Partial<T>;
+/** The string form stays until every feature has an `overrideKey`. */
 export function useDependencyOverrides<T extends object>(
   key: string
+): Partial<T>;
+export function useDependencyOverrides<T extends object>(
+  key: string | OverrideKey<T>
 ): Partial<T> {
   const overrides = useContext(OverridesContext);
-  return overrides?.[key] ?? EMPTY;
+  const name = typeof key === 'string' ? key : key.name;
+  return overrides?.[name] ?? EMPTY;
 }

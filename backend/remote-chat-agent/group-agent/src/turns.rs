@@ -152,7 +152,11 @@ impl TurnTask {
             tokio::select! {
                 next = events.recv() => match next {
                     None | Some(ExecEvent::Done) => return true,
-                    Some(ExecEvent::Session(id)) => *session = Some(id),
+                    Some(ExecEvent::Session(id)) => {
+                        // kept the moment it is announced: a restart in the middle of the turn leaves the thread able to go on with it
+                        *session = Some(id);
+                        self.keep_session(session.as_deref());
+                    }
                     Some(event) => {
                         *failed |= matches!(event, ExecEvent::Error(_));
                         self.record(calls.events(event));

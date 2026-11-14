@@ -2,10 +2,16 @@
 //! the kinds table and the purity of the domain.
 #[path = "flow/app_build.rs"]
 mod app_build;
+#[path = "flow/http_store.rs"]
+mod http_store;
 #[path = "flow/par_fake.rs"]
 mod par_fake;
 #[path = "flow/pnpm.rs"]
 mod pnpm;
+#[path = "flow/s3_fake.rs"]
+mod s3_fake;
+#[path = "flow/stores.rs"]
+mod stores;
 
 use blob_cache::adapters::{DirStore, OciParStore};
 use blob_cache::domain::{write_allowed, Budget, Degraded, Generation, Key, Kind, Pins, Refusal, WriteFacts};
@@ -192,6 +198,21 @@ fn given_a_loopback_bucket_when_the_contract_runs_over_a_par_url_then_every_case
     fake.answer_all_with(Some(403));
     let cache = Cache::with_generation(store, Budget::committed().clone(), Writes::Allowed, Generation(0));
     assert_eq!((cache.get(&k), cache.degraded()), (None, Some(Degraded::Credential)));
+
+    // When the bucket fails one request in transit of the store's reads and writes (a 503, then served normally), Then the request is asked again and succeeds
+    let fake = ParFake::start();
+    let store = OciParStore::new(&fake.url, Some(&fake.url)).via(Via::Direct);
+    let k = key(Kind::Nx, 0, "blip");
+    assert_eq!(store.put(&k, b"kept", false), Ok(PutOutcome::Stored));
+    fake.fail_next(1, 503);
+    let read = store.get(&k);
+    fake.fail_next(2, 429);
+    let written = store.put(&k, b"again", false);
+    // And a store that keeps failing is still reported unreachable after the last retry
+    fake.answer_all_with(Some(503));
+    let down = store.get(&k);
+    assert_eq!((read, written), (Ok(Some(b"kept".to_vec())), Ok(PutOutcome::Stored)));
+    assert!(matches!(down, Err(StoreError::Unreachable(_))));
 
     // And no error text carries the token of the link
     let unreachable = OciParStore::new(&closed_url(), None).via(Via::Direct).get(&k).unwrap_err();

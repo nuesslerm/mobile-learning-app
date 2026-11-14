@@ -12,7 +12,7 @@ pub mod remote;
 pub mod testing;
 
 pub use placed::Placed;
-pub use registry::{Executors, Place, Registry, Route, RouteError, WorkspaceError};
+pub use registry::{Executors, Place, Registry, Route, RouteError, WorkspaceError, WorkspaceLedger};
 
 /// Every action of the executor contract, whichever family crate defines it.
 pub fn contract_actions() -> impl Iterator<Item = &'static exec_proto::Action> {

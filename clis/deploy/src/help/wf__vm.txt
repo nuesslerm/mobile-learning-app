@@ -22,6 +22,8 @@ Commands:
   creds                  OCI credentials for Terraform
   terraform              Terraform for infra/oracle-cloud
   state                  Back up and restore the VM's sensitive state volumes
+  stock [options]        Hetzner Cloud server types orderable now, and what
+                         changed since the last run
   net                    Tailnet devices and the auth key
   ops                    Operate vm-ops-api itself (health, self-redeploy)
   help [command]         display help for command

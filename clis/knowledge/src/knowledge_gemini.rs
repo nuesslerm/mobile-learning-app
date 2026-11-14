@@ -165,15 +165,17 @@ fn generate(o: &Options) -> Result<Value, String> {
     }
     std::fs::create_dir_all(&o.cache_dir).map_err(|e| e.to_string())?;
     let architecture_path = o.cache_dir.join("ARCHITECTURE.md");
-    if o.summarize {
+    let fell_back = !o.summarize && !architecture_path.exists();
+    if fell_back {
+        println!("no cached {}: --no-summary fell back to a full summary run", architecture_path.display());
+    }
+    if o.summarize || fell_back {
         let skeleton_path = o.cache_dir.join("skeleton.md");
         println!("packing the compressed skeleton");
         repomix(&root, &["--compress", "--include", SKELETON_INCLUDE], &skeleton_path)?;
         println!("drafting ARCHITECTURE.md");
         let draft = draft_architecture(&root, o, &skeleton_path)?;
         std::fs::write(&architecture_path, format!("{draft}\n")).map_err(|e| e.to_string())?;
-    } else if !architecture_path.exists() {
-        return Err(format!("--no-summary needs a cached {}", architecture_path.display()));
     }
     println!("packing the full source");
     let pack_path = o.cache_dir.join("pack.md");

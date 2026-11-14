@@ -157,6 +157,14 @@ async fn run_whisper(commands: &dyn Commands, stt: &SttSettings, wav: &Path) -> 
     Ok((transcript, whisper_ms, model_name, threads))
 }
 
+const RETRY_PAUSE: std::time::Duration = std::time::Duration::from_millis(500);
+
+/// A failure of the remote engine that a second try can pass: the request never got an answer, or the engine answered 5xx or 429.
+fn transient(failure: &SttError) -> bool {
+    let message = failure.message.as_str();
+    message.starts_with("fetch failed") || [" STT 5", " STT 429"].iter().any(|marker| message.contains(marker))
+}
+
 /// The recording's transcript through the engine the environment names: a remote one over `outbound`, else whisper.cpp and ffmpeg
 /// through `commands`.
 async fn transcribe(outbound: &dyn Outbound, commands: &dyn Commands, stt: &SttSettings, audio: &Path) -> Result<Transcription, SttError> {
@@ -166,7 +174,14 @@ async fn transcribe(outbound: &dyn Outbound, commands: &dyn Commands, stt: &SttS
     match resolve_engine(stt) {
         Engine::WhisperCpp => whisper_cpp(commands, stt, audio).await,
         engine => {
-            let result = remote(outbound, &engine, audio).await?;
+            let result = match remote(outbound, &engine, audio).await {
+                Err(first) if transient(&first) => {
+                    log::warn!("stt.retry", reason = first.message.as_str());
+                    tokio::time::sleep(RETRY_PAUSE).await;
+                    remote(outbound, &engine, audio).await?
+                }
+                other => other?,
+            };
             let kind = if matches!(engine, Engine::Groq { .. }) { "groq" } else { "sidecar" };
             log::info!("whisper.timing", engine = kind, whisperMs = result.whisper_ms, model = result.model_name.as_str());
             Ok(result)

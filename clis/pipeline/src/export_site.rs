@@ -16,7 +16,7 @@ pub const BASE_PATH: &str = "mla-tamagui";
 const STAMP: &str = "wf-export.json";
 
 /// What an export is built from: the app, its libraries, and what pnpm links them with. The app's other workspace links
-/// (the lockfile names them, e.g. `backend/remote-chat-agent-contracts`) come on top.
+/// (the lockfile names them, e.g. `frontend/libraries/remote-chat-agent-contracts`) come on top.
 const INPUT_ROOTS: [&str; 8] = ["frontend", "libraries", "patches", "package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json", "babel.config.cjs"];
 
 /// Source maps go into the export: the browser debugger resolves logpoints and failure stacks through them.

@@ -9,7 +9,7 @@ use pipeline::copy_closure::{copy_problems, copy_sources};
 use std::time::Duration;
 
 const BASE: &str = "http://vm-ops-api-main:8080";
-const ALL_APPS: [&str; 8] = ["vm-ops-api", "remote-chat-agent", "leetcode-backend", "leetcode-auth-cookie-capture", "reporting-service", "t3-serve", "orca-serve", "vnc-auth-session"];
+const ALL_APPS: [&str; 9] = ["vm-ops-api", "remote-chat-agent", "leetcode-backend", "leetcode-auth-cookie-capture", "reporting-service", "t3-serve", "orca-serve", "vnc-auth-session", "agent-shell"];
 /// The exec-script job a promotion starts, with the id the start route mints.
 const JOB1: &str = "0b9f5c2e-8a1d-4c3e-9f7a-000000000001";
 
@@ -126,6 +126,8 @@ const PLANNED: [(&str, &str); 7] = [("remote-chat-agent", "remote-chat-agent"), 
 fn running(vm_ops_commit: &str) -> Vec<String> {
     let mut replies: Vec<String> = PLANNED.iter().map(|(app, image)| ps(app, &format!("reg/{image}:sha-abc123"))).collect();
     replies.push(health(vm_ops_commit));
+    // the plan asks about agent-shell last
+    replies.push(ps("agent-shell", "reg/agent-shell:sha-abc123"));
     replies
 }
 
@@ -162,6 +164,7 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     // Given every service and vm-ops-api run commits whose image inputs hash the same as HEAD's (the stub reads each as HEAD), When the plan is made
     let mut replies: Vec<String> = PLANNED.iter().zip(["abc123", "abc123", "def456", "abc123", "abc123", "abc123", "abc123", "fed789"]).map(|((app, image), sha)| ps(app, &format!("reg/{image}:sha-{sha}"))).collect();
     replies.push(health("aaaaaaa"));
+    replies.push(ps("agent-shell", "reg/agent-shell:sha-abc123"));
     s.vm.replies(&replies);
     s.latest_update("abc123");
     let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[{\"name\":\"@app/unrelated\"}]")]);
@@ -354,7 +357,7 @@ fn ship_status_reports_every_service_and_vm_ops_api_and_retire_removes_an_app() 
 
     // Given no app names, Then every known app is asked about, in order, then health and the redeploy state, and nothing is asked
     // of the Metro (its container is no app of the sweep, and the dev-bridge is not read)
-    let apps = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "ci-runner", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
+    let apps = ["leetcode-backend", "remote-chat-agent", "leetcode-auth-cookie-capture", "agent-shell", "vnc-auth-session", "reporting-service", "t3-serve", "orca-serve"];
     let mut replies: Vec<String> = apps.iter().map(|app| answers::reply(200, &answers::ps(app, &[]))).collect();
     replies.extend([answers::reply(200, &status), answers::reply(200, &history)]);
     s.vm.replies(&replies);
@@ -495,6 +498,42 @@ fn the_retired_build_only_flag_is_refused_as_an_unknown_option_that_names_the_ci
 const AS_CI_JOB: [(&str, &str); 2] = [("WF_VM_CI_PORT", "8081"), ("VM_OPS_API_CI_AUTH_TOKEN", CI_VM_SEED)];
 
 #[test]
+fn a_gradual_redeploy_names_only_the_services_whose_image_inputs_changed() {
+    let s = Ship::new();
+    let running = |opencode_image: &str| {
+        answers::reply(200, &answers::ps("remote-chat-agent", &[
+            ("remote-chat-agent", "running", "Up 2 hours", "reg/remote-chat-agent:sha-abc123"),
+            ("remote-chat-agent-opencode", "running", "Up 2 hours", opencode_image),
+            ("remote-chat-agent-stt", "running", "Up 2 hours", "reg/remote-chat-agent-stt:sha-abc123"),
+        ]))
+    };
+    let up = answers::reply(200, &redeployed("remote-chat-agent", "sha-def456", "def456"));
+    let redeploy = ["ship", "remote-chat-agent", "--ref", "def456", "--redeploy-only", "--tag", "sha-def456"];
+
+    // Given every image runs a commit whose inputs hash the same as the target's, When the tag is redeployed
+    s.vm.replies_then_last(&[running("reg/opencode-server:sha-abc123"), up.clone()]);
+    let r = s.wf(&redeploy, &[("STUB_HASH", "same")]);
+
+    // Then no service is named (tags present and empty), so every service keeps the tag it runs
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456&tags="));
+
+    // Given opencode runs a tag that is no commit, so it cannot be shown unchanged, When the tag is redeployed
+    s.vm.replies_then_last(&[running("reg/opencode-server:latest"), up.clone()]);
+    let r = s.wf(&redeploy, &[("STUB_HASH", "same")]);
+
+    // Then opencode alone is named: the app's own service and stt keep the tag they run
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456&tags=opencode%3Asha-def456"));
+
+    // Given the checkout cannot hash the running commits (the empty tree has no Dockerfile), When the tag is redeployed, Then every service moves: no tags are sent
+    s.vm.replies_then_last(&[running("reg/opencode-server:sha-abc123"), up]);
+    let r = s.wf(&redeploy, &[("GIT_AS", "4b825dc642cb6eb9a060e54bf8d69288fbee4904")]);
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-def456&ref=def456"));
+}
+
+#[test]
 fn a_ci_job_redeploys_over_the_ci_port_with_the_ci_seed_and_a_caller_without_a_ci_port_uses_the_admin_port_and_seed() {
     let s = Ship::new();
     let up = redeployed("leetcode-backend", "sha-1234567", "dev");
@@ -538,11 +577,12 @@ fn a_redeploy_of_a_tag_is_sent_once_retried_only_when_unanswered_and_a_bad_comma
     let s = Ship::new();
 
     // Given a tag, When it is redeployed from a ref, Then that tag is asked for and the reply printed
+    // (remote-chat-agent runs three images, so its running containers are asked first: none are listed here, so every service moves)
     let up = redeployed("remote-chat-agent", "v1", "main");
-    s.vm.replies_then_last(&[answers::reply(200, &up)]);
+    s.vm.replies_then_last(&[answers::reply(200, &answers::ps("remote-chat-agent", &[])), answers::reply(200, &up)]);
     let r = s.wf(&["ship", "remote-chat-agent", "--ref", "main", "--redeploy-only", "--tag", "v1"], &[]);
     assert_eq!((r.exit_code, r.stdout.clone()), (0, format!("{}\n", serde_json::to_string_pretty(&up).unwrap())));
-    assert_eq!(s.url(1), format!("{BASE}/services/remote-chat-agent/redeploy?tag=v1&ref=main"));
+    assert_eq!(s.url(2), format!("{BASE}/services/remote-chat-agent/redeploy?tag=v1&ref=main"));
 
     // Given no tag, Then latest is redeployed; Given characters that need encoding, Then they are form-encoded, and a tag
     // docker refuses is refused
@@ -1037,21 +1077,60 @@ fn a_change_to_one_compose_project_moves_the_deploy_hash_of_that_app_alone() {
     let clone = tempfile::tempdir().unwrap();
     let status = std::process::Command::new("git").args(["clone", "-q", "--shared", "--no-checkout"]).arg(repo_root()).arg(clone.path()).status().unwrap();
     assert!(status.success());
-    let hashes = |rev: &str| -> Vec<(String, String)> { ALL_APPS.iter().chain(["agent-shell"].iter()).map(|app| (app.to_string(), pipeline::image_hash::leg_hash(Some(clone.path()), rev, app).unwrap())).collect() };
+    let hashes = |rev: &str| -> Vec<(String, String)> { ALL_APPS.iter().map(|app| (app.to_string(), pipeline::image_hash::leg_hash(Some(clone.path()), rev, app).unwrap())).collect() };
     let before = hashes("HEAD");
 
     // When only the compose file of agent-shell changes
     let changed = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/docker-compose.prod.yml");
     let after = hashes(&changed);
 
-    // Then agent-shell's deploy hash moves and no other app's does (the runner has its own project, so its compose file is not an input of any app)
+    // Then agent-shell's deploy hash moves and no other app's does
     let moved: Vec<&str> = before.iter().zip(&after).filter(|(b, a)| b.1 != a.1).map(|(b, _)| b.0.as_str()).collect();
     assert_eq!(moved, ["agent-shell"]);
+}
 
-    // And a change to the runner's compose file moves no app's hash at all
-    let runner = commit_touching(clone.path(), "infra/oracle-cloud/ci-runner/docker-compose.prod.yml");
-    let after_runner = hashes(&runner);
-    assert_eq!(before, after_runner);
+#[test]
+fn a_change_to_the_tools_layer_of_agent_shell_moves_its_image_hash_and_leaves_its_sessions_and_dind_images_alone() {
+    // Given a throwaway clone of this repository at its HEAD (no checkout)
+    let clone = tempfile::tempdir().unwrap();
+    let status = std::process::Command::new("git").args(["clone", "-q", "--shared", "--no-checkout"]).arg(repo_root()).arg(clone.path()).status().unwrap();
+    assert!(status.success());
+    let images = ["agent-shell", "agent-shell-sessions", "agent-shell-dind"];
+    let hashes = |rev: &str| -> Vec<String> { images.iter().map(|image| pipeline::image_hash::hash(Some(clone.path()), rev, image).unwrap()).collect() };
+    let moved = |before: &[String], after: &[String]| -> Vec<&'static str> { images.iter().copied().zip(before.iter().zip(after)).filter(|(_, (b, a))| b != a).map(|(image, _)| image).collect() };
+    let before = hashes("HEAD");
+
+    // When only the tools Dockerfile changes, Then only the tools image moves
+    let tools = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/Dockerfile");
+    assert_eq!(moved(&before, &hashes(&tools)), ["agent-shell"]);
+
+    // When the entrypoint the three roles share changes, Then all three move
+    let entrypoint = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/entrypoint.sh");
+    assert_eq!(moved(&before, &hashes(&entrypoint)), images);
+
+    // When only the sessions Dockerfile changes (its pinned tools tag, say), Then only the sessions image moves
+    let sessions = commit_touching(clone.path(), "infra/oracle-cloud/agent-shell/Dockerfile.sessions");
+    assert_eq!(moved(&before, &hashes(&sessions)), ["agent-shell-sessions"]);
+}
+
+#[test]
+fn an_app_serves_the_commit_its_own_image_was_built_from_when_only_a_sidecar_image_changed() {
+    // Given a throwaway clone of this repository at its HEAD (no checkout)
+    let clone = tempfile::tempdir().unwrap();
+    let status = std::process::Command::new("git").args(["clone", "-q", "--shared", "--no-checkout"]).arg(repo_root()).arg(clone.path()).status().unwrap();
+    assert!(status.success());
+    let unchanged = |rev: &str, image: &str| pipeline::image_hash::unchanged_between(Some(clone.path()), "HEAD", rev, image);
+
+    // When only the opencode image's Dockerfile changes, Then remote-chat-agent's own image is unchanged and opencode's is not
+    let opencode = commit_touching(clone.path(), "backend/remote-chat-agent/opencode-server/Dockerfile");
+    assert_eq!((unchanged(&opencode, "remote-chat-agent"), unchanged(&opencode, "opencode-server")), (true, false));
+
+    // When the app's own Dockerfile changes, Then its own image is changed
+    let own = commit_touching(clone.path(), "backend/remote-chat-agent/Dockerfile");
+    assert!(!unchanged(&own, "remote-chat-agent"));
+
+    // And a commit the clone does not know cannot be shown unchanged
+    assert!(!unchanged("0000000000000000000000000000000000000000", "remote-chat-agent"));
 }
 
 /// The commit of this repository that `HEAD` names, which `wf ship vm-ops-api --ref HEAD` resolves to the same 40 characters.
@@ -1106,10 +1185,10 @@ fn vm_ops_api_redeploys_a_tag_ci_already_pushed_without_building_and_still_prove
 }
 
 #[test]
-fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_an_app_without_an_image_has_nothing_to_prove() {
+fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_smoke_without_redeploy_only_is_refused() {
     // Given a service with a smoke test
     let s = Ship::new();
-    s.vm.replies_then_last(&[&gate_up("remote-chat-agent")[..], &[answers::reply(200, &redeployed("remote-chat-agent", "sha-abc", "dev"))]].concat());
+    s.vm.replies_then_last(&[&gate_up("remote-chat-agent")[..], &[answers::reply(200, &answers::ps("remote-chat-agent", &[])), answers::reply(200, &redeployed("remote-chat-agent", "sha-abc", "dev"))]].concat());
 
     // When its pushed tag is redeployed with --smoke
     let r = s.wf(&["ship", "remote-chat-agent", "--redeploy-only", "--smoke", "--ref", "dev", "--tag", "sha-abc"], &[]);
@@ -1118,7 +1197,7 @@ fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_an_app_wit
     assert_eq!(r.exit_code, 0, "{}", r.stderr);
     assert_eq!(s.url(1), format!("{BASE}/services/remote-chat-agent/smoke?tag=sha-abc&ref=dev"));
     assert_eq!(s.url(3), format!("{BASE}/services/remote-chat-agent/smoke/stop"));
-    assert_eq!(s.url(4), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-abc&ref=dev"));
+    assert_eq!(s.url(5), format!("{BASE}/services/remote-chat-agent/redeploy?tag=sha-abc&ref=dev"));
 
     // Given a smoke test that fails, Then nothing is redeployed
     let s = Ship::new();
@@ -1127,11 +1206,7 @@ fn redeploy_only_with_smoke_proves_the_pushed_tag_before_the_swap_and_an_app_wit
     assert_eq!(r.exit_code, 1, "{}", r.stderr);
     assert!(s.vm.requests().iter().all(|q| !q.url.contains("/redeploy")), "{:?}", s.vm.requests().iter().map(|q| q.url.clone()).collect::<Vec<_>>());
 
-    // Given an app with no image, Then --smoke sends only the redeploy; and --smoke without --redeploy-only is refused
-    let s = Ship::new();
-    s.vm.replies_then_last(&[answers::reply(200, &redeployed("ci-runner", "sha-abc", "dev"))]);
-    let r = s.wf(&["ship", "ci-runner", "--redeploy-only", "--smoke", "--ref", "dev", "--tag", "sha-abc"], &[]);
-    assert_eq!((r.exit_code, s.vm.requests().len()), (0, 1), "{}", r.stderr);
+    // Given --smoke without --redeploy-only, Then it is refused
     let r = s.wf(&["ship", "remote-chat-agent", "--smoke", "--ref", "dev"], &[]);
     assert!(r.exit_code == 1 && r.stderr.contains("--smoke applies to --redeploy-only"), "{}", r.stderr);
 }

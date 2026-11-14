@@ -2,7 +2,7 @@ name: CI (GitHub-hosted)
 
 # The CI: pipeline.yml on GitHub-hosted runners. It ships (latest images, the EAS update, the wf release), deploys and runs the browser and Android
 # suites on its own runner (the SDK emulator, see wf android start-device). Every push spends minutes; the repo variable HOSTED_CI=off switches it
-# off at once, HOSTED_DEPLOY=off stops the deploy legs, HOSTED_SHARDS sets the machines per test stage (docs/solutions/ci/hosted-minutes.md).
+# off at once, the deploy legs and the e2e suites run only with HOSTED_DEPLOY=on and HOSTED_E2E=on (no VM since the Oracle account was terminated), HOSTED_SHARDS sets the machines per test stage (docs/solutions/ci/hosted-minutes.md).
 on:
   push:
     branches: [dev]
@@ -50,8 +50,9 @@ jobs:
       deploy_runner: '"ubuntu-24.04-arm"'
       shards: ${{ fromJSON(vars.HOSTED_SHARDS || '6') }}
       ship: true
-      deploy: ${{ vars.HOSTED_DEPLOY != 'off' }}
-      e2e: true
+      # no VM since 13 Nov (the Oracle account was terminated): the deploy legs and the e2e suites need it, so they run only when the repository variables say on
+      deploy: ${{ vars.HOSTED_DEPLOY == 'on' }}
+      e2e: ${{ vars.HOSTED_E2E == 'on' }}
       label: GitHub-hosted
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}

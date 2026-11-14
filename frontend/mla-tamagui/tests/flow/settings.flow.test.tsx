@@ -51,6 +51,7 @@ describe('Settings flow (index and appearance screens)', () => {
   });
 
   it('given the Appearance screen with preset tiles, when a preset tile is pressed, then setActiveTheme was called with that preset id and the store holds it', async () => {
+    // oxlint-disable-next-line no-restricted-properties -- spy on a project store action until the settings unit asserts the rendered theme instead
     const setActiveTheme = vi.spyOn(
       usePresetThemeStore.getState(),
       'setActiveTheme'

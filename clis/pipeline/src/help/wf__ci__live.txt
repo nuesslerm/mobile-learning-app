@@ -19,7 +19,8 @@ Environment: GITHUB_TOKEN (actions: read, pull-requests: write),
 GITHUB_REPOSITORY, GITHUB_RUN_ID and GITHUB_SHA; optional GITHUB_API_URL,
 GITHUB_SERVER_URL, GITHUB_REF_NAME (the branch whose pull request it is),
 WF_VM_STATS_URL and WF_CI_LOG_CACHE (the directory finished jobs' logs are kept
-in, default ~/.cache/wf/ci-logs).
+in, default ~/.cache/wf/ci-logs) and WF_CI_LIVE_BOUND_MS (the most the verb
+waits on GitHub, default 15000; past it, it logs that it gave up and exits 0).
 
 Output: one JSON line {ok, posted, action?, commentId?, reason?}; action is
 created or updated.

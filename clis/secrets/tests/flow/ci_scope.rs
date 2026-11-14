@@ -77,7 +77,7 @@ fn ci_without_a_scope_token_reads_as_it_always_did() {
     // When CI has only the deploy-read token and asks for a ci-deploy key and for a vm key
     let deploy = ci(&v, &["get", DEPLOY_KEY], &[("CI", "true"), ("BWS_ADMIN_ACCESS_TOKEN", READ)]);
     let vm = ci(&v, &["get", VM_KEY], &[("CI", "true"), ("BWS_ADMIN_ACCESS_TOKEN", READ)]);
-    // Then both come from the read token, so the VM runner keeps working until its container-level token is removed
+    // Then both come from the read token, so a job without scope tokens still reads from the one token
     assert_eq!((deploy.exit_code, deploy.stdout.as_str()), (0, "deploy-value-cccc\n"), "{}", deploy.stderr);
     assert_eq!((vm.exit_code, vm.stdout.as_str()), (0, "restic-value-1234\n"), "{}", vm.stderr);
 
@@ -334,7 +334,7 @@ fn one_project_serves_both_scopes_to_the_one_ci_token_and_verify_reports_exactly
     let env = push_to_dev();
     let open: Vec<String> = scope_keys("ci-open").into_iter().map(|(k, _)| k).collect();
     let deploy: Vec<String> = scope_keys("ci-deploy").into_iter().map(|(k, _)| k).collect();
-    assert_eq!(open.len(), 6);
+    assert_eq!(open.len(), 9);
 
     // When every ci-open key is read in GitHub Actions with both tokens set
     for key in &open {
@@ -416,7 +416,7 @@ const NONCE: &str = "shared-run-nonce-0123456789";
 fn parity_of_two_runner_kinds_with_one_nonce_is_identical_and_a_divergent_value_or_missing_key_shows() {
     let v = two_projects();
 
-    // When two runner kinds (a VM runner and a hosted one: same tokens, one with a different working directory and workflow event
+    // When two runners (same tokens, one with a different working directory and workflow event
     // variables) run the parity verb with the same nonce
     let (vm_code, vm_run, vm_text) = parity(&v, &["--nonce", NONCE]);
     let hosted = ci(&v, &["parity", "--json", "--nonce", NONCE], &[("CI", "true"), ("GITHUB_ACTIONS", "true"), ("GITHUB_EVENT_NAME", "push"), ("GITHUB_REF", "refs/heads/dev"), ("BWS_CI_DEPLOY_ACCESS_TOKEN", DEPLOY_TOKEN), ("RUNNER_NAME", "hosted-1")]);

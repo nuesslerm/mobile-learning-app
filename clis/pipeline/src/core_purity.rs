@@ -251,3 +251,46 @@ mod tests {
         assert!(violations(&workspace, &cores).is_empty());
     }
 }
+
+/// What the purity rule cannot see: a use case that asks the system for the time, a random id or a file's existence instead of a port.
+const AMBIENT_CALLS: &[&str] = &["SystemTime::now", "Instant::now", "Uuid::new_v4", ".exists()"];
+
+const AMBIENT_CORE: &str = "backend/remote-chat-agent/service-core/src";
+
+fn ambient_in(dir: &Path) -> usize {
+    let Ok(entries) = std::fs::read_dir(dir) else { return 0 };
+    entries
+        .flatten()
+        .map(|e| {
+            let path = e.path();
+            if path.is_dir() {
+                ambient_in(&path)
+            } else if path.extension().is_some_and(|x| x == "rs") && path.file_name().is_some_and(|n| n != "testing.rs") {
+                std::fs::read_to_string(&path).map(|text| text.lines().map(|l| AMBIENT_CALLS.iter().filter(|c| l.contains(**c)).count()).sum()).unwrap_or(0)
+            } else {
+                0
+            }
+        })
+        .sum()
+}
+
+/// Direct clock, randomness and file-probe calls in `service-core` (the budget `core-ambient-calls` only shrinks, as each moves behind a port).
+pub fn ambient_calls(root: &Path) -> usize {
+    ambient_in(&root.join(AMBIENT_CORE))
+}
+
+#[cfg(test)]
+mod ambient_tests {
+    use super::*;
+
+    #[test]
+    fn given_a_core_with_clock_and_random_calls_when_counted_then_each_call_counts_and_testing_rs_is_skipped() {
+        let root = std::env::temp_dir().join(format!("ambient-{}", std::process::id()));
+        let src = root.join(AMBIENT_CORE);
+        std::fs::create_dir_all(src.join("application")).expect("dirs");
+        std::fs::write(src.join("application/a.rs"), "let a = Instant::now();\nlet b = Uuid::new_v4(); let c = SystemTime::now();\n").expect("write");
+        std::fs::write(src.join("testing.rs"), "let a = Instant::now();\n").expect("write");
+        assert_eq!(ambient_calls(&root), 3);
+        std::fs::remove_dir_all(&root).ok();
+    }
+}

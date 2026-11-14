@@ -1,6 +1,6 @@
 Usage: wf mimic job [options] <record|replay> <set>
 
-One capture job of the record-references workflow, for a set that is already
+One capture job of the mimic-record workflow, for a set that is already
 provisioned (wf mimic provision).
 
 record: runs `wf mimic record <set> --resume --max-minutes <chunk>` again and again

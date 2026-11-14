@@ -11,7 +11,8 @@
     "./composites/*": "./composites/*.tsx",
     "./theme": "./theme/index.ts",
     "./theme/*": "./theme/*.ts",
-    "./primitives": "./primitives.tsx"
+    "./primitives": "./primitives.tsx",
+    "./lib/*": "./lib/*.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -56,5 +57,13 @@
     "react-native-reanimated": "4.5.1",
     "react-native-safe-area-context": "~5.7.0",
     "typescript": "catalog:"
+  },
+  "peerDependencies": {
+    "expo-router": "~57.0.19"
+  },
+  "peerDependenciesMeta": {
+    "expo-router": {
+      "optional": true
+    }
   }
 }

@@ -15,11 +15,13 @@ tags: [ci, secrets, vault, bitwarden, runners, scopes]
 
 # Which vault keys each CI job reads
 
+> Historical audit. The self-hosted VM runner (`ci-runner`, `deploy.yml`) was removed on 2026-11-13: every CI job runs on a GitHub-hosted runner, and the passages below about the runner's environment, its compose file and its builder sidecar describe the tree as of 8 Nov 2026.
+
 Wave 0 of `docs/plans/ci-scoped-vault-access/plan.md` (issue #367), units U0.1 and U0.2. It was derived by reading code only, at dev `789e35096` on 8 Nov 2026: no credential was used, no network was reached, no value was read, and no job was run. Everything below is key names and counts. Because nothing ran, every entry is an upper bound taken from code paths: a key marked optional in `clis/secrets/src/secrets/groups.json` counts as read, and a verb counts as read on every run even when it exits early on some inputs. The plan asks for a dry run in Wave 3 to confirm; this table is what that dry run should be compared against.
 
 ## How a job gets a secret today
 
-No workflow in `.github/workflows` hands a vault token to a job on the VM runner. The `ci-runner` container carries `BWS_ADMIN_ACCESS_TOKEN` and `BWS_SERVER_URL` in its own environment (`infra/oracle-cloud/ci-runner/docker-compose.prod.yml:74-75`), together with `VM_OPS_API_AUTH_TOKEN` and `VM_GATEWAY_AUTH_SEED` (`:71-72`). So every step of every job on that runner can resolve any key the deploy-read token reads, whether or not the job needs it. The sections below say what each job uses, not what it could reach.
+As audited on 8 Nov 2026, no workflow in `.github/workflows` handed a vault token to a job on the VM runner. The `ci-runner` container carries `BWS_ADMIN_ACCESS_TOKEN` and `BWS_SERVER_URL` in its own environment (the ci-runner compose file, deleted with the VM runner), together with `VM_OPS_API_AUTH_TOKEN` and `VM_GATEWAY_AUTH_SEED` (`:71-72`). So every step of every job on that runner can resolve any key the deploy-read token reads, whether or not the job needs it. The sections below say what each job uses, not what it could reach.
 
 **Update, CI-port glue (#367 phases 4 to 6, code only, nothing deployed).** The compose file no longer puts `VM_OPS_API_AUTH_TOKEN` or `VM_GATEWAY_AUTH_SEED` in the runner's environment: `VM_GATEWAY_AUTH_SEED` was not dead (`eas-update` and the browser export baked it as the backend token), so both steps now read it with `wf secret get` at step time, as they already did for the BetterStack pair. `deploy.yml` and `e2e-tests.yml` set `WF_VM_CI_PORT=8081` for every job: the CI routes go to the CI port signed with `VM_OPS_API_CI_AUTH_TOKEN` (resolved from the vault), the admin-only routes still go to 8080 with `VM_OPS_API_AUTH_TOKEN` (also resolved from the vault now). The jobs that still read the admin seed, and why: `plan` (`wf cache guard` relays through the exec-script), `vm-state-backup` (`wf vm state backup|verify` are exec-scripts), `e2e-tests` on android (`wf android start-device|stop-device` lease through the exec-script), `deploy` (the old `build_on=agent-shell` path is an exec-script, and the failure report's `wf vm exec --status`; the leg's group verify also lists the key for `vm-ops-api` and `vnc-auth-session`). `preflight` and `eas-update` read only the CI seed. So `VM_OPS_API_AUTH_TOKEN` stays scope `ci-deploy` until those calls leave CI jobs.
 
@@ -47,7 +49,7 @@ Shorthand used in the table.
 | relay pair | `VM_OPS_API_AUTH_TOKEN`, `VM_GATEWAY_REQUEST_SIGNING_PRIVATE_KEY` | `clis/wf-vmops/src/vmops.rs:70-83`: every signed call to vm-ops-api (`wf ship`, `wf vm ops`, `wf vm exec`, `wf vm state`, the relay of `wf cache guard`, `wf android start-device`) |
 | bundle URL | `VERIFICATION_ARTIFACTS_PAR_URL` | `clis/wf-bucket/src/artifacts.rs:54-64`: `wf test publish`, `wf mimic publish`, and the source maps of `wf ship eas`; it is a write URL. In GitHub Actions it resolves only for `push` to `dev` (U2.5); elsewhere `wf test publish` and `wf mimic publish` fail with `write URL refused` |
 
-`DOCKERHUB_TOKEN` is read by the `build-image` action in the CI job itself (the push step, masked): the image is built on the runner's builder sidecar and vm-ops-api only pulls the pushed tag, so no remote build is started through the relay pair. The deploy leg no longer verifies its app's group before building (that preflight belonged to the retired agent-shell build; `secrets::verify_for` now serves `wf ci preflight` and `wf vm terraform preflight`). `wf cache guard` on the plan job is also a relay: the OCI key stays on agent-shell (`clis/wf-bucket/src/cache/guard.rs:1-5`), so no job on the runner reads an OCI key. `.github/actions/install-oci` is used by no workflow.
+`DOCKERHUB_TOKEN` is read by the `build-image` action in the CI job itself (the push step, masked): the image is built on the runner's docker daemon and vm-ops-api only pulls the pushed tag, so no remote build is started through the relay pair. The deploy leg no longer verifies its app's group before building (that preflight belonged to the retired agent-shell build; `secrets::verify_for` now serves `wf ci preflight` and `wf vm terraform preflight`). `wf cache guard` on the plan job is also a relay: the OCI key stays on agent-shell (`clis/wf-bucket/src/cache/guard.rs:1-5`), so no job on the runner reads an OCI key. `.github/actions/install-oci` is used by no workflow.
 
 ## (1) Job table
 
@@ -83,7 +85,7 @@ Events. `deploy.yml` runs on `push` to `dev` (paths filter) and `workflow_dispat
 
 ### Per-leg keys of the deploy job
 
-`wf ship <app>` verifies the group of the leg plus `DOCKERHUB_TOKEN` from the runner (`verify_for`). The legs the pipeline ships are the ones of `RECOVER_APPS` in `clis/wf-vmops/src/services.rs:8-19` except the two deployed by hand (`agent-shell`, `ci-runner`), plus `vm-ops-api`. The number is the group's required plus optional keys, before adding `DOCKERHUB_TOKEN`.
+`wf ship <app>` verifies the group of the leg plus `DOCKERHUB_TOKEN` from the runner (`verify_for`). The legs the pipeline ships are the ones of `RECOVER_APPS` in `clis/wf-vmops/src/services.rs:8-19` except `agent-shell`, which is deployed by hand, plus `vm-ops-api`. The number is the group's required plus optional keys, before adding `DOCKERHUB_TOKEN`.
 
 | Leg | Group keys | Notable keys beyond the common ones |
 | --- | --- | --- |
@@ -152,7 +154,7 @@ Contents read only:
 
 Administration (and Actions) as well:
 
-- `infra/oracle-cloud/ci-runner/docker-compose.prod.yml:65-66`: "The shared provisioning PAT; it needs Administration: read and write on this repo to register the runner", passed as `ACCESS_TOKEN`.
+- The ci-runner compose file (deleted with the VM runner), lines 65-66: "The shared provisioning PAT; it needs Administration: read and write on this repo to register the runner", passed as `ACCESS_TOKEN`.
 - `docs/runbooks/vm-recreate.md:19`: the runner image "mints a registration token from `VM_PROVISION_GITHUB_TOKEN` (needs Administration: read and write on the repo)".
 - `docs/runbooks/health-alerts.md:17`: reporting-service reads GitHub with it, "Actions and Administration read are enough".
 - `docs/plans/github-access-broker/plan.md:12,133-135`: asserts the runner uses it as an Administration:write token and that the Contents-only text is stale.

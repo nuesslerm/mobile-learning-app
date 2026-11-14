@@ -1,0 +1,34 @@
+name: Cache summary
+description: >-
+  One line in the job summary for a cache layer: hit, partial (a restore key matched) or miss, and the restored size, from the outputs
+  of actions/cache/restore. Never fails the job.
+inputs:
+  layer:
+    description: The layer's name (pnpm, metro, nx)
+    required: true
+  hit:
+    description: The restore step's cache-hit output
+    default: ""
+  matched-key:
+    description: The restore step's cache-matched-key output
+    default: ""
+  paths:
+    description: The restored paths, space separated, globs allowed
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        LAYER: ${{ inputs.layer }}
+        HIT: ${{ inputs.hit }}
+        MATCHED: ${{ inputs.matched-key }}
+        CACHE_PATHS: ${{ inputs.paths }}
+      run: |
+        if [ "$HIT" = true ]; then result="hit"
+        elif [ -n "$MATCHED" ]; then result="partial (matched restore key \`$MATCHED\`)"
+        else result="miss"; fi
+        paths=${CACHE_PATHS//\~/$HOME}
+        # shellcheck disable=SC2086
+        mb=$(du -smc $paths 2>/dev/null | tail -1 | cut -f1 || true)
+        echo "- **$LAYER** ($GITHUB_JOB): $result, restored ${mb:-0} MB" | tee -a "$GITHUB_STEP_SUMMARY"

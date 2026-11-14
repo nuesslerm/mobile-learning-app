@@ -57,10 +57,14 @@ pub(crate) struct Chain {
 }
 
 pub(crate) async fn chain(env: &Env) -> Chain {
+    chain_with(env, Options::default()).await
+}
+
+async fn chain_with(env: &Env, options: Options) -> Chain {
     let cli = ScriptedCli::install();
     let path = Path::first(&cli);
     let repo = TempRepo::new();
-    let svc = service_spawning(env, Options::default(), Arc::new(Processes::at(env.providers_root().to_string_lossy())));
+    let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
     let port = svc.listen().await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
     let token = svc.mint("flow mapper").await;
@@ -386,4 +390,207 @@ async fn given_the_service_secret_when_it_is_presented_to_the_agent_socket_then_
         assert_eq!((status, answer["code"].clone(), with_header), (401, json!("UNAUTHORIZED"), 401), "{method} {path}");
     }
     assert_eq!(handshake(open_port, "/agent/v1/socket", &[]).await.err(), Some(401));
+}
+
+/// The same chain after its service and executor were stopped and started again over the same home, repository and bearer.
+async fn restarted(old: Chain, env: &Env, options: Options) -> Chain {
+    let Chain { _svc, cli, repo, exec, token, _path, .. } = old;
+    drop(exec);
+    drop(_svc);
+    let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
+    let port = svc.listen().await;
+    let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
+    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token, _path }
+}
+
+fn opencode_said(session: &str, text: &str) -> String {
+    json!({"type": "text", "timestamp": 1, "sessionID": session, "part": {"text": text}}).to_string()
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_an_opencode_thread_whose_turn_named_a_session_when_the_service_and_executor_restart_then_the_next_turn_resumes_that_session() {
+    // Given an opencode thread whose first turn printed lines carrying the CLI's own session id, and a second turn scripted behind it
+    let env = Env::process(&[]);
+    let state = env.home.join("rca-state");
+    std::fs::create_dir_all(&state).unwrap();
+    let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
+    let chain = chain_with(&env, options()).await;
+    chain.cli.script("opencode", &Script::of(vec![
+        Turn::replaying(&[opencode_said("ses_resume_1", "first answer")]),
+        Turn::replaying(&[opencode_said("ses_resume_1", "second answer")]),
+    ]));
+    let mut agent = chain.agent().await;
+    let made = agent.ask("thread.create", json!({"thread": "t1", "title": "Notes", "workspace": "w1", "driver": "opencode"})).await;
+    assert!(made.get("result").is_some(), "{made}");
+    agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+    let first = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "one"})).await;
+    assert!(first.get("result").is_some(), "{first}");
+    agent.events_through("turn.finished").await;
+    // When the service and the executor restart over the same home and a second turn starts on the same thread
+    drop(agent);
+    let chain = restarted(chain, &env, options()).await;
+    let mut agent = chain.agent().await;
+    agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+    let second = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "two"})).await;
+    assert!(second.get("result").is_some(), "{second}");
+    history_with_finishes(&mut agent, "t1", 2).await;
+    // Then the first run of the CLI started a conversation of its own and the second one went on in the session the first named
+    let starts = chain.cli.invocations("opencode");
+    assert_eq!(starts.len(), 2, "{starts:?}");
+    let session_of = |argv: &Vec<String>| argv.iter().position(|a| a == "--session").map(|i| argv[i + 1].clone());
+    assert_eq!((session_of(&starts[0].argv), session_of(&starts[1].argv)), (None, Some("ses_resume_1".to_string())), "{:?}", starts.iter().map(|s| s.argv.clone()).collect::<Vec<_>>());
+}
+
+async fn history_kinds(agent: &mut Agent, thread: &str) -> Vec<(String, Value)> {
+    let history = agent.ask("thread.history", json!({"thread": thread})).await;
+    history["result"]["events"].as_array().unwrap().iter().map(|e| (e["type"].as_str().unwrap().to_string(), if e["type"] == "error" { e["message"].clone() } else { e["reason"].clone() })).collect()
+}
+
+/// The history of the thread once it holds `count` finished turns (a subscription replays the finishes of before).
+async fn history_with_finishes(agent: &mut Agent, thread: &str, count: usize) -> Vec<(String, Value)> {
+    for _ in 0..300 {
+        let kinds = history_kinds(agent, thread).await;
+        if kinds.iter().filter(|(kind, _)| kind == "turn.finished").count() >= count {
+            return kinds;
+        }
+        tokio::time::sleep(Duration::from_millis(50)).await;
+    }
+    panic!("the thread never held {count} finished turns");
+}
+
+/// A chain whose first service (on a runtime of its own, shut down by the caller to crash it) holds a running opencode turn that announced `ses_queue_1`
+/// and one prompt queued behind it; the runtime comes back with the chain.
+async fn crashed_with_a_queued_prompt(env: &Env, options: &(dyn Fn() -> Options + Sync)) -> Chain {
+    let first_run = tokio::runtime::Builder::new_multi_thread().worker_threads(2).enable_all().build().unwrap();
+    let chain = std::thread::scope(|scope| {
+        scope.spawn(|| first_run.block_on(async {
+            let chain = chain_with(env, options()).await;
+            chain.cli.script("opencode", &Script::of(vec![
+                Turn::replaying(&[opencode_said("ses_queue_1", "working")]).then_sleeping(60_000),
+                Turn::replaying(&[opencode_said("ses_queue_1", "queued answer")]),
+                Turn::replaying(&[opencode_said("ses_queue_1", "continued")]),
+            ]));
+            let mut agent = chain.agent().await;
+            let made = agent.ask("thread.create", json!({"thread": "t1", "title": "Notes", "workspace": "w1", "driver": "opencode"})).await;
+            assert!(made.get("result").is_some(), "{made}");
+            agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+            let first = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "one"})).await;
+            assert!(first.get("result").is_some(), "{first}");
+            agent.events_through("message.delta").await;
+            agent.events_through("message.delta").await;
+            let queued = agent.ask("queue.add", json!({"thread": "t1", "item": "q1", "prompt": "two"})).await;
+            assert!(queued.get("result").is_some(), "{queued}");
+            drop(agent);
+            chain
+        })).join().unwrap()
+    });
+    first_run.shutdown_background();
+    chain
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_an_opencode_turn_interrupted_by_a_restart_with_a_prompt_queued_behind_it_then_the_queue_runs_in_the_kept_session_and_a_continue_resumes_it_too() {
+    // Given an opencode thread whose first turn announced its session and is still running, with one more prompt queued behind it
+    let env = Env::process(&[]);
+    let state = env.home.join("rca-state");
+    std::fs::create_dir_all(&state).unwrap();
+    let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
+    let chain = crashed_with_a_queued_prompt(&env, &options).await;
+    // When the service crashes and the service and the executor start again over the same state dir
+    let chain = restarted(chain, &env, options()).await;
+    let mut agent = chain.agent().await;
+    let kinds_seen = history_with_finishes(&mut agent, "t1", 2).await;
+    // Then the first turn is reported finished as interrupted, the queued prompt ran after the restart, and the thread is idle
+    let finishes: Vec<Value> = kinds_seen.iter().filter(|(kind, _)| kind == "turn.finished").map(|(_, reason)| reason.clone()).collect();
+    assert_eq!(finishes, [json!("interrupted"), json!("completed")], "{kinds_seen:?}");
+    assert!(kinds_seen.iter().any(|(kind, _)| kind == "queue.started"), "{kinds_seen:?}");
+    assert_eq!(agent.ask("thread.get", json!({"thread": "t1"})).await["result"]["thread"]["status"], json!("idle"));
+    // And the queued prompt's CLI went on in the first turn's session
+    let session_of = |argv: &Vec<String>| argv.iter().position(|a| a == "--session").map(|i| argv[i + 1].clone());
+    let starts = chain.cli.invocations("opencode");
+    assert_eq!(starts.len(), 2, "{starts:?}");
+    assert_eq!((session_of(&starts[0].argv), session_of(&starts[1].argv)), (None, Some("ses_queue_1".to_string())));
+    // When a follow-up prompt "continue" starts a turn
+    agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+    let again = agent.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "opencode", "prompt": "continue"})).await;
+    assert!(again.get("result").is_some(), "{again}");
+    history_with_finishes(&mut agent, "t1", 3).await;
+    // Then its CLI resumes the same session
+    let starts = chain.cli.invocations("opencode");
+    assert_eq!(starts.len(), 3, "{starts:?}");
+    assert_eq!(session_of(&starts[2].argv), Some("ses_queue_1".to_string()), "{:?}", starts[2].argv);
+}
+
+/// The chain after its service and executor were stopped: the service starts at once and the executor only after `delay`.
+async fn restarted_with_a_late_executor(old: Chain, env: &Env, options: Options, delay: Duration) -> Chain {
+    let Chain { _svc, cli, repo, exec, token, _path, .. } = old;
+    drop(exec);
+    drop(_svc);
+    let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
+    let port = svc.listen().await;
+    tokio::time::sleep(delay).await;
+    let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
+    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token, _path }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_a_restart_whose_executor_attaches_late_when_a_prompt_is_queued_then_nothing_runs_until_it_attaches_and_the_queue_then_runs_in_the_kept_session() {
+    // Given an opencode thread whose running turn crashed with the service, a prompt queued behind it
+    let env = Env::process(&[]);
+    let state = env.home.join("rca-state");
+    std::fs::create_dir_all(&state).unwrap();
+    let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
+    let chain = crashed_with_a_queued_prompt(&env, &options).await;
+    // When the service starts again and its executor attaches only three seconds later
+    let started = std::time::Instant::now();
+    let chain = restarted_with_a_late_executor(chain, &env, options(), Duration::from_secs(3)).await;
+    let mut agent = chain.agent().await;
+    let seen = history_with_finishes(&mut agent, "t1", 2).await;
+    // Then the queued prompt ran only after the executor was there, and the first turn is still the interrupted one
+    assert!(started.elapsed() >= Duration::from_secs(3), "the queue ran before the executor attached");
+    let finishes: Vec<Value> = seen.iter().filter(|(kind, _)| kind == "turn.finished").map(|(_, reason)| reason.clone()).collect();
+    assert_eq!(finishes, [json!("interrupted"), json!("completed")], "{seen:?}");
+    // And its CLI went on in the first turn's session, started once
+    let session_of = |argv: &Vec<String>| argv.iter().position(|a| a == "--session").map(|i| argv[i + 1].clone());
+    let starts = chain.cli.invocations("opencode");
+    assert_eq!(starts.len(), 2, "{starts:?}");
+    assert_eq!(session_of(&starts[1].argv), Some("ses_queue_1".to_string()));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
+async fn given_an_executor_that_dies_during_a_tool_call_when_it_is_served_again_then_the_turn_ended_failed_and_the_next_turn_goes_on_in_the_kept_session() {
+    // Given a claude thread whose turn announced its session and is waiting on a command at the executor
+    let env = Env::process(&[]);
+    let mut chain = chain(&env).await;
+    let init = json!({"type": "system", "subtype": "init", "session_id": "ses_exec_1"}).to_string();
+    chain.script(vec![
+        Turn::replaying(&[init.clone(), said("starting")]).then_calling("k1", "run_command", json!({"command": "sleep 3"})).then_line(&said("never said")),
+        Turn::replaying(&[init, said("back again")]),
+    ]);
+    let mut agent = chain.agent().await;
+    create(&mut agent, "t1").await;
+    agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+    start_turn(&mut agent, "t1").await;
+    agent.events_through("tool.started").await;
+    // When the executor process is killed (the agent-shell it runs in restarts) and served again for the same workspace
+    drop(chain.exec.take());
+    let end = agent.events_through("turn.finished").await;
+    let port = chain.port;
+    chain.exec = Some(tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &chain.repo, SECRET)));
+    // Then the turn ended failed with the executor gone
+    let error = end.iter().find(|e| e.kind == "error").unwrap_or_else(|| panic!("no error event in {:?}", kinds(&end)));
+    assert_eq!(error.data["code"], json!("EXECUTOR_GONE"));
+    assert_eq!(end.last().unwrap().data["reason"], json!("failed"));
+    // And the next turn runs through the new executor in the session the first turn announced
+    let mut agent = chain.agent().await;
+    agent.ask("thread.subscribe", json!({"thread": "t1"})).await;
+    let again = start_turn(&mut agent, "t1").await;
+    assert!(again.get("result").is_some(), "{again}");
+    let seen = history_with_finishes(&mut agent, "t1", 2).await;
+    let finishes: Vec<Value> = seen.iter().filter(|(kind, _)| kind == "turn.finished").map(|(_, reason)| reason.clone()).collect();
+    assert_eq!(finishes, [json!("failed"), json!("completed")], "{seen:?}");
+    let resumed = |argv: &Vec<String>| argv.iter().position(|a| a == "--resume").map(|i| argv[i + 1].clone());
+    let starts = chain.cli.invocations("claude");
+    assert_eq!(starts.len(), 2, "{starts:?}");
+    assert_eq!((resumed(&starts[0].argv), resumed(&starts[1].argv)), (None, Some("ses_exec_1".to_string())), "{:?}", starts.iter().map(|s| s.argv.clone()).collect::<Vec<_>>());
 }

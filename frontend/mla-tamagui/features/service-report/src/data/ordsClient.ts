@@ -16,14 +16,14 @@ import { Logger } from '@lib/logging';
 import {
   sortReportsByGeneratedAtDesc,
   type HealthReport,
-} from '../contracts';
+} from '../domain';
 import { z } from 'zod';
 
-import { encodeBase64 } from '../lib/base64';
+import { encodeBase64 } from '../domain/base64';
 import {
   ordsRowSchema,
   parseHealthReportRows,
-} from '../use-cases/parseHealthReportRows';
+} from '../domain/parseHealthReportRows';
 
 const DEFAULT_ORDS_USER = 'health_rpt';
 

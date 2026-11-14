@@ -1,0 +1,12 @@
+Usage: wf bucket [options] [command]
+
+A blob store of your own: any always-on host can serve the objects the build
+cache and the verification artifacts keep, over HTTP with bearer tokens.
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  serve [options]             Serve GET, HEAD and PUT under /o/<key> from a
+                              directory
+  help [command]              display help for command

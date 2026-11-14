@@ -30,10 +30,10 @@
         "../libraries/voice-edit-dsl/src/index.ts"
       ],
       "@app/remote-chat-agent-contracts": [
-        "../../backend/remote-chat-agent-contracts/src/index.ts"
+        "../libraries/remote-chat-agent-contracts/src/index.ts"
       ],
       "@app/remote-chat-agent-contracts/orchestration": [
-        "../../backend/remote-chat-agent-contracts/src/orchestration/index.ts"
+        "../libraries/remote-chat-agent-contracts/src/orchestration/index.ts"
       ]
     }
   },

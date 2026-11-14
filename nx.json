@@ -37,9 +37,25 @@
       "{workspaceRoot}/mise.toml",
       "toolchain"
     ],
+    "archRules": [
+      "{workspaceRoot}/frontend/feature-kit/**",
+      "{workspaceRoot}/.oxlintrc.arch.json",
+      "{workspaceRoot}/.ls-lint.yml",
+      "{workspaceRoot}/backend/sgconfig.yml",
+      "{workspaceRoot}/clis/sgconfig.yml",
+      "{workspaceRoot}/backend/arch-rules/**",
+      "{workspaceRoot}/backend/arch-tests/**",
+      "{workspaceRoot}/clis/rule-tests/**"
+    ],
     "default": [
       "{projectRoot}/**/*",
       "sharedGlobals"
+    ],
+    "withoutDeployFiles": [
+      "default",
+      "!{projectRoot}/**/Dockerfile*",
+      "!{projectRoot}/**/docker-compose*",
+      "!{projectRoot}/**/*.md"
     ],
     "production": [
       "{projectRoot}/**/*",
@@ -73,7 +89,8 @@
     "lint": {
       "cache": true,
       "inputs": [
-        "default"
+        "default",
+        "archRules"
       ]
     },
     "typecheck": {

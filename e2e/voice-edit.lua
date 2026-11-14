@@ -234,7 +234,8 @@ while true do
   -- BetterStack holds these lines for the session: a turn that applied must have logged its transcription and its plan (a rename plans locally)
   local function info_log() return table.concat(device:get_logs{level='info'}, "\n") end
   local function planned() local t = info_log() return t:find("voice_edit.plan.response", 1, true) or t:find("voice_edit.plan.local", 1, true) end
-  -- the strip can go before the planner answers: its line is awaited, not read once
+  -- the strip can go before the planner answers: its line is awaited, not read once. A plan that failed (the banner reads "Server error (500)")
+  -- logs voice_edit.plan.error and never the response line: no wait makes it appear, so the wait stays short.
   device:extended_wait_until{condition=planned, timeout=30000, optional=true}
   local info = info_log()
   assert_true(info:find("voice_edit.transcribe.response", 1, true), ("turn %d: no transcribe.response line in the app log"):format(n))

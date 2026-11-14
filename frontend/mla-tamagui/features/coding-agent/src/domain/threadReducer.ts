@@ -10,7 +10,7 @@ import type {
   OrchestrationLatestTurn,
   OrchestrationSession,
   OrchestrationThread,
-} from '../contracts/orchestration';
+} from './orchestration';
 
 export type ThreadDetailState = OrchestrationThread & {
   turnDiffs?: Record<string, string>;

@@ -2,11 +2,13 @@
 //! a fresh checkout fetches nothing it already has. Both print one JSON object and exit 0 whenever the bucket is the problem
 //! (no link, unreachable, no object, a refused write): the cache is cold then, never red. Only a failing step on this machine
 //! exits 1, and the workflow steps that call them do not fail the job for that either.
-use super::{writes_for, Scope, READ_PAR, WRITE_PAR};
+use super::{open_stores, writes_for, Scope};
 use crate::ci_metrics::{self, Gauges};
 use blob_cache::domain::Stats;
 use wf_kit::args::{Parsed, Spec, Positional};
-use blob_cache::adapters::{OciParStore, TarGz};
+use blob_cache::adapters::TarGz;
+use blob_cache::stores::ConfigError;
+use blob_cache::Stores;
 use blob_cache::domain::pnpm::Layout;
 use blob_cache::domain::{Budget, Kind};
 use blob_cache::pnpm::{restore_precheck, save_precheck, Outcome, Reason, SaveFacts};
@@ -41,25 +43,30 @@ fn failed(error: impl std::fmt::Display) -> Outcome {
 }
 
 /// The bucket for this verb: its read link, and the write link when the verb writes. A link that does not resolve is a cold run.
-pub(super) fn open(write: Option<Writes>, kind: Kind) -> Result<Cache<OciParStore>, Outcome> {
+pub(super) fn open(write: Option<Writes>, kind: Kind) -> Result<Cache<Stores>, Outcome> {
     if let Some(why) = super::switched_off(Budget::committed()) {
         super::disabled::<()>(why);
         return Err(Outcome::Nothing(Reason::Cold("disabled")));
     }
-    let wanted: &[&str] = if write.is_some() { &[READ_PAR, WRITE_PAR] } else { &[READ_PAR] };
-    let links = secrets::load_values(wanted);
-    let link = |key: &str| links.get(key).cloned().flatten();
-    let missing: Vec<&str> = wanted.iter().copied().filter(|key| link(key).is_none()).collect();
-    if !missing.is_empty() {
-        eprintln!("wf: build cache not used, {} does not resolve (the environment, then the vault)", missing.join(" and "));
-        return Err(Outcome::Nothing(Reason::Cold("no link")));
-    }
-    let read = link(READ_PAR).unwrap_or_default();
-    let write_link = if write.is_some() { link(WRITE_PAR) } else { None };
+    let stores = match open_stores(write.is_some()) {
+        Ok(Some(stores)) => stores,
+        Ok(None) => {
+            super::disabled::<()>("no store declared");
+            return Err(Outcome::Nothing(Reason::Cold("disabled")));
+        }
+        Err(ConfigError::Missing(keys)) => {
+            eprintln!("wf: build cache not used, {} (the environment, then the vault)", ConfigError::Missing(keys));
+            return Err(Outcome::Nothing(Reason::Cold("no link")));
+        }
+        Err(error) => {
+            eprintln!("wf: build cache not used, {error}");
+            return Err(Outcome::Nothing(Reason::Cold("invalid config")));
+        }
+    };
     let writes = write.unwrap_or_else(|| Writes::ReadOnly("restore reads only".into()));
     // one pnpm entry is the whole job of this run, so its byte limit is the entry's, not an Nx run's
     let budget = Budget::committed().for_one_entry_of(kind);
-    Ok(Cache::open(OciParStore::new(&read, write_link.as_deref()), budget, writes))
+    Ok(Cache::open(stores, budget, writes))
 }
 
 /// Prints the verb's one JSON object and picks the exit code: 1 only for a step on this machine that failed. `stats` is what the

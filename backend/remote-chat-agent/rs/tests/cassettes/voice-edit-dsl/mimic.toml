@@ -11,3 +11,8 @@ version = "1.0.0"
 command = ["node", "../../../../../../tooling/mimic-drivers/src/cli.ts", "serve", "voice-edit-dsl"]
 env = { NODE_NO_WARNINGS = "1" }
 pin_tree = "../../../../../../frontend/libraries/voice-edit-dsl/src"
+
+# The library at HEAD answering its own recording: what a hosted replay runs. The Rust port is replayed by tests/flow/voice.rs.
+[candidate.voice-edit-dsl]
+command = ["node", "../../../../../../tooling/mimic-drivers/src/cli.ts", "serve", "voice-edit-dsl"]
+env = { NODE_NO_WARNINGS = "1" }

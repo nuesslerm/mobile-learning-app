@@ -1024,6 +1024,87 @@ Stops the daemon and every session in it, or exits 1 when none runs. Frozen as s
 
 ## cache
 
+### `wf bucket`
+
+A blob store of your own: any always-on host can serve the objects the build cache and the verification artifacts keep
+
+Usage: `wf bucket [options] [command]`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket [options] [command]
+
+A blob store of your own: any always-on host can serve the objects the build
+cache and the verification artifacts keep, over HTTP with bearer tokens.
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  serve [options]             Serve GET, HEAD and PUT under /o/<key> from a
+                              directory
+  help [command]              display help for command
+```
+
+</details>
+
+#### `wf bucket serve`
+
+Serve GET, HEAD and PUT under /o/<key> from a directory
+
+Usage: `wf bucket serve [options]`
+
+Examples:
+
+```sh
+wf bucket serve --dir ~/blobs --listen 127.0.0.1:8080 --read-token-file ~/.blob-read --write-token-file ~/.blob-write
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket serve [options]
+
+Serve a directory as a blob store: GET, HEAD and PUT on /o/<key>. Meant for a
+host that stays on (a laptop only when it is wired in as a store: a stable
+address, a token, a network rule for the runners). It never lists a directory
+and never deletes.
+
+Auth: Authorization: Bearer <token>. GET and HEAD take the read token or the
+write token, PUT takes the write token. A missing or wrong token is 401. The
+tokens are read from files; they are never logged and never in a URL.
+
+Answers:
+  200  stored (PUT), or the object (GET, HEAD)
+  400  a key that is empty, absolute, has a segment starting with a dot (so
+       `..` too), or holds a character outside [A-Za-z0-9._-/]
+  401  no token or the wrong one
+  404  no such object (a prefix is never an object)
+  405  any other method (DELETE included)
+  412  PUT with If-None-Match: * on a key that already exists; the first
+       writer wins
+  413  an object over --max-object-mb
+
+A PUT is written beside its key and moved into place, so a reader never sees a
+half-written object. A PUT body is held in memory while it arrives.
+
+Output: one JSON line on stdout when ready, {ok, listen, dir}; listen is the
+address actually bound (use port 0 to pick a free one). The server then runs
+until it is stopped. A failure prints {ok: false, error} and exits 1; a
+malformed line exits 2.
+
+Options:
+  --dir <dir>                 the directory that holds the objects (created)
+  --listen <addr>             host:port to bind, e.g. 127.0.0.1:8080
+  --read-token-file <file>    file holding the read token
+  --write-token-file <file>   file holding the write token
+  --max-object-mb <n>         largest object accepted, in MB (default 1024)
+  -h, --help                  display help for command
+```
+
+</details>
+
 ### `wf cache`
 
 The build cache: one OCI Object Storage bucket holds every cache layer, and the sandbox and CI share it
@@ -1035,8 +1116,8 @@ Usage: `wf cache [options] [command]`
 ```text
 Usage: wf cache [options] [command]
 
-The build cache: one OCI Object Storage bucket holds every cache layer, and the
-sandbox and CI share it. Nothing is cached on the VM, so a recreated VM finds it
+The build cache: one blob store (or several, chosen in config; see Stores below)
+holds every cache layer, and the sandbox and CI share it. Nothing is cached on the VM, so a recreated VM finds it
 all. A store that is unreachable, over budget or refused makes a run cold, never
 red.
 
@@ -1050,8 +1131,8 @@ Layers (one prefix, one expiry and one verb each; `docs/solutions/ci/cache-layer
 `wf test run --stage` and `wf check --staged` start a loopback shim that gives
 Nx the bucket (NX_SELF_HOSTED_REMOTE_CACHE_SERVER, a token per run, and
 127.0.0.1,localhost added to NO_PROXY) and stop it when Nx exits. It needs
-BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL (the environment, then
-the vault); when either does not resolve nothing starts and Nx uses its local
+the stores below (the environment, then the vault); when they do not resolve, or
+every entry is disabled, nothing starts and Nx uses its local
 cache alone, as it does under `wf test run --fresh`. The same shim also serves Rust
 compiles when `sccache` is on PATH: it adds RUSTC_WRAPPER=sccache, CARGO_INCREMENTAL=0
 (sccache refuses incremental compiles), a WebDAV endpoint on the loopback and its
@@ -1059,6 +1140,32 @@ own server port to the Nx child, and prints `wf: compile cache {...}` and
 `wf: sccache {hits, misses}` when it stops. A compile's key includes the target
 directory path, so keep CARGO_TARGET_DIR the same between runs. WF_BLOB_CACHE=off, or
 "enabled": false in clis/blob-cache/data/budget.json, turns the cache off.
+
+Stores: the backend is a choice made in config, not in code. BUILD_CACHE_READ_STORES
+and BUILD_CACHE_WRITE_STORES (the environment, then the vault) each hold a comma
+list, and one entry names one store by its URL scheme:
+  par+https://<link ending /o/>    an OCI pre-authenticated request; the link is the
+                                   credential
+  dav+https://host:port/o/         the bearer server of `wf bucket serve`
+                                   (BLOB_DAV_READ_TOKEN, BLOB_DAV_WRITE_TOKEN)
+  s3://bucket/prefix?endpoint=https://host&region=R&path_style=1&conditional=0
+                                   Cloudflare R2, Hetzner Object Storage, B2, AWS,
+                                   MinIO, over SigV4 (BLOB_S3_READ_CREDENTIAL and
+                                   BLOB_S3_WRITE_CREDENTIAL, each ACCESS_KEY_ID:SECRET_ACCESS_KEY)
+  file:///dir                      a directory on this machine
+A credential is never part of a URL (one that is gets the entry refused) and never
+printed. region defaults to auto; path_style=1 puts the bucket in the path instead
+of the host name; plain http is accepted only for a loopback host.
+With several entries every one is a real member: a read tries them in order and
+returns the first hit, a write goes to every one. The write list names the same
+stores in the same order as the read list, and it resolves only where a write is
+allowed (a push to dev). It is not a fallback chain: a declared store that is
+unreachable is an error that names it, and `wf ci preflight` fails on it.
+An entry written with a leading - (`-s3://b/p?endpoint=https://host`) is disabled,
+which is the same as not declared: nothing contacts it. A list whose entries are
+all disabled declares no store, which is what WF_BLOB_CACHE=off means. With
+neither list set, BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL are read
+as a one-entry par+https list, so nothing existing changes.
 
 A run writes only when the tree is clean (untracked files count; under
 `wf check --staged` what is staged does not), HEAD is an ancestor of origin/dev,
@@ -1146,8 +1253,8 @@ Run a command with the Nx task cache served from the bucket: a loopback server
 starts, NX_SELF_HOSTED_REMOTE_CACHE_SERVER and a per-run token go into the
 command's environment (and 127.0.0.1,localhost into NO_PROXY), and the server
 stops when the command exits. The command's exit code is this verb's. Needs
-BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL (the environment, then the
-vault); without them the command runs on Nx's local cache alone. A run writes only
+the build cache stores (BUILD_CACHE_READ_STORES and BUILD_CACHE_WRITE_STORES, or the
+legacy BUILD_CACHE_*_PAR_URL; the environment, then the vault); without them the command runs on Nx's local cache alone. A run writes only
 from a clean tree on origin/dev with pinned tools (see `wf cache --help`).
 
 With --why (first, before the command), every task Nx ran in the command is
@@ -1385,9 +1492,9 @@ Start a new, empty generation: every reader and writer moves to it at once, with
 no list and no delete, and the old entries expire by the bucket's lifecycle. Use
 it for a cached wrong result. The generation is one number in meta/generation, so
 a purge starts every kind over; <kind> (nx, sccache, pnpm or metro) names what it is for and is
-checked. Needs both links, BUILD_CACHE_READ_PAR_URL to read the number and
-BUILD_CACHE_WRITE_PAR_URL to write the next one (the environment, then the
-vault). Unlike a run it does not ask for a clean tree on origin/dev: it writes no
+checked. Needs both planes of the build cache stores (BUILD_CACHE_READ_STORES to read the number and
+BUILD_CACHE_WRITE_STORES to write the next one to every store, or the legacy
+BUILD_CACHE_*_PAR_URL; the environment, then the vault). Unlike a run it does not ask for a clean tree on origin/dev: it writes no
 task result, and a purge is how a wrong one is discarded.
 
 Output: one JSON object on stdout {ok, kind, generation}. A failure prints
@@ -1423,7 +1530,7 @@ Fill an empty local pnpm store from the bucket before `pnpm install`, or (kind m
 (frontend/mla-tamagui/node_modules/.cache/app-build: Metro's transform cache and tsc's build info) before an export or a typecheck, so a
 recreated VM or a fresh checkout fetches nothing it already has. It does nothing
 when the local store (metro: the app-build directory) is not empty, as it is on a runner whose checkout persists, and then asks the bucket nothing. Needs only
-the read link (BUILD_CACHE_READ_PAR_URL: the environment, then the vault). The
+the read stores (BUILD_CACHE_READ_STORES or BUILD_CACHE_READ_PAR_URL: the environment, then the vault). The
 store is the path `pnpm store path` prints, so npm_config_store_dir applies. The
 object is unpacked beside the store and moved into place whole, so a download or
 archive that breaks leaves the store as it was.
@@ -1475,7 +1582,8 @@ these hold, and asks the bucket nothing until the first three do:
   the local store has content
   the lockfile's sha256 differs from the one in the sidecar, or the object is
     missing (it expired by lifecycle)
-Needs both links (BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL).
+Needs both planes of the build cache stores (BUILD_CACHE_READ_STORES and
+BUILD_CACHE_WRITE_STORES, or the legacy BUILD_CACHE_*_PAR_URL); the object goes to every store.
 
 Any problem with the bucket is a cold run: exit 0. Only a step on this machine
 that failed (pnpm missing, tar failed) exits 1.
@@ -1779,8 +1887,9 @@ to finish is not live and valid. Checks run in parallel:
   env             GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_SHA
   secrets         every secret of the `ci` group (groups.json) is present and
                   usable (`wf secret verify --for ci`)
-  build-cache     both links resolve, and a probe object is written through the
-                  write link and read back through the read link
+  build-cache     every declared store resolves, a probe object is written to
+                  all of them and read back from each; an unreachable store
+                  fails and names itself, no store declared passes
   ledger          the database answers and the ledger's tables exist (a
                   warning only: the audit skips its task checks without it)
   vm-ops-api      a signed /health answers over the tailnet (every deploy leg
@@ -1790,9 +1899,6 @@ to finish is not live and valid. Checks run in parallel:
   runner-disk     10 GB free on the checkout's volume
   runner-memory   1 GB available
   github          the token is valid and 200 API calls are left
-  runner-version  the gh-runner image compose pins is not a minor behind GitHub's latest
-                  runner release (a warning only: a runner left behind restarts in a
-                  loop trying to update and its jobs store no log)
 
 Prints one JSON line {ok, failed: [names], checks: [{check, ok, required,
 detail, next}]} and a table in the job summary; exit 1 when a required check
@@ -2147,12 +2253,12 @@ Commands:
 
 Attach this directory to the rca service as an executor: open
 
-Usage: `wf exec serve --rca-url <url> --workspace <id> --root <dir> [--executor <id>] [--worktree-base <dir>] [--browse-allow <dirs>] [--reconnect] [--git-hooks] [--secret-env NAME]`
+Usage: `wf exec serve --rca-url <url> --workspace <id> --root <dir> [--executor <id>] [--worktree-base <dir>] [--browse-allow <dirs>] [--reconnect] [--reconnect-for <secs>] [--git-hooks] [--secret-env NAME]`
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf exec serve --rca-url <url> --workspace <id> --root <dir> [--executor <id>] [--worktree-base <dir>] [--browse-allow <dirs>] [--reconnect] [--git-hooks] [--secret-env NAME]
+Usage: wf exec serve --rca-url <url> --workspace <id> --root <dir> [--executor <id>] [--worktree-base <dir>] [--browse-allow <dirs>] [--reconnect] [--reconnect-for <secs>] [--git-hooks] [--secret-env NAME]
 
 Attach this directory to the rca service as an executor: open
 GET /exec/v2/executors?workspace=<id> (a WebSocket, Authorization: Bearer) and
@@ -2178,7 +2284,10 @@ Options:
                               --root and --worktree-base
   --reconnect                 When the channel drops (not a close with 4001), open
                               it again for the same executor: its ptys go on and
-                              rca re-attaches to them by byte offset
+                              rca re-attaches to them by byte offset; the pause
+                              doubles from 200 ms to 5 s
+  --reconnect-for <secs>      How long --reconnect keeps trying (default 900); then
+                              it prints {"event":"gave_up"} and exits 1
   --git-hooks                 Let the repository's own hooks run in the git actions
                               (commit, merge, rebase, checkout, ...); off by default
   --secret-env <NAME>         The environment variable holding the bearer (default
@@ -2759,7 +2868,7 @@ Usage: `wf knowledge index [options]`
 | `--prompt <path>` | --gemini: the ARCHITECTURE.md prompt (default: "docs/gemini-context/architecture-prompt.md") |
 | `--cache-dir <path>` | --gemini: gitignored scratch dir for the skeleton, the pack and the bundle (default: ".gemini-context-cache") |
 | `--manifest <path>` | --gemini: committed record of the last upload (default: "docs/gemini-context/manifest.json") |
-| `--no-summary` | --gemini: reuse the cached ARCHITECTURE.md, skip the model |
+| `--no-summary` | --gemini: reuse the cached ARCHITECTURE.md, skip the model (no cache: falls back to a full summary run) |
 | `--dry-run` | --gemini: build the bundle, skip the upload and the manifest |
 
 Examples:
@@ -2791,7 +2900,7 @@ Options:
                       pack and the bundle (default: ".gemini-context-cache")
   --manifest <path>   --gemini: committed record of the last upload (default:
                       "docs/gemini-context/manifest.json")
-  --no-summary        --gemini: reuse the cached ARCHITECTURE.md, skip the model
+  --no-summary        --gemini: reuse the cached ARCHITECTURE.md, skip the model (no cache: falls back to a full summary run)
   --dry-run           --gemini: build the bundle, skip the upload and the
                       manifest
   -h, --help          display help for command
@@ -3775,12 +3884,12 @@ Usage: `wf mimic trigger [options]`
 Usage: wf mimic trigger [options]
 
 Read the marker of a commit message and say which capture jobs it asks for. The
-record-references workflow runs this on the head commit of every push to dev
+mimic-record workflow runs this on the head commit of every push to dev
 whose message carries a marker; it is the one place the marker is parsed.
 
 Marker grammar (one marker per message, on a line of its own that begins with `[`;
 prose that mentions it mid-line, and a message without one, start nothing):
-  [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on the VM runner
+  [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on a hosted runner
   [replay <set>...]                              replay each set against its candidates, publish the diff
   <set>      a cassette set: its directory name, or its path from the repository root;
              the directory holds a mimic.toml (a bare name that matches two is refused)
@@ -3857,7 +3966,7 @@ Output (schema mimic-provision/1):
 
 ### `wf mimic job`
 
-One capture job of the record-references workflow, for a set that is already
+One capture job of the mimic-record workflow, for a set that is already
 
 Usage: `wf mimic job [options] <record|replay> <set>`
 
@@ -3866,7 +3975,7 @@ Usage: `wf mimic job [options] <record|replay> <set>`
 ```text
 Usage: wf mimic job [options] <record|replay> <set>
 
-One capture job of the record-references workflow, for a set that is already
+One capture job of the mimic-record workflow, for a set that is already
 provisioned (wf mimic provision).
 
 record: runs `wf mimic record <set> --resume --max-minutes <chunk>` again and again
@@ -5178,8 +5287,10 @@ wf ship leetcode-backend --ref dev --redeploy-only --tag sha-1a2b3c4d
 Usage: wf ship [options] [service...]
 
 Redeploy a service through vm-ops-api at a tag CI pushed. Nothing here builds an image: CI builds and pushes every image of a push to dev on the runner (`wf ship build <app> --tag <tag>`, see `wf ship build --help`), and `wf ship <service> --ref <sha> --redeploy-only --tag sha-<8>` redeploys what it pushed. A hand build is docker buildx in agent-shell's own docker, never into a production tag.
-`wf ship ci-runner --ref <ref>` mints a one-hour runner registration token with VM_PROVISION_GITHUB_TOKEN and redeploys the runner with it as RUNNER_TOKEN, plus a one-hour single-use tag:ci-self-hosted Tailscale key as TS_CI_RUNNER_AUTH_KEY so the runner node joins with its own tag (when no key can be minted it prints one line and the runner keeps joining with the shared key); the PAT and both values go nowhere else and are never printed. With --wipe-state the runner's volumes (its tailnet identity and registration) are wiped first, which moves an existing node onto the new tag; a key already in TS_CI_RUNNER_AUTH_KEY in the environment is sent as is instead of minted (mint it where the Tailscale credentials are readable).
-A redeploy prints the seconds of each of its steps (`phase <name>: <n> s`): with --smoke, a smoke test (the pushed image run once as a throwaway container on a spare port beside the live one; a failure prints that container's log and swaps nothing) and a tailnet probe; the pull and swap; and, with --wait-serving, one bounded /health check. An app with no image (ci-runner) redeploys at latest.
+For an app that runs several images (remote-chat-agent, agent-shell) a redeploy is gradual: it asks the running containers which commit each service's image was built
+from, hashes each image at that commit and at --ref, and sends `tags=service:tag` for the services whose image changed only (possibly none), so the others keep the tag
+they run and are not recreated. A commit that cannot be read or hashed moves the service; --recreate-all and --wipe-state move every service to --tag.
+A redeploy prints the seconds of each of its steps (`phase <name>: <n> s`): with --smoke, a smoke test (the pushed image run once as a throwaway container on a spare port beside the live one; a failure prints that container's log and swaps nothing) and a tailnet probe; the pull and swap; and, with --wait-serving, one bounded /health check.
 `wf ship vm-ops-api --ref <commit> --redeploy-only --tag <tag>` (--ref must name a commit) asks POST /redeploy?ref=<sha>&tag=<tag> to prove the image and swap vm-ops-api itself in; a swap that fails is recorded in /redeploy/status and --wait-serving reports it at once.
 --wait-serving: the deploy is done only when the service serves the --ref commit (its /health), within 2 minutes; a service with no /health (vnc-auth-session, leetcode-auth-cookie-capture) is confirmed by the sha tag of its running image. CI's deploy legs use it.
 
@@ -5322,8 +5433,8 @@ Usage: wf ship build [options] <app>
 
 Build the images of an app, and the sidecar images its compose pulls on the same
 tag, with the docker CLI against whatever DOCKER_HOST names, and push them to
-docker.io/nuesslerm. In CI that is the builder sidecar of the VM runner, or the
-local daemon of a hosted runner (the build-image action). It never touches the VM
+docker.io/nuesslerm. In CI that is the local daemon of the hosted runner (the
+build-image action). It never touches the VM
 or vm-ops-api. An image whose input hash (nx-<hash>) is already in the registry is
 re-tagged for the commit, never rebuilt. Prints one JSON line:
 {"app","tag","commit","images":[{"image","ref","reused","pushed"}]}.
@@ -5814,6 +5925,8 @@ Commands:
                          replayed at container start
   creds                  OCI credentials for Terraform
   terraform              Terraform for infra/oracle-cloud
+  stock [options]        Hetzner Cloud server types orderable now, and what
+                         changed since the last run
   net                    Tailnet devices and the auth key
   ops                    Operate vm-ops-api itself (health, self-redeploy)
   help [command]         display help for command
@@ -6417,7 +6530,7 @@ Options:
 
 #### `wf vm net resolve`
 
-The name each tailnet host answers to now: the base name, else the first of `<name>-1` .. `<name>-5` that resolves (a name drifts to a suffix while a stale record holds it). Resolves through this machine's resolver, so run it where MagicDNS answers (the VM's runner, a machine on the tailnet).
+The name each tailnet host answers to now: the base name, else the first of `<name>-1` .. `<name>-5` that resolves (a name drifts to a suffix while a stale record holds it). Resolves through this machine's resolver, so run it where MagicDNS answers (a VM app, a machine on the tailnet).
 
 Usage: `wf vm net resolve [options] <name...>`
 
@@ -6435,7 +6548,7 @@ Usage: wf vm net resolve [options] <name...>
 The name each tailnet host answers to now: the base name, else the first of
 <name>-1 .. <name>-5 that resolves (a name drifts to a suffix while a stale
 record holds it). Resolves through this machine's resolver, so run it where
-MagicDNS answers (the VM's runner, a machine on the tailnet).
+MagicDNS answers (a VM app, a machine on the tailnet).
 
 Options:
   -h, --help  display help for command
@@ -6517,9 +6630,6 @@ Commands:
                               pipe it)
   ci-port [options]           Check that the CI port answers /health with the
                               CI seed and 404s an admin-only route
-  runner-check [options]      Check, inside a CI job on the self-hosted runner,
-                              that the job has the builder sidecar and nothing
-                              of the host (booleans only)
   redeploy-self [tag]         Have vm-ops-api build its OWN image at the dev
                               head and swap itself in, fire-and-forget (poll
                               `wf vm ops health` afterward to confirm)
@@ -6844,56 +6954,6 @@ Example:
 
 </details>
 
-#### `wf vm ops runner-check`
-
-Read-only. Run inside a CI job on the self-hosted runner, it checks that the job has the builder sidecar and none of the host: (a) DOCKER_HOST is set and `docker info` through it answers with a server name; (b) the host docker socket does not exist; (c) PID 1's environment (names only, read from /proc/1/environ) holds no ACCESS_TOKEN, no VM_PROVISION_GITHUB_TOKEN and no BWS_ variable other than the job token BWS_CI_DEPLOY_ACCESS_TOKEN; (d) a TCP connect to the agent-shell dind address (AGENT_SHELL_DIND_ADDR, host:port) is refused or times out. No such address is configured today, so the probe is skipped and the output says so.
-
-Usage: `wf vm ops runner-check [options]`
-
-Examples:
-
-```sh
-wf vm ops runner-check --json
-```
-
-<details><summary>Full help</summary>
-
-```text
-Usage: wf vm ops runner-check [options]
-
-Read-only. Run inside a CI job on the self-hosted runner, it checks that the job
-has the builder sidecar and none of the host: (a) DOCKER_HOST is set and
-`docker info` through it answers with a server name; (b) the host docker socket
-does not exist; (c) PID 1's environment (names only, read from /proc/1/environ)
-holds no ACCESS_TOKEN, no VM_PROVISION_GITHUB_TOKEN and no BWS_ variable other
-than the job token BWS_CI_DEPLOY_ACCESS_TOKEN;
-(d) a TCP connect to the agent-shell dind address (AGENT_SHELL_DIND_ADDR,
-host:port) is refused or times out. No such address is configured today, so
-the probe is skipped and the output says so.
-
-Options:
-  --proc-root <dir>          Read <dir>/1/environ instead of /proc/1/environ
-                             (tests)
-  --docker-sock-path <path>  Check this path instead of /var/run/docker.sock
-                             (tests)
-  --json                     Accepted; the output is always JSON
-  -h, --help                 display help for command
-
-Output: one JSON line on stdout {ok, docker_host_answers, docker_server,
-host_docker_sock_absent, pid1_env_readable, pid1_env_clean,
-pid1_offending_names?, agent_shell_dind_unreachable, agent_shell_dind_probe?,
-must_not_reach?};
-names and booleans, never a value. Exit 0 when every required check holds
-(an unreadable PID 1 environment fails), else 1.
-
-Environment: DOCKER_HOST, AGENT_SHELL_DIND_ADDR (optional), RUNNER_CHECK_MUST_NOT_REACH (optional: comma-separated host:port a job must not reach, e.g. the admin port of vm-ops-api; each answers unreachable, reachable or unresolved in `must_not_reach`, and anything but unreachable fails, because a name that does not resolve proves nothing).
-
-Example:
-  wf vm ops runner-check --json
-```
-
-</details>
-
 #### `wf vm ops token-permissions`
 
 Asks GitHub, with read-only GETs, what VM_PROVISION_GITHUB_TOKEN may do on nuesslerm/expo-hello-world-app-2: /user (is the token accepted, when does it expire), /repos/{repo} (Metadata and the permissions block), /actions/runners (a 200 proves Administration: read) and /contents/README.md (Contents: read). Nothing is created. Run it on agent-shell, which holds the token; it is the VM-side check that replaced the runner's verify of this key.
@@ -6937,7 +6997,7 @@ Example (from anywhere on the tailnet; the script is one line):
 
 #### `wf vm ops cancel-run`
 
-Cancels CI runs of dev, of both flavors (deploy.yml, self-hosted, and ci-hosted.yml, GitHub-hosted), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token cannot. Where that token is not in the environment (a sandbox), the verb runs itself on agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run (its run number as the Actions tab shows it, or its id); it must exist among the latest 100 runs of dev and not have completed. --queued cancels every run that is still waiting for a runner (queued, waiting, pending, requested) and leaves running ones alone. --all cancels every run that has not finished.
+Cancels CI runs of dev (ci-hosted.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token cannot. Where that token is not in the environment (a sandbox), the verb runs itself on agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run (its run number as the Actions tab shows it, or its id); it must exist among the latest 100 runs of dev and not have completed. --queued cancels every run that is still waiting for a runner (queued, waiting, pending, requested) and leaves running ones alone. --all cancels every run that has not finished.
 
 Usage: `wf vm ops cancel-run (--run <number> | --queued | --all) [options]`
 
@@ -6952,8 +7012,7 @@ wf vm ops cancel-run --all
 ```text
 Usage: wf vm ops cancel-run (--run <number> | --queued | --all) [options]
 
-Cancels CI runs of dev, of both flavors (deploy.yml, self-hosted, and ci-hosted.yml,
-GitHub-hosted), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
+Cancels CI runs of dev (ci-hosted.yml), with VM_PROVISION_GITHUB_TOKEN, because the sandbox's own GitHub token
 cannot. Where that token is not in the environment (a sandbox), the verb runs itself on
 agent-shell, which holds it, through `wf vm exec`: no script to write. --run <number> cancels that run
 (its run number as the Actions tab shows it, or its id); it must exist among the
@@ -7276,6 +7335,73 @@ Options:
   --app <name>  only this app
   --local       the agent-shell side (see backup)
   -h, --help    display help for command
+```
+
+</details>
+
+### `wf vm stock`
+
+Asks the Hetzner Cloud API which server types can be ordered right now and where, so a scheduler can tell the owner when one becomes orderable. A plan counts as available when the API marks it available in any of its locations (Hetzner's own indicator, not a guarantee). With --state the previous result is read first and rewritten after, and the plans whose overall availability flipped, appeared or vanished are listed. The token comes from HCLOUD_READ_TOKEN in the environment, else from the vault; it is read-only and never printed or kept in the state file.
+
+Usage: `wf vm stock [options]`
+
+| Option | Meaning |
+|---|---|
+| `--provider <name>` | Cloud provider (default hetzner, the only one; any other is refused before any request) |
+| `--family <list>` | Comma list of families by name prefix: cx, cax, cpx, ccx (default cx,cax: the cost-optimized x86 and Arm lines) |
+| `--min-vcpu <n>` | Only plans with at least n vCPU (default 0) |
+| `--min-ram-gb <n>` | Only plans with at least n GB of RAM (default 0) |
+| `--api <url>` | The API root (default https://api.hetzner.cloud/v1) |
+| `--state <file>` | The last result: read before the run, rewritten after it |
+
+Examples:
+
+```sh
+wf vm stock --state /tmp/hetzner-stock.json
+wf vm stock --family cx,cax --min-vcpu 4 --min-ram-gb 8 --state /tmp/hetzner-stock.json
+wf vm stock --family cpx,ccx --min-vcpu 4
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf vm stock [options]
+
+Asks the Hetzner Cloud API which server types can be ordered right now and where,
+so a scheduler can tell the owner when one becomes orderable. A plan counts as
+available when the API marks it available in any of its locations (Hetzner's own
+indicator, not a guarantee). With --state the previous result is read first and
+rewritten after, and the plans whose overall availability flipped, appeared or
+vanished are listed.
+
+The token comes from HCLOUD_READ_TOKEN in the environment, else from the vault. It
+is a read-only Hetzner Cloud token: the verb only lists server types and never
+creates, changes or deletes anything. It is never printed or kept in the state file.
+
+Options:
+  --provider <name>    Cloud provider (default hetzner, the only one; any other is
+                       refused before any request)
+  --family <list>      Comma list of families by name prefix: cx, cax, cpx, ccx
+                       (default cx,cax: the cost-optimized x86 and Arm lines)
+  --min-vcpu <n>       Only plans with at least n vCPU (default 0)
+  --min-ram-gb <n>     Only plans with at least n GB of RAM (default 0)
+  --api <url>          The API root (default https://api.hetzner.cloud/v1)
+  --state <file>       The last result: read before the run, rewritten after it
+  -h, --help           display help for command
+
+Output: one JSON object on stdout {ok, provider, source: "api", plans: [{name,
+arch, category, vcpu, ramGb, diskGb, priceMonthExVatEur, locations: {name: bool},
+available, availableIn: [names]}], available: [names], summary}; with --state also
+changed: [{name, was, now, locations}] and firstRun (true when there was no
+previous result, then changed is empty). Exit 0 whenever the API answered; exit 1
+with {ok: false, error} when the token is missing or refused, the API answers an
+error or not at all, its answer has no server types, or the provider is unknown.
+Uses the proxy environment.
+
+Examples:
+  wf vm stock --state /tmp/hetzner-stock.json
+  wf vm stock --family cx,cax --min-vcpu 4 --min-ram-gb 8 --state /tmp/hetzner-stock.json
+  wf vm stock --family cpx,ccx --min-vcpu 4
 ```
 
 </details>

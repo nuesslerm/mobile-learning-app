@@ -1906,7 +1906,7 @@ dependencies = [
 [[package]]
 name = "rca-core"
 version = "0.1.2"
-source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
 checksum = "ea4919dcfdff2bd375d26fe85c32b8de932ef6d1f84db2992d2304bb7a381acd"
 dependencies = [
  "serde",
@@ -2110,7 +2110,7 @@ dependencies = [
 [[package]]
 name = "rca-ladder"
 version = "0.1.2"
-source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
 checksum = "0b70de66ea3c305ac1d45d08b5271d7059b28a30fa23891f0f4c2f67f192ff80"
 dependencies = [
  "rca-core",
@@ -2145,7 +2145,6 @@ dependencies = [
  "exec-fs",
  "exec-git",
  "exec-hosted",
- "exec-preview",
  "exec-proc",
  "exec-proto",
  "exec-testkit",
@@ -2161,10 +2160,8 @@ dependencies = [
  "rca-group-attachments",
  "rca-group-catalog",
  "rca-group-git",
- "rca-group-preview",
  "rca-group-schedules",
  "rca-group-terminal",
- "rca-group-workspace",
  "rca-ladder",
  "rca-service-core",
  "remote-chat-agent-core",
@@ -2208,10 +2205,7 @@ dependencies = [
  "agent-api-workspace",
  "async-trait",
  "base64 0.22.1",
- "exec-fs",
  "exec-git",
- "exec-proto",
- "exec-pty",
  "fancy-regex",
  "futures-util",
  "html-escape",
@@ -2670,7 +2664,7 @@ dependencies = [
 [[package]]
 name = "service-kit"
 version = "0.1.2"
-source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
 checksum = "692e7bfae472dfd5fd6a8858699449906215e1bcaf503501d7dd7ca4f1956fe3"
 dependencies = [
  "axum",
@@ -2903,7 +2897,7 @@ dependencies = [
 [[package]]
 name = "telemetry"
 version = "0.1.2"
-source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
 checksum = "72863f0638e0f0c336d091b0fd850a8fe866b3f51a039e0a5c3874b0d8101718"
 dependencies = [
  "opentelemetry",

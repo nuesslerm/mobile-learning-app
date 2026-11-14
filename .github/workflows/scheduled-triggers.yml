@@ -4,7 +4,7 @@ name: Scheduled triggers
 # a tag ([vm-state-backup], [ci-audit], ...), for the runs a schedule cannot start (GitHub starts its own `schedule` hours late, and only from main). This job is skipped
 # at once (no runner) on every push that carries no tag, so the pull request lists one skipped check instead of one per workflow; on a tagged push it
 # checks that the commit changed no file and starts the workflow the tag names (each of them takes `message` and `sha` as dispatch inputs and only runs on dev).
-# deploy.yml starts only when a push changes a file, so an empty commit starts no CI run and cannot displace a waiting one.
+# ci-hosted.yml starts only when a push changes a file, so an empty commit starts no CI run and cannot displace a waiting one.
 on:
   push:
     branches: [dev]
@@ -32,7 +32,7 @@ jobs:
         contains(github.event.head_commit.message, '[vm-state-backup]')
       }}
     name: Start the workflow the commit tag names
-    runs-on: ${{ fromJSON(vars.RUNNER_TAG_GATE_GATE || '["ubuntu-latest"]') }}
+    runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Count the files the commit changed

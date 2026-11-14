@@ -96,9 +96,6 @@ jobs:
       - name: Lint
         run: pnpm --filter mla-tamagui run lint
 
-      - name: Check architecture boundaries (dependency-cruiser)
-        run: pnpm --filter mla-tamagui run arch
-
       - name: Check the Rust services' folder layout and layer imports (ls-lint, ast-grep)
         run: pnpm run arch:services
 

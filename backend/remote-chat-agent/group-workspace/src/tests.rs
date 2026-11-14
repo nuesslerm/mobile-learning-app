@@ -172,7 +172,8 @@ async fn given_workspaces_created_and_removed_when_asked_then_names_are_unique_r
     // Given two executors attached and a directory workspace made on the first
     let executors: Arc<Registry> = Arc::default();
     executors.open_executor("e1", "root", executor()).unwrap();
-    executors.open_executor("e2", "other", executor()).unwrap();
+    let second = executor();
+    executors.open_executor("e2", "other", second.clone()).unwrap();
     let rig = rig_with(executors);
     use agent_api_workspace::{WORKSPACE_CREATE, WORKSPACE_REMOVE};
     // When a workspace is created without naming an executor, with several attached
@@ -207,6 +208,14 @@ async fn given_workspaces_created_and_removed_when_asked_then_names_are_unique_r
     assert_eq!(gone["result"], json!({"workspace": "p", "removed": true}));
     assert_eq!(code(&rig.ask(agent_api_workspace::FILE_READ, json!({"workspace": "p", "path": "x"})).await), json!("NO_EXECUTOR"));
     assert_eq!(rig.ask(agent_api_workspace::LIST, json!({})).await["result"]["workspaces"], json!(["other", "root"]));
+    // When the second executor is gone, its root is removable, the first executor's root still is not
+    let second: Arc<dyn ExecutorChannel> = second;
+    rig.executors.release("e2", &second);
+    let orphan = rig.ask(WORKSPACE_REMOVE, json!({"workspace": "other"})).await;
+    let kept = rig.ask(WORKSPACE_REMOVE, json!({"workspace": "root"})).await;
+    // Then the orphaned root is forgotten and the attached one is refused
+    assert_eq!(orphan["result"], json!({"workspace": "other", "removed": true}));
+    assert_eq!(code(&kept), json!("NOT_REMOVABLE"));
 }
 
 #[tokio::test]

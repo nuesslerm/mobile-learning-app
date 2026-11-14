@@ -1,0 +1,92 @@
+name: sccache directory cache
+description: >-
+  Rust compiles served from a local sccache directory kept in the GitHub Actions cache. Restore (before the first cargo run of a job) installs
+  sccache, restores the directory and puts RUSTC_WRAPPER, SCCACHE_DIR and CARGO_INCREMENTAL=0 into the job's environment; save (after the last one)
+  stores the directory when the exact key missed. One entry per stage, week and lockfile set, so the repository's quota holds a handful of
+  them, not one per run. It does nothing when the Actions cache is not a backend (CACHE_BACKENDS) or when a blob store is (WF_BLOB_CACHE=on):
+  the build-cache shim of `wf test run` then owns RUSTC_WRAPPER, and sccache has one backend. An unset CACHE_BACKENDS means gha, since a
+  reusable workflow does not inherit its caller's env.
+inputs:
+  mode:
+    description: restore or save
+    required: true
+  stage:
+    description: Which consumer owns the entry (wf-build, flow-tests, integration-tests, cli-e2e-tests); a stage compiles the same dependencies in every shard
+    required: true
+  save:
+    description: Whether this job may save (one shard per stage does, the others only restore)
+    default: "true"
+  max-mb:
+    description: A save is skipped when the directory is larger than this
+    default: "1536"
+runs:
+  using: composite
+  steps:
+    - name: Key of the sccache cache
+      if: ${{ inputs.mode == 'restore' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && env.WF_BLOB_CACHE != 'on' }}
+      id: key
+      shell: bash
+      run: echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+    - uses: ./.github/actions/install-sccache
+      if: ${{ inputs.mode == 'restore' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && env.WF_BLOB_CACHE != 'on' }}
+      continue-on-error: true
+    - name: Restore the sccache directory
+      id: restore
+      if: ${{ inputs.mode == 'restore' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && env.WF_BLOB_CACHE != 'on' }}
+      uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ~/.cache/sccache
+        key: sccache-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.key.outputs.week }}-${{ hashFiles('backend/Cargo.lock', 'backend/leetcode-auth-cookie-capture/Cargo.lock', 'backend/leetcode-backend/Cargo.lock', 'backend/remote-chat-agent/Cargo.lock', 'backend/reporting-service/Cargo.lock', 'backend/vm-ops-api/Cargo.lock', 'backend/vm-ops-api/integration/Cargo.lock', 'backend/watchdog/Cargo.lock', 'clis/Cargo.lock', 'clis/telemetry/Cargo.lock', 'clis/vnc-auth-capture/listener/Cargo.lock', 'libraries/Cargo.lock', 'libraries/agent-api/Cargo.lock') }}
+        restore-keys: |
+          sccache-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-
+    - name: Compile through sccache
+      if: ${{ inputs.mode == 'restore' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && env.WF_BLOB_CACHE != 'on' }}
+      shell: bash
+      env:
+        KEY: sccache-${{ inputs.stage }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.key.outputs.week }}-${{ hashFiles('backend/Cargo.lock', 'backend/leetcode-auth-cookie-capture/Cargo.lock', 'backend/leetcode-backend/Cargo.lock', 'backend/remote-chat-agent/Cargo.lock', 'backend/reporting-service/Cargo.lock', 'backend/vm-ops-api/Cargo.lock', 'backend/vm-ops-api/integration/Cargo.lock', 'backend/watchdog/Cargo.lock', 'clis/Cargo.lock', 'clis/telemetry/Cargo.lock', 'clis/vnc-auth-capture/listener/Cargo.lock', 'libraries/Cargo.lock', 'libraries/agent-api/Cargo.lock') }}
+        HIT: ${{ steps.restore.outputs.cache-hit }}
+      run: |
+        # a failed download (install-sccache) leaves compiles uncached; it must not point cargo at a wrapper that is not there
+        command -v sccache >/dev/null || { echo "::warning::sccache is not installed: this job compiles without a cache"; exit 0; }
+        mkdir -p "$HOME/.cache/sccache"
+        {
+          echo "RUSTC_WRAPPER=sccache"
+          echo "CARGO_INCREMENTAL=0"
+          echo "SCCACHE_DIR=$HOME/.cache/sccache"
+          echo "SCCACHE_CACHE_SIZE=2G"
+        } >> "$GITHUB_ENV"
+        printf 'KEY=%s\nHIT=%s\n' "$KEY" "$HIT" > "$RUNNER_TEMP/sccache-cache-${{ inputs.stage }}.env"
+    - uses: ./.github/actions/cache-summary
+      if: ${{ inputs.mode == 'restore' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && env.WF_BLOB_CACHE != 'on' }}
+      with:
+        layer: sccache-${{ inputs.stage }}
+        hit: ${{ steps.restore.outputs.cache-hit }}
+        matched-key: ${{ steps.restore.outputs.cache-matched-key }}
+        paths: ~/.cache/sccache
+    - name: Decide the save
+      id: decide
+      if: ${{ inputs.mode == 'save' && inputs.save == 'true' && contains(env.CACHE_BACKENDS || 'gha', 'gha') && env.WF_BLOB_CACHE != 'on' }}
+      shell: bash
+      env:
+        MAX_MB: ${{ inputs.max-mb }}
+      run: |
+        f="$RUNNER_TEMP/sccache-cache-${{ inputs.stage }}.env"
+        save=false; why="no restore step ran"
+        if [ -f "$f" ]; then
+          . "$f"
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+          mb=$(du -sm "$HOME/.cache/sccache" 2>/dev/null | cut -f1 || true); mb=${mb:-0}
+          if [ "$HIT" = true ]; then why="exact key hit"
+          elif [ "$mb" -le 0 ]; then why="nothing compiled"
+          elif [ "$mb" -gt "$MAX_MB" ]; then why="over the size limit"; echo "::warning::sccache directory is $mb MB, over $MAX_MB MB: not saved"
+          else save=true; fi
+        fi
+        echo "save=$save" >> "$GITHUB_OUTPUT"
+        stats=$(sccache --show-stats 2>/dev/null | grep -E "^(Compile requests|Cache hits  |Cache misses)" | tr -s ' ' | tr '\n' ';' || true)
+        echo "- **sccache-${{ inputs.stage }}** ($GITHUB_JOB) before save: ${mb:-0} MB, ${stats:-no stats}, $([ "$save" = true ] && echo saving || echo "not saving, $why")" | tee -a "$GITHUB_STEP_SUMMARY"
+    - name: Save the sccache directory
+      if: ${{ inputs.mode == 'save' && steps.decide.outputs.save == 'true' }}
+      uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ~/.cache/sccache
+        key: ${{ steps.decide.outputs.key }}

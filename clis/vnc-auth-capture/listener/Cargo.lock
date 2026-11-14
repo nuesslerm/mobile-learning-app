@@ -1505,7 +1505,7 @@ dependencies = [
 [[package]]
 name = "rca-core"
 version = "0.1.2"
-source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
 checksum = "ea4919dcfdff2bd375d26fe85c32b8de932ef6d1f84db2992d2304bb7a381acd"
 dependencies = [
  "serde",
@@ -2010,7 +2010,7 @@ dependencies = [
 [[package]]
 name = "telemetry"
 version = "0.1.2"
-source = "sparse+https://objectstorage.eu-frankfurt-1.oraclecloud.com/n/frbwmn2jazha/b/mobile-learning-libs-index/o/index/"
+source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
 checksum = "72863f0638e0f0c336d091b0fd850a8fe866b3f51a039e0a5c3874b0d8101718"
 dependencies = [
  "futures-executor",

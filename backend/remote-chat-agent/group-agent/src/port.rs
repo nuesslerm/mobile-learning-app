@@ -3,6 +3,7 @@
 use agent_api_agent::{lifecycle, queue, requests, ThreadView};
 use agent_api_proto::Event;
 use async_trait::async_trait;
+use std::sync::Arc;
 
 /// The engine could not read or write its log.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -98,6 +99,9 @@ pub trait ThreadEngine: Send + Sync {
     /// A fresh id, for a thread the caller did not name and for a turn.
     fn new_id(&self) -> String;
 
+    /// Registers what the engine calls, with the thread, for each thread whose running turn it settled as interrupted when it started.
+    fn on_settled(&self, _hook: Arc<dyn Fn(&str) + Send + Sync>) {}
+
     // What follows is the thread's lifecycle (`agent.requests`, `agent.queue`, `agent.lifecycle`). An engine that keeps none, such as the double
     // of the threads group, refuses it all.
 
@@ -133,8 +137,8 @@ pub trait ThreadEngine: Send + Sync {
         unserved()
     }
 
-    /// The conversation of the thread's CLI that its next turn goes on with.
-    fn provider_session(&self, _thread: &str) -> Result<Option<String>, EngineError> {
+    /// The conversation of the thread's CLI `driver` (the CLI's id) that its next turn goes on with: none when the thread's conversation is another CLI's.
+    fn provider_session(&self, _thread: &str, _driver: &str) -> Result<Option<String>, EngineError> {
         unserved()
     }
 

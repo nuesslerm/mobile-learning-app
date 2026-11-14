@@ -1,7 +1,7 @@
 //! The `docker run` argv of every sibling that deploys: the app redeploy, the self-swap, the history append and the retire. Each
 //! script is pinned by its snapshot (`golden`).
 use crate::application::scripts::{HELPER_APPEND_ENV_LOCAL, HELPER_PROVISION, HELPER_VERIFY_ENV, IMAGE_REPO};
-use crate::domain::apps::{repo_path, replaceable_services, shared_files, smoke, SMOKE_CI_PORT, SMOKE_PORT};
+use crate::domain::apps::{pinned_services, repo_path, replaceable_services, shared_files, smoke, SMOKE_CI_PORT, SMOKE_PORT};
 use crate::domain::js;
 use crate::domain::provision_ref::raw_url;
 use serde_json::{json, Map, Value};
@@ -47,6 +47,13 @@ impl RedeployEnv {
     }
 }
 
+/// One service of a gradual redeploy: the tag its image runs after it, none when the service keeps the tag it runs now.
+pub struct ServiceTag {
+    pub service: &'static str,
+    pub var: &'static str,
+    pub tag: Option<String>,
+}
+
 /// An app redeploy, validated.
 pub struct AppRedeploy<'a> {
     pub app: &'a str,
@@ -56,8 +63,8 @@ pub struct AppRedeploy<'a> {
     pub reference: &'a str,
     pub wipe_state: bool,
     pub recreate_all: bool,
-    /// Variables a request body set, appended to the app's `.env` last. Values travel in the sibling's env, never the script text.
-    pub request_env: &'a [(String, String)],
+    /// Empty for a redeploy that moves every service to `tag`; else one entry per service that runs an image of its own.
+    pub service_tags: &'a [ServiceTag],
 }
 
 /// One line of the redeploy history.
@@ -110,9 +117,27 @@ fn sync_env_lines(dir: &str, for_app: &str, host_label: &str, local_dir: &str) -
 }
 
 /// A watchdog recreate reads the project's .env, so the running tag goes in it, through a temp file that a failure removes.
-/// Compose takes the last of two IMAGE_TAG lines, so the pin wins over an `.env.defaults` default.
-fn pin_image_tag(dir: &str, tag: &str) -> String {
-    format!("if cp -p {dir}/.env {dir}/.env.tmp && echo \"IMAGE_TAG={tag}\" >> {dir}/.env.tmp && mv -f {dir}/.env.tmp {dir}/.env; then :; else rm -f {dir}/.env.tmp; false; fi")
+/// Compose takes the last of two IMAGE_TAG lines, so the pin wins over an `.env.defaults` default. A gradual redeploy pins each service's
+/// own tag too, the value the script settled on (`export`ed before the pull), so a recreate of one service keeps the others' tags.
+fn pin_image_tag(dir: &str, tag: &str, service_tags: &[ServiceTag]) -> String {
+    let services: String = service_tags.iter().map(|s| format!(" && {{ [ -z \"${{{var}:-}}\" ] || echo \"{var}=${{{var}}}\" >> {dir}/.env.tmp; }}", var = s.var)).collect();
+    format!("if cp -p {dir}/.env {dir}/.env.tmp && echo \"IMAGE_TAG={tag}\" >> {dir}/.env.tmp{services} && mv -f {dir}/.env.tmp {dir}/.env; then :; else rm -f {dir}/.env.tmp; false; fi")
+}
+
+/// What a gradual redeploy exports before the pull: the tag a request names for a service, or the tag its running container has (none
+/// when it is not running: the service then takes `IMAGE_TAG`). Compose recreates a service only when its resolved image changed.
+fn service_tag_lines(request: &AppRedeploy) -> Vec<String> {
+    request
+        .service_tags
+        .iter()
+        .map(|s| match &s.tag {
+            Some(tag) => format!("export {}={}", s.var, shell_quote(tag)),
+            None => format!(
+                "id=$(docker compose -f {} ps -q {} 2>/dev/null | head -n 1); if [ -n \"$id\" ]; then img=$(docker inspect -f '{{{{.Config.Image}}}}' \"$id\" 2>/dev/null || true); [ -z \"${{img##*:}}\" ] || [ \"${{img##*:}}\" = \"$img\" ] || export {}=\"${{img##*:}}\"; fi",
+                request.compose_file, s.service, s.var
+            ),
+        })
+        .collect()
 }
 
 /// Every sibling mounts this directory, so a flock on it is one lock for the whole host: pulls share it, a prune takes it alone.
@@ -129,7 +154,7 @@ fn compose_pull_command(request: &AppRedeploy) -> String {
     format!("flock -s {DOCKER_LOCK} sh -c '{pull}'")
 }
 
-/// The swap: replaceable apps restart only their app service.
+/// The swap: replaceable apps restart only their app service; the pinned services are left running.
 fn compose_up_command(request: &AppRedeploy) -> String {
     let (host_dir, app) = (request.host_dir, request.app);
     let compose = format!("docker compose -f {}", request.compose_file);
@@ -139,11 +164,15 @@ fn compose_up_command(request: &AppRedeploy) -> String {
         return format!("cd {host_dir} && {compose} down ; {VOLUMES} ; {wipe}{compose} up -d");
     };
     let narrow = replaceable.join(" ");
-    let narrow_pattern = replaceable.join("|");
+    let pinned = pinned_services(app);
+    let skipped = replaceable.iter().chain(pinned).copied().collect::<Vec<_>>().join("|");
     // Creates missing sidecars and recreates any whose resolved config changed (a rotated secret in .env reaches its sidecar);
-    // an unchanged container keeps running. The replaceable service is left to the second command: one `up` that recreates it
+    // an unchanged container keeps running. The replaceable service is left to its own command at the end: one `up` that recreates it
     // followed at once by another found the old container still being removed ("removal ... is already in progress").
-    format!("{VOLUMES} ; cd {host_dir} && {compose} up -d --no-deps $({compose} config --services | grep -vxE '{narrow_pattern}') ; {compose} up -d --no-deps {narrow}")
+    let sidecars = format!("{compose} up -d --no-deps $({compose} config --services | grep -vxE '{skipped}')");
+    // The pinned services (live sessions and builds) are only created when missing, never replaced by a plain redeploy.
+    let pinned_up = if pinned.is_empty() { String::new() } else { format!(" ; {compose} up -d --no-deps --no-recreate {}", pinned.join(" ")) };
+    format!("{VOLUMES} ; cd {host_dir} && {sidecars}{pinned_up} ; {compose} up -d --no-deps {narrow}")
 }
 
 /// Runs `service` of the pulled image as a throwaway container on the spare port, in the netns of the running one, until `probe`
@@ -169,11 +198,6 @@ fn sibling_env_args(tag: &str, env: &RedeployEnv) -> Vec<String> {
     ["-e".to_string(), format!("IMAGE_TAG={tag}"), "-e".to_string(), format!("IMAGE_NAMESPACE={}", env.image_namespace), "-e".to_string(), format!("GITHUB_RAW_TOKEN={}", env.provision_token)].to_vec()
 }
 
-/// Each variable is written from the sibling's own env, after the generated `.env` and its local overrides.
-fn request_env_lines(dir: &str, request_env: &[(String, String)]) -> Vec<String> {
-    request_env.iter().map(|(name, _)| format!("printf '%s=%s\\n' {name} \"${name}\" >> {dir}/.env")).collect()
-}
-
 /// Provision, env sync and pull: what a smoke test and a redeploy of an app both start with.
 fn app_front_lines(env: &RedeployEnv, request: &AppRedeploy) -> Vec<String> {
     let (host_dir, reference) = (request.host_dir, request.reference);
@@ -188,8 +212,8 @@ fn app_front_lines(env: &RedeployEnv, request: &AppRedeploy) -> Vec<String> {
     lines.push(stamp("provisioned"));
     lines.push(format!("if [ ! -f {host_dir}/.env.local ] && [ -f /home/ubuntu/vm-ops-api/.env.local ]; then cp /home/ubuntu/vm-ops-api/.env.local {host_dir}/.env.local; fi"));
     lines.extend(sync_env_lines(host_dir, request.app, &env.host_label, host_dir));
-    lines.extend(request_env_lines(host_dir, request.request_env));
     lines.push(stamp("env synced"));
+    lines.extend(service_tag_lines(request));
     lines.push(compose_pull_command(request));
     lines.push(stamp("pulled"));
     lines
@@ -204,9 +228,6 @@ fn app_sibling_argv(env: &RedeployEnv, request: &AppRedeploy, lines: &[String]) 
     // the image's /usr/local/bin/wf links into this volume (the VM's one wf build); without it `wf secret sync-env` is not found
     args.extend(strings(&["-v", CLIS, "-w", host_dir]));
     args.extend(sibling_env_args(request.tag, env));
-    for (name, value) in request.request_env {
-        args.extend(["-e".to_string(), format!("{name}={value}")]);
-    }
     args.push(env.sibling_image());
     args.extend(strings(&["sh", "-c"]));
     args.push(lines.join("\n"));
@@ -218,7 +239,7 @@ pub fn app_redeploy_sibling_args(env: &RedeployEnv, request: &AppRedeploy) -> Ve
     let host_dir = request.host_dir;
     let mut lines = app_front_lines(env, request);
     lines.push(compose_up_command(request));
-    lines.push(pin_image_tag(host_dir, request.tag));
+    lines.push(pin_image_tag(host_dir, request.tag, request.service_tags));
     lines.push(stamp("compose done"));
     // Every deploy leaves the previous tag's images unused, its build layers cached and its smoke containers stopped; without this the
     // host disk filled up (95%). Only above 70% used, because the prune itself takes tens of seconds that the redeploy would otherwise
@@ -232,9 +253,10 @@ pub fn app_redeploy_sibling_args(env: &RedeployEnv, request: &AppRedeploy) -> Ve
 pub fn app_smoke_sibling_args(env: &RedeployEnv, request: &AppRedeploy) -> Option<Vec<String>> {
     let check = smoke(request.app)?;
     let mut lines = app_front_lines(env, request);
-    // A first deploy has no sidecar yet, and the throwaway container joins the sidecar's network namespace.
+    // A first deploy has no sidecar yet, and the throwaway container joins the sidecar's network namespace. A sidecar that runs is left as it is: the
+    // smoke test takes no service out of the tag it runs, which only the redeploy after it moves (and only the services that changed).
     let compose = format!("docker compose -f {}", request.compose_file);
-    lines.push(format!("cd {} && {compose} up -d --no-deps $({compose} config --services | grep -vx {})", request.host_dir, check.service));
+    lines.push(format!("cd {} && {compose} up -d --no-deps --no-recreate $({compose} config --services | grep -vx {})", request.host_dir, check.service));
     lines.extend(smoke_lines(&format!("cd {}", request.host_dir), &format!("docker compose -f {}", request.compose_file), request.app, check.service, check.probe, check.port_env, check.env));
     Some(app_sibling_argv(env, request, &lines))
 }
@@ -299,7 +321,7 @@ pub fn self_redeploy_sibling_args(env: &RedeployEnv, tag: &str, reference: &str,
     swapped.extend(SWAP_FILES.iter().map(|file| format!("mv -f {stage}/{file} {vm_dir}/{file}")));
     swapped.push(format!("rm -f {marker}"));
     swapped.push(format!("( cd {vm_dir} && docker compose up -d --wait --wait-timeout {UP_WAIT_SECONDS} )"));
-    swapped.push(pin_image_tag(vm_dir, tag));
+    swapped.push(pin_image_tag(vm_dir, tag, &[]));
     let swap_paths = SWAP_FILES.iter().map(|file| format!("{vm_dir}/{file}")).collect::<Vec<_>>().join(" ");
     let keeps = SWAP_FILES.iter().map(|file| format!("keep {vm_dir}/{file}")).collect::<Vec<_>>().join(" && ");
     // Restores the stack that was running: its tag when this service knows it, else the old .env's pin or `latest`.

@@ -1,7 +1,7 @@
 //! The programs `wf vm state` runs on agent-shell: `restic` (through rclone's Object Storage backend) for the repository, `oci` once for the
 //! tenancy's namespace. The restic password lives in the child's environment for the length of one call, never on a command line or in a file.
 use serde_json::Value;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 /// `${name_prefix}-vm-state` of `infra/oracle-cloud/vm-state.tf`.
@@ -46,6 +46,37 @@ pub struct Restic {
     env: Vec<(String, String)>,
     /// The program that lists every object version of the bucket (current and previous) as `oci os object list-object-versions` does.
     versions: Option<(String, Vec<String>)>,
+    /// Holds the decrypted key rclone reads; removed with the value.
+    _plain_key: Option<tempfile::TempDir>,
+}
+
+/// rclone's Object Storage backend cannot read a passphrase-protected API key (the `oci` CLI can), so it gets a copy of the key decrypted
+/// into a private directory (tmpfs when there is one) for the length of the run, and a config that points at it.
+fn plain_oci_config() -> Result<Option<(tempfile::TempDir, PathBuf)>, String> {
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+    let home = std::env::var("HOME").map_err(|_| "HOME is not set".to_string())?;
+    let text = std::fs::read_to_string(Path::new(&home).join(".oci/config")).map_err(|e| format!("~/.oci/config: {e}"))?;
+    let value = |key: &str| text.lines().find_map(|l| l.trim().strip_prefix(key).and_then(|r| r.trim_start().strip_prefix('=')).map(|r| r.trim().to_string())).filter(|v| !v.is_empty());
+    let Some(pass) = value("pass_phrase") else { return Ok(None) };
+    let key_file = value("key_file").ok_or("~/.oci/config names no key_file")?;
+    let out = Command::new("openssl").args(["pkey", "-in", &key_file, "-passin", "env:WF_OCI_KEY_PASS"]).env("WF_OCI_KEY_PASS", &pass).stdin(Stdio::null()).output().map_err(|e| format!("openssl: {e} (is it installed on this host?)"))?;
+    if !out.status.success() {
+        return Err(format!("openssl pkey could not decrypt {key_file}: {}", said(&out.stderr, &pass)));
+    }
+    let shm = Path::new("/dev/shm");
+    let dir = if shm.is_dir() { tempfile::Builder::new().prefix("wf-oci-").tempdir_in(shm) } else { tempfile::Builder::new().prefix("wf-oci-").tempdir() }.map_err(|e| format!("a directory for the decrypted key: {e}"))?;
+    let write = |name: &str, body: &[u8]| -> Result<PathBuf, String> {
+        let path = dir.path().join(name);
+        let mut f = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&path).map_err(|e| format!("{}: {e}", path.display()))?;
+        f.write_all(body).map_err(|e| format!("{}: {e}", path.display()))?;
+        Ok(path)
+    };
+    let key = write("key.pem", &out.stdout)?;
+    let mut config: Vec<String> = text.lines().filter(|l| { let t = l.trim_start(); !t.starts_with("pass_phrase") && !t.starts_with("key_file") }).map(String::from).collect();
+    config.push(format!("key_file={}", key.display()));
+    let config = write("config", config.join("\n").as_bytes())?;
+    Ok(Some((dir, config)))
 }
 
 fn oci_region() -> Option<String> {
@@ -58,6 +89,7 @@ impl Restic {
     pub fn new(password: String) -> Result<Restic, String> {
         let repo = std::env::var("WF_VM_STATE_REPO").ok().filter(|r| !r.is_empty()).unwrap_or_else(|| format!("rclone:oos:{BUCKET}"));
         let mut env = vec![("RESTIC_REPOSITORY".to_string(), repo.clone()), ("RESTIC_PASSWORD".to_string(), password.clone())];
+        let mut plain_key = None;
         let mut versions = std::env::var("WF_VM_STATE_VERSIONS_CMD").ok().filter(|c| !c.is_empty()).map(|c| (c, Vec::new()));
         if repo.starts_with("rclone:oos:") {
             let out = run("oci", &["os", "ns", "get"])?;
@@ -70,8 +102,12 @@ impl Restic {
             for (k, v) in [("TYPE", "oracleobjectstorage"), ("PROVIDER", "user_principal_auth"), ("NAMESPACE", namespace), ("REGION", region.as_str()), ("NO_CHECK_BUCKET", "true")] {
                 env.push((format!("RCLONE_CONFIG_OOS_{k}"), v.to_string()));
             }
+            if let Some((dir, config)) = plain_oci_config()? {
+                env.push(("RCLONE_CONFIG_OOS_CONFIG_FILE".to_string(), config.display().to_string()));
+                plain_key = Some(dir);
+            }
         }
-        Ok(Restic { repo, password, env, versions })
+        Ok(Restic { repo, password, env, versions, _plain_key: plain_key })
     }
 
     pub fn repo(&self) -> &str {

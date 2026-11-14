@@ -2,10 +2,9 @@
 //! down, by a foreground sibling whose exit code is the answer. The redeploy is bracketed by two history appends. `POST
 //! /services/orca-serve/pair` mints a pairing link in the deployed orca-serve container; the link is a credential and is never logged.
 use crate::application::ports::{Clock, Event, EventLog, SiblingResult, Siblings};
-use crate::application::scripts::redeploy::{append_history_args, app_redeploy_sibling_args, app_smoke_sibling_args, pair_sibling_args, retire_sibling_args, smoke_stop_sibling_args, AppRedeploy, HistoryEntry, RedeployEnv};
-use crate::domain::apps::{compose_file, host_allowed_apps, is_known_app, is_retirable};
+use crate::application::scripts::redeploy::{append_history_args, app_redeploy_sibling_args, app_smoke_sibling_args, pair_sibling_args, retire_sibling_args, smoke_stop_sibling_args, AppRedeploy, HistoryEntry, RedeployEnv, ServiceTag};
+use crate::domain::apps::{compose_file, host_allowed_apps, is_known_app, is_retirable, service_tag_vars};
 use crate::domain::js::JsString;
-use crate::domain::request_env::{parse_env_body, EnvBodyError};
 use crate::domain::provision_ref::resolve_provision_ref;
 use crate::domain::validators::{is_valid_image_tag, is_valid_provision_ref, is_valid_recreate_mode, is_valid_requester_label};
 use std::sync::Arc;
@@ -24,8 +23,8 @@ pub struct AppRequest<'a> {
     pub recreate: Option<&'a str>,
     pub wipe_state: Option<&'a str>,
     pub requested_by: Option<&'a str>,
-    /// The request body: KEY=VALUE lines for the names the app declares.
-    pub env_body: &'a [u8],
+    /// `service:tag` pairs, comma separated, possibly none: the tags of the services whose image changed, so the others keep the tag they run.
+    pub tags: Option<&'a str>,
 }
 
 /// Why a request is refused with its own reply, before any effect.
@@ -37,9 +36,10 @@ pub enum Refused {
     InvalidTag,
     InvalidRef,
     InvalidRecreate,
+    /// `tags` names a service the app has no image for, repeats one, or carries a tag that is not one.
+    InvalidServiceTags,
     NotARetiredApp,
     NotAPairableApp,
-    InvalidEnvBody(EnvBodyError),
 }
 
 /// A redeploy that ran, whatever its exit code was.
@@ -94,12 +94,24 @@ struct Checked<'a> {
     compose: &'static str,
     tag: &'a str,
     reference: String,
-    request_env: Vec<(String, String)>,
+    /// Empty unless the request named `tags`; then one entry per service of the app that runs an image of its own.
+    service_tags: Vec<ServiceTag>,
 }
 
-/// The value of a request env variable never reaches a reply: the sibling's output has it replaced.
-fn scrubbed(text: &str, request_env: &[(String, String)]) -> String {
-    request_env.iter().fold(text.to_string(), |text, (_, value)| text.replace(value.as_str(), "***"))
+/// The services of `app` with the tag a `service:tag,...` list gives each, none for a service the list leaves out (an empty list leaves out every
+/// one: nothing moves but what the compose file itself changed). A service the app does not have, a service named twice and a tag that is not
+/// a tag refuse the whole request.
+fn parse_service_tags(app: &str, tags: &str) -> Result<Vec<ServiceTag>, Refused> {
+    let vars = service_tag_vars(app);
+    let mut given: Vec<(&str, &str)> = Vec::new();
+    for pair in tags.split(',').filter(|pair| !pair.is_empty()) {
+        let (service, tag) = pair.split_once(':').ok_or(Refused::InvalidServiceTags)?;
+        if !vars.iter().any(|(name, _)| *name == service) || given.iter().any(|(name, _)| *name == service) || !is_valid_image_tag(tag) {
+            return Err(Refused::InvalidServiceTags);
+        }
+        given.push((service, tag));
+    }
+    Ok(vars.iter().map(|(service, var)| ServiceTag { service, var, tag: given.iter().find(|(name, _)| name == service).map(|(_, tag)| (*tag).to_string()) }).collect())
 }
 
 pub struct Redeploy {
@@ -135,14 +147,17 @@ impl Redeploy {
         if request.recreate.is_some_and(|mode| !is_valid_recreate_mode(mode)) {
             return Err(Refused::InvalidRecreate);
         }
-        let request_env = parse_env_body(app, request.env_body).map_err(Refused::InvalidEnvBody)?;
-        Ok(Checked { compose, tag, reference, request_env })
+        let service_tags = match request.tags {
+            Some(tags) => parse_service_tags(app, tags)?,
+            None => Vec::new(),
+        };
+        Ok(Checked { compose, tag, reference, service_tags })
     }
 
     /// Checks the request, and only then runs the history append, the app's sibling and the closing append.
     pub async fn redeploy_app(&self, request: &AppRequest<'_>) -> Result<AppDone, Refused> {
         let app = request.app;
-        let Checked { compose, tag, reference, request_env } = self.checked(request)?;
+        let Checked { compose, tag, reference, service_tags } = self.checked(request)?;
         let wipe_state = request.wipe_state.is_some_and(|value| matches!(value.to_lowercase().as_str(), "1" | "true"));
         let requested_by = request.requested_by.filter(|label| is_valid_requester_label(label)).unwrap_or(UNKNOWN_REQUESTER);
         let image = self.env.sibling_image();
@@ -156,7 +171,7 @@ impl Redeploy {
         self.log.emit(event(Event::info("redeploy.started")));
         self.siblings.run(&history("redeploy.triggered", None)).await;
         let host_dir = format!("/home/ubuntu/{app}");
-        let script = AppRedeploy { app, host_dir: &host_dir, compose_file: compose, tag, reference: &reference, wipe_state, recreate_all: request.recreate == Some("all"), request_env: &request_env };
+        let script = AppRedeploy { app, host_dir: &host_dir, compose_file: compose, tag, reference: &reference, wipe_state, recreate_all: request.recreate == Some("all"), service_tags: if request.recreate == Some("all") || wipe_state { &[] } else { &service_tags } };
         let result = self.siblings.run(&app_redeploy_sibling_args(&self.env, &script)).await;
         let succeeded = result.code == Some(0);
         self.siblings.run(&history(if succeeded { "redeploy.succeeded" } else { "redeploy.failed" }, result.code)).await;
@@ -169,8 +184,8 @@ impl Redeploy {
             wipe_state,
             exit_code: result.code,
             server_script_sha: self.server_script_sha.clone(),
-            stdout: JsString::from(scrubbed(&result.stdout, &request_env).as_str()).last(REDEPLOY_TAIL_UNITS),
-            stderr: JsString::from(scrubbed(&result.stderr, &request_env).as_str()).last(REDEPLOY_TAIL_UNITS),
+            stdout: JsString::from(result.stdout.as_str()).last(REDEPLOY_TAIL_UNITS),
+            stderr: JsString::from(result.stderr.as_str()).last(REDEPLOY_TAIL_UNITS),
         })
     }
 
@@ -180,7 +195,7 @@ impl Redeploy {
         let app = request.app;
         let Checked { compose, tag, reference, .. } = self.checked(request)?;
         let host_dir = format!("/home/ubuntu/{app}");
-        let script = AppRedeploy { app, host_dir: &host_dir, compose_file: compose, tag, reference: &reference, wipe_state: false, recreate_all: false, request_env: &[] };
+        let script = AppRedeploy { app, host_dir: &host_dir, compose_file: compose, tag, reference: &reference, wipe_state: false, recreate_all: false, service_tags: &[] };
         let result = match app_smoke_sibling_args(&self.env, &script) {
             Some(args) => self.siblings.run(&args).await,
             None => SiblingResult { code: Some(0), stdout: format!("[smoke] {app} has no smoke test\n"), stderr: String::new() },
@@ -294,6 +309,101 @@ mod tests {
 
     fn request(app: &str) -> AppRequest<'_> {
         AppRequest { app, ..AppRequest::default() }
+    }
+
+    fn script_of(rig: &Rig) -> String {
+        ran(rig).iter().find_map(|args| args.last().filter(|script| script.contains("[redeploy] start")).cloned()).expect("the app sibling")
+    }
+
+    #[tokio::test]
+    async fn given_a_gradual_redeploy_when_one_service_changed_then_only_its_tag_is_named_and_the_others_keep_the_tag_they_run() {
+        // Given remote-chat-agent on host main
+        let rig = rig(running(0, "ok"), "main");
+
+        // When only its stt service is redeployed at a new tag
+        rig.redeploy.redeploy_app(&AppRequest { tag: Some("sha-new00001"), tags: Some("stt:sha-new00001"), ..request("remote-chat-agent") }).await.expect("a redeploy");
+
+        // Then the script exports the stt tag, resolves the agent and opencode tags from their running containers, and pins every settled tag
+        let script = script_of(&rig);
+        assert!(script.contains("export STT_IMAGE_TAG='sha-new00001'"), "{script}");
+        assert!(script.contains("ps -q agent") && script.contains("ps -q opencode"), "{script}");
+        assert!(!script.contains("export AGENT_IMAGE_TAG='") && !script.contains("export OPENCODE_IMAGE_TAG='"), "{script}");
+        assert!(script.contains("AGENT_IMAGE_TAG=${AGENT_IMAGE_TAG}") && script.contains("OPENCODE_IMAGE_TAG=${OPENCODE_IMAGE_TAG}") && script.contains("STT_IMAGE_TAG=${STT_IMAGE_TAG}"), "{script}");
+    }
+
+
+    #[tokio::test]
+    async fn given_the_exports_of_a_gradual_redeploy_when_the_shell_runs_them_then_unchanged_services_take_their_running_tag_and_the_changed_one_its_new_tag() {
+        // Given a docker whose agent runs sha-old00001 and whose opencode runs sha-old00002, and a stt that is redeployed at sha-new00001
+        let rig = rig(running(0, "ok"), "main");
+        rig.redeploy.redeploy_app(&AppRequest { tag: Some("sha-new00001"), tags: Some("stt:sha-new00001"), ..request("remote-chat-agent") }).await.expect("a redeploy");
+        let script = script_of(&rig);
+        let exports: Vec<&str> = script.lines().filter(|line| line.starts_with("export ") || line.starts_with("id=$(")).collect();
+        let dir = std::env::temp_dir().join(format!("gradual-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let docker = "#!/bin/sh\ncase \"$1\" in\n compose) case \"$*\" in *\" ps -q agent\"*) echo cid-agent;; *\" ps -q opencode\"*) echo cid-opencode;; esac;;\n inspect) case \"$4\" in cid-agent) echo docker.io/x/remote-chat-agent:sha-old00001;; cid-opencode) echo docker.io/x/opencode-server:sha-old00002;; esac;;\nesac\n";
+        std::fs::write(dir.join("docker"), docker).unwrap();
+        std::process::Command::new("chmod").args(["+x", dir.join("docker").to_str().unwrap()]).status().unwrap();
+
+        // When the shell runs those lines and prints what compose would read
+        let out = std::process::Command::new("sh").arg("-c").arg(format!("{}\necho \"$AGENT_IMAGE_TAG $OPENCODE_IMAGE_TAG $STT_IMAGE_TAG\"", exports.join("\n"))).env("PATH", format!("{}:{}", dir.display(), std::env::var("PATH").unwrap_or_default())).output().expect("sh");
+        std::fs::remove_dir_all(&dir).ok();
+
+        // Then the unchanged services keep their running tags and stt takes the new one
+        assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "sha-old00001 sha-old00002 sha-new00001", "{}", String::from_utf8_lossy(&out.stderr));
+    }
+
+    #[tokio::test]
+    async fn given_no_tags_or_a_full_recreate_when_redeployed_then_every_service_moves_to_the_one_tag() {
+        // Given remote-chat-agent on host main
+        let rig = rig(running(0, "ok"), "main");
+
+        // When it is redeployed with no tags, and again with tags and recreate=all
+        rig.redeploy.redeploy_app(&AppRequest { tag: Some("sha-new00001"), ..request("remote-chat-agent") }).await.expect("a redeploy");
+        rig.redeploy.redeploy_app(&AppRequest { tag: Some("sha-new00001"), tags: Some("stt:sha-old00001"), recreate: Some("all"), ..request("remote-chat-agent") }).await.expect("a redeploy");
+
+        // Then neither script names a service tag
+        for args in ran(&rig).iter().filter_map(|args| args.last().filter(|script| script.contains("[redeploy] start"))) {
+            assert!(!args.contains("_IMAGE_TAG"), "{args}");
+        }
+    }
+
+    #[tokio::test]
+    async fn given_an_empty_tags_list_when_redeployed_then_every_service_keeps_the_tag_it_runs() {
+        // Given remote-chat-agent on host main
+        let rig = rig(running(0, "ok"), "main");
+
+        // When it is redeployed with tags present and empty (no image changed)
+        rig.redeploy.redeploy_app(&AppRequest { tag: Some("sha-new00001"), tags: Some(""), ..request("remote-chat-agent") }).await.expect("a redeploy");
+
+        // Then no service is given a tag, and each one's tag is settled from its running container
+        let script = script_of(&rig);
+        assert!(!script.contains("export STT_IMAGE_TAG='") && !script.contains("export AGENT_IMAGE_TAG='") && !script.contains("export OPENCODE_IMAGE_TAG='"), "{script}");
+        assert!(script.contains("ps -q agent") && script.contains("ps -q opencode") && script.contains("ps -q stt"), "{script}");
+    }
+
+    #[tokio::test]
+    async fn given_tags_that_do_not_fit_the_app_when_redeployed_then_the_request_is_refused_before_any_effect() {
+        // Given leetcode-backend (one image, no per-service tags) and remote-chat-agent on host main
+        let rig = rig(running(0, "ok"), "main");
+        let refused = |app: &'static str, tags: &'static str| {
+            let request = AppRequest { tag: Some("sha-new00001"), tags: Some(tags), ..request(app) };
+            let redeploy = &rig.redeploy;
+            async move { redeploy.redeploy_app(&request).await.err() }
+        };
+
+        // When the tags name a service the app has no image for, repeat one, give a bad tag or omit the colon
+        let all = [
+            refused("leetcode-backend", "app:sha-new00001").await,
+            refused("remote-chat-agent", "nope:sha-new00001").await,
+            refused("remote-chat-agent", "stt:sha-a,stt:sha-b").await,
+            refused("remote-chat-agent", "stt:-bad").await,
+            refused("remote-chat-agent", "stt").await,
+        ];
+
+        // Then each is refused and no sibling ran
+        assert!(all.iter().all(|why| *why == Some(Refused::InvalidServiceTags)), "{all:?}");
+        assert!(ran(&rig).is_empty());
     }
 
     #[tokio::test]

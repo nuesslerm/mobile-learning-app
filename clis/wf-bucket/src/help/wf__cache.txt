@@ -1,7 +1,7 @@
 Usage: wf cache [options] [command]
 
-The build cache: one OCI Object Storage bucket holds every cache layer, and the
-sandbox and CI share it. Nothing is cached on the VM, so a recreated VM finds it
+The build cache: one blob store (or several, chosen in config; see Stores below)
+holds every cache layer, and the sandbox and CI share it. Nothing is cached on the VM, so a recreated VM finds it
 all. A store that is unreachable, over budget or refused makes a run cold, never
 red.
 
@@ -15,8 +15,8 @@ Layers (one prefix, one expiry and one verb each; `docs/solutions/ci/cache-layer
 `wf test run --stage` and `wf check --staged` start a loopback shim that gives
 Nx the bucket (NX_SELF_HOSTED_REMOTE_CACHE_SERVER, a token per run, and
 127.0.0.1,localhost added to NO_PROXY) and stop it when Nx exits. It needs
-BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL (the environment, then
-the vault); when either does not resolve nothing starts and Nx uses its local
+the stores below (the environment, then the vault); when they do not resolve, or
+every entry is disabled, nothing starts and Nx uses its local
 cache alone, as it does under `wf test run --fresh`. The same shim also serves Rust
 compiles when `sccache` is on PATH: it adds RUSTC_WRAPPER=sccache, CARGO_INCREMENTAL=0
 (sccache refuses incremental compiles), a WebDAV endpoint on the loopback and its
@@ -24,6 +24,32 @@ own server port to the Nx child, and prints `wf: compile cache {...}` and
 `wf: sccache {hits, misses}` when it stops. A compile's key includes the target
 directory path, so keep CARGO_TARGET_DIR the same between runs. WF_BLOB_CACHE=off, or
 "enabled": false in clis/blob-cache/data/budget.json, turns the cache off.
+
+Stores: the backend is a choice made in config, not in code. BUILD_CACHE_READ_STORES
+and BUILD_CACHE_WRITE_STORES (the environment, then the vault) each hold a comma
+list, and one entry names one store by its URL scheme:
+  par+https://<link ending /o/>    an OCI pre-authenticated request; the link is the
+                                   credential
+  dav+https://host:port/o/         the bearer server of `wf bucket serve`
+                                   (BLOB_DAV_READ_TOKEN, BLOB_DAV_WRITE_TOKEN)
+  s3://bucket/prefix?endpoint=https://host&region=R&path_style=1&conditional=0
+                                   Cloudflare R2, Hetzner Object Storage, B2, AWS,
+                                   MinIO, over SigV4 (BLOB_S3_READ_CREDENTIAL and
+                                   BLOB_S3_WRITE_CREDENTIAL, each ACCESS_KEY_ID:SECRET_ACCESS_KEY)
+  file:///dir                      a directory on this machine
+A credential is never part of a URL (one that is gets the entry refused) and never
+printed. region defaults to auto; path_style=1 puts the bucket in the path instead
+of the host name; plain http is accepted only for a loopback host.
+With several entries every one is a real member: a read tries them in order and
+returns the first hit, a write goes to every one. The write list names the same
+stores in the same order as the read list, and it resolves only where a write is
+allowed (a push to dev). It is not a fallback chain: a declared store that is
+unreachable is an error that names it, and `wf ci preflight` fails on it.
+An entry written with a leading - (`-s3://b/p?endpoint=https://host`) is disabled,
+which is the same as not declared: nothing contacts it. A list whose entries are
+all disabled declares no store, which is what WF_BLOB_CACHE=off means. With
+neither list set, BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL are read
+as a one-entry par+https list, so nothing existing changes.
 
 A run writes only when the tree is clean (untracked files count; under
 `wf check --staged` what is staged does not), HEAD is an ancestor of origin/dev,
@@ -58,7 +84,7 @@ run reads only, and for a dirty tree the paths), `cache.put.dropped` (warn),
 Better Stack source named by BETTERSTACK_METRICS_HOST and BETTERSTACK_METRICS_TOKEN
 (labels as scope, name): ci.cache.requests{kind,result}, ci.cache.step_seconds{kind,verb},
 ci.cache.degraded{kind,reason}, ci.cache.seeded{kind,checked|present}, ci.nx.tasks{stage,outcome}, ci.nx.replay_ratio{stage},
-ci.gate.seeded{stage}, ci.drift.tasks_drifted. Best effort: at most 2 seconds, never
+ci.gate.seeded{stage}, ci.drift.tasks_drifted. Best effort: at most 6 seconds, never
 a failed run; WF_CI_METRICS=off turns them off.
 
 The verbs print one JSON object on stdout, documented under each verb; none

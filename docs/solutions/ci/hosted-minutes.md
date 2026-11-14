@@ -23,7 +23,7 @@ Measured 9 Nov 2026 (two x64 runs, one arm64 run; the second run of each leg was
 3. When it ends, read the job's elapsed seconds from the step summary and the billed minutes from the run's usage (`gh api repos/{owner}/{repo}/actions/runs/<id>/timing`). Billing rounds each job up to a whole minute.
 4. Repeat with `runner = ubuntu-24.04-arm`. If the arm label is refused for the private repo, record that and stop that leg.
 5. Repeat each runner once more to see the cold-versus-warm difference (the first run has no cargo cache; this workflow caches nothing).
-6. Fill the table, extrapolate one push of `deploy.yml` from the cheapest job's seconds, and write the decision in the plan's U3.5.
+6. Fill the table, extrapolate one push of the CI pipeline from the cheapest job's seconds, and write the decision in the plan's U3.5.
 
 ## Results
 
@@ -36,9 +36,9 @@ Measured 9 Nov 2026 (two x64 runs, one arm64 run; the second run of each leg was
 
 Source of the billed minutes: the billing usage API read from agent-shell with the PAT (`wf vm exec`). Before: 3 `Actions Linux` minutes for this repo in November. After the three runs: 5 `Actions Linux` plus 1 `Actions Linux ARM`, net amount $0. Each job bills one whole minute whatever its seconds, so these runs prove rounding and sku, not the per-minute multiplier of a long arm job. The VM runner's hours of CI the same day did not move the counter (the account-wide November total is 14 minutes): self-hosted minutes are not counted today.
 
-Free minutes left after the runs: about 1986 of 2000 for the account (vectorbt used 8, this repo 6). Cost of one `deploy.yml` push if every open job ran hosted: not measurable yet. Only a job that needs no private registry can run on a hosted runner before the Phase 5 tailnet join (a hosted runner cannot resolve `libs-proxy`), and the open jobs of `deploy.yml` build the `clis` workspace. Re-measure after the join.
+Free minutes left after the runs: about 1986 of 2000 for the account (vectorbt used 8, this repo 6). Cost of one CI push if every open job ran hosted: not measurable yet. Only a job that needs no private registry can run on a hosted runner before the Phase 5 tailnet join (a hosted runner cannot resolve `libs-proxy`), and the open jobs of the old `deploy.yml` built the `clis` workspace. Re-measure after the join.
 
-Decision (U3.5): the stop rule did not trigger (no run above 15 minutes, 3 minutes of 2000 used, arm64 not refused, billed at 1 minute for a sub-minute job). Keep arm64 builds on the VM runner anyway (the VM is arm64 and native); use x64 hosted for open jobs that need no private registry, after the join.
+Decision (U3.5): the stop rule did not trigger (no run above 15 minutes, 3 minutes of 2000 used, arm64 not refused, billed at 1 minute for a sub-minute job). The VM runner was removed on 2026-11-13: arm64 builds run on the hosted arm64 runner (`ubuntu-24.04-arm`) and every other job on x64 hosted.
 
 ## The hosted twin of the CI, against the VM CI (9 Nov 2026)
 
@@ -119,4 +119,4 @@ A push to `dev` is the only trigger (there is no manual one), and the commit mes
 - `[cache:yes]` (the default) replays what the Nx cache holds; `[cache:no]` runs every test again and builds every image with no layer cache and no reuse of an image of the same hash.
 - `[ci:flow,unit,service]` limits the test jobs to those named.
 
-A commit that changes no file starts the GitHub-hosted pipeline only when it carries a `[services:...]` or `[cache:...]` tag; the other empty commits are triggers of other workflows. The VM pipeline (`deploy.yml`) is a caller of `pipeline.yml` too and reads the same tags.
+A commit that changes no file starts the GitHub-hosted pipeline only when it carries a `[services:...]` or `[cache:...]` tag; the other empty commits are triggers of other workflows.

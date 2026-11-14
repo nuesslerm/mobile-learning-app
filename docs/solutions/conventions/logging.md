@@ -44,7 +44,7 @@ module: repo-wide
 - **Catch blocks** log (`Logger.withError(err).error(...)`) or rethrow, never
   swallow.
 
-Lint rules (in `libraries/eslint-plugin-mobile-learn`, run by oxlint for the frontend):
+Lint rules (in `frontend/libraries/eslint-plugin-mobile-learn`, run by oxlint for the frontend):
 `no-unhandled-catch`, an error. Static event names, a log in every callback and metadata on every log line are no
 longer lint rules (owner, 20 Oct; `require-structured-log` never fired and went in D4b): log where a failure would otherwise be undiagnosable.
 

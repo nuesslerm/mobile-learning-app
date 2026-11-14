@@ -40,6 +40,7 @@ function wrapRequireWithoutPresetTypescript(req: NodeJS.Require) {
   );
 }
 
+// oxlint-disable-next-line no-restricted-properties -- mocks a platform or native module the library reaches without a port; Phase 4 gives it one and deletes the mock
 vi.mock('node:module', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:module')>();
   return {

@@ -57,10 +57,6 @@ pub fn run(args: &[String]) -> Option<i32> {
     if p.positional.iter().any(|a| a == legs::APP_PACKAGE) {
         return fail(&format!("{} is no service: CI's eas-update job publishes its EAS Update; by hand, `wf ship eas --initial-route <route>`", legs::APP_PACKAGE));
     }
-    if p.positional == ["ci-runner"] && !flag("redeploy-only") {
-        let Some(git_ref) = p.val("ref") else { return fail("ship ci-runner needs --ref <ref>") };
-        return code(crate::ci_runner::run(git_ref, p.val("tag"), flag("wipe-state")));
-    }
     // a promotion names images, vm-ops-api-rs among them, and ships nothing
     if flag("promote-latest") {
         return crate::deploy_run::run(args);

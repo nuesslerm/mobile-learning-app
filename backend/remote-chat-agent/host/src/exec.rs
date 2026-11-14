@@ -17,12 +17,18 @@ pub fn inherited() -> Vec<(String, String)> {
 
 pub struct Processes {
     root: String,
+    inherited: Option<Vec<(String, String)>>,
 }
 
 impl Processes {
     /// Provider CLIs keep their logins under `root`.
     pub fn at(root: impl Into<String>) -> Processes {
-        Processes { root: root.into() }
+        Processes { root: root.into(), inherited: None }
+    }
+
+    /// As `at`, with `inherited` as the environment the CLIs choose from instead of this process's own at each spawn.
+    pub fn with_inherited(root: impl Into<String>, inherited: Vec<(String, String)>) -> Processes {
+        Processes { root: root.into(), inherited: Some(inherited) }
     }
 }
 
@@ -107,11 +113,11 @@ pub fn supervise(mut child: Child, merge_stderr: bool) -> Result<Supervised, Str
 
 /// `command` with the environment of the provider it starts (none of the service's own, when it starts no provider's CLI beyond the shared
 /// variables of `provider_env`'s rule) and the working directory `cwd`.
-pub fn provider_command(root: &str, program: &str, args: &[String], cwd: &Path) -> Command {
+pub fn provider_command(root: &str, inherited: &[(String, String)], program: &str, args: &[String], cwd: &Path) -> Command {
     let mut command = Command::new(program);
     command.args(args).current_dir(cwd);
     if let Some(driver) = driver_of_command(program, args) {
-        command.env_clear().envs(provider_env(driver, root, &inherited()));
+        command.env_clear().envs(provider_env(driver, root, inherited));
     }
     command
 }
@@ -119,7 +125,15 @@ pub fn provider_command(root: &str, program: &str, args: &[String], cwd: &Path) 
 #[async_trait]
 impl Spawner for Processes {
     async fn spawn(&self, program: &str, args: &[String], cwd: &Path) -> Result<Running, String> {
-        let mut command = provider_command(&self.root, program, args, cwd);
+        let live;
+        let inherited = match &self.inherited {
+            Some(vars) => vars,
+            None => {
+                live = inherited();
+                &live
+            }
+        };
+        let mut command = provider_command(&self.root, inherited, program, args, cwd);
         let child = command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true).spawn().map_err(|e| e.kind().to_string())?;
         Ok(supervise(child, false)?.running)
     }

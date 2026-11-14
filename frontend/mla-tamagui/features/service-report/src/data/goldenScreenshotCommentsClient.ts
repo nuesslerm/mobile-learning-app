@@ -15,11 +15,11 @@ import { Logger } from '@lib/logging';
 import {
   goldenScreenshotCommentSchema,
   type GoldenScreenshotComment,
-} from '../contracts';
+} from '../domain';
 import { z } from 'zod';
 
-import { encodeBase64 } from '../lib/base64';
-import { deriveCommentsUrl } from '../use-cases/deriveCommentsUrl';
+import { encodeBase64 } from '../domain/base64';
+import { deriveCommentsUrl } from '../domain/deriveCommentsUrl';
 
 const DEFAULT_ORDS_USER = 'health_rpt';
 

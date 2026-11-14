@@ -15,13 +15,14 @@ tags: [ci, pipeline, concurrency, hosted, vm, wf-build, deploy]
 
 # The CI pipeline
 
-`.github/workflows/pipeline.yml` is one reusable workflow, called by `ci-hosted.yml` ("CI (GitHub-hosted)": ships, deploys, runs the device suites) on every push to `dev` and by `cold-ci.yml` weekly. It runs on GitHub-hosted runners, up to 20 jobs at once (free plan limit). The self-hosted flavor (`deploy.yml`, the VM's own runner, one job at a time) was deleted on 2026-11-13; the VM runner container still serves `vm-state-backup.yml`.
+`.github/workflows/pipeline.yml` is one reusable workflow, called by `ci-hosted.yml` ("CI (GitHub-hosted)": ships, deploys, runs the device suites) on every push to `dev` and by `cold-ci.yml` weekly. It runs on GitHub-hosted runners, up to 20 jobs at once (free plan limit). The self-hosted flavor (`deploy.yml`, the VM's own runner, one job at a time) and the VM runner itself were removed on 2026-11-13.
 
 | | |
 | --- | --- |
 | Test shards | `HOSTED_SHARDS` (default 6) |
 | `wf-build` legs | x64 and arm64 |
 | Image builds | in parallel, `max-parallel: 20` |
+| Deploy legs | one at a time (`max-parallel: 1`): parallel compose pulls on the VM race in containerd's content store (`failed commit on ref ... no such file or directory`) |
 | Device | the SDK emulator on the runner (`WF_ANDROID_PROVIDER=emulator`) |
 
 ## Job order
@@ -70,7 +71,7 @@ Three waves:
 ## What each machine-building job is
 
 - **`wf-build`** builds `wf` for the machine that runs the next jobs. On hosted, the arm64 leg exists because `deploy` runs `wf ship` on `ubuntu-24.04-arm` (it builds the arm64 images the VM runs). It is one matrix job, not two jobs: the legs share every step and differ only in the runner.
-- **`clis`** publishes the `wf`, `t3-serve`, `rca-exec` and `wf-mimic` binaries (the ones `wf-build` built, arm64 and x64) as the `wf-latest` release, after the secret-shape scan, with a sha256. It is the same job on every flavor and runs only after the tests are green and only when the run ships (`ship`: the repository variable `SHIP_FLAVOR`, `vm` unless it says `hosted`, picks which flavor ships a push, so the two callers differ only in their runner). The VM's `clis-sync` container (the `ci-runner` compose project) pulls the release within a minute, checks the sha256 and installs it on the `clis` volume as `/opt/clis/<clis tree>`, then points `current` at it; no runner writes that volume, and a cloud session installs the same release with `.agents/setup.sh`.
+- **`clis`** publishes the `wf`, `t3-serve`, `rca-exec` and `wf-mimic` binaries (the ones `wf-build` built, arm64 and x64) as the `wf-latest` release, after the secret-shape scan, with a sha256. It runs only after the tests are green and only when the run ships. A cloud session installs the release with `.agents/setup.sh`.
 - **`deploy-build`** builds and pushes the container images of one app (the `build-image` action). Pushing a tag is harmless; moving `latest` happens only in `deploy`, on the trunk.
 
 ## Deploy legs
@@ -115,6 +116,6 @@ Numbers of the first cold hosted run and the VM warm-cache run: `hosted-minutes.
 ## Not done yet
 
 - One green full cold hosted run of this structure with every deploy leg (tracked in issue #367).
-- Cold runs come from the `[cache:no]` commit tag: `wf ci audit` judges a run cold when its head commit carries it (or when it was dispatched by hand). The weekly cold run is `cold-ci.yml` (schedule and dispatch, hosted flavor, nothing deployed or shipped): it calls this pipeline with the `fresh` and `services: all` inputs, which do what the `[cache:no]` and `[services:all]` tags do for a commit that carries none, and `wf ci audit` judges a scheduled run cold.
+- Cold runs come from the `[cache:no]` commit tag: `wf ci audit` judges a run cold when its head commit carries it (or when it was dispatched by hand). The weekly cold run is `cold-ci.yml` (schedule and dispatch, nothing deployed or shipped): it calls this pipeline with the `fresh` and `services: all` inputs, which do what the `[cache:no]` and `[services:all]` tags do for a commit that carries none, and `wf ci audit` judges a scheduled run cold.
 
 Related: `ci-pipeline-on-the-vm.md` (the VM pipeline in detail), `hosted-minutes.md` (billing and timings), `job-secret-needs.md` (vault scope per job; `clis/secrets/src/data/job-scopes.json`), `cache-layers.md`.

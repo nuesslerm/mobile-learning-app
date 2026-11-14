@@ -137,7 +137,7 @@ services:
     # no registry credential is needed here. IMAGE_NAMESPACE / IMAGE_TAG come from
     # .env.defaults; pin IMAGE_TAG to a sha-<short> to deploy or roll back to an
     # exact build.
-    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/remote-chat-agent:${IMAGE_TAG:-latest}
+    image: docker.io/${IMAGE_NAMESPACE:-nuesslerm}/remote-chat-agent:${AGENT_IMAGE_TAG:-${IMAGE_TAG:-latest}}
     container_name: remote-chat-agent
     network_mode: service:tailscale
     environment:

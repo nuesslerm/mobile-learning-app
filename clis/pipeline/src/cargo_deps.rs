@@ -7,6 +7,8 @@
 //!   Cargo refuses a normal dependency cycle but allows one through a `dev-dependency`, which would make a consumer's types part of the library's
 //!   own tests and pull its crate graph into the library's Nx inputs.
 //!
+//! - **A remote-chat-agent adapter crate names no other adapter crate**: each is the I/O against one outside system, wired together only by the
+//!   service's composition root, so one adapter reaching another would hide a wiring decision inside it.
 //! - **A pure crate depends on no adapter library**: the adapter libraries are all I/O. Which crates are pure is not decided here: the globs of the
 //!   ast-grep rules that match `does-io` are that registry (`core_purity::registry_dirs`).
 use std::collections::{BTreeMap, BTreeSet};
@@ -21,6 +23,10 @@ const TESTKIT_USERS: &[&str] = &["rca-service", "rca-exec", "rca-cli-driver", "t
 /// The adapter libraries: all the I/O against one outside system and no product rules (the agent API client over WebSocket, the CDP client, the
 /// HTTP client, telemetry, the service kit).
 const ADAPTER_LIBRARIES: &[&str] = &["agent-api-client", "cdp", "cli-http", "telemetry", "service-kit"];
+
+/// The adapter crates of the remote-chat-agent service (the host, speech-to-text and the executor channel). `rca-cli-driver` is not one: it holds the
+/// CLI driver's turn logic and its scripted spawner, which the host builds on.
+const SERVICE_ADAPTERS: &[&str] = &["remote-chat-agent-host", "remote-chat-agent-speech", "rca-exec-channel"];
 
 const TOPS: [&str; 3] = ["clis", "backend", "libraries"];
 
@@ -82,6 +88,10 @@ pub fn violations_of(crates: &[Crate], pure: &BTreeSet<String>) -> Vec<String> {
     for krate in crates.iter().filter(|c| pure.contains(&c.name)) {
         let used: BTreeSet<&str> = krate.deps.iter().filter(|(d, k)| *k != Kind::Dev && ADAPTER_LIBRARIES.contains(&d.as_str())).map(|(d, _)| d.as_str()).collect();
         found.extend(used.into_iter().map(|library| format!("the pure crate {} depends on the adapter library {library}", krate.name)));
+    }
+    for krate in crates.iter().filter(|c| SERVICE_ADAPTERS.contains(&c.name.as_str())) {
+        let named: BTreeSet<&str> = krate.deps.iter().filter(|(d, k)| *k != Kind::Dev && d != &krate.name && SERVICE_ADAPTERS.contains(&d.as_str())).map(|(d, _)| d.as_str()).collect();
+        found.extend(named.into_iter().map(|other| format!("the adapter crate {} depends on the adapter crate {other}", krate.name)));
     }
     for krate in crates {
         for (dep, kind) in krate.deps.iter().filter(|(d, _)| d == TESTKIT) {
@@ -229,6 +239,20 @@ mod tests {
         let found = violations_of(&crates, &pure);
         // Then only the first is named
         assert_eq!(found, ["the pure crate a-core depends on the adapter library service-kit"]);
+    }
+
+    #[test]
+    fn given_service_adapter_crates_when_one_depends_on_another_then_it_is_named_unless_the_dependency_is_a_dev_one() {
+        // Given the host on the speech adapter, the speech adapter that only dev-depends on the host, and the channel on a core crate
+        let crates = vec![
+            krate(&manifest("remote-chat-agent-host", &[("dependencies", &["remote-chat-agent-speech", "remote-chat-agent-core"])])),
+            krate(&manifest("remote-chat-agent-speech", &[("dev-dependencies", &["remote-chat-agent-host"])])),
+            krate(&manifest("rca-exec-channel", &[("dependencies", &["remote-chat-agent-core"])])),
+        ];
+        // When the rules run
+        let found = violations_of(&crates, &none());
+        // Then only the host's normal dependency is named
+        assert_eq!(found, ["the adapter crate remote-chat-agent-host depends on the adapter crate remote-chat-agent-speech"]);
     }
 
     #[test]

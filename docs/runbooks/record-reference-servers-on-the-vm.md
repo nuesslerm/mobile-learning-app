@@ -12,9 +12,9 @@ empty environment, and the pairing material never leaves the VM's temp dirs (the
 
 ## Trigger a capture from a commit (any set, any app)
 
-A record or a replay of any set runs on the VM's `gh-runner` without an agent session driving it: push an EMPTY commit to `dev` whose message carries a
-marker. `mimic-record.yml` starts only for such a commit (the gate of `scheduled-triggers.yml`: the commit changes no file, so `deploy.yml` starts no CI run
-either), queues behind CI on the one runner, and runs niced.
+A record or a replay of any set runs on a GitHub-hosted runner without an agent session driving it: push an EMPTY commit to `dev` whose message carries a
+marker. `mimic-record.yml` starts only for such a commit (the gate of `scheduled-triggers.yml`: the commit changes no file, so the CI pipeline starts no run
+either) and runs niced.
 
 ```sh
 git commit --allow-empty -m "[record t3-recorded-1 orca-recorded]" && git push origin dev    # record two sets, one after the other

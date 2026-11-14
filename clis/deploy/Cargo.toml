@@ -34,7 +34,6 @@ rca-core = { version = "0.1", registry = "mla" }
 cli-http = { path = "../http" }
 serde_json = { version = "1", features = ["preserve_order"] }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
-libc = "0.2"
 tempfile = "3"
 
 [dev-dependencies]

@@ -8,7 +8,7 @@
 
 import { useDependencyOverrides } from '@lib/app-di';
 import { Logger } from '@lib/logging';
-import type { HealthReport } from '../contracts';
+import type { HealthReport } from '../domain';
 import { useCallback, useEffect, useState } from 'react';
 
 import { fetchHealthReportHistory } from '../data/ordsClient';

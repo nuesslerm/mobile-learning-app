@@ -11,19 +11,22 @@ use rca_group_agent::{Command as Lifecycle, Decided, EngineError, Follow, NewThr
 use remote_chat_agent_core::application::engine::{Engine, NeutralView, NEUTRAL_EVENT};
 use remote_chat_agent_core::domain::types::{Body, Command, Event, Session, ThreadItem};
 use serde_json::{Map, Value};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver};
 
 /// Who the engine's events say made them.
 const ACTOR: &str = "agent-api";
 
+type SettledHook = Arc<dyn Fn(&str) + Send + Sync>;
+
 pub struct EngineThreads {
     engine: Arc<Engine>,
+    settled: Mutex<Option<SettledHook>>,
 }
 
 impl EngineThreads {
     pub fn new(engine: Arc<Engine>) -> EngineThreads {
-        EngineThreads { engine }
+        EngineThreads { engine, settled: Mutex::new(None) }
     }
 }
 
@@ -32,10 +35,20 @@ impl EngineThreads {
     /// (the engine settles it in the thread's view already), so whoever follows the thread hears that it ended. Returns how many turns it settled.
     pub fn start(&self) -> Result<usize, String> {
         let mut settled = 0;
+        let hook = match self.settled.lock() {
+            Ok(hook) => hook.clone(),
+            Err(poisoned) => {
+                tracing::warn!(event = "agent_threads.settled_hook_poisoned");
+                poisoned.into_inner().clone()
+            }
+        };
         for stale in self.engine.start()? {
             let Some(latest) = self.engine.neutral_thread(&stale.thread_id)?.and_then(|view| view.thread.latest_turn) else { continue };
             self.record(&stale.thread_id, Some(&latest.turn_id), ThreadEvent::TurnFinished { reason: agent_api_agent::FinishReason::Interrupted }).map_err(|e| e.0)?;
             settled += 1;
+            if let Some(hook) = &hook {
+                hook(&stale.thread_id);
+            }
         }
         Ok(settled)
     }
@@ -147,6 +160,12 @@ impl ThreadEngine for EngineThreads {
         self.engine.new_id()
     }
 
+    fn on_settled(&self, hook: SettledHook) {
+        if let Ok(mut slot) = self.settled.lock() {
+            *slot = Some(hook);
+        }
+    }
+
     fn decide(&self, thread: &str, command: Lifecycle) -> Result<Decided, EngineError> {
         let receipt = self.engine.dispatch(Command { command_id: format!("agent-api:command:{}", self.engine.new_id()), thread_id: thread.to_string(), body: body(command) }, ACTOR).map_err(failed)?;
         Ok(match receipt.error {
@@ -182,12 +201,12 @@ impl ThreadEngine for EngineThreads {
         Ok(self.engine.neutral_thread(thread).map_err(failed)?.and_then(|t| t.lifecycle.pending_merge_back).map(|p| (p.source, p.context)))
     }
 
-    fn provider_session(&self, thread: &str) -> Result<Option<String>, EngineError> {
-        Ok(self.engine.neutral_thread(thread).map_err(failed)?.and_then(|t| t.thread.session).and_then(|s| s.provider_session_id))
+    fn provider_session(&self, thread: &str, driver: &str) -> Result<Option<String>, EngineError> {
+        Ok(self.engine.neutral_thread(thread).map_err(failed)?.and_then(|t| t.thread.session).filter(|s| s.cli == driver).and_then(|s| s.provider_session_id))
     }
 
     fn set_session(&self, thread: &str, driver: &str, turn: &str, session: &str) -> Result<(), EngineError> {
-        if self.provider_session(thread)?.as_deref() == Some(session) {
+        if self.provider_session(thread, driver)?.as_deref() == Some(session) {
             return Ok(());
         }
         // `running` for the turn that announced it: the thread's turn is settled by its own finish, which comes next

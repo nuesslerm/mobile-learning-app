@@ -14,7 +14,7 @@ import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
-import { TamilCourse } from '../data/tamilCourse';
+import { TamilCourse } from '../domain/course';
 import type { TamilCharacter } from '../domain/characters';
 import {
   answer,

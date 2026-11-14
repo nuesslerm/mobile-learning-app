@@ -10,7 +10,7 @@ use std::sync::Mutex;
 pub const DEPLOY_TOKEN_VAR: &str = "BWS_CI_DEPLOY_ACCESS_TOKEN";
 
 /// The cache and artifact links that can overwrite shared objects (docs/solutions/ci/job-secret-needs.md).
-const WRITE_URL_KEYS: [&str; 2] = ["BUILD_CACHE_WRITE_PAR_URL", "VERIFICATION_ARTIFACTS_PAR_URL"];
+const WRITE_URL_KEYS: [&str; 5] = ["BUILD_CACHE_WRITE_PAR_URL", "BUILD_CACHE_WRITE_STORES", "BLOB_S3_WRITE_CREDENTIAL", "BLOB_DAV_WRITE_TOKEN", "VERIFICATION_ARTIFACTS_PAR_URL"];
 
 fn var(name: &str) -> Option<String> {
     std::env::var(name).ok().filter(|v| !v.is_empty())
@@ -40,8 +40,7 @@ pub fn scope_token(scope: Scope) -> Option<String> {
     token_var(scope).and_then(var)
 }
 
-/// A CI run that was given at least one scope token reads by scope; with none it reads as it always did (the VM runner's
-/// container-level token) until that token is removed.
+/// A CI run that was given at least one scope token reads by scope; with none it reads unscoped, as agent-shell and the sandbox do.
 pub fn scoped_mode() -> bool {
     in_ci() && (scope_token(Scope::CiOpen).is_some() || scope_token(Scope::CiDeploy).is_some())
 }

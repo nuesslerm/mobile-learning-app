@@ -50,7 +50,7 @@ If the build fails: read `wf vm exec --log <jobId>`, fix the cause in the tree, 
 
 ```sh
 git fetch origin dev && git rebase origin/dev && git push origin HEAD:dev
-gh run list --workflow deploy.yml --branch dev --limit 1 --json databaseId,status,conclusion,headSha
+gh run list --workflow ci-hosted.yml --branch dev --limit 1 --json databaseId,status,conclusion,headSha
 gh run watch <id> --exit-status
 ```
 
@@ -72,11 +72,11 @@ Expect `true` for the commit, the Docker Hub call to exit 0 (`latest` moved afte
 
 ## Step 5: S2, the first pipeline through Rust (LIVE, CI)
 
-A `deploy.yml` dispatch with `force: true`: every service redeploys and the EAS Update republishes, so the vm-ops-api leg is built by `wf ship` (a synchronous step) and then smoke-tested (the Rust service runs the pulled image as a throwaway container, `wf` asks it over the tailnet with a signed `/health`, then stops it) and swapped by the service itself (it renders its own scripts and runs its own swap), and the other legs deploy through it. Dispatch only after the push's own run is finished (one run at a time per ref).
+A push to `dev` that changes a file, tagged `[services:all] [cache:no]` (`ci-hosted.yml` has no dispatch): every service redeploys and the EAS Update republishes, so the vm-ops-api leg is built by `wf ship` (a synchronous step) and then smoke-tested (the Rust service runs the pulled image as a throwaway container, `wf` asks it over the tailnet with a signed `/health`, then stops it) and swapped by the service itself (it renders its own scripts and runs its own swap), and the other legs deploy through it. Dispatch only after the push's own run is finished (one run at a time per ref).
 
 ```sh
-gh workflow run deploy.yml --ref dev -f force=true
-sleep 30; RUN=$(gh run list --workflow deploy.yml --branch dev --event workflow_dispatch --limit 1 --json databaseId -q '.[0].databaseId'); echo "$RUN"
+git commit -m "Cold full run [services:all] [cache:no]" && git push origin HEAD:dev   # with a changed file staged
+sleep 30; RUN=$(gh run list --workflow ci-hosted.yml --branch dev --event push --limit 1 --json databaseId -q '.[0].databaseId'); echo "$RUN"
 gh run watch "$RUN" --exit-status        # one to two hours: tests, every leg, the e2e jobs
 gh run view "$RUN" --json jobs | jq -r '.jobs[] | [.name, .conclusion] | @tsv'
 wf ship --status | jq -e --arg t "$T" '.redeploy.history | map(select(.key == "vm-ops-api")) | max_by(.ts) | .outcome == "redeploy.succeeded" and .tag == $t'

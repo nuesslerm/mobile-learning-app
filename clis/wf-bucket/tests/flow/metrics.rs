@@ -108,7 +108,7 @@ fn a_run_on_a_dirty_tree_says_loudly_which_paths_made_it_read_only() {
 }
 
 #[test]
-fn a_metrics_source_that_hangs_or_is_gone_costs_the_run_two_seconds_and_nothing_else() {
+fn a_metrics_source_that_hangs_or_is_gone_costs_the_run_its_budget_and_nothing_else() {
     // Given a cold bucket and a metrics source that takes ten seconds to answer
     let (_bucket, url) = bucket(503);
     let slow = MockServer::start(None);
@@ -122,13 +122,34 @@ fn a_metrics_source_that_hangs_or_is_gone_costs_the_run_two_seconds_and_nothing_
 
     // Then the verb still succeeds, says the gauges were not sent, and did not wait for the source
     assert_eq!(r.exit_code, 0, "{r:?}");
-    assert!(event(&r, "ci.metrics.timeout").is_some_and(|l| l.contains("level=warn")), "{r:?}");
-    assert!(started.elapsed() < Duration::from_secs(8), "waited {:?}", started.elapsed());
+    let dropped = event(&r, "ci.metrics.timeout").or_else(|| event(&r, "ci.metrics.refused")).unwrap_or_else(|| panic!("no drop event: {r:?}"));
+    assert!(dropped.contains("level=warn") && dropped.contains("readings=8"), "{dropped}");
+    assert!(started.elapsed() < Duration::from_secs(9), "waited {:?}", started.elapsed());
 
     // And a source that is not listening at all changes nothing about the verb's answer
     let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
     let gone = run_wf(&["cache", "restore", "pnpm"], &RunOpts::default().env("BUILD_CACHE_READ_PAR_URL", &url).env("WF_CI_METRICS_BASE", &format!("http://127.0.0.1:{closed}")).bin_dir(&bin));
     assert_eq!((gone.exit_code, last_json(&gone)["ok"].clone()), (0, Value::Bool(true)), "{gone:?}");
+}
+
+#[test]
+fn a_metrics_source_that_answers_in_a_few_seconds_still_receives_every_reading() {
+    // Given a cold bucket and a metrics source that takes three seconds to answer, as a cold runner's first TLS request does
+    let (_bucket, url) = bucket(503);
+    let slow = MockServer::start(None);
+    slow.delay(Duration::from_secs(3));
+    let dir = tempfile::tempdir().unwrap();
+    let bin = pnpm_with_store(dir.path());
+
+    // When the pnpm store is restored and the run's readings are flushed at its end
+    let r = run_wf(&["cache", "restore", "pnpm"], &opts(&url, &slow).bin_dir(&bin));
+
+    // Then nothing is reported dropped, and the source received the step's seconds and the degradation
+    assert_eq!(r.exit_code, 0, "{r:?}");
+    assert!(event(&r, "ci.metrics.timeout").is_none(), "{r:?}");
+    let seen = gauges(&slow.requests());
+    assert!(has(&seen, "ci.cache.step_seconds", "pnpm", "restore").is_some(), "{seen:?}");
+    assert_eq!(has(&seen, "ci.cache.degraded", "pnpm", "unreachable"), Some(1.0), "{seen:?}");
 }
 
 #[test]

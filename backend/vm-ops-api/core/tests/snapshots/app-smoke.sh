@@ -15,7 +15,7 @@ vm-ops-api-rs verify-env /home/ubuntu/leetcode-auth-cookie-capture/.env.synced /
 echo "[redeploy] env synced $(date +%s)"
 flock -s /home/ubuntu/vm-ops-api sh -c 'cd /home/ubuntu/leetcode-auth-cookie-capture && docker compose -f docker-compose.capture.yml pull'
 echo "[redeploy] pulled $(date +%s)"
-cd /home/ubuntu/leetcode-auth-cookie-capture && docker compose -f docker-compose.capture.yml up -d --no-deps $(docker compose -f docker-compose.capture.yml config --services | grep -vx app)
+cd /home/ubuntu/leetcode-auth-cookie-capture && docker compose -f docker-compose.capture.yml up -d --no-deps --no-recreate $(docker compose -f docker-compose.capture.yml config --services | grep -vx app)
 echo "[redeploy] smoke start $(date +%s)"
 docker rm -f leetcode-auth-cookie-capture-smoke >/dev/null 2>&1 || true
 cd /home/ubuntu/leetcode-auth-cookie-capture && docker compose -f docker-compose.capture.yml run -d --no-deps --name leetcode-auth-cookie-capture-smoke -e CAPTURE_LISTENER_PORT=18999 app >/dev/null

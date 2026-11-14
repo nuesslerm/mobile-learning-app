@@ -8,8 +8,9 @@ mod help_table;
 pub mod job_name;
 pub mod nx_why;
 pub mod pins;
+pub mod serve;
 
 pub use help_table::HELP;
 
 /// What the thin binary mounts.
-pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[("cache", cache::run)];
+pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[("cache", cache::run), ("bucket", serve::run)];

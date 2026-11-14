@@ -1,5 +1,5 @@
-export * from '../contracts/dispatchRuns';
-export type * from '../contracts/orchestration';
+export * from './dispatchRuns';
+export type * from './orchestration';
 
 export * from './diff/parseUnifiedDiff';
 export * from './dispatchRunFeed';

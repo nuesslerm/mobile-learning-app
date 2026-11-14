@@ -356,7 +356,7 @@ fn replaced_vm_retire_deletes_every_tagged_vm_record_whatever_its_age_and_spares
     let table = [
         (LIST, MockReply::json(200, json!({ "devices": [
             { "id": "d1", "name": "vm-ops-api-main.tail.ts.net", "lastSeen": fresh, "tags": ["tag:mobile-learning"] },
-            { "id": "d2", "name": "ci-runner.tail.ts.net", "lastSeen": fresh, "tags": ["tag:mobile-learning"] },
+            { "id": "d2", "name": "agent-shell.tail.ts.net", "lastSeen": fresh, "tags": ["tag:mobile-learning"] },
             { "id": "d3", "name": "sandbox-agent.tail.ts.net", "lastSeen": fresh, "tags": ["tag:mobile-learning"] },
             { "id": "d4", "name": "markus-phone.tail.ts.net", "lastSeen": fresh, "tags": [] },
         ] }))),
@@ -373,11 +373,11 @@ fn replaced_vm_retire_deletes_every_tagged_vm_record_whatever_its_age_and_spares
     // When the printed command runs as a dry run, Then it names the records and deletes nothing
     a.routes(&table);
     let r = a.wf(&["device", "retire", "--replaced-vm"], &[]);
-    assert!(r.exit_code == 0 && r.stdout.contains("Would retire 2 VM node record(s): vm-ops-api-main, ci-runner") && r.stdout.contains("Dry run"), "{}", r.stdout);
+    assert!(r.exit_code == 0 && r.stdout.contains("Would retire 2 VM node record(s): vm-ops-api-main, agent-shell") && r.stdout.contains("Dry run"), "{}", r.stdout);
     assert!(a.deletes().is_empty());
 
     // When it runs with --apply, Then exactly the VM's tagged records are deleted
     let r = a.wf(&["device", "retire", "--replaced-vm", "--apply"], &[]);
-    assert!(r.exit_code == 0 && r.stdout.contains("Retired 2 VM node record(s): vm-ops-api-main, ci-runner"), "{}", r.stdout);
+    assert!(r.exit_code == 0 && r.stdout.contains("Retired 2 VM node record(s): vm-ops-api-main, agent-shell"), "{}", r.stdout);
     assert_eq!(a.deletes(), ["/device/d1", "/device/d2"]);
 }

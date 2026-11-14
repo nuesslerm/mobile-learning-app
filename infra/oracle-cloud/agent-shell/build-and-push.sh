@@ -2,14 +2,13 @@
 set -euo pipefail
 
 # Builds agent-shell and pushes it to Docker Hub -- the same "incremental
-# Docker Hub image" iteration path as scripts/build-and-push-image.sh
-# (see that file for the fuller rationale this mirrors).
+# Docker Hub image" iteration path the old repo-root script gave the backend apps.
 # No SSH involved. Follow with:
 #   curl -X POST -H "Authorization: Bearer <token>" \
 #     "https://<vm-ip>.sslip.io/services/agent-shell/redeploy?tag=<tag>"
 #
 # Written after this image had to be built ad hoc with no dedicated script
-# at all -- unlike vm-ops-api and the 5 backend apps (scripts/build-and-push-image.sh),
+# at all -- unlike vm-ops-api and the 5 backend apps (the old repo-root script),
 # agent-shell had neither its own script nor an entry in the shared one.
 # This closes that gap.
 #
@@ -45,8 +44,7 @@ TARGET_PLATFORM="${TARGET_PLATFORM:-linux/arm64}"
 CACHE_REF="${IMAGE}:buildcache"
 BUILD_ARGS=(--platform "${TARGET_PLATFORM}" --network host --allow network.host --cache-to "type=registry,ref=${CACHE_REF},mode=max,oci-mediatypes=true,compression=zstd,ignore-error=true" --cache-from "type=registry,ref=${CACHE_REF}")
 
-# Space-separated KEY=VALUE build args, same contract as
-# scripts/build-and-push-image.sh. The one that matters here is AGENT_BASE_TAG:
+# Space-separated KEY=VALUE build args. The one that matters here is AGENT_BASE_TAG:
 # this Dockerfile now builds FROM agent-base, which defaults to :latest, so
 # pinning a specific base is otherwise unreachable from the command line.
 #
@@ -110,8 +108,7 @@ if [[ -n "${CCR_AGENT_PROXY_ENABLED:-}" && -f /root/.ccr/ca-bundle.crt ]]; then
   # need the proxy's CA trusted, or apt-get fails with "Method Not Allowed"
   # and a confusing "not signed" error that looks unrelated to either cause.
   # Deliberately NOT baked into the committed Dockerfile -- irrelevant (and
-  # an unexplained CA pin) anywhere but this sandbox. Same technique as
-  # scripts/build-and-push-image.sh; see that file for the fuller comment.
+  # an unexplained CA pin) anywhere but this sandbox.
   BUILD_ARGS+=(--build-arg "HTTPS_PROXY=${HTTPS_PROXY:-}" --build-arg "HTTP_PROXY=${HTTPS_PROXY:-}")
   echo "[build-and-push] Sandbox proxy detected — injecting its CA for this build only (not committed to the Dockerfile)."
   cp /root/.ccr/ca-bundle.crt "$SCRIPT_DIR/.sandbox-proxy-ca.crt"
