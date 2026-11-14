@@ -909,7 +909,7 @@ jobs:
             unset EXPO_PUBLIC_BETTERSTACK_TOKEN EXPO_PUBLIC_BETTERSTACK_HOST
             forwarder="off (the vault gave no${missing})"
           fi
-          wf ship eas --platform all --branch dev --pointer --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas.log"
+          wf ship eas --platform all --branch dev ${{ inputs.e2e && '--pointer' || '' }} --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas.log"
           summary=$(tail -1 "$RUNNER_TEMP/eas.log")
           {
             echo "### EAS Update"
