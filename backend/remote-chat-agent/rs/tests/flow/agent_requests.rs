@@ -20,7 +20,7 @@ fn output_of(events: &[Event], call: &str) -> Value {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_turn_in_the_mode_that_asks_when_the_person_accepts_the_tool_then_the_cli_reads_allow_and_the_log_has_the_request_and_the_answer_in_order() {
     // Given a turn that asks whether write_file may run, and then says it is done, started in the mode that asks before each tool
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("asking")]).then_calling("k1", "approval_prompt", approval_call()).then_line(&said("done"))]);
     let mut agent = chain.agent().await;
@@ -54,7 +54,7 @@ async fn given_a_turn_in_the_mode_that_asks_when_the_person_accepts_the_tool_the
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_turn_that_is_declined_and_then_asks_a_question_when_each_is_answered_then_the_cli_reads_the_denial_and_then_the_answer() {
     // Given a turn that asks about a tool, then asks which colour
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[]).then_calling("k1", "approval_prompt", approval_call()).then_calling("k2", "ask_user", json!({"question": "Which colour?", "options": ["red", "blue"]})).then_line(&said("ok"))]);
     let mut agent = chain.agent().await;
@@ -81,7 +81,7 @@ async fn given_a_turn_that_is_declined_and_then_asks_a_question_when_each_is_ans
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_question_that_is_dismissed_and_a_tool_that_is_cancelled_when_answered_then_the_cli_reads_each_and_the_cancel_ends_the_turn_interrupted() {
     // Given a turn that asks a question, then asks about a tool, and would go on for a while
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[]).then_calling("k1", "ask_user", json!({"question": "Sure?"})).then_calling("k2", "approval_prompt", approval_call()).then_sleeping(3000).then_line(&said("never said"))]);
     let mut agent = chain.agent().await;
@@ -106,7 +106,7 @@ async fn given_a_question_that_is_dismissed_and_a_tool_that_is_cancelled_when_an
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_socket_that_drops_while_a_request_waits_when_a_new_one_resumes_then_it_replays_the_request_it_missed_answers_it_and_the_two_together_are_the_log() {
     // Given a turn that asks about a tool, and a mapper that follows it and drops after the CLI's call
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[]).then_calling("k1", "approval_prompt", approval_call()).then_line(&said("done"))]);
     let mut first = chain.agent().await;
@@ -135,7 +135,7 @@ async fn given_a_socket_that_drops_while_a_request_waits_when_a_new_one_resumes_
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_request_nobody_asked_or_one_already_answered_when_answered_then_it_is_refused_with_its_code_and_nothing_is_recorded() {
     // Given a thread that is idle and one request answered
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[]).then_calling("k1", "ask_user", json!({"question": "Sure?"}))]);
     let mut agent = chain.agent().await;

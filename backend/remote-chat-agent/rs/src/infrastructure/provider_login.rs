@@ -11,11 +11,17 @@ use std::sync::Arc;
 
 pub struct CliLogin {
     root: String,
+    inherited: Option<Vec<(String, String)>>,
 }
 
 impl CliLogin {
     pub fn at(root: impl Into<String>) -> CliLogin {
-        CliLogin { root: root.into() }
+        CliLogin { root: root.into(), inherited: None }
+    }
+
+    /// As `at`, with `inherited` as the environment the login chooses from instead of this process's own.
+    pub fn with_inherited(root: impl Into<String>, inherited: Vec<(String, String)>) -> CliLogin {
+        CliLogin { root: root.into(), inherited: Some(inherited) }
     }
 }
 
@@ -24,7 +30,7 @@ impl ProviderLogin for CliLogin {
     async fn start(&self, driver: Driver, method: LoginMethod) -> Result<LoginRun, String> {
         let args = login_args(driver, method).ok_or_else(|| format!("{} has no {} login", driver.id(), method.name()))?;
         let cwd = PathBuf::from(&self.root).join(driver.program());
-        let mut command = provider_command(&self.root, &inherited(), driver.program(), &args, &cwd);
+        let mut command = provider_command(&self.root, &self.inherited.clone().unwrap_or_else(inherited), driver.program(), &args, &cwd);
         let child = command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).kill_on_drop(true).spawn().map_err(|e| e.kind().to_string())?;
         let supervised = supervise(child, true)?;
         let input = supervised.input;

@@ -18,7 +18,6 @@ use rca_ladder::store::CooldownStore;
 use remote_chat_agent_core::application::ports::Ledgers;
 use rca_group_accounts::testing::ScriptedModelApi;
 use rca_group_schedules::testing::{CountingIds, FakeClock};
-use rca_service::infrastructure::env::ProcessEnv;
 use rca_service::infrastructure::provider_dirs::ProviderFiles;
 use rca_service::infrastructure::provider_login::CliLogin;
 use rca_service::Accounts;
@@ -29,7 +28,7 @@ use rca_service_core::application::settings::Settings;
 use serde_json::{json, Value};
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::Arc;
 use std::time::Duration;
 use tokio_tungstenite::tungstenite::Message;
 use tower::ServiceExt;
@@ -37,73 +36,55 @@ use tower::ServiceExt;
 pub const SECRET: &str = "flow-secret";
 pub const ALLOWED_ORIGIN: &str = "https://allowed.example";
 
-/// Flows over a map share it; a flow that reads the process environment holds it alone, so nothing else loads the machine under it.
-static PROCESS: RwLock<()> = RwLock::new(());
-
-enum Held {
-    Free,
-    Shared(#[allow(dead_code)] RwLockReadGuard<'static, ()>),
-    Alone(#[allow(dead_code)] RwLockWriteGuard<'static, ()>),
-}
-
-/// The environment one flow's service reads: a map of its own with a fresh home, so flows run side by side. A flow whose real children or
-/// executors read the process's own variables takes `Env::process` instead, which holds the process environment for its whole run.
+/// The environment one flow's service reads: a map of its own with a fresh home, so flows run side by side. The real children a flow
+/// starts are given `inherited()` as their environment, a value, so no flow touches the process's own variables.
 pub struct Env {
-    _held: Held,
     pub home: PathBuf,
-    map: Option<Arc<MapEnv>>,
-    /// The process's `HOME` before `Env::process` pointed it at this flow's, put back when the flow ends.
-    saved_home: Option<std::ffi::OsString>,
+    map: Arc<MapEnv>,
+    /// The `PATH` the flow's children and executors get instead of the machine's, when the flow has scripted programs to put first.
+    path: std::sync::Mutex<Option<String>>,
     _dir: tempfile::TempDir,
 }
 
 impl Env {
     pub fn new(vars: &[(&str, &str)]) -> Self {
-        Self::over_map(Held::Shared(PROCESS.read().unwrap_or_else(|e| e.into_inner())), vars)
-    }
-
-    /// A map environment that waits for no one, for a flow that only reads the tables of the groups the service registers.
-    pub fn detached() -> Self {
-        Self::over_map(Held::Free, &[])
-    }
-
-    fn over_map(held: Held, vars: &[(&str, &str)]) -> Self {
         let (home, dir) = fresh_home();
         let map = Arc::new(MapEnv::new(home.clone(), std::env::current_dir().ok(), std::env::temp_dir()));
-        let env = Self { _held: held, home, map: Some(map), saved_home: None, _dir: dir };
+        let env = Self { home, map, path: std::sync::Mutex::new(None), _dir: dir };
         for (name, value) in vars {
             env.set(name, value);
         }
         env
     }
 
-    /// The process environment, held by one flow: a fresh `HOME` and nothing else of the service's set but what the flow sets.
-    pub fn process(vars: &[(&str, &str)]) -> Self {
-        let held = PROCESS.write().unwrap_or_else(|e| e.into_inner());
-        let (home, dir) = fresh_home();
-        for name in Settings::names().iter().map(String::as_str).chain(["GH_TOKEN", "GITHUB_TOKEN"]) {
-            std::env::remove_var(name);
-        }
-        let saved_home = std::env::var_os("HOME");
-        std::env::set_var("HOME", &home);
-        let env = Self { _held: Held::Alone(held), home, map: None, saved_home, _dir: dir };
-        for (name, value) in vars {
-            env.set(name, value);
-        }
-        env
+    /// A map environment for a flow that only reads the tables of the groups the service registers.
+    pub fn detached() -> Self {
+        Self::new(&[])
     }
 
     /// What the service is given as its environment.
     pub fn source(&self) -> Arc<dyn Environment> {
-        match &self.map {
-            Some(map) => map.clone(),
-            None => Arc::new(ProcessEnv),
-        }
+        self.map.clone()
     }
 
-    /// The variables the real provider CLIs choose from in this flow: the process's own for a flow that holds the process environment.
+    /// The variables the real provider CLIs choose from in this flow, a value: the machine's own without what the service reads or the
+    /// providers sign in with, this flow's `HOME`, then what the flow sets.
     pub fn inherited(&self) -> Vec<(String, String)> {
-        std::env::vars().collect()
+        let names = Settings::names();
+        let hidden: Vec<&str> = names.iter().map(String::as_str).chain(["GH_TOKEN", "GITHUB_TOKEN", "HOME"]).collect();
+        let mut vars: Vec<(String, String)> = std::env::vars().filter(|(k, _)| !hidden.contains(&k.as_str())).collect();
+        vars.push(("HOME".to_string(), self.home.display().to_string()));
+        vars.extend(self.map.all());
+        if let Some(path) = self.path.lock().unwrap_or_else(|e| e.into_inner()).clone() {
+            vars.retain(|(k, _)| k != "PATH");
+            vars.push(("PATH".to_string(), path));
+        }
+        vars
+    }
+
+    /// Puts `path` (the scripted programs first) in the `PATH` of everything this flow starts, as a value.
+    pub fn use_path(&self, path: &std::ffi::OsStr) {
+        *self.path.lock().unwrap_or_else(|e| e.into_inner()) = Some(path.to_string_lossy().into_owned());
     }
 
     /// Where the providers' directories are in this flow: below the home, as the service's `Accounts::real` is given.
@@ -112,17 +93,11 @@ impl Env {
     }
 
     pub fn set(&self, name: &str, value: &str) {
-        match &self.map {
-            Some(map) => map.set(name, value),
-            None => std::env::set_var(name, value),
-        }
+        self.map.set(name, value);
     }
 
     pub fn unset(&self, name: &str) {
-        match &self.map {
-            Some(map) => map.unset(name),
-            None => std::env::remove_var(name),
-        }
+        self.map.unset(name);
     }
 
     /// A fresh directory under this flow's home.
@@ -130,17 +105,6 @@ impl Env {
         let dir = self.home.join(name);
         std::fs::create_dir_all(&dir).expect("a directory under the home");
         dir
-    }
-}
-
-impl Drop for Env {
-    fn drop(&mut self) {
-        if self.map.is_none() {
-            match &self.saved_home {
-                Some(home) => std::env::set_var("HOME", home),
-                None => std::env::remove_var("HOME"),
-            }
-        }
     }
 }
 
@@ -208,7 +172,7 @@ pub fn agent_api_for(env: &Env, config: &Config, spawner: Arc<dyn Spawner>) -> A
 /// `agent_api_for` with the model the `git.ai` group asks: the providers' directories and logins are the real adapters under the flow's home.
 pub fn agent_api_with(env: &Env, config: &Config, spawner: Arc<dyn Spawner>, models: Arc<ScriptedModelApi>, clock: Arc<FakeClock>) -> AgentApi {
     let root = env.home.join("providers").to_string_lossy().into_owned();
-    let accounts = Accounts { dirs: Arc::new(ProviderFiles::at(&root)), login: Arc::new(CliLogin::at(&root)), models };
+    let accounts = Accounts { dirs: Arc::new(ProviderFiles::at(&root)), login: Arc::new(CliLogin::with_inherited(&root, env.inherited())), models };
     let state = Arc::new(rca_service::infrastructure::agent_state::StateFile::at(env.home.join(".local/state/rca/agent-state.json")));
     let bearers = Arc::new(rca_service::infrastructure::device_bearers::BearerFile::at(env.home.join(".local/state/rca/device-bearers.json")));
     let schedules = rca_service::ScheduleParts { store: Arc::new(rca_service::infrastructure::schedules::ScheduleFile::at(env.home.join(".local/state/rca/schedules.json"))), clock, ids: Arc::new(CountingIds::default()) };

@@ -18,7 +18,7 @@ fn put(id: &str, name: &str, bytes: &[u8]) -> Value {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_an_attachment_sent_with_a_turn_when_the_cli_runs_then_the_executor_wrote_it_into_the_workspace_and_the_cli_read_it_with_its_file_tool() {
     // Given the real chain, an attachment kept under a name that tries to climb out, and a CLI whose turn reads the file where the prompt says it is
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     let bytes = b"the note the person attached\n";
     let mut agent = chain.agent().await;
@@ -51,7 +51,7 @@ async fn given_an_attachment_sent_with_a_turn_when_the_cli_runs_then_the_executo
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_turn_naming_an_attachment_nobody_kept_or_a_stage_repeated_when_asked_then_the_first_is_refused_before_any_cli_starts_and_the_second_is_the_same_file() {
     // Given the chain and one kept attachment
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     let mut agent = chain.agent().await;
     agent.ask("upload.put", put("att-one", "one.txt", b"1")).await;
@@ -75,7 +75,7 @@ async fn given_a_turn_naming_an_attachment_nobody_kept_or_a_stage_repeated_when_
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_attachments_kept_by_one_service_when_it_restarts_then_the_new_one_still_serves_their_bytes_and_ids_cannot_leave_the_volume() {
     // Given an attachment kept by one service
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let first = crate::harness::service(&env, crate::harness::Options::default());
     let port = first.listen().await;
     let mut agent = crate::mapper::Agent::open(port, &first.mint("flow mapper").await).await;
@@ -106,7 +106,7 @@ async fn every_method_of_the_attachments_contract_has_recorded_exchanges_that_th
     for fixture in &recorded {
         for exchange in &fixture.exchanges {
             // When an exchange's setup and request are made on a service and executor of their own
-            let env = Env::process(&[]);
+            let env = Env::new(&[]);
             let chain = chain(&env).await;
             let mut agent = chain.agent().await;
             for before in &exchange.before {

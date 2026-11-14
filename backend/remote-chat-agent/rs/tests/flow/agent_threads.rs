@@ -12,7 +12,6 @@ use exec_testkit::{RcaExec, ScriptedCli, TempRepo};
 use rca_service::infrastructure::agent_socket::QUEUE;
 use remote_chat_agent_host::Processes;
 use serde_json::{json, Value};
-use std::ffi::OsString;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -28,23 +27,6 @@ pub(crate) fn said(text: &str) -> String {
     json!({"type": "assistant", "message": {"content": [{"type": "text", "text": text}]}}).to_string()
 }
 
-/// Puts the scripted CLIs first on the `PATH` of this process, where the service's process adapter finds `claude`, and puts the old one back.
-pub(crate) struct Path(OsString);
-
-impl Path {
-    pub(crate) fn first(cli: &ScriptedCli) -> Path {
-        let old = Path(std::env::var_os("PATH").unwrap_or_default());
-        std::env::set_var("PATH", cli.path());
-        old
-    }
-}
-
-impl Drop for Path {
-    fn drop(&mut self) {
-        std::env::set_var("PATH", &self.0);
-    }
-}
-
 /// The service that starts real processes, the scripted CLI it finds, the repository and the real `rca-exec` serving it as workspace `w1`.
 pub(crate) struct Chain {
     _svc: Service,
@@ -53,7 +35,6 @@ pub(crate) struct Chain {
     pub(crate) repo: TempRepo,
     pub(crate) exec: Option<RcaExec>,
     token: String,
-    _path: Path,
 }
 
 pub(crate) async fn chain(env: &Env) -> Chain {
@@ -62,13 +43,13 @@ pub(crate) async fn chain(env: &Env) -> Chain {
 
 async fn chain_with(env: &Env, options: Options) -> Chain {
     let cli = ScriptedCli::install();
-    let path = Path::first(&cli);
+    env.use_path(&cli.path());
     let repo = TempRepo::new();
     let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
     let port = svc.listen().await;
-    let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
+    let exec = tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path()));
     let token = svc.mint("flow mapper").await;
-    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token, _path: path }
+    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token }
 }
 
 impl Chain {
@@ -102,7 +83,7 @@ pub(crate) async fn start_turn(agent: &mut Agent, thread: &str) -> Value {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_scripted_cli_that_writes_a_file_through_its_tool_when_a_turn_runs_over_the_agent_socket_then_the_file_is_in_the_repository_and_the_events_arrive_in_seq_order() {
     // Given the service, the real executor serving a repository, a CLI whose turn writes notes/a.txt through the MCP tool, and a mapper following a new thread
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     let write = json!({"path": "notes/a.txt", "content": "hello from the model", "create_dirs": true});
     chain.script(vec![Turn::replaying(&[said("writing the note")]).then_calling("k1", "write_file", write.clone()).then_line(&said("done"))]);
@@ -148,7 +129,7 @@ async fn given_a_scripted_cli_that_writes_a_file_through_its_tool_when_a_turn_ru
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_socket_that_drops_mid_turn_when_a_new_one_subscribes_after_the_last_seq_it_saw_then_the_two_together_have_every_event_once_in_order() {
     // Given a turn that says one thing, waits, and says another, and a mapper that follows it
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("one")]).then_sleeping(1500).then_line(&said("two"))]);
     let mut first = chain.agent().await;
@@ -180,7 +161,7 @@ async fn given_a_socket_that_drops_mid_turn_when_a_new_one_subscribes_after_the_
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_thread_with_more_events_than_a_socket_queue_holds_when_a_new_socket_subscribes_from_the_start_then_every_event_arrives_once_in_order_and_the_socket_stays_open() {
     // Given a finished turn whose CLI said more lines than the frames a socket may have waiting
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     let lines: Vec<String> = (0..QUEUE + 500).map(|n| said(&format!("line {n}"))).collect();
     chain.script(vec![Turn::replaying(&lines)]);
@@ -218,7 +199,7 @@ async fn given_a_thread_with_more_events_than_a_socket_queue_holds_when_a_new_so
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_running_turn_when_a_second_starts_and_the_first_is_interrupted_then_the_second_is_refused_and_the_first_ends_interrupted_and_frees_the_thread() {
     // Given a CLI that says it is working and stays up
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("working")]).hanging()]);
     let mut agent = chain.agent().await;
@@ -260,7 +241,7 @@ async fn given_a_running_turn_when_a_second_starts_and_the_first_is_interrupted_
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_command_running_at_the_executor_when_the_executor_process_dies_then_the_turn_ends_failed_with_the_executor_gone() {
     // Given a CLI whose command the executor is still running when the executor is killed
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let mut chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("starting")]).then_calling("k1", "run_command", json!({"command": "sleep 3"})).then_line(&said("never said"))]);
     let mut agent = chain.agent().await;
@@ -297,7 +278,7 @@ fn secret() -> Vec<(&'static str, String)> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_an_operator_with_the_service_secret_when_a_bearer_is_minted_listed_and_revoked_then_it_opens_the_socket_until_it_is_revoked_and_only_its_digest_is_kept() {
     // Given the service
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
     // When the operator mints a bearer for a label, one without a label, and lists them
@@ -334,7 +315,7 @@ async fn given_an_operator_with_the_service_secret_when_a_bearer_is_minted_liste
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_a_device_bearer_when_it_is_presented_to_the_bearer_endpoints_and_the_executor_channel_then_each_answers_401_and_nothing_changed() {
     // Given two bearers, a phone's and a watch's, and the service secret as the operator's
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
     let phone = svc.mint("phone").await;
@@ -373,7 +354,7 @@ async fn given_a_device_bearer_when_it_is_presented_to_the_bearer_endpoints_and_
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_the_service_secret_when_it_is_presented_to_the_agent_socket_then_it_is_refused_in_both_forms_and_a_service_with_no_secret_mints_nothing() {
     // Given the service, and one started with no secret configured
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
     // When the secret is presented to the socket as a bearer token and as the header, Then it is refused with 401, though the secret is what mints bearers
@@ -394,13 +375,13 @@ async fn given_the_service_secret_when_it_is_presented_to_the_agent_socket_then_
 
 /// The same chain after its service and executor were stopped and started again over the same home, repository and bearer.
 async fn restarted(old: Chain, env: &Env, options: Options) -> Chain {
-    let Chain { _svc, cli, repo, exec, token, _path, .. } = old;
+    let Chain { _svc, cli, repo, exec, token, .. } = old;
     drop(exec);
     drop(_svc);
     let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
     let port = svc.listen().await;
-    let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
-    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token, _path }
+    let exec = tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path()));
+    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token }
 }
 
 fn opencode_said(session: &str, text: &str) -> String {
@@ -410,7 +391,7 @@ fn opencode_said(session: &str, text: &str) -> String {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_an_opencode_thread_whose_turn_named_a_session_when_the_service_and_executor_restart_then_the_next_turn_resumes_that_session() {
     // Given an opencode thread whose first turn printed lines carrying the CLI's own session id, and a second turn scripted behind it
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let state = env.home.join("rca-state");
     std::fs::create_dir_all(&state).unwrap();
     let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
@@ -491,7 +472,7 @@ async fn crashed_with_a_queued_prompt(env: &Env, options: &(dyn Fn() -> Options 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_an_opencode_turn_interrupted_by_a_restart_with_a_prompt_queued_behind_it_then_the_queue_runs_in_the_kept_session_and_a_continue_resumes_it_too() {
     // Given an opencode thread whose first turn announced its session and is still running, with one more prompt queued behind it
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let state = env.home.join("rca-state");
     std::fs::create_dir_all(&state).unwrap();
     let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
@@ -523,20 +504,20 @@ async fn given_an_opencode_turn_interrupted_by_a_restart_with_a_prompt_queued_be
 
 /// The chain after its service and executor were stopped: the service starts at once and the executor only after `delay`.
 async fn restarted_with_a_late_executor(old: Chain, env: &Env, options: Options, delay: Duration) -> Chain {
-    let Chain { _svc, cli, repo, exec, token, _path, .. } = old;
+    let Chain { _svc, cli, repo, exec, token, .. } = old;
     drop(exec);
     drop(_svc);
     let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
     let port = svc.listen().await;
     tokio::time::sleep(delay).await;
-    let exec = tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET));
-    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token, _path }
+    let exec = tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path()));
+    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_restart_whose_executor_attaches_late_when_a_prompt_is_queued_then_nothing_runs_until_it_attaches_and_the_queue_then_runs_in_the_kept_session() {
     // Given an opencode thread whose running turn crashed with the service, a prompt queued behind it
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let state = env.home.join("rca-state");
     std::fs::create_dir_all(&state).unwrap();
     let options = || Options { state_dir: Some(state.clone()), ..Options::default() };
@@ -560,7 +541,7 @@ async fn given_a_restart_whose_executor_attaches_late_when_a_prompt_is_queued_th
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_an_executor_that_dies_during_a_tool_call_when_it_is_served_again_then_the_turn_ended_failed_and_the_next_turn_goes_on_in_the_kept_session() {
     // Given a claude thread whose turn announced its session and is waiting on a command at the executor
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let mut chain = chain(&env).await;
     let init = json!({"type": "system", "subtype": "init", "session_id": "ses_exec_1"}).to_string();
     chain.script(vec![

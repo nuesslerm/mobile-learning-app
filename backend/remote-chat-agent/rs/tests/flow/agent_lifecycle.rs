@@ -26,7 +26,7 @@ fn write(path: &str, content: &str) -> Value {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_thread_launched_with_a_prompt_when_it_is_forked_searched_and_merged_back_then_each_answers_from_the_engine_and_the_follower_is_sent_the_events() {
     // Given a CLI that writes a file and says something, a thread launched with its first turn, and a mapper following it
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("the plan is ready")]).then_calling("k1", "write_file", write("notes/plan.txt", "plan")), Turn::replaying(&[said("the fork found a bug")]), Turn::replaying(&[said("back in the parent")])]);
     let mut agent = chain.agent().await;
@@ -64,7 +64,7 @@ async fn given_a_thread_launched_with_a_prompt_when_it_is_forked_searched_and_me
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_threads_when_settled_archived_and_deleted_then_the_shelves_and_the_follower_see_each_and_a_delete_ends_the_turn_that_runs() {
     // Given an idle thread with a turn that ran, one that runs, and a follower of the first
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("done")]), Turn::replaying(&[said("working")]).hanging()]);
     let mut agent = chain.agent().await;
@@ -111,7 +111,7 @@ async fn given_threads_when_settled_archived_and_deleted_then_the_shelves_and_th
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_failed_turn_a_workflow_and_a_conversation_when_retried_stopped_and_detached_then_each_acts_on_the_process_and_the_next_turn() {
     // Given a CLI that fails once, then announces conversation s-3 and says something, and then stays up
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![
         Turn::replaying(&[]).exiting(1).complaining("not logged in"),
@@ -159,7 +159,7 @@ async fn given_a_failed_turn_a_workflow_and_a_conversation_when_retried_stopped_
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_thread_with_a_transcript_when_an_item_is_read_and_the_thread_is_rolled_back_then_the_item_is_the_row_of_its_seq_and_a_rollback_that_restores_files_is_refused_without_a_checkpoint_and_restores_with_one() {
     // Given a thread whose turn wrote a file and said it, then a second turn
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("writing")]).then_calling("k1", "write_file", write("notes/a.txt", "a")).then_line(&said("wrote it")), Turn::replaying(&[said("more")])]);
     let mut agent = chain.agent().await;
@@ -205,7 +205,7 @@ async fn given_a_thread_with_a_transcript_when_an_item_is_read_and_the_thread_is
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_a_devices_pins_order_and_auto_settle_choices_when_the_service_starts_again_then_the_state_group_gives_them_back_and_they_are_not_the_threads() {
     // Given a thread, and the choices a device keeps for its list of threads: pins, their order, the order of the active ones and auto-settle
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let svc = service(&env, Options::default());
     let port = svc.listen().await;
     let token = svc.mint("phone").await;

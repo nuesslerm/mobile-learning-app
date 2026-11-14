@@ -66,7 +66,7 @@ fn prompts(chain: &Chain) -> Vec<String> {
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_due_schedule_when_the_clock_passes_it_then_the_agent_group_runs_its_turn_and_the_stream_records_the_run_from_start_to_success() {
     // Given the real chain, a CLI whose turn says one thing, a mapper following the schedules stream and a schedule that runs every minute
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("hello from the schedule")])]);
     let (mut watcher, mut agent) = watching(&chain).await;
@@ -100,7 +100,7 @@ async fn given_a_due_schedule_when_the_clock_passes_it_then_the_agent_group_runs
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_schedule_that_was_disabled_when_the_clock_passes_it_then_no_turn_starts_and_run_now_starts_one_anyway() {
     // Given an enabled schedule that is then disabled through the socket
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("hello from the schedule")])]);
     let (mut watcher, mut agent) = watching(&chain).await;
@@ -130,7 +130,7 @@ async fn given_a_schedule_that_was_disabled_when_the_clock_passes_it_then_no_tur
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_webhook_schedule_when_requests_arrive_without_a_bearer_then_a_wrong_token_is_401_and_seen_by_the_schedule_and_the_right_token_runs_the_rendered_prompt() {
     // Given a webhook schedule whose prompt names a field of the body, its token, and a mapper following the stream
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[said("reviewed")])]);
     let (mut watcher, mut agent) = watching(&chain).await;
@@ -167,7 +167,7 @@ async fn given_a_webhook_schedule_when_requests_arrive_without_a_bearer_then_a_w
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_a_webhook_schedule_when_the_service_restarts_then_the_schedule_and_its_token_survive_and_the_file_holds_a_digest_never_the_token() {
     // Given a webhook schedule saved on one service
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let first = service(&env, Options::default());
     let port = first.listen().await;
     let mut agent = Agent::open(port, &first.mint("flow mapper").await).await;

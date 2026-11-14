@@ -94,7 +94,7 @@ fn start(chain: &Chain, program: &str, index: usize) -> exec_testkit::Invocation
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_fake_device_flow_when_a_provider_signs_in_and_a_turn_runs_then_the_cli_wrote_its_login_to_its_own_directory_and_the_turn_ran_in_it_with_no_reply_carrying_a_token() {
     // Given a service with every provider's credentials in its environment, and Claude's CLI scripted to log in by paste and then to say one thing
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     service_env(&env);
     let chain = chain(&env).await;
     let root = env.providers_root();
@@ -129,7 +129,7 @@ async fn given_a_fake_device_flow_when_a_provider_signs_in_and_a_turn_runs_then_
 async fn given_two_providers_signed_in_when_each_runs_a_turn_then_neither_sees_the_others_login_variables_or_files_nor_the_services_secrets() {
     // Given every provider's credentials and the service's secrets in the service's environment, Claude signed in by a pasted code and opencode
     // by another (Codex runs no remote turn yet, so the second provider that can is opencode)
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     service_env(&env);
     let chain = chain(&env).await;
     let root = env.providers_root();
@@ -182,7 +182,7 @@ async fn given_two_providers_signed_in_when_each_runs_a_turn_then_neither_sees_t
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_provider_signed_in_when_it_logs_out_then_its_login_file_is_gone_and_the_other_providers_stay() {
     // Given Codex and Claude signed in
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     let root = env.providers_root();
     chain.cli.script("codex", &Script::of(vec![codex_login("codex-token-3")]));
@@ -203,7 +203,7 @@ async fn given_a_provider_signed_in_when_it_logs_out_then_its_login_file_is_gone
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_login_command_that_fails_when_it_ends_then_the_session_says_why_and_the_provider_stays_signed_out() {
     // Given Codex's login scripted to print its address and then to fail with an error, as a login whose code expired does
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.cli.script("codex", &Script::of(vec![Turn::default().then_line(URL_LINE).complaining("error: the device code expired").exiting(1)]));
     let (mut agent, mut seen) = (chain.agent().await, Seen::default());
@@ -250,7 +250,7 @@ async fn every_method_of_accounts_and_git_ai_has_recorded_exchanges_that_are_ans
     }
     // When each fixture is replayed on a service of its own, a staged change in the repository for the git.ai exchanges
     for fixture in &fixtures {
-        let env = Env::process(&[]);
+        let env = Env::new(&[]);
         let chain = replay_rig(&env).await;
         chain.repo.write("README.md", "temp repo\nedited\n");
         chain.repo.git(&["add", "README.md"]);
@@ -276,7 +276,7 @@ async fn every_method_of_accounts_and_git_ai_has_recorded_exchanges_that_are_ans
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_staged_change_in_the_repository_when_a_message_is_generated_then_the_model_is_given_the_real_diff_and_nothing_is_committed() {
     // Given a repository with one staged edit, and the service's model double
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.repo.write("README.md", "temp repo\nedited by the flow\n");
     chain.repo.git(&["add", "README.md"]);
@@ -301,7 +301,7 @@ async fn given_a_staged_change_in_the_repository_when_a_message_is_generated_the
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_nothing_staged_when_a_message_is_generated_then_it_is_refused_without_asking_the_model() {
     // Given a clean repository
-    let env = Env::process(&[]);
+    let env = Env::new(&[]);
     let chain = chain(&env).await;
     let mut agent = chain.agent().await;
     // When a message is asked for the staged change
