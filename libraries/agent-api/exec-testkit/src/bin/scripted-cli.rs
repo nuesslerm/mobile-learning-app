@@ -175,9 +175,7 @@ fn main() {
         eprintln!("{}", turn.stderr);
     }
     if turn.hang {
-        loop {
-            std::thread::sleep(Duration::from_secs(3600));
-        }
+        exec_testkit::hang_until_orphaned();
     }
     std::process::exit(turn.exit_code);
 }

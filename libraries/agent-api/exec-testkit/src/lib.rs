@@ -39,3 +39,16 @@ pub use script::{Invocation, Script, Step, Turn};
 pub use service::RcaService;
 pub use tap::{Seen, Tap};
 pub use trace::{Case, Suite};
+
+/// A stub that never ends on its own: it ends when its parent does (the test that spawned it), so a hung stub cannot outlive its test
+/// and hold the lock `cargo` runs under, and at the latest after ten minutes.
+pub fn hang_until_orphaned() -> ! {
+    let parent = std::os::unix::process::parent_id();
+    for _ in 0..600 {
+        if std::os::unix::process::parent_id() != parent {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_secs(1));
+    }
+    std::process::exit(124)
+}
