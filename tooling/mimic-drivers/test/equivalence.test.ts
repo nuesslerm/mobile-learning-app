@@ -21,6 +21,11 @@ const OLD = {
 }
 
 const sorted = (v: any): any => (Array.isArray(v) ? v.map(sorted) : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, sorted(v[k])])) : v)
+// What a release changes on purpose: the manifest names the desktop version and the page version of the pinned release, so the guard
+// compares everything else against the old files and reads these two as the values they had then.
+const OLD_RELEASE = { desktopVersion: '1.4.214', pageVersion: 1 } as const
+const atOldRelease = (v: any): any =>
+  Array.isArray(v) ? v.map(atOldRelease) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, k in OLD_RELEASE ? OLD_RELEASE[k as keyof typeof OLD_RELEASE] : atOldRelease(x)])) : v
 const canon = (v: unknown) => JSON.stringify(sorted(v))
 const hash = (v: unknown) => createHash('sha256').update(canon(v)).digest('hex')
 const json = (path: string) => JSON.parse(readFileSync(path, 'utf8'))
@@ -79,7 +84,7 @@ test('every reference interaction was accepted by the pinned code, and the schem
 })
 
 test('goldens.json rebuilt from the cassette holds the old values', () => {
-  const rebuilt = oldGoldens(bundle)
+  const rebuilt = atOldRelease(oldGoldens(bundle))
   const old = join(mobile, 'goldens.json')
   if (existsSync(old)) assert.deepEqual(sorted(rebuilt), sorted(json(old)))
   assert.equal(hash(rebuilt), OLD.goldens)
@@ -95,7 +100,7 @@ test('the synthetic bundle files are the committed ones, byte for byte, and the 
     if (existsSync(join(old, f.path))) assert.deepEqual(data, readFileSync(join(old, f.path)), f.path)
   }
   if (existsSync(join(old, 'manifest.json'))) assert.deepEqual(sorted(manifest), sorted(json(join(old, 'manifest.json'))))
-  assert.equal(hash(manifest), OLD.manifest)
+  assert.equal(hash(atOldRelease(manifest)), OLD.manifest)
 })
 
 test('vectors.json rebuilt from the cassette holds the old values', () => {
