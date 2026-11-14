@@ -7,6 +7,7 @@ import { test } from 'node:test'
 import { repoRoot } from '../src/lock.ts'
 import { t3Corpus } from '../src/corpus/t3.ts'
 import { orcaCorpus } from '../src/corpus/orca.ts'
+import { assignCases } from '../src/corpus/index.ts'
 import type { Case, Disposition } from '../src/corpus/types.ts'
 
 type Row = { id: string; phone: boolean }
@@ -40,4 +41,21 @@ test('Given the Orca methods list and the checkout at the pin, When the corpus i
   const { cases, coverage } = await orcaCorpus()
   accounted(phoneRows('orca'), cases, coverage)
   assert.deepEqual(committed(['clis/orca-serve/cassettes/orca-recorded']).map((c) => c.id).sort(), cases.map((c) => c.id).sort())
+})
+
+test('Given shards from before a pin move, When the cases are assigned again, Then kept cases stay put, gone ones leave and new ones go to the smallest shard in id order', () => {
+  const c = (id: string, v = 0): Case => ({ id, row: id, op: 'script', input: { v }, tags: [] })
+  const shards = [[c('a'), c('b'), c('gone')], [c('d')], [c('e'), c('f')]]
+  const derived = [c('a', 1), c('b'), c('d'), c('e'), c('f'), c('z-new'), c('y-new')]
+  const out = assignCases(shards, derived).map((s) => s.map((x) => x.id))
+  assert.deepEqual(out, [['a', 'b', 'z-new'], ['d', 'y-new'], ['e', 'f']])
+  assert.deepEqual(assignCases(shards, derived)[0]![0]!.input, { v: 1 }, 'a kept case is the one derived now')
+})
+
+test('Given the committed shards and the table they came from, When the cases are assigned again, Then every shard keeps its cases', () => {
+  const shards = ['1', '2', '3'].map((i) => committed([`clis/t3-serve/cassettes/t3-recorded-${i}`]))
+  const { cases } = t3Corpus()
+  const ids = new Set(cases.map((x) => x.id))
+  const out = assignCases(shards, cases)
+  for (const [i, s] of shards.entries()) assert.deepEqual(out[i]!.filter((x) => s.some((o) => o.id === x.id)).map((x) => x.id), s.filter((o) => ids.has(o.id)).map((o) => o.id))
 })

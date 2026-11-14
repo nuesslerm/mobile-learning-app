@@ -1,6 +1,7 @@
 // node src/cli.ts serve <target>: run one driver as a mimic-driver/1 server on stdin and stdout.
 // node src/cli.ts schema orca <namespace>: derive the phone rows' payloads of a namespace from the pinned zod schemas (the X6 spike);
 // node src/cli.ts crawl <orca|t3> [--runtime <dir>]: the endpoint inventory and request corpus of the pinned source (mimic-crawl-report/1); `wf mimic crawl` runs it.
+// node src/cli.ts refresh-corpus <orca|t3> <set dir...>: the corpus of each shard of an app after a pin move, the cases it holds kept and the new rows dealt to the smallest shard.
 // node src/cli.ts scenarios <orca|t3> [<set dir>]: derive the stateful scenarios of an app from its committed crawl (corpus.json and scenarios.json of the scenario set).
 // node src/cli.ts corpus <orca|t3> <set dir>: write corpus.json and coverage.json (every enumerated row and what became of it) of a recording set.
 // with --cases the payloads as corpus cases of the `script` op.
@@ -9,7 +10,7 @@ import { orca } from './orca/index.ts'
 import { orcaLib } from './orca-lib/index.ts'
 import { cases, spike } from './orca/schema.ts'
 import { t3 } from './t3/index.ts'
-import { writeCorpus } from './corpus/index.ts'
+import { refreshCorpus, writeCorpus } from './corpus/index.ts'
 import { crawl } from './crawl/index.ts'
 import { writeScenarios } from './scenarios/index.ts'
 import { voiceEditDsl } from './voice-edit-dsl/index.ts'
@@ -29,6 +30,10 @@ if (verb === 'schema' && name === 'orca' && namespace) {
 }
 if (verb === 'corpus' && (name === 'orca' || name === 't3') && namespace) {
   process.stdout.write(`${JSON.stringify(await writeCorpus(name, namespace))}\n`)
+  process.exit(0)
+}
+if (verb === 'refresh-corpus' && (name === 'orca' || name === 't3') && namespace) {
+  process.stdout.write(`${JSON.stringify(await refreshCorpus(name, process.argv.slice(4)))}\n`)
   process.exit(0)
 }
 if (verb === 'scenarios' && (name === 'orca' || name === 't3')) {
