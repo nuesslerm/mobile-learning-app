@@ -23,23 +23,31 @@ const rule = (name, comment, from, to) => ({ name, comment, severity: 'error', f
 const noCircular = () => rule('no-circular', 'a cycle is an error', {}, { circular: true });
 const dirs = (names) => `(${names.join('|')})`;
 
+/** The directories that count as `ring`: the ring itself, a widget for `ui`, and `<sub-feature>/<ring>` for every sub-feature. */
+const ringDirs = (ring, { widgets = [], subFeatures = [] } = {}) => [
+  ring,
+  ...(ring === 'ui' ? widgets : []),
+  ...subFeatures.map((sub) => `${sub}/${ring}`),
+];
+
 /** One rule per ring: `ring` may import only the rings in `may` (and itself). */
-function ringRules(root, rings, testsFree = true) {
+function ringRules(root, rings, extra = {}, testsFree = true) {
   const names = Object.keys(rings);
   return names.map((ring) => {
     const may = rings[ring];
-    const banned = names.filter((other) => other !== ring && !may.includes(other));
+    const banned = names.filter((other) => other !== ring && !may.includes(other)).flatMap((other) => ringDirs(other, extra));
     return rule(
       `${ring}-imports-${may.length ? may.join('-') : 'nothing'}`,
       `${ring} may import ${may.length ? may.join(', ') : 'no other ring'}`,
-      { path: `^${root}/${dirs([ring])}/`, ...(testsFree ? { pathNot: TESTS } : {}) },
+      { path: `^${root}/${dirs(ringDirs(ring, extra))}/`, ...(testsFree ? { pathNot: TESTS } : {}) },
       { path: banned.length ? `^${root}/${dirs(banned)}/` : '^$' },
     );
   });
 }
 
-/** @param {{ root: string, appPrefix?: string }} o root: 'src' or 'features/<name>'; appPrefix: where `app/`, `app-shell/`, `lib/` sit relative to the cruise cwd */
-function hexagonalFeature({ root = 'src', appPrefix = '' } = {}) {
+/** @param {{ root: string, appPrefix?: string, widgets?: string[], subFeatures?: string[] }} o root: 'src' or 'features/<name>'; appPrefix: where `app/`, `app-shell/`, `lib/` sit relative to the cruise cwd; widgets: self-contained directories that count as ui; subFeatures: directories that repeat the ring names inside themselves */
+function hexagonalFeature({ root = 'src', appPrefix = '', widgets = [], subFeatures = [] } = {}) {
+  const extra = { widgets, subFeatures };
   const inApp = root.startsWith('features/');
   const own = inApp ? root.split('/')[1] : '';
   const rings = {
@@ -57,12 +65,21 @@ function hexagonalFeature({ root = 'src', appPrefix = '' } = {}) {
       rule(
         'module-in-a-ring',
         'every module sits in domain, data, state, ui, di, routes or testing, or is the barrel',
-        { path: `^${root}/`, pathNot: [`^${root}/${dirs([...notTesting, 'testing'])}/`, `^${root}/index\\.tsx?$`, '\\.(json|md)$', ...TESTS] },
+        {
+          path: `^${root}/`,
+          pathNot: [
+            `^${root}/${dirs([...notTesting, ...widgets, 'testing'])}/`,
+            ...subFeatures.map((sub) => `^${root}/${sub}/((domain|data|state|ui)/|index\\.tsx?$)`),
+            `^${root}/index\\.tsx?$`,
+            '\\.(json|md)$',
+            ...TESTS,
+          ],
+        },
         {},
       ),
-      ...ringRules(root, rings),
-      rule('production-does-not-import-testing', 'no production ring imports testing/', { path: `^${root}/${dirs(notTesting)}/`, ...production }, { path: `^${root}/testing/` }),
-      rule('only-di-reads-app-di', 'di/ is the only reader of @lib/app-di', { path: `^${root}/${dirs(['domain', 'data', 'state', 'ui', 'routes'])}/`, ...production }, { path: APP_DI }),
+      ...ringRules(root, rings, extra),
+      rule('production-does-not-import-testing', 'no production ring imports testing/', { path: `^${root}/${dirs([...notTesting, ...widgets])}/`, ...production }, { path: `^${root}/testing/` }),
+      rule('only-di-reads-app-di', 'di/ is the only reader of @lib/app-di', { path: `^${root}/${dirs(['domain', 'data', 'state', 'ui', 'routes', ...widgets])}/`, ...production }, { path: APP_DI }),
       rule(
         'domain-pulls-no-framework',
         'domain/ imports no React, React Native, Expo or tamagui',

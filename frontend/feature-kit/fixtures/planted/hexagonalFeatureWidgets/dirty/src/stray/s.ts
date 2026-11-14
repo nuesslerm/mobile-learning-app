@@ -1,0 +1,2 @@
+import '../domain/rules';
+export {};

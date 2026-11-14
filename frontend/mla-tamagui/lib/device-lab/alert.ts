@@ -1,7 +1,7 @@
 import { Alert } from 'react-native';
 
 import { buildAlertDialog, type AlertButton, type AlertOptions, type PendingAlert } from './alertDialog';
-import type { DeviceLab } from './index';
+import type { DeviceLab } from './types';
 
 type Pending = PendingAlert & { record: DeviceLab['alerts'][number] };
 

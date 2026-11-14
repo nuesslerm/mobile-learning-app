@@ -47,6 +47,11 @@ const CASES: { preset: string; config: unknown; rules: string[]; entries?: strin
     ],
   },
   {
+    preset: 'hexagonalFeatureWidgets',
+    config: presets.hexagonalFeature({ root: 'src', widgets: ['widget'], subFeatures: ['sub'] }),
+    rules: ['module-in-a-ring', 'state-imports-domain', 'ui-imports-domain-state'],
+  },
+  {
     preset: 'presentationFeature',
     config: presets.presentationFeature({ root: 'src' }),
     rules: ['presentation-has-no-ring-beyond-ui', 'routes-imports-ui', 'state-imports-nothing', 'ui-imports-state'],
