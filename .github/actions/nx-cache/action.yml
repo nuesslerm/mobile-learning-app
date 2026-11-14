@@ -45,8 +45,8 @@ runs:
         MAX_MB: ${{ inputs.max-mb }}
       run: |
         before=$(cat "$RUNNER_TEMP/nx-cache.entries" 2>/dev/null || echo 0)
-        now=$(ls -1 ~/.nx/*/cache 2>/dev/null | wc -l)
-        mb=$(du -smc ~/.nx/*/cache ~/.nx/*/databases 2>/dev/null | tail -1 | cut -f1)
+        now=$(ls -1 ~/.nx/*/cache 2>/dev/null | wc -l || true)
+        mb=$(du -smc ~/.nx/*/cache ~/.nx/*/databases 2>/dev/null | tail -1 | cut -f1 || true)
         mb=${mb:-0}
         save=true
         # an unchanged entry count means every task replayed: a new copy would only churn the repository's cache quota

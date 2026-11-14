@@ -30,5 +30,5 @@ runs:
         else result="miss"; fi
         paths=${CACHE_PATHS//\~/$HOME}
         # shellcheck disable=SC2086
-        mb=$(du -smc $paths 2>/dev/null | tail -1 | cut -f1)
+        mb=$(du -smc $paths 2>/dev/null | tail -1 | cut -f1 || true)
         echo "- **$LAYER** ($GITHUB_JOB): $result, restored ${mb:-0} MB" >> "$GITHUB_STEP_SUMMARY"
