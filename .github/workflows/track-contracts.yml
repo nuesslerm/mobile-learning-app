@@ -223,8 +223,11 @@ jobs:
           app="${SET_NAME%%-*}"
           case "$app" in t3) ref=t3code ;; orca) ref=orca ;; *) echo "no reference tree for $app"; exit 1 ;; esac
           pin=$(jq -r .commit "tooling/$app-conformance/$app-pin.json")
-          git submodule update --init --depth 1 "references/$ref"
-          git -C "references/$ref" fetch --depth 1 origin "$pin"
+          url=$(git config -f .gitmodules "submodule.references/$ref.url")
+          rm -rf "references/$ref"; mkdir -p "references/$ref"
+          git -C "references/$ref" init -q
+          git -C "references/$ref" remote add origin "$url"
+          for try in 1 2 3; do git -C "references/$ref" -c gc.auto=0 -c maintenance.auto=false fetch -q --depth 1 origin "$pin" && break; sleep 5; done
           git -C "references/$ref" checkout -q FETCH_HEAD
           pnpm install --frozen-lockfile --filter mimic-drivers
           wf parity coverage --app "$app"
