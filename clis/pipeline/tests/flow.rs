@@ -21,5 +21,7 @@ mod expected_revisions;
 mod pipeline;
 #[path = "flow/publish.rs"]
 mod publish;
+#[path = "flow/ts_packages.rs"]
+mod ts_packages;
 #[path = "flow/workspace_crossings.rs"]
 mod workspace_crossings;

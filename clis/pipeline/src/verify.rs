@@ -153,6 +153,10 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
     for found in &crossings {
         wf_kit::wf_err!("wf: workspace crossing rule broken ({found})");
     }
+    let ts_packages = crate::ts_packages::check(root).findings;
+    for found in &ts_packages {
+        wf_kit::wf_err!("wf: ts package rule broken ({found})");
+    }
     let cargo_inputs = crate::cargo_inputs::check(root).findings;
     for found in &cargo_inputs {
         wf_kit::wf_err!("wf: cargo task hashes npm packages ({found})");
@@ -191,6 +195,8 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
         Budget { name: "blast-radius-violations", value: blast_radius.len(), limit: 0, gated: true },
         // A path dependency across a Cargo workspace boundary is on the checked-in list, and the list only shrinks (`workspace_crossings`).
         Budget { name: "workspace-crossing-violations", value: crossings.len(), limit: 0, gated: true },
+        // A TypeScript package lives in frontend/ unless it is on the checked-in list, and the list only shrinks (`ts_packages`).
+        Budget { name: "ts-package-violations", value: ts_packages.len(), limit: 0, gated: true },
         // No CI job asks for a key past its class: an open job reads ci-open and public keys, no job reads a vm key (`wf secret scope-check`).
         Budget { name: "ci-scope-violations", value: scope_check.len(), limit: 0, gated: true },
         // Every third-party action is pinned to a commit sha, so a moved tag cannot change what a job runs (`workflow_hygiene`).
@@ -642,7 +648,7 @@ pub fn apps_for_paths(paths: &[String]) -> Vec<&'static str> {
     apps
 }
 
-pub const BUDGET: Spec = Spec { flags: &["budget", "strict", "blast-radius", "unused-deps", "workspace-crossings", "cargo-inputs"], positional: Positional::None, ..Spec::NONE };
+pub const BUDGET: Spec = Spec { flags: &["budget", "strict", "blast-radius", "unused-deps", "workspace-crossings", "ts-packages", "cargo-inputs"], positional: Positional::None, ..Spec::NONE };
 
 /// `check --budget [--strict]`.
 pub fn budget(args: &[String]) -> Option<i32> {
@@ -662,6 +668,14 @@ pub fn budget(args: &[String]) -> Option<i32> {
         println!("{}", report.json);
         for found in &report.findings {
             wf_kit::wf_err!("wf: workspace crossing rule broken ({found})");
+        }
+        return Some(i32::from(!report.findings.is_empty()));
+    }
+    if p.flag("ts-packages") {
+        let report = crate::ts_packages::check(&root);
+        println!("{}", report.json);
+        for found in &report.findings {
+            wf_kit::wf_err!("wf: ts package rule broken ({found})");
         }
         return Some(i32::from(!report.findings.is_empty()));
     }

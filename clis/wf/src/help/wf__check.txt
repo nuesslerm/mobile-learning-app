@@ -50,6 +50,9 @@ Options:
                      workspace boundary; fails on one not in
                      clis/pipeline/data/workspace-crossings.json or an entry
                      that no longer crosses (the list only shrinks)
+  --ts-packages      JSON list of the TypeScript packages outside frontend/;
+                     fails on one not in clis/pipeline/data/ts-packages.json or
+                     an entry with no package.json (the list only shrinks)
   --cargo-inputs     JSON list of the packages whose test:flow or test:integration
                      only runs cargo; fails on one whose Nx inputs lack
                      { "externalDependencies": [] } (the npm layout differs by

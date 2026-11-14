@@ -40,6 +40,7 @@ pub mod test_metrics;
 pub mod test_publish;
 pub mod verify;
 pub mod workflow_hygiene;
+pub mod ts_packages;
 pub mod workspace_crossings;
 
 use wf_kit::args::{parse_spec, Positional, Spec};
@@ -77,7 +78,7 @@ fn check(rest: &[String]) -> Option<i32> {
         pushed::run(rest)
     } else if modes.flag("staged") {
         verify::staged(rest, |_| None)
-    } else if modes.flag("budget") || modes.flag("blast-radius") || modes.flag("unused-deps") || modes.flag("workspace-crossings") || modes.flag("cargo-inputs") {
+    } else if modes.flag("budget") || modes.flag("blast-radius") || modes.flag("unused-deps") || modes.flag("workspace-crossings") || modes.flag("ts-packages") || modes.flag("cargo-inputs") {
         verify::budget(rest)
     } else {
         None

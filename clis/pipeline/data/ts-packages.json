@@ -1,0 +1,21 @@
+{
+  "allowed": [
+    "backend/leetcode-auth-cookie-capture",
+    "backend/leetcode-backend",
+    "backend/remote-chat-agent",
+    "backend/reporting-service",
+    "backend/service-kit",
+    "backend/vm-ops-api",
+    "clis/vnc-auth-capture",
+    "infra/oracle-cloud/watchdog",
+    "libraries/browser-client",
+    "libraries/hook-runtime",
+    "tooling/browser-harness",
+    "tooling/browser-harness/contracts",
+    "tooling/browser-harness/data",
+    "tooling/browser-harness/di",
+    "tooling/browser-harness/ui",
+    "tooling/browser-harness/use-cases",
+    "tooling/mimic-drivers"
+  ]
+}
