@@ -32,3 +32,5 @@ mod vm_drill;
 mod vm_state;
 #[path = "flow/vm_state_boot.rs"]
 mod vm_state_boot;
+#[path = "flow/vm_stock.rs"]
+mod vm_stock;

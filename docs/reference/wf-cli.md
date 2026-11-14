@@ -5897,6 +5897,8 @@ Commands:
                          replayed at container start
   creds                  OCI credentials for Terraform
   terraform              Terraform for infra/oracle-cloud
+  stock [options]        Hetzner Cloud server types orderable now, and what
+                         changed since the last run
   net                    Tailnet devices and the auth key
   ops                    Operate vm-ops-api itself (health, self-redeploy)
   help [command]         display help for command
@@ -7305,6 +7307,73 @@ Options:
   --app <name>  only this app
   --local       the agent-shell side (see backup)
   -h, --help    display help for command
+```
+
+</details>
+
+### `wf vm stock`
+
+Asks the Hetzner Cloud API which server types can be ordered right now and where, so a scheduler can tell the owner when one becomes orderable. A plan counts as available when the API marks it available in any of its locations (Hetzner's own indicator, not a guarantee). With --state the previous result is read first and rewritten after, and the plans whose overall availability flipped, appeared or vanished are listed. The token comes from HCLOUD_READ_TOKEN in the environment, else from the vault; it is read-only and never printed or kept in the state file.
+
+Usage: `wf vm stock [options]`
+
+| Option | Meaning |
+|---|---|
+| `--provider <name>` | Cloud provider (default hetzner, the only one; any other is refused before any request) |
+| `--family <list>` | Comma list of families by name prefix: cx, cax, cpx, ccx (default cx,cax: the cost-optimized x86 and Arm lines) |
+| `--min-vcpu <n>` | Only plans with at least n vCPU (default 0) |
+| `--min-ram-gb <n>` | Only plans with at least n GB of RAM (default 0) |
+| `--api <url>` | The API root (default https://api.hetzner.cloud/v1) |
+| `--state <file>` | The last result: read before the run, rewritten after it |
+
+Examples:
+
+```sh
+wf vm stock --state /tmp/hetzner-stock.json
+wf vm stock --family cx,cax --min-vcpu 4 --min-ram-gb 8 --state /tmp/hetzner-stock.json
+wf vm stock --family cpx,ccx --min-vcpu 4
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf vm stock [options]
+
+Asks the Hetzner Cloud API which server types can be ordered right now and where,
+so a scheduler can tell the owner when one becomes orderable. A plan counts as
+available when the API marks it available in any of its locations (Hetzner's own
+indicator, not a guarantee). With --state the previous result is read first and
+rewritten after, and the plans whose overall availability flipped, appeared or
+vanished are listed.
+
+The token comes from HCLOUD_READ_TOKEN in the environment, else from the vault. It
+is a read-only Hetzner Cloud token: the verb only lists server types and never
+creates, changes or deletes anything. It is never printed or kept in the state file.
+
+Options:
+  --provider <name>    Cloud provider (default hetzner, the only one; any other is
+                       refused before any request)
+  --family <list>      Comma list of families by name prefix: cx, cax, cpx, ccx
+                       (default cx,cax: the cost-optimized x86 and Arm lines)
+  --min-vcpu <n>       Only plans with at least n vCPU (default 0)
+  --min-ram-gb <n>     Only plans with at least n GB of RAM (default 0)
+  --api <url>          The API root (default https://api.hetzner.cloud/v1)
+  --state <file>       The last result: read before the run, rewritten after it
+  -h, --help           display help for command
+
+Output: one JSON object on stdout {ok, provider, source: "api", plans: [{name,
+arch, category, vcpu, ramGb, diskGb, priceMonthExVatEur, locations: {name: bool},
+available, availableIn: [names]}], available: [names], summary}; with --state also
+changed: [{name, was, now, locations}] and firstRun (true when there was no
+previous result, then changed is empty). Exit 0 whenever the API answered; exit 1
+with {ok: false, error} when the token is missing or refused, the API answers an
+error or not at all, its answer has no server types, or the provider is unknown.
+Uses the proxy environment.
+
+Examples:
+  wf vm stock --state /tmp/hetzner-stock.json
+  wf vm stock --family cx,cax --min-vcpu 4 --min-ram-gb 8 --state /tmp/hetzner-stock.json
+  wf vm stock --family cpx,ccx --min-vcpu 4
 ```
 
 </details>

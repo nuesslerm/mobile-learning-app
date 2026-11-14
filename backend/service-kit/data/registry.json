@@ -251,6 +251,21 @@
     "description": "WHAT: BetterStack OTLP ingest token for backend services and CLI telemetry ONLY — deliberately separate from EXPO_PUBLIC_BETTERSTACK_OTLP_TOKEN (mobile's own OTLP token) and from the legacy EXPO_PUBLIC_BETTERSTACK_TOKEN REST forwarder token. WHERE: read by every backend/* service's @lib/logging OTel bridge (frontend/libraries/logging/src/node/otelProviders.ts) and by wf's span/metric instrumentation — OPTIONAL everywhere, a deploy succeeds without it (falls back to console-only logging, no traces/metrics exported). WHY IT MATTERS: medium, not low like the mobile token — this token is shared across all 5 backend services plus every CI run of `wf`, none of which ship it to an untrusted client, but a leak from any one of those (a compromised CI runner, a misconfigured log line, a compromised backend host) lets an attacker inject forged spans/logs/metrics that appear to originate from ANY backend service or from CI, undermining the trustworthiness of every cross-boundary trace this plan's R11 depends on, and can exhaust the shared source's ingest quota for real backend and CI telemetry. Rotate if any backend host or CI runner is suspected compromised. From BetterStack -> Telemetry -> Sources -> <a source dedicated to backend and CLI, NOT the mobile source> -> OTLP ingest token.",
     "uncheckable": "its only endpoint is a write (log ingest), so a check would write a log line"
   },
+  "HCLOUD_READ_TOKEN": {
+    "service": "hcloud-read-token",
+    "envVar": "HCLOUD_READ_TOKEN",
+    "scope": "ci-deploy",
+    "description": "WHAT: read-only Hetzner Cloud API token (project permission Read) used only to check which server plans are orderable in which location, so the owner is told when a CX or CAX plan comes back. WHERE (consumers): read by the Hetzner stock verb (wf vm stock) that the scheduled availability clock in the schedules session runs. It never creates, changes or deletes a server. Without it the verb exits with an error. WHY IT MATTERS: low, read-only, but it names the owner's Hetzner project. HOW TO GET IT: Hetzner Cloud console -> the project -> Security -> API tokens -> Generate API token -> Read. Rotate it by creating a new one and running wf secret update HCLOUD_READ_TOKEN --value-stdin --apply.",
+    "check": {
+      "live": {
+        "url": "https://api.hetzner.cloud/v1/servers?per_page=1",
+        "header": {
+          "Authorization": "Bearer {value}",
+          "User-Agent": "wf-preflight"
+        }
+      }
+    }
+  },
   "VM_PROVISION_GITHUB_TOKEN": {
     "service": "vm-provision-github-token",
     "envVar": "VM_PROVISION_GITHUB_TOKEN",

@@ -43,6 +43,7 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("vm state restore", false, include_str!("help/wf__vm__state__restore.txt")),
     ("vm state list", false, include_str!("help/wf__vm__state__list.txt")),
     ("vm state verify", false, include_str!("help/wf__vm__state__verify.txt")),
+    ("vm stock", false, include_str!("help/wf__vm__stock.txt")),
     ("vm terraform", true, include_str!("help/wf__vm__terraform.txt")),
     ("vm terraform apply", false, include_str!("help/wf__vm__terraform__apply.txt")),
     ("vm terraform preflight", false, include_str!("help/wf__vm__terraform__preflight.txt")),
