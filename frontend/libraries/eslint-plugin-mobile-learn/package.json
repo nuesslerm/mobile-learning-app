@@ -27,6 +27,7 @@
     "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "prepare": "pnpm run build",
     "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
     "test": "vitest run",
     "test:unit": "vitest run"
   },

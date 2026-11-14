@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import os from 'node:os';
@@ -59,12 +59,7 @@ describe('the plugin under oxlint', () => {
     writeFileSync(path.join(dir, '.oxlintrc.json'), JSON.stringify({ plugins: ['typescript'], options: { typeAware: true }, rules }));
 
     // When oxlint lints it with the repo's promise rules, type-aware
-    let out: string;
-    try {
-      out = execFileSync(oxlint, ['--format', 'unix', '.'], { cwd: dir, encoding: 'utf8' });
-    } catch (err) {
-      out = (err as { stdout: string }).stdout;
-    }
+    const out = spawnSync(oxlint, ['--format', 'unix', '.'], { cwd: dir, encoding: 'utf8' }).stdout;
 
     // Then every rule fires on its own file, and the node:test calls stay clean
     expect(out).toMatch(/^floating\.ts:3:\d+: .*no-floating-promises/m);

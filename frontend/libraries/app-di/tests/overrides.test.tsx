@@ -6,13 +6,15 @@ import {
   useDependencyOverrides,
 } from '../src/index';
 
+function ReadOverride({ name }: { name: string }) {
+  return <span data-key={name}>{JSON.stringify(useDependencyOverrides(name))}</span>;
+}
+
 function ReadOverrides({ keys }: { keys: string[] }) {
   return (
     <div>
       {keys.map((key) => (
-        <span key={key} data-key={key}>
-          {JSON.stringify(useDependencyOverrides(key))}
-        </span>
+        <ReadOverride key={key} name={key} />
       ))}
     </div>
   );
