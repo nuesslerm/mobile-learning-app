@@ -371,8 +371,10 @@ version = "0.1.0"
 dependencies = [
  "cli-http",
  "getrandom 0.4.3",
+ "hmac",
  "serde",
  "serde_json",
+ "sha2",
  "tiny_http",
 ]
 

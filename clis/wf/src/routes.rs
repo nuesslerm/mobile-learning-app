@@ -29,6 +29,7 @@ pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[
     ("agent-config", agent_config_sync::verb::run),
     ("offload", offload::offload),
     ("cache", wf_bucket::cache::run),
+    ("bucket", wf_bucket::serve::run),
     ("lib", wf_lib::run),
     ("t3", external::t3),
     ("exec", external::exec),

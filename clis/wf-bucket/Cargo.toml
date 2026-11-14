@@ -14,7 +14,7 @@ inputs = ["../secrets/src/data/registry.json"]
 test = false
 doctest = false
 
-# Serves only `wf cache`, which is all this crate's flow tests spawn.
+# Serves `wf cache` and `wf bucket serve`, which is all this crate's flow tests spawn.
 [[bin]]
 name = "wf-bucket"
 path = "src/bin/wf-bucket.rs"
@@ -30,10 +30,10 @@ telemetry = { version = "0.1", registry = "mla", features = ["metrics"] }
 serde_json = { version = "1", features = ["preserve_order"] }
 sha2 = "0.10"
 hex = "0.4"
+tiny_http = "0.12"
 
 [dev-dependencies]
 wf-testkit = { path = "../wf-testkit" }
 # The relay test doubles vm-ops-api with the fake wf-vmops ships.
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 tempfile = "3"
-tiny_http = "0.12"

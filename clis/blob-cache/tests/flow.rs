@@ -2,10 +2,14 @@
 //! the kinds table and the purity of the domain.
 #[path = "flow/app_build.rs"]
 mod app_build;
+#[path = "flow/http_store.rs"]
+mod http_store;
 #[path = "flow/par_fake.rs"]
 mod par_fake;
 #[path = "flow/pnpm.rs"]
 mod pnpm;
+#[path = "flow/s3_fake.rs"]
+mod s3_fake;
 
 use blob_cache::adapters::{DirStore, OciParStore};
 use blob_cache::domain::{write_allowed, Budget, Degraded, Generation, Key, Kind, Pins, Refusal, WriteFacts};
