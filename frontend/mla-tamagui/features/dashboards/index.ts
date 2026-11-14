@@ -1,3 +1,3 @@
-export { AgentsDashboardScreen } from './AgentsDashboardScreen';
-export { DashboardsIndexScreen } from './DashboardsIndexScreen';
-export { InfraDashboardScreen } from './InfraDashboardScreen';
+export { AgentsDashboardScreen } from './ui/AgentsDashboardScreen';
+export { DashboardsIndexScreen } from './ui/DashboardsIndexScreen';
+export { InfraDashboardScreen } from './ui/InfraDashboardScreen';

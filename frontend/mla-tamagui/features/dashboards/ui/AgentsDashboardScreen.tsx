@@ -13,26 +13,21 @@ import {
   type StackedBarChartColor,
   type StackedBarChartSegment,
 } from '@lib/tamagui-design-system';
-import { appConfig } from '@lib/app-config';
-import { useDependencyOverrides } from '@lib/app-di';
-import { backTo } from '@feature/settings';
+import { backTo } from '@lib/tamagui-design-system/lib/backTo';
 import { router } from 'expo-router';
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { ScrollView } from 'react-native';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
-import {
-  createHttpReportingGateway,
-  type ReportingGateway,
-  type ReportingResult,
-} from './data/reportingGateway';
+import type { ReportingResult } from '../domain/ports';
+import { useDashboardsPorts } from '../state/ports';
 import type {
   PlanDayTotal,
   PlanDetail,
   PlansResponse,
   PlanSummary,
   ResolvedRun,
-} from './data/reportingSchema';
+} from '../domain/reportingSchema';
 
 type Measure = 'tokens' | 'cost' | 'notional';
 
@@ -222,15 +217,7 @@ export function AgentsDashboardScreen() {
 
   const drillSlug = drill.level === 'overview' ? null : drill.slug;
 
-  const { reportingGateway: overrideGateway } =
-    useDependencyOverrides<{ reportingGateway: ReportingGateway }>(
-      'dashboards',
-    );
-  const reportingGateway = useMemo(
-    () =>
-      overrideGateway ?? createHttpReportingGateway(appConfig.reportingBaseUrl),
-    [overrideGateway],
-  );
+  const { reportingGateway } = useDashboardsPorts();
 
   useEffect(() => {
     const gateway = reportingGateway;

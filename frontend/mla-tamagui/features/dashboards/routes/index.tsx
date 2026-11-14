@@ -1,4 +1,4 @@
-import { DashboardsIndexScreen } from '../DashboardsIndexScreen';
+import { DashboardsIndexScreen } from '../ui/DashboardsIndexScreen';
 
 export default function DashboardsIndexRoute() {
   return <DashboardsIndexScreen />;

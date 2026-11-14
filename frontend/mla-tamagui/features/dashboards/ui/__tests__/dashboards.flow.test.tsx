@@ -6,13 +6,10 @@ import {
 } from '@lib/flow-test-harness';
 import { describe, expect, it } from 'vitest';
 
-import {
-  createFixtureReportingGateway,
-  createHttpReportingGateway,
-  type ReportingFixtures,
-} from '../../features/dashboards/data/reportingGateway';
+import { createFixtureReportingGateway, createHttpReportingGateway } from '../../data/reportingGateway';
+import type { ReportingFixtures } from '../../domain/ports';
 
-import { app } from './app';
+import { app } from '../../../../tests/flow/app';
 
 const GiB = 1024 ** 3;
 

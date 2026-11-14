@@ -52,18 +52,7 @@ export default function ContentLayout() {
         options={{ headerShown: false }}
       />
       <Stack.Screen name="settings/about" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="dashboards/index"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="dashboards/infra"
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="dashboards/agents"
-        options={{ headerShown: false }}
-      />
+      <Stack.Screen name="dashboards" options={{ headerShown: false }} />
       <Stack.Screen
         name="service-report"
         options={{

@@ -11,26 +11,20 @@ import {
   View,
   type TimeSeries,
 } from '@lib/tamagui-design-system';
-import { appConfig } from '@lib/app-config';
-import { useDependencyOverrides } from '@lib/app-di';
-import { backTo } from '@feature/settings';
-import { useEffect, useMemo, useState } from 'react';
+import { backTo } from '@lib/tamagui-design-system/lib/backTo';
+import { useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
 import { YStack } from '@lib/tamagui-design-system/primitives';
 
-import {
-  createHttpReportingGateway,
-  type ReportingGateway,
-  type ReportingResult,
-  type SeriesWindow,
-} from './data/reportingGateway';
+import type { ReportingResult, SeriesWindow } from '../domain/ports';
+import { useDashboardsPorts } from '../state/ports';
 import type {
   HeadroomResourceReport,
   MetricSample,
   MetricsCurrentResponse,
   MetricsSeriesResponse,
   HeadroomResponse,
-} from './data/reportingSchema';
+} from '../domain/reportingSchema';
 
 const GiB = 1024 ** 3;
 const OCPU_CEILING = 2;
@@ -225,15 +219,7 @@ export function InfraDashboardScreen() {
   const [window, setWindow] = useState<SeriesWindow>('24h');
   const [state, setState] = useState<InfraState>({ status: 'loading' });
 
-  const { reportingGateway: overrideGateway } =
-    useDependencyOverrides<{ reportingGateway: ReportingGateway }>(
-      'dashboards',
-    );
-  const reportingGateway = useMemo(
-    () =>
-      overrideGateway ?? createHttpReportingGateway(appConfig.reportingBaseUrl),
-    [overrideGateway],
-  );
+  const { reportingGateway } = useDashboardsPorts();
 
   useEffect(() => {
     const gateway = reportingGateway;

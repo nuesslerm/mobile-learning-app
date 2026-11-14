@@ -8,14 +8,13 @@ import {
   View,
 } from '@lib/tamagui-design-system';
 import { Bot, Cpu } from '@lib/tamagui-design-system/icons';
-import { appConfig } from '@lib/app-config';
-import { backTo } from '@feature/settings';
+import { backTo } from '@lib/tamagui-design-system/lib/backTo';
 import { router } from 'expo-router';
 import type { Href } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
 
-import { createHttpReportingGateway } from './data/reportingGateway';
+import { useDashboardsPorts } from '../state/ports';
 
 type DataAgeState =
   | { status: 'loading' }
@@ -86,9 +85,10 @@ function DashboardRow({
 
 export function DashboardsIndexScreen() {
   const [dataAge, setDataAge] = useState<DataAgeState>({ status: 'loading' });
+  const { reportingGateway } = useDashboardsPorts();
 
   useEffect(() => {
-    const gateway = createHttpReportingGateway(appConfig.reportingBaseUrl);
+    const gateway = reportingGateway;
     let cancelled = false;
     void gateway.getMetricsCurrent().then((result) => {
       if (cancelled) return;
@@ -110,7 +110,7 @@ export function DashboardsIndexScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [reportingGateway]);
 
   return (
     <View flex={1} bg="$background" testID="DashboardsIndexScreen">
