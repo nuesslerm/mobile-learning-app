@@ -1,9 +1,13 @@
+import { spawnSync } from 'node:child_process';
+import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { cruise } from 'dependency-cruiser';
-import { describe, expect, it } from 'vitest';
+import assert from 'node:assert/strict';
+import { describe, it } from 'node:test';
 
 const require = createRequire(import.meta.url);
 const presets = require('../depcruise.presets.cjs');
@@ -80,11 +84,52 @@ const CASES: { preset: string; config: unknown; rules: string[]; entries?: strin
   },
 ];
 
-describe.each(CASES)('$preset', ({ preset, config, rules, entries = ['src'] }) => {
+for (const { preset, config, rules, entries = ['src'] } of CASES) describe(preset, () => {
   it('Given the clean twin, When cruised with the real preset, Then nothing is reported', async () => {
-    expect(await violations(preset, 'clean', config, entries)).toEqual([]);
+    assert.deepEqual(await violations(preset, 'clean', config, entries), []);
   });
   it('Given the dirty tree with one offending import per rule, When cruised, Then exactly those rules are reported', async () => {
-    expect(await violations(preset, 'dirty', config, entries)).toEqual([...rules].sort());
+    assert.deepEqual(await violations(preset, 'dirty', config, entries), [...rules].sort());
+  });
+});
+
+const kit = path.join(planted, '..', '..');
+const frontend = path.join(kit, '..');
+
+function oxlintRules(variant: 'clean' | 'dirty'): Record<string, string[]> {
+  const dir = mkdtempSync(path.join(os.tmpdir(), 'oxlint-planted-'));
+  try {
+    cpSync(path.join(planted, 'oxlint', variant), dir, { recursive: true });
+    const config = readFileSync(path.join(frontend, '.oxlintrc.json'), 'utf8')
+      .replace('./libraries/eslint-plugin-mobile-learn', path.join(frontend, 'libraries', 'eslint-plugin-mobile-learn'))
+      .replace('"typeAware": true', '"typeAware": false');
+    writeFileSync(path.join(dir, '.oxlintrc.json'), config);
+    const run = spawnSync(path.join(frontend, 'mla-tamagui', 'node_modules', '.bin', 'oxlint'), ['-c', '.oxlintrc.json', '--format=unix', '.'], { cwd: dir, encoding: 'utf8' });
+    const found: Record<string, string[]> = {};
+    for (const line of run.stdout.split('\n')) {
+      const m = /^(.+?):\d+:\d+: .*\[(?:Error|Warning)\/eslint\(([\w-]+)\)\]/.exec(line);
+      if (m) (found[m[1].replace(/^\.\//, '')] ??= []).push(m[2]);
+    }
+    return found;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
+describe('oxlint arch overrides', () => {
+  it('Given the clean twin, When linted with the real config, Then nothing is reported', () => {
+    assert.deepEqual(oxlintRules('clean'), {});
+  });
+  it('Given one offending line per rule, When linted, Then each file reports exactly its rule', () => {
+    assert.deepEqual(oxlintRules('dirty'), {
+      'mla-tamagui/features/f/ui/Net.tsx': ['no-restricted-globals'],
+      'mla-tamagui/features/f/ui/Store.tsx': ['no-restricted-imports'],
+      'libraries/gesture-geometry/src/p.ts': ['no-restricted-globals'],
+      'libraries/gesture-geometry/src/g.ts': ['no-restricted-properties'],
+      'libraries/gesture-geometry/src/f.ts': ['no-restricted-imports'],
+      'libraries/gesture-geometry/src/b.ts': ['no-restricted-imports'],
+      'mla-tamagui/tests/flow/spy.flow.test.tsx': ['no-restricted-properties'],
+      'libraries/gesture-geometry/src/m.test.ts': ['no-restricted-properties'],
+    });
   });
 });

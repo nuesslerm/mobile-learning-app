@@ -123,15 +123,81 @@
       "rules": { "mobile-learn/no-hermes-unsupported-api": "off" }
     },
     {
-      // flow tests render the real component tree; a mocked module is a screen nobody ships
+      // network is reached from data/ and lib/ only; a screen, a store or a rule that calls fetch cannot be driven by a test double
+      "files": [
+        "mla-tamagui/features/*/{domain,state,ui,di,routes}/**",
+        "mla-tamagui/features/*/src/{domain,state,ui,di,routes}/**",
+        "mla-tamagui/app/**",
+        "mla-tamagui/app-shell/**"
+      ],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          { "name": "fetch", "message": "Network goes through a data/ adapter (create<Tech><Port>(config, io?)) behind a port, never from ui/, state/, domain/, di/ or routes/." },
+          { "name": "XMLHttpRequest", "message": "Network goes through a data/ adapter behind a port." },
+          { "name": "WebSocket", "message": "Network goes through a data/ adapter behind a port." },
+          { "name": "EventSource", "message": "Network goes through a data/ adapter behind a port." }
+        ]
+      }
+    },
+    {
+      // AsyncStorage is a data/ adapter or a persisted store in state/
+      "files": [
+        "mla-tamagui/features/*/{domain,ui,di,routes}/**",
+        "mla-tamagui/features/*/src/{domain,ui,di,routes}/**"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          { "paths": [{ "name": "@react-native-async-storage/async-storage", "message": "Storage is read in data/ (an adapter) or state/ (a persisted store), never in domain/, ui/, di/ or routes/." }] }
+        ]
+      }
+    },
+    {
+      // the core of a pure or hexagonal library is deterministic: no process, no ambient globals, no node I/O (node:path and node:crypto are pure)
+      "files": [
+        "libraries/{gesture-geometry,voice-edit-dsl,remote-chat-agent-contracts}/src/**",
+        "libraries/*/src/core/**"
+      ],
+      "rules": {
+        "no-restricted-globals": ["error", { "name": "process", "message": "A pure core reads no process state; the adapter passes values in." }],
+        "no-restricted-properties": ["error", { "object": "globalThis", "property": "process", "message": "A pure core reads no process state; the adapter passes values in." }],
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              { "regex": "^(node:)?(fs|fs/promises|child_process|net|http|https|os|dns|tls|worker_threads)$", "message": "A pure core does no node I/O." }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      // tests of the app's features and libraries never replace a project module: a double goes through a port or a harness stub
       "files": ["**/*.flow.test.{ts,tsx}"],
       "rules": {
         "no-restricted-properties": [
           "error",
           { "object": "vi", "property": "mock", "message": "No vi.mock in flow tests: render the real module; replace I/O through a port override or a @lib/flow-test-harness stub." },
-          { "object": "vi", "property": "doMock", "message": "No vi.doMock in flow tests: render the real module; replace I/O through a port override or a @lib/flow-test-harness stub." }
+          { "object": "vi", "property": "doMock", "message": "No vi.doMock in flow tests: render the real module; replace I/O through a port override or a @lib/flow-test-harness stub." },
+          { "object": "vi", "property": "spyOn", "message": "No vi.spyOn in flow tests: a spy on a project module couples the test to the implementation; observe the rendered output or a port double. A spy on a non-project object carries an oxlint-disable-next-line with the reason." }
         ]
       }
+    },
+    {
+      "files": ["libraries/**/*.test.{ts,tsx}", "libraries/**/__tests__/**", "libraries/*/tests/**"],
+      "rules": {
+        "no-restricted-properties": [
+          "error",
+          { "object": "vi", "property": "mock", "message": "No vi.mock in a library test: inject the dependency through a port." },
+          { "object": "vi", "property": "doMock", "message": "No vi.doMock in a library test: inject the dependency through a port." }
+        ]
+      }
+    },
+    {
+      // tests drive the code from outside: they may use the ambient globals the rules above keep out of the rings
+      "files": ["**/*.test.{ts,tsx}", "**/__tests__/**", "**/tests/**", "**/testing/**", "**/e2e/**"],
+      "rules": { "no-restricted-globals": "off", "no-restricted-imports": "off" }
     }
-  ]
+]
 }

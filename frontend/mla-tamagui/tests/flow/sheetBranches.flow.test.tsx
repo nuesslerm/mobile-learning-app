@@ -24,6 +24,7 @@ const Scene = ({ open }: { open: boolean }) => (
 );
 
 async function openSheetBesideFocusedInput() {
+  // oxlint-disable-next-line no-restricted-properties -- spy on the React Native Keyboard module, not a project module
   const dismiss = vi.spyOn(Keyboard, 'dismiss').mockImplementation(() => {});
   const view = renderScreen(<Scene open={false} />);
   const field = view.getByTestId('Field') as HTMLInputElement;

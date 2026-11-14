@@ -9,6 +9,7 @@ import {
   View,
 } from '@lib/tamagui-design-system';
 import { Sheet, SheetHeader } from '@lib/tamagui-design-system/ui/sheet';
+// oxlint-disable-next-line no-restricted-imports -- token storage moves behind a coding-agent port with its unit
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useMemo, useState } from 'react';
 

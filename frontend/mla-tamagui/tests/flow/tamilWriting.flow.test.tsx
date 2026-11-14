@@ -322,6 +322,7 @@ describe('Tamil writing course flow', () => {
   });
 
   it('given the write pad, when a stroke is drawn and released, then React reports no update of the screen while the pad renders', async () => {
+    // oxlint-disable-next-line no-restricted-properties -- spy on console to assert React logs no update warning, not a project module
     const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     await app.render('/tamil/write/uyir-a');
     await waitFor(() => {

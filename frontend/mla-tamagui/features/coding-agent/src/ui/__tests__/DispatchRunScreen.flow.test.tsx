@@ -49,6 +49,7 @@ describe('DispatchRunScreen flow (fixture transport)', () => {
   });
 
   it('given the finished fixture run, when the dashboard button is clicked, then Linking.openURL is called with the run URL', async () => {
+    // oxlint-disable-next-line no-restricted-properties -- spy on the React Native Linking module, not a project module
     const openURLSpy = vi
       .spyOn(Linking, 'openURL')
       .mockResolvedValue(undefined as never);
