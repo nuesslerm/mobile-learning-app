@@ -873,12 +873,23 @@ jobs:
         run: |
           set -o pipefail
           # the backend hosts the app dials, under the tailnet names the backends answer to now
-          hosts=$(wf vm net resolve leetcode-backend-prod remote-chat-agent-prod)
-          EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL="http://$(jq -r '."leetcode-backend-prod"' <<<"$hosts"):8789"
-          EXPO_PUBLIC_AGENT_BASE_URL="http://$(jq -r '."remote-chat-agent-prod"' <<<"$hosts"):8787"
+          hosts=$(timeout 15 wf vm net resolve leetcode-backend-prod remote-chat-agent-prod 2>/dev/null) || hosts='{}'
+          leetcode_host=$(jq -r '."leetcode-backend-prod" // empty' <<<"$hosts" 2>/dev/null || true)
+          agent_host=$(jq -r '."remote-chat-agent-prod" // empty' <<<"$hosts" 2>/dev/null || true)
+          # with no VM the hosts do not resolve: the update still ships (the UI works), with placeholder backend addresses
+          if [ -n "$leetcode_host" ] && [ -n "$agent_host" ]; then backends=on; else
+            backends=off; leetcode_host=127.0.0.1; agent_host=127.0.0.1
+            echo "::warning::the backend hosts do not resolve (no VM): this update bakes in placeholder backend addresses"
+          fi
+          EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL="http://$leetcode_host:8789"
+          EXPO_PUBLIC_AGENT_BASE_URL="http://$agent_host:8787"
           export EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL EXPO_PUBLIC_AGENT_BASE_URL
           # from the vault at step time (the runner's container env no longer holds it), never the step's env:, which the log header prints
-          EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN=$(wf secret get VM_GATEWAY_AUTH_SEED --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no VM_GATEWAY_AUTH_SEED to bake in as the backend token"; exit 1; }
+          if [ "$backends" = on ]; then
+            EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN=$(wf secret get VM_GATEWAY_AUTH_SEED --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no VM_GATEWAY_AUTH_SEED to bake in as the backend token"; exit 1; }
+          else
+            EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN=no-backend
+          fi
           echo "::add-mask::$EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN"
           export EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN
           # the app's BetterStack forwarder: the mobile source's ingest pair, from the vault at job time (the runner's bws
