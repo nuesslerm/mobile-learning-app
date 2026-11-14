@@ -136,7 +136,7 @@ impl Service {
     /// `orchestration.forceStopThread`: the agent API ends the CLI process now and holds the thread's queue.
     pub fn force_stop(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let thread = self.known_thread(payload)?;
-        let turn = payload.get("runId").and_then(Value::as_str).map(|run| self.turn_of_run(run).unwrap_or_else(|| run.to_string()));
+        let turn = payload.get("runId").and_then(Value::as_str).map(|run| self.turn_of_started_run(run).unwrap_or_else(|| run.to_string()));
         let stopped = self.agent().run(&Op::ThreadForceStop { thread, turn }).map_err(failed)?;
         Ok(json!({"outcome": stopped["outcome"], "sharedWithThreadIds": stopped["shared_with"]}))
     }
@@ -144,7 +144,7 @@ impl Service {
     /// `orchestration.stopWorkflow`: stops what the thread's running turn runs in the background.
     pub fn stop_workflow(&self, payload: &Value) -> Result<(), QueryFailure> {
         let (thread, workflow) = (self.known_thread(payload)?, field(payload, "subagentId")?);
-        let turn = self.engine().active_run(&thread).map(|run| self.turn_of_run(&run).unwrap_or(run));
+        let turn = self.engine().active_run(&thread).map(|run| self.turn_of_started_run(&run).unwrap_or(run));
         let Some(turn) = turn else { return Err(QueryFailure::Error(json!({"_tag": "OrchestrationV2StopWorkflowError", "threadId": thread, "subagentId": workflow, "reason": "not-running", "message": "This workflow is no longer running."}))) };
         self.agent().run(&Op::WorkflowStop { thread, turn, workflow: Some(workflow.to_string()) }).map(drop).map_err(failed)
     }

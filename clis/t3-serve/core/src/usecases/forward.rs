@@ -93,7 +93,7 @@ impl Service {
     }
 
     fn turn_of(&self, run: &str) -> Option<String> {
-        self.turn_of_run(run)
+        self.turn_of_started_run(run)
     }
 
     fn ask(&self, op: &Op) -> Result<Value, String> {

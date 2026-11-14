@@ -76,6 +76,10 @@ impl Service {
         self.1.turn_of_run(run)
     }
 
+    pub(crate) fn turn_of_started_run(&self, run: &str) -> Option<String> {
+        self.1.turn_of_started_run(run)
+    }
+
     pub fn agent(&self) -> &dyn AgentApi {
         self.1.agent()
     }

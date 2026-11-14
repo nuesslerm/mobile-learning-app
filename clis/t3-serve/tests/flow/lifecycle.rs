@@ -345,3 +345,21 @@ fn the_archived_shell_and_the_two_snapshots_a_phone_fetches_over_http_read_the_r
     assert_eq!((bounded.status, bounded.body["projection"]["thread"]["id"].as_str(), bounded.body["hasMoreHistory"].as_bool()), (200, Some("t2"), Some(false)));
     assert_eq!((missing.status, ungated.status), (404, 401));
 }
+
+#[test]
+fn a_stop_that_arrives_before_the_run_is_linked_to_its_turn_waits_for_the_link_instead_of_naming_the_run() {
+    // Given a thread, and a run whose link to the agent's turn is written a moment after the phone names the run
+    let (h, mut rpc) = started();
+    let store = h.store.clone();
+    let writer = std::thread::spawn(move || {
+        std::thread::sleep(std::time::Duration::from_millis(150));
+        store.set("agent-run:r7", "turn-7").unwrap();
+    });
+
+    // When the phone stops a subagent of that run
+    success(&dispatch(&mut rpc, cmd("subagent.stop", json!({"runId": "r7", "subagentId": "n1"}))));
+    writer.join().unwrap();
+
+    // Then the agent API was asked to stop the workflow of the turn, not of the run id
+    assert_eq!(ops(&h).last(), Some(&Op::WorkflowStop { thread: "t1".into(), turn: "turn-7".into(), workflow: Some("n1".into()) }));
+}

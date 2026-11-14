@@ -59,6 +59,18 @@ impl Runner {
         self.recall(&run_key(run))
     }
 
+    /// The turn of a run the phone names after it started, which can be a moment before the link is written: waits for the link, and gives
+    /// up after half a second, when the name is not a run of ours at all.
+    pub fn turn_of_started_run(&self, run: &str) -> Option<String> {
+        for _ in 0..50 {
+            if let Some(turn) = self.turn_of_run(run) {
+                return Some(turn);
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        None
+    }
+
     pub fn launch(self: &Arc<Self>, launch: Launch) {
         let (me, thread) = (self.clone(), launch.thread_id.clone());
         self.spawn(&thread, move |stop| me.run(launch, stop));
