@@ -42,6 +42,19 @@ Rust compile baseline with nothing cached: 172.1 s. sccache cold 182.2 s (a 10 s
 
 The end-to-end drop is not attributable to one layer: the long flow shard went from 16m 26s to 6m 43s, mostly Rust compile and Nx replay variance between runs. Use the bench, not these rows, to compare layers.
 
+## The warm run (run 43561292866, commit `3fc495c`)
+
+Every layer read an exact or near hit, measured from the job logs:
+
+| Layer | Result |
+|---|---|
+| sccache `wf-build` | exact hit, 193 MB restored, 363 of 447 requests hit, 1 miss; wf build 28 s against 2m 03s cold |
+| sccache `flow-tests` | exact hit, 188 MB restored, 312 hits, 0 misses (shard 1) |
+| references | hit, 351 MB restored in all four shards read |
+| nx | partial hit (restore key of an earlier run), 1 MB; shards with no new task results do not save |
+
+Flow shards took 2m 10s to 3m 23s against 3m 21s to 4m 44s on the baseline run `75b3310` (12m 36s); the typecheck shards took 1m 40s to 1m 59s. The remaining cost is `setup-job` (about 1m 10s per job) and `install-test-deps` (about 1m 00s to 1m 11s in the slowest shards).
+
 ## Decision
 
 1. Keep metro, nx. Add sccache (`SCCACHE_DIR`, local disk): `wf-build`, and `flow-tests`, `integration-tests` and `cli-e2e-tests` (shard 1 saves). Turn pnpm, toolchain and cargo-fetch off. Playwright waits for a fresh-runner measurement (restore plus `playwright install-deps`).
