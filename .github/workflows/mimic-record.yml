@@ -256,7 +256,9 @@ jobs:
         if: ${{ success() && env.ACTION == 'record' }}
       - name: Publish the set to the bucket
         # The transport an agent session can reach: `wf mimic fetch <run-id>`. The write link comes from the vault and is never printed.
+        # The bucket is gone with the VM: a refused publish is a warning, not a red record (the set is also a workflow artifact).
         if: ${{ success() && env.ACTION == 'record' }}
+        continue-on-error: true
         env:
           SECRETS_BACKEND: bitwarden
           BWS_SERVER_URL: https://vault.bitwarden.eu

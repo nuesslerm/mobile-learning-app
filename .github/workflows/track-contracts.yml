@@ -269,7 +269,9 @@ jobs:
         if: ${{ success() }}
       - name: Publish the set to the bucket
         # The transport an agent session can reach: `wf mimic fetch <run-id>`. The write link comes from the vault and is never printed.
+        # The bucket is gone with the VM: the set is also the workflow artifact `track-set-<set>` (uploaded before this step), so a refused publish is a warning, not a red record.
         if: ${{ success() }}
+        continue-on-error: true
         env:
           SECRETS_BACKEND: bitwarden
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
