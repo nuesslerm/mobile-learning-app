@@ -411,11 +411,6 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
-      - uses: ./.github/actions/metro-cache
-        with:
-          mode: restore
-          scope: typecheck
-          suffix: ${{ matrix.shard }}
       - uses: ./.github/actions/nx-cache
         with:
           mode: restore
@@ -428,12 +423,6 @@ jobs:
         with:
           mode: save
           stage: typecheck-lint-unit-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
-      - uses: ./.github/actions/metro-cache
-        if: ${{ success() }}
-        with:
-          mode: save
-          scope: typecheck
-          suffix: ${{ matrix.shard }}
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
