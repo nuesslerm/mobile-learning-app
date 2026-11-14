@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/src/contracts.ts
+// frontend/libraries/remote-chat-agent-contracts/src/contracts.ts
 //
 // Public barrel for every zod schema describing the endpoints
 // clients call on `remote-chat-agent`. Import from this

@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/tests/unit/contracts.test.ts
+// frontend/libraries/remote-chat-agent-contracts/tests/unit/contracts.test.ts
 //
 // Schema round-trip tests for the contracts in `src/contracts/*` that carry
 // real branching (discriminated unions, enums, regexes, required-vs-optional

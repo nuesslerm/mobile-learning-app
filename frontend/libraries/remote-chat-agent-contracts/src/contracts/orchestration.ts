@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/src/contracts/orchestration.ts
+// frontend/libraries/remote-chat-agent-contracts/src/contracts/orchestration.ts
 //
 // Aggregate barrel for the orchestration contracts: read model, events, and
 // commands. Split into three files so the projector, the decider, and the WS

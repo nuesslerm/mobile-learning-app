@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/src/contracts/orchestrationEvents.ts
+// frontend/libraries/remote-chat-agent-contracts/src/contracts/orchestrationEvents.ts
 //
 // Discriminated union of orchestration events. Every event extends the same
 // base (eventId, sequence, createdAt, threadId, optional commandId, actor)

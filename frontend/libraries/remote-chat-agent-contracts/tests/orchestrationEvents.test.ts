@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/tests/orchestrationEvents.test.ts
+// frontend/libraries/remote-chat-agent-contracts/tests/orchestrationEvents.test.ts
 //
 // One hand-written fixture per OrchestrationEvent variant (17 in total).
 // Each fixture parses, the parsed value re-parses to itself, and the

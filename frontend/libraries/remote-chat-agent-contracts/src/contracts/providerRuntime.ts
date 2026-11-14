@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/src/contracts/providerRuntime.ts
+// frontend/libraries/remote-chat-agent-contracts/src/contracts/providerRuntime.ts
 //
 // Provider runtime event union, ported from
 // references/t3code/packages/contracts/src/providerRuntime.ts (Effect Schema

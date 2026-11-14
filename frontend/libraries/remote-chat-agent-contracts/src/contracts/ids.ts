@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/src/contracts/ids.ts
+// frontend/libraries/remote-chat-agent-contracts/src/contracts/ids.ts
 //
 // Branded identifier schemas for the remote-chat-agent provider runtime.
 // Brands keep ThreadId, TurnId, … from being interchangeable in call sites

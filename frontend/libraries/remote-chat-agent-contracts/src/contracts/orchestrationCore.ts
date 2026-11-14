@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/src/contracts/orchestrationCore.ts
+// frontend/libraries/remote-chat-agent-contracts/src/contracts/orchestrationCore.ts
 //
 // Read-model shapes ported from
 // references/t3code/packages/contracts/src/orchestration.ts (Effect Schema → zod 4)

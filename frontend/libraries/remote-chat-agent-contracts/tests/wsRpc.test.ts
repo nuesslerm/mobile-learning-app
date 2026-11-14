@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/tests/wsRpc.test.ts
+// frontend/libraries/remote-chat-agent-contracts/tests/wsRpc.test.ts
 //
 // Round-trip + negative coverage for the WS envelope and the
 // method/subscription tables. One fixture per ClientEnvelope kind and per

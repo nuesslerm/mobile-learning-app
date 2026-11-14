@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/src/contracts/mcp.ts
+// frontend/libraries/remote-chat-agent-contracts/src/contracts/mcp.ts
 //
 // `GET /api/mcp` and `POST /api/mcp/:name/connect|disconnect` — MCP server
 // status + toggle proxy, validated against opencode's declared shapes. See `backend/remote-chat-agent/rs/src/api/routes/inventory.rs`. Clients

@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/tests/orchestrationCommands.test.ts
+// frontend/libraries/remote-chat-agent-contracts/tests/orchestrationCommands.test.ts
 //
 // One hand-written fixture per ClientOrchestrationCommand variant (12 in
 // total) plus one per stream item kind. Each fixture parses, the parsed value

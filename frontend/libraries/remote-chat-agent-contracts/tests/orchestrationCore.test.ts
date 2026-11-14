@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/tests/orchestrationCore.test.ts
+// frontend/libraries/remote-chat-agent-contracts/tests/orchestrationCore.test.ts
 //
 // One hand-written fixture per schema: a thread with two messages, three
 // activities (info/tool/approval tones), a session, and a proposed plan. Every

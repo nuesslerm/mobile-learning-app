@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/src/contracts/models.ts
+// frontend/libraries/remote-chat-agent-contracts/src/contracts/models.ts
 //
 // `GET /api/models` and `GET /api/models/recent` — model list + recency
 // proxy. See `backend/remote-chat-agent/rs/src/api/routes/inventory.rs`.

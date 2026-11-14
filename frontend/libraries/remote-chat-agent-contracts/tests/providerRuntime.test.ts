@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/tests/providerRuntime.test.ts
+// frontend/libraries/remote-chat-agent-contracts/tests/providerRuntime.test.ts
 //
 // Round-trip + negative coverage for the discriminated
 // `ProviderRuntimeEventSchema` and every payload schema it composes. One

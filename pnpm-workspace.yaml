@@ -15,6 +15,7 @@ packages:
   - frontend/libraries/gesture-geometry
   - libraries/hook-runtime
   - frontend/libraries/logging
+  - frontend/libraries/remote-chat-agent-contracts
   - frontend/libraries/rn-agentation
   - frontend/libraries/tamagui-design-system
   - frontend/libraries/voice-edit-dsl

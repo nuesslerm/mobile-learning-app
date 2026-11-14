@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/src/contracts/orchestrationCommands.ts
+// frontend/libraries/remote-chat-agent-contracts/src/contracts/orchestrationCommands.ts
 //
 // Client-issued orchestration commands, the WS stream items that carry the
 // resulting state back, and the receipt a dispatch returns. Ported from

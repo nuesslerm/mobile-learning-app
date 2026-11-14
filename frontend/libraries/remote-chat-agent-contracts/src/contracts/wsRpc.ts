@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/src/contracts/wsRpc.ts
+// frontend/libraries/remote-chat-agent-contracts/src/contracts/wsRpc.ts
 //
 // Wire envelope and RPC tables for the remote-chat-agent WebSocket transport.
 // Ported from references/t3code/packages/contracts/src/rpc.ts (Effect Schema

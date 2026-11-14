@@ -1,4 +1,4 @@
-// backend/remote-chat-agent-contracts/src/contracts/control.ts
+// frontend/libraries/remote-chat-agent-contracts/src/contracts/control.ts
 //
 // `POST /api/control/stop|queue|steer` — see
 // `backend/remote-chat-agent/rs/src/api/routes/control.rs`.
