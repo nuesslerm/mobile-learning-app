@@ -225,3 +225,35 @@ fn given_write_and_read_lists_that_do_not_line_up_when_opened_for_writing_then_i
     let text = write.err().unwrap().to_string();
     assert!(text.contains("line up") && !text.contains(TOKEN), "{text}");
 }
+
+struct FailsFirstGet {
+    calls: std::sync::atomic::AtomicUsize,
+}
+
+impl BlobStore for FailsFirstGet {
+    fn get(&self, _key: &Key) -> Result<Option<Vec<u8>>, StoreError> {
+        match self.calls.fetch_add(1, std::sync::atomic::Ordering::SeqCst) {
+            0 => Err(StoreError::Unreachable("connection reset".into())),
+            _ => Ok(Some(b"7".to_vec())),
+        }
+    }
+    fn put(&self, _key: &Key, _body: &[u8], _if_absent: bool) -> Result<PutOutcome, StoreError> {
+        Err(StoreError::Rejected("read only".into()))
+    }
+    fn exists(&self, _key: &Key) -> Result<bool, StoreError> {
+        Ok(false)
+    }
+}
+
+#[test]
+fn given_a_store_whose_first_generation_lookup_fails_when_the_cache_opens_then_it_retries_and_reads_the_generation() {
+    // Given a store that resets the connection on its first read and answers generation 7 after
+    let store = FailsFirstGet { calls: std::sync::atomic::AtomicUsize::new(0) };
+
+    // When the cache opens on it
+    let cache = blob_cache::Cache::open(store, blob_cache::domain::Budget::committed().for_one_entry_of(Kind::Metro), blob_cache::Writes::Allowed);
+
+    // Then it holds generation 7 and the run is not degraded
+    assert_eq!(cache.generation(), Generation(7));
+    assert!(cache.stats().skipped == 0, "{:?}", cache.stats());
+}
