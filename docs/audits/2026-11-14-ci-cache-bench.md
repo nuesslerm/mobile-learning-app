@@ -14,7 +14,7 @@ Test type: live, on GitHub-hosted runners (`cache-bench.yml`, run 43558013495, c
 | 2 | sccache (`SCCACHE_DIR`) | 96.1 | 268 MB | 0.36 | add |
 | 3 | nx (`~/.nx/*/cache`) | 38.2 on an identical rerun, 8.0 on a narrow change | 1 MB | 38 | keep, it is free |
 | 4 | rust target directory | 85.9 | 348 MB | 0.25 | do not use, sccache beats it |
-| 5 | playwright browsers | 20.1 | 269 MB | 0.07 | add for the flow shards |
+| 5 | playwright browsers | 20.1 (upper bound) | 269 MB | 0.07 | not yet: the control skipped `--with-deps` |
 | 6 | pnpm store + node_modules | 17.0 | 736 MB | 0.02 | off |
 | 7 | pnpm store | 12.9 | 705 MB | 0.02 | off |
 | 8 | rustup toolchain | 4.3 | 202 MB | 0.02 | drop |
@@ -44,11 +44,11 @@ The end-to-end drop is not attributable to one layer: the long flow shard went f
 
 ## Decision
 
-1. Keep metro, nx. Add sccache (`SCCACHE_DIR`, local disk) and the playwright browser directory. Turn pnpm, toolchain and cargo-fetch off.
+1. Keep metro, nx. Add sccache (`SCCACHE_DIR`, local disk): `wf-build`, and `flow-tests`, `integration-tests` and `cli-e2e-tests` (shard 1 saves). Turn pnpm, toolchain and cargo-fetch off. Playwright waits for a fresh-runner measurement (restore plus `playwright install-deps`).
 2. One switch decides the backend, so a blob store can replace or supplement the Actions cache later (below).
 3. Re-measure submodules with the fixed bench, then either cache them or stop cloning them in jobs that never read `references/`.
 4. Re-run the bench whenever the pipeline changes shape, or when the blob store is back (`CACHE_BACKENDS=blob` rows against the same commands).
 
 ## The switch
 
-`CACHE_BACKENDS` (a repository variable, read by every cache layer) takes `gha` (default), `blob` or `gha,blob`. `gha` uses `actions/cache` as in the table above. `blob` uses the existing `wf cache restore|save <kind>` (kinds `pnpm`, `metro`, `nx`, `sccache`) over the store lists `BUILD_CACHE_READ_STORES` and `BUILD_CACHE_WRITE_STORES`; with both, reads take the first hit (blob first, then the Actions cache) and writes go to both. A layer the blob adapter does not know (playwright) stays on `gha` whatever the value. Moving to R2 or Hetzner Object Storage is then a variable and two store URLs, with no workflow edit.
+`CACHE_BACKENDS` (repository variable, default `gha`) takes `gha`, `blob` or `gha,blob`; `pipeline.yml` exports it and sets `WF_BLOB_CACHE` from it, and every cache action reads it. `gha` uses `actions/cache` as in the table above. `blob` uses what is already there: `wf cache` and the build-cache shim of `wf test run`, over the store lists `BUILD_CACHE_READ_STORES` and `BUILD_CACHE_WRITE_STORES` (reads take the first hit, writes go to every store). With both, the Actions-cache steps run and the blob store is also read and written; sccache is the exception (one backend: the blob shim owns the compiler wrapper while it is on). Moving to R2 or Hetzner Object Storage is the variable and two store URLs, with no workflow edit. `CACHE_PNPM=on` brings the pnpm store back. See `docs/solutions/ci/cache-layers.md`.

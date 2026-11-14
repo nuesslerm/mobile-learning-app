@@ -34,22 +34,33 @@ A Rust service that has its own Cargo workspace (`backend/<service>/Cargo.toml` 
 - A crate with a `tests/integration.rs` has a `cargo-integration` task next to `cargo-flow`, keyed like it plus `[package.metadata.integration]` (`inputs`, `uses`). It is in the weekly drift audit's target list (`TARGETS` in `clis/pipeline/src/nx_drift.rs`) with the other cached targets: a target missing there can move its hash with the checkout's path or the environment unseen, so add a new kind of cached target to that list when `tooling/nx/cargo-crates.js` starts to create it.
 - `clis/pipeline/tests/flow/nx_crates.rs` holds these keys: a fixture of three cargo workspaces under the real `nx.json`, plugins and Nx, one planted change per case through `wf test run --stage`.
 
-## CI today: the GitHub Actions cache
+## CI today: the GitHub Actions cache, one switch for the backend
 
-The Oracle bucket is gone and `pipeline.yml` sets `WF_BLOB_CACHE: "off"`, so hosted CI uses `actions/cache` (pinned by SHA) until another store exists. The `wf cache` verbs and their code stay for the sandbox, for when a store is configured; the sandbox does not share this cache.
+The Oracle bucket is gone, so hosted CI uses `actions/cache` (pinned by SHA) until another store exists. Which backend a layer uses is one repository variable, `CACHE_BACKENDS` (read as `env.CACHE_BACKENDS` by every cache action, set at the top of `pipeline.yml`):
+
+| `CACHE_BACKENDS` | The Actions-cache steps | The blob store (`wf cache`, the build-cache shim of `wf test run`) |
+|---|---|---|
+| `gha` (default) | on | off (`WF_BLOB_CACHE=off`) |
+| `blob` | skipped | on: the stores in `BUILD_CACHE_READ_STORES` and `BUILD_CACHE_WRITE_STORES` |
+| `gha,blob` | on | on: reads take the first hit, writes go to every store |
+
+Moving to R2 or Hetzner Object Storage is the variable plus the two store lists (`clis/blob-cache/src/stores.rs`), with no workflow edit. The sccache layer is the one exception to `gha,blob`: sccache has a single backend, so while the blob shim owns `RUSTC_WRAPPER` the directory cache stays out (`sccache-cache` does nothing when `WF_BLOB_CACHE` is not `off`). `CACHE_PNPM=on` brings the pnpm store back; it is off because it does not pay.
+
+What each layer is worth, measured on 14 Nov (run 43558013495, `docs/audits/2026-11-14-ci-cache-bench.md`): sccache 96 s per use for 268 MB, metro 70 s for 17 MB, nx 38 s (identical rerun) for 1 MB, the pnpm store 13 to 17 s for 705 MB (and none in the real jobs), the rust target directory 86 s for 348 MB (sccache beats it), toolchain 4 s, cargo registry 0.5 s. Together the layers kept hold about 0.6 GB: the 10 GB quota is not the constraint, key churn is.
 
 | Layer | Path | Key | Restore keys | Saved when |
 |---|---|---|---|---|
-| pnpm | `pnpm store path` (a step reads it) | `pnpm-<os>-<arch>-<hash of pnpm-lock.yaml>` | `pnpm-<os>-<arch>-` | `flow-tests` shard 1, after a green install, exact key missed |
-| metro | `frontend/mla-tamagui/node_modules/.cache/app-build` (Metro's transform cache and tsc build info) | `metro-<scope>-<os>-<arch>-<YYYY-MM>-<hash of pnpm-lock.yaml, package.json, metro.config.js, babel.config.js, tsconfig.json>` | `metro-<scope>-<os>-<arch>-` | not cancelled, exact key missed (`export` scope in eas-update only on `ship`) |
+| sccache | `~/.cache/sccache` (`SCCACHE_DIR`; `RUSTC_WRAPPER=sccache`, `CARGO_INCREMENTAL=0`) | `sccache-<stage>-<os>-<arch>-<ISO week>-<hash of every Cargo.lock>` | `sccache-<stage>-<os>-<arch>-` | `wf-build` and shard 1 of `flow-tests`, `integration-tests`, `cli-e2e-tests`; exact key missed, under 1.5 GB |
+| metro | `frontend/mla-tamagui/node_modules/.cache/app-build` (Metro's transform cache and tsc build info) | `metro-<scope>-<suffix>-<os>-<arch>-<ISO week>-<hash of pnpm-lock.yaml, package.json, metro.config.js, babel.config.js, tsconfig.json>` | `metro-<scope>-<suffix>-<os>-<arch>-` | green job, exact key missed (`export` scope in eas-update only on `ship`) |
 | nx | `~/.nx/*/cache` and `~/.nx/*/databases` (Nx's local cache and its index) | `nx-<stage>-<shard>of<count>-<os>-<arch>-<run_id>-<attempt>` | `nx-<stage>-<shard>of<count>-<os>-<arch>-` | not cancelled, more entries than restored, under 3 GB |
-| sccache | none | none | none | not wired |
+| pnpm (off) | `pnpm store path` | `pnpm-<os>-<arch>-<hash of pnpm-lock.yaml>` | `pnpm-<os>-<arch>-` | `CACHE_PNPM=on`, `flow-tests` shard 1, exact key missed |
 
-- Metro's key is per input hash, not per commit: Metro and tsc key their own entries by file content, so one entry serves every commit until an input changes, and the month in the key refreshes it once a month. A per-commit key would write a near-duplicate entry for each push into the shared quota. The `typecheck` and `export` scopes keep tsc's state and Metro's apart. The cost is that source edits do not reach the cache until the month or an input changes.
-- Nx's key is unique per run so a later run restores the newest entry of its shard prefix. A save is skipped when no task result was added (every task replayed), which stops identical copies filling the quota. Workflows only restore and save the directories; `wf` gives Nx its environment (`clis/pipeline` flow test `no_workflow_or_action_sets_the_nx_cache_environment_wf_gives_nx`). A changed shard count starts a new prefix. Each job prints the directory size before saving and refuses a save over 3 GB (`::warning::`).
-- Every restore writes one line to the job summary (layer, hit, partial with the matched restore key, or miss, and the restored size), through `.github/actions/cache-summary`.
+- The sccache entry is per stage, week and lockfile set, not per run, so the quota holds a handful of entries. A stage compiles the same third-party dependencies in every shard, so the one shard that saves covers most of what the others need; the workspace crates of a changed commit recompile (incremental profiles cannot be cached by sccache). A miss costs about 10 s over no cache (bench: 182 s against 172 s).
+- Metro's key is per input hash, not per commit: Metro and tsc key their own entries by file content, so one entry serves every commit until an input changes, and the ISO week in the key refreshes it weekly. A per-commit key would write a near-duplicate entry for each push into the shared quota. The `typecheck` and `export` scopes keep tsc's state and Metro's apart.
+- Nx's key is unique per run so a later run restores the newest entry of its shard prefix. A save is skipped when no task result was added (every task replayed), which stops identical copies filling the quota. Workflows only restore and save the directories; `wf` gives Nx its environment (`clis/pipeline` flow test `no_workflow_or_action_sets_the_nx_cache_environment_wf_gives_nx`). A changed shard count starts a new prefix. Each job prints the directory size before saving and refuses a save over 3 GB (`::warning::`). The compile jobs of the bench run `--fresh`, so the cached Nx directory is about 1 MB: it holds verdicts, not binaries.
+- Every restore writes one line to the job summary (layer, hit, partial with the matched restore key, or miss, and the restored size), through `.github/actions/cache-summary`; a save writes its size and the decision.
+- Not cached, and why: the toolchain and the cargo registry (seconds, hundreds of MB), the rust target directory (sccache wins), Playwright's browsers (the bench control skipped `--with-deps`, so its 20 s is an upper bound; measure with a fresh runner and `playwright install-deps` before adding it) and the reference submodules (58 s in each of 12 jobs; the bench save raced a git auto gc, fixed, and the layer is measured again in the next bench run).
 - Limits: the repository shares 10 GB across all caches, evicted least recently used first, and an entry unused for 7 days expires. Caches saved on `dev` are readable by runs on `dev`; `dev` is not the default branch, so `main` and pull requests do not see them and a run on `main` cannot seed `dev`.
-- sccache is still cold: it reaches Rust compiles only through the loopback shim, which needs a blob store, and none is declared. Wiring it to `actions/cache` is a later change.
 
 ## The tenancy cap and the storage guard
 

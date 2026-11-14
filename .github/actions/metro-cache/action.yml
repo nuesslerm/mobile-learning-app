@@ -18,13 +18,13 @@ runs:
   using: composite
   steps:
     - name: Key of the app build cache
-      if: ${{ inputs.mode == 'restore' }}
+      if: ${{ contains(env.CACHE_BACKENDS, 'gha') && (inputs.mode == 'restore') }}
       id: key
       shell: bash
       run: echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
     - name: Restore the app build state
       id: restore
-      if: ${{ inputs.mode == 'restore' }}
+      if: ${{ contains(env.CACHE_BACKENDS, 'gha') && (inputs.mode == 'restore') }}
       uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: frontend/mla-tamagui/node_modules/.cache/app-build
@@ -32,14 +32,14 @@ runs:
         restore-keys: |
           metro-${{ inputs.scope }}-${{ inputs.suffix }}-${{ runner.os }}-${{ runner.arch }}-
     - name: Remember the key
-      if: ${{ inputs.mode == 'restore' }}
+      if: ${{ contains(env.CACHE_BACKENDS, 'gha') && (inputs.mode == 'restore') }}
       shell: bash
       env:
         KEY: metro-${{ inputs.scope }}-${{ inputs.suffix }}-${{ runner.os }}-${{ runner.arch }}-${{ steps.key.outputs.week }}-${{ hashFiles('pnpm-lock.yaml', 'frontend/mla-tamagui/package.json', 'frontend/mla-tamagui/metro.config.js', 'frontend/mla-tamagui/babel.config.js', 'frontend/mla-tamagui/tsconfig.json') }}
         HIT: ${{ steps.restore.outputs.cache-hit }}
       run: printf 'KEY=%s\nHIT=%s\n' "$KEY" "$HIT" > "$RUNNER_TEMP/metro-cache-${{ inputs.scope }}.env"
     - uses: ./.github/actions/cache-summary
-      if: ${{ inputs.mode == 'restore' }}
+      if: ${{ contains(env.CACHE_BACKENDS, 'gha') && (inputs.mode == 'restore') }}
       with:
         layer: metro-${{ inputs.scope }}-${{ inputs.suffix }}
         hit: ${{ steps.restore.outputs.cache-hit }}
@@ -47,7 +47,7 @@ runs:
         paths: frontend/mla-tamagui/node_modules/.cache/app-build
     - name: Decide the save
       id: decide
-      if: ${{ inputs.mode == 'save' }}
+      if: ${{ contains(env.CACHE_BACKENDS, 'gha') && (inputs.mode == 'save') }}
       shell: bash
       run: |
         f="$RUNNER_TEMP/metro-cache-${{ inputs.scope }}.env"
@@ -61,7 +61,7 @@ runs:
         mb=$(du -sm frontend/mla-tamagui/node_modules/.cache/app-build 2>/dev/null | cut -f1 || true)
         echo "- **metro-${{ inputs.scope }}** ($GITHUB_JOB) before save: ${mb:-0} MB, $([ "$save" = true ] && echo saving || echo "not saving (exact key hit or nothing built)")" | tee -a "$GITHUB_STEP_SUMMARY"
     - name: Save the app build state
-      if: ${{ inputs.mode == 'save' && steps.decide.outputs.save == 'true' }}
+      if: ${{ contains(env.CACHE_BACKENDS, 'gha') && (inputs.mode == 'save' && steps.decide.outputs.save == 'true') }}
       uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
       with:
         path: frontend/mla-tamagui/node_modules/.cache/app-build

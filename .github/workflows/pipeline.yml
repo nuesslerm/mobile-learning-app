@@ -61,8 +61,12 @@ env:
   npm_config_manage_package_manager_versions: "false"
   WF_VM_CI_PORT: "8081"
   BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
-  # The shared build cache lived in the Oracle tenancy, which is unreachable since 13 Nov: every layer runs cold and Cache health stays green. Remove this line when a store is back.
-  WF_BLOB_CACHE: "off"
+  # Where the cache layers live. gha (default) is the GitHub Actions cache; blob is a store declared in BUILD_CACHE_READ_STORES and BUILD_CACHE_WRITE_STORES
+  # (the Oracle bucket is gone since 13 Nov, so none is declared); `gha,blob` uses both. The repository variable CACHE_BACKENDS sets it, no workflow edit.
+  # WF_BLOB_CACHE=off keeps the build-cache shim away from a store that does not exist. CACHE_PNPM=on brings the pnpm store back (docs/audits/2026-11-14-ci-cache-bench.md: it does not pay).
+  CACHE_BACKENDS: ${{ vars.CACHE_BACKENDS || 'gha' }}
+  CACHE_PNPM: ${{ vars.CACHE_PNPM || 'off' }}
+  WF_BLOB_CACHE: ${{ contains(vars.CACHE_BACKENDS || 'gha', 'blob') && 'on' || 'off' }}
 
 jobs:
   # This commit's wf, built once for each kind of machine that runs it: x64 for the jobs, arm64 for the deploy legs (the images the VM runs are arm64).
@@ -91,12 +95,21 @@ jobs:
           apt-packages: build-essential musl-tools
           ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
           ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - uses: ./.github/actions/sccache-cache
+        with:
+          mode: restore
+          stage: wf-build
       - name: This commit's wf
         timeout-minutes: 65
         uses: ./.github/actions/build-wf
         with:
           name: ${{ matrix.arch == 'arm64' && 'clis-arm' || 'clis' }}
           upload: true
+      - uses: ./.github/actions/sccache-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: wf-build
       - name: Start the comment on the pull request
         if: ${{ matrix.arch == 'x64' }}
         continue-on-error: true
@@ -316,6 +329,10 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      - uses: ./.github/actions/sccache-cache
+        with:
+          mode: restore
+          stage: flow-tests
       - uses: ./.github/actions/nx-cache
         with:
           mode: restore
@@ -330,6 +347,12 @@ jobs:
         with:
           mode: save
           stage: flow-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
+      - uses: ./.github/actions/sccache-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: flow-tests
+          save: ${{ matrix.shard == 1 }}
       - name: Publish the flow run bundle
         if: always()
         timeout-minutes: 5
@@ -693,6 +716,10 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      - uses: ./.github/actions/sccache-cache
+        with:
+          mode: restore
+          stage: integration-tests
       - uses: ./.github/actions/nx-cache
         with:
           mode: restore
@@ -709,6 +736,12 @@ jobs:
         with:
           mode: save
           stage: integration-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
+      - uses: ./.github/actions/sccache-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: integration-tests
+          save: ${{ matrix.shard == 1 }}
       - name: Publish the integration run bundles
         if: always()
         timeout-minutes: 5
@@ -773,6 +806,10 @@ jobs:
         env:
           PLAN: ${{ needs.plan.outputs.plan }}
         run: printf '%s' "$PLAN" > "$RUNNER_TEMP/plan.json"
+      - uses: ./.github/actions/sccache-cache
+        with:
+          mode: restore
+          stage: cli-e2e-tests
       - uses: ./.github/actions/nx-cache
         with:
           mode: restore
@@ -788,6 +825,12 @@ jobs:
         with:
           mode: save
           stage: cli-e2e-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
+      - uses: ./.github/actions/sccache-cache
+        if: ${{ !cancelled() }}
+        with:
+          mode: save
+          stage: cli-e2e-tests
+          save: ${{ matrix.shard == 1 }}
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
