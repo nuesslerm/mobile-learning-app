@@ -63,7 +63,8 @@ env:
   BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
   # Where the cache layers live. gha (default) is the GitHub Actions cache; blob is a store declared in BUILD_CACHE_READ_STORES and BUILD_CACHE_WRITE_STORES
   # (the Oracle bucket is gone since 13 Nov, so none is declared); `gha,blob` uses both. The repository variable CACHE_BACKENDS sets it, no workflow edit.
-  # WF_BLOB_CACHE=off keeps the build-cache shim away from a store that does not exist. CACHE_PNPM=on brings the pnpm store back (docs/audits/2026-11-14-ci-cache-bench.md: it does not pay).
+  # WF_BLOB_CACHE=off keeps the build-cache shim away from a store that does not exist. Layers on gha: sccache (wf-build and the three test stages), metro, nx and the reference trees' git objects.
+  # CACHE_PNPM=on brings the pnpm store back (docs/audits/2026-11-14-ci-cache-bench.md: it does not pay).
   CACHE_BACKENDS: ${{ vars.CACHE_BACKENDS || 'gha' }}
   CACHE_PNPM: ${{ vars.CACHE_PNPM || 'off' }}
   WF_BLOB_CACHE: ${{ contains(vars.CACHE_BACKENDS || 'gha', 'blob') && 'on' || 'off' }}
