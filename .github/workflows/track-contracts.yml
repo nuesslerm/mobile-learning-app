@@ -212,6 +212,28 @@ jobs:
         # nothing is written to GITHUB_ENV: the block's env reaches the record through `wf mimic job` alone
         if: ${{ matrix.provision == true }}
         run: nice -n 19 wf mimic provision "$SET_DIR" --when record
+      - name: Derive the crawl and the scenarios of the newest source
+        # A crawl or scenario set lists what the pinned source defines, and that list is derived, never written by hand: in this checkout only, the
+        # source is checked out at the bumped pin, the methods list and the crawl are made again and the set's corpus is the new one, so the record
+        # is of the newest API and not of the old list. The same derivation runs locally (`wf mimic crawl`, `cli.ts scenarios`) when the set lands.
+        if: ${{ matrix.provision == true && (endsWith(matrix.name, '-crawl') || endsWith(matrix.name, '-scenarios')) }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          app="${SET_NAME%%-*}"
+          case "$app" in t3) ref=t3code ;; orca) ref=orca ;; *) echo "no reference tree for $app"; exit 1 ;; esac
+          pin=$(jq -r .commit "tooling/$app-conformance/$app-pin.json")
+          git submodule update --init --depth 1 "references/$ref"
+          git -C "references/$ref" fetch --depth 1 origin "$pin"
+          git -C "references/$ref" checkout -q FETCH_HEAD
+          pnpm install --frozen-lockfile --filter mimic-drivers
+          wf parity coverage --app "$app"
+          api=$(ls -d clis/*/cassettes/"$app"-api)
+          wf mimic crawl "$api"
+          case "$SET_NAME" in
+            *-crawl) cp "$api/corpus.json" "$SET_DIR/corpus.json" ;;
+            *-scenarios) node tooling/mimic-drivers/src/cli.ts scenarios "$app" ;;
+          esac
       - name: Record against the newest release
         id: job
         run: |

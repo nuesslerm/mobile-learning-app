@@ -19,7 +19,7 @@ squash = ["/exit/cause"]
 [reference]
 name = "t3"
 command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "t3"]
-pin = "../../../../tooling/t3-conformance/t3-pin.json"
+pin = "../../../../tooling/t3-conformance/t3-pin-0.1.6.json"
 version_pointer = "/version"
 commit_pointer = "/commit"
 timeout_ms = 900000

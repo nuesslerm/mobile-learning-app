@@ -2,6 +2,7 @@
 corpus = "corpus.json"
 rules = "rules.json"
 allowlist = "allowlist.json"
+provision_file = "//tooling/mimic-drivers/provision/orca.toml"
 
 [reference]
 name = "orca"
