@@ -38,10 +38,13 @@ async fn given_a_turn_in_the_mode_that_asks_when_the_person_accepts_the_tool_the
     let recorded = seen.iter().find(|e| e.kind == "approval.answered").unwrap();
     assert_eq!(answered["result"], json!({"thread": "t1", "approval": asked.data["approval"], "decision": "accept", "seq": recorded.seq}));
     // And the events are the CLI's call, the request, its answer, what the CLI read, and the rest of the turn, in seq order
-    let mut order: Vec<&str> = kinds(&seen).into_iter().filter(|k| !k.starts_with("message") && !k.starts_with("turn.started")).collect();
-    // The CLI's call and the executor's request arrive on two channels, so their mutual order is not fixed
-    order[..2].sort();
-    assert_eq!(order, ["approval.requested", "tool.started", "approval.answered", "tool.output", "tool.finished", "turn.finished"]);
+    let all: Vec<&str> = kinds(&seen).into_iter().filter(|k| !k.starts_with("message") && !k.starts_with("turn.started")).collect();
+    // The CLI's call arrives on the CLI's output and the executor's request on the executor's channel, so where the call falls among the
+    // rest is not fixed; it is always before the call finishes
+    let order: Vec<&str> = all.iter().copied().filter(|k| *k != "tool.started").collect();
+    assert_eq!(order, ["approval.requested", "approval.answered", "tool.output", "tool.finished", "turn.finished"]);
+    let position = |kind: &str| all.iter().position(|k| *k == kind).unwrap();
+    assert!(position("tool.started") < position("tool.finished"), "{all:?}");
     assert!(seqs(&seen).windows(2).all(|pair| pair[0] < pair[1]));
     // And the CLI read an allow carrying the input it asked about, and was started with the executor's approval tool as its permission prompt
     assert_eq!(output_of(&seen, "k1"), json!({"behavior": "allow", "updatedInput": approval_call()["input"]}));
@@ -105,7 +108,8 @@ async fn given_a_question_that_is_dismissed_and_a_tool_that_is_cancelled_when_an
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]
 async fn given_a_socket_that_drops_while_a_request_waits_when_a_new_one_resumes_then_it_replays_the_request_it_missed_answers_it_and_the_two_together_are_the_log() {
-    // Given a turn that asks about a tool, and a mapper that follows it and drops after the CLI's call
+    // Given a turn that asks about a tool, and a mapper that follows it and drops as the turn starts (the CLI's call and the executor's request
+    // arrive on two channels, so the request can be recorded before or after the call: only the turn's start is always first)
     let env = Env::new(&[]);
     let chain = chain(&env).await;
     chain.script(vec![Turn::replaying(&[]).then_calling("k1", "approval_prompt", approval_call()).then_line(&said("done"))]);
@@ -113,7 +117,7 @@ async fn given_a_socket_that_drops_while_a_request_waits_when_a_new_one_resumes_
     create(&mut first, "t1").await;
     first.ask("thread.subscribe", json!({"thread": "t1"})).await;
     first.ask("turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "claudeAgent", "prompt": "go"})).await;
-    let before_drop = first.events_through("tool.started").await;
+    let before_drop = first.events_through("turn.started").await;
     let last_seen = before_drop.last().unwrap().seq;
     // When it drops, a new socket resumes after the last seq it saw, and the request it missed is answered there
     drop(first);
