@@ -188,6 +188,8 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
         Budget { name: "concepts-dangling-links", value: dangling_links(root, "CONCEPTS.md")?, limit: 0, gated: true },
         // A core does no I/O: no I/O crate, and no tokio I/O feature, in its manifest or in the workspace tokio it inherits.
         Budget { name: "backend-core-io-violations", value: crate::core_purity::count(root), limit: 0, gated: true },
+        // `service-core` asks the system for time, random ids and file existence directly in this many places; each moves behind a port, so the limit only goes down.
+        Budget { name: "core-ambient-calls", value: crate::core_purity::ambient_calls(root), limit: 17, gated: true },
         // The plan's dependency rules between crates: exec-testkit is a dev-dependency of its few users only (`TESTKIT_USERS` in `cargo_deps`), and an adapter library
         // depends on nothing that consumes it (Cargo allows that cycle through a dev-dependency).
         Budget { name: "cargo-dep-violations", value: cargo_deps.len(), limit: 0, gated: true },

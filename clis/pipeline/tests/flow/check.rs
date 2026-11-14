@@ -537,8 +537,8 @@ fn the_simplicity_budget_measures_the_repo_and_fails_only_on_gated_limits_unless
     let r = budget(&[]);
     assert_eq!((r.exit_code, r.stderr.as_str()), (0, ""));
     let out: Vec<&str> = r.stdout.trim().split('\n').collect();
-    assert_eq!(out.len(), 19);
-    let expected = [("pre-commit-jobs", 2, 5, true), ("root-claude-md-bytes", 7_300, 9_216, true), ("known-gaps-lines", 53, 200, true), ("concepts-dangling-links", 0, 0, true), ("backend-core-io-violations", 0, 0, true), ("cargo-dep-violations", 0, 0, true), ("blast-radius-violations", 0, 0, true), ("workspace-crossing-violations", 0, 0, true), ("ts-package-violations", 0, 0, true), ("ci-scope-violations", 0, 0, true), ("unpinned-third-party-actions", 0, 0, true), ("env-file-in-artifacts", 0, 0, true), ("secrets-inherit", 0, 0, true), ("handrolled-recorder-violations", 0, 0, true), ("cargo-task-npm-inputs", 0, 0, true), ("versioned-library-path-deps", 0, 0, true), ("wf-kit-lines", 0, 1200, true), ("root-scripts", 2, 15, false), ("agent-hooks", 1, 4, false)];
+    assert_eq!(out.len(), 20);
+    let expected = [("pre-commit-jobs", 2, 5, true), ("root-claude-md-bytes", 7_300, 9_216, true), ("known-gaps-lines", 53, 200, true), ("concepts-dangling-links", 0, 0, true), ("backend-core-io-violations", 0, 0, true), ("core-ambient-calls", 0, 17, true), ("cargo-dep-violations", 0, 0, true), ("blast-radius-violations", 0, 0, true), ("workspace-crossing-violations", 0, 0, true), ("ts-package-violations", 0, 0, true), ("ci-scope-violations", 0, 0, true), ("unpinned-third-party-actions", 0, 0, true), ("env-file-in-artifacts", 0, 0, true), ("secrets-inherit", 0, 0, true), ("handrolled-recorder-violations", 0, 0, true), ("cargo-task-npm-inputs", 0, 0, true), ("versioned-library-path-deps", 0, 0, true), ("wf-kit-lines", 0, 1200, true), ("root-scripts", 2, 15, false), ("agent-hooks", 1, 4, false)];
     for (line, (name, value, limit, gated)) in out.iter().zip(expected) {
         assert!(measured("info", name, value, limit, gated).is_match(line), "{line}");
     }
@@ -549,7 +549,7 @@ fn the_simplicity_budget_measures_the_repo_and_fails_only_on_gated_limits_unless
     assert_eq!(r.exit_code, 1);
     assert!(on(&r, r#"level=warn source=verify\.budget msg="root-claude-md-bytes over budget" value=9217 limit=9216 gated=true"#), "{}", r.stderr);
     assert!(r.stderr.contains("wf: simplicity budget exceeded: root-claude-md-bytes 9217>9216"));
-    assert_eq!(r.stdout.trim().split('\n').count(), 18);
+    assert_eq!(r.stdout.trim().split('\n').count(), 19);
     put(root, "CLAUDE.md", &"x".repeat(9_216));
     let r = budget(&[]);
     assert!(r.exit_code == 0 && on(&r, r#"msg="root-claude-md-bytes" value=9216 "#), "{}", r.stdout);
