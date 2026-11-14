@@ -8,7 +8,7 @@ import {
   View,
 } from '@lib/tamagui-design-system';
 
-import { useDispatchRuns } from '../integration/useDispatchRuns';
+import { useDispatchRuns } from '../state/useDispatchRuns';
 import type { CodingAgentTransport } from '../state/gatewayStore';
 
 export type DispatchRunsSectionProps = {

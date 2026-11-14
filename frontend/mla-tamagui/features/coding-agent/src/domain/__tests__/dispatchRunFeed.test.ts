@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import {
   type DispatchRunDetail,
   type DispatchRunLine,
-} from '../../contracts/dispatchRuns';
+} from '../dispatchRuns';
 import { buildDispatchRunFeed } from '../dispatchRunFeed';
 
 function makeDetail(

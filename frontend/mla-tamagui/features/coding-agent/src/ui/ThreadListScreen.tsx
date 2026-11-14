@@ -14,8 +14,8 @@ import {
 import { Plus } from '@lib/tamagui-design-system/icons';
 
 import type { OrchestrationGateway } from '../data/orchestrationGateway';
-import { useGateway } from '../integration/useGateway';
-import { useShellSubscription } from '../integration/useShellSubscription';
+import { useGateway } from '../state/useGateway';
+import { useShellSubscription } from '../state/useShellSubscription';
 import { useGatewayStore } from '../state/gatewayStore';
 import type { CodingAgentTransport } from '../state/gatewayStore';
 import { useThreadShellStore } from '../state/threadShellStore';

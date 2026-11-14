@@ -19,10 +19,10 @@ import {
   createFixtureGateway,
   type FixtureGateway,
 } from '../data/fixtureGateway';
-import { useGateway } from '../integration/useGateway';
-import { useThreadCommands } from '../integration/useThreadCommands';
-import { useThreadFeed } from '../integration/useThreadFeed';
-import { useThreadSubscription } from '../integration/useThreadSubscription';
+import { useGateway } from '../state/useGateway';
+import { useThreadCommands } from '../state/useThreadCommands';
+import { useThreadFeed } from '../state/useThreadFeed';
+import { useThreadSubscription } from '../state/useThreadSubscription';
 import { useGatewayStore } from '../state/gatewayStore';
 import { useOutboxStore } from '../state/outboxStore';
 import { useThreadDetailStore } from '../state/threadDetailStore';

@@ -9,7 +9,7 @@ import { TurnId } from '@app/remote-chat-agent-contracts/orchestration';
 import { act } from '@lib/flow-test-harness';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { useThreadSubscription } from '../integration/useThreadSubscription';
+import { useThreadSubscription } from '../state/useThreadSubscription';
 import { useGatewayStore } from '../state/gatewayStore';
 import { useThreadDetailStore } from '../state/threadDetailStore';
 import { FakeGateway } from '../state/__tests__/fakeGateway';

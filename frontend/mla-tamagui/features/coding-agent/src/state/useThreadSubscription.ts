@@ -1,4 +1,4 @@
-// features/coding-agent/src/integration/useThreadSubscription.ts
+// features/coding-agent/src/state/useThreadSubscription.ts
 //
 // Integration hook that wires a single thread subscription to the active
 // `OrchestrationGateway`: forwards every `OrchestrationSubscribeThreadItem`

@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import {
   DispatchRunDetail,
   type DispatchRunDetail as DispatchRunDetailType,
-} from '../../contracts/dispatchRuns';
+} from '../../domain/dispatchRuns';
 import { FIXTURE_DISPATCH_RUNS, FIXTURE_DISPATCH_RUN_IDS } from '../dispatchRuns';
 
 describe('FIXTURE_DISPATCH_RUNS', () => {

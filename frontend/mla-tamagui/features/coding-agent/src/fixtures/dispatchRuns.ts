@@ -7,7 +7,7 @@
 import {
   DispatchRunDetail,
   type DispatchRunDetail as DispatchRunDetailType,
-} from '../contracts/dispatchRuns';
+} from '../domain/dispatchRuns';
 
 const RUN_ID_FINISHED = 'fx-run-finished';
 const RUN_ID_RUNNING = 'fx-run-running';

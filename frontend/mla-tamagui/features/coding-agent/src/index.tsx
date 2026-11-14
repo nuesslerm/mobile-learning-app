@@ -6,12 +6,12 @@ export { ThreadScreen } from './ui/ThreadScreen';
 export { ThreadSettingsSheet } from './ui/ThreadSettingsSheet';
 
 // Integration hooks
-export { useGateway } from './integration/useGateway';
-export { useOutboxDrain } from './integration/useOutboxDrain';
-export { useShellSubscription } from './integration/useShellSubscription';
-export { useThreadCommands } from './integration/useThreadCommands';
-export { useThreadFeed } from './integration/useThreadFeed';
-export { useThreadSubscription } from './integration/useThreadSubscription';
+export { useGateway } from './state/useGateway';
+export { useOutboxDrain } from './state/useOutboxDrain';
+export { useShellSubscription } from './state/useShellSubscription';
+export { useThreadCommands } from './state/useThreadCommands';
+export { useThreadFeed } from './state/useThreadFeed';
+export { useThreadSubscription } from './state/useThreadSubscription';
 
 // State stores
 export { useComposerStore, getDefaultRuntimeMode, getDefaultInteractionMode } from './state/composerStore';

@@ -2,7 +2,7 @@ import { Logger } from '@lib/logging';
 import {
   healthReportSchema,
   type HealthReport,
-} from '../contracts';
+} from './index';
 import { z } from 'zod';
 
 export const ordsRowSchema = z.object({

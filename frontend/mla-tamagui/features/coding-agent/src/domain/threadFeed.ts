@@ -10,7 +10,7 @@ import type {
   OrchestrationProposedPlan,
   OrchestrationThread,
   OrchestrationThreadActivity,
-} from '../contracts/orchestration';
+} from './orchestration';
 
 import {
   deriveThreadFeedPresentation,

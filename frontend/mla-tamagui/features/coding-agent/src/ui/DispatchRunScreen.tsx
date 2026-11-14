@@ -15,7 +15,7 @@ import {
 
 import type { OrchestrationGateway } from '../data/orchestrationGateway';
 import { dispatchRunDashboardUrl } from '../data/dispatchRunsGateway';
-import { useDispatchRun } from '../integration/useDispatchRuns';
+import { useDispatchRun } from '../state/useDispatchRuns';
 import type { CodingAgentTransport } from '../state/gatewayStore';
 import { ThreadFeed } from './feed/ThreadFeed';
 

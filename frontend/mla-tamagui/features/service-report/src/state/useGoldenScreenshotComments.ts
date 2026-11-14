@@ -5,7 +5,7 @@
  */
 
 import { Logger } from '@lib/logging';
-import type { GoldenScreenshotComment } from '../contracts';
+import type { GoldenScreenshotComment } from '../domain';
 import { useCallback, useEffect, useState } from 'react';
 
 import {

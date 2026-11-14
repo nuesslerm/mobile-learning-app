@@ -1,4 +1,4 @@
-// features/coding-agent/src/integration/useShellSubscription.ts
+// features/coding-agent/src/state/useShellSubscription.ts
 //
 // Integration hook that wires the shell list subscription to the active
 // `OrchestrationGateway`: forwards every `OrchestrationSubscribeShellItem`

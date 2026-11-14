@@ -20,7 +20,7 @@ import {
   type ModelSelection,
   type RuntimeMode,
 } from '../domain';
-import { useThreadCommands } from '../integration/useThreadCommands';
+import { useThreadCommands } from '../state/useThreadCommands';
 import { useComposerStore } from '../state/composerStore';
 import { useGatewayStore } from '../state/gatewayStore';
 import { useServerConfigStore } from '../state/serverConfigStore';

@@ -1,4 +1,4 @@
-// features/coding-agent/src/contracts/dispatchRuns.ts
+// features/coding-agent/src/domain/dispatchRuns.ts
 //
 // Zod schemas for the opencode-log dispatch-runs API. `DispatchRunMeta` is the
 // list summary; `DispatchRunDetail` adds the raw JSON lines as the server

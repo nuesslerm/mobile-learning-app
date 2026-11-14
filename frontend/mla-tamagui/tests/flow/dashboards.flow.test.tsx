@@ -10,7 +10,7 @@ import {
   createFixtureReportingGateway,
   createHttpReportingGateway,
   type ReportingFixtures,
-} from '../../components/dashboards/data/reportingGateway';
+} from '../../features/dashboards/data/reportingGateway';
 
 import { app } from './app';
 

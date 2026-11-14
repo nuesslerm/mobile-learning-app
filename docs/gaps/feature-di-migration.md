@@ -5,7 +5,7 @@ paths:
   - "frontend/mla-tamagui/features/tamil-writing/**"
   - "frontend/mla-tamagui/features/coding-agent/src/**"
   - "frontend/mla-tamagui/features/service-report/src/**"
-  - "frontend/mla-tamagui/components/dashboards/**"
+  - "frontend/mla-tamagui/features/dashboards/**"
 opened: 2026-10-04
 last_verified: 2026-10-21
 links:
@@ -47,4 +47,4 @@ Out of date above:
 
 ## Re-checked 2026-10-21
 
-The frontmatter paths and links above are fixed. The target is now type 8, the hexagonal feature, in docs/solutions/architecture/hexagonal-architecture-by-package-type.md: ports in `domain/ports.ts`, one `di/` container that alone reads the overrides, `ui` importing `state/` and never `data/`. That settles the conflict with the shared dependency-cruiser preset, which still allows `ui → data` (`frontend/feature-kit/depcruise.feature.cjs:7`): the preset changes, not the target. settings is a presentation feature (type 9) and needs no container; dev-tools is proposed for dissolving into the app shell; dashboards (`frontend/mla-tamagui/components/dashboards`) joins the list. The per-feature units are Phase 3 of docs/plans/hexagonal-architecture/spec.md. The debt counts are unchanged: tamil-writing's ui imports `data/` in 4 files and coding-agent's in 4.
+The frontmatter paths and links above are fixed. The target is now type 8, the hexagonal feature, in docs/solutions/architecture/hexagonal-architecture-by-package-type.md: ports in `domain/ports.ts`, one `di/` container that alone reads the overrides, `ui` importing `state/` and never `data/`. That settles the conflict with the shared dependency-cruiser preset, which still allows `ui → data` (`frontend/feature-kit/depcruise.feature.cjs:7`): the preset changes, not the target. settings is a presentation feature (type 9) and needs no container; dev-tools is proposed for dissolving into the app shell; dashboards (`frontend/mla-tamagui/features/dashboards`) joins the list. The per-feature units are Phase 3 of docs/plans/hexagonal-architecture/spec.md. The debt counts are unchanged: tamil-writing's ui imports `data/` in 4 files and coding-agent's in 4.

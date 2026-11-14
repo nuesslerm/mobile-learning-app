@@ -1,4 +1,4 @@
-// features/coding-agent/src/integration/useDispatchRuns.ts
+// features/coding-agent/src/state/useDispatchRuns.ts
 //
 // Integration hooks that bind the dispatch-runs section to a transport:
 // `useDispatchRuns(transport)` polls the list every 5000 ms while mounted,

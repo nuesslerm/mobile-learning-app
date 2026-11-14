@@ -18,7 +18,7 @@ import { Logger } from '@lib/logging';
 import {
   buildScreenshotKey,
   type GoldenScreenshotHistoryEntry,
-} from '../contracts';
+} from '../domain';
 import {
   AlertDialog,
   AlertDialogAction,

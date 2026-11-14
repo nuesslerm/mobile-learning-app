@@ -7,7 +7,7 @@
 // adjacent entries with the same collapse key merge, and overflow of a group
 // folds behind a `work-toggle` row.
 
-import type { OrchestrationThreadActivity } from '../contracts/orchestration';
+import type { OrchestrationThreadActivity } from './orchestration';
 
 import type { ThreadFeedEntry } from './threadFeed';
 

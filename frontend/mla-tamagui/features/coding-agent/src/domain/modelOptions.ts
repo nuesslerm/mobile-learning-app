@@ -12,7 +12,7 @@
 // label it.
 
 import { ProviderName } from '@app/remote-chat-agent-contracts';
-import type { ModelSelection } from '../contracts/orchestration';
+import type { ModelSelection } from './orchestration';
 
 export interface ServerProbeModelDescriptor {
   readonly modelID: string;
