@@ -1,0 +1,1005 @@
+name: Cache bench
+
+# What each CI cache layer is worth, measured on GitHub-hosted runners (docs/solutions/ci/cache-bench.md). Every job runs the pipeline's own command cold,
+# saves the layer with actions/cache under bench-<run id>-<layer>-..., wipes the local copy, restores it (timed, download and unpack included) and runs
+# the command warm, then prints one `BENCH {...}` line (net_s = cold_s - (restore_s + warm_s)). A job deletes its caches when it is done and the
+# cleanup job deletes what is left and prints the table of valid rows sorted by net_s (baselines and rows whose restore missed are listed apart), so the 10 GB the pipeline shares is held for minutes.
+# Started by a push to dev of an EMPTY commit whose message starts with [cache-bench] (every other push skips every job at once). workflow_dispatch is kept for
+# when this file is on main: GitHub refuses to dispatch a new workflow that is not on the default branch, which is why the push trigger exists. The push
+# trigger leaves one skipped bench job per normal push on the checks list, accepted until main has the file (then the dispatch route in
+# scheduled-triggers.yml can be used). No secret and no tailnet.
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+    inputs:
+      message:
+        description: Commit message of the tagged empty commit (when started by a dispatch)
+        type: string
+        required: false
+        default: ''
+      sha:
+        description: Commit sha of the tagged empty commit (when started by a dispatch)
+        type: string
+        required: false
+        default: ''
+
+# a normal push also starts this workflow (every job skipped): it gets a group of its own, so it can never displace a pending tagged run
+concurrency:
+  group: ${{ (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[cache-bench]')) && 'cache-bench' || format('cache-bench-skipped-{0}', github.run_id) }}
+  cancel-in-progress: false
+
+permissions: {}
+
+env:
+  WF_BLOB_CACHE: "off"
+  NX_DAEMON: "false"
+  CI: "1"
+  npm_config_manage_package_manager_versions: "false"
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  # the jobs that run wf (the compile variants and nx) take this commit's wf from here, as the pipeline's jobs do
+  wf-build:
+    name: wf-build
+    if: ${{ github.ref == 'refs/heads/dev' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[cache-bench]')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+      - uses: ./.github/actions/hosted-apt
+        with:
+          packages: build-essential musl-tools
+      - uses: ./.github/actions/build-wf
+        with:
+          name: bench-clis
+          upload: true
+
+  submodules:
+    name: submodules
+    if: ${{ github.ref == 'refs/heads/dev' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[cache-bench]')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: write
+    env:
+      BENCH_NAME: submodules
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+      - uses: ./.github/actions/bench-setup
+      - name: Cold, the shallow clone of the reference trees
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          mark cold
+          git submodule update --init --recommend-shallow --depth 1 references/orca references/t3code
+          setv cold "$(since cold)"
+          setv cache_mb "$(mbof .git/modules/references)"
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: .git/modules/references
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-modules
+      - name: Wipe the local copy
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          git submodule deinit -f references/orca references/t3code
+          rm -rf .git/modules/references
+          mark restore
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: rst
+        with:
+          path: .git/modules/references
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-modules
+      - name: Warm, check the trees out of the restored module directories
+        shell: bash
+        env:
+          HIT: ${{ steps.rst.outputs.cache-hit }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          setv restore "$(since restore)"
+          mark warm
+          git submodule update --init --recommend-shallow --depth 1 references/orca references/t3code
+          setv warm "$(since warm)"
+          ok=true; for t in orca t3code; do git -C "references/$t" rev-parse --verify HEAD >/dev/null 2>&1 || ok=false; done
+          emit submodules git-modules "$(getv cold)" "$(getv restore)" "$(getv warm)" "$(getv cache_mb)" "$(saved_mb "$BENCH_KEY-modules")" \
+            "$(jq -cn --arg hit "$HIT" --argjson ok "$ok" '{restore_hit: $hit, checkout_ok: $ok}')"
+      - name: Drop this job's caches
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && bench_cleanup || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: bench-lines-submodules
+          path: ${{ runner.temp }}/bench/lines.jsonl
+          if-no-files-found: ignore
+          retention-days: 1
+
+  pnpm:
+    name: pnpm
+    if: ${{ github.ref == 'refs/heads/dev' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[cache-bench]')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: write
+    env:
+      BENCH_NAME: pnpm
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+      - uses: ./.github/actions/bench-setup
+        with:
+          node: "true"
+      - name: Where the pnpm store is
+        id: store
+        shell: bash
+        run: echo "path=$(pnpm store path)" >> "$GITHUB_OUTPUT"
+      - name: Cold, install from nothing
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          mark cold
+          pnpm install --frozen-lockfile
+          setv cold "$(since cold)"
+      - name: The node_modules directories the install made
+        id: nm
+        shell: bash
+        env:
+          STORE: ${{ steps.store.outputs.path }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          { echo "$GITHUB_WORKSPACE/node_modules"; pnpm -r ls --depth -1 --json | jq -r '.[].path + "/node_modules"'; } | sort -u \
+            | while read -r d; do if [ -d "$d" ]; then echo "$d"; fi; done > "$BENCH_DIR/nm.txt"
+          { echo 'paths<<EOF'; cat "$BENCH_DIR/nm.txt"; echo EOF; } >> "$GITHUB_OUTPUT"
+          setv store_mb "$(mbof "$STORE")"
+          # shellcheck disable=SC2046
+          setv both_mb "$(mbof "$STORE" $(cat "$BENCH_DIR/nm.txt"))"
+          echo "$(wc -l < "$BENCH_DIR/nm.txt") node_modules directories, store $(getv store_mb) MB, both $(getv both_mb) MB"
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ${{ steps.store.outputs.path }}
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-store
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ${{ steps.store.outputs.path }}
+            ${{ steps.nm.outputs.paths }}
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-store-nm
+      - name: Wipe, then restore the store only
+        shell: bash
+        env:
+          STORE: ${{ steps.store.outputs.path }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          rm -rf "$STORE"; xargs -r -a "$BENCH_DIR/nm.txt" rm -rf
+          mark restore
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: rst-store
+        with:
+          path: ${{ steps.store.outputs.path }}
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-store
+      - name: Warm, install from the restored store
+        shell: bash
+        env:
+          HIT: ${{ steps.rst-store.outputs.cache-hit }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          setv restore "$(since restore)"
+          mark warm
+          pnpm install --frozen-lockfile
+          setv warm "$(since warm)"
+          emit pnpm store "$(getv cold)" "$(getv restore)" "$(getv warm)" "$(getv store_mb)" "$(saved_mb "$BENCH_KEY-store")" "$(jq -cn --arg hit "$HIT" '{restore_hit: $hit}')"
+      - name: Wipe, then restore the store and node_modules
+        shell: bash
+        env:
+          STORE: ${{ steps.store.outputs.path }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          rm -rf "$STORE"; xargs -r -a "$BENCH_DIR/nm.txt" rm -rf
+          mark restore
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: rst-both
+        with:
+          path: |
+            ${{ steps.store.outputs.path }}
+            ${{ steps.nm.outputs.paths }}
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-store-nm
+      - name: Warm, install over the restored store and node_modules
+        shell: bash
+        env:
+          HIT: ${{ steps.rst-both.outputs.cache-hit }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          setv restore "$(since restore)"
+          mark warm
+          pnpm install --frozen-lockfile
+          setv warm "$(since warm)"
+          emit pnpm store+node_modules "$(getv cold)" "$(getv restore)" "$(getv warm)" "$(getv both_mb)" "$(saved_mb "$BENCH_KEY-store-nm")" "$(jq -cn --arg hit "$HIT" '{restore_hit: $hit}')"
+      - name: Drop this job's caches
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && bench_cleanup || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: bench-lines-pnpm
+          path: ${{ runner.temp }}/bench/lines.jsonl
+          if-no-files-found: ignore
+          retention-days: 1
+
+  playwright:
+    name: playwright
+    if: ${{ github.ref == 'refs/heads/dev' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[cache-bench]')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: write
+    env:
+      BENCH_NAME: playwright
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+      - uses: ./.github/actions/bench-setup
+        with:
+          node: "true"
+          install: "true"
+      - name: Mark the cold start
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && rm -rf "$HOME/.cache/ms-playwright" && mark cold
+      - name: Cold, the pipeline's Chromium step
+        uses: ./.github/actions/install-test-deps
+        with:
+          playwright: "true"
+      - name: Cold, measured
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          setv cold "$(since cold)"
+          setv cache_mb "$(mbof "$HOME/.cache/ms-playwright")"
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-browsers
+      - name: Wipe the local copy
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && rm -rf "$HOME/.cache/ms-playwright" && mark restore
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: rst
+        with:
+          path: ~/.cache/ms-playwright
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-browsers
+      - name: Mark the warm start
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && setv restore "$(since restore)" && mark warm
+      - name: Warm, the same step finds its marker in the restored directory
+        uses: ./.github/actions/install-test-deps
+        with:
+          playwright: "true"
+      - name: Warm, measured
+        shell: bash
+        env:
+          HIT: ${{ steps.rst.outputs.cache-hit }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          setv warm "$(since warm)"
+          # the marker in the cache also skips `--with-deps` (apt): this runner already has those packages from the cold step, a fresh one may not
+          emit playwright browser-dir "$(getv cold)" "$(getv restore)" "$(getv warm)" "$(getv cache_mb)" "$(saved_mb "$BENCH_KEY-browsers")" \
+            "$(jq -cn --arg hit "$HIT" '{restore_hit: $hit, control: true}')"
+      - name: Drop this job's caches
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && bench_cleanup || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: bench-lines-playwright
+          path: ${{ runner.temp }}/bench/lines.jsonl
+          if-no-files-found: ignore
+          retention-days: 1
+
+  toolchain:
+    name: toolchain
+    if: ${{ github.ref == 'refs/heads/dev' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[cache-bench]')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: write
+    env:
+      BENCH_NAME: toolchain
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+      - uses: ./.github/actions/bench-setup
+      - name: The pinned channel
+        id: pin
+        shell: bash
+        run: echo "channel=$(sed -n 's/^channel *= *"\(.*\)"/\1/p' rust-toolchain.toml)" >> "$GITHUB_OUTPUT"
+      - name: Cold, rustup toolchain install (the pipeline's command)
+        shell: bash
+        env:
+          CHANNEL: ${{ steps.pin.outputs.channel }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          rustup toolchain uninstall "$CHANNEL" || true
+          mark cold
+          rustup toolchain install --profile minimal
+          setv cold "$(since cold)"
+          # shellcheck disable=SC2086
+          setv cache_mb "$(mbof $HOME/.rustup/toolchains/$CHANNEL-* $HOME/.rustup/update-hashes/$CHANNEL-* $HOME/.cargo/bin)"
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.rustup/toolchains/${{ steps.pin.outputs.channel }}-*
+            ~/.rustup/update-hashes/${{ steps.pin.outputs.channel }}-*
+            ~/.cargo/bin
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-rustup
+      - name: Wipe the local copy
+        shell: bash
+        env:
+          CHANNEL: ${{ steps.pin.outputs.channel }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          rm -rf "$HOME/.rustup/toolchains/$CHANNEL"-* "$HOME/.rustup/update-hashes/$CHANNEL"-*
+          mark restore
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: rst
+        with:
+          path: |
+            ~/.rustup/toolchains/${{ steps.pin.outputs.channel }}-*
+            ~/.rustup/update-hashes/${{ steps.pin.outputs.channel }}-*
+            ~/.cargo/bin
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-rustup
+      - name: Warm, the pipeline's check and only then the install
+        shell: bash
+        env:
+          CHANNEL: ${{ steps.pin.outputs.channel }}
+          HIT: ${{ steps.rst.outputs.cache-hit }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          setv restore "$(since restore)"
+          mark warm
+          again=false
+          export PATH="$HOME/.cargo/bin:$PATH"
+          cargo --version >/dev/null 2>&1 || { again=true; rustup toolchain uninstall "$CHANNEL" || true; rustup toolchain install --profile minimal; }
+          cargo --version
+          setv warm "$(since warm)"
+          emit toolchain rustup-dirs "$(getv cold)" "$(getv restore)" "$(getv warm)" "$(getv cache_mb)" "$(saved_mb "$BENCH_KEY-rustup")" \
+            "$(jq -cn --arg hit "$HIT" --argjson again "$again" '{restore_hit: $hit, installed_again: $again, control: true}')"
+      - name: Drop this job's caches
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && bench_cleanup || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: bench-lines-toolchain
+          path: ${{ runner.temp }}/bench/lines.jsonl
+          if-no-files-found: ignore
+          retention-days: 1
+
+  cargo-fetch:
+    name: cargo-fetch
+    if: ${{ github.ref == 'refs/heads/dev' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[cache-bench]')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: write
+    env:
+      BENCH_NAME: cargo-fetch
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+      - uses: ./.github/actions/bench-setup
+        with:
+          rust: "true"
+      - name: The Cargo workspaces
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          git ls-files -z '*Cargo.toml' | xargs -0 grep -l '^\[workspace\]' > "$BENCH_DIR/workspaces.txt" || true
+          cat "$BENCH_DIR/workspaces.txt"
+          [ -s "$BENCH_DIR/workspaces.txt" ] || { echo "::error::no Cargo workspace found"; exit 1; }
+          cat > "$BENCH_DIR/fetch.sh" <<'EOS'
+          fails=0
+          while read -r m; do cargo fetch --locked --manifest-path "$m" || fails=$((fails + 1)); done < "$BENCH_DIR/workspaces.txt"
+          echo "$fails workspace(s) failed to fetch"
+          EOS
+      - name: Cold, cargo fetch for each workspace
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          rm -rf "$HOME/.cargo/registry" "$HOME/.cargo/git"
+          mark cold
+          bash "$BENCH_DIR/fetch.sh"
+          setv cold "$(since cold)"
+          setv cache_mb "$(mbof "$HOME/.cargo/registry" "$HOME/.cargo/git")"
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-sources
+      - name: Wipe the local copy
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && rm -rf "$HOME/.cargo/registry" "$HOME/.cargo/git" && mark restore
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: rst
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-sources
+      - name: Warm, cargo fetch again
+        shell: bash
+        env:
+          HIT: ${{ steps.rst.outputs.cache-hit }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          setv restore "$(since restore)"
+          mark warm
+          bash "$BENCH_DIR/fetch.sh"
+          setv warm "$(since warm)"
+          emit cargo-fetch registry+git "$(getv cold)" "$(getv restore)" "$(getv warm)" "$(getv cache_mb)" "$(saved_mb "$BENCH_KEY-sources")" "$(jq -cn --arg hit "$HIT" '{restore_hit: $hit}')"
+      - name: Drop this job's caches
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && bench_cleanup || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: bench-lines-cargo-fetch
+          path: ${{ runner.temp }}/bench/lines.jsonl
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # The compile work of one flow-tests shard (wf test run --stage flow-tests --shard 5/6), shrunk to the crates' cargo-flow tasks: the plan keeps only the crate
+  # entries, and the shard is dealt from those by the same round robin over sorted names. Nx's cache is off (--fresh turns it off and starts no
+  # build-cache shim), so what is measured is the compile cache alone. The three variants run the same work.
+  rust-compile:
+    name: rust-compile (${{ matrix.variant }})
+    needs: wf-build
+    if: ${{ github.ref == 'refs/heads/dev' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[cache-bench]')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: write
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [baseline, sccache, target]
+    env:
+      BENCH_NAME: rust-${{ matrix.variant }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+      - uses: ./.github/actions/bench-setup
+        with:
+          node: "true"
+          install: "true"
+          rust: "true"
+          free-disk: "true"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: bench-clis
+          path: ${{ runner.temp }}/clis-bin
+      - name: wf on PATH
+        shell: bash
+        run: |
+          chmod +x "$RUNNER_TEMP"/clis-bin/*
+          echo "$RUNNER_TEMP/clis-bin" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/install-sccache
+        if: ${{ matrix.variant == 'sccache' }}
+      - name: The directories, the plan and the narrow change
+        id: dirs
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          base=$(dirname "$GITHUB_WORKSPACE")
+          { echo "target=$base/bench-target"; echo "sccache=$base/bench-sccache"; } >> "$GITHUB_OUTPUT"
+          { echo "CARGO_TARGET_DIR=$base/bench-target"; echo "CARGO_INCREMENTAL=0"; } >> "$GITHUB_ENV"
+          if [ "${{ matrix.variant }}" = sccache ]; then
+            { echo "RUSTC_WRAPPER=sccache"; echo "SCCACHE_DIR=$base/bench-sccache"; echo "SCCACHE_CACHE_SIZE=3G"; } >> "$GITHUB_ENV"
+          fi
+          wf test plan --all --json | jq -c '.stages |= {"flow-tests": [.["flow-tests"][] | select(.crate != null)]}' > "$RUNNER_TEMP/plan.json"
+          crates=$(jq -r '[.stages["flow-tests"][] | "crate-" + .crate] | unique | to_entries | map(select(.key % 6 == 4)) | .[].value[6:]' "$RUNNER_TEMP/plan.json")
+          # shellcheck disable=SC2086
+          echo "shard 5/6 of the crate plan:" $crates
+          # shellcheck disable=SC2086
+          narrow=$(leaf_crate_source $crates) || { echo "::error::no crate source to change"; exit 1; }
+          echo "$narrow" > "$BENCH_DIR/narrow.txt"
+          echo "narrow change goes to $narrow"
+      - name: Cold, no cache
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          rm -rf "$CARGO_TARGET_DIR" "${SCCACHE_DIR:-/nonexistent}"
+          if [ "$RUSTC_WRAPPER" = sccache ]; then sccache --stop-server >/dev/null 2>&1 || true; sccache --zero-stats >/dev/null; fi
+          mark cold
+          rc=0
+          wf test run --stage flow-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard 5/6 --fresh || rc=$?
+          setv cold "$(since cold)"
+          setv rc_cold "$rc"
+          echo "cold: wf test run exit code $rc"
+          if [ "$RUSTC_WRAPPER" = sccache ]; then
+            sccache --show-stats
+            setv stats_cold "$(sccache --show-stats --stats-format json | jq -c '{requests: .stats.compile_requests, hits: ([.stats.cache_hits.counts[]?] | add // 0), misses: ([.stats.cache_misses.counts[]?] | add // 0)}')"
+          fi
+          df -h / | tail -1
+        env:
+          RUSTC_WRAPPER: ${{ matrix.variant == 'sccache' && 'sccache' || '' }}
+        timeout-minutes: 15
+
+      # variant A: nothing is cached, the cold run is the baseline
+      - name: Baseline result
+        if: ${{ matrix.variant == 'baseline' }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          emit rust-compile no-cache "$(getv cold)" null null null null "$(jq -cn --argjson rc "$(getv rc_cold)" '{baseline: true, rc: $rc}')"
+
+      # variant B: sccache's directory
+      - name: sccache, size and stop
+        if: ${{ matrix.variant == 'sccache' }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          sccache --stop-server || true
+          setv cache_mb "$(mbof "$SCCACHE_DIR")"
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        if: ${{ matrix.variant == 'sccache' }}
+        with:
+          path: ${{ steps.dirs.outputs.sccache }}
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-sccache
+      - name: sccache, wipe the local copy and the target directory
+        if: ${{ matrix.variant == 'sccache' }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          rm -rf "$SCCACHE_DIR" "$CARGO_TARGET_DIR"
+          mark restore
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        if: ${{ matrix.variant == 'sccache' }}
+        id: rst-sccache
+        with:
+          path: ${{ steps.dirs.outputs.sccache }}
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-sccache
+      - name: sccache, warm after the narrow change
+        if: ${{ matrix.variant == 'sccache' }}
+        shell: bash
+        env:
+          HIT: ${{ steps.rst-sccache.outputs.cache-hit }}
+        timeout-minutes: 15
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          setv restore "$(since restore)"
+          append_comment "$(cat "$BENCH_DIR/narrow.txt")"
+          sccache --zero-stats >/dev/null
+          mark warm
+          rc=0
+          wf test run --stage flow-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard 5/6 --fresh || rc=$?
+          setv warm "$(since warm)"
+          sccache --show-stats
+          stats=$(sccache --show-stats --stats-format json | jq -c '{requests: .stats.compile_requests, hits: ([.stats.cache_hits.counts[]?] | add // 0), misses: ([.stats.cache_misses.counts[]?] | add // 0)}')
+          emit rust-compile sccache "$(getv cold)" "$(getv restore)" "$(getv warm)" "$(getv cache_mb)" "$(saved_mb "$BENCH_KEY-sccache")" \
+            "$(jq -cn --arg hit "$HIT" --argjson rc_cold "$(getv rc_cold)" --argjson rc_warm "$rc" --argjson cold "$(getv stats_cold)" --argjson warm "$stats" '{restore_hit: $hit, rc_cold: $rc_cold, rc_warm: $rc_warm, sccache_cold: $cold, sccache_warm: $warm}')"
+
+      # variant C: the cargo target directory
+      - name: Target directory, size
+        if: ${{ matrix.variant == 'target' }}
+        id: size
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          mb=$(mbof "$CARGO_TARGET_DIR")
+          setv cache_mb "$mb"
+          # the cache quota is 10 GB for the whole repository: a target directory over this is measured but not saved
+          if [ "$mb" -le 6000 ]; then echo "save=true" >> "$GITHUB_OUTPUT"; else echo "save=false" >> "$GITHUB_OUTPUT"; echo "::warning::the target directory is $mb MB, over 6000 MB: not saved"; fi
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        if: ${{ matrix.variant == 'target' && steps.size.outputs.save == 'true' }}
+        with:
+          path: ${{ steps.dirs.outputs.target }}
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-target
+      - name: Target directory, wipe the local copy
+        if: ${{ matrix.variant == 'target' }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          rm -rf "$CARGO_TARGET_DIR"
+          mark restore
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        if: ${{ matrix.variant == 'target' && steps.size.outputs.save == 'true' }}
+        id: rst-target
+        with:
+          path: ${{ steps.dirs.outputs.target }}
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-target
+      - name: Target directory, warm after the narrow change
+        if: ${{ matrix.variant == 'target' }}
+        shell: bash
+        env:
+          HIT: ${{ steps.rst-target.outputs.cache-hit }}
+          SAVED: ${{ steps.size.outputs.save }}
+        timeout-minutes: 15
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          setv restore "$(since restore)"
+          # a new job checks the sources out after the artifacts were made: every tracked file is newer than the restored target directory, as cargo sees it
+          git ls-files -z | xargs -0 touch -c
+          append_comment "$(cat "$BENCH_DIR/narrow.txt")"
+          mark warm
+          rc=0
+          wf test run --stage flow-tests --plan "$RUNNER_TEMP/plan.json" --parallel 2 --shard 5/6 --fresh || rc=$?
+          setv warm "$(since warm)"
+          saved=null; [ "$SAVED" != true ] || saved=$(saved_mb "$BENCH_KEY-target")
+          emit rust-compile target-dir "$(getv cold)" "$(getv restore)" "$(getv warm)" "$(getv cache_mb)" "$saved" \
+            "$(jq -cn --arg hit "$HIT" --arg saved "$SAVED" --argjson rc_cold "$(getv rc_cold)" --argjson rc_warm "$rc" '{restore_hit: $hit, saved: $saved, rc_cold: $rc_cold, rc_warm: $rc_warm}')"
+      - name: Drop this job's caches
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && bench_cleanup || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: bench-lines-rust-${{ matrix.variant }}
+          path: ${{ runner.temp }}/bench/lines.jsonl
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # Nx's local cache over a representative slice of what the stages run: typecheck, lint and unit tests of three TypeScript packages, and the cargo-flow task of
+  # the telemetry crate, through `wf test run --stage` exactly as the pipeline calls it (no build-cache shim: WF_BLOB_CACHE is off and no bucket URL resolves).
+  nx:
+    name: nx
+    needs: wf-build
+    if: ${{ github.ref == 'refs/heads/dev' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[cache-bench]')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: write
+    env:
+      BENCH_NAME: nx
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+      - uses: ./.github/actions/bench-setup
+        with:
+          node: "true"
+          install: "true"
+          rust: "true"
+          free-disk: "true"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: bench-clis
+          path: ${{ runner.temp }}/clis-bin
+      - name: wf on PATH
+        shell: bash
+        run: |
+          chmod +x "$RUNNER_TEMP"/clis-bin/*
+          echo "$RUNNER_TEMP/clis-bin" >> "$GITHUB_PATH"
+      - name: The plan and the narrow changes
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          wf test plan --all --json | jq -c --argjson pk '["@lib/logging","@lib/app-config","@lib/gesture-geometry"]' '
+            .stages |= {
+              "typecheck-lint-unit-tests": [.["typecheck-lint-unit-tests"][] | select(.package != null and (.package | IN($pk[])))],
+              "flow-tests": [.["flow-tests"][] | select(.crate == "telemetry")]
+            }' > "$RUNNER_TEMP/plan.json"
+          jq -r '.stages | to_entries[] | "\(.key): \(.value | length) test(s)"' "$RUNNER_TEMP/plan.json"
+          # telemetry has its own [workspace] (not a member of clis/Cargo.toml): ask its own manifest
+          tsf=$(ts_leaf frontend/libraries/logging/src)
+          [ -n "$tsf" ] || { echo "::error::no TypeScript file to change"; exit 1; }
+          crs=$(BENCH_MANIFEST=clis/telemetry/Cargo.toml leaf_crate_source telemetry) || { echo "::error::no crate source to change"; exit 1; }
+          printf '%s\n%s\n' "$tsf" "$crs" > "$BENCH_DIR/narrow.txt"
+          cat "$BENCH_DIR/narrow.txt"
+          cat > "$BENCH_DIR/nx.sh" <<'EOS'
+          nxrun() {
+            local log=$1 stage
+            : > "$log"
+            for stage in typecheck-lint-unit-tests flow-tests; do
+              wf test run --stage "$stage" --plan "$RUNNER_TEMP/plan.json" --parallel 2 >> "$log" 2>&1 || echo "stage $stage: exit $?" >> "$log"
+            done
+            grep -E 'out of [0-9]+ tasks|stage .*: exit' "$log" || true
+          }
+          nxcounts() {
+            local entries
+            entries=$(find "$HOME"/.nx/*/cache -mindepth 1 -maxdepth 1 2>/dev/null | wc -l || true)
+            { grep -oE 'for [0-9]+ out of [0-9]+ tasks' "$1" || true; } | awk -v e="$entries" '{h += $2; t += $5} END { if (t == 0) printf "{\"replayed\":null,\"rerun\":null,\"tasks\":null,\"entries\":%d}", e; else printf "{\"replayed\":%d,\"rerun\":%d,\"tasks\":%d,\"entries\":%d}", h, t - h, t, e }'
+          }
+          EOS
+      - name: Cold, empty Nx cache
+        shell: bash
+        timeout-minutes: 15
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          # shellcheck source=/dev/null
+          . "$BENCH_DIR/nx.sh"
+          rm -rf "$HOME/.nx"
+          mark cold
+          nxrun "$BENCH_DIR/cold.log"
+          setv cold "$(since cold)"
+          setv counts_cold "$(nxcounts "$BENCH_DIR/cold.log")"
+          setv cache_mb "$(mbof "$HOME"/.nx/*/cache "$HOME"/.nx/*/databases)"
+          echo "cold: $(getv counts_cold)"
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: |
+            ~/.nx/*/cache
+            ~/.nx/*/databases
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-cache
+      - name: Wipe the local copy and the crate's target directories (telemetry builds in its own clis/telemetry/target)
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          rm -rf "$HOME/.nx" clis/target clis/telemetry/target
+          mark restore
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: rst
+        with:
+          path: |
+            ~/.nx/*/cache
+            ~/.nx/*/databases
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-cache
+      - name: Warm, after the narrow changes
+        shell: bash
+        timeout-minutes: 15
+        env:
+          HIT: ${{ steps.rst.outputs.cache-hit }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          # shellcheck source=/dev/null
+          . "$BENCH_DIR/nx.sh"
+          setv restore "$(since restore)"
+          append_comment "$(sed -n 1p "$BENCH_DIR/narrow.txt")"
+          append_comment "$(sed -n 2p "$BENCH_DIR/narrow.txt")"
+          mark warm
+          nxrun "$BENCH_DIR/warm.log"
+          setv warm "$(since warm)"
+          counts=$(nxcounts "$BENCH_DIR/warm.log")
+          echo "warm: $counts"
+          emit nx narrow-change "$(getv cold)" "$(getv restore)" "$(getv warm)" "$(getv cache_mb)" "$(saved_mb "$BENCH_KEY-cache")" \
+            "$(jq -cn --arg hit "$HIT" --argjson cold "$(getv counts_cold)" --argjson warm "$counts" '{restore_hit: $hit, tasks_cold: $cold, tasks_warm: $warm, nx_cache: "on, local only (the compile jobs run with --fresh)"}')"
+          mark again
+          nxrun "$BENCH_DIR/again.log"
+          setv again "$(since again)"
+          emit nx identical-rerun "$(getv cold)" "$(getv restore)" "$(getv again)" "$(getv cache_mb)" "$(saved_mb "$BENCH_KEY-cache")" \
+            "$(jq -cn --arg hit "$HIT" --argjson warm "$(nxcounts "$BENCH_DIR/again.log")" '{restore_hit: $hit, tasks_warm: $warm}')"
+      - name: Drop this job's caches
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && bench_cleanup || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: bench-lines-nx
+          path: ${{ runner.temp }}/bench/lines.jsonl
+          if-no-files-found: ignore
+          retention-days: 1
+
+  # The web export the eas-update and browser e2e jobs run (the nx target export:web of mla-tamagui) and the typecheck whose tsc build info lives beside Metro's
+  # transform cache in node_modules/.cache/app-build, cold against warm with the app-build directory restored. Backends point at a closed loopback port.
+  metro:
+    name: metro
+    if: ${{ github.ref == 'refs/heads/dev' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[cache-bench]')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: write
+    env:
+      BENCH_NAME: metro
+      EXPO_PUBLIC_DEVICE_LAB: "1"
+      EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL: http://127.0.0.1:1
+      EXPO_PUBLIC_AGENT_BASE_URL: http://127.0.0.1:1
+      EXPO_PUBLIC_VM_OPS_API_BASE_URL: http://127.0.0.1:1
+      EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN: bench-placeholder
+      EXPO_NO_TELEMETRY: "1"
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+      - uses: ./.github/actions/bench-setup
+        with:
+          node: "true"
+          install: "true"
+      - name: The narrow change target and the build commands
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          ts_leaf frontend/mla-tamagui/features > "$BENCH_DIR/narrow.txt"
+          cat "$BENCH_DIR/narrow.txt"
+          [ -s "$BENCH_DIR/narrow.txt" ] || { echo "::error::no file to change"; exit 1; }
+          cat > "$BENCH_DIR/build.sh" <<'EOS'
+          rc=0
+          pnpm exec nx run mla-tamagui:typecheck --skip-nx-cache || rc=$?
+          pnpm exec nx run mla-tamagui:export:web --skip-nx-cache || rc=$?
+          echo "build exit code $rc"
+          EOS
+      - name: Cold, empty app-build directory
+        shell: bash
+        timeout-minutes: 15
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          rm -rf frontend/mla-tamagui/node_modules/.cache/app-build frontend/mla-tamagui/dist
+          mark cold
+          bash "$BENCH_DIR/build.sh" 2>&1 | tee "$BENCH_DIR/cold.log"
+          setv cold "$(since cold)"
+          setv rc_cold "$(sed -n 's/^build exit code //p' "$BENCH_DIR/cold.log" | tail -1)"
+          setv cache_mb "$(mbof frontend/mla-tamagui/node_modules/.cache/app-build)"
+          echo "cold: $(getv cold) s, app-build $(getv cache_mb) MB"
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: frontend/mla-tamagui/node_modules/.cache/app-build
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-app-build
+      - name: Wipe the local copy and the export
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          rm -rf frontend/mla-tamagui/node_modules/.cache/app-build frontend/mla-tamagui/dist
+          mark restore
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: rst
+        with:
+          path: frontend/mla-tamagui/node_modules/.cache/app-build
+          key: bench-${{ github.run_id }}-${{ env.BENCH_NAME }}-app-build
+      - name: Warm, after the narrow change
+        shell: bash
+        timeout-minutes: 15
+        env:
+          HIT: ${{ steps.rst.outputs.cache-hit }}
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB"
+          setv restore "$(since restore)"
+          append_comment "$(cat "$BENCH_DIR/narrow.txt")"
+          mark warm
+          bash "$BENCH_DIR/build.sh" 2>&1 | tee "$BENCH_DIR/warm.log"
+          setv warm "$(since warm)"
+          rc_warm=$(sed -n 's/^build exit code //p' "$BENCH_DIR/warm.log" | tail -1)
+          emit metro app-build "$(getv cold)" "$(getv restore)" "$(getv warm)" "$(getv cache_mb)" "$(saved_mb "$BENCH_KEY-app-build")" \
+            "$(jq -cn --arg hit "$HIT" --argjson rc_cold "$(getv rc_cold)" --argjson rc_warm "${rc_warm:-null}" '{restore_hit: $hit, rc_cold: $rc_cold, rc_warm: $rc_warm}')"
+      - name: Drop this job's caches
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          # shellcheck source=/dev/null
+          . "$BENCH_LIB" && bench_cleanup || true
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: bench-lines-metro
+          path: ${{ runner.temp }}/bench/lines.jsonl
+          if-no-files-found: ignore
+          retention-days: 1
+
+  cleanup:
+    name: cleanup
+    needs: [wf-build, submodules, pnpm, playwright, toolchain, cargo-fetch, rust-compile, nx, metro]
+    if: ${{ always() && github.ref == 'refs/heads/dev' && (github.event_name == 'workflow_dispatch' || startsWith(github.event.head_commit.message, '[cache-bench]')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Delete every cache this run made
+        shell: bash
+        env:
+          GH_REPO: ${{ github.repository }}
+        run: |
+          prefix="bench-${GITHUB_RUN_ID}-"
+          ids=$(gh cache list --key "$prefix" --limit 200 --json id,key,sizeInBytes --jq '.[] | "\(.id) \(.key) \(.sizeInBytes)"' || true)
+          if [ -z "$ids" ]; then echo "no cache left under $prefix"; exit 0; fi
+          while read -r id key size; do
+            echo "deleting $key ($((size / 1048576)) MB)"
+            gh cache delete "$id" || echo "::warning::could not delete $key"
+          done <<< "$ids"
+          left=$(gh cache list --key "$prefix" --limit 200 --json id --jq length || echo unknown)
+          echo "$left cache(s) left under $prefix"
+          [ "$left" = 0 ] || echo "::warning::$left bench cache(s) are still there"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: bench-lines-*
+          path: ${{ runner.temp }}/lines
+      - name: The BENCH lines, best net benefit first
+        shell: bash
+        run: |
+          cat "$RUNNER_TEMP"/lines/*/lines.jsonl 2>/dev/null > "$RUNNER_TEMP/all.jsonl" || true
+          if [ ! -s "$RUNNER_TEMP/all.jsonl" ]; then echo "no BENCH line was produced"; exit 0; fi
+          # valid: the restore found the exact key. A row that missed has net_s null and ranks last; a baseline has no net_s and is listed apart.
+          jq -s '
+            map(if .baseline == true then . + {valid: null, net_s: null}
+                elif ((.restore_hit | tostring) == "true") then . + {valid: true}
+                else . + {valid: false, net_s: null} end) as $all
+            | {ranked: ([$all[] | select(.baseline != true)] | sort_by([(.valid | not), -(.net_s // 0)])),
+               baselines: [$all[] | select(.baseline == true)]}' "$RUNNER_TEMP/all.jsonl" > "$RUNNER_TEMP/sorted.json"
+          row='[.layer, .variant, (if .valid then "yes" else "NO, restore missed" end), .cold_s, .restore_s, .warm_s, .net_s, .cache_mb, .saved_mb_compressed] | map(. // "-")'
+          header='layer\tvariant\tvalid\tcold_s\trestore_s\twarm_s\tnet_s\tcache_mb\tsaved_mb_compressed'
+          rows=$(jq -r ".ranked[] | $row | @tsv" "$RUNNER_TEMP/sorted.json" || true)
+          { printf '%b\n' "$header"; printf '%s\n' "$rows"; } | column -t -s "$(printf '\t')" || true
+          echo "baselines (cold run, not ranked):"
+          jq -r '.baselines[] | "  \(.layer) \(.variant): cold_s \(.cold_s // "-")"' "$RUNNER_TEMP/sorted.json" || true
+          {
+            echo "### Cache bench, by net seconds saved"
+            echo "Rows whose restore missed the key are invalid (net s shown as -) and ranked last."
+            echo "| layer | variant | valid | cold s | restore s | warm s | net s | cache MB | compressed MB |"
+            echo "|---|---|---|---|---|---|---|---|---|"
+            jq -r '.ranked[] | "| \(.layer) | \(.variant) | \(if .valid then "yes" else "NO, restore missed" end) | \(.cold_s // "-") | \(.restore_s // "-") | \(.warm_s // "-") | \(.net_s // "-") | \(.cache_mb // "-") | \(.saved_mb_compressed // "-") |"' "$RUNNER_TEMP/sorted.json" || true
+            echo
+            echo "Baselines (nothing cached, not ranked):"
+            jq -r '.baselines[] | "- \(.layer) \(.variant): cold \(.cold_s // "-") s"' "$RUNNER_TEMP/sorted.json" || true
+          } >> "$GITHUB_STEP_SUMMARY"
+          jq -c '.ranked[], .baselines[]' "$RUNNER_TEMP/sorted.json" | sed 's/^/BENCH /'
