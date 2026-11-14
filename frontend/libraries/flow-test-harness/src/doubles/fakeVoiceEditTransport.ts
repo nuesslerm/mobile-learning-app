@@ -1,4 +1,4 @@
-// Structural mirror of features/leetcode/contracts/ports.ts `VoiceEditTransportPort` —
+// Structural mirror of features/leetcode/domain/ports.ts `VoiceEditTransportPort` —
 // the double stays import-free of mla-tamagui, resolves scripted responses with
 // `wallMs: 0` and never touches the network.
 type FakeEditCommand = { type: string; [key: string]: unknown };

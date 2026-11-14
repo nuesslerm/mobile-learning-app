@@ -4,7 +4,7 @@ import { Platform } from 'react-native';
 
 import { errorStatus } from '../../data/voiceEditIdentity';
 import { useLeetCodePorts } from '../../di/LeetCodeContainer';
-import { useVoiceRecording } from '../../hooks/useVoiceRecording';
+import { useVoiceRecording } from '../../state/useVoiceRecording';
 
 const DEFAULT_CHUNK_MS = 1500;
 

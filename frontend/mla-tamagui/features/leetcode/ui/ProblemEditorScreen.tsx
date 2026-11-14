@@ -57,7 +57,7 @@ import { type Selection } from '../code-editor/core/types';
 import { EditorHelperRails } from '../code-editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../data/problemCatalog';
 import { compactVoiceError } from '../data/voiceEditIdentity';
-import { useVoiceEdit } from '../hooks/useVoiceEdit';
+import { useVoiceEdit } from '../state/useVoiceEdit';
 import { useLeetCodeAuthStore } from '../state/authStore';
 import { useCodeHistoryRequestStore } from '../state/codeHistoryRequestStore';
 import { useCodeHistoryStore } from '../state/codeHistoryStore';

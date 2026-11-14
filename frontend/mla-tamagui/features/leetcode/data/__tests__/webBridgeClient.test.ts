@@ -17,7 +17,7 @@ describe('webBridgeClient', () => {
 
   it('Given mock fetch returning user-status, When fetchUserStatus called, Then returns isSignedIn and username from backend', async () => {
     const { fetchUserStatus: fetchUserStatusLocal } = await import(
-      '../../data/webBridgeClient'
+      '../webBridgeClient'
     );
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -35,7 +35,7 @@ describe('webBridgeClient', () => {
 
   it('Given empty response from backend, When fetchUserStatus called, Then defaults to signed-out', async () => {
     const { fetchUserStatus: fetchUserStatusLocal } = await import(
-      '../../data/webBridgeClient'
+      '../webBridgeClient'
     );
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -48,7 +48,7 @@ describe('webBridgeClient', () => {
 
   it('Given non-2xx response with error message, When fetchUserStatus called, Then throws with the backend error message', async () => {
     const { fetchUserStatus: fetchUserStatusLocal } = await import(
-      '../../data/webBridgeClient'
+      '../webBridgeClient'
     );
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
@@ -63,7 +63,7 @@ describe('webBridgeClient', () => {
 
   it('Given test parameters, When fetchTest called, Then posts the payload with no cookie field', async () => {
     const { fetchTest: fetchTestLocal } = await import(
-      '../../data/webBridgeClient'
+      '../webBridgeClient'
     );
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -94,7 +94,7 @@ describe('webBridgeClient', () => {
 
   it('Given submit parameters, When fetchSubmit called, Then posts the payload with no cookie field', async () => {
     const { fetchSubmit: fetchSubmitLocal } = await import(
-      '../../data/webBridgeClient'
+      '../webBridgeClient'
     );
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -123,7 +123,7 @@ describe('webBridgeClient', () => {
 
   it('Given poll id, When fetchPoll called, Then GETs the poll endpoint with id in path and no body', async () => {
     const { fetchPoll: fetchPollLocal } = await import(
-      '../../data/webBridgeClient'
+      '../webBridgeClient'
     );
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -158,7 +158,7 @@ describe('auth header', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const { fetchUserStatus: fetchUserStatusWithToken } =
-      await import('../../data/webBridgeClient');
+      await import('../webBridgeClient');
     await fetchUserStatusWithToken('http://localhost:8789');
 
     const [, options] = fetchMock.mock.calls[0];
@@ -179,7 +179,7 @@ describe('fetchLoginCaptureStatus', () => {
     }));
 
     const { fetchLoginCaptureStatus: fetchLoginCaptureStatusLocal } =
-      await import('../../data/webBridgeClient');
+      await import('../webBridgeClient');
     const fetchMock = vi.fn(async () => ({
       ok: true,
       status: 200,

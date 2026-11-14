@@ -289,7 +289,7 @@ Each entry uses the same fields:
 - Flow: `createFakeAudioRecorder({ permission: false })`.
 
 **I6 Audio playback**
-- Used: `features/leetcode/hooks/useVoicePlayback.ts` (`useAudioPlayer`).
+- Used: `features/leetcode/state/useVoicePlayback.ts` (`useAudioPlayer`).
 - Native: plays through the speaker; iOS honours `playsInSilentMode`.
 - Web: `HTMLAudioElement`. Headless Chromium enforces the autoplay policy.
 - Mock (T2): `--autoplay-policy=no-user-gesture-required` in the lab browser. It already ships in every launch (`launch.ts` `chromiumBaseArgs`).

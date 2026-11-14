@@ -7,7 +7,7 @@ import {
 import type { ClientEditStat, EditSource, VoiceEditResponse } from '@lib/voice-edit-dsl';
 import { Platform } from 'react-native';
 
-import type { VoiceEditTransportPort } from '../contracts/ports';
+import type { VoiceEditTransportPort } from '../domain/ports';
 
 import { errorStatus } from './voiceEditIdentity';
 

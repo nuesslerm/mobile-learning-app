@@ -5,7 +5,7 @@ paths:
   - "frontend/mla-tamagui/features/leetcode/ui/MermaidDiagram.tsx"
   - "frontend/mla-tamagui/features/leetcode/ui/ProblemListScreen.tsx"
   - "frontend/mla-tamagui/features/leetcode/ui/ProblemEditorScreen.tsx"
-  - "frontend/mla-tamagui/features/leetcode/contracts/**"
+  - "frontend/mla-tamagui/features/leetcode/domain/**"
   - "frontend/mla-tamagui/.dependency-cruiser.cjs"
 opened: 2026-10-04
 last_verified: 2026-10-21

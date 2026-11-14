@@ -2,7 +2,7 @@ import { useDependencyOverrides } from '@lib/app-di';
 import { appConfig } from '@lib/app-config';
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 
-import type { AudioRecordingPort, LeetCodePorts } from '../contracts/ports';
+import type { AudioRecordingPort, LeetCodePorts } from '../domain/ports';
 import { useExpoAudioRecordingPort } from '../data/ExpoAudioRecorderAdapter';
 import { createLiveVoiceEditTransport } from '../data/voiceEditTransport';
 import { createLiveLeetCodeGateway } from '../data/webBridgeClient';

@@ -15,7 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   usePlanRealize,
   type PlanRealizeOutcome,
-} from '../../features/leetcode/plan/hooks/usePlanRealize';
+} from '../../features/leetcode/plan/state/usePlanRealize';
 import { ExpoAudioRecorderProvider } from '../../features/leetcode/data/ExpoAudioRecorderAdapter';
 import { LeetCodeLiveContainer } from '../../features/leetcode/di/LeetCodeContainer';
 import { usePlanStore } from '../../features/leetcode/plan/state/planStore';

@@ -1,4 +1,4 @@
-import type { LoginCaptureStatus } from '../contracts/ports';
+import type { LoginCaptureStatus } from '../domain/ports';
 
 export function deriveCaptureBannerMessage(
   status: LoginCaptureStatus,

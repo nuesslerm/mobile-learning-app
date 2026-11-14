@@ -11,7 +11,7 @@ import {
 import { useCallback, useRef, useState } from 'react';
 import { Platform } from 'react-native';
 
-import type { Timed } from '../contracts/ports';
+import type { Timed } from '../domain/ports';
 import { useLeetCodePorts } from '../di/LeetCodeContainer';
 import {
   compactVoiceError,

@@ -3,7 +3,7 @@
 // their runtime modules (data/, hooks/, code-editor/) so this layer stays
 // dependency-free.
 
-import type { RunResponse, TestCase } from '../domain';
+import type { RunResponse, TestCase } from './execution';
 import type {
   ClientEditStat,
   EditSource,

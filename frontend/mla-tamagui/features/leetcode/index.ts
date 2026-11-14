@@ -17,7 +17,7 @@ export type {
   LeetCodeGatewayPort,
   LeetCodePorts,
   VoiceEditTransportPort,
-} from './contracts/ports';
+} from './domain/ports';
 
 // Domain types and schemas
 export type { RunResponse } from './domain';

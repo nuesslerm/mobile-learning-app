@@ -3,7 +3,7 @@
  *
  * Ported from the reference LeetCodeClient. In this app the HTTP calls run as
  * same-origin fetches inside the authenticated WebView bridge (see
- * features/leetcode/auth/bridge.ts); these types describe the JSON the judge
+ * data/webBridgeClient.ts); these types describe the JSON the judge
  * returns through that bridge.
  *
  * Moved here from the former `services/leetcode/types.ts` so the leetcode

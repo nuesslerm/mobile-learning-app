@@ -2,7 +2,7 @@
 status: open
 area: leetcode
 paths:
-  - "frontend/mla-tamagui/features/leetcode/hooks/useVoiceEdit.ts"
+  - "frontend/mla-tamagui/features/leetcode/state/useVoiceEdit.ts"
   - "frontend/mla-tamagui/features/leetcode/data/ExpoAudioRecorderAdapter.tsx"
   - "frontend/mla-tamagui/features/leetcode/ui/ProblemEditorScreen.tsx"
 opened: 2026-10-21
@@ -25,4 +25,4 @@ Guard `useVoiceEdit.start` with a ref that is set while a start is in flight or 
 
 ## Re-checked 2026-10-24
 
-`features/leetcode/hooks/useVoiceEdit.ts` still has no in-flight guard on `start` (no ref set around the start), and no flow test covers a double tap, so the gap stands.
+`features/leetcode/state/useVoiceEdit.ts` still has no in-flight guard on `start` (no ref set around the start), and no flow test covers a double tap, so the gap stands.

@@ -4,7 +4,7 @@ import { Pause, Play, RotateCcw, Send, X } from '@lib/tamagui-design-system/icon
 import { TextInput } from 'react-native';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
-import { useVoicePlayback } from '../hooks/useVoicePlayback';
+import { useVoicePlayback } from '../state/useVoicePlayback';
 
 export type VoiceReviewSheetProps = {
   /**

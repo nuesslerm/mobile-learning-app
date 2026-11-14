@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ExpoAudioRecorderProvider } from '../../features/leetcode/data/ExpoAudioRecorderAdapter';
 import { LeetCodeLiveContainer } from '../../features/leetcode/di/LeetCodeContainer';
-import { useLiveTranscript } from '../../features/leetcode/plan/hooks/useLiveTranscript';
+import { useLiveTranscript } from '../../features/leetcode/plan/state/useLiveTranscript';
 
 type Transcript = { transcript: string; wallMs: number };
 const sentChunkIndexes: (number | undefined)[] = [];

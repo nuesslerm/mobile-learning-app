@@ -17,7 +17,7 @@ import type {
   LeetCodeGatewayPort,
   LoginCaptureStatus,
   UserStatusResult,
-} from '../contracts/ports';
+} from '../domain/ports';
 
 export type { LoginCaptureStatus, UserStatusResult };
 

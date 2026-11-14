@@ -9,10 +9,10 @@ import { DependencyOverridesProvider } from '@lib/app-di';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { VoiceEditTransportPort } from '../../features/leetcode/contracts/ports';
+import type { VoiceEditTransportPort } from '../../features/leetcode/domain/ports';
 import { ExpoAudioRecorderProvider } from '../../features/leetcode/data/ExpoAudioRecorderAdapter';
 import { LeetCodeLiveContainer } from '../../features/leetcode/di/LeetCodeContainer';
-import { useVoiceEdit } from '../../features/leetcode/hooks/useVoiceEdit';
+import { useVoiceEdit } from '../../features/leetcode/state/useVoiceEdit';
 
 const STUB = "class Solution:\n    def isPalindrome(self, s: str) -> bool:\n        ";
 

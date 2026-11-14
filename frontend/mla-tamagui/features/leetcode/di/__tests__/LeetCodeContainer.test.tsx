@@ -7,7 +7,7 @@ import type {
   LeetCodeGatewayPort,
   LeetCodePorts,
   VoiceEditTransportPort,
-} from '../../contracts/ports';
+} from '../../domain/ports';
 import {
   createDefaultContainer,
   LeetCodeContainerProvider,

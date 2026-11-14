@@ -9,7 +9,7 @@ import type {
   LeetCodeGatewayPort,
   LeetCodePorts,
   VoiceEditTransportPort,
-} from '../contracts/ports';
+} from '../domain/ports';
 
 // Two Sum starter code (TypeScript) the plan alternatives edit.
 const TWO_SUM_RUN: RunResponse = {
