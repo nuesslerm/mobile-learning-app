@@ -59,13 +59,13 @@ function rpcs(texts: string[], names: Map<string, string>): { tag: string; paylo
  * The routes of the groups that `HttpApi.make("environment")` mounts (the API the T3 server itself serves; the relay's `client` API is
  * another server's): `class G extends HttpApiGroup.make("g").add(HttpApiEndpoint.post("name", "/path", { payload }))`.
  */
-function routes(texts: string[], r: Resolver): { group: string; name: string; method: string; path: string; payload: string | null }[] {
+export function routes(texts: string[], r: Resolver): { group: string; name: string; method: string; path: string; payload: string | null }[] {
   const out: { group: string; name: string; method: string; path: string; payload: string | null }[] = []
   for (const text of texts) {
     const root = /class \w+ extends HttpApi\.make\("environment"\)([\s\S]*?)\{\}/.exec(text)
     if (!root) continue
     const mounted = new Set([...root[1]!.matchAll(/\.add\((\w+)\)/g)].map((m) => m[1]!))
-    const classes = [...text.matchAll(/^class (\w+) extends HttpApiGroup\.make\("([^"]+)"/gm)].map((m) => ({ at: m.index!, cls: m[1]!, group: m[2]! }))
+    const classes = [...text.matchAll(/^(?:export )?class (\w+) extends HttpApiGroup\.make\("([^"]+)"/gm)].map((m) => ({ at: m.index!, cls: m[1]!, group: m[2]! }))
     classes.forEach((c, i) => {
       if (!mounted.has(c.cls)) return
       const body = text.slice(c.at, classes[i + 1]?.at ?? text.length)
