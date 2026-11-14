@@ -65,7 +65,7 @@ RUN curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
 # from Docker's own official apt repo -- NOT Debian bookworm's plain
 # `docker.io` package, which was the first thing tried here. Confirmed
 # live: `docker.io` has no `buildx` CLI plugin at all (Debian doesn't
-# package it), so scripts/build-and-push-image.sh failed immediately on
+# package it), so the old repo-root build script failed immediately on
 # `docker buildx build` with "unknown shorthand flag: 'f' in -f" -- the CLI's own
 # fallback parse of an unrecognized `buildx` subcommand, not a real flag
 # error. This is the exact same repo (download.docker.com) and package

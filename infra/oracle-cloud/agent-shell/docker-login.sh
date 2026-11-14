@@ -20,7 +20,7 @@ fi
 # The default `docker` buildx driver runs buildkit inside the daemon
 # itself, which cannot export a registry-backed build cache ("Cache
 # export is not supported for the docker driver") -- confirmed live,
-# scripts/build-and-push-image.sh (used by any build in this container) always passes --cache-to. A
+# the build scripts used in this container always pass --cache-to. A
 # docker-container-driver builder runs buildkit in its own container and
 # supports it. Idempotent: `buildx create` on an existing builder name is
 # a no-op check, not a repeat-create.

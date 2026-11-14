@@ -19,6 +19,7 @@
     "build": "tsc -p tsconfig.build.json",
     "prepare": "pnpm run build",
     "typecheck": "tsc --noEmit",
+    "lint": "oxlint -c ../../.oxlintrc.json --deny-warnings",
     "test": "vitest run",
     "test:unit": "vitest run"
   },

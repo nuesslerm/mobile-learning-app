@@ -774,28 +774,6 @@ Every unknown path answers `401` without a token and `404` with one; the
 dev-bridge routes of metro-runner are gone (22 Oct), so they are unknown paths. vm-ops-api deploys nothing on its own: there is no trunk
 poll; every deploy is a CI leg.
 
-### Building the 4 production apps locally when CI can't
-
-`.github/workflows/build-images.yml` is the only thing that ever pushes new
-images for the real backend apps (`leetcode-backend`,
-`remote-chat-agent`, `leetcode-auth-cookie-capture`)
-— unlike `vm-ops-api`, they had no manual build+push fallback, so a CI outage
-(e.g. a GitHub Actions billing issue) means no new image for any of them,
-indefinitely. `scripts/build-and-push-image.sh` (repo root) is that fallback:
-same Dockerfile, same repo-root context, same `sha-<short>`/`latest` tag
-scheme as CI, buildable from any machine with Docker — including this
-sandbox, which needed a sandbox-only, non-committed CA-trust patch (see the
-script) to get past the proxy's TLS interception during `npm`/`apt` fetches.
-
-```bash
-./scripts/build-and-push-image.sh leetcode-backend
-# -> pushes nuesslerm/leetcode-backend:sha-<short> and :latest
-```
-
-Docker's own layer cache (not a rewritten Dockerfile) is what makes repeat
-builds on the same daemon incremental — only layers after a real source
-change get rebuilt; the expensive toolchain/corepack layer stays cached.
-
 ### First-time provisioning via `/services/:app/redeploy`
 
 None of the four apps had ever actually been deployed to a VM

@@ -46,7 +46,7 @@ Most "Callers" entries refer to `clis/workflow-cli/src/data/vmops/client.ts`. Th
 | POST /redeploy | 6643–6655 | 13 | Self-redeploy | `wf vm ops redeploy-self` | MERGE into the redeploy unit |
 | GET /redeploy/status | 6659–6717 | 59 | Self-redeploy result | wf client, cloud-init | KEEP |
 | GET /debug/host-dns-check | 6721–6757 | 37 | Diagnostic | none | DROP |
-| POST /services/:app/redeploy | 6761–6918 | 158 | Pulls and restarts an app | wf release/redeploy, cloud-init, `redeploy-app.sh`, `scripts/build-and-push-image.sh` | KEEP |
+| POST /services/:app/redeploy | 6761–6918 | 158 | Pulls and restarts an app | wf release/redeploy, cloud-init, `redeploy-app.sh`, the deleted `build-and-push-image.sh` (repo root) | KEEP |
 | POST /services/:app/bootstrap-token | 6922–7003 | 82 | Writes the BWS token to `.env.local` | `wf vm ops push-bootstrap-token` | KEEP? (secrets) |
 | POST /services/:app/stop | 7007–7067 | 61 | Stops a container | none | DROP |
 | POST/GET /scripts, GET /scripts/:name | 7071–7108, 7214–7276 | 105 | Staged scripts for manual SSH | none | DROP |
