@@ -331,6 +331,10 @@ export function decide(payload, { root, loaded = loadRules(), condition } = {}) 
   if (loaded.error) {
     return `BLOCKED by approve guard: its deny list is invalid, so every Bash call is refused.\n${loaded.error}\nFix it with Edit, then retry.`;
   }
+  const missing = condition === undefined ? loaded.rules.filter((r) => r.condition && !existsSync(resolve(root, r.condition))) : [];
+  if (missing.length > 0) {
+    return `BLOCKED by approve guard: a rule's condition script does not exist, so every Bash call is refused.\n${missing.map((r) => r.condition).join(', ')}\nRestore the script or fix the deny list with Edit, then retry.`;
+  }
   const hit = matchCommand(input.command, loaded.rules, { root, condition });
   if (!hit) return null;
   if (!hit.rule.ask) return `BLOCKED by approve guard: ${hit.rule.reason}\nCommand: ${input.command}`;
