@@ -72,10 +72,6 @@ impl Service {
         Service(Arc::new(parts), runner, Arc::new(Held::default()))
     }
 
-    pub(crate) fn turn_of_run(&self, run: &str) -> Option<String> {
-        self.1.turn_of_run(run)
-    }
-
     pub(crate) fn turn_of_started_run(&self, run: &str) -> Option<String> {
         self.1.turn_of_started_run(run)
     }
