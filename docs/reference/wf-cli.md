@@ -1024,6 +1024,87 @@ Stops the daemon and every session in it, or exits 1 when none runs. Frozen as s
 
 ## cache
 
+### `wf bucket`
+
+A blob store of your own: any always-on host can serve the objects the build cache and the verification artifacts keep
+
+Usage: `wf bucket [options] [command]`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket [options] [command]
+
+A blob store of your own: any always-on host can serve the objects the build
+cache and the verification artifacts keep, over HTTP with bearer tokens.
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  serve [options]             Serve GET, HEAD and PUT under /o/<key> from a
+                              directory
+  help [command]              display help for command
+```
+
+</details>
+
+#### `wf bucket serve`
+
+Serve GET, HEAD and PUT under /o/<key> from a directory
+
+Usage: `wf bucket serve [options]`
+
+Examples:
+
+```sh
+wf bucket serve --dir ~/blobs --listen 127.0.0.1:8080 --read-token-file ~/.blob-read --write-token-file ~/.blob-write
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket serve [options]
+
+Serve a directory as a blob store: GET, HEAD and PUT on /o/<key>. Meant for a
+host that stays on (a laptop only when it is wired in as a store: a stable
+address, a token, a network rule for the runners). It never lists a directory
+and never deletes.
+
+Auth: Authorization: Bearer <token>. GET and HEAD take the read token or the
+write token, PUT takes the write token. A missing or wrong token is 401. The
+tokens are read from files; they are never logged and never in a URL.
+
+Answers:
+  200  stored (PUT), or the object (GET, HEAD)
+  400  a key that is empty, absolute, has a segment starting with a dot (so
+       `..` too), or holds a character outside [A-Za-z0-9._-/]
+  401  no token or the wrong one
+  404  no such object (a prefix is never an object)
+  405  any other method (DELETE included)
+  412  PUT with If-None-Match: * on a key that already exists; the first
+       writer wins
+  413  an object over --max-object-mb
+
+A PUT is written beside its key and moved into place, so a reader never sees a
+half-written object. A PUT body is held in memory while it arrives.
+
+Output: one JSON line on stdout when ready, {ok, listen, dir}; listen is the
+address actually bound (use port 0 to pick a free one). The server then runs
+until it is stopped. A failure prints {ok: false, error} and exits 1; a
+malformed line exits 2.
+
+Options:
+  --dir <dir>                 the directory that holds the objects (created)
+  --listen <addr>             host:port to bind, e.g. 127.0.0.1:8080
+  --read-token-file <file>    file holding the read token
+  --write-token-file <file>   file holding the write token
+  --max-object-mb <n>         largest object accepted, in MB (default 1024)
+  -h, --help                  display help for command
+```
+
+</details>
+
 ### `wf cache`
 
 The build cache: one OCI Object Storage bucket holds every cache layer, and the sandbox and CI share it
