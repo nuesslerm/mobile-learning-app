@@ -305,6 +305,42 @@
     "scope": "ci-deploy",
     "description": "WHAT: OCI Object Storage pre-authenticated request (PAR) URL, bucket-wide AnyObjectWrite, on the private <name_prefix>-build-cache bucket (the same bucket as BUILD_CACHE_READ_PAR_URL) -- infra/oracle-cloud/build-cache.tf's oci_objectstorage_preauthrequest.build_cache_write. The value is a URL prefix ending in /o/: wf appends the object key. Minted by Terraform, not a human -- read it back with `wf vm terraform exec infra/oracle-cloud output -raw build_cache_write_par_url` after applying, then store it (macOS: `wf secret set BUILD_CACHE_WRITE_PAR_URL`; sandbox, CI runner and VM: `bws secret create` into mobile-learning-deploy-secrets). WHERE: `wf` (clis/blob-cache): the Nx cache shim PUTs new task results through it (the first write wins: wf probes the read PAR first), `wf cache save pnpm` overwrites the one pnpm store object, `wf cache purge` writes meta/generation. Both the sandbox and CI write, only behind wf's client-side guard (tree clean, HEAD an ancestor of origin/dev, node and pnpm equal to the pins); unresolved means read-only, never a red run. WHY IT MATTERS: medium -- a PAR carries no identity, so any holder can write or overwrite any key, including meta/generation; the worst case is a poisoned task result replayed until its 14-day lifecycle expiry, which `wf cache purge nx` (a new generation) and the weekly audit repair. It cannot read, list or delete. Expires 2028-10-01 (OCI PARs require an expiration and cannot be edited) -- re-mint with `terraform taint oci_objectstorage_preauthrequest.build_cache_write` plus apply and re-set this secret when it does."
   },
+  "BUILD_CACHE_READ_STORES": {
+    "service": "build-cache-read-stores",
+    "envVar": "BUILD_CACHE_READ_STORES",
+    "scope": "ci-open",
+    "description": "WHAT: comma-separated list of the blob stores the build cache READS, each one a URL whose scheme names the adapter: par+https://<PAR url ending /o/> (an OCI pre-authenticated request, the old BUILD_CACHE_READ_PAR_URL), dav+https://host:port/o/ (the bearer server of `wf bucket serve`), s3://bucket/prefix?endpoint=https://host&region=R&path_style=1&conditional=0 (Cloudflare R2, Hetzner Object Storage, B2, AWS, MinIO; region defaults to auto, path_style=1 puts the bucket in the path instead of the host), file:///dir. A leading - disables an entry (`-s3://...` is not declared). Credentials never go in the URL: S3 keys are BLOB_S3_READ_CREDENTIAL, a dav token is BLOB_DAV_READ_TOKEN. Unset, the key falls back to BUILD_CACHE_READ_PAR_URL as a one-element par+https list. WHERE: `wf` (clis/blob-cache `stores`, wf-bucket `cache`, pipeline `ci preflight`) on every site that builds or tests. Reads try the stores in order and return the first hit. The list lines up entry for entry with BUILD_CACHE_WRITE_STORES; every declared store is required, so an unreachable one fails `wf ci preflight` instead of running cold; a list with every entry disabled, or WF_BLOB_CACHE=off, is a run with no shared cache. WHY IT MATTERS: low -- a read-only capability on cached task output and the pnpm store; a par+https entry is a secret capability URL, which is why the list is a secret and never a repository variable."
+  },
+  "BUILD_CACHE_WRITE_STORES": {
+    "service": "build-cache-write-stores",
+    "envVar": "BUILD_CACHE_WRITE_STORES",
+    "scope": "ci-deploy",
+    "description": "WHAT: the write-plane twin of BUILD_CACHE_READ_STORES: the same comma list syntax and the same entries in the same order, with the write link of each (par+https write PAR, dav+https, s3://, file:///), a leading - disabling the same entries. Unset, the key falls back to BUILD_CACHE_WRITE_PAR_URL as a one-element par+https list. S3 keys are BLOB_S3_WRITE_CREDENTIAL, a dav token is BLOB_DAV_WRITE_TOKEN. WHERE: `wf` (clis/blob-cache `stores`): the Nx cache shim, `wf cache save pnpm` and `wf cache purge` write to EVERY declared store, not to one of them, and only behind wf's client-side guard and a push to `dev` (the CI write refusal covers this key like BUILD_CACHE_WRITE_PAR_URL). A write that fails on any store is an error naming that store. WHY IT MATTERS: medium -- anyone holding a write credential can overwrite any key of every store in the list, including meta/generation; a poisoned task result is replayed until `wf cache purge nx` moves to a new generation. Withheld from pull requests and from every job that is not a push to `dev`."
+  },
+  "BLOB_S3_READ_CREDENTIAL": {
+    "service": "blob-s3-read-credential",
+    "envVar": "BLOB_S3_READ_CREDENTIAL",
+    "scope": "ci-open",
+    "description": "WHAT: the READ key pair for every s3:// store in a blob store list, as ACCESS_KEY_ID:SECRET_ACCESS_KEY (the first colon separates them). Mint a read-only token on the provider: an R2 API token with Object Read, a Hetzner Object Storage key limited to the bucket, a B2 application key with readFiles. WHERE: `wf` (clis/blob-cache `stores`) signs each GET and HEAD of an s3:// entry with SigV4 over https (UNSIGNED-PAYLOAD). It is never part of a URL, an error text or a log line. One pair serves every s3:// entry of the list: two S3 providers with different keys in one list need a second key pair (not built yet). WHY IT MATTERS: low -- read-only on the cache bucket; it cannot write, list or delete when the provider token is scoped as above."
+  },
+  "BLOB_S3_WRITE_CREDENTIAL": {
+    "service": "blob-s3-write-credential",
+    "envVar": "BLOB_S3_WRITE_CREDENTIAL",
+    "scope": "ci-deploy",
+    "description": "WHAT: the WRITE key pair for every s3:// store in a blob store write list, as ACCESS_KEY_ID:SECRET_ACCESS_KEY. Mint an object read-and-write token scoped to the bucket on the provider (R2: Object Read and Write; Hetzner Object Storage: a bucket-scoped key). WHERE: `wf` (clis/blob-cache `stores`) signs each PUT of an s3:// entry; only a push to `dev` resolves it (the CI write refusal), and wf's write guard still applies. WHY IT MATTERS: medium -- full object write on the cache bucket, so a leak lets someone replace cached build output; rotate it on the provider and re-set this secret."
+  },
+  "BLOB_DAV_READ_TOKEN": {
+    "service": "blob-dav-read-token",
+    "envVar": "BLOB_DAV_READ_TOKEN",
+    "scope": "ci-open",
+    "description": "WHAT: the bearer token that reads from every dav+https:// store of a blob store list, the value of the read token file given to `wf bucket serve --read-token-file`. WHERE: `wf` (clis/blob-cache `stores`) sends it as `Authorization: Bearer` on GET and HEAD to the always-on host that runs `wf bucket serve`; it is never part of a URL or an error text. WHY IT MATTERS: low -- read-only on one served directory."
+  },
+  "BLOB_DAV_WRITE_TOKEN": {
+    "service": "blob-dav-write-token",
+    "envVar": "BLOB_DAV_WRITE_TOKEN",
+    "scope": "ci-deploy",
+    "description": "WHAT: the bearer token that writes to every dav+https:// store of a blob store write list, the value of the file given to `wf bucket serve --write-token-file`. WHERE: `wf` (clis/blob-cache `stores`) sends it as `Authorization: Bearer` on PUT; only a push to `dev` resolves it. WHY IT MATTERS: medium -- anyone holding it can overwrite any object of the served directory."
+  },
   "LIBS_INDEX_WRITE_PAR_URL": {
     "service": "libs-index-write-par-url",
     "envVar": "LIBS_INDEX_WRITE_PAR_URL",

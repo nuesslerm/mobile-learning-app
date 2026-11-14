@@ -886,6 +886,54 @@ fn preflight_names_every_check_that_failed_and_what_to_do_about_it() {
     assert!(out["checks"].as_array().unwrap().iter().filter(|c| c["ok"] == false).all(|c| !c["next"].as_str().unwrap().is_empty()), "{out}");
 }
 
+fn build_cache_check(stores: &str) -> Value {
+    let github = Github::start();
+    github.server.routes(&[("GET /rate_limit", MockReply::json(200, json!({ "resources": { "core": { "remaining": 4000 } } })))]);
+    let r = run_wf(
+        &["ci", "preflight", "--skip", "workspace,toolchain,secrets,ledger"],
+        &ci_opts()
+            .env("GITHUB_TOKEN", TOKEN)
+            .env("GITHUB_REPOSITORY", "o/r")
+            .env("GITHUB_RUN_ID", "77")
+            .env("GITHUB_SHA", SHA)
+            .env("GITHUB_API_URL", &github.url())
+            .env("BUILD_CACHE_READ_STORES", stores)
+            .env("BUILD_CACHE_WRITE_STORES", stores)
+            .env("BUILD_CACHE_READ_PAR_URL", "")
+            .env("BUILD_CACHE_WRITE_PAR_URL", "")
+            .env("WF_PREFLIGHT_HEALTH", "svc=http://127.0.0.1:9/health")
+            .env("WF_TAILNET_SOCKS", "")
+            .env("NO_PROXY", "127.0.0.1")
+            .env("no_proxy", "127.0.0.1"),
+    );
+    last_json(&r)["checks"].as_array().unwrap().iter().find(|c| c["check"] == "build-cache").cloned().unwrap_or_else(|| panic!("no build-cache check: {}{}", r.stdout, r.stderr))
+}
+
+#[test]
+fn preflight_fails_on_a_declared_store_that_is_down_and_names_it_without_its_link() {
+    // Given a declared store that answers nothing
+    let list = "par+http://127.0.0.1:9/p/LINK-SECRET/o/";
+
+    // When the preflight runs
+    let check = build_cache_check(list);
+
+    // Then the build-cache check failed, says which store and what to do, and repeats no link
+    assert_eq!(check["ok"], false, "{check}");
+    let text = check.to_string();
+    assert!(text.contains("par+http://127.0.0.1:9") && !text.contains("LINK-SECRET") && !check["next"].as_str().unwrap().is_empty(), "{check}");
+}
+
+#[test]
+fn preflight_passes_with_no_store_declared_when_every_entry_is_disabled() {
+    // Given a store list whose only entry is disabled
+    // When the preflight runs
+    let check = build_cache_check("-par+http://127.0.0.1:9/p/LINK-SECRET/o/");
+
+    // Then the check passes and says no store is declared, and the disabled store was not needed
+    assert_eq!(check["ok"], true, "{check}");
+    assert!(check["detail"].as_str().unwrap().contains("no store declared"), "{check}");
+}
+
 #[test]
 fn preflight_passes_when_what_it_checks_is_live() {
     // Given a GitHub that accepts the token and a service that is up

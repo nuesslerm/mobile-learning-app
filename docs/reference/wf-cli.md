@@ -1116,8 +1116,8 @@ Usage: `wf cache [options] [command]`
 ```text
 Usage: wf cache [options] [command]
 
-The build cache: one OCI Object Storage bucket holds every cache layer, and the
-sandbox and CI share it. Nothing is cached on the VM, so a recreated VM finds it
+The build cache: one blob store (or several, chosen in config; see Stores below)
+holds every cache layer, and the sandbox and CI share it. Nothing is cached on the VM, so a recreated VM finds it
 all. A store that is unreachable, over budget or refused makes a run cold, never
 red.
 
@@ -1131,8 +1131,8 @@ Layers (one prefix, one expiry and one verb each; `docs/solutions/ci/cache-layer
 `wf test run --stage` and `wf check --staged` start a loopback shim that gives
 Nx the bucket (NX_SELF_HOSTED_REMOTE_CACHE_SERVER, a token per run, and
 127.0.0.1,localhost added to NO_PROXY) and stop it when Nx exits. It needs
-BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL (the environment, then
-the vault); when either does not resolve nothing starts and Nx uses its local
+the stores below (the environment, then the vault); when they do not resolve, or
+every entry is disabled, nothing starts and Nx uses its local
 cache alone, as it does under `wf test run --fresh`. The same shim also serves Rust
 compiles when `sccache` is on PATH: it adds RUSTC_WRAPPER=sccache, CARGO_INCREMENTAL=0
 (sccache refuses incremental compiles), a WebDAV endpoint on the loopback and its
@@ -1140,6 +1140,32 @@ own server port to the Nx child, and prints `wf: compile cache {...}` and
 `wf: sccache {hits, misses}` when it stops. A compile's key includes the target
 directory path, so keep CARGO_TARGET_DIR the same between runs. WF_BLOB_CACHE=off, or
 "enabled": false in clis/blob-cache/data/budget.json, turns the cache off.
+
+Stores: the backend is a choice made in config, not in code. BUILD_CACHE_READ_STORES
+and BUILD_CACHE_WRITE_STORES (the environment, then the vault) each hold a comma
+list, and one entry names one store by its URL scheme:
+  par+https://<link ending /o/>    an OCI pre-authenticated request; the link is the
+                                   credential
+  dav+https://host:port/o/         the bearer server of `wf bucket serve`
+                                   (BLOB_DAV_READ_TOKEN, BLOB_DAV_WRITE_TOKEN)
+  s3://bucket/prefix?endpoint=https://host&region=R&path_style=1&conditional=0
+                                   Cloudflare R2, Hetzner Object Storage, B2, AWS,
+                                   MinIO, over SigV4 (BLOB_S3_READ_CREDENTIAL and
+                                   BLOB_S3_WRITE_CREDENTIAL, each ACCESS_KEY_ID:SECRET_ACCESS_KEY)
+  file:///dir                      a directory on this machine
+A credential is never part of a URL (one that is gets the entry refused) and never
+printed. region defaults to auto; path_style=1 puts the bucket in the path instead
+of the host name; plain http is accepted only for a loopback host.
+With several entries every one is a real member: a read tries them in order and
+returns the first hit, a write goes to every one. The write list names the same
+stores in the same order as the read list, and it resolves only where a write is
+allowed (a push to dev). It is not a fallback chain: a declared store that is
+unreachable is an error that names it, and `wf ci preflight` fails on it.
+An entry written with a leading - (`-s3://b/p?endpoint=https://host`) is disabled,
+which is the same as not declared: nothing contacts it. A list whose entries are
+all disabled declares no store, which is what WF_BLOB_CACHE=off means. With
+neither list set, BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL are read
+as a one-entry par+https list, so nothing existing changes.
 
 A run writes only when the tree is clean (untracked files count; under
 `wf check --staged` what is staged does not), HEAD is an ancestor of origin/dev,
@@ -1227,8 +1253,8 @@ Run a command with the Nx task cache served from the bucket: a loopback server
 starts, NX_SELF_HOSTED_REMOTE_CACHE_SERVER and a per-run token go into the
 command's environment (and 127.0.0.1,localhost into NO_PROXY), and the server
 stops when the command exits. The command's exit code is this verb's. Needs
-BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL (the environment, then the
-vault); without them the command runs on Nx's local cache alone. A run writes only
+the build cache stores (BUILD_CACHE_READ_STORES and BUILD_CACHE_WRITE_STORES, or the
+legacy BUILD_CACHE_*_PAR_URL; the environment, then the vault); without them the command runs on Nx's local cache alone. A run writes only
 from a clean tree on origin/dev with pinned tools (see `wf cache --help`).
 
 With --why (first, before the command), every task Nx ran in the command is
@@ -1466,9 +1492,9 @@ Start a new, empty generation: every reader and writer moves to it at once, with
 no list and no delete, and the old entries expire by the bucket's lifecycle. Use
 it for a cached wrong result. The generation is one number in meta/generation, so
 a purge starts every kind over; <kind> (nx, sccache, pnpm or metro) names what it is for and is
-checked. Needs both links, BUILD_CACHE_READ_PAR_URL to read the number and
-BUILD_CACHE_WRITE_PAR_URL to write the next one (the environment, then the
-vault). Unlike a run it does not ask for a clean tree on origin/dev: it writes no
+checked. Needs both planes of the build cache stores (BUILD_CACHE_READ_STORES to read the number and
+BUILD_CACHE_WRITE_STORES to write the next one to every store, or the legacy
+BUILD_CACHE_*_PAR_URL; the environment, then the vault). Unlike a run it does not ask for a clean tree on origin/dev: it writes no
 task result, and a purge is how a wrong one is discarded.
 
 Output: one JSON object on stdout {ok, kind, generation}. A failure prints
@@ -1504,7 +1530,7 @@ Fill an empty local pnpm store from the bucket before `pnpm install`, or (kind m
 (frontend/mla-tamagui/node_modules/.cache/app-build: Metro's transform cache and tsc's build info) before an export or a typecheck, so a
 recreated VM or a fresh checkout fetches nothing it already has. It does nothing
 when the local store (metro: the app-build directory) is not empty, as it is on a runner whose checkout persists, and then asks the bucket nothing. Needs only
-the read link (BUILD_CACHE_READ_PAR_URL: the environment, then the vault). The
+the read stores (BUILD_CACHE_READ_STORES or BUILD_CACHE_READ_PAR_URL: the environment, then the vault). The
 store is the path `pnpm store path` prints, so npm_config_store_dir applies. The
 object is unpacked beside the store and moved into place whole, so a download or
 archive that breaks leaves the store as it was.
@@ -1556,7 +1582,8 @@ these hold, and asks the bucket nothing until the first three do:
   the local store has content
   the lockfile's sha256 differs from the one in the sidecar, or the object is
     missing (it expired by lifecycle)
-Needs both links (BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL).
+Needs both planes of the build cache stores (BUILD_CACHE_READ_STORES and
+BUILD_CACHE_WRITE_STORES, or the legacy BUILD_CACHE_*_PAR_URL); the object goes to every store.
 
 Any problem with the bucket is a cold run: exit 0. Only a step on this machine
 that failed (pnpm missing, tar failed) exits 1.
@@ -1860,8 +1887,9 @@ to finish is not live and valid. Checks run in parallel:
   env             GITHUB_TOKEN, GITHUB_REPOSITORY, GITHUB_RUN_ID, GITHUB_SHA
   secrets         every secret of the `ci` group (groups.json) is present and
                   usable (`wf secret verify --for ci`)
-  build-cache     both links resolve, and a probe object is written through the
-                  write link and read back through the read link
+  build-cache     every declared store resolves, a probe object is written to
+                  all of them and read back from each; an unreachable store
+                  fails and names itself, no store declared passes
   ledger          the database answers and the ledger's tables exist (a
                   warning only: the audit skips its task checks without it)
   vm-ops-api      a signed /health answers over the tailnet (every deploy leg

@@ -1,10 +1,11 @@
 //! The operator's verbs of `wf cache`: where the bucket stands against its caps, making room, and starting a new empty generation.
 //! `status` and `gc` go through the `oci` CLI and the admin key in `~/.oci` (the sandbox has them); `purge` needs only the two
 //! PAR links. Every verb prints one JSON object on stdout and never a link.
-use super::{READ_PAR, WRITE_PAR};
+use super::open_stores;
 use wf_kit::args::{Parsed, Positional, Spec};
 use blob_cache::adapters::oci_cli::BUCKET;
-use blob_cache::adapters::{OciCli, OciParStore};
+use blob_cache::adapters::OciCli;
+use blob_cache::stores::ConfigError;
 use blob_cache::admin::{clear, standing, Clear, Standing};
 use blob_cache::domain::{Budget, Generation, Kind};
 use blob_cache::ports::BlobAdmin;
@@ -106,13 +107,13 @@ pub fn purge(p: &Parsed) -> Option<i32> {
     let Some(kind) = Kind::from_prefix(name).filter(|kind| matches!(kind, Kind::Nx | Kind::Pnpm)) else {
         return usage("purge", &format!("kind is nx or pnpm, got {name:?}"));
     };
-    let links = secrets::load_values(&[READ_PAR, WRITE_PAR]);
-    let link = |key: &str| links.get(key).cloned().flatten();
-    let (Some(read), Some(write)) = (link(READ_PAR), link(WRITE_PAR)) else {
-        let missing: Vec<&str> = [READ_PAR, WRITE_PAR].into_iter().filter(|key| link(key).is_none()).collect();
-        return fail("purge", &format!("{} does not resolve (the environment, then the vault)", missing.join(" and ")));
+    let stores = match open_stores(true) {
+        Ok(Some(stores)) => stores,
+        Ok(None) => return fail("purge", "no build cache store is declared (every entry of the store list is disabled)"),
+        Err(error @ ConfigError::Missing(_)) => return fail("purge", &format!("{error} (the environment, then the vault)")),
+        Err(error) => return fail("purge", &error.to_string()),
     };
-    let mut cache = Cache::with_generation(OciParStore::new(&read, Some(&write)), Budget::committed().clone(), Writes::Allowed, Generation::default());
+    let mut cache = Cache::with_generation(stores, Budget::committed().clone(), Writes::Allowed, Generation::default());
     match cache.purge() {
         Ok(next) => {
             print(&json!({ "ok": true, "kind": kind.prefix(), "generation": next.0 }));

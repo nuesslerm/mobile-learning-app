@@ -10,7 +10,7 @@ use std::sync::Mutex;
 pub const DEPLOY_TOKEN_VAR: &str = "BWS_CI_DEPLOY_ACCESS_TOKEN";
 
 /// The cache and artifact links that can overwrite shared objects (docs/solutions/ci/job-secret-needs.md).
-const WRITE_URL_KEYS: [&str; 2] = ["BUILD_CACHE_WRITE_PAR_URL", "VERIFICATION_ARTIFACTS_PAR_URL"];
+const WRITE_URL_KEYS: [&str; 5] = ["BUILD_CACHE_WRITE_PAR_URL", "BUILD_CACHE_WRITE_STORES", "BLOB_S3_WRITE_CREDENTIAL", "BLOB_DAV_WRITE_TOKEN", "VERIFICATION_ARTIFACTS_PAR_URL"];
 
 fn var(name: &str) -> Option<String> {
     std::env::var(name).ok().filter(|v| !v.is_empty())

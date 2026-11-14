@@ -10,6 +10,8 @@ mod par_fake;
 mod pnpm;
 #[path = "flow/s3_fake.rs"]
 mod s3_fake;
+#[path = "flow/stores.rs"]
+mod stores;
 
 use blob_cache::adapters::{DirStore, OciParStore};
 use blob_cache::domain::{write_allowed, Budget, Degraded, Generation, Key, Kind, Pins, Refusal, WriteFacts};

@@ -4,7 +4,8 @@
 //! deploys through and reads from, and the GitHub token. Found at minute zero, none of them
 //! costs a run that discovers it at minute twenty (a refused cache write once cost every job of a run its cache).
 use crate::ci_comment::{json_of, send, var, Env};
-use blob_cache::adapters::OciParStore;
+use blob_cache::stores::ConfigError;
+use blob_cache::Stores;
 use blob_cache::domain::{Budget, Kind};
 use blob_cache::ports::BlobStore;
 use blob_cache::{Cache, Writes};
@@ -67,7 +68,7 @@ fn secrets() -> Check {
     }
 }
 
-/// The build cache's two links resolve, and a probe object is written and read back through the write link.
+/// The build cache's stores resolve, and a probe object is written to every one and read back from each.
 fn build_cache() -> Check {
     if var("WF_BLOB_CACHE").as_deref() == Some("off") {
         return pass("build-cache", "switched off (WF_BLOB_CACHE=off)");
@@ -75,37 +76,50 @@ fn build_cache() -> Check {
     if let Some(why) = secrets::write_urls_refused() {
         return read_only_build_cache(&why);
     }
-    let links = secrets::load_values(&["BUILD_CACHE_READ_PAR_URL", "BUILD_CACHE_WRITE_PAR_URL"]);
-    let link = |k: &str| links.get(k).cloned().flatten();
-    let (Some(read), Some(write)) = (link("BUILD_CACHE_READ_PAR_URL"), link("BUILD_CACHE_WRITE_PAR_URL")) else {
-        return fail("build-cache", "a build cache link is not in the environment or the vault", "wf secret get BUILD_CACHE_READ_PAR_URL BUILD_CACHE_WRITE_PAR_URL; mint a new link if it expired");
+    let stores = match wf_bucket::cache::open_stores(true) {
+        Ok(Some(stores)) => stores,
+        Ok(None) => return pass("build-cache", "no store declared (every entry of the store list is disabled): the run has no shared cache"),
+        Err(error) => return unresolved(error),
     };
-    let cache = Cache::open(OciParStore::new(&read, Some(&write)), Budget::committed().clone(), Writes::Allowed);
+    let cache = Cache::open(stores.clone(), Budget::committed().clone(), Writes::Allowed);
     let name = format!("preflight-{}", var("GITHUB_RUN_ID").unwrap_or_else(|| "local".into()));
     let Ok(key) = cache.key(Kind::Probe, &name) else { return fail("build-cache", "the probe key was refused", "a bug in the cache's key rules") };
-    let store = OciParStore::new(&read, Some(&write));
     let body = format!("preflight {}", wf_kit::time::now_ms());
-    if let Err(why) = store.put(&key, body.as_bytes(), false) {
-        return fail("build-cache", format!("writing the probe failed: {why}"), "the write link is expired, revoked or the bucket is unreachable: mint a new BUILD_CACHE_WRITE_PAR_URL");
+    if let Err(why) = stores.put(&key, body.as_bytes(), false) {
+        return fail("build-cache", format!("writing the probe failed: {why}"), "the named store's write credential is expired or revoked, or the store is unreachable: fix it, or disable the store in the list with a leading -");
     }
-    match store.get(&key) {
-        Ok(Some(back)) if back == body.as_bytes() => pass("build-cache", "a probe object was written and read back"),
-        Ok(_) => fail("build-cache", "the probe was written but not read back as written", "the read link points at another bucket or prefix than the write link"),
-        Err(why) => fail("build-cache", format!("reading the probe failed: {why}"), "the read link is expired or revoked: mint a new BUILD_CACHE_READ_PAR_URL"),
+    for (label, store) in stores.members() {
+        match store.get(&key) {
+            Ok(Some(back)) if back == body.as_bytes() => {}
+            Ok(_) => return fail("build-cache", format!("store {label}: the probe was written but not read back as written"), "the read side points at another bucket or prefix than the write side"),
+            Err(why) => return fail("build-cache", format!("store {label}: reading the probe failed: {why}"), "the read credential is expired or revoked, or the store is unreachable"),
+        }
+    }
+    pass("build-cache", format!("a probe object was written and read back on {} store(s): {}", stores.len(), stores.labels().join(", ")))
+}
+
+fn unresolved(error: ConfigError) -> Check {
+    match error {
+        ConfigError::Missing(keys) => fail("build-cache", format!("{} in the environment or the vault", ConfigError::Missing(keys)), "wf secret get BUILD_CACHE_READ_STORES BUILD_CACHE_WRITE_STORES (or the legacy BUILD_CACHE_*_PAR_URL); mint a new link if it expired"),
+        ConfigError::Invalid(why) => fail("build-cache", why, "fix the store list (wf cache --help names the syntax); a store is declared and required, or written with a leading -"),
     }
 }
 
-/// An event that may not resolve the write URL reads only, so the probe is a read of an object that need not exist.
+/// An event that may not resolve the write side reads only, so the probe is a read of an object that need not exist.
 fn read_only_build_cache(why: &str) -> Check {
-    let Some(read) = secrets::load_values(&["BUILD_CACHE_READ_PAR_URL"]).get("BUILD_CACHE_READ_PAR_URL").cloned().flatten() else {
-        return fail("build-cache", "the build cache read link is not in the environment or the vault", "set BUILD_CACHE_READ_PAR_URL or mint a new link if it expired");
+    let stores: Stores = match wf_bucket::cache::open_stores(false) {
+        Ok(Some(stores)) => stores,
+        Ok(None) => return pass("build-cache", "no store declared (every entry of the store list is disabled): the run has no shared cache"),
+        Err(error) => return unresolved(error),
     };
-    let cache = Cache::open(OciParStore::new(&read, None), Budget::committed().clone(), Writes::ReadOnly(why.to_string()));
+    let cache = Cache::open(stores.clone(), Budget::committed().clone(), Writes::ReadOnly(why.to_string()));
     let Ok(key) = cache.key(Kind::Probe, "preflight-read") else { return fail("build-cache", "the probe key was refused", "a bug in the cache's key rules") };
-    match OciParStore::new(&read, None).get(&key) {
-        Ok(_) => pass("build-cache", format!("the read link answers; {why}, so nothing was written")),
-        Err(e) => fail("build-cache", format!("reading through the read link failed: {e}"), "the read link is expired or revoked: mint a new BUILD_CACHE_READ_PAR_URL"),
+    for (label, store) in stores.members() {
+        if let Err(e) = store.get(&key) {
+            return fail("build-cache", format!("store {label}: reading failed: {e}"), "the read credential is expired or revoked, or the store is unreachable");
+        }
     }
+    pass("build-cache", format!("{} store(s) answer; {why}, so nothing was written", stores.len()))
 }
 
 fn ledger() -> Check {

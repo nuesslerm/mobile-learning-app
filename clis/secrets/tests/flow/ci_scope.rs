@@ -334,7 +334,7 @@ fn one_project_serves_both_scopes_to_the_one_ci_token_and_verify_reports_exactly
     let env = push_to_dev();
     let open: Vec<String> = scope_keys("ci-open").into_iter().map(|(k, _)| k).collect();
     let deploy: Vec<String> = scope_keys("ci-deploy").into_iter().map(|(k, _)| k).collect();
-    assert_eq!(open.len(), 6);
+    assert_eq!(open.len(), 9);
 
     // When every ci-open key is read in GitHub Actions with both tokens set
     for key in &open {

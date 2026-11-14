@@ -4,8 +4,8 @@ Run a command with the Nx task cache served from the bucket: a loopback server
 starts, NX_SELF_HOSTED_REMOTE_CACHE_SERVER and a per-run token go into the
 command's environment (and 127.0.0.1,localhost into NO_PROXY), and the server
 stops when the command exits. The command's exit code is this verb's. Needs
-BUILD_CACHE_READ_PAR_URL and BUILD_CACHE_WRITE_PAR_URL (the environment, then the
-vault); without them the command runs on Nx's local cache alone. A run writes only
+the build cache stores (BUILD_CACHE_READ_STORES and BUILD_CACHE_WRITE_STORES, or the
+legacy BUILD_CACHE_*_PAR_URL; the environment, then the vault); without them the command runs on Nx's local cache alone. A run writes only
 from a clean tree on origin/dev with pinned tools (see `wf cache --help`).
 
 With --why (first, before the command), every task Nx ran in the command is
