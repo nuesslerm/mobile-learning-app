@@ -1682,9 +1682,9 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-core"
-version = "0.1.5"
+version = "0.1.6"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
-checksum = "7f20ef8ca76b1c69607ab76492d7059fba8ee8509a1ef681436b01181770fa4d"
+checksum = "72d6c78fe50aab47a02d3f5b344e58184517a50afc8f2bccebffb585bbb8394a"
 dependencies = [
  "base64 0.22.1",
  "mimic-core",
@@ -1693,9 +1693,9 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-host"
-version = "0.1.6"
+version = "0.1.7"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
-checksum = "1b457226fae6a7e516a056d6b6c07caa453b4ba498967d1ff879942a4740303c"
+checksum = "6b1b4312bf05fcb44c156b990f42d4061d04f1b6b9777633ee851552f8219a3d"
 dependencies = [
  "mimic-core",
  "mimic-script-core",
@@ -1706,9 +1706,9 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-net"
-version = "0.1.4"
+version = "0.1.5"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
-checksum = "a96bae5d82a021a785de6323d8c6b17cedc0268ede758c2bf63944ccaeecb666"
+checksum = "ff7d099c3cbf663527a526f575e4e95ebad7d4d18ba1d89c4e128bcf631b2b24"
 dependencies = [
  "flate2",
  "mimic-script-core",
@@ -1718,9 +1718,9 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-orca"
-version = "0.1.2"
+version = "0.1.3"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
-checksum = "2ca336ec1d017698fc62f527ffc528a228a60ad72b476ae4141ce03d65679d9b"
+checksum = "f63776f11fda47b57958e914b7ec94b59d3414c5b065679f9bb42551811d74e4"
 dependencies = [
  "mimic-script-core",
  "mimic-script-host",
