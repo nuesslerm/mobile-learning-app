@@ -9,6 +9,7 @@ const LOCAL_QUIET_MS: u64 = 120;
 /// How long a request waits for the first thing the server answers (a reply, an error or the close): the chain behind t3-serve is slower on a loaded
 /// runner than the quiet window, and a request the real server always answers must not read as unanswered because the machine was busy.
 const FIRST_ANSWER_MS: u64 = 3000;
+const AWAIT_EXIT_MS: u64 = 15000;
 use mimic_core::allowlist::Allowlist;
 use mimic_core::cassette::{Cassette, Dir, DriverInfo, Step};
 use mimic_core::differ::Verdict;
@@ -169,6 +170,14 @@ impl Session {
         }
     }
 
+    /// Whether the server's Exit for the request `id` is among the events since `from`.
+    fn exited(&self, from: usize, id: &Value) -> bool {
+        self.events[from..].iter().any(|e| match e {
+            WireEvent::Ws { dir: Dir::S2c, data, .. } => serde_json::from_slice::<Value>(data).is_ok_and(|f| f["_tag"] == "Exit" && f["requestId"].to_string() == id.to_string()),
+            _ => false,
+        })
+    }
+
     fn settle(&mut self, wait: Duration) -> Result<(), String> {
         self.settle_with(wait, None)
     }
@@ -200,7 +209,8 @@ impl Candidate<'_> {
         }
         let mut session = Session { ws: None, events: Vec::new(), settle: Duration::from_millis(input["settle_ms"].as_u64().unwrap_or(250).min(LOCAL_QUIET_MS)) };
         for step in script {
-            let (op, arg) = step.as_object().and_then(|m| m.iter().next()).ok_or("a script step is not an object")?;
+            // a step is its op and, beside it, the optional `await` (the key order of the map says nothing)
+            let (op, arg) = step.as_object().and_then(|m| m.iter().find(|(k, _)| k.as_str() != "await")).ok_or("a script step is not an object")?;
             let arg = fill(arg, &vars);
             match op.as_str() {
                 "http" => {
@@ -231,9 +241,17 @@ impl Candidate<'_> {
                     }
                 }
                 "ws-send" => {
+                    let from = session.events.len();
                     session.send(&arg.to_string())?;
                     let first = (arg["_tag"] == "Request").then(|| Duration::from_millis(FIRST_ANSWER_MS));
                     session.settle_with(session.settle, first)?;
+                    // a setup request is not over until its Exit has come: a loaded server answers after the quiet period
+                    if step["await"] == "exit" {
+                        let started = std::time::Instant::now();
+                        while !session.exited(from, &arg["id"]) && started.elapsed() < Duration::from_millis(AWAIT_EXIT_MS) {
+                            session.settle_with(Duration::from_millis(100), None)?;
+                        }
+                    }
                 }
                 "ws-close" => {
                     let (code, reason) = (arg["code"].as_u64().unwrap_or(1000) as u16, arg["reason"].as_str().unwrap_or_default().to_string());
