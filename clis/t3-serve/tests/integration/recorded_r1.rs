@@ -54,11 +54,8 @@ fn the_answers_the_real_server_recorded_replay_through_t3_serve_and_every_differ
             let ids = |v: Vec<&mimic_core::cassette::Interaction>| v.into_iter().map(|i| i.id.clone()).collect::<Vec<_>>();
             let groups: Vec<Vec<String>> = [ids(reads), ids(writes)].into_iter().filter(|g| !g.is_empty()).chain(own.into_iter().map(|i| vec![i.id.clone()])).collect();
             for group in groups {
-                let chain = Chain::start();
-                let pair = |scopes: Vec<String>| chain.pair_with(&scopes);
-                let workspace = std::fs::canonicalize(chain.repo.path()).unwrap().display().to_string();
-                let candidate = mimic_t3::Candidate { addr: chain.addr, pair: &pair, scopes: scopes.clone(), workspace: &workspace };
-                let mut candidate = mimic_t3::SharedSession::new(candidate, &set);
+                let chain = std::rc::Rc::new(Chain::start());
+                let mut candidate = chain_driver(&chain, scopes.clone(), mimic_t3::prelude_of(&set), true);
                 let verdict = mimic_core::usecase::replay(&set, &mut candidate, &allow, &mimic_core::presets::t3_diff_options(), Some(&group)).expect("the replay runs");
                 results.extend(verdict.results);
             }

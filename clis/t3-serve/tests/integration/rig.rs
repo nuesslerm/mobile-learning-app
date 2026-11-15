@@ -339,3 +339,11 @@ impl Phone {
         success(&self.call(case, chain, &["rpc:orchestration.dispatchCommand", "command:thread.create"], "orchestration.dispatchCommand", thread));
     }
 }
+
+/// The driver that plays a replay against `chain`: its address, its workspace folder and a pairing with the scopes the recorded session was
+/// granted. The chain is the test's; the driver never starts or stops it.
+pub fn chain_driver(chain: &std::rc::Rc<Chain>, scopes: Vec<String>, prelude: Vec<mimic_script_core::case::Entry>, session: bool) -> mimic_script_host::ScriptDriver {
+    let workspace = std::fs::canonicalize(chain.repo.path()).unwrap().display().to_string();
+    let paired = chain.clone();
+    crate::support::mimic_t3::driver(chain.addr, workspace, std::rc::Rc::new(move || paired.pair_with(&scopes)), prelude, session)
+}

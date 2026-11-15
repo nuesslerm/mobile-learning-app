@@ -11,10 +11,11 @@ use mimic_core::usecase::replay;
 const WORKSPACE: &str = "/conformance/workspace";
 
 fn replayed(set: &mimic_core::ports::CassetteSet, allow: &mimic_core::allowlist::Allowlist) -> Verdict {
-    let h = Harness::start();
+    let h = std::rc::Rc::new(Harness::start());
     *h.agent.root.lock().unwrap() = Some("/conformance".into());
-    let pair = |scopes: Vec<String>| h.pair(PairingRequest { scopes, ..PairingRequest::default() }).code;
-    let mut candidate = Candidate { addr: h.addr, pair: &pair, scopes: granted_scopes(set), workspace: WORKSPACE };
+    let (scopes, paired) = (granted_scopes(set), h.clone());
+    let pair = std::rc::Rc::new(move || paired.pair(PairingRequest { scopes: scopes.clone(), ..PairingRequest::default() }).code);
+    let mut candidate = driver(h.addr, WORKSPACE.to_string(), pair, Vec::new(), false);
     replay(set, &mut candidate, allow, &t3_diff_options(), None).expect("the replay runs")
 }
 

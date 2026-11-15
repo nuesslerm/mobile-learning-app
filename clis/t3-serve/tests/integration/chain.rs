@@ -199,12 +199,10 @@ fn a_project_is_renamed_and_deleted_and_the_shell_the_phone_reads_afterwards_no_
 fn the_imported_session_of_the_real_server_replays_through_mimic_against_t3_serve_over_the_whole_chain_with_no_difference_the_imported_allowlist_does_not_name() {
     exec_testkit::case!(SUITE, |_case| {
         // Given the chain, and the set imported from the goldens of t3@0.1.6 with its imported allowlist
-        let chain = Chain::start();
-        let pair = |scopes: Vec<String>| chain.pair_with(&scopes);
+        let chain = std::rc::Rc::new(Chain::start());
         let (set, allow) = (mimic_t3::load_set(mimic_t3::SET), mimic_t3::load_allowlist(mimic_t3::SET));
-        let workspace = std::fs::canonicalize(chain.repo.path()).unwrap().display().to_string();
         // When the client side of every interaction is replayed against `t3-serve serve`, wired to the real rca-service and rca-exec
-        let mut candidate = mimic_t3::Candidate { addr: chain.addr, pair: &pair, scopes: mimic_t3::granted_scopes(&set), workspace: &workspace };
+        let mut candidate = chain_driver(&chain, mimic_t3::granted_scopes(&set), Vec::new(), false);
         let verdict = mimic_core::usecase::replay(&set, &mut candidate, &allow, &mimic_core::presets::t3_diff_options(), None).expect("the replay runs");
         // Then every masked answer equals the recorded one, apart from the divergences the allowlist names
         let found = mimic_t3::differences(&verdict);
