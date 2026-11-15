@@ -20,11 +20,12 @@ mod time;
 pub mod testing;
 
 /// The agent methods this crate sends: the `pr.*` and `mr.*` ones it reaches, and the fetch of a request's head.
-pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, FETCH];
+pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, FETCH];
 
 const METHODS: &[Method] = &[
     Method { name: "github.prForBranch", kind: Kind::Unary },
     Method { name: "github.prChecks", kind: Kind::Unary },
+    Method { name: "github.listLabels", kind: Kind::Unary },
     Method { name: "github.mergePR", kind: Kind::Unary },
     Method { name: "github.updatePRTitle", kind: Kind::Unary },
     Method { name: "github.updatePR", kind: Kind::Unary },
@@ -54,6 +55,7 @@ impl Area for HostedArea {
         match method {
             "github.prForBranch" => github::pr_for_branch(&target, params),
             "github.prChecks" => github::pr_checks(&target, params),
+            "github.listLabels" => github::list_labels(&target, params),
             "github.mergePR" => github::merge(&target, params),
             "github.updatePRTitle" => github::update_title(&target, params),
             "github.updatePR" => github::update(&target, params),
@@ -127,7 +129,7 @@ pub(crate) fn outcome(result: Result<Value, AgentError>) -> Result<Value, Failur
     }
 }
 
-/// The executor's repository args of a request that names its own: `prRepo` (`owner`, `repo`, `host`) of GitHub's rows or `projectRef` (`host`, `path`)
+/// The executor's repository args of a request that names its own: `prRepo` or `ownerRepo` (`owner`, `repo`, `host`) of GitHub's rows or `projectRef` (`host`, `path`)
 /// of GitLab's.
 pub(crate) fn repo_args(params: &Value, key: &str) -> Result<Map<String, Value>, Failure> {
     let mut args = Map::new();
@@ -135,7 +137,7 @@ pub(crate) fn repo_args(params: &Value, key: &str) -> Result<Map<String, Value>,
         None | Some(Value::Null) => return Ok(args),
         Some(named) => named,
     };
-    let (path, host) = if key == "prRepo" {
+    let (path, host) = if key == "prRepo" || key == "ownerRepo" {
         let (owner, repo) = (text(named, "owner").ok_or_else(|| Failure::invalid("prRepo has no owner"))?, text(named, "repo").ok_or_else(|| Failure::invalid("prRepo has no repo"))?);
         (format!("{owner}/{repo}"), text(named, "host"))
     } else {

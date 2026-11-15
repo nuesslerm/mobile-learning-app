@@ -2,6 +2,7 @@
 use crate::{checks, number, outcome, required, text, time, with_repo, Target};
 use agent_api_hosted::pr;
 use orca_core::wire::{Failure, RUNTIME_ERROR};
+use orca_core::AgentError;
 use serde_json::{json, Value};
 
 /// The merge method of the host's `mergePR` when the phone names none.
@@ -15,6 +16,22 @@ fn pr_number(params: &Value) -> Result<u64, Failure> {
 pub fn pr_checks(t: &Target, params: &Value) -> Result<Value, Failure> {
     let args = with_repo(json!({"number": pr_number(params)?}), params, "prRepo")?;
     Ok(Value::Array(checks::details(&t.ask(pr::CHECKS, args)?)?))
+}
+
+/// `github.listLabels`: the names of the repository's labels, one page of at most 200 where the host pages through them all. The host answers an empty
+/// list for any repository it cannot read, so a refusal of rca's read is an empty list too; only a repository selector that names no workspace is an error.
+pub fn list_labels(t: &Target, params: &Value) -> Result<Value, Failure> {
+    match params.get("ownerRepo") {
+        None => {}
+        Some(Value::Object(_)) => {}
+        Some(other) => return Err(Failure::invalid(format!("Invalid input: expected object, received {}", if other.is_null() { "null" } else { "a value of another type" }))),
+    }
+    let args = with_repo(json!({"limit": 200}), params, "ownerRepo")?;
+    match t.try_ask(pr::LABEL_CANDIDATES, args) {
+        Ok(answer) => Ok(Value::Array(answer["labels"].as_array().into_iter().flatten().filter_map(|l| l["name"].as_str()).filter(|n| !n.is_empty()).map(|n| json!(n)).collect())),
+        Err(AgentError::Refused { code, .. }) if code != "UNKNOWN_WORKSPACE" => Ok(json!([])),
+        Err(other) => Err(crate::refusal(other)),
+    }
 }
 
 /// `github.prForBranch`: the open pull request of the branch (else the latest one that is not), as the host's summary of it, or null with none.

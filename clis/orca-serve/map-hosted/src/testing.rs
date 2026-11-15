@@ -35,6 +35,7 @@ struct State {
     /// The refs a fetch made in the repository.
     local: BTreeMap<String, String>,
     fetch_error: Option<String>,
+    labels: Option<Vec<(String, String)>>,
     view_error: Option<String>,
 }
 
@@ -157,7 +158,19 @@ impl Hosting {
     }
 
     /// Makes `agent` answer the methods of `USES` from these requests.
+    /// The labels the repository holds as (name, color); with none set, reading them is refused as when `gh` is not signed in.
+    pub fn labels(&self, labels: &[(&str, &str)]) -> &Self {
+        self.0.lock().unwrap().labels = Some(labels.iter().map(|(n, c)| (n.to_string(), c.to_string())).collect());
+        self
+    }
+
     pub fn install(&self, agent: &ScriptedAgent) {
+        let me = self.clone();
+        agent.reply("pr.labelCandidates", move |p| {
+            let s = me.0.lock().unwrap();
+            let labels = s.labels.as_ref().ok_or_else(|| refused("HOSTED_AUTH", "gh is not signed in"))?;
+            Ok(json!({"labels": labels.iter().take(p["limit"].as_u64().unwrap_or(200) as usize).map(|(n, c)| json!({"name": n, "color": c, "description": ""})).collect::<Vec<_>>()}))
+        });
         for (name, provider) in [("pr.list", "github"), ("pr.view", "github"), ("pr.checks", "github"), ("pr.merge", "github"), ("pr.edit", "github"), ("pr.ready", "github"), ("pr.requestReviewers", "github"), ("mr.view", "gitlab"), ("mr.edit", "gitlab"), ("mr.ready", "gitlab"), ("mr.setLabels", "gitlab"), ("mr.merge", "gitlab")] {
             let me = self.clone();
             let verb = name.split_once('.').map_or(name, |(_, v)| v).to_string();

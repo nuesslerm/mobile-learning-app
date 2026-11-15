@@ -230,3 +230,25 @@ fn a_pull_requests_worktree_starts_at_its_head_fetched_into_a_ref_of_its_own_and
         answered(case, "git.fetch", false);
     });
 }
+
+#[test]
+fn a_repositorys_labels_are_listed_through_gh_label_list_and_a_gh_that_refuses_is_an_empty_list_after_the_request_reached_the_executor() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a gh that lists two labels, one with an empty name
+        let chain = Chain::start_hosted();
+        let mut phone = Phone::connect(case, &chain);
+        chain.clis().rules(&[rule("gh", &["label", "list"], r##"[{"name": "bug", "color": "d73a4a", "description": "Something is wrong"}, {"name": "docs", "color": "0075ca", "description": ""}]"##)], &[]);
+        // When the phone lists the labels of a repository it names
+        let names = served(case, &mut phone, &chain, "github.listLabels", json!({"ownerRepo": {"owner": "octo", "repo": "hello"}}), &["pr.labelCandidates"], &["hosted_repo_labels"]);
+        // Then it reads the names in gh's order, and gh was asked for that repository's labels as JSON, up to 200
+        assert_eq!(names, json!(["bug", "docs"]));
+        let started = starts(&chain, "gh", &["label", "list"]);
+        assert!(started[0].argv.contains(&"--repo=octo/hello".to_string()) && started[0].argv.contains(&"--limit=200".to_string()), "{:?}", started[0].argv);
+        // When gh refuses the next listing
+        chain.clis().rules(&[failing("gh", &["label", "list"], "gh: To get started with GitHub CLI, please run: gh auth login")], &[]);
+        let refused = phone.refused(case, &chain, &["rpc:github.listLabels"], "github.listLabels", with_repo(json!({"ownerRepo": {"owner": "octo", "repo": "hello"}})));
+        // Then the phone still reads an empty list, from a read the executor ran and rca refused
+        answered(case, "pr.labelCandidates", false);
+        assert_eq!(refused["result"], json!([]), "{refused}");
+    });
+}

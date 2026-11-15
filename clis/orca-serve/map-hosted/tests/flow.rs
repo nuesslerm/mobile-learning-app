@@ -304,3 +304,24 @@ fn given_pull_requests_whose_only_checks_were_cancelled_or_skipped_when_the_bran
     // Then a cancelled check fails the rollup and a skipped one passes it, as the pinned host's provider-check-summary counts them, and a running one still wins over a pass
     assert_eq!((status(&mut rig, "a"), status(&mut rig, "b"), status(&mut rig, "c")), (json!("failure"), json!("success"), json!("pending")));
 }
+
+#[test]
+fn given_a_repository_with_labels_when_they_are_listed_then_the_names_come_back_in_order_and_an_unreadable_repository_is_an_empty_list() {
+    let mut rig = Rig::new();
+    // Given labels on the repository
+    rig.hosting.labels(&[("bug", "d73a4a"), ("docs", "0075ca"), ("", "ffffff")]);
+    // When the phone lists them for the worktree's repository, and for one it names
+    let own = rig.ok("github.listLabels", json!({}));
+    let named = rig.ok("github.listLabels", json!({"ownerRepo": {"owner": "acme", "repo": "app"}}));
+    // Then it reads the names only, an empty name dropped, and rca was asked for the named repository
+    assert_eq!((own, named.clone()), (json!(["bug", "docs"]), json!(["bug", "docs"])));
+    let asked = rig.agent.requests().into_iter().filter(|(m, _)| m == "pr.labelCandidates").map(|(_, p)| p).collect::<Vec<_>>();
+    assert_eq!((asked[0]["repo"].clone(), asked[1]["repo"].clone(), asked[1]["limit"].clone()), (Value::Null, json!("acme/app"), json!(200)));
+    // And a repository rca cannot read answers an empty list, as the host does, never an error
+    let mut quiet = Rig::new();
+    assert_eq!(quiet.ok("github.listLabels", json!({})), json!([]));
+    // And a missing selector, a bad ownerRepo and an unknown workspace are the only refusals
+    assert_eq!(rig.err("github.listLabels", json!({"repo": ""})).0, "invalid_argument");
+    assert_eq!(rig.err("github.listLabels", json!({"ownerRepo": null})).0, "invalid_argument");
+    assert_eq!(rig.err("github.listLabels", json!({"repo": "nowhere"})).0, "selector_not_found");
+}

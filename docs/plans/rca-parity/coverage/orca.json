@@ -10,8 +10,8 @@
   "summary": {
     "rows": 317,
     "served": 135,
-    "pending": 34,
-    "notOffered": 138,
+    "pending": 29,
+    "notOffered": 143,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -26,8 +26,8 @@
       "M7": 5,
       "M8": 13,
       "M9": 2,
-      "M10": 3,
-      "M11": 7
+      "M10": 1,
+      "M11": 4
     }
   },
   "rows": [
@@ -1477,17 +1477,19 @@
       "id": "rpc:git.cancelGenerateCommitMessage",
       "kind": "rpc",
       "name": "git.cancelGenerateCommitMessage",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M10",
-      "reverify": "reverify when git.generateCommitMessage can be cancelled (M10): the group's generation is one request that runs to its end and has no cancel, so an accepted cancel would stop nothing"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's commit message generation is one request that runs to its end and has no cancel, so an accepted cancel would stop nothing.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:git.cancelGeneratePullRequestFields",
       "kind": "rpc",
       "name": "git.cancelGeneratePullRequestFields",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M10",
-      "reverify": "reverify with git.generatePullRequestFields (M10): there is no generation of pull request text to cancel"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: there is no generation of pull request text in rca to cancel (git.generatePullRequestFields is not offered).",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:git.checkout",
@@ -1882,9 +1884,10 @@
       "id": "rpc:github.addPRReviewCommentReply",
       "kind": "rpc",
       "name": "github.addPRReviewCommentReply",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when the reply's answer can be built (M11): the phone names the review comment by its numeric id while pr.reply takes a review thread's id (pr.threads), and the host answers the posted comment (author, time, url) which pr.reply does not return"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it replies in a review thread by the numeric comment id the phone holds, and rca's pr.reply needs the thread's node id and the pull request number, which would have to be recovered by re-reading every thread and guessing the new comment back from its URL.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.countWorkItems",
@@ -2250,9 +2253,10 @@
       "id": "rpc:github.resolveReviewThread",
       "kind": "rpc",
       "name": "github.resolveReviewThread",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when rca can find a thread's pull request (M11): the phone sends the thread id alone, pr.resolveThread needs the pull request's number too, and rca keeps no thread to pull request index"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the phone sends only the thread id, and rca's pr.resolveThread needs the pull request number too, which this host would have to keep an index of from earlier reads and otherwise guess by scanning open pull requests.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.setPRAutoMerge",
@@ -2511,9 +2515,10 @@
       "id": "rpc:hostedReview.getCreationEligibility",
       "kind": "rpc",
       "name": "hostedReview.getCreationEligibility",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when mapped over git.upstreamStatus and pr.list (M11): it says whether the branch is pushed, ahead of its base and has no review yet, which needs those three reads and the host's reason codes; not mapped in this milestone"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it tells the phone whether a review can be created for the branch, and review creation is not offered (hostedReview.create), so an eligibility answer would promise an action this host refuses.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:jira.getIssue",
