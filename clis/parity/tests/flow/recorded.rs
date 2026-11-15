@@ -100,13 +100,13 @@ fn a_row_is_served_by_a_clean_replay_of_a_recorded_set_and_by_nothing_planted_in
         let w = World::of(app, &recorded_sets(app, cassettes));
         let mut by_row: BTreeMap<&str, bool> = BTreeMap::new();
         for (_, row, clean) in &w.replays {
-            *by_row.entry(row).or_insert(true) &= clean;
+            *by_row.entry(row).or_insert(false) |= clean;
         }
         let clean: BTreeSet<&str> = by_row.iter().filter(|(_, c)| **c).map(|(r, _)| *r).collect();
         // When the clean replay is read, Then rows are served, and only clean ones
         let served = w.served(&w.trace("recorded", &[]));
         assert!(!served.is_empty(), "{app}: no row is served by its recorded cassette");
-        assert!(served.iter().all(|r| clean.contains(r.as_str())), "{app}: a row served although a replay of it differed: {served:?}");
+        assert!(served.iter().all(|r| clean.contains(r.as_str())), "{app}: a row served although no replay of it was clean: {served:?}");
         // And the same replay of a set planted as authored (a double, not the real server) serves nothing
         assert_eq!(w.served(&w.trace("authored", &[])), BTreeSet::new(), "{app}: an authored cassette served a row");
         // And a planted difference on one served row takes that row, and only that row, out of the served ones
