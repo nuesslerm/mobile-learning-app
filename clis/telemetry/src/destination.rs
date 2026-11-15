@@ -37,14 +37,6 @@ impl Destination {
     }
 }
 
-/// The official client words a rejection as `... Status(401, ...)`; callers read it as `HTTP 401`.
-pub(crate) fn why(error: &str) -> String {
-    match error.split("Status(").nth(1).and_then(|rest| rest.split(',').next()) {
-        Some(status) => format!("HTTP {}", status.trim()),
-        None => error.to_string(),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

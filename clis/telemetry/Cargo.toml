@@ -11,9 +11,9 @@ include = ["src/**", "contract/**", "Cargo.toml"]
 
 [features]
 # The process-wide `tracing` subscriber of a long-running service: console lines, OTLP logs and spans.
-service = ["dep:tracing", "dep:tracing-subscriber", "dep:tracing-opentelemetry", "opentelemetry/trace", "opentelemetry_sdk/trace", "opentelemetry-otlp/trace"]
+service = ["dep:tracing", "dep:tracing-subscriber", "dep:tracing-opentelemetry", "dep:opentelemetry", "dep:opentelemetry_sdk", "dep:opentelemetry-otlp"]
 # One record at a time, blocking, for a CLI.
-oneshot = ["dep:futures-executor"]
+oneshot = ["dep:ureq"]
 # `logger emit`, the shell scripts' logger, as a library (`wf log emit`) and as the static `logger` binary.
 cli = ["oneshot"]
 
@@ -21,7 +21,7 @@ cli = ["oneshot"]
 callsite = []
 
 # Gauges to an OTLP/HTTP metrics source, one request per batch (`OtlpMetricsSink`).
-metrics = ["opentelemetry/metrics", "opentelemetry_sdk/metrics", "opentelemetry-otlp/metrics"]
+metrics = ["dep:ureq"]
 
 # The in-memory `MetricsSink` double for other crates' tests.
 testing = []
@@ -35,12 +35,12 @@ name = "callsite-check"
 required-features = ["callsite"]
 
 [dependencies]
-opentelemetry = { version = "0.30", default-features = false, features = ["logs"] }
-opentelemetry_sdk = { version = "0.30", default-features = false, features = ["logs"] }
-opentelemetry-otlp = { version = "0.30", default-features = false, features = ["http-json", "logs", "reqwest-blocking-client", "reqwest-rustls"] }
+opentelemetry = { version = "0.30", default-features = false, features = ["logs", "trace"], optional = true }
+opentelemetry_sdk = { version = "0.30", default-features = false, features = ["logs", "trace"], optional = true }
+opentelemetry-otlp = { version = "0.30", default-features = false, features = ["http-json", "logs", "trace", "reqwest-blocking-client", "reqwest-rustls"], optional = true }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl"] }
 serde_json = "1"
-futures-executor = { version = "0.3", optional = true }
+ureq = { version = "3", default-features = false, features = ["rustls"], optional = true }
 tracing = { version = "0.1", optional = true }
 tracing-opentelemetry = { version = "0.31", optional = true }
 tracing-subscriber = { version = "0.3", optional = true, features = ["env-filter", "json"] }
