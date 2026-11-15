@@ -122,11 +122,13 @@ pub struct Options {
     pub requests_per_minute: u32,
     /// Why the shared cooldown ledger cannot be opened, when it cannot.
     pub ledger_error: Option<&'static str>,
+    /// The workspace files the routes read; the host's own files when none.
+    pub files: Option<Arc<dyn remote_chat_agent_core::application::ports::WorkspaceFiles>>,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Self { secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None }
+        Self { secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None }
     }
 }
 
@@ -227,7 +229,7 @@ fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, commands: Arc
     let settings = env.source().settings();
     let client = rca_service::compose::opencode_client(Arc::new(OpencodePort(Arc::clone(&opencode))), env.source());
     let (orch, gateway) = rca_service::compose::orchestration(&config, &client, env.source().as_ref());
-    let ports = Ports { documents: Arc::new(remote_chat_agent_host::Documents::new(commands_port.clone(), &settings)), speech: Arc::new(remote_chat_agent_speech::Speech::new(outbound_port.clone(), commands_port.clone(), env.source())), spawner: spawn, client, orch, gateway, commands: commands_port, outbound: outbound_port, ledgers: Arc::new(FileLedgers { error: options.ledger_error, env: env.source() }), files: Arc::new(remote_chat_agent_host::HostFiles), hosts: Arc::new(remote_chat_agent_host::Hosts), env: env.source() };
+    let ports = Ports { documents: Arc::new(remote_chat_agent_host::Documents::new(commands_port.clone(), &settings)), speech: Arc::new(remote_chat_agent_speech::Speech::new(outbound_port.clone(), commands_port.clone(), env.source())), spawner: spawn, client, orch, gateway, commands: commands_port, outbound: outbound_port, ledgers: Arc::new(FileLedgers { error: options.ledger_error, env: env.source() }), files: options.files.unwrap_or_else(|| Arc::new(remote_chat_agent_host::HostFiles)), hosts: Arc::new(remote_chat_agent_host::Hosts), env: env.source() };
     let app = Arc::new(App::new(config, ports, agent_api));
     app.start();
     Service { router: router(Arc::clone(&app)), app, opencode, commands, outbound, spawner, models, clock, default_cwd }

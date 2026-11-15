@@ -63,6 +63,8 @@ mod inventory;
 mod settings;
 #[path = "flow/viewers.rs"]
 mod viewers;
+#[path = "flow/viewers_memory.rs"]
+mod viewers_memory;
 #[path = "flow/voice.rs"]
 mod voice;
 #[path = "flow/tamil.rs"]
