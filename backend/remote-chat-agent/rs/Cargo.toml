@@ -57,7 +57,6 @@ async-trait.workspace = true
 axum.workspace = true
 base64.workspace = true
 dirs.workspace = true
-eventsource-stream.workspace = true
 futures-util.workspace = true
 percent-encoding.workspace = true
 reqwest.workspace = true

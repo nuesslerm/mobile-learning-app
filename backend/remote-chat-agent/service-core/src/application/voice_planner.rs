@@ -7,7 +7,7 @@ use crate::domain::voice_dsl::{self as dsl, Alternative};
 use crate::application::one_shot::{self, Failure, Reply, Turn, Usage};
 use super::opencode_client::Client;
 use super::settings::Settings;
-use fancy_regex::Regex;
+use regex::Regex;
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
@@ -198,7 +198,7 @@ fn fenced() -> &'static Regex {
 
 /// The JSON of a reply: inside a fence when there is one, else from the first `{` to the last `}`, else the whole text.
 fn json_text(text: &str) -> &str {
-    if let Ok(Some(caps)) = fenced().captures(text) {
+    if let Some(caps) = fenced().captures(text) {
         if let Some(m) = caps.get(1) {
             return m.as_str();
         }
