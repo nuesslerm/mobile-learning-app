@@ -192,6 +192,21 @@ const hasUnitTests = (root, dir) => {
   );
 };
 
+// a runnable doctest: a fenced block in a doc comment that is not `text`, `json`, `ignore` or another language
+const hasDocTests = (root, dir) => {
+  const src = join(root, dir, 'src');
+  return (
+    existsSync(join(src, 'lib.rs')) &&
+    readdirSync(src, { recursive: true }).some(
+      (f) =>
+        f.endsWith('.rs') &&
+        /^\s*\/\/[/!]\s*```(rust|no_run|should_panic|compile_fail|edition\d+)?\s*$/m.test(
+          readFileSync(join(src, f), 'utf8')
+        )
+    )
+  );
+};
+
 const packageJson = (root, dir) =>
   JSON.parse(readFileSync(join(root, dir, 'package.json'), 'utf8'));
 
@@ -340,7 +355,7 @@ exports.createNodes = [
       const tier = platformTier(root, c) ? ['platform'] : [];
       const checks = [...OWN, ...tier, ...extra(c, [], false)];
       const unit = hasUnitTests(root, c.dir)
-        ? { 'cargo-unit': rustTask(checks, `cargo test --locked -p ${c.name} ${existsSync(join(root, c.dir, 'src', 'lib.rs')) ? '--lib' : '--bins'} --manifest-path ${c.manifest}`) }
+        ? { 'cargo-unit': rustTask(checks, `cargo test --locked -p ${c.name} ${existsSync(join(root, c.dir, 'src', 'lib.rs')) ? '--lib' : '--bins'} --manifest-path ${c.manifest}${hasDocTests(root, c.dir) ? ` && cargo test --locked -p ${c.name} --doc --manifest-path ${c.manifest}` : ''}`) }
         : {};
       const clippy = {
         'cargo-clippy': rustTask([...checks, 'archRules'], `cargo clippy --locked -p ${c.name} --all-targets --manifest-path ${c.manifest} -- -D warnings`),

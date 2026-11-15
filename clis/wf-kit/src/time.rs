@@ -6,6 +6,10 @@ pub fn now_ms() -> i64 {
 }
 
 /// `new Date(ms).toISOString()`, without a date crate.
+///
+/// ```
+/// assert_eq!(wf_kit::time::iso(0), "1970-01-01T00:00:00.000Z");
+/// ```
 pub fn iso(ms: i64) -> String {
     let (days, rest) = (ms.div_euclid(86_400_000), ms.rem_euclid(86_400_000));
     // civil-from-days (Howard Hinnant), days since 1970-01-01
