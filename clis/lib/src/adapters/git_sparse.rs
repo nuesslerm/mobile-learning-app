@@ -16,7 +16,8 @@ pub struct GitSparse {
 }
 
 fn git(root: &Path, args: &[&str]) -> Result<String, Failure> {
-    let out = Command::new("git").arg("-C").arg(root).args(args).stdin(Stdio::null()).output().map_err(|e| Failure::new(format!("git {}: {e}", args.join(" "))))?;
+    // The vault credentials the guard needed are not for git's hooks: they run hermetic tests that must not see them.
+    let out = Command::new("git").arg("-C").arg(root).args(args).env_remove("BWS_ACCESS_TOKEN").env_remove("BWS_ADMIN_ACCESS_TOKEN").stdin(Stdio::null()).output().map_err(|e| Failure::new(format!("git {}: {e}", args.join(" "))))?;
     if out.status.success() {
         return Ok(String::from_utf8_lossy(&out.stdout).into_owned());
     }
