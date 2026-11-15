@@ -37,7 +37,6 @@
         "orca-clipboard.appendImageUploadChunk",
         "orca-clipboard.commitImageUpload",
         "orca-clipboard.saveImageAsTempFile",
-        "orca-files.pathsExist",
         "orca-files.readTerminalArtifact",
         "orca-files.readTerminalArtifactPreview",
         "orca-files.resolveTerminalPath",
@@ -93,9 +92,12 @@
         "orca-gitlab.workItemDetails",
         "orca-hostedReview.forBranch",
         "orca-hostedReview.getCreationEligibility",
+        "orca-mobileWeb.bundle.brotliRange",
+        "orca-mobileWeb.bundle.localeCatalog",
         "orca-notifications.registerPush",
         "orca-notifications.testPush",
         "orca-notifications.unregisterPush",
+        "orca-pairing.exchangeTicket",
         "orca-plugins.panelAction",
         "orca-repo.baseRefDefault",
         "orca-repo.hooks",
@@ -157,7 +159,10 @@
         "orca-github.project.workItemDetailsBySlug",
         "orca-hostedReview.create",
         "orca-linear.connect",
+        "orca-mobileWeb.bundle.manifest",
         "orca-nativeChat.readSession",
+        "orca-orchestration.partyLocation",
+        "orca-orchestration.partyOpen",
         "orca-preflight.check",
         "orca-settings.getAgentLaunch",
         "orca-skills.discover",
@@ -204,7 +209,9 @@
         "orca-agentSession.send",
         "orca-agentSession.setOption",
         "orca-agentSessionAttachment.uploadAppend",
-        "orca-agentSessionAttachment.uploadStart"
+        "orca-agentSessionAttachment.uploadStart",
+        "orca-mobileWeb.bundle.chunk",
+        "orca-mobileWeb.bundle.range"
       ]
     },
     {
@@ -222,6 +229,8 @@
         "orca-files.openDiff",
         "orca-markdown.readTab",
         "orca-markdown.saveTab",
+        "orca-orchestration.workerAutoClose",
+        "orca-orchestration.workerKeepOpen",
         "orca-pairing.getEndpoints",
         "orca-pairing.provisionRelay"
       ]
@@ -259,6 +268,34 @@
       "class": "missing at steps._:s2c:*.[*].payload.error.data",
       "severity": "breaking",
       "diffs": [
+        "steps._:s2c:0.[0].payload.error.code changed drift",
+        "steps._:s2c:0.[0].payload.error.data missing breaking",
+        "steps._:s2c:0.[0].payload.error.message changed drift"
+      ],
+      "ids": [
+        "orca-agentSession.agents",
+        "orca-agentSession.cancelUsageLimitContinue",
+        "orca-agentSession.createSupport"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.error.code",
+      "severity": "drift",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.code changed drift",
+        "steps._:s2c:0.[0].payload.error.message changed drift",
+        "steps._:s2c:0.[0].payload.message changed drift"
+      ],
+      "ids": [
+        "orca-browser.screencast",
+        "orca-session.tabs.subscribe",
+        "orca-terminal.subscribe"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error.data",
+      "severity": "breaking",
+      "diffs": [
         "steps._:s2c:0.[0].payload.error.data missing breaking",
         "steps._:s2c:0.[0].payload.error.message changed drift"
       ],
@@ -266,19 +303,6 @@
         "orca-agentSessionAttachment.read",
         "orca-agentSessionAttachment.readTextChunk",
         "orca-agentSessionAttachment.uploadCommit"
-      ]
-    },
-    {
-      "class": "missing at steps._:s2c:*.[*].payload.error.data",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.error.code changed drift",
-        "steps._:s2c:0.[0].payload.error.data missing breaking",
-        "steps._:s2c:0.[0].payload.error.message changed drift"
-      ],
-      "ids": [
-        "orca-agentSession.cancelUsageLimitContinue",
-        "orca-agentSession.createSupport"
       ]
     },
     {
@@ -296,9 +320,10 @@
       ]
     },
     {
-      "class": "missing at steps._:s2c:*.[*].payload.result.ui.gitGraphFiltersByWorktree",
+      "class": "missing at steps._:s2c:*.[*].payload.result.ui.featureInteractions.agent-orchestration",
       "severity": "breaking",
       "diffs": [
+        "steps._:s2c:0.[0].payload.result.ui.featureInteractions.agent-orchestration missing breaking",
         "steps._:s2c:0.[0].payload.result.ui.gitGraphFiltersByWorktree missing breaking",
         "steps._:s2c:0.[0].payload.result.ui.statusBarItems changed breaking",
         "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[10] changed drift",
@@ -312,6 +337,47 @@
       ]
     },
     {
+      "class": "missing at steps._:s2c:*.[*].payload.epoch",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.epoch missing breaking",
+        "steps._:s2c:0.[0].payload.subscriptionId missing breaking",
+        "steps._:s2c:0.[0].payload.type changed drift",
+        "steps._:s2c:0.[0].payload.message extra drift",
+        "steps._:s2c:0.[0].payload.error extra drift"
+      ],
+      "ids": [
+        "orca-notifications.subscribe"
+      ]
+    },
+    {
+      "class": "kind at steps._:s2c:*.[*].payload.error",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error kind breaking",
+        "steps._:s2c:0.[0].payload.hasMore missing breaking",
+        "steps._:s2c:0.[0].payload.messages missing breaking",
+        "steps._:s2c:0.[0].payload.type changed drift",
+        "steps._:s2c:0.[0].payload.message extra drift"
+      ],
+      "ids": [
+        "orca-nativeChat.subscribe"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error.data",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.code changed drift",
+        "steps._:s2c:0.[0].payload.error.data missing breaking",
+        "steps._:s2c:0.[0].payload.error.message changed drift",
+        "steps._:s2c:0.[0].payload.message changed drift"
+      ],
+      "ids": [
+        "orca-agentSession.subscribeStatus"
+      ]
+    },
+    {
       "class": "missing at steps._:s2c:*.[*].payload.error.data",
       "severity": "breaking",
       "diffs": [
@@ -322,45 +388,80 @@
       ]
     },
     {
-      "class": "changed at steps._:s2c:*.[*].payload.result",
-      "severity": "breaking",
+      "class": "changed at steps._:s2c:*.[*].payload.error.message",
+      "severity": "drift",
       "diffs": [
-        "steps._:s2c:0.[0].payload.result changed breaking"
+        "steps._:s2c:0.[0].payload.error.message changed drift",
+        "steps._:s2c:0.[0].payload.message changed drift"
+      ],
+      "ids": [
+        "orca-agentSession.subscribe"
+      ]
+    },
+    {
+      "class": "changed at steps._:s2c:*.[*].payload.result.[*]",
+      "severity": "drift",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.[0] changed drift",
+        "steps._:s2c:0.[0].payload.result.[1] changed drift",
+        "steps._:s2c:0.[0].payload.result.[2] changed drift"
       ],
       "ids": [
         "orca-preflight.detectAgents"
       ]
     },
     {
-      "class": "changed at steps._:s2c:*.[*].payload.result.agents",
-      "severity": "breaking",
+      "class": "changed at steps._:s2c:*.[*].payload.result.agents.[*]",
+      "severity": "drift",
       "diffs": [
-        "steps._:s2c:0.[0].payload.result.agents changed breaking"
+        "steps._:s2c:0.[0].payload.result.agents.[0] changed drift",
+        "steps._:s2c:0.[0].payload.result.agents.[1] changed drift",
+        "steps._:s2c:0.[0].payload.result.agents.[2] changed drift"
       ],
       "ids": [
         "orca-preflight.refreshAgents"
       ]
     },
     {
-      "class": "kind at steps._:s2c:*.[*].payload.result.authoritativeWindowId",
+      "class": "kind at steps._:s2c:*.[*].payload.result.catalog",
       "severity": "breaking",
       "diffs": [
-        "steps._:s2c:0.[0].payload.result.appVersion changed drift",
-        "steps._:s2c:0.[0].payload.result.authoritativeWindowId kind breaking",
-        "steps._:s2c:0.[0].payload.result.capabilities changed breaking",
-        "steps._:s2c:0.[0].payload.result.degradations missing breaking",
-        "steps._:s2c:0.[0].payload.result.desktopWindowStatus missing breaking",
-        "steps._:s2c:0.[0].payload.result.deviceScope changed drift",
-        "steps._:s2c:0.[0].payload.result.hostDescriptor missing breaking",
-        "steps._:s2c:0.[0].payload.result.hostMachine missing breaking",
-        "steps._:s2c:0.[0].payload.result.machineName changed drift",
-        "steps._:s2c:0.[0].payload.result.pairedDeviceId changed drift",
-        "steps._:s2c:0.[0].payload.result.remoteUpdateSupport missing breaking",
-        "steps._:s2c:0.[0].payload.result.terminalWindowsShell kind breaking",
-        "steps._:s2c:0.[0].payload.result.worktreeCreateIdempotency missing breaking"
+        "steps._:s2c:0.[0].payload.result.catalog kind breaking"
       ],
       "ids": [
-        "orca-status.get"
+        "orca-mobileRelay.projectSections"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.result.claude.activeAccountIdsByRuntime",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.claude.activeAccountIdsByRuntime missing breaking",
+        "steps._:s2c:0.[0].payload.result.codex.activeAccountIdsByRuntime missing breaking",
+        "steps._:s2c:0.[0].payload.result.codex.systemDefault missing breaking",
+        "steps._:s2c:0.[0].payload.result.devin missing breaking",
+        "steps._:s2c:0.[0].payload.result.opencode missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.antigravity missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.antigravityAccounts missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.claude kind breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.codex kind breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.cursor missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.cursorAuthConfigured missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.gemini missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.grok missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.grokAuthConfigured missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.kimi missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.minimax missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.minimaxApiKeyConfigured missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.minimaxCookieConfigured missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.muse missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.opencodeGo missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.opencodeGoApiKeyConfigured missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.zcode missing breaking",
+        "steps._:s2c:0.[0].payload.result.rateLimits.zcodePlanApiKeyConfigured missing breaking"
+      ],
+      "ids": [
+        "orca-accounts.list"
       ]
     },
     {
@@ -413,6 +514,41 @@
       ],
       "ids": [
         "orca-projectHostSetup.list"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.snapshot",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.snapshot missing breaking",
+        "steps._:s2c:0.[0].payload.subscriptionId missing breaking",
+        "steps._:s2c:0.[0].payload.type changed drift",
+        "steps._:s2c:0.[0].payload.message extra drift",
+        "steps._:s2c:0.[0].payload.error extra drift"
+      ],
+      "ids": [
+        "orca-accounts.subscribe"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.snapshot.nativeChatCiResultLines",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.snapshot.nativeChatCiResultLines missing breaking",
+        "steps._:s2c:0.[0].payload.subscriptionId changed drift"
+      ],
+      "ids": [
+        "orca-runtime.clientEvents.subscribe"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:close:s2c:_.[*].payload.code",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:close:s2c:_.[0].payload.code changed drift"
+      ],
+      "ids": [
+        "orca-transport.e2ee.handshake"
       ]
     }
   ]

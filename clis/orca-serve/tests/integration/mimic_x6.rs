@@ -167,28 +167,46 @@ fn given_the_double_when_the_set_is_recorded_again_then_the_interactions_are_the
     std::fs::remove_dir_all(&scratch).ok();
 }
 
-/// A `mimic-driver/1` client over the `orca` driver's process: the cases it is given, the replies it sends back.
+/// A client of the phone sidecar (`mimic-orca-phone/1`, docs/plans/mimic/orca-phone-protocol.md): one connection to `pairing`, each case's
+/// first request sent over it, and per case the reply as a recorder would see it (an outcome and the request and answer steps).
 fn drive(pairing: &str, cases: &[Value]) -> Vec<Value> {
     let mut child = Command::new("node")
         .arg(drivers().join("cli.ts"))
-        .args(["serve", "orca"])
+        .args(["sidecar", "orca"])
         .env("ORCA_PAIRING_URI", pairing)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
-        .expect("node starts the orca driver");
+        .expect("node starts the orca sidecar");
     let mut stdin = child.stdin.take().unwrap();
     let mut lines = BufReader::new(child.stdout.take().unwrap()).lines();
-    writeln!(stdin, "{}", json!({"hello": true})).unwrap();
-    let hello: Value = serde_json::from_str(&lines.next().unwrap().unwrap()).unwrap();
-    assert!(hello["hello"]["driver"]["name"].is_string(), "{hello}");
+    let mut next = 0;
+    let mut send = |op: &str, input: Value| -> Value {
+        next += 1;
+        writeln!(stdin, "{}", json!({"id": next.to_string(), "op": op, "input": input})).unwrap();
+        loop {
+            let line: Value = serde_json::from_str(&lines.next().expect("the sidecar answers").unwrap()).unwrap();
+            if line["id"] == json!(next.to_string()) {
+                return line;
+            }
+        }
+    };
+    let hello = send("hello", json!({}));
+    assert!(hello["ok"]["driver"]["name"].is_string() || hello["ok"].is_object(), "{hello}");
+    let state = send("connect", json!({"timeout_ms": 15_000}))["ok"]["state"].as_str().unwrap_or("error").to_string();
     let replies = cases
         .iter()
         .map(|c| {
-            writeln!(stdin, "{}", json!({"id": c["id"], "op": c["op"], "input": c["input"]})).unwrap();
-            serde_json::from_str(&lines.next().unwrap().unwrap()).unwrap()
+            if state != "connected" {
+                return json!({"outcome": {"status": "error", "code": state}, "steps": []});
+            }
+            let request = &c["input"]["requests"][0];
+            let answer = send("request", json!({"method": request["method"], "params": request["params"], "timeout_ms": request["timeout_ms"]}));
+            let payload = answer["ok"].get("response").cloned().unwrap_or_else(|| json!({"client_error": answer["ok"]["client_error"]}));
+            json!({"outcome": {"status": "ok"}, "steps": [{"dir": "c2s", "payload": {"method": request["method"], "params": request["params"]}}, {"dir": "s2c", "payload": payload}]})
         })
         .collect();
+    send("quit", json!({}));
     drop(stdin);
     let _ = child.wait();
     replies
