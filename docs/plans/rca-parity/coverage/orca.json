@@ -10,8 +10,8 @@
   "summary": {
     "rows": 317,
     "served": 135,
-    "pending": 114,
-    "notOffered": 58,
+    "pending": 112,
+    "notOffered": 60,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -23,7 +23,7 @@
     "pendingByMilestone": {
       "M5": 3,
       "M6": 1,
-      "M7": 8,
+      "M7": 6,
       "M8": 22,
       "M9": 3,
       "M10": 10,
@@ -257,8 +257,10 @@
       "id": "rpc:agentSession.cancelUsageLimitContinue",
       "kind": "rpc",
       "name": "agentSession.cancelUsageLimitContinue",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "not-offered",
+      "milestone": "M7",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it cancels the host's scheduled continue after a provider usage limit; rca keeps no scheduled continue of a turn, so there is nothing to cancel.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:agentSession.commands",
@@ -702,8 +704,10 @@
       "id": "rpc:agentSession.threadGoal",
       "kind": "rpc",
       "name": "agentSession.threadGoal",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "not-offered",
+      "milestone": "M7",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it sets or clears a thread goal in the host's structured-session store, and rca's thread has no goal.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:agentSession.unsubscribe",

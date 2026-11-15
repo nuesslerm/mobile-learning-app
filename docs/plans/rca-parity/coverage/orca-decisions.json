@@ -408,6 +408,16 @@
       "reason": "owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers",
       "decidedBy": "M7"
     },
+    "rpc:agentSession.cancelUsageLimitContinue": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it cancels the host's scheduled continue after a provider usage limit; rca keeps no scheduled continue of a turn, so there is nothing to cancel.",
+      "decidedBy": "M12"
+    },
+    "rpc:agentSession.threadGoal": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it sets or clears a thread goal in the host's structured-session store, and rca's thread has no goal.",
+      "decidedBy": "M12"
+    },
     "rpc:agentActivity.setRead": {
       "state": "not-offered",
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it marks or clears the panes of the desktop's Agents list by pane key, and this host has no desktop panes.",
