@@ -334,13 +334,15 @@ fn given_the_committed_orca_recordings_when_their_requests_run_against_their_own
         let compiled = rules.compile().unwrap();
         for (id, input, recorded) in cassette_steps(&dir) {
             let case = Case::parse(&input).unwrap();
-            let phone = CassettePhone::new(&recorded);
+            let phone = CassettePhone::replaying(&recorded, &input);
             let mut interpreter = Interpreter::new(Box::new(ScriptedTransport::new(&FakeClock::default())), Box::new(FixedTarget::new("", "cred-1")), Box::new(FakeClock::default()), Policy::default()).with_phone(Box::new(phone));
             let observed = interpreter.run_case(&case).unwrap();
             let masked = compiled.interaction(&mimic_core::cassette::Interaction { id: id.clone(), row: None, op: None, input: input.clone(), steps: observed.steps, effects: vec![], outcome: observed.outcome, tags: vec![] });
             checked += 1;
             if masked.steps != recorded {
-                mismatched.push(format!("{set}/{id}: got {} steps, recorded {}", masked.steps.len(), recorded.len()));
+                let at = masked.steps.iter().zip(&recorded).position(|(a, b)| a != b).unwrap_or(masked.steps.len().min(recorded.len()));
+                let show = |steps: &[Step]| steps.get(at).map_or("(none)".to_string(), |s| format!("{:?} {}", s.dir, s.payload.to_string().chars().take(240).collect::<String>()));
+                mismatched.push(format!("{set}/{id} step {at} of {}/{}: got {} | recorded {}", masked.steps.len(), recorded.len(), show(&masked.steps), show(&recorded)));
             }
         }
     }

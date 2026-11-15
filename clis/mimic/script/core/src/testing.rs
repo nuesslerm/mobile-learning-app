@@ -1,5 +1,6 @@
 //! In-memory doubles of the ports. They share one `FakeClock` handle so a frame can be scheduled to arrive some milliseconds after a send,
 //! and a test can read what the interpreter sent and how long it slept. Clones of a double are handles on the same state.
+use crate::vars::js_string;
 use crate::ports::{Clock, Event, HttpCall, HttpReply, Phone, PhoneEvent, Target, Transport, TransportError};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
@@ -78,13 +79,46 @@ pub struct CassettePhone {
     answers: VecDeque<Value>,
     pub requests: Rc<RefCell<Vec<(String, Value)>>>,
     state: String,
+    streams: VecDeque<(String, Vec<Step>)>,
+    handshake: Vec<PhoneEvent>,
+    close_event: Option<PhoneEvent>,
+    due: VecDeque<PhoneEvent>,
+    tapped: (bool, bool),
+    opened: usize,
+}
+
+fn client_error(payload: &Value) -> Option<&str> {
+    payload.get("client_error").and_then(Value::as_str)
 }
 
 impl CassettePhone {
     pub fn new(steps: &[Step]) -> CassettePhone {
         // an unbound variable is answered by the interpreter itself, never asked of the host
-        let answers = steps.iter().filter(|s| s.dir == Dir::S2c).map(|s| s.payload.clone()).filter(|p| !p.get("client_error").and_then(Value::as_str).is_some_and(|m| m.starts_with("unbound variable"))).collect();
-        CassettePhone { answers, requests: Rc::default(), state: "connected".into() }
+        let answers = steps.iter().filter(|s| s.dir == Dir::S2c).map(|s| s.payload.clone()).filter(|p| !client_error(p).is_some_and(|m| m.starts_with("unbound variable"))).collect();
+        CassettePhone { answers, requests: Rc::default(), state: "connected".into(), streams: VecDeque::new(), handshake: Vec::new(), close_event: None, due: VecDeque::new(), tapped: (false, false), opened: 0 }
+    }
+
+    /// A phone that plays a recording of the script `input`: the frames of each `subscribe` are delivered after it, the handshake the client tapped
+    /// at `connect` and the end of the connection after `close`, and the plain requests are answered in order from what is left.
+    pub fn replaying(steps: &[Step], input: &Value) -> CassettePhone {
+        let subscribes: Vec<(String, String)> = input["script"].as_array().into_iter().flatten().filter_map(|e| e.get("subscribe")).map(|a| (js_string(&a["rid"]), js_string(&a["method"]))).collect();
+        let is_stream = |s: &Step| s.rid.as_ref().is_some_and(|r| subscribes.iter().any(|(rid, _)| rid == r));
+        let channel = |s: &Step, name: &str| s.channel.as_deref() == Some(name);
+        let mut phone = CassettePhone::new(&[]);
+        phone.answers = steps
+            .iter()
+            .filter(|s| s.dir == Dir::S2c && !is_stream(s) && !channel(s, "handshake") && !channel(s, "ws:close"))
+            .map(|s| s.payload.clone())
+            .filter(|p| !client_error(p).is_some_and(|m| m.starts_with("unbound variable")))
+            .collect();
+        phone.streams = subscribes.iter().map(|(rid, method)| (method.clone(), steps.iter().filter(|s| s.dir == Dir::S2c && s.rid.as_deref() == Some(rid.as_str())).cloned().collect())).collect();
+        phone.handshake = steps
+            .iter()
+            .filter(|s| channel(s, "handshake"))
+            .map(|s| PhoneEvent::Handshake { stage: js_string(&s.payload["stage"]), client_to_server: s.dir == Dir::C2s, payload: s.payload["frame"].clone() })
+            .collect();
+        phone.close_event = steps.iter().find(|s| channel(s, "ws:close")).map(|s| PhoneEvent::Close { code: s.payload["code"].as_u64().map(|c| c as u16), reason: js_string(&s.payload["reason"]) });
+        phone
     }
 
     /// The state `connect` ends in, for a host that refuses the phone.
@@ -96,13 +130,16 @@ impl CassettePhone {
 
 impl Phone for CassettePhone {
     fn connect(&mut self, _timeout_ms: u64) -> String {
+        if self.state == "connected" && self.tapped.0 {
+            self.due.extend(self.handshake.drain(..));
+        }
         self.state.clone()
     }
 
     fn request(&mut self, method: &str, params: &Value, _timeout_ms: u64) -> Result<Value, String> {
         self.requests.borrow_mut().push((method.into(), params.clone()));
         match self.answers.pop_front() {
-            Some(answer) => match answer.get("client_error").and_then(Value::as_str) {
+            Some(answer) => match client_error(&answer) {
                 Some(message) => Err(message.into()),
                 None => Ok(answer),
             },
@@ -110,7 +147,34 @@ impl Phone for CassettePhone {
         }
     }
 
-    fn close(&mut self) {}
+    fn subscribe(&mut self, method: &str, params: &Value) -> Result<String, String> {
+        self.requests.borrow_mut().push((method.into(), params.clone()));
+        let at = self.streams.iter().position(|(m, _)| m == method).ok_or("the cassette has no stream of this method")?;
+        let (_, frames) = self.streams.remove(at).unwrap_or_default();
+        if let Some(message) = frames.first().and_then(|f| client_error(&f.payload)) {
+            return Err(message.into());
+        }
+        self.opened += 1;
+        let sub = format!("sub-{}", self.opened);
+        for f in frames {
+            self.due.push_back(PhoneEvent::Frame { sub: sub.clone(), binary: f.kind == StepKind::Binary, payload: f.payload, len: f.len.map(|n| n as usize) });
+        }
+        Ok(sub)
+    }
+
+    fn tap(&mut self, handshake: bool, close: bool) {
+        self.tapped = (handshake, close);
+    }
+
+    fn poll(&mut self) -> Vec<PhoneEvent> {
+        self.due.drain(..).collect()
+    }
+
+    fn close(&mut self) {
+        if let (true, Some(event)) = (self.tapped.1, self.close_event.take()) {
+            self.due.push_back(event);
+        }
+    }
 }
 
 #[derive(Default)]
