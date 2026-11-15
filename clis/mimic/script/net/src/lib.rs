@@ -3,8 +3,10 @@
 //! WebSocket whose frames a worker thread queues for the interpreter to drain.
 mod clock;
 mod http;
+mod sidecar;
 mod socket;
 mod transport;
 
 pub use clock::SystemClock;
+pub use sidecar::{Sidecar, SidecarPhone};
 pub use transport::TcpTransport;

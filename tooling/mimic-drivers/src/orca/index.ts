@@ -10,7 +10,7 @@ import { TARGET_ENV, targetFromEnv, type Target } from './target.ts'
 
 export type Launch = <T>(use: (target: Target) => Promise<T>) => Promise<T>
 
-async function launcher(env: NodeJS.ProcessEnv): Promise<Launch> {
+export async function launcher(env: NodeJS.ProcessEnv): Promise<Launch> {
   const target = await targetFromEnv(env)
   if (target) return (use) => use(target)
   if (env.ORCA_ORCAD_CHECKOUT) return orcadLauncher(env.ORCA_ORCAD_CHECKOUT, machinePorts)

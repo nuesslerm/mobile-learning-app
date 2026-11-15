@@ -16,7 +16,7 @@ export type Script = { requests: ScriptRequest[]; connect_timeout_ms?: number; s
 
 const FAILED = new Set(['auth-failed', 'disconnected'])
 
-function connected(client: PhoneClient, ms: number): Promise<string> {
+export function connected(client: PhoneClient, ms: number): Promise<string> {
   return new Promise((resolve) => {
     const done = (state: string) => {
       clearTimeout(timer)

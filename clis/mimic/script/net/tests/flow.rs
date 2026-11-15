@@ -202,3 +202,42 @@ fn given_an_open_socket_when_closed_at_once_then_the_close_ends_the_script() {
 
     assert_eq!(steps.last().unwrap().payload, json!({"code": null, "reason": "", "tcp": true}));
 }
+
+mod sidecar {
+    use mimic_script_core::Phone;
+    use mimic_script_net::{Sidecar, SidecarPhone};
+    use serde_json::json;
+
+    const FAKE: &str = r#"while read -r line; do
+  case "$line" in
+    *'"op":"connect"'*) echo '{"state":"connected"}' ;;
+    *'"method":"boom"'*) echo '{"ok":false,"error":"timed out"}' ;;
+    *'"op":"request"'*) echo '{"ok":true,"payload":{"ok":true,"result":{"echo":1}}}' ;;
+    *'"op":"disconnect"'*) echo '{}' ;;
+    *'"op":"close"'*) echo '{}'; exit 0 ;;
+  esac
+done"#;
+
+    fn fake() -> SidecarPhone {
+        SidecarPhone::new(Sidecar::spawn("sh", &["-c".into(), FAKE.into()], &[("PATH".into(), "/usr/bin:/bin".into())], None).unwrap())
+    }
+
+    #[test]
+    fn given_a_sidecar_when_connected_and_asked_then_answers_and_failures_come_back_as_the_ports_say() {
+        let mut phone = fake();
+
+        assert_eq!(phone.connect(1000), "connected");
+        assert_eq!(phone.request("accounts.list", &json!({}), 1000), Ok(json!({"ok": true, "result": {"echo": 1}})));
+        assert_eq!(phone.request("boom", &json!({}), 1000), Err("timed out".to_string()));
+        phone.close();
+        phone.0.borrow_mut().stop();
+    }
+
+    #[test]
+    fn given_a_sidecar_that_exited_when_asked_then_the_session_is_disconnected_and_a_request_fails() {
+        let mut phone = SidecarPhone::new(Sidecar::spawn("sh", &["-c".into(), "exit 0".into()], &[], None).unwrap());
+
+        assert_eq!(phone.connect(1000), "disconnected");
+        assert!(phone.request("x", &json!({}), 1000).is_err());
+    }
+}
