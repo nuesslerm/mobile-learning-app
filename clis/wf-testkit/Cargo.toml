@@ -13,7 +13,7 @@ doctest = false
 
 [features]
 # A mock HTTPS endpoint and the certificates for it: only the crates whose tests talk TLS pay for rcgen and rustls.
-tls = ["dep:rcgen", "tiny_http/ssl-rustls"]
+tls = ["dep:rcgen", "dep:rustls"]
 
 [dependencies]
 serde_json = { version = "1", features = ["preserve_order"] }
@@ -25,3 +25,4 @@ hmac = "0.12"
 sha2 = "0.10"
 getrandom = "0.4"
 rcgen = { version = "0.14.10", default-features = false, features = ["ring", "pem"], optional = true }
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"], optional = true }
