@@ -7,7 +7,6 @@ async-trait = "0.1"
 base64 = "0.22"
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "multipart", "query", "tokio", "ws"] }
 clap = { version = "4", features = ["derive", "env"] }
-dirs = "6"
 ed25519-dalek = { version = "2", default-features = false, features = ["std", "pkcs8", "pem"] }
 eventsource-stream = "0.2"
 futures-util = "0.3"
