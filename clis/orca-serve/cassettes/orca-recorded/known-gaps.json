@@ -335,10 +335,7 @@
       "class": "changed at steps._:s2c:*.[*].payload.result.agents",
       "severity": "breaking",
       "diffs": [
-        "steps._:s2c:0.[0].payload.result.agents changed breaking",
-        "steps._:s2c:0.[0].payload.result.pathFailureReason kind breaking",
-        "steps._:s2c:0.[0].payload.result.pathSource changed drift",
-        "steps._:s2c:0.[0].payload.result.shellHydrationOk changed drift"
+        "steps._:s2c:0.[0].payload.result.agents changed breaking"
       ],
       "ids": [
         "orca-preflight.refreshAgents"
