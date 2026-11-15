@@ -11,12 +11,12 @@ include = ["src/**", "Cargo.toml"]
 doctest = false
 
 [dependencies]
-mimic-script-core = { version = "0.1.1", registry = "mla", path = "../core" }
+mimic-script-core = { version = "0.1.2", registry = "mla", path = "../core" }
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 flate2 = "1"
 
 [dev-dependencies]
 mimic-core = { version = "0.1.1", registry = "mla" }
-mimic-script-core = { version = "0.1.1", registry = "mla", path = "../core", features = ["testing"] }
+mimic-script-core = { version = "0.1.2", registry = "mla", path = "../core", features = ["testing"] }
 serde_json = "1"
 flate2 = "1"
