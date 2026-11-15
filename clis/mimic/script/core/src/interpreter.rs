@@ -285,8 +285,11 @@ impl Interpreter {
         let before = run.steps.len();
         let limit = self.policy.close_wait_ms;
         self.wait_until(run, limit, |r| r.steps[before..].iter().any(|s| s.channel.as_deref() == Some("ws:close")));
-        // a peer's close that arrives as a frame ends the wait; the connection ending is always the last step
-        self.push_wire(run, WireEvent::WsClose { dir: None, code: None, reason: String::new() });
+        // a peer's close that arrives as a frame ends the wait; the connection ending is always the last step, once
+        let ended = run.steps[before..].iter().any(|s| s.channel.as_deref() == Some("ws:close") && s.payload["tcp"] == Value::Bool(true));
+        if !ended {
+            self.push_wire(run, WireEvent::WsClose { dir: None, code: None, reason: String::new() });
+        }
         run.socket = false;
         true
     }

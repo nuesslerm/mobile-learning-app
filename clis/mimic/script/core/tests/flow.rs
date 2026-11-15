@@ -183,6 +183,19 @@ fn given_a_peer_that_answers_a_close_when_closed_then_both_closes_are_steps_and_
 }
 
 #[test]
+fn given_a_peer_that_closes_the_connection_after_its_close_frame_when_closed_then_the_connection_end_is_one_step_not_two() {
+    let clock = FakeClock::default();
+    let transport = ScriptedTransport::new(&clock);
+    transport.open(101, vec![]);
+    transport.answer_close(vec![(10, Event::Close { code: Some(1000), reason: String::new() }), (20, Event::Dropped)]);
+
+    let observed = run(json!({"script": [{"ws-open": {"path": "/ws"}}, {"ws-close": {}}]}), &transport, &clock);
+
+    let ends = observed.steps.iter().filter(|s| s.channel.as_deref() == Some("ws:close") && s.payload["tcp"] == json!(true)).count();
+    assert_eq!(ends, 1, "{:?}", channels(&observed));
+}
+
+#[test]
 fn given_the_workspace_path_in_an_answer_when_run_then_every_step_shows_it_masked() {
     let clock = FakeClock::default();
     let transport = ScriptedTransport::new(&clock);

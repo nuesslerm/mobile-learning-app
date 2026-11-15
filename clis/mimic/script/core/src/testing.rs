@@ -67,6 +67,7 @@ struct Scripted {
     http: VecDeque<Result<HttpReply, TransportError>>,
     open: VecDeque<(u16, Vec<(u64, Event)>)>,
     on_send: VecDeque<Vec<(u64, Event)>>,
+    on_close: Vec<(u64, Event)>,
     due: Vec<(u64, Event)>,
     has_socket: bool,
     calls: Vec<HttpCall>,
@@ -106,6 +107,12 @@ impl ScriptedTransport {
     /// The frames that follow the next send, each `delay` ms after it.
     pub fn answer_send(&self, frames: Vec<(u64, Event)>) -> &Self {
         self.state.borrow_mut().on_send.push_back(frames);
+        self
+    }
+
+    /// What follows our close frame, each `delay` ms after it.
+    pub fn answer_close(&self, frames: Vec<(u64, Event)>) -> &Self {
+        self.state.borrow_mut().on_close = frames;
         self
     }
 
@@ -171,6 +178,9 @@ impl Transport for ScriptedTransport {
             return Err(TransportError("no socket".into()));
         }
         state.closed.push((code, reason.into()));
+        let now = self.clock.now_ms();
+        let after = std::mem::take(&mut state.on_close);
+        state.due.extend(after.into_iter().map(|(delay, e)| (now + delay, e)));
         Ok(())
     }
 }
