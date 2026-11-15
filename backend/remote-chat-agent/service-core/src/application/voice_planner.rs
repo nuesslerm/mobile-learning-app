@@ -11,7 +11,7 @@ use fancy_regex::Regex;
 use serde_json::{json, Map, Value};
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 /// opencode's built-in tool ids, every one switched off: the planner returns one JSON object and never calls a tool, but without
 /// this map opencode prefills the whole catalogue on every turn only for it to be ignored.
@@ -92,7 +92,7 @@ impl Planner {
         let tools: Map<String, Value> = DISABLED_TOOLS.iter().map(|t| ((*t).to_string(), json!(false))).collect();
         let cwd = self.client.env().opencode_cwd();
         let turn = Turn { session_id, cwd: cwd.clone(), model: Some(model.clone()), system: Some(dsl::system_prompt(variant).to_string()), tools: Some(tools), agent: agent.map(str::to_string), file_part: None, ..Turn::default() };
-        let result = one_shot::run(&self.client, prompt, &turn, Some(Instant::now() + budget)).await;
+        let result = one_shot::run(&self.client, prompt, &turn, Some(self.client.now_ms() + budget.as_millis() as u64)).await;
         if let Err(Failure::Budget { session_id }) = &result {
             // Stop the model, not just the wait for it: an abandoned turn keeps billing and keeps the held session busy.
             one_shot::abort(&self.client, session_id, &cwd).await;
@@ -110,7 +110,7 @@ impl Planner {
         // A held session carries one prompt variant and one agent: never mixed.
         let key = format!("{}/{}#{variant}#{}", model.0, model.1, agent.as_deref().unwrap_or("-"));
         let prompt = dsl::user_prompt(variant, transcript, code, language);
-        let started = Instant::now();
+        let started = self.client.now_ms();
 
         let held = self.sessions.lock().unwrap_or_else(|e| e.into_inner()).get(&key).filter(|s| s.turns < max_turns).map(|s| s.session_id.clone());
         let reusable = held.is_some();
@@ -168,7 +168,7 @@ impl Planner {
         Ok(Planned {
             transcript: parsed.transcript,
             alternatives,
-            meta: Meta { model: format!("{}/{}", model.0, model.1), variant: variant.to_string(), agent, session_reused, usage: turn.usage, ms: started.elapsed().as_millis() as u64, retried },
+            meta: Meta { model: format!("{}/{}", model.0, model.1), variant: variant.to_string(), agent, session_reused, usage: turn.usage, ms: self.client.now_ms().saturating_sub(started) as u64, retried },
         })
     }
 
