@@ -44,6 +44,8 @@ pub const GIT_RESOLVE_CONFLICT: &str = "git.resolveConflict";
 pub const GIT_BRANCH_COMPARE: &str = "git.branchCompare";
 pub const GIT_COMMIT_COMPARE: &str = "git.commitCompare";
 pub const GIT_GENERATE_COMMIT_MESSAGE: &str = "git.generateCommitMessage";
+pub const GIT_CANCEL_GENERATE_COMMIT_MESSAGE: &str = "git.cancelGenerateCommitMessage";
+pub const GIT_CANCEL_GENERATE_PULL_REQUEST_FIELDS: &str = "git.cancelGeneratePullRequestFields";
 pub const GIT_BRANCH_DIFF: &str = "git.branchDiff";
 pub const GIT_COMMIT_DIFF: &str = "git.commitDiff";
 
@@ -74,6 +76,8 @@ const METHODS: &[Method] = &[
     Method { name: GIT_BRANCH_COMPARE, kind: Kind::Unary },
     Method { name: GIT_COMMIT_COMPARE, kind: Kind::Unary },
     Method { name: GIT_GENERATE_COMMIT_MESSAGE, kind: Kind::Unary },
+    Method { name: GIT_CANCEL_GENERATE_COMMIT_MESSAGE, kind: Kind::Unary },
+    Method { name: GIT_CANCEL_GENERATE_PULL_REQUEST_FIELDS, kind: Kind::Unary },
     Method { name: GIT_BRANCH_DIFF, kind: Kind::Unary },
     Method { name: GIT_COMMIT_DIFF, kind: Kind::Unary },
 ];
@@ -93,6 +97,8 @@ impl Area for GitArea {
         let repo = Repo::of(ctx.agent, params)?;
         match method {
             GIT_STATUS => read::status(&repo),
+            // a generation here is one blocking call to rca, so there is none left running to stop: the pinned host answers the same `ok` when none is
+            GIT_CANCEL_GENERATE_COMMIT_MESSAGE | GIT_CANCEL_GENERATE_PULL_REQUEST_FIELDS => Ok(json!({"ok": true})),
             GIT_BRANCH_DIFF => diff::branch(&repo, params),
             GIT_COMMIT_DIFF => diff::commit(&repo, params),
             GIT_UPSTREAM_STATUS => read::upstream_status(&repo, params),

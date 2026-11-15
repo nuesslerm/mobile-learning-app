@@ -435,3 +435,19 @@ fn given_malformed_diff_requests_when_made_then_each_is_refused_in_the_order_and
     }
     assert!(rig.sent().iter().all(|(m, _)| m != "git.blob"));
 }
+
+#[test]
+fn given_no_generation_running_when_the_phone_cancels_one_then_the_host_says_ok_and_a_selector_no_workspace_owns_is_refused() {
+    // Given a host with a workspace and no generation in flight
+    let mut rig = Rig::new();
+    // When the phone cancels a commit-message generation and a pull-request-fields generation
+    let message = rig.ok("git.cancelGenerateCommitMessage", json!({}));
+    let fields = rig.ok("git.cancelGeneratePullRequestFields", json!({}));
+    // Then each is ok, and neither asked rca for anything of git
+    assert_eq!((message, fields), (json!({"ok": true}), json!({"ok": true})));
+    assert!(rig.sent().is_empty(), "{:?}", rig.sent());
+    // And a worktree no workspace owns is the selector error, as for every row
+    let r = rig.conn.on_message(&json!({"id": "x", "method": "git.cancelGenerateCommitMessage", "params": {"worktree": "nope"}}).to_string());
+    let r: Value = serde_json::from_str(&r[0]).unwrap();
+    assert_eq!(r["error"]["code"], "selector_not_found");
+}

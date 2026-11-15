@@ -40,8 +40,6 @@
         "orca-files.readTerminalArtifactPreview",
         "orca-files.resolveTerminalPath",
         "orca-files.writeTerminalArtifact",
-        "orca-git.cancelGenerateCommitMessage",
-        "orca-git.cancelGeneratePullRequestFields",
         "orca-git.diff",
         "orca-git.discoverCommitMessageModels",
         "orca-git.generatePullRequestFields",
