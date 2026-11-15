@@ -7,7 +7,6 @@
 // node src/cli.ts corpus <orca|t3> <set dir>: write corpus.json and coverage.json (every enumerated row and what became of it) of a recording set.
 // with --cases the payloads as corpus cases of the `script` op.
 import { serve } from './protocol.ts'
-import { orca } from './orca/index.ts'
 import { serveSidecar } from './orca/sidecar.ts'
 import { orcaLib } from './orca-lib/index.ts'
 import { cases, spike } from './orca/schema.ts'
@@ -16,7 +15,7 @@ import { crawl } from './crawl/index.ts'
 import { writeScenarios } from './scenarios/index.ts'
 import { voiceEditDsl } from './voice-edit-dsl/index.ts'
 
-const TARGETS = { orca, 'orca-lib': orcaLib, 'voice-edit-dsl': voiceEditDsl }
+const TARGETS = { 'orca-lib': orcaLib, 'voice-edit-dsl': voiceEditDsl }
 
 const [verb, name, namespace, flag] = process.argv.slice(2)
 if (verb === 'crawl' && (name === 'orca' || name === 't3')) {
