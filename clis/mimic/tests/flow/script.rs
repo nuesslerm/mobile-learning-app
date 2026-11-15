@@ -105,3 +105,81 @@ fn a_script_driver_without_its_script_table_is_refused_when_the_file_is_read() {
     assert_ne!(r.code, 0);
     assert!(r.json["error"].as_str().unwrap_or_default().contains("needs a [reference.script] table"), "{}", r.json);
 }
+
+mod orca_target {
+    use crate::support::*;
+
+    /// A sidecar that answers every request with `echo` and ends on `close`.
+    fn sidecar(echo: &str) -> String {
+        format!(
+            "while read -r line; do\n  case \"$line\" in\n    *'\"op\":\"connect\"'*) echo '{{\"state\":\"connected\"}}' ;;\n    *'\"op\":\"request\"'*) echo '{{\"ok\":true,\"payload\":{{\"ok\":true,\"result\":{{\"echo\":\"{echo}\"}}}}}}' ;;\n    *'\"op\":\"disconnect\"'*) echo '{{}}' ;;\n    *'\"op\":\"close\"'*) echo '{{}}'; exit 0 ;;\n  esac\ndone\n"
+        )
+    }
+
+    fn world() -> World {
+        let dir = tempfile::tempdir().unwrap();
+        let set = dir.path().join("orca-set");
+        std::fs::create_dir_all(&set).unwrap();
+        let w = World { dir, set };
+        w.write("pin.json", r#"{"version":"fake-1.0"}"#);
+        w.write("rules.json", RULES);
+        w.write("same.sh", &sidecar("hello"));
+        w.write("reference.sh", &sidecar("hello"));
+        w.write("changed.sh", &sidecar("changed"));
+        let case = |id: &str, method: &str| json!({"kind": "corpus", "name": id, "op": "script", "cases": [{"id": id, "row": format!("rpc:{method}"), "input": {"requests": [{"method": method, "params": {}}]}}]});
+        w.write("corpus.json", &json!({"schema": "mimic-corpus/1", "seed": 1, "generators": [case("files-list", "files.list"), case("repo-list", "repo.list")]}).to_string());
+        let target = |table: &str, script: &str| format!("driver = \"script\"\n\n[{table}]\ntarget = \"orca\"\nsidecar = [\"sh\", \"{script}\"]\n");
+        w.write(
+            "mimic.toml",
+            &format!(
+                "[reference]\npin = \"pin.json\"\nversion_pointer = \"/version\"\n{}\n[candidate.same]\n{}\n[candidate.change]\n{}",
+                target("reference.script", "reference.sh"),
+                target("candidate.same.script", "same.sh"),
+                target("candidate.change.script", "changed.sh"),
+            ),
+        );
+        w
+    }
+
+    #[test]
+    fn a_legacy_orca_corpus_through_the_sidecar_records_the_request_and_the_answer_as_rows() {
+        // Given a sidecar standing for the phone's client and a corpus of two Orca requests
+        let w = world();
+
+        // When the corpus is recorded with the orca target
+        w.record();
+
+        // Then each case is the request step and the answer step, both with the request's index as their rid
+        let steps = w.interactions().into_iter().find(|i| i["id"] == "files-list").unwrap()["steps"].as_array().unwrap().clone();
+        assert_eq!(steps.len(), 2, "{steps:?}");
+        assert_eq!((steps[0]["dir"].clone(), steps[0]["rid"].clone(), steps[0]["payload"]["method"].clone()), (json!("c2s"), json!("0"), json!("files.list")));
+        assert_eq!((steps[1]["dir"].clone(), steps[1]["payload"]["result"]["echo"].clone()), (json!("s2c"), json!("hello")));
+    }
+
+    #[test]
+    fn a_host_that_answers_the_same_replays_clean_and_one_that_answers_differently_is_breaking_at_the_changed_value() {
+        // Given a recorded set
+        let w = world();
+        w.record();
+
+        // When it is replayed against a candidate that answers the same and one that does not
+        let same = w.run("replay", &["--candidate", "same"]);
+        let changed = w.run("replay", &["--candidate", "change"]);
+
+        // Then the first is clean and the second names the value that changed
+        assert_eq!((same.code, same.json["severity"].clone()), (0, json!("none")), "{}", same.json);
+        assert_eq!(changed.code, 1, "{}", changed.json);
+        assert!(changed.json.to_string().contains("echo"), "{}", changed.json);
+    }
+
+    #[test]
+    fn an_orca_target_without_a_sidecar_is_refused_when_the_file_is_read() {
+        let w = world();
+        w.write("mimic.toml", "[reference]\ndriver = \"script\"\npin = \"pin.json\"\n\n[reference.script]\ntarget = \"orca\"\n");
+
+        let r = w.run("record", &[]);
+
+        assert_ne!(r.code, 0);
+        assert!(r.json["error"].as_str().unwrap_or_default().contains("needs a sidecar command"), "{}", r.json);
+    }
+}

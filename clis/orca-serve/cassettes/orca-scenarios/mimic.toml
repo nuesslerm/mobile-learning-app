@@ -6,15 +6,28 @@ provision_file = "//tooling/mimic-drivers/provision/orca.toml"
 
 [reference]
 name = "orca"
-command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca"]
+driver = "script"
 pin = "../../../../tooling/orca-conformance/orca-pin.json"
 version_pointer = "/version"
 commit_pointer = "/commit"
 timeout_ms = 3600000
 live_when_named = "orcad is built at the pin on the VM (arm64): verify <set> --live runs it, --all --live never does"
 
+# The phone's own client behind the Rust step interpreter (the sidecar); the host to pair with comes from the environment, by name only.
+[reference.script]
+target = "orca"
+sidecar = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "sidecar", "orca"]
+env_pass = ["ORCA_ORCAD_CHECKOUT", "ORCA_PAIRING_URI", "ORCA_ENDPOINT", "ORCA_DEVICE_TOKEN", "ORCA_SERVER_PUBLIC_KEY_B64"]
+session = false
+
 [candidate.orca-serve]
-command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "orca"]
+driver = "script"
+
+[candidate.orca-serve.script]
+target = "orca"
+sidecar = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "sidecar", "orca"]
+env_pass = ["ORCA_PAIRING_URI"]
+session = false
 
 [record]
 # the pinned reference is a live server whose ids and timestamps move between two records

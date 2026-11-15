@@ -89,8 +89,16 @@ struct DiffFile {
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 struct ScriptFile {
-    /// `spawn`: start the release the pin names; `url`: a server that is already running.
+    /// `spawn`: start the release the pin names; `url`: a server that is already running; `orca`: the phone's own client in the sidecar
+    /// below, paired with the host the environment names.
     target: String,
+    /// `orca`: the sidecar command, relative paths as the file's directory sees them.
+    #[serde(default)]
+    sidecar: Vec<String>,
+    /// `orca`: names of the environment variables the sidecar gets besides `PATH`, `HOME`, `TZ` and `LANG` (the host to pair with, e.g.
+    /// `ORCA_ORCAD_CHECKOUT` or `ORCA_PAIRING_URI`): names only, a value never appears in a set.
+    #[serde(default)]
+    env_pass: Vec<String>,
     /// `spawn`: the directory the verified release is unpacked under; default `~/.cache/mimic-t3`.
     cache: Option<String>,
     /// `url`: the server's `host:port`, its workspace folder (masked in steps) and a command that prints one credential.
@@ -114,6 +122,11 @@ struct ScriptFile {
 #[derive(Clone, Debug)]
 pub struct ScriptSpec {
     pub spawn: bool,
+    /// `target = "orca"`: the sidecar and what it is given; `dir` is the working directory it runs in.
+    pub orca: bool,
+    pub sidecar: Vec<String>,
+    pub env_pass: Vec<String>,
+    pub dir: PathBuf,
     pub cache: Option<PathBuf>,
     pub addr: Option<String>,
     pub workspace: Option<String>,
@@ -128,16 +141,24 @@ pub struct ScriptSpec {
 }
 
 fn script_spec(dir: &Path, name: &str, s: ScriptFile) -> Result<ScriptSpec, String> {
+    let orca = s.target == "orca";
     let spawn = match s.target.as_str() {
         "spawn" => true,
-        "url" => false,
-        other => return Err(format!("[{name}.script] target {other:?}: spawn or url")),
+        "url" | "orca" => false,
+        other => return Err(format!("[{name}.script] target {other:?}: spawn, url or orca")),
     };
-    if !spawn && (s.addr.is_none() || s.workspace.is_none()) {
+    if orca && s.sidecar.is_empty() {
+        return Err(format!("[{name}.script] target \"orca\" needs a sidecar command"));
+    }
+    if !spawn && !orca && (s.addr.is_none() || s.workspace.is_none()) {
         return Err(format!("[{name}.script] target \"url\" needs addr and workspace"));
     }
     Ok(ScriptSpec {
         spawn,
+        orca,
+        sidecar: s.sidecar,
+        env_pass: s.env_pass,
+        dir: dir.to_path_buf(),
         cache: s.cache.map(|c| dir.join(c)),
         addr: s.addr,
         workspace: s.workspace,

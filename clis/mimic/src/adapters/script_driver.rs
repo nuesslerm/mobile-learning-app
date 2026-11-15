@@ -8,6 +8,7 @@ use mimic_script_core::Policy;
 use mimic_script_host::pin::Pin;
 use mimic_script_host::provision::{ensure_runtime, CurlGet};
 use mimic_script_host::target::{SpawnLaunch, UrlLaunch};
+use mimic_script_orca::OrcaLaunch;
 use mimic_script_host::{Launch, ScriptDriver};
 use std::path::PathBuf;
 
@@ -19,7 +20,17 @@ fn cache(spec: &ScriptSpec) -> PathBuf {
     spec.cache.clone().unwrap_or_else(|| PathBuf::from(std::env::var("T3_RELEASE_CACHE").or_else(|_| std::env::var("HOME").map(|h| format!("{h}/.cache/mimic-t3"))).unwrap_or_else(|_| ".mimic-cache".into())))
 }
 
+/// What the sidecar gets: a fixed few variables, the ones the set names, and nothing else of the caller's environment.
+fn sidecar_env(spec: &ScriptSpec) -> Vec<(String, String)> {
+    let fixed = [("TZ", "UTC".to_string()), ("LANG", "C.UTF-8".to_string())];
+    let inherited = ["PATH", "HOME", "MIMIC_FIXED_PORT"].into_iter().chain(spec.env_pass.iter().map(String::as_str)).filter_map(|n| Some((n.to_string(), std::env::var(n).ok()?)));
+    fixed.into_iter().map(|(k, v)| (k.to_string(), v)).chain(inherited).collect()
+}
+
 fn launch(target: &Target, spec: &ScriptSpec) -> Result<Box<dyn Launch>, String> {
+    if spec.orca {
+        return Ok(Box::new(OrcaLaunch { sidecar: spec.sidecar.clone(), env: sidecar_env(spec), cwd: Some(spec.dir.clone()) }));
+    }
     if spec.spawn {
         let pin_path = target.pin.as_ref().ok_or("a spawned script target needs a pin file (the release it runs)")?;
         let pin = Pin::parse(&std::fs::read_to_string(pin_path).map_err(|e| format!("{}: {e}", pin_path.display()))?)?;
