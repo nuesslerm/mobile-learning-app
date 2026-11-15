@@ -1,5 +1,5 @@
 {
-  "content_hash": "sha256:c37694e874c06e58638677fe067482b2df8efc1d8240fe1df4d857fa5e9b2f4f",
+  "content_hash": "sha256:6431c03d2eb31089e59213b6be8dd734354d7fd3d87e9d9f507a36aba1958f71",
   "corpus": {
     "hash": "sha256:efca3d00c6fccf281408b33a3030eb1ec276629726306f4e2a18b58fa0e14b59",
     "path": "corpus.json"
@@ -8,16 +8,16 @@
   "provenance": {
     "corpus_hash": "sha256:efca3d00c6fccf281408b33a3030eb1ec276629726306f4e2a18b58fa0e14b59",
     "driver": {
-      "name": "t3",
+      "name": "mimic-script",
       "protocol": "mimic-driver/1",
-      "version": "0.1.0"
+      "version": "0.1.3"
     },
     "kind": "recorded",
-    "recorded_at": "2026-11-14T23:06:27.884Z",
+    "recorded_at": "2026-11-15T06:19:05.161Z",
     "recorded_on": "ci",
     "rules_hash": "sha256:93b384cdbd8e3ad346bdd5674a5775f99bb8d4ab64cedd9a631d2abf57ac4407",
     "seed": 0,
-    "source": "record-references run 43651197829",
+    "source": "record-references run 43684561339",
     "target": {
       "commit": "24e77473ecf41bc1f7142529c7911c1c1aae1d76",
       "name": "t3",
@@ -26,7 +26,7 @@
       "version": "0.1.9"
     },
     "tool": {
-      "git": "358739bbb13f7b1ba2d89e04351b1206245cb616",
+      "git": "c031aba6e203b31d5cd0a7ed1a360f1013b69355",
       "mimic": "0.1.0"
     }
   },

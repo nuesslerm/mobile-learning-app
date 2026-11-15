@@ -1082,20 +1082,6 @@
       ]
     },
     {
-      "class": "extra at steps.ws:s2c:*.[*]",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0] extra drift"
-      ],
-      "ids": [
-        "t3-rpc-orchestration.subscribeThread-boundary-limit-afterSequence",
-        "t3-rpc-pullRequests.subscribeRefreshes-invalid-no-payload",
-        "t3-rpc-pullRequests.subscribeRefreshes-valid-min",
-        "t3-rpc-server.discoverSourceControl-invalid-no-payload",
-        "t3-rpc-server.discoverSourceControl-valid-min"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
       "severity": "breaking",
       "diffs": [
@@ -1159,6 +1145,19 @@
         "t3-http-mcpOAuth.mcpProtectedResource-invalid-no-payload",
         "t3-http-mcpOAuth.protectedResource-empty-empty-object",
         "t3-http-mcpOAuth.protectedResource-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "extra at steps.ws:s2c:*.[*]",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0] extra drift"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.subscribeThread-boundary-limit-afterSequence",
+        "t3-rpc-pullRequests.subscribeRefreshes-invalid-no-payload",
+        "t3-rpc-pullRequests.subscribeRefreshes-valid-min",
+        "t3-rpc-server.discoverSourceControl-invalid-no-payload"
       ]
     },
     {
@@ -1578,6 +1577,20 @@
       "ids": [
         "t3-rpc-git.runStackedAction-boundary-full",
         "t3-rpc-git.runStackedAction-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.values missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit extra drift",
+        "steps.ws:s2c:1.[1] missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-cloud.installRelayClient-invalid-no-payload",
+        "t3-rpc-cloud.installRelayClient-valid-min"
       ]
     },
     {
@@ -2551,32 +2564,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.values",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:close:s2c:_.[0].payload.code changed drift",
-        "steps.ws:s2c:1.[0].payload._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.values missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit extra drift"
-      ],
-      "ids": [
-        "t3-rpc-cloud.installRelayClient-invalid-no-payload"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.values",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.values missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit extra drift",
-        "steps.ws:s2c:1.[1] missing breaking"
-      ],
-      "ids": [
-        "t3-rpc-cloud.installRelayClient-valid-min"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
       "severity": "breaking",
       "diffs": [
@@ -2760,6 +2747,41 @@
       ],
       "ids": [
         "t3-rpc-pullRequests.list-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.sourceControlProviders",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders changed breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].auth.detail._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].auth.detail.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].auth.host._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].auth.host.value extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].installHint changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].version._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].version.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].appSignIn extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.detail._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.detail.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.host._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.host.value extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.status changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.accounts extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].detail._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].detail.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].executable changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].installHint changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].kind changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].status changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].appSignIn extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.versionControlSystems changed breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.versionControlSystems.[0].installHint changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.versionControlSystems.[0].version._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.versionControlSystems.[0].version.value missing breaking"
+      ],
+      "ids": [
+        "t3-rpc-server.discoverSourceControl-valid-min"
       ]
     },
     {
