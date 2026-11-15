@@ -11,7 +11,6 @@ use super::log;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
 
 pub struct Attachment {
     /// Base64 of the bytes.
@@ -34,8 +33,8 @@ const DOCX_MIME: &str = "application/vnd.openxmlformats-officedocument.wordproce
 const TEXT_EXTENSIONS: [&str; 24] = [
     ".ts", ".tsx", ".js", ".jsx", ".py", ".go", ".rs", ".rb", ".java", ".kt", ".swift", ".md", ".json", ".yaml", ".yml", ".toml", ".csv", ".xml", ".html", ".css", ".sh", ".txt", ".env", ".lock",
 ];
-const CAPABILITY_TTL: Duration = Duration::from_secs(10 * 60);
-const CAPABILITY_ERROR_TTL: Duration = Duration::from_secs(60);
+const CAPABILITY_TTL_MS: u64 = 10 * 60 * 1000;
+const CAPABILITY_ERROR_TTL_MS: u64 = 60 * 1000;
 const VISION_PROMPT: &str = "Describe the visual elements, layout, UI components, diagrams, charts, screenshots, and any non-text content in this image. Do not transcribe text — OCR handles that separately. Focus only on what you see visually.";
 
 /// The vision model (`OPENCODE_VISION_MODEL`, `minimax/MiniMax-M3` by default) as `(providerID, modelID)`.
@@ -72,7 +71,7 @@ pub struct Processor {
     /// OCR and the PDF reader.
     documents: Arc<dyn DocumentText>,
     /// `providerID/modelID` to whether it takes pictures, and until when that is believed.
-    capabilities: Mutex<HashMap<String, (bool, Instant)>>,
+    capabilities: Mutex<HashMap<String, (bool, u64)>>,
 }
 
 impl Processor {
@@ -81,7 +80,7 @@ impl Processor {
     }
 
     fn cached(&self, key: &str) -> Option<bool> {
-        self.capabilities.lock().unwrap_or_else(|e| e.into_inner()).get(key).filter(|(_, until)| *until > Instant::now()).map(|(image, _)| *image)
+        self.capabilities.lock().unwrap_or_else(|e| e.into_inner()).get(key).filter(|(_, until)| *until > self.client.now_ms()).map(|(image, _)| *image)
     }
 
     /// Whether the model takes pictures, from opencode's model list. A list that cannot be had means no, for a minute.
@@ -95,7 +94,7 @@ impl Processor {
         let mut caps = self.capabilities.lock().unwrap_or_else(|e| e.into_inner());
         match listed {
             Ok(list) => {
-                let until = Instant::now() + CAPABILITY_TTL;
+                let until = self.client.now_ms() + CAPABILITY_TTL_MS;
                 for model in list.get("data").and_then(Value::as_array).into_iter().flatten() {
                     let text = |name: &str| model.get(name).and_then(Value::as_str).unwrap_or("undefined");
                     let input = model.get("capabilities").and_then(|c| c.get("input"));
@@ -110,7 +109,7 @@ impl Processor {
             Err(e) => {
                 log::warn!("attachmentProcessor.model_caps_fetch_failed", err = e.to_string());
                 // Default to the path that works without sight.
-                caps.insert(key.clone(), (false, Instant::now() + CAPABILITY_ERROR_TTL));
+                caps.insert(key.clone(), (false, self.client.now_ms() + CAPABILITY_ERROR_TTL_MS));
             }
         }
         caps.get(&key).map(|(image, _)| *image).unwrap_or(false)
