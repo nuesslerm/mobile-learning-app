@@ -1,0 +1,79 @@
+[
+ {
+  "http": {
+   "method": "POST",
+   "path": "/oauth/token",
+   "headers": {
+    "accept": "*/*",
+    "content-type": "application/x-www-form-urlencoded"
+   },
+   "body": {
+    "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+    "subject_token_type": "urn:t3:params:oauth:token-type:environment-bootstrap",
+    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+    "subject_token": "{credential}",
+    "client_label": "t3-conformance",
+    "client_os": "linux",
+    "client_device_type": "bot"
+   }
+  }
+ },
+ {
+  "http": {
+   "method": "POST",
+   "path": "/api/auth/websocket-ticket/rpc",
+   "headers": {
+    "accept": "*/*",
+    "authorization": "Bearer {access_token}"
+   },
+   "body": null
+  }
+ },
+ {
+  "ws-open": {
+   "path": "/ws?orchestrationProtocol=2&wsTicket={ticket}"
+  }
+ },
+ {
+  "ws-send": {
+   "_tag": "Request",
+   "id": "p1",
+   "tag": "projects.mutate",
+   "payload": {
+    "commandId": "conformance-cmd-project-create",
+    "projectId": "conformance-project",
+    "title": "Conformance project",
+    "type": "project.create",
+    "workspaceRoot": "{workspace}"
+   },
+   "headers": []
+  },
+  "await": "exit"
+ },
+ {
+  "ws-send": {
+   "_tag": "Request",
+   "id": "p2",
+   "tag": "orchestration.dispatchCommand",
+   "payload": {
+    "branch": null,
+    "commandId": "conformance-cmd-thread-create",
+    "createdBy": "user",
+    "creationSource": "mobile",
+    "interactionMode": "default",
+    "modelSelection": {
+     "instanceId": "codex",
+     "model": "gpt-5"
+    },
+    "projectId": "conformance-project",
+    "runtimeMode": "full-access",
+    "threadId": "conformance-thread",
+    "title": "Conformance thread",
+    "type": "thread.create",
+    "worktreePath": null
+   },
+   "headers": []
+  },
+  "await": "exit"
+ }
+]

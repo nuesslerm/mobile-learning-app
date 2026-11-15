@@ -19,12 +19,16 @@ squash = ["/exit/cause"]
 
 [reference]
 name = "t3"
-command = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "serve", "t3"]
+driver = "script"
 pin = "../../../../tooling/t3-conformance/t3-pin.json"
 version_pointer = "/version"
 commit_pointer = "/commit"
 timeout_ms = 900000
 live_when_named = "downloads and runs the pinned release: `wf mimic verify <set> --live`, on the VM"
+
+[reference.script]
+target = "spawn"
+prelude = "../t3-prelude.json"
 
 [record]
 # a live reference moves its ids and timestamps between two records; the tagged cases are listed in stability-allowlist.json
