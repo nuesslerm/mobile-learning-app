@@ -38,7 +38,7 @@ async fn given_an_attachment_sent_with_a_turn_when_the_cli_runs_then_the_executo
     // And the directory ignores itself, so the repository's status shows nothing of it
     assert_eq!(chain.repo.git(&["status", "--porcelain"]), "");
     // And the CLI was started with the prompt and then the path, and the thread records only what the person said
-    let prompt = chain.cli.invocations("claude").iter().flat_map(|start| start.argv.clone()).find(|a| a.starts_with("summarize the attachment")).expect("the prompt reached the CLI");
+    let prompt = chain.cli.invocations("claude").iter().flat_map(|start| start.argv.clone()).find(|a| a.starts_with("summarize the attachment")).unwrap_or_else(|| panic!("the prompt reached the CLI: {:?}", chain.cli.invocations("claude")));
     assert!(prompt.ends_with(&format!("\n- {at}")), "{prompt}");
     assert_eq!(events[1].data["text"], json!("summarize the attachment"));
     // And the CLI's read of the file through the executor returned the bytes
