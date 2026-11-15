@@ -10,8 +10,8 @@
   "summary": {
     "rows": 317,
     "served": 135,
-    "pending": 110,
-    "notOffered": 62,
+    "pending": 47,
+    "notOffered": 125,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -24,11 +24,10 @@
       "M5": 3,
       "M6": 1,
       "M7": 5,
-      "M8": 22,
+      "M8": 19,
       "M9": 2,
-      "M10": 10,
-      "M11": 17,
-      "M12": 50
+      "M10": 5,
+      "M11": 12
     }
   },
   "rows": [
@@ -88,9 +87,10 @@
       "id": "rpc:accounts.consumeCodexResetCredit",
       "kind": "rpc",
       "name": "accounts.consumeCodexResetCredit",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M10",
-      "reverify": "reverify when a model API can spend a reset credit (M10): rca's provider.resetCredit is refused NOT_SUPPORTED by the real model API the service is configured with (it has no credit to reset), so the phone's spend would only ever be a refusal"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's provider.resetCredit is refused NOT_SUPPORTED by the model API the service runs against, and rca keeps no account revision or offer revision, so a spend could only ever be a refusal and the phone's expectedScope has nothing to be checked against.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:accounts.list",
@@ -898,9 +898,10 @@
       "id": "rpc:automation.runs",
       "kind": "rpc",
       "name": "automation.runs",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when the schedules group lists a schedule's runs (M12 served the other automation rows): schedule.list keeps only a schedule's last run (last_run_ms, status and error), and the runs themselves are events on the `schedules` stream, a tail of 256 that does not survive a restart, so a page of runs with a cursor would be one made up from the last"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca keeps only a schedule's last run (last_run_ms, status, error) and a non-durable 256-event tail on the schedules stream, so a page of runs with a cursor, or one run by runId, would be made up from the last run.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:automation.show",
@@ -1285,17 +1286,19 @@
       "id": "rpc:files.readTerminalArtifact",
       "kind": "rpc",
       "name": "files.readTerminalArtifact",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M8",
-      "reverify": "reverify with terminal.* (M8): a terminal artifact is authorised by a grant the terminal itself issued, so a plain file read would pass without proving the grant [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it reads an absolute file outside the workspace root under a grant the host mints for the phone's terminal tap, and rca's file.* actions are confined to the workspace root and rca has no grant concept, so there is no file the phone could be granted; files.read serves every file inside the workspace",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:files.readTerminalArtifactPreview",
       "kind": "rpc",
       "name": "files.readTerminalArtifactPreview",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M8",
-      "reverify": "reverify with terminal.* (M8): a terminal artifact is authorised by a grant the terminal itself issued, so a plain file read would pass without proving the grant [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it previews an absolute file outside the workspace root under a host-minted grant; rca's file actions are confined to the workspace root and have no grant concept, so nothing can be granted; files.readPreview serves every file inside the workspace",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:files.resolveTerminalPath",
@@ -1345,9 +1348,10 @@
       "id": "rpc:files.writeTerminalArtifact",
       "kind": "rpc",
       "name": "files.writeTerminalArtifact",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M8",
-      "reverify": "reverify with terminal.* (M8): a terminal artifact is written under a grant the terminal itself issued, so a plain file write would pass without proving the grant [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it writes an absolute file outside the workspace root under a host-minted grant guarded by an identity and digest check; rca's file.write is confined to the workspace root and rca has no grant or swap detection, and a write that skipped the guard would be unsafe; the phone edits files inside the workspace with the served file rows",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:folderWorkspace.list",
@@ -1594,9 +1598,10 @@
       "id": "rpc:git.discoverCommitMessageModels",
       "kind": "rpc",
       "name": "git.discoverCommitMessageModels",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M10",
-      "reverify": "reverify when the service lists its models (M10): rca's git.ai group writes with the one model its environment configures and no method lists models, so any list would be invented"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: models.list exists but rca's commit message generation uses the one model its environment configures and ignores the phone's pick, so an offered list would change nothing; reverify when git.generateCommitMessage takes a model.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:git.fastForward",
@@ -1656,9 +1661,10 @@
       "id": "rpc:git.generatePullRequestFields",
       "kind": "rpc",
       "name": "git.generatePullRequestFields",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M10",
-      "reverify": "reverify when the git.ai group writes pull request text (M10): it has git.generateCommitMessage alone, and a title and body built by the mapper from the commit message would pass without a model"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's git.ai group writes a commit message only; no method writes a pull request title and body, and one composed in the mapper would pass without a model.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:git.history",
@@ -1855,17 +1861,19 @@
       "id": "rpc:github.addIssueComment",
       "kind": "rpc",
       "name": "github.addIssueComment",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so addIssueComment would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.addPRReviewComment",
       "kind": "rpc",
       "name": "github.addPRReviewComment",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when the hosted group can post a comment on a file line (M11): pr.comment is a conversation comment and pr.reply answers an existing thread, so the phone's inline comment would be posted as another kind of comment"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's hosted group cannot post a comment on a file line: pr.comment is a conversation comment, pr.reply answers an existing thread and pr.review is a verdict, so the phone's inline comment would land as another kind of comment. Reverify when the hosted group gains a review-comment action (a hosted_pr_review_comment executor action over gh api, medium effort).",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.addPRReviewCommentReply",
@@ -1879,25 +1887,28 @@
       "id": "rpc:github.countWorkItems",
       "kind": "rpc",
       "name": "github.countWorkItems",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so countWorkItems would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it counts the issues and pull requests of a repository for the work-item list, and rca has no issue or work item method (the same reason as github.listWorkItems).",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.createIssue",
       "kind": "rpc",
       "name": "github.createIssue",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so createIssue would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.listAssignableUsers",
       "kind": "rpc",
       "name": "github.listAssignableUsers",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains a repository assignees action (hosted_repo_assignees over `gh api repos/{owner}/{repo}/assignees`; M12 built none): assignable users of issues are not the reviewer candidates pr.reviewerCandidates lists (reviewers and assignees are different sets on GitHub)"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: assignable users of issues are not the reviewer candidates rca lists (reviewers and assignees are different sets on GitHub) and the hosted group has no assignees action.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.listLabels",
@@ -1911,9 +1922,10 @@
       "id": "rpc:github.listWorkItems",
       "kind": "rpc",
       "name": "github.listWorkItems",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so listWorkItems would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's hosted group is pull and merge requests, runs, clones and sign-in, with no issue or work item method, so the row would be answered without the provider's issues. An issue family (gh issue, gh api graphql, glab issue) would have to be added to agent-api-hosted and exec-hosted first.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.markPRDraft",
@@ -2036,129 +2048,145 @@
       "id": "rpc:github.project.addIssueCommentBySlug",
       "kind": "rpc",
       "name": "github.project.addIssueCommentBySlug",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.clearItemField",
       "kind": "rpc",
       "name": "github.project.clearItemField",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.deleteIssueCommentBySlug",
       "kind": "rpc",
       "name": "github.project.deleteIssueCommentBySlug",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.listAccessible",
       "kind": "rpc",
       "name": "github.project.listAccessible",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data. A hosted_project_* family over gh project and the GraphQL API would have to be added first.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.listAssignableUsersBySlug",
       "kind": "rpc",
       "name": "github.project.listAssignableUsersBySlug",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible, plus the assignees reason of github.listAssignableUsers.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.listIssueTypesBySlug",
       "kind": "rpc",
       "name": "github.project.listIssueTypesBySlug",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.listLabelsBySlug",
       "kind": "rpc",
       "name": "github.project.listLabelsBySlug",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.listViews",
       "kind": "rpc",
       "name": "github.project.listViews",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.resolveRef",
       "kind": "rpc",
       "name": "github.project.resolveRef",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible. A parse-only serve would answer only the refusal case, which the rule does not count.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.updateIssueBySlug",
       "kind": "rpc",
       "name": "github.project.updateIssueBySlug",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.updateIssueCommentBySlug",
       "kind": "rpc",
       "name": "github.project.updateIssueCommentBySlug",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.updateIssueTypeBySlug",
       "kind": "rpc",
       "name": "github.project.updateIssueTypeBySlug",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.updateItemField",
       "kind": "rpc",
       "name": "github.project.updateItemField",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.updatePullRequestBySlug",
       "kind": "rpc",
       "name": "github.project.updatePullRequestBySlug",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible: the row is addressed by owner/repo slug with no repo selector, so rca has no workspace to place the gh call in.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.viewTable",
       "kind": "rpc",
       "name": "github.project.viewTable",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.project.workItemDetailsBySlug",
       "kind": "rpc",
       "name": "github.project.workItemDetailsBySlug",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains GitHub Projects actions (a hosted_project_* family over `gh project` and the GraphQL API: list, resolve, views, table, fields and items; M12 built none): GitHub Projects tables, fields and items have no hosted action in rca, so the row would be answered without the provider's project data"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible, and the row is addressed by owner/repo slug with no workspace to place a gh call in.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.removePRReviewers",
@@ -2208,9 +2236,10 @@
       "id": "rpc:github.rerunPRChecks",
       "kind": "rpc",
       "name": "github.rerunPRChecks",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when the hosted group can rerun checks (M11): it lists and views runs (run.list, run.view) but has no rerun action"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's hosted group lists and views workflow runs (pr.runs, pr.run) but has no rerun action, so a rerun would be answered without starting any run. Reverify when a hosted_run_rerun executor action exists.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.resolveReviewThread",
@@ -2232,17 +2261,19 @@
       "id": "rpc:github.setPRFileViewed",
       "kind": "rpc",
       "name": "github.setPRFileViewed",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when the hosted group can mark a file viewed (M11): GitHub's viewed mark is a GraphQL mutation by the pull request's node id and path, and no hosted action sets it"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: gitHub's per-viewer viewed mark is a GraphQL mutation by the pull request's node id and the path, and rca's hosted group has no action that sets it; answering true would claim a mark nothing made. Reverify when a hosted action for it exists.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.updateIssue",
       "kind": "rpc",
       "name": "github.updateIssue",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so updateIssue would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.updatePR",
@@ -2266,9 +2297,10 @@
       "id": "rpc:github.updatePRState",
       "kind": "rpc",
       "name": "github.updatePRState",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when the hosted group can close and reopen a pull request (M11): pr.edit changes the title, body and base only, so a closed state would be answered without closing it"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's hosted group cannot close or reopen a pull request: pr.edit changes the title, body and base only, so a closed or open state would be answered without changing it. Reverify when a close/reopen action exists (hosted_pr_state, small).",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.updatePRTitle",
@@ -2292,33 +2324,37 @@
       "id": "rpc:github.workItem",
       "kind": "rpc",
       "name": "github.workItem",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so workItem would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.workItemByOwnerRepo",
       "kind": "rpc",
       "name": "github.workItemByOwnerRepo",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so workItemByOwnerRepo would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.workItemDetails",
       "kind": "rpc",
       "name": "github.workItemDetails",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so workItemDetails would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:gitlab.addIssueComment",
       "kind": "rpc",
       "name": "gitlab.addIssueComment",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so addIssueComment would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:gitlab.addMRComment",
@@ -2332,17 +2368,19 @@
       "id": "rpc:gitlab.createIssue",
       "kind": "rpc",
       "name": "gitlab.createIssue",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so createIssue would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:gitlab.listWorkItems",
       "kind": "rpc",
       "name": "gitlab.listWorkItems",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so listWorkItems would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:gitlab.mergeMR",
@@ -2366,17 +2404,19 @@
       "id": "rpc:gitlab.todos",
       "kind": "rpc",
       "name": "gitlab.todos",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains a GitLab to-dos action (hosted_todo_list over `glab api todos`; M12 built none): a GitLab to-do is a notification of the provider's own, and the hosted group reads none"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: a GitLab to-do is a notification of the provider's own, and rca's hosted group reads none.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:gitlab.updateIssue",
       "kind": "rpc",
       "name": "gitlab.updateIssue",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so updateIssue would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:gitlab.updateMR",
@@ -2404,25 +2444,28 @@
       "id": "rpc:gitlab.updateMRState",
       "kind": "rpc",
       "name": "gitlab.updateMRState",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when the hosted group can close and reopen a merge request (M11): mr.edit changes the title, description and target branch only, so a closed state would be answered without closing it"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca has no capability to close or reopen a pull or merge request: the hosted.pr group's mr.edit changes title, description and target branch only and no action runs `glab mr close` or `glab mr reopen`; a state change would be answered without making it. Decided in M12; reverify when the hosted group gains a close/reopen action (which would also serve github.updatePRState).",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:gitlab.workItemByPath",
       "kind": "rpc",
       "name": "gitlab.workItemByPath",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so workItemByPath would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:gitlab.workItemDetails",
       "kind": "rpc",
       "name": "gitlab.workItemDetails",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca gains issue and work item actions (an issue family of the hosted group over `gh issue`, `gh api graphql` and `glab issue`: list, count, view with comments, create, edit and comment; M12 built none): rca has no issue or work item method (the hosted group is pull and merge requests, runs, clones and sign-in), so workItemDetails would be an answer built without the provider's issues"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:host.platform",
@@ -2468,137 +2511,154 @@
       "id": "rpc:jira.getIssue",
       "kind": "rpc",
       "name": "jira.getIssue",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Jira client (an issue family over Jira Cloud's REST API with the person's Atlassian sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Jira issue to read"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:jira.issueComments",
       "kind": "rpc",
       "name": "jira.issueComments",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Jira client (an issue family over Jira Cloud's REST API with the person's Atlassian sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Jira comments to read"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:jira.listIssues",
       "kind": "rpc",
       "name": "jira.listIssues",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Jira client (an issue family over Jira Cloud's REST API with the person's Atlassian sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Jira issues to list"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:jira.searchIssues",
       "kind": "rpc",
       "name": "jira.searchIssues",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Jira client (an issue family over Jira Cloud's REST API with the person's Atlassian sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Jira issues to search"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:jira.status",
       "kind": "rpc",
       "name": "jira.status",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Jira client (an issue family over Jira Cloud's REST API with the person's Atlassian sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no connection to report"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca has no Jira client and holds no Atlassian sign-in or token, so there is no Jira site or issue to offer; a constant not-connected answer would be an empty answer built without the provider.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.addIssueComment",
       "kind": "rpc",
       "name": "linear.addIssueComment",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear issue to comment on"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.connect",
       "kind": "rpc",
       "name": "linear.connect",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear sign-in to complete"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.createIssue",
       "kind": "rpc",
       "name": "linear.createIssue",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear issue to create"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.getIssue",
       "kind": "rpc",
       "name": "linear.getIssue",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear issue to read"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.issueComments",
       "kind": "rpc",
       "name": "linear.issueComments",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Linear comments to read"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.listIssues",
       "kind": "rpc",
       "name": "linear.listIssues",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Linear issues to list"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.listTeams",
       "kind": "rpc",
       "name": "linear.listTeams",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Linear teams to list"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.searchIssues",
       "kind": "rpc",
       "name": "linear.searchIssues",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Linear issues to search"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.selectWorkspace",
       "kind": "rpc",
       "name": "linear.selectWorkspace",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear workspace to select"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.status",
       "kind": "rpc",
       "name": "linear.status",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no connection to report"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca has no Linear client and holds no Linear key or sign-in, so there is no Linear connection, issue, team or workspace to offer; an always-not-connected answer would be an empty answer built without the provider.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.teamStates",
       "kind": "rpc",
       "name": "linear.teamStates",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there are no Linear workflow states to list"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:linear.updateIssue",
       "kind": "rpc",
       "name": "linear.updateIssue",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a Linear client (an issue family over Linear's GraphQL API with the person's Linear key or sign-in held by the service, as the accounts group holds provider logins; M12 built none): rca holds no tracker credentials and the hosted group is gh and glab only, so there is no Linear issue to change"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:markdown.readTab",
@@ -3214,9 +3274,10 @@
       "id": "rpc:settings.getAgentLaunch",
       "kind": "rpc",
       "name": "settings.getAgentLaunch",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M10",
-      "reverify": "reverify with the agent launch settings (M10): the answer is a projection (launch choices, permissions, command overrides, environment) of settings rca does not keep, and settings.update keeps only the keys of the pinned schema as sent"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the answer projects launch choices, permission mode and command overrides of settings that rca neither keeps nor reads at launch, so reporting permissionMode 'yolo' and per-agent flags would state behaviour no rca turn follows.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:settings.getTerminalQuickCommands",
@@ -3237,9 +3298,10 @@
       "id": "rpc:settings.mutateNativeChatSessionOptions",
       "kind": "rpc",
       "name": "settings.mutateNativeChatSessionOptions",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M10",
-      "reverify": "reverify when a launch reads the picks (M10): the host keeps the model and effort a phone picks per agent as launch defaults, and nothing in rca reads such a default, so a kept pick would change no launch"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host stores the picked model and effort per agent as the launch default for new chats; rca has no per-agent default that a launch reads, so ok:true would acknowledge state never used.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:settings.update",
