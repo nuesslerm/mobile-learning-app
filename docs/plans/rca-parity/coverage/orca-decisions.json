@@ -418,6 +418,11 @@
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it sets or clears a thread goal in the host's structured-session store, and rca's thread has no goal.",
       "decidedBy": "M12"
     },
+    "rpc:agentSession.continueInterrupted": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it continues the turn the host itself cut short (an update, a quit or a crash writes a stop cut the phone then offers Continue for), and rca writes no such marker: a cancel is a user stop (turn.finished interrupted, no cause), turn.retry only retries a failed newest turn, and this host's journal is folded from rca's events, so it cannot hold the attributed notes the host rechecks before continuing.",
+      "decidedBy": "M12"
+    },
     "rpc:agentActivity.setRead": {
       "state": "not-offered",
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it marks or clears the panes of the desktop's Agents list by pane key, and this host has no desktop panes.",

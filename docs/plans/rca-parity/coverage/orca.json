@@ -10,8 +10,8 @@
   "summary": {
     "rows": 317,
     "served": 135,
-    "pending": 112,
-    "notOffered": 60,
+    "pending": 111,
+    "notOffered": 61,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -23,7 +23,7 @@
     "pendingByMilestone": {
       "M5": 3,
       "M6": 1,
-      "M7": 6,
+      "M7": 5,
       "M8": 22,
       "M9": 3,
       "M10": 10,
@@ -284,8 +284,10 @@
       "id": "rpc:agentSession.continueInterrupted",
       "kind": "rpc",
       "name": "agentSession.continueInterrupted",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "not-offered",
+      "milestone": "M7",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it continues the turn the host itself cut short (an update, a quit or a crash writes a stop cut the phone then offers Continue for), and rca writes no such marker: a cancel is a user stop (turn.finished interrupted, no cause), turn.retry only retries a failed newest turn, and this host's journal is folded from rca's events, so it cannot hold the attributed notes the host rechecks before continuing.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:agentSession.conversationCommand",
