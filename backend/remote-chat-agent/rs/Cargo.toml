@@ -91,6 +91,7 @@ agent-api-accounts = { path = "../../../libraries/agent-api/agent-api-accounts" 
 agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
 
 [dev-dependencies]
+remote-chat-agent-opencode = { path = "../opencode", features = ["testing"] }
 rca-service-core = { path = "../service-core", features = ["testing"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
 remote-chat-agent-core = { path = "../core", features = ["testing"] }

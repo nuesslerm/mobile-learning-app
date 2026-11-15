@@ -53,6 +53,8 @@ mod exec_remote;
 mod documents;
 #[path = "flow/runs.rs"]
 mod runs;
+#[path = "flow/runs_loopback.rs"]
+mod runs_loopback;
 #[path = "flow/source_control.rs"]
 mod source_control;
 #[path = "flow/front_door.rs"]

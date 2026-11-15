@@ -197,15 +197,25 @@ pub fn service(env: &Env, options: Options) -> Service {
 /// The service over the given doubles, as a restart of one would find them.
 pub fn service_over(env: &Env, options: Options, opencode: Arc<FakeOpencode>, commands: Arc<FakeCommands>, outbound: Arc<FakeOutbound>) -> Service {
     let spawner = ScriptedSpawner::new();
-    build(env, options, opencode, commands, outbound, spawner.clone(), spawner)
+    let transport = Arc::new(OpencodePort(Arc::clone(&opencode)));
+    build(env, options, opencode, transport, commands, outbound, spawner.clone(), spawner)
+}
+
+/// The service whose opencode is a real HTTP server on a loopback port (`Loopback`), reached through the production transport.
+pub fn service_over_loopback(env: &Env, options: Options, url: &str) -> Service {
+    let spawner = ScriptedSpawner::new();
+    let transport = Arc::new(remote_chat_agent_opencode::Http::new(url, None));
+    build(env, options, FakeOpencode::new(), transport, FakeCommands::new(), FakeOutbound::new(), spawner.clone(), spawner)
 }
 
 /// The service whose provider CLIs are started by `spawner` (a scripted program of the flow's own), the other ports doubled.
 pub fn service_spawning(env: &Env, options: Options, spawner: Arc<dyn Spawner>) -> Service {
-    build(env, options, FakeOpencode::new(), FakeCommands::new(), FakeOutbound::new(), spawner, ScriptedSpawner::new())
+    let opencode = FakeOpencode::new();
+    let transport = Arc::new(OpencodePort(Arc::clone(&opencode)));
+    build(env, options, opencode, transport, FakeCommands::new(), FakeOutbound::new(), spawner, ScriptedSpawner::new())
 }
 
-fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, commands: Arc<FakeCommands>, outbound: Arc<FakeOutbound>, spawn: Arc<dyn Spawner>, spawner: Arc<ScriptedSpawner>) -> Service {
+fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Arc<dyn remote_chat_agent_core::application::ports::Opencode>, commands: Arc<FakeCommands>, outbound: Arc<FakeOutbound>, spawn: Arc<dyn Spawner>, spawner: Arc<ScriptedSpawner>) -> Service {
     let default_cwd = options.default_cwd.unwrap_or_else(|| env.home.to_string_lossy().into_owned());
     let config = Config {
         port: 0,
@@ -227,7 +237,7 @@ fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, commands: Arc
     let commands_port = Arc::new(CommandsPort(Arc::clone(&commands)));
     let outbound_port = Arc::new(OutboundPort(Arc::clone(&outbound)));
     let settings = env.source().settings();
-    let client = rca_service::compose::opencode_client(Arc::new(OpencodePort(Arc::clone(&opencode))), env.source());
+    let client = rca_service::compose::opencode_client(transport, env.source());
     let (orch, gateway) = rca_service::compose::orchestration(&config, &client, env.source().as_ref());
     let ports = Ports { documents: Arc::new(remote_chat_agent_host::Documents::new(commands_port.clone(), &settings)), speech: Arc::new(remote_chat_agent_speech::Speech::new(outbound_port.clone(), commands_port.clone(), env.source())), spawner: spawn, client, orch, gateway, commands: commands_port, outbound: outbound_port, ledgers: Arc::new(FileLedgers { error: options.ledger_error, env: env.source() }), files: options.files.unwrap_or_else(|| Arc::new(remote_chat_agent_host::HostFiles)), hosts: Arc::new(remote_chat_agent_host::Hosts), env: env.source() };
     let app = Arc::new(App::new(config, ports, agent_api));
