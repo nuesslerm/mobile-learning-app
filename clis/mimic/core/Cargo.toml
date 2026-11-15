@@ -3,6 +3,8 @@ name = "mimic-core"
 version = "0.1.0"
 edition = "2021"
 publish = false
+# What a published crate holds: fixtures, cassettes and tests stay out unless named here (`wf lib release` refuses a manifest without it).
+include = ["src/**", "Cargo.toml"]
 description = "The pure core of `wf mimic`: the cassette format, normalisation rules, the differ with its allowlist, corpus generation and the record/replay use cases, behind Store, Driver, Clock and Rng ports"
 
 [lib]
