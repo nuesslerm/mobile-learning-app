@@ -3564,6 +3564,11 @@ Options:
   --target <file>             mimic.toml to use (default <set>/mimic.toml)
   --candidate <name>          the [candidate.<name>] to run (default: the only one)
   --only <id,...>             replay these interactions only
+  --rows <prefix,...>         replay the interactions of the rows that start with a prefix (rpc:git.,http:voice.): a milestone's slice;
+                              with --only, the ids of both; "chosen" in the output says how many
+  --gaps check|write          compare the differences with the set's known-gaps.json (check: a difference not listed, or a listed gap that no
+                              longer differs as listed, fails) or write them there (write: the chosen interactions' groups are replaced,
+                              the others kept); only the chosen interactions (--rows, --only) are compared. "gaps" holds the result
   --allowlist <file>          replace the allowlist of mimic.toml
   --suite <name>              write $WF_TEST_OUTPUT_DIR/<name>/report.json and
                               trace.json (method-trace/1 with each call's row and diff, and its test's cassette kind)
@@ -3902,7 +3907,9 @@ whose message carries a marker; it is the one place the marker is parsed.
 Marker grammar (one marker per message, on a line of its own that begins with `[`;
 prose that mentions it mid-line, and a message without one, start nothing):
   [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on a hosted runner
-  [replay <set>...]                              replay each set against its candidates, publish the diff
+  [replay <set>... [rows=<prefix,...>]]          replay each set against its candidates, publish the diff;
+                                                 rows= limits it to the rows that start with a prefix and
+                                                 checks the known gaps of that slice
   <set>      a cassette set: its directory name, or its path from the repository root;
              the directory holds a mimic.toml (a bare name that matches two is refused)
   chunk=<n>  minutes per `wf mimic record --max-minutes` call, 1 to 60 (default 10)
@@ -4018,6 +4025,7 @@ Options:
   --budget <minutes>          record: stop starting chunks after this long (default 100)
   --fresh                     record: delete the checkpoint first
   --candidate <name>          replay: only this candidate
+  --rows <prefix,...>         replay: only the rows that start with a prefix, and check the known gaps of that slice
   --out <dir>                 replay: write <set>.replay.json here
   --work-root <dir>           where the provisioned work directories are ({work}, default $MIMIC_WORK_ROOT)
   --root <dir>                the checkout {repo} names (default: this one)
@@ -4147,7 +4155,7 @@ wf parity coverage --app orca --check
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf parity coverage --app t3|orca [--check] [--traces <dir|bundle>] [--root <dir>] [--base <rev>]
+Usage: wf parity coverage --app t3|orca [--check] [--traces <dir|bundle>] [--rows <prefix,...>] [--root <dir>] [--base <rev>]
 
 Scan the pinned phone app and build its coverage table. The reference is
 references/t3code (pinned by tooling/t3-conformance/t3-pin.json) or
@@ -4200,6 +4208,9 @@ Options:
                               phone does not reach, or pending rose
   --traces <dir|bundle>       The method-hit traces of a chain run: a test output
                               dir, a trace.json, or a bundle.json (path or URL)
+  --rows <prefix,...>         With --traces: refresh only the rows whose id starts
+                              with a prefix; the evidence of the other rows stays
+                              as checked in and only these rows' problems show
   --root <dir>                The repository root (default: the git top level)
   --base <rev>                What pending is compared with (default HEAD when
                               the table is dirty, else HEAD^); a commit since it
