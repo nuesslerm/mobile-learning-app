@@ -231,7 +231,7 @@
       "state": "not-offered",
       "milestone": "M7",
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it marks or clears the panes of the desktop's Agents list by pane key, and this host has no desktop panes.",
-      "decidedBy": "M7"
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:agentActivity.setRead",
@@ -240,7 +240,7 @@
       "state": "not-offered",
       "milestone": "M7",
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it marks or clears the panes of the desktop's Agents list by pane key, and this host has no desktop panes.",
-      "decidedBy": "M7"
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:agentSession.agents",
