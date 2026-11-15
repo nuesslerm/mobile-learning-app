@@ -82,18 +82,34 @@ index 317edcf..660a0b3 100644
      // And a capability flag is reported, not counted, and a non-literal method name is flagged as dynamic
      assert!(flags["capabilityNames"]["sites"].as_array().unwrap().iter().any(|s| rows[&format!("rpc:{}", s["name"].as_str().unwrap())]["phone"] == false));
 diff --git a/docs/plans/rca-parity/coverage/orca-decisions.json b/docs/plans/rca-parity/coverage/orca-decisions.json
-index 34e8926..14855a7 100644
+index 744f810..3283124 100644
 --- a/docs/plans/rca-parity/coverage/orca-decisions.json
 +++ b/docs/plans/rca-parity/coverage/orca-decisions.json
-@@ -116,6 +116,10 @@
-     "rpc:nativeChat.unsubscribe": {"oracle": "mimic"},
-     "rpc:projectGroup.list": {"oracle": "mimic"},
-     "rpc:runtime.clientEvents.unsubscribe": {"oracle": "mimic"},
-+    "rpc:orchestration.partyLocation": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate", "decidedBy": "M7"},
-+    "rpc:orchestration.partyOpen": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database", "decidedBy": "M7"},
-+    "rpc:orchestration.workerAutoClose": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers", "decidedBy": "M7"},
-+    "rpc:orchestration.workerKeepOpen": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers", "decidedBy": "M7"},
-     "rpc:agentSession.readVisual": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read", "decidedBy": "M7"}
+@@ -386,6 +386,26 @@
+       "state": "not-offered",
+       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+       "decidedBy": "M12"
++    },
++    "rpc:orchestration.partyLocation": {
++      "state": "not-offered",
++      "reason": "owner-confirmed (decision 7): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate",
++      "decidedBy": "M7"
++    },
++    "rpc:orchestration.partyOpen": {
++      "state": "not-offered",
++      "reason": "owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database",
++      "decidedBy": "M7"
++    },
++    "rpc:orchestration.workerAutoClose": {
++      "state": "not-offered",
++      "reason": "owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers",
++      "decidedBy": "M7"
++    },
++    "rpc:orchestration.workerKeepOpen": {
++      "state": "not-offered",
++      "reason": "owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers",
++      "decidedBy": "M7"
+     }
    },
    "reverify": {
 diff --git a/docs/plans/rca-parity/coverage/orca-methods.json b/docs/plans/rca-parity/coverage/orca-methods.json
@@ -597,7 +613,7 @@ index 6761d5b..8e7891f 100644
        "id": "rpc:pairing.createOffer",
        "kind": "rpc",
 diff --git a/docs/plans/rca-parity/coverage/orca.json b/docs/plans/rca-parity/coverage/orca.json
-index 0bc7838..54808af 100644
+index b85cdd2..0e85344 100644
 --- a/docs/plans/rca-parity/coverage/orca.json
 +++ b/docs/plans/rca-parity/coverage/orca.json
 @@ -8,16 +8,16 @@
@@ -607,9 +623,9 @@ index 0bc7838..54808af 100644
 -    "rows": 315,
 +    "rows": 319,
      "served": 135,
-     "pending": 155,
--    "notOffered": 15,
-+    "notOffered": 19,
+     "pending": 119,
+-    "notOffered": 51,
++    "notOffered": 55,
      "excluded": 7,
      "flagged": 3,
      "answeredByMapper": 0,
@@ -620,9 +636,9 @@ index 0bc7838..54808af 100644
        "transport": 1
      },
      "pendingByMilestone": {
-@@ -2786,6 +2786,42 @@
-       "milestone": "M12",
-       "reverify": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to end"
+@@ -2815,6 +2815,42 @@
+       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+       "decidedBy": "M12"
      },
 +    {
 +      "id": "rpc:orchestration.partyLocation",
@@ -664,22 +680,22 @@ index 0bc7838..54808af 100644
        "id": "rpc:pairing.exchangeTicket",
        "kind": "rpc",
 diff --git a/docs/plans/rca-parity/coverage/orca.md b/docs/plans/rca-parity/coverage/orca.md
-index 6023604..569987d 100644
+index 5a228e1..88a0bd2 100644
 --- a/docs/plans/rca-parity/coverage/orca.md
 +++ b/docs/plans/rca-parity/coverage/orca.md
 @@ -2,7 +2,7 @@
  
  Generated by `wf parity coverage --app orca` from `orca-methods.json` (the reference scan at 1.4.259 980c0024), `orca-decisions.json` and the mapper's own tables. Do not edit by hand.
  
--315 rows: 135 served (a passing test of a chain run and its method-hit trace, `orca-evidence.json`), 155 pending, 15 not offered, 7 excluded, 3 flagged. 0 of the pending rows are answered by the mapper today, with no run-bundle evidence yet.
-+319 rows: 135 served (a passing test of a chain run and its method-hit trace, `orca-evidence.json`), 155 pending, 19 not offered, 7 excluded, 3 flagged. 0 of the pending rows are answered by the mapper today, with no run-bundle evidence yet.
+-315 rows: 135 served (a passing test of a chain run and its method-hit trace, `orca-evidence.json`), 119 pending, 51 not offered, 7 excluded, 3 flagged. 0 of the pending rows are answered by the mapper today, with no run-bundle evidence yet.
++319 rows: 135 served (a passing test of a chain run and its method-hit trace, `orca-evidence.json`), 119 pending, 55 not offered, 7 excluded, 3 flagged. 0 of the pending rows are answered by the mapper today, with no run-bundle evidence yet.
  
  | Milestone | Pending |
  | --- | --- |
 @@ -252,6 +252,10 @@ Generated by `wf parity coverage --app orca` from `orca-methods.json` (the refer
- | `rpc:notifications.testPush` | pending | M12 |  | reverify: reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no sender to deliver a test push |
- | `rpc:notifications.unregisterPush` | pending | M12 |  | reverify: reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no stored push token to remove |
- | `rpc:notifications.unsubscribe` | pending | M12 |  | reverify: reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to end |
+ | `rpc:notifications.testPush` | not-offered | M12 |  | Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.; decided by M12 |
+ | `rpc:notifications.unregisterPush` | not-offered | M12 |  | Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.; decided by M12 |
+ | `rpc:notifications.unsubscribe` | not-offered | M12 |  | Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.; decided by M12 |
 +| `rpc:orchestration.partyLocation` | not-offered | M7 |  | owner-confirmed (decision 7): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate; decided by M7 |
 +| `rpc:orchestration.partyOpen` | not-offered | M7 |  | owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database; decided by M7 |
 +| `rpc:orchestration.workerAutoClose` | not-offered | M7 |  | owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers; decided by M7 |
