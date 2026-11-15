@@ -12,10 +12,10 @@ FROM docker.io/library/rust:1-bookworm AS chef
 RUN --mount=type=cache,id=cargo-registry-orca-serve,target=/usr/local/cargo/registry \
     cargo install cargo-chef --locked --version 0.1.78
 WORKDIR /src
-
-FROM chef AS planner
 # The shared libraries come from the mla registry (a public bucket, plain HTTPS); the lockfile pins their versions.
 COPY .cargo/config.toml /src/.cargo/config.toml
+
+FROM chef AS planner
 COPY clis/Cargo.toml clis/Cargo.lock ./clis/
 COPY clis/wf-kit ./clis/wf-kit
 COPY clis/orca-serve ./clis/orca-serve
