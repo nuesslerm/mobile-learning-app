@@ -355,6 +355,7 @@ struct PhoneState {
     pending: Vec<(u64, PhoneEvent)>,
     subscribed: Vec<(String, Value)>,
     unsubscribed: Vec<String>,
+    overrides: Vec<Value>,
 }
 
 impl ScriptedPhone {
@@ -386,6 +387,11 @@ impl ScriptedPhone {
     pub fn unsubscribed(&self) -> Vec<String> {
         self.state.borrow().unsubscribed.clone()
     }
+
+    /// What each `connect` was given besides the timeout.
+    pub fn overrides(&self) -> Vec<Value> {
+        self.state.borrow().overrides.clone()
+    }
 }
 
 impl Phone for ScriptedPhone {
@@ -397,6 +403,11 @@ impl Phone for ScriptedPhone {
             state.pending.extend(events);
         }
         "connected".into()
+    }
+
+    fn connect_with(&mut self, timeout_ms: u64, overrides: &Value) -> String {
+        self.state.borrow_mut().overrides.push(overrides.clone());
+        self.connect(timeout_ms)
     }
 
     fn request(&mut self, _method: &str, _params: &Value, _timeout_ms: u64) -> Result<Value, String> {

@@ -50,12 +50,13 @@ Frame step: JSON text -> `kind:json`, `rid = String(payload.id ?? payload.reques
 | op | fields | semantics | emits |
 |---|---|---|---|
 | `git` (setup) | name | Exec port: deterministic repo in scratch (fixed author/date env, one commit, branch main). Runs before connect. | none |
-| `connect` | `timeout_ms` (10000), `capture_handshake` (false) | sidecar `connect`; state != connected -> outcome `{status:"error",code:<state>}` and NO steps (orca/client.ts:98-100), script ends. | with capture_handshake: `s2c`/`c2s channel:"handshake"` steps (stage hello, ready, auth, authenticated|error) |
+| `connect` | `timeout_ms` (10000), `capture_handshake` (false), `capture_close` (false), `device_token`, `server_public_key_b64` (override the host's pairing) | the phone connects (`Phone::connect_with`); state != connected -> outcome `{status:"error",code:<state>}` and NO steps (orca/client.ts:98-100), script ends. The overrides are filled like any argument (`{bad-credential}`) | with `capture_handshake`: `c2s`/`s2c` `channel:"handshake"` steps `{stage, frame}` (hello, ready, auth, authenticated, error), keys and nonces shaped, token masked; with `capture_close`: the end of the connection as `s2c channel:"ws:close"` `{code, reason}` at the end of the case |
 | `request` | `method`, `params`, `timeout_ms` (10000), `rid` (index of the request among request/subscribe entries, as string), `capture` | one sealed request/response through the phone client | `c2s json {method,params}` rid; `s2c json <frame minus id>` rid; client failure -> `s2c json {client_error:msg}` |
-| `subscribe` | `method`, `params`, `rid`, `listen_ms` (0) | open a stream; interpreter owns the window: collects `frame` events for `listen_ms` | c2s opener step, then every stream frame `s2c json|binary` with the opener's rid, in arrival order |
-| `listen` | `ms` | keep draining events for `ms` | frames as above |
-| `unsubscribe` | `rid` | sidecar calls the client's dispose fn; the client's own c2s unsubscribe frame is observed through the tap | `c2s` frame the client sent, rid of the stream |
-| `close` | | client.close(); emits final close event | `s2c channel:"ws:close"` from the WebSocket close event (code, reason), only when tapped |
+| `subscribe` | `method`, `params`, `rid`, `listen_ms` (0) | opens a stream and listens for `listen_ms`; the stream's id is mapped to `rid` | `c2s` opener step, then every stream frame `s2c json` (`binary` with `len` for bytes) with the opener's rid, in arrival order; a refused stream is `s2c {client_error}` |
+| `listen` | `ms` | keep draining the phone's events for `ms` | frames as above |
+| `unsubscribe` | `rid` | the phone ends the stream (the client sends its own unsubscribe); the quiet window (`settle_ms`) takes what was still on its way | late frames of the stream |
+
+The phone session always closes when a case ends (there is no `close` op); the end of the connection is a step only with `capture_close`.
 
 Legacy desugar: `connect{timeout_ms: connect_timeout_ms}` + `request{rid:String(i)}` per requests[i]; so the 286 committed orca rows reproduce byte for byte. Masks (`<uuid:1>`, `<volatile:updatedAt>`, `<userdata>`, `<scratch>`) stay in the rule set; the interpreter only replaces the per-run workspace/scratch/userdata path by `<workspace>`/`<scratch>`/`<userdata>` (existing orca/client.ts:60-72 behaviour).
 

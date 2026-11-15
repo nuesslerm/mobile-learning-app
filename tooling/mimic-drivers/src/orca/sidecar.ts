@@ -17,7 +17,7 @@ export type Control =
   | { op: 'hello' }
   | { op: 'reset' }
   | { op: 'tap'; input?: { handshake?: boolean; close?: boolean } }
-  | { op: 'connect'; input?: { timeout_ms?: number } }
+  | { op: 'connect'; input?: { timeout_ms?: number; device_token?: string; server_public_key_b64?: string } }
   | { op: 'request'; input: { method: string; params?: Json; timeout_ms?: number } }
   | { op: 'subscribe'; input: { method: string; params?: Json } }
   | { op: 'unsubscribe'; input: { sub: string } }
@@ -36,6 +36,36 @@ export function jsonSafe(value: unknown): Json {
   return (value ?? null) as Json
 }
 
+const BASE64ISH = /^[A-Za-z0-9+/_-]{20,}={0,2}$/
+
+/** A handshake frame with what changes per run shaped: base64 keys and nonces become `<b64:N>` (N the decoded length) and the device token its name. */
+export function maskHandshake(value: unknown, token: string): Json {
+  if (typeof value === 'string') {
+    if (token && value === token) return '<device-token>'
+    return BASE64ISH.test(value) ? `<b64:${Buffer.from(value.replaceAll('-', '+').replaceAll('_', '/'), 'base64').length}>` : value
+  }
+  if (Array.isArray(value)) return value.map((v) => maskHandshake(v, token))
+  if (value !== null && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, maskHandshake(v, token)]))
+  return (value ?? null) as Json
+}
+
+type CloseTap = ((code: number, reason: string) => void) | undefined
+let closeTap: CloseTap
+
+/** Every WebSocket the client opens reports its close to `closeTap` while one is set. Installed once; the client itself is unchanged. */
+function installCloseTap() {
+  const g = globalThis as unknown as { WebSocket: typeof WebSocket; __mimicCloseTapInstalled?: boolean }
+  if (g.__mimicCloseTapInstalled) return
+  g.__mimicCloseTapInstalled = true
+  const Native = g.WebSocket
+  g.WebSocket = class extends Native {
+    constructor(...args: ConstructorParameters<typeof WebSocket>) {
+      super(...args)
+      this.addEventListener('close', (e) => closeTap?.(e.code, e.reason))
+    }
+  } as typeof WebSocket
+}
+
 export function sidecar(deps: Deps) {
   let held: Shared<Target> | undefined
   let client: PhoneClient | undefined
@@ -43,6 +73,7 @@ export function sidecar(deps: Deps) {
   let counter = 0
   let wantHandshake = false
   let wantClose = false
+  let closed: (() => void) | undefined
   const target = async () => {
     held ??= shared<Target>((use) => deps.launch().then((launch) => launch(use)))
     return (await held.get()).server
@@ -71,7 +102,18 @@ export function sidecar(deps: Deps) {
           drop()
           const { DirectRpcClient } = await deps.load()
           const host = await target()
-          client = new DirectRpcClient(host.endpoint, host.deviceToken, host.serverPublicKeyB64, {})
+          const token = message.input?.device_token ?? host.deviceToken
+          installCloseTap()
+          ;(globalThis as { __mimicHandshakeTap?: unknown }).__mimicHandshakeTap = wantHandshake
+            ? (e: { stage: string; dir: string; payload: unknown }) => deps.emit({ event: 'handshake', stage: e.stage, dir: e.dir, payload: maskHandshake(e.payload, token) })
+            : undefined
+          closeTap = wantClose
+            ? (code, reason) => {
+                deps.emit({ event: 'close', code, reason })
+                closed?.()
+              }
+            : undefined
+          client = new DirectRpcClient(host.endpoint, token, message.input?.server_public_key_b64 ?? host.serverPublicKeyB64, {})
           return { state: await connected(client, message.input?.timeout_ms ?? 10_000) }
         }
         case 'request': {
@@ -96,10 +138,14 @@ export function sidecar(deps: Deps) {
           disposers.delete(message.input.sub)
           return {}
         }
-        case 'close':
+        case 'close': {
+          // the close event of the socket arrives a moment after the client closes it: it is emitted before this reply
+          const wait = wantClose && client ? new Promise<void>((resolve) => { closed = resolve; setTimeout(resolve, 1000) }) : Promise.resolve()
           drop()
-          if (wantClose) deps.emit({ event: 'close', code: null, reason: '' })
+          await wait
+          closed = undefined
           return { state: 'disconnected' }
+        }
         case 'quit':
           drop()
           await held?.close()

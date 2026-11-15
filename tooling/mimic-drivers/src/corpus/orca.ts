@@ -12,6 +12,10 @@ import type { Case, Disposition } from './types.ts'
 
 const METHODS_DIR = 'src/main/runtime/rpc/methods'
 export const REQUEST_TIMEOUT_MS = 8000
+/** How long a stream is listened to after it opens: its snapshot and what follows it in the first moments. */
+export const STREAM_LISTEN_MS = 1500
+/** A well-formed host key (32 bytes) that is not the host's: the pairing the phone refuses. */
+const OTHER_HOST_KEY_B64 = Buffer.alloc(32, 1).toString('base64')
 
 /** `const NAME = 'value'` and `const NAME = { key: 'value' }` (as `NAME.key`) across the pinned src tree: method names given by a constant. */
 function stringConstants(root: string): Map<string, string> {
@@ -97,10 +101,6 @@ export async function orcaCorpus(): Promise<OrcaCorpus> {
       coverage.push({ row: rowKey, status: 'skipped', reason: 'not registered in the pinned methods dir (dynamic registration)' })
       continue
     }
-    if (reg.streaming) {
-      coverage.push({ row: rowKey, status: 'skipped', reason: 'streaming method: the script op carries request and response only' })
-      continue
-    }
     const schema = schemas.get(row.name)
     let params: Json = {}
     let input = 'empty'
@@ -113,12 +113,23 @@ export async function orcaCorpus(): Promise<OrcaCorpus> {
         params = {}
       }
     }
-    cases.push({ id: `orca-${row.name}`, row: rowKey, op: 'script', input: { requests: [{ method: row.name, params, timeout_ms: REQUEST_TIMEOUT_MS }] }, tags: [`input:${input}`] })
+    if (reg.streaming) {
+      // a stream is opened, listened to for a moment, and ended the way the client ends it
+      const script: Json[] = [{ connect: {} }, { subscribe: { method: row.name, params, rid: '0', listen_ms: STREAM_LISTEN_MS } }, { unsubscribe: { rid: '0' } }]
+      cases.push({ id: `orca-${row.name}`, row: rowKey, op: 'script', input: { script, settle_ms: 300 }, tags: [`input:${input}`, 'kind:stream'] })
+    } else {
+      cases.push({ id: `orca-${row.name}`, row: rowKey, op: 'script', input: { requests: [{ method: row.name, params, timeout_ms: REQUEST_TIMEOUT_MS }] }, tags: [`input:${input}`] })
+    }
     coverage.push({ row: rowKey, status: 'case', case: `orca-${row.name}`, input })
   }
+  // the e2ee handshake: the host's answer to the real client's pairing, then to a wrong credential and to a host key that is not its own
+  const handshake = (id: string, connect: Json, tag: string) => cases.push({ id, row: 'transport:e2ee.handshake', op: 'script', input: { script: [{ connect: { capture_handshake: true, capture_close: true, timeout_ms: 5000, ...(connect as object) } }], settle_ms: 300 }, tags: ['kind:handshake', tag] })
+  handshake('orca-transport.e2ee.handshake', {}, 'case:paired')
+  handshake('orca-transport.e2ee.handshake.wrong-token', { device_token: '{bad-credential}' }, 'case:wrong-token')
+  handshake('orca-transport.e2ee.handshake.wrong-host-key', { server_public_key_b64: OTHER_HOST_KEY_B64 }, 'case:wrong-host-key')
+  coverage.push({ row: 'transport:e2ee.handshake', status: 'case', case: 'orca-transport.e2ee.handshake', input: 'script' })
   for (const [what, why] of [
-    ['http', 'a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint'],
-    ['transport', 'the e2ee handshake is the connection every case opens, answered once per case']
+    ['http', 'a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint']
   ] as const) {
     const table = JSON.parse(readFileSync(join(repoRoot, 'docs/plans/rca-parity/coverage/orca-methods.json'), 'utf8')) as { rows: { id: string; kind: string; phone: boolean }[] }
     for (const r of table.rows.filter((x) => x.phone && x.kind === what)) coverage.push({ row: r.id, status: 'skipped', reason: why })

@@ -117,13 +117,21 @@ impl SidecarPhone {
 
 impl Phone for SidecarPhone {
     fn connect(&mut self, timeout_ms: u64) -> String {
+        self.connect_with(timeout_ms, &Value::Null)
+    }
+
+    fn connect_with(&mut self, timeout_ms: u64, overrides: &Value) -> String {
         let mut sidecar = self.sidecar.borrow_mut();
         let (handshake, close) = *self.tap.borrow();
         if sidecar.call("tap", json!({"handshake": handshake, "close": close}), MARGIN_MS).is_err() {
             return "disconnected".into();
         }
         // the first connect may start the host (a build on a fresh checkout): the wait is the host's, not the phone's
-        match sidecar.call("connect", json!({"timeout_ms": timeout_ms}), timeout_ms + 600_000) {
+        let mut input = json!({"timeout_ms": timeout_ms});
+        if let (Some(extra), Some(input)) = (overrides.as_object(), input.as_object_mut()) {
+            input.extend(extra.iter().map(|(k, v)| (k.clone(), v.clone())));
+        }
+        match sidecar.call("connect", input, timeout_ms + 600_000) {
             Ok(answer) => answer["state"].as_str().unwrap_or("disconnected").to_string(),
             Err(_) => "disconnected".into(),
         }

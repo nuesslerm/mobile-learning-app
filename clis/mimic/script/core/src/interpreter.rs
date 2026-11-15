@@ -249,7 +249,8 @@ impl Interpreter {
             return false;
         };
         phone.tap(arg.get("capture_handshake").and_then(Value::as_bool).unwrap_or(false), arg.get("capture_close").and_then(Value::as_bool).unwrap_or(false));
-        let state = phone.connect(timeout);
+        let overrides: serde_json::Map<String, Value> = ["device_token", "server_public_key_b64"].iter().filter_map(|k| Some((k.to_string(), arg.get(*k)?.clone()))).collect();
+        let state = phone.connect_with(timeout, &Value::Object(overrides));
         if state == "connected" {
             self.pump(run);
             return true;

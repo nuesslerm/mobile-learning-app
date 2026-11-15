@@ -444,5 +444,15 @@ fn given_the_close_tap_when_a_case_ends_then_the_end_of_the_connection_is_its_la
     assert!(plain.steps.is_empty());
 }
 
+#[test]
+fn given_a_connect_with_a_bad_credential_when_run_then_the_phone_is_given_it_filled_from_the_variables() {
+    let clock = FakeClock::default();
+    let phone = ScriptedPhone::new(&clock);
+
+    orca_run(json!({"script": [{"connect": {"device_token": "{bad-credential}", "server_public_key_b64": "AQEB"}}]}), &phone, &clock);
+
+    assert_eq!(phone.overrides(), [json!({"device_token": "NOTACREDENTIAL", "server_public_key_b64": "AQEB"})]);
+}
+
 #[allow(dead_code)]
 fn unused(_: Event) {}

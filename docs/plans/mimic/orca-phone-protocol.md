@@ -4,10 +4,14 @@ Design of the 15 Nov 2026 design workflow for issue #83, kept here so the implem
 `step-language.md` (section 3 names the Orca ops); this file is the wire between the Rust interpreter and the Node sidecar around the phone's
 own `DirectRpcClient`.
 
-**State of the implementation.** `tooling/mimic-drivers/src/orca/sidecar.ts` and `SidecarPhone` (`mimic-script-net`) implement a subset: strictly
-request-and-reply lines without `id`, the ops `connect`, `request`, `disconnect` and `close`, and no events. It is enough for the committed
-request/response rows. Streams, taps and the handshake need unsolicited events, which a read-one-line-per-call client cannot take, so the
-stream step moves both sides to the protocol below (ids on control lines, a reader that queues events).
+**State of the implementation** (`tooling/mimic-drivers/src/orca/sidecar.ts`, `SidecarPhone` in `mimic-script-net`). Where it differs from the design below:
+
+- Control lines carry an `id` and are answered `{id, ok}` or `{id, error}`; `request` answers `{response}` or `{client_error}`, `subscribe` answers `{sub}`, `connect` answers `{state}`. `close` ends the phone session and answers after its close event; `quit` stops the host and ends the process (the design's `close` of the process). `tap` takes `{handshake, close}`. `hello` and `reset` exist as designed.
+- `connect` also takes `device_token` and `server_public_key_b64`, so a case can record how the host refuses a wrong credential or a wrong host key.
+- Events carry no `seq`, `t_ms` or `rid`: the interpreter orders by arrival and maps `sub` to the opener's rid. A stream frame is what the client's stream listener receives (the decoded result, bytes as base64), not the raw envelope, so `_meta` and `ok` are not part of it.
+- The handshake is tapped by wrapping the pinned `PairedE2EEV2ClientSession` in the bundle (hello, ready, the first sealed frame as `auth`, the first opened frame as `authenticated`); base64 keys and nonces become `<b64:N>` and the device token `<device-token>`. The phone side is masked, not seeded.
+- The close event comes from a `WebSocket` wrapper (the real close code and reason) and only when the close tap is on; a `close` waits for it before it answers. The client's own unsubscribe frame is not observed.
+- Not recordable with the real client: the legacy hello (the pinned client speaks only v2).
 
 Name `mimic-orca-phone/1`: JSON lines over stdio, child of the Rust `Phone` adapter (script-orca). Stdout is protocol only; the phone bundle's console output stays redirected to stderr (phone.ts:55-57). The sidecar owns only wire facts (pinned DirectRpcClient, e2ee v2, decryption, frame tap). The Rust interpreter owns every decision: timeouts, windows, capture/fill, ordering, masking, step shaping. No `if recording` branch exists anywhere, so reference and candidate run the same sidecar command (as clis/orca-serve/cassettes/orca-files/mimic.toml already does).
 

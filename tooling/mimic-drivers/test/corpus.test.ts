@@ -43,6 +43,19 @@ test('Given the Orca methods list and the checkout at the pin, When the corpus i
   assert.deepEqual(committed(['clis/orca-serve/cassettes/orca-recorded']).map((c) => c.id).sort(), cases.map((c) => c.id).sort())
 })
 
+test('Given the Orca checkout at the pin, When the corpus is derived, Then each stream is a subscribe script, the handshake has its paired and two refused cases, and no phone row is skipped for streaming or transport', { skip: !process.env.MIMIC_ORCA_ROOT && 'needs MIMIC_ORCA_ROOT: a checkout of references/orca at the pin' }, async () => {
+  const { cases, coverage } = await orcaCorpus()
+
+  const streams = cases.filter((c) => c.tags?.includes('kind:stream'))
+  assert.ok(streams.length >= 9, `${streams.length} stream cases`)
+  for (const c of streams) {
+    const script = (c.input as { script: Record<string, unknown>[] }).script
+    assert.deepEqual(script.map((e) => Object.keys(e)[0]), ['connect', 'subscribe', 'unsubscribe'], c.id)
+  }
+  assert.deepEqual(cases.filter((c) => c.row === 'transport:e2ee.handshake').map((c) => c.id).sort(), ['orca-transport.e2ee.handshake', 'orca-transport.e2ee.handshake.wrong-host-key', 'orca-transport.e2ee.handshake.wrong-token'])
+  assert.deepEqual(coverage.filter((d) => d.status === 'skipped' && /streaming|handshake/.test(d.reason ?? '')), [])
+})
+
 test('Given shards from before a pin move, When the cases are assigned again, Then kept cases stay put, gone ones leave and new ones go to the smallest shard in id order', () => {
   const c = (id: string, v = 0): Case => ({ id, row: id, op: 'script', input: { v }, tags: [] })
   const shards = [[c('a'), c('b'), c('gone')], [c('d')], [c('e'), c('f')]]

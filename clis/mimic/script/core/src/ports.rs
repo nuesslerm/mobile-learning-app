@@ -66,6 +66,11 @@ pub enum PhoneEvent {
 pub trait Phone {
     /// Pairs and waits for the session; the state the client ended in (`connected`, `auth-failed`, `disconnected`, `timeout`).
     fn connect(&mut self, timeout_ms: u64) -> String;
+    /// `connect` for a case that pairs differently from the environment's host: `overrides` may hold `device_token` and `server_public_key_b64`
+    /// (a wrong credential or a wrong host key, to record how the host refuses). A phone that cannot ignores them.
+    fn connect_with(&mut self, timeout_ms: u64, _overrides: &serde_json::Value) -> String {
+        self.connect(timeout_ms)
+    }
     /// One request. `Ok` is the host's answer without its per-run id; `Err` is the client's own failure text (a timeout, a closed session).
     fn request(&mut self, method: &str, params: &serde_json::Value, timeout_ms: u64) -> Result<serde_json::Value, String>;
     /// Opens a stream; its frames arrive through `poll` with the id returned here.

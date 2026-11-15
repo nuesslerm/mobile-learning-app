@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { PassThrough } from 'node:stream'
 import { test } from 'node:test'
 import { startHostDouble } from '../src/orca/host-double.ts'
-import { jsonSafe, serveSidecar, sidecar } from '../src/orca/sidecar.ts'
+import { jsonSafe, maskHandshake, serveSidecar, sidecar } from '../src/orca/sidecar.ts'
 import { loadPhone } from '../src/orca/phone.ts'
 
 const METHODS = { 'files.list': { result: { entries: [] } } }
@@ -51,16 +51,60 @@ test('a token the host does not know is a state, not an exception', async () => 
   }
 })
 
-test('close is a reply, and a close event only when the close tap is on; a stream asked of an unconnected client is a client error', async () => {
+test('a stream asked of an unconnected client is a client error and a close without a connection is only a reply', async () => {
   const events: unknown[] = []
   const side = sidecar(deps({}, events) as any)
 
   assert.deepEqual(await side.handle({ op: 'subscribe', input: { method: 'notifications.subscribe' } }), { client_error: 'not connected' })
   assert.deepEqual(await side.handle({ op: 'close' }), { state: 'disconnected' })
   assert.deepEqual(events, [])
-  await side.handle({ op: 'tap', input: { close: true } })
-  await side.handle({ op: 'close' })
-  assert.deepEqual(events, [{ event: 'close', code: null, reason: '' }])
+})
+
+test('the handshake tap reports hello, ready, auth and authenticated with keys, nonces and the token masked, and the close tap reports the close before its reply', async () => {
+  const double = await startHostDouble({ methods: METHODS })
+  const events: any[] = []
+  try {
+    const side = sidecar(deps(double, events) as any)
+    await side.handle({ op: 'tap', input: { handshake: true, close: true } })
+
+    assert.deepEqual(await side.handle({ op: 'connect', input: { timeout_ms: 5000 } }), { state: 'connected' })
+    await side.handle({ op: 'close' })
+
+    const stages = events.filter((e) => e.event === 'handshake').map((e) => `${e.dir}:${e.stage}`)
+    assert.deepEqual(stages, ['c2s:hello', 's2c:ready', 'c2s:auth', 's2c:authenticated'])
+    const text = JSON.stringify(events)
+    assert.ok(!text.includes(double.deviceToken), 'the device token never reaches an event')
+    assert.match(text, /<b64:32>/)
+    assert.ok(events.some((e) => e.event === 'close' && typeof e.code === 'number'), JSON.stringify(events.at(-1)))
+    assert.equal(events.at(-1).event, 'close')
+    await side.handle({ op: 'quit' })
+  } finally {
+    await double.close()
+  }
+})
+
+test('a wrong device token is an auth state, and a wrong host key is a state too', async () => {
+  const double = await startHostDouble({ methods: METHODS })
+  try {
+    const events: any[] = []
+    const side = sidecar(deps(double, events) as any)
+    await side.handle({ op: 'tap', input: { close: true } })
+
+    const wrong = (await side.handle({ op: 'connect', input: { timeout_ms: 5000, device_token: 'NOTACREDENTIAL' } })) as { state: string }
+    const key = (await side.handle({ op: 'connect', input: { timeout_ms: 3000, server_public_key_b64: Buffer.alloc(32, 1).toString('base64') } })) as { state: string }
+
+    assert.notEqual(wrong.state, 'connected')
+    assert.notEqual(key.state, 'connected')
+    await side.handle({ op: 'quit' })
+  } finally {
+    await double.close()
+  }
+})
+
+test('masking shapes base64 values by decoded length and the token by name, and leaves ordinary text', () => {
+  const masked = maskHandshake({ type: 'e2ee_hello', k: Buffer.alloc(32, 7).toString('base64'), auth: { deviceToken: 'tok-123' }, note: 'hi' }, 'tok-123')
+
+  assert.deepEqual(masked, { type: 'e2ee_hello', k: '<b64:32>', auth: { deviceToken: '<device-token>' }, note: 'hi' })
 })
 
 test('bytes inside a frame become base64 and everything else stays', () => {
