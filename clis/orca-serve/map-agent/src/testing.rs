@@ -88,7 +88,7 @@ impl Threads {
 
     /// Makes `agent` answer the methods of `USES` from this thread set (`repo.list` comes from the workspace double).
     pub fn install(&self, agent: &ScriptedAgent) {
-        for method in ["thread.create", "thread.get", "thread.history", "turn.start", "thread.forceStop", "queue.add", "queue.list", "queue.edit", "queue.move", "queue.delete", "queue.resume", "turn.steer", "approval.answer", "input.answer", "input.dismiss", "upload.put", "attachment.get"] {
+        for method in ["thread.create", "thread.list", "thread.get", "thread.history", "turn.start", "thread.forceStop", "queue.add", "queue.list", "queue.edit", "queue.move", "queue.delete", "queue.resume", "turn.steer", "approval.answer", "input.answer", "input.dismiss", "upload.put", "attachment.get"] {
             let me = self.clone();
             agent.reply(method, move |p| me.answer(method, p));
         }
@@ -134,6 +134,12 @@ impl Threads {
     fn answer(&self, method: &str, p: &Value) -> Result<Value, AgentError> {
         if matches!(method, "upload.put" | "attachment.get") {
             return self.attachment(method, p);
+        }
+        if method == "thread.list" {
+            let all = self.0.lock().unwrap();
+            let mut ids: Vec<&String> = all.keys().collect();
+            ids.sort();
+            return Ok(json!({"threads": ids.into_iter().map(|id| self.view(id, &all[id])).collect::<Vec<_>>()}));
         }
         let id = p["thread"].as_str().unwrap_or_default().to_string();
         if method == "thread.create" {

@@ -17,6 +17,7 @@ use std::time::Duration;
 const EVENTS: &str = include_str!("../../../../libraries/agent-api/agent-api-agent/tests/fixtures/thread-events.jsonl");
 
 struct Rig {
+    host: Arc<Host>,
     agent: Arc<ScriptedAgent>,
     threads: Threads,
     catalog: Catalog,
@@ -37,7 +38,7 @@ impl Rig {
         catalog.has(&["claude", "codex"]).skill("workspace", ".claude/skills", "review", Some("Reviews a diff")).skill("workspace", ".codex/skills", "lint", None).skill("home", ".agents/skills", "notes", Some("Keeps notes"));
         catalog.install(&agent);
         let host = Host::new("rt".into(), vec![Box::new(AgentArea::default())], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
-        Rig { agent, threads, catalog, conn: host.connection("dev", "tok", vec![]), other: host.connection("dev2", "tok2", vec![]), n: 0 }
+        Rig { conn: host.connection("dev", "tok", vec![]), other: host.connection("dev2", "tok2", vec![]), host, agent, threads, catalog, n: 0 }
     }
 
     fn frames(&mut self, method: &str, params: Value) -> Vec<Value> {
@@ -857,6 +858,8 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     let open = item_of(&mut rig, "claude_open", "question:rq1");
     rig.ok("agentSession.respondToApproval", mutation("claude_open", "e7", json!({"itemId": "approval:ap1", "expectedRevision": 9, "optionId": "accept"})));
     rig.ok("agentSession.respondToQuestion", mutation("claude_open", "e8", json!({"itemId": "question:rq1", "expectedRevision": open["revision"], "optionId": open["body"]["options"][0]["id"]})));
+    let mut status = rig.host.connection("dev9", "tok9", vec!["agent-session.structured.v1".to_string()]);
+    status_frames(&mut status, "st");
     // When the methods asked of the agent API are collected
     let seen: BTreeSet<String> = rig.agent.requests().into_iter().chain(q.agent.requests()).map(|(m, _)| m).collect();
     // Then they are the list the crate declares, plus the workspace method `repo.list` the target selector reads (which the workspace crate lists)
@@ -1197,4 +1200,62 @@ fn given_malformed_native_chat_subscriptions_when_made_then_each_is_refused_with
         let text = frames[0]["error"]["message"].as_str().or_else(|| frames[0]["message"].as_str()).unwrap_or_default().to_string();
         assert_eq!(text, message, "{params}: {}", frames[0]);
     }
+}
+
+fn status_frames(conn: &mut Connection, id: &str) -> Vec<Value> {
+    conn.on_message(&json!({"id": id, "method": "agentSession.subscribeStatus", "params": {}}).to_string()).iter().map(|f| serde_json::from_str(f).unwrap()).collect()
+}
+
+#[test]
+fn given_a_client_without_the_structured_capability_when_it_subscribes_to_the_status_feed_then_it_is_refused_as_the_recorded_host_refuses_it() {
+    // Given a host and a connection that declared no capability
+    let mut rig = Rig::new();
+    rig.recorded("claude_rec");
+    // When it subscribes to the status feed
+    let frames = rig.frames("agentSession.subscribeStatus", json!({}));
+    // Then it gets the recorded refusal, no stream stays open, and rca was not asked to list threads
+    assert_eq!(frames.len(), 1, "{frames:?}");
+    assert_eq!((frames[0]["error"]["code"].clone(), frames[0]["error"]["message"].clone(), frames[0]["error"]["data"]["refusal"]["details"]["reason"].clone()), (json!("runtime_error"), json!("structured_agent_session_unsupported"), json!("clientCapabilityMissing")));
+    assert_eq!(rig.conn.open_streams(), 0);
+    assert!(rig.agent.requests().iter().all(|(m, _)| m != "thread.list"));
+}
+
+#[test]
+fn given_chats_when_a_capable_client_subscribes_to_the_status_feed_then_it_gets_the_naming_and_sessions_snapshots_then_a_status_for_each_chat_that_changes() {
+    // Given the recorded chat (it holds open prompts), a chat with no messages, a chat of a driver this host does not run, and a connection that declared the structured capability
+    let mut rig = Rig::new();
+    rig.recorded("claude_rec");
+    rig.idle("claude_new");
+    rig.agent.request("thread.create", json!({"thread": "other_x", "workspace": "main", "driver": "someOtherDriver"})).unwrap();
+    let mut conn = rig.host.connection("dev3", "tok3", vec!["agent-session.structured.v1".to_string()]);
+    // When it subscribes
+    let opened = status_frames(&mut conn, "s1");
+    // Then the first frame names both chats (null: neither has a title), the second lists them, and the foreign driver is in neither
+    assert_eq!(opened.len(), 2, "{opened:?}");
+    assert_eq!(opened[0]["result"], json!({"type": "snapshot", "sessions": [], "namingActiveSessionIds": [], "conversationNames": [{"sessionId": "claude_new", "conversationName": null}, {"sessionId": "claude_rec", "conversationName": null}]}));
+    let sessions = opened[1]["result"]["sessions"].as_array().unwrap();
+    assert_eq!(sessions.len(), 2, "{sessions:?}");
+    let by = |id: &str| sessions.iter().find(|s| s["sessionId"] == id).unwrap().clone();
+    let rec = by("claude_rec");
+    // the recorded chat has an open approval: it needs attention, and carries its last prompt and answer
+    assert_eq!((rec["workspaceId"].clone(), rec["agent"].clone(), rec["status"].clone(), rec["latestPrompt"].clone(), rec["lastAssistantMessage"].clone()), (json!("main"), json!("claude"), json!("attention"), json!("Why does the login fail?"), json!("Fixed.")));
+    assert_eq!(by("claude_new")["status"], Value::Null);
+    // When a turn starts on the empty chat
+    rig.agent.request("turn.start", json!({"thread": "claude_new", "workspace": "main", "driver": "claudeAgent", "prompt": "again"})).unwrap();
+    std::thread::sleep(Duration::from_millis(300));
+    let later: Vec<Value> = conn.poll().iter().map(|f| serde_json::from_str(f).unwrap()).collect();
+    // Then exactly one status frame follows, for that chat, now working on the prompt
+    assert_eq!(later.len(), 1, "{later:?}");
+    assert_eq!((later[0]["result"]["type"].clone(), later[0]["result"]["session"]["sessionId"].clone(), later[0]["result"]["session"]["status"].clone(), later[0]["result"]["session"]["latestPrompt"].clone()), (json!("status"), json!("claude_new"), json!("working"), json!("again")));
+    // And with nothing more changing, a later tick sends nothing
+    std::thread::sleep(Duration::from_millis(300));
+    assert!(conn.poll().is_empty());
+}
+
+#[test]
+fn given_the_host_when_status_is_read_then_it_advertises_the_status_feed_and_structured_capabilities_it_serves() {
+    // Given the agent area
+    let area = AgentArea::default();
+    // When its capabilities are read, Then it names both
+    assert_eq!(orca_core::Area::capabilities(&area), ["agent-session.structured.v1", "agent-session.status-feed.v1"]);
 }

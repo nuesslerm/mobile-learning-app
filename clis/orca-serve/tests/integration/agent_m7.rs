@@ -147,6 +147,10 @@ fn a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_
         assert!(native["result"]["messages"].as_array().unwrap().iter().any(|m| m["blocks"][0]["text"] == "write the note"), "{native}");
         let (_, first) = phone.subscribe(case, &chain, &["rpc:nativeChat.subscribe"], "nativeChat.subscribe", json!({"agent": "claude", "sessionId": "claude_s1", "limit": 50}));
         assert_eq!(first["result"]["messages"], native["result"]["messages"], "{first}");
+        // And declares the structured capability and opens the status feed, whose snapshot lists the chat with a status
+        phone.call(case, &chain, &[], "runtime.clientCapabilities.update", json!({"clientCapabilities": ["agent-session.structured.v1"]}));
+        let (_, feed) = phone.subscribe(case, &chain, &["rpc:agentSession.subscribeStatus"], "agentSession.subscribeStatus", json!({}));
+        assert_eq!(feed["result"]["type"], "snapshot", "{feed}");
         let held = phone.call(case, &chain, &["rpc:agentSession.hold"], "agentSession.hold", json!({"sessionId": "claude_s1", "holderId": "h1"}));
         let released = phone.call(case, &chain, &["rpc:agentSession.release"], "agentSession.release", json!({"sessionId": "claude_s1", "holderId": "h1"}));
         let none = phone.call(case, &chain, &["rpc:agentSession.currentRequests"], "agentSession.currentRequests", json!({"sessionId": "claude_s1", "version": "00000000-0000-4000-8000-000000000000"}));

@@ -343,19 +343,6 @@
       "class": "missing at steps._:s2c:*.[*].payload.error.data",
       "severity": "breaking",
       "diffs": [
-        "steps._:s2c:0.[0].payload.error.code changed drift",
-        "steps._:s2c:0.[0].payload.error.data missing breaking",
-        "steps._:s2c:0.[0].payload.error.message changed drift",
-        "steps._:s2c:0.[0].payload.message changed drift"
-      ],
-      "ids": [
-        "orca-agentSession.subscribeStatus"
-      ]
-    },
-    {
-      "class": "missing at steps._:s2c:*.[*].payload.error.data",
-      "severity": "breaking",
-      "diffs": [
         "steps._:s2c:0.[0].payload.error.data missing breaking"
       ],
       "ids": [

@@ -14,12 +14,13 @@ mod ops;
 mod queued;
 mod respond;
 mod session;
+mod status_stream;
 mod stream;
 
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
-use agent_api_agent::{queue, requests, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START};
+use agent_api_agent::{queue, requests, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, THREAD_LIST, TURN_START};
 use agent_api_agent::lifecycle::THREAD_FORCE_STOP;
 use agent_api_proto::Method as AgentMethod;
 use orca_core::wire::{self, string_field, Failure};
@@ -41,6 +42,7 @@ pub const AGENT_SESSION_HOLD: &str = "agentSession.hold";
 pub const AGENT_SESSION_RELEASE: &str = "agentSession.release";
 pub const AGENT_SESSION_CURRENT_REQUESTS: &str = "agentSession.currentRequests";
 pub const AGENT_SESSION_SEND_RECORDED: &str = "agentSession.sendRecorded";
+pub const AGENT_SESSION_SUBSCRIBE_STATUS: &str = "agentSession.subscribeStatus";
 pub const AGENT_SESSION_CONVERSATION_COMMAND: &str = "agentSession.conversationCommand";
 pub const AGENT_SESSION_QUEUED_MESSAGE_DELETE: &str = "agentSession.queuedMessageDelete";
 pub const AGENT_SESSION_QUEUED_MESSAGE_EDIT_HOLD: &str = "agentSession.queuedMessageEditHold";
@@ -74,7 +76,7 @@ pub const NATIVE_CHAT_UNSUBSCRIBE: &str = "nativeChat.unsubscribe";
 pub const NATIVE_CHAT_SUBSCRIBE: &str = "nativeChat.subscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST];
+pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST];
 
 const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_CREATE, kind: Kind::Unary },
@@ -84,6 +86,7 @@ const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_ITEM, kind: Kind::Unary },
     Method { name: AGENT_SESSION_SUBSCRIBE, kind: Kind::Streaming },
     Method { name: NATIVE_CHAT_SUBSCRIBE, kind: Kind::Streaming },
+    Method { name: AGENT_SESSION_SUBSCRIBE_STATUS, kind: Kind::Streaming },
     Method { name: AGENT_SESSION_UNSUBSCRIBE, kind: Kind::Unary },
     Method { name: AGENT_SESSION_HOLD, kind: Kind::Unary },
     Method { name: AGENT_SESSION_RELEASE, kind: Kind::Unary },
@@ -158,6 +161,10 @@ impl Area for AgentArea {
         NOT_OFFERED
     }
 
+    fn capabilities(&self) -> &'static [&'static str] {
+        &[status_stream::STRUCTURED, status_stream::STATUS_FEED]
+    }
+
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
         let agent = ctx.agent;
         match method {
@@ -218,6 +225,7 @@ impl Area for AgentArea {
         match method {
             AGENT_SESSION_SUBSCRIBE => stream::open(ctx, params),
             NATIVE_CHAT_SUBSCRIBE => native_stream::open(ctx, params),
+            AGENT_SESSION_SUBSCRIBE_STATUS => status_stream::open(ctx),
             other => Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }
     }
