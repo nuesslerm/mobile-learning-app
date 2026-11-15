@@ -1,0 +1,28 @@
+[package]
+name = "mimic-script-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The pure core of the `wf mimic` step interpreter: the case and entry language, variables, the wait rules and the interpreter state machine, behind Transport, Target and Clock ports"
+# What a published crate holds: fixtures, cassettes and tests stay out unless named here (`wf lib release` refuses a manifest without it).
+include = ["src/**", "Cargo.toml"]
+
+[lib]
+doctest = false
+
+[features]
+# In-memory doubles of every port (ScriptedTransport, CassetteEchoTransport, FakeClock, FixedTarget).
+testing = []
+
+[dependencies]
+mimic-core = { version = "0.1.1", registry = "mla" }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+base64 = "0.22"
+
+# The flow tests run the interpreter against the committed T3 cassettes (the oracle of the steps) through the doubles.
+[dev-dependencies]
+mimic-script-core = { path = ".", features = ["testing"] }
+
+# The flow test reads the committed T3 cassettes as the oracle of the steps.
+[package.metadata.flow]
+inputs = ["../../../t3-serve/cassettes/**"]
