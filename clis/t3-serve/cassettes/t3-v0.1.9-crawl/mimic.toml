@@ -2,7 +2,7 @@
 rules = "rules.json"
 corpus = "corpus.json"
 allowlist = "allowlist.json"
-provision_file = "//tooling/mimic-drivers/provision/t3.toml"
+provision_file = "//tooling/mimic-drivers/provision/t3-crawl.toml"
 
 [diff]
 ignore_dirs = ["c2s"]

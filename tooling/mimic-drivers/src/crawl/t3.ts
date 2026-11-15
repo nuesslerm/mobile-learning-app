@@ -167,8 +167,9 @@ export function t3Crawl(options: { runtime?: string } = {}): Report {
     const fromHelp = files.flatMap((f) => helpCommands(readFileSync(join(options.runtime!, f), 'utf8')))
     for (const name of fromHelp) if (!cliCommands.some((c) => c.path[0] === name)) cliCommands.push({ path: [name], source: 'cli-help' })
     notes.push({ name: 'cli-help', available: files.length > 0, found: new Set(fromHelp).size, note: options.runtime })
-    notes.push({ name: 'runtime', available: existsSync(join(options.runtime, 'descriptor.json')), found: 0 })
-    blind.splice(0, blind.length, blind[0]!)
+    const described = existsSync(join(options.runtime, 'descriptor.json'))
+    notes.push({ name: 'runtime', available: described, found: 0 })
+    if (described) blind.splice(1, 1)
   } else {
     notes.push({ name: 'cli-help', available: false, found: 0, note: 'needs the release binary: `t3 --help` of every subcommand, captured on the VM' })
     notes.push({ name: 'runtime', available: false, found: 0, note: 'needs a running server' })

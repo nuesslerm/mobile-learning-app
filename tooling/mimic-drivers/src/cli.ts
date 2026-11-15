@@ -3,6 +3,7 @@
 // node src/cli.ts crawl <orca|t3> [--runtime <dir>]: the endpoint inventory and request corpus of the pinned source (mimic-crawl-report/1); `wf mimic crawl` runs it.
 // node src/cli.ts refresh-corpus <orca|t3> <set dir...>: the corpus of each shard of an app after a pin move, the cases it holds kept and the new rows dealt to the smallest shard.
 // node src/cli.ts scenarios <orca|t3> [<set dir>]: derive the stateful scenarios of an app from its committed crawl (corpus.json and scenarios.json of the scenario set).
+// node src/cli.ts capture-runtime t3 <out dir>: the release binary's --help of every subcommand and the descriptor of a server it starts, as `crawl t3 --runtime <out dir>` reads them.
 // node src/cli.ts sidecar orca: the phone's pinned client behind JSON lines on stdio, the transport of the Rust step interpreter for Orca.
 // node src/cli.ts corpus <orca|t3> <set dir>: write corpus.json and coverage.json (every enumerated row and what became of it) of a recording set.
 // with --cases the payloads as corpus cases of the `script` op.
@@ -38,6 +39,11 @@ if (verb === 'refresh-corpus' && (name === 'orca' || name === 't3') && namespace
 }
 if (verb === 'scenarios' && (name === 'orca' || name === 't3')) {
   process.stdout.write(`${JSON.stringify(writeScenarios(name, namespace))}\n`)
+  process.exit(0)
+}
+if (verb === 'capture-runtime' && name === 't3' && namespace) {
+  const { captureRuntime } = await import('./crawl/runtime.ts')
+  process.stdout.write(`${JSON.stringify(await captureRuntime(namespace))}\n`)
   process.exit(0)
 }
 if (verb === 'sidecar' && name === 'orca') {
