@@ -1,0 +1,16 @@
+DESCRIPTION
+  Remove t3 from this machine: the background service, the launcher, and every downloaded version. Your projects and threads are kept.
+
+USAGE
+  t3 uninstall [flags]
+
+FLAGS
+  --base-dir string    Explicit T3 Code data directory; runtime state is stored under userdata (equivalent to T3CODE_HOME).
+  --yes, -y            Remove everything without asking. Required from a script, where there is no prompt.
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)

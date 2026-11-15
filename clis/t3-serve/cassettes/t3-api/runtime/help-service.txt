@@ -1,0 +1,19 @@
+DESCRIPTION
+  Manage the T3 Code background service.
+
+USAGE
+  t3 service <subcommand> [flags]
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
+
+SUBCOMMANDS
+  install      Install T3 Code as a background service for this user. `t3 up` also chooses how your other devices reach it.
+  restart      Restart the background service. Picks up a version installed by `t3 update` that was not restarted at the time.
+  uninstall    Stop and remove the T3 Code background service.
+  status       Show whether the T3 Code background service is installed.
+  protect      Protect the T3 Code server from agents under memory pressure (Linux with systemd). Asks for sudo.

@@ -30,15 +30,14 @@
     },
     {
       "name": "cli-help",
-      "available": false,
-      "found": 0,
-      "note": "needs the release binary: `t3 --help` of every subcommand, captured on the VM"
+      "available": true,
+      "found": 43,
+      "note": "../../clis/t3-serve/cassettes/t3-api/runtime"
     },
     {
       "name": "runtime",
-      "available": false,
-      "found": 0,
-      "note": "needs a running server"
+      "available": true,
+      "found": 0
     }
   ],
   "endpoints": [
@@ -6915,11 +6914,6 @@
       "class": "handlers registered without a schema",
       "missing_source": "a running t3 server (RPC introspection is not exposed)",
       "detail": "a method the server implements that no contract declares cannot be seen from the source"
-    },
-    {
-      "class": "runtime self-description",
-      "missing_source": "a running t3 server",
-      "detail": "/.well-known/t3/environment answers only on a live server: capture it on the VM with `wf mimic crawl t3 --runtime <dir>`"
     }
   ],
   "counts": {
@@ -6986,15 +6980,14 @@
       },
       {
         "name": "cli-help",
-        "available": false,
-        "found": 0,
-        "note": "needs the release binary: `t3 --help` of every subcommand, captured on the VM"
+        "available": true,
+        "found": 43,
+        "note": "../../clis/t3-serve/cassettes/t3-api/runtime"
       },
       {
         "name": "runtime",
-        "available": false,
-        "found": 0,
-        "note": "needs a running server"
+        "available": true,
+        "found": 0
       }
     ],
     "blind": [
@@ -7002,11 +6995,6 @@
         "class": "handlers registered without a schema",
         "missing_source": "a running t3 server (RPC introspection is not exposed)",
         "detail": "a method the server implements that no contract declares cannot be seen from the source"
-      },
-      {
-        "class": "runtime self-description",
-        "missing_source": "a running t3 server",
-        "detail": "/.well-known/t3/environment answers only on a live server: capture it on the VM with `wf mimic crawl t3 --runtime <dir>`"
       }
     ]
   }

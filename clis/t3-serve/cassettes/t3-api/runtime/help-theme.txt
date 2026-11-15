@@ -1,0 +1,17 @@
+DESCRIPTION
+  Inspect and set environment-wide theme defaults.
+
+USAGE
+  t3 theme <subcommand> [flags]
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
+
+SUBCOMMANDS
+  set      Set the environment's theme; connected clients switch to it.
+  clear    Remove the environment's theme; clients keep what they have.
+  show     Show the environment's theme and its published themes.

@@ -1,0 +1,21 @@
+DESCRIPTION
+  Download a newer t3 and switch this machine to it, including the background service when one is installed.
+
+USAGE
+  t3 update [flags] [<version>]
+
+ARGUMENTS
+  version string    Exact version to install. Defaults to the newest release on the channel. (optional)
+
+FLAGS
+  --base-dir string    Explicit T3 Code data directory; runtime state is stored under userdata (equivalent to T3CODE_HOME).
+  --channel choice     Release channel to follow. Defaults to the channel this t3 was published on. (choices: stable, nightly, preview)
+  --allow-downgrade    Allow moving to an older version than the one running.
+  --yes, -y            Restart the background service without asking. Required to restart it from a script, where there is no prompt.
+
+GLOBAL FLAGS
+  --help, -h                                                          Show help information
+  --version, -v                                                       Show version information
+  --wizard                                                            Start wizard mode for a command
+  --completions <bash|zsh|fish|powershell|sh|pwsh>                    Print shell completion script (choices: bash, zsh, fish, powershell, sh, pwsh)
+  --log-level <all|trace|debug|info|warn|warning|error|fatal|none>    Sets the minimum log level (choices: all, trace, debug, info, warn, warning, error, fatal, none)
