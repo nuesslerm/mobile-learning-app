@@ -112,12 +112,12 @@ fn file_path(params: &Value) -> Result<String, Failure> {
     text(params, "filePath").map(str::to_string).ok_or_else(|| Failure::invalid("Missing file path"))
 }
 
-fn full_id(v: Option<&Value>, key: &str) -> Result<String, Failure> {
+fn full_id(v: Option<&Value>) -> Result<String, Failure> {
     match v {
         None => Err(Failure::invalid("Invalid input: expected string, received undefined")),
         Some(Value::String(s)) if matches!(s.len(), 40 | 64) && s.bytes().all(|b| b.is_ascii_hexdigit()) => Ok(s.clone()),
         Some(Value::String(_)) => Err(Failure::invalid("Expected a full git object id")),
-        Some(other) => Err(Failure::invalid(format!("Invalid input: expected string, received {}", orca_core::wire::received(other)))).map_err(|e| { let _ = key; e }),
+        Some(other) => Err(Failure::invalid(format!("Invalid input: expected string, received {}", orca_core::wire::received(other)))),
     }
 }
 
@@ -137,7 +137,7 @@ pub(crate) fn branch(repo: &Repo, params: &Value) -> Result<Value, Failure> {
         Some(c) if c.is_object() => c,
         Some(other) => return Err(Failure::invalid(format!("Invalid input: expected object, received {}", orca_core::wire::received(other)))),
     };
-    let (head, base) = (full_id(compare.get("headOid"), "headOid")?, full_id(compare.get("mergeBase"), "mergeBase")?);
+    let (head, base) = (full_id(compare.get("headOid"))?, full_id(compare.get("mergeBase"))?);
     let old = old_path(params)?;
     let left_path = old.as_deref().unwrap_or(&path);
     // the pinned host answers an empty text result for any read it cannot make
@@ -152,10 +152,10 @@ pub(crate) fn branch(repo: &Repo, params: &Value) -> Result<Value, Failure> {
 /// `git.commitDiff`: the file at the commit's parent (nothing for a root commit) against the file at the commit.
 pub(crate) fn commit(repo: &Repo, params: &Value) -> Result<Value, Failure> {
     let path = file_path(params)?;
-    let commit = full_id(params.get("commitOid"), "commitOid")?;
+    let commit = full_id(params.get("commitOid"))?;
     let parent = match params.get("parentOid") {
         None | Some(Value::Null) => None,
-        other => Some(full_id(other, "parentOid")?),
+        other => Some(full_id(other)?),
     };
     let old = old_path(params)?;
     let left = match &parent {
