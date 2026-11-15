@@ -1,0 +1,31 @@
+[package]
+name = "mimic-script-host"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The host adapters of the `wf mimic` step interpreter: the pinned release's provisioning with its sha256 check, a hermetic environment with stub agent CLIs, spawned and URL targets, and a driver that owns the server lifecycle"
+# What a published crate holds: fixtures, cassettes and tests stay out unless named here (`wf lib release` refuses a manifest without it).
+include = ["src/**", "Cargo.toml"]
+
+[lib]
+doctest = false
+
+[features]
+# The fake `t3` the flow tests start instead of the pinned release.
+testing = []
+
+[[bin]]
+name = "fake-t3"
+path = "src/bin/fake-t3.rs"
+required-features = ["testing"]
+
+[dependencies]
+mimic-core = { version = "0.1.1", registry = "mla" }
+mimic-script-core = { version = "0.1.1", registry = "mla", path = "../core" }
+mimic-script-net = { version = "0.1.0", registry = "mla", path = "../net" }
+serde_json = { version = "1", features = ["float_roundtrip"] }
+sha2 = "0.10"
+
+[dev-dependencies]
+mimic-script-host = { path = ".", features = ["testing"] }
+tempfile = "3"

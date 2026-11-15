@@ -375,9 +375,16 @@ impl Interpreter {
     }
 }
 
+impl Interpreter {
+    /// What this driver says about itself in `hello`.
+    pub fn hello_info() -> Hello {
+        Hello { driver: DriverInfo { name: "mimic-script".into(), version: env!("CARGO_PKG_VERSION").into(), protocol: "mimic-driver/1".into(), toolchain_lock_hash: None }, target_version: None, coverage: false }
+    }
+}
+
 impl Driver for Interpreter {
     fn hello(&mut self) -> Result<Hello, DriverError> {
-        Ok(Hello { driver: DriverInfo { name: "mimic-script".into(), version: env!("CARGO_PKG_VERSION").into(), protocol: "mimic-driver/1".into(), toolchain_lock_hash: None }, target_version: None, coverage: false })
+        Ok(Interpreter::hello_info())
     }
 
     fn run(&mut self, request: &Request) -> Result<Observed, DriverError> {

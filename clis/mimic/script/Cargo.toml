@@ -2,7 +2,7 @@
 # gradually. A workspace of their own: wf-mimic, t3-serve and orca-serve resolve them from the mla registry, never by path.
 [workspace]
 resolver = "2"
-members = ["core", "net"]
+members = ["core", "net", "host"]
 
 [profile.dev]
 debug = "line-tables-only"
