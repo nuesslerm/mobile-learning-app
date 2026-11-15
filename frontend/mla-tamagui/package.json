@@ -99,7 +99,7 @@
   "devDependencies": {
     "@typescript/native": "catalog:",
     "@lib/browser-client": "workspace:*",
-    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@lib/lint-rules": "workspace:*",
     "@lib/flow-test-harness": "workspace:*",
     "@tamagui/babel-plugin": "^2.7.7",
     "@tamagui/metro-plugin": "^2.7.7",

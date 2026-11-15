@@ -67,7 +67,7 @@
   },
   "devDependencies": {
     "@typescript/native": "catalog:",
-    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@lib/lint-rules": "workspace:*",
     "@loglayer/transport": "^3.1.0",
     "@types/babel__core": "^7.20.5",
     "@types/node": "^22.13.1",

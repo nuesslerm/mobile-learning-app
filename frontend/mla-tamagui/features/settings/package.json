@@ -22,7 +22,7 @@
   },
   "devDependencies": {
     "@typescript/native": "catalog:",
-    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@lib/lint-rules": "workspace:*",
     "@lib/flow-test-harness": "workspace:*",
     "dependency-cruiser": "^17.4.3",
     "oxlint": "catalog:"

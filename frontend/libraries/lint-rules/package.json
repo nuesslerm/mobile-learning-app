@@ -1,5 +1,5 @@
 {
-  "name": "@lib/eslint-plugin-mobile-learn",
+  "name": "@lib/lint-rules",
   "version": "1.0.0",
   "description": "Internal oxlint JS-plugin rules for the mobile-learning apps",
   "type": "module",

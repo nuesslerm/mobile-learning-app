@@ -74,7 +74,7 @@ Ask in order; the first yes decides. A declarative file a tool reads → 16. Onl
 | 8 | Hexagonal feature | full hexagon, folders | leetcode, tamil-writing, coding-agent, service-report, dashboards | not yet (see below) |
 | 9 | Presentation feature | delivery only | `@feature/settings` | settings holds (the dev-tools feature dissolved into the app shell: its DI wiring was dead) |
 | 10 | Contracts package | core only | `@app/remote-chat-agent-contracts`, `@cli/harness-contracts` | partly; unchecked. `@cli/harness-contracts` has no zod and holds a device registry and geometry functions (`tooling/browser-harness/contracts/src/index.ts:209-444`). `@app/remote-chat-agent-contracts` (coding-agent) has one consumer; the leetcode-contracts library folded into `features/leetcode/domain` |
-| 11 | Pure library | core only | `@lib/gesture-geometry`, `@lib/voice-edit-dsl`, `@lib/eslint-plugin-mobile-learn`, `@lib/app-di`; `@lib/app-config` (target) | holds, except app-config, which reads env at import; unchecked |
+| 11 | Pure library | core only | `@lib/gesture-geometry`, `@lib/voice-edit-dsl`, `@lib/lint-rules`, `@lib/app-di`; `@lib/app-config` (target) | holds, except app-config, which reads env at import; unchecked |
 | 12 | Hexagonal library | full hexagon, folders | `@lib/logging`, `@lib/rn-agentation` | partly |
 | 13 | Component library | delivery only | `@lib/tamagui-design-system` | holds; unchecked |
 | 14 | Test harness | delivery only | `@lib/flow-test-harness` | ships leetcode's doubles |

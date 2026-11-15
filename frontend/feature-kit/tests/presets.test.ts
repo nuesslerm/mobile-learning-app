@@ -106,7 +106,7 @@ function oxlintRules(variant: 'clean' | 'dirty', fixture = 'oxlint', config = pa
   try {
     cpSync(path.join(planted, fixture, variant), dir, { recursive: true });
     const configText = readFileSync(config, 'utf8')
-      .replace('./libraries/eslint-plugin-mobile-learn', path.join(frontend, 'libraries', 'eslint-plugin-mobile-learn'))
+      .replace('./libraries/lint-rules', path.join(frontend, 'libraries', 'lint-rules'))
       .replace('"typeAware": true', '"typeAware": false');
     writeFileSync(path.join(dir, '.oxlintrc.json'), configText);
     const run = spawnSync(path.join(frontend, 'mla-tamagui', 'node_modules', '.bin', 'oxlint'), ['-c', '.oxlintrc.json', '--format=unix', '.'], { cwd: dir, encoding: 'utf8' });

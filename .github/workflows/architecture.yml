@@ -62,7 +62,7 @@ jobs:
         run: wf check --budget
 
       - name: Test ESLint plugin (vitest)
-        run: pnpm --filter @lib/eslint-plugin-mobile-learn run test
+        run: pnpm --filter @lib/lint-rules run test
 
       - name: Flow tests of the wf surface
         # The wf binary was built by install-wf above; the flow tests drive it as a child process, through stub tools.

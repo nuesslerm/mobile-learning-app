@@ -11,7 +11,7 @@ packages:
   - frontend/libraries/app-config
   - frontend/libraries/app-di
   - libraries/browser-client
-  - frontend/libraries/eslint-plugin-mobile-learn
+  - frontend/libraries/lint-rules
   - frontend/libraries/flow-test-harness
   - frontend/libraries/gesture-geometry
   - libraries/hook-runtime

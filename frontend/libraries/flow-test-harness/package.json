@@ -34,7 +34,7 @@
   },
   "devDependencies": {
     "@typescript/native": "catalog:",
-    "@lib/eslint-plugin-mobile-learn": "workspace:*",
+    "@lib/lint-rules": "workspace:*",
     "@types/react": "catalog:",
     "lucide-react-native": "^1.17.0",
     "oxlint": "catalog:",
