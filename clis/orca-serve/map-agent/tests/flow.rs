@@ -1091,3 +1091,26 @@ fn an_unsubscribe_names_its_session_the_way_the_schema_and_the_host_do_and_a_cha
     assert_eq!(rig.err("nativeChat.unsubscribe", json!({"subscriptionId": 7})).1, "Invalid input: expected string, received number");
     assert_eq!(rig.ok("nativeChat.unsubscribe", json!(null)), json!({"unsubscribed": true}));
 }
+
+#[test]
+fn given_a_send_the_phone_lost_the_reply_of_when_it_asks_whether_it_was_recorded_then_a_known_message_is_and_an_unknown_one_is_not() {
+    // Given a chat created with a first message under the operation id `op1`
+    let mut rig = Rig::new();
+    rig.ok("agentSession.create", create_params("op1", "fix the login"));
+    // When the phone asks whether that message, then another it never sent, was recorded
+    let known = rig.ok("agentSession.sendRecorded", json!({"sessionId": "claude_s1", "clientMessageId": "op1"}));
+    let unknown = rig.ok("agentSession.sendRecorded", json!({"sessionId": "claude_s1", "clientMessageId": "op-never"}));
+    // Then the first is recorded and the second is not
+    assert_eq!((known, unknown), (json!({"recorded": true}), json!({"recorded": false})));
+    // And a chat the host does not have is refused as every session method refuses it, and a malformed ask by the schema's words
+    assert_eq!(rig.err("agentSession.sendRecorded", json!({"sessionId": "claude_none", "clientMessageId": "op1"})).1, "agent_session_not_found");
+    for (params, message) in [
+        (json!({}), "Invalid input: expected string, received undefined"),
+        (json!({"sessionId": "claude_s1"}), "Invalid input: expected string, received undefined"),
+        (json!({"sessionId": "", "clientMessageId": "a"}), "Invalid session id"),
+        (json!({"sessionId": "claude_s1", "clientMessageId": ""}), "Invalid client message id"),
+        (json!({"sessionId": "claude_s1", "clientMessageId": "op1", "extra": 1}), "Unrecognized key: \"extra\""),
+    ] {
+        assert_eq!(rig.err("agentSession.sendRecorded", params.clone()).1, message, "{params}");
+    }
+}

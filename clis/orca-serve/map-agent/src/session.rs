@@ -333,3 +333,21 @@ pub(crate) fn read_session(agent: &dyn AgentApi, params: &Value) -> Result<Value
     let before = all.get(start).map_or_else(|| params["beforeOffset"].as_u64().unwrap_or(0), |i| i.sequence);
     Ok(json!({"messages": messages, "hasMore": start > 0, "beforeOffset": before}))
 }
+
+/// `agentSession.sendRecorded`: `{sessionId, clientMessageId}` and nothing else; `{recorded}` says whether the host holds the send's answer.
+pub(crate) fn send_recorded(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    let required = |key: &str, message: &str| -> Result<String, Failure> {
+        match orca_core::wire::string_field(params, key)? {
+            None => Err(Failure::invalid("Invalid input: expected string, received undefined")),
+            Some("") => Err(Failure::invalid(message.to_string())),
+            Some(s) => Ok(s.to_string()),
+        }
+    };
+    let session = required("sessionId", "Invalid session id")?;
+    let id = required("clientMessageId", "Invalid client message id")?;
+    if let Some(key) = params.as_object().and_then(|o| o.keys().find(|k| !matches!(k.as_str(), "sessionId" | "clientMessageId"))) {
+        return Err(Failure::invalid(format!("Unrecognized key: \"{key}\"")));
+    }
+    journal::view(agent, &session)?;
+    Ok(json!({"recorded": crate::ops::send_recorded(agent, &session, &id)?}))
+}

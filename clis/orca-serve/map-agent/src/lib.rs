@@ -39,6 +39,7 @@ pub const AGENT_SESSION_UNSUBSCRIBE: &str = "agentSession.unsubscribe";
 pub const AGENT_SESSION_HOLD: &str = "agentSession.hold";
 pub const AGENT_SESSION_RELEASE: &str = "agentSession.release";
 pub const AGENT_SESSION_CURRENT_REQUESTS: &str = "agentSession.currentRequests";
+pub const AGENT_SESSION_SEND_RECORDED: &str = "agentSession.sendRecorded";
 pub const AGENT_SESSION_CONVERSATION_COMMAND: &str = "agentSession.conversationCommand";
 pub const AGENT_SESSION_QUEUED_MESSAGE_DELETE: &str = "agentSession.queuedMessageDelete";
 pub const AGENT_SESSION_QUEUED_MESSAGE_EDIT_HOLD: &str = "agentSession.queuedMessageEditHold";
@@ -83,6 +84,7 @@ const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_HOLD, kind: Kind::Unary },
     Method { name: AGENT_SESSION_RELEASE, kind: Kind::Unary },
     Method { name: AGENT_SESSION_CURRENT_REQUESTS, kind: Kind::Unary },
+    Method { name: AGENT_SESSION_SEND_RECORDED, kind: Kind::Unary },
     Method { name: AGENT_SESSION_CONVERSATION_COMMAND, kind: Kind::Unary },
     Method { name: AGENT_SESSION_QUEUED_MESSAGE_DELETE, kind: Kind::Unary },
     Method { name: AGENT_SESSION_QUEUED_MESSAGE_EDIT_HOLD, kind: Kind::Unary },
@@ -163,6 +165,7 @@ impl Area for AgentArea {
             AGENT_SESSION_HOLD => session::hold(agent, params),
             AGENT_SESSION_RELEASE => Ok(session::release()),
             AGENT_SESSION_CURRENT_REQUESTS => session::current_requests(agent, params),
+            AGENT_SESSION_SEND_RECORDED => session::send_recorded(agent, params),
             AGENT_SESSION_CONVERSATION_COMMAND => session::conversation_command(agent, params),
             AGENT_SESSION_QUEUED_MESSAGE_DELETE => queued::delete(agent, params),
             AGENT_SESSION_QUEUED_MESSAGE_EDIT_HOLD => queued::edit_hold(agent, params),

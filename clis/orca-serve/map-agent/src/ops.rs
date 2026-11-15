@@ -63,3 +63,10 @@ pub(crate) fn refused_with(code: &str, message: &str, details: Value) -> Value {
     }
     json!({"ok": false, "refusal": r})
 }
+
+/// Whether the session's ledger holds an answer for the client message id that is no refusal: the phone that lost a send's reply asks this
+/// instead of searching the history pages it loaded. A refusal, an id never seen and an unreadable ledger are not recorded.
+pub(crate) fn send_recorded(agent: &dyn AgentApi, session: &str, client_message_id: &str) -> Result<bool, Failure> {
+    let Some(Value::Object(ledger)) = state_get(agent, &key(session))? else { return Ok(false) };
+    Ok(ledger.get(client_message_id).is_some_and(|entry| entry["answer"]["ok"] != false))
+}
