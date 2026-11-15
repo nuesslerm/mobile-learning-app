@@ -66,7 +66,7 @@
       "name": "mobile/src/diagnostics/connection-diagnostics-submission.ts#1",
       "state": "excluded",
       "milestone": "M5",
-      "reason": "proposed default awaiting owner confirmation: the phone posts its redacted connection report to the constant https://www.onorca.dev/v1/feedback after an explicit tap; no host is involved, as with the other fixed third-party fetches"
+      "reason": "owner-confirmed (decision 7): the phone posts its redacted connection report to the constant https://www.onorca.dev/v1/feedback after an explicit tap; no host is involved, as with the other fixed third-party fetches"
     },
     {
       "id": "http:mobile/src/diagnostics/use-troubleshoot-diagnostics.ts#1",
@@ -95,7 +95,7 @@
       "name": "mobile/src/transport/relay/mobile-relay-resume-director.ts#1",
       "state": "not-offered",
       "milestone": "M5",
-      "reason": "proposed default awaiting owner confirmation (decision 1): the phone posts /v1/resolve to the relay director a pairing offer names (directorUrl), which only pairing.provisionRelay mints, and that is not offered; a directly paired phone never calls it, and this host runs no director",
+      "reason": "owner-confirmed (decision 7): the phone posts /v1/resolve to the relay director a pairing offer names (directorUrl), which only pairing.provisionRelay mints, and that is not offered; a directly paired phone never calls it, and this host runs no director",
       "decidedBy": "M5"
     },
     {
@@ -566,7 +566,7 @@
       "name": "agentSession.readVisual",
       "state": "not-offered",
       "milestone": "M7",
-      "reason": "proposed default awaiting owner confirmation: it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read",
+      "reason": "owner-confirmed (decision 7): it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read",
       "decidedBy": "M7"
     },
     {
@@ -626,7 +626,7 @@
       "name": "agentSession.reveal",
       "state": "not-offered",
       "milestone": "M7",
-      "reason": "proposed default awaiting owner confirmation: it shows the chat's tab in the desktop's own window and this host has no desktop",
+      "reason": "owner-confirmed (decision 7): it shows the chat's tab in the desktop's own window and this host has no desktop",
       "decidedBy": "M7"
     },
     {
@@ -820,7 +820,7 @@
       "name": "aiVault.listSessions",
       "state": "not-offered",
       "milestone": "M7",
-      "reason": "proposed default awaiting owner confirmation (decision 1): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves",
+      "reason": "owner-confirmed (decision 7): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves",
       "decidedBy": "M7"
     },
     {
@@ -829,7 +829,7 @@
       "name": "aiVault.prepareSessionResume",
       "state": "not-offered",
       "milestone": "M7",
-      "reason": "proposed default awaiting owner confirmation (decision 1): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal",
+      "reason": "owner-confirmed (decision 7): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal",
       "decidedBy": "M7"
     },
     {
@@ -1155,7 +1155,7 @@
       "name": "files.open",
       "state": "not-offered",
       "milestone": "M6",
-      "reason": "proposed default awaiting owner confirmation: it opens an editor tab in the desktop's own window and this host has no desktop; the phone reads a file with files.read and files.readPreview",
+      "reason": "owner-confirmed (decision 7): it opens an editor tab in the desktop's own window and this host has no desktop; the phone reads a file with files.read and files.readPreview",
       "decidedBy": "M6"
     },
     {
@@ -1164,7 +1164,7 @@
       "name": "files.openDiff",
       "state": "not-offered",
       "milestone": "M6",
-      "reason": "proposed default awaiting owner confirmation: it opens a diff tab in the desktop's own window and this host has no desktop",
+      "reason": "owner-confirmed (decision 7): it opens a diff tab in the desktop's own window and this host has no desktop",
       "decidedBy": "M6"
     },
     {
@@ -2587,7 +2587,7 @@
       "name": "markdown.readTab",
       "state": "not-offered",
       "milestone": "M6",
-      "reason": "proposed default awaiting owner confirmation: it reads a markdown editor tab of the desktop by its tab id and this host has no tab; the phone's own fallback reads the file with files.read",
+      "reason": "owner-confirmed (decision 7): it reads a markdown editor tab of the desktop by its tab id and this host has no tab; the phone's own fallback reads the file with files.read",
       "decidedBy": "M6"
     },
     {
@@ -2596,7 +2596,7 @@
       "name": "markdown.saveTab",
       "state": "not-offered",
       "milestone": "M6",
-      "reason": "proposed default awaiting owner confirmation: it saves a markdown editor tab of the desktop by its tab id and this host has no tab to save",
+      "reason": "owner-confirmed (decision 7): it saves a markdown editor tab of the desktop by its tab id and this host has no tab to save",
       "decidedBy": "M6"
     },
     {
@@ -2799,7 +2799,7 @@
       "name": "pairing.getEndpoints",
       "state": "not-offered",
       "milestone": "M5",
-      "reason": "proposed default awaiting owner confirmation (decision 1): a product choice, not something the chain cannot prove (the pinned host lets a directly paired phone call it): a phone is paired with this one host by its own offer, which already carries the endpoint; there is no desktop whose other addresses it could list",
+      "reason": "owner-confirmed (decision 7): a product choice, not something the chain cannot prove (the pinned host lets a directly paired phone call it): a phone is paired with this one host by its own offer, which already carries the endpoint; there is no desktop whose other addresses it could list",
       "decidedBy": "M5"
     },
     {
@@ -2808,7 +2808,7 @@
       "name": "pairing.provisionRelay",
       "state": "not-offered",
       "milestone": "M5",
-      "reason": "proposed default awaiting owner confirmation (decision 1): provisioning a relay credential needs a relay service, which this host does not run",
+      "reason": "owner-confirmed (decision 7): provisioning a relay credential needs a relay service, which this host does not run",
       "decidedBy": "M5"
     },
     {
@@ -2824,7 +2824,7 @@
       "name": "preflight.check",
       "state": "not-offered",
       "milestone": "M7",
-      "reason": "proposed default awaiting owner confirmation: it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md)",
+      "reason": "owner-confirmed (decision 7): it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md)",
       "decidedBy": "M7"
     },
     {

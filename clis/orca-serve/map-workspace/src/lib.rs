@@ -92,10 +92,10 @@ const METHODS: &[Method] = &[
 
 /// Each reason equals the one in `docs/plans/rca-parity/coverage/orca-decisions.json`; a flow test compares them.
 pub const NOT_OFFERED: &[NotOffered] = &[
-    NotOffered { name: FILES_OPEN, reason: "proposed default awaiting owner confirmation: it opens an editor tab in the desktop's own window and this host has no desktop; the phone reads a file with files.read and files.readPreview", decided_by: "M6" },
-    NotOffered { name: FILES_OPEN_DIFF, reason: "proposed default awaiting owner confirmation: it opens a diff tab in the desktop's own window and this host has no desktop", decided_by: "M6" },
-    NotOffered { name: MARKDOWN_READ_TAB, reason: "proposed default awaiting owner confirmation: it reads a markdown editor tab of the desktop by its tab id and this host has no tab; the phone's own fallback reads the file with files.read", decided_by: "M6" },
-    NotOffered { name: MARKDOWN_SAVE_TAB, reason: "proposed default awaiting owner confirmation: it saves a markdown editor tab of the desktop by its tab id and this host has no tab to save", decided_by: "M6" },
+    NotOffered { name: FILES_OPEN, reason: "owner-confirmed (decision 7): it opens an editor tab in the desktop's own window and this host has no desktop; the phone reads a file with files.read and files.readPreview", decided_by: "M6" },
+    NotOffered { name: FILES_OPEN_DIFF, reason: "owner-confirmed (decision 7): it opens a diff tab in the desktop's own window and this host has no desktop", decided_by: "M6" },
+    NotOffered { name: MARKDOWN_READ_TAB, reason: "owner-confirmed (decision 7): it reads a markdown editor tab of the desktop by its tab id and this host has no tab; the phone's own fallback reads the file with files.read", decided_by: "M6" },
+    NotOffered { name: MARKDOWN_SAVE_TAB, reason: "owner-confirmed (decision 7): it saves a markdown editor tab of the desktop by its tab id and this host has no tab to save", decided_by: "M6" },
 ];
 
 pub struct WorkspaceArea;

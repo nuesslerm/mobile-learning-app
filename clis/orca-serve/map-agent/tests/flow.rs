@@ -796,7 +796,7 @@ fn given_the_rows_the_area_does_not_offer_when_called_then_each_answers_not_offe
         assert_eq!((r["error"]["code"].clone(), r["error"]["data"].clone()), (json!("not_offered"), json!({"decidedBy": d["decidedBy"]})), "{}", row.name);
         assert_eq!(r["error"]["message"], format!("{} is not offered by this host: {}", row.name, d["reason"].as_str().unwrap()), "{}", row.name);
         assert_eq!(row.reason, d["reason"].as_str().unwrap());
-        assert!(row.reason.starts_with("proposed default awaiting owner confirmation"), "{}", row.name);
+        assert!(row.reason.starts_with("owner-confirmed (decision 7)"), "{}", row.name);
     }
     // And the rows the owner decision names are all among them
     for name in ["aiVault.listSessions", "aiVault.prepareSessionResume", "agentSession.reveal", "agentSession.readVisual"] {
