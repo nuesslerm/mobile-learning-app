@@ -18,6 +18,16 @@ pub struct Interpreter {
     policy: Policy,
     /// Run before the entries of a case that asks for `prelude: "session"`.
     prelude: Vec<Entry>,
+    /// Session mode: the prelude runs once per server generation and its steps open every case that asks for it.
+    session: bool,
+    begun: Option<Begun>,
+}
+
+/// What the prelude of one server generation left behind.
+struct Begun {
+    generation: u64,
+    steps: Vec<Step>,
+    access_token: Option<Value>,
 }
 
 /// The state of one run.
@@ -94,7 +104,13 @@ fn mask_workspace(v: &mut Value, workspace: &str) {
 
 impl Interpreter {
     pub fn new(transport: Box<dyn Transport>, target: Box<dyn Target>, clock: Box<dyn Clock>, policy: Policy) -> Interpreter {
-        Interpreter { transport, target, clock, policy, prelude: Vec::new() }
+        Interpreter { transport, target, clock, policy, prelude: Vec::new(), session: false, begun: None }
+    }
+
+    /// Session mode: one prelude per server generation instead of one per case; needs a prelude of at least the token, ticket and open entries.
+    pub fn with_session(mut self, session: bool) -> Interpreter {
+        self.session = session;
+        self
     }
 
     /// The prelude data of the set: entries every case that names `prelude: "session"` starts with.
@@ -275,32 +291,87 @@ impl Interpreter {
         true
     }
 
-    /// Runs one case; an `Err` is a request-level failure (a malformed case, no credential), not behaviour.
-    pub fn run_case(&mut self, case: &Case) -> Result<Observed, String> {
-        let workspace = self.target.workspace();
-        let mut vars = Vars::new();
-        vars.insert("workspace".into(), Value::String(workspace.clone()));
-        vars.insert("bad-credential".into(), Value::String(BAD_CREDENTIAL.into()));
-        if case.wants_credential() || (case.prelude && self.prelude.iter().any(|e| crate::vars::placeholders(&e.arg.to_string()).contains(&"credential"))) {
-            vars.insert("credential".into(), Value::String(self.target.mint()?));
-        }
-        let mut run = Run { steps: Vec::new(), vars, last_frame_at: self.clock.now_ms(), settle_ms: case.settle_ms, socket: false };
-        let entries: Vec<Entry> = if case.prelude { self.prelude.iter().chain(&case.entries).cloned().collect() } else { case.entries.clone() };
-        let mut declared = case.declared();
-        if case.prelude {
-            declared.extend(self.prelude.iter().filter_map(|e| e.capture.as_ref()?.as_object()).flat_map(|c| c.keys().cloned()));
-        }
-        for entry in &entries {
-            if !self.entry(&mut run, entry, &declared) {
+    /// Runs `entries` from `vars`; the steps and the variables the run ended with.
+    fn execute(&mut self, entries: &[Entry], settle_ms: Option<u64>, declared: &[String], vars: Vars) -> (Vec<Step>, Vars) {
+        let mut run = Run { steps: Vec::new(), vars, last_frame_at: self.clock.now_ms(), settle_ms, socket: false };
+        for entry in entries {
+            if !self.entry(&mut run, entry, declared) {
                 break;
             }
         }
-        for step in &mut run.steps {
+        (run.steps, run.vars)
+    }
+
+    fn base_vars(&mut self, wants_credential: bool) -> Result<Vars, String> {
+        let mut vars = Vars::new();
+        vars.insert("workspace".into(), Value::String(self.target.workspace()));
+        vars.insert("bad-credential".into(), Value::String(BAD_CREDENTIAL.into()));
+        if wants_credential {
+            vars.insert("credential".into(), Value::String(self.target.mint()?));
+        }
+        Ok(vars)
+    }
+
+    fn names(entries: &[Entry]) -> Vec<String> {
+        entries.iter().filter_map(|e| e.capture.as_ref()?.as_object()).flat_map(|c| c.keys().cloned()).collect()
+    }
+
+    fn wants_credential(entries: &[Entry]) -> bool {
+        entries.iter().any(|e| crate::vars::placeholders(&e.arg.to_string()).contains(&"credential"))
+    }
+
+    /// The prelude of this server generation, run once: its steps up to the close that ends it, and the token it was given.
+    fn begin(&mut self) -> Result<(), String> {
+        let generation = self.target.generation();
+        if self.begun.as_ref().is_some_and(|b| b.generation == generation) {
+            return Ok(());
+        }
+        let mut entries = self.prelude.clone();
+        entries.push(Entry { op: "ws-close".into(), arg: serde_json::json!({}), capture: None, await_exit: false });
+        let vars = self.base_vars(Self::wants_credential(&entries))?;
+        let (mut steps, vars) = self.execute(&entries, Some(250), &Self::names(&entries), vars);
+        if let Some(closed) = steps.iter().position(|s| s.channel.as_deref() == Some("ws:close")) {
+            steps.truncate(closed);
+        }
+        self.begun = Some(Begun { generation, steps, access_token: vars.get("access_token").cloned() });
+        Ok(())
+    }
+
+    /// Runs one case; an `Err` is a request-level failure (a malformed case, no credential), not behaviour.
+    pub fn run_case(&mut self, case: &Case) -> Result<Observed, String> {
+        let workspace = self.target.workspace();
+        let mut steps;
+        if case.prelude && self.session && self.prelude.len() >= 3 {
+            self.begin()?;
+            let (cached, token) = self.begun.as_ref().map(|b| (b.steps.clone(), b.access_token.clone())).expect("the prelude has run");
+            let mut entries = vec![self.prelude[1].clone(), self.prelude[2].clone()];
+            entries.extend(case.entries.iter().cloned());
+            let mut vars = self.base_vars(Self::wants_credential(&entries))?;
+            if let Some(token) = token {
+                vars.insert("access_token".into(), token);
+            }
+            let mut declared = case.declared();
+            declared.extend(Self::names(&self.prelude));
+            let (own, _) = self.execute(&entries, case.settle_ms, &declared, vars);
+            // the socket of its own opens like the prelude's: its opening steps are the cached ones
+            let opened = own.iter().position(|s| s.channel.as_deref() == Some("ws:open"));
+            steps = cached;
+            steps.extend(own.into_iter().skip(opened.map_or(0, |i| i + 1)));
+        } else {
+            let entries: Vec<Entry> = if case.prelude { self.prelude.iter().chain(&case.entries).cloned().collect() } else { case.entries.clone() };
+            let vars = self.base_vars(Self::wants_credential(&entries))?;
+            let mut declared = case.declared();
+            if case.prelude {
+                declared.extend(Self::names(&self.prelude));
+            }
+            steps = self.execute(&entries, case.settle_ms, &declared, vars).0;
+        }
+        for step in &mut steps {
             mask_workspace(&mut step.payload, &workspace);
         }
-        let transport = run.steps.last().is_some_and(|s| s.channel.as_deref() == Some("driver") && s.payload.get("transport_error").is_some());
+        let transport = steps.last().is_some_and(|s| s.channel.as_deref() == Some("driver") && s.payload.get("transport_error").is_some());
         let outcome = if transport { Outcome { status: Status::Error, code: Some("transport".into()), reference_accepts: None } } else { Outcome::default() };
-        Ok(Observed { steps: run.steps, effects: Vec::new(), outcome })
+        Ok(Observed { steps, effects: Vec::new(), outcome })
     }
 }
 

@@ -35,6 +35,7 @@
     "knowledge": 1,
     "leetcode-auth-cookie-capture-core": 1,
     "leetcode-backend-core": 1,
+    "mimic-script-core": 1,
     "offload": 2,
     "orca-core": 11,
     "orca-crypto": 1,

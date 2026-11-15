@@ -37,11 +37,13 @@ pub struct FixedTarget {
     pub workspace: String,
     pub credential: String,
     pub mints: Rc<Cell<u32>>,
+    /// A test bumps it to model the server restarting.
+    pub generation: Rc<Cell<u64>>,
 }
 
 impl FixedTarget {
     pub fn new(workspace: &str, credential: &str) -> FixedTarget {
-        FixedTarget { workspace: workspace.into(), credential: credential.into(), mints: Rc::default() }
+        FixedTarget { workspace: workspace.into(), credential: credential.into(), mints: Rc::default(), generation: Rc::default() }
     }
 }
 
@@ -53,6 +55,10 @@ impl Target for FixedTarget {
     fn mint(&mut self) -> Result<String, String> {
         self.mints.set(self.mints.get() + 1);
         Ok(self.credential.clone())
+    }
+
+    fn generation(&self) -> u64 {
+        self.generation.get()
     }
 }
 

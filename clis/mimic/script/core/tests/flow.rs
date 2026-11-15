@@ -212,6 +212,71 @@ fn session_prelude(root: &std::path::Path) -> Vec<mimic_script_core::case::Entry
     Case::parse(&first.1).unwrap().entries.into_iter().take(5).collect()
 }
 
+fn prelude_entries() -> Vec<mimic_script_core::case::Entry> {
+    Case::entries_of(&json!([
+        {"http": {"method": "POST", "path": "/oauth/token", "body": {"subject_token": "{credential}"}}},
+        {"http": {"method": "POST", "path": "/ticket", "headers": {"authorization": "Bearer {access_token}"}}},
+        {"ws-open": {"path": "/ws?t={ticket}"}},
+        {"ws-send": {"_tag": "Request", "id": "p1", "tag": "setup"}, "await": "exit"},
+        {"ws-send": {"_tag": "Request", "id": "p2", "tag": "setup"}, "await": "exit"}
+    ]))
+    .unwrap()
+}
+
+fn exit_of(id: &str) -> Event {
+    text(&json!({"_tag": "Exit", "requestId": id, "exit": {"_tag": "Success"}}).to_string())
+}
+
+/// What a server answers to the prelude and to `cases` own sockets after it.
+fn session_server(clock: &FakeClock, own_sockets: usize) -> ScriptedTransport {
+    let transport = ScriptedTransport::new(clock);
+    transport.reply(200, &[], r#"{"access_token":"tok"}"#).reply(200, &[], r#"{"ticket":"tk-0"}"#).open(101, vec![]).answer_send(vec![(5, exit_of("p1"))]).answer_send(vec![(5, exit_of("p2"))]);
+    for n in 0..own_sockets {
+        transport.reply(200, &[], &format!(r#"{{"ticket":"tk-{}"}}"#, n + 1)).open(101, vec![]).answer_send(vec![(5, exit_of("c"))]);
+    }
+    transport
+}
+
+fn session_case() -> Value {
+    json!({"prelude": "session", "script": [{"ws-send": {"_tag": "Request", "id": "c", "tag": "work"}}]})
+}
+
+#[test]
+fn given_session_mode_when_two_cases_run_then_the_prelude_runs_once_and_both_begin_with_its_steps() {
+    let clock = FakeClock::default();
+    let transport = session_server(&clock, 2);
+    let target = FixedTarget::new("/tmp/ws", "cred-1");
+    let mints = target.mints.clone();
+    let mut interpreter = Interpreter::new(Box::new(transport.clone()), Box::new(target), Box::new(clock.clone()), Policy::default()).with_prelude(prelude_entries()).with_session(true);
+
+    let first = interpreter.run_case(&Case::parse(&session_case()).unwrap()).unwrap();
+    let second = interpreter.run_case(&Case::parse(&session_case()).unwrap()).unwrap();
+
+    let token_calls = transport.calls().iter().filter(|c| c.path == "/oauth/token").count();
+    assert_eq!((token_calls, mints.get()), (1, 1));
+    assert_eq!(first.steps[..second.steps.len() - 2], second.steps[..second.steps.len() - 2]);
+    assert_eq!(channels(&first).last().unwrap(), "S2c/ws");
+    assert!(first.steps.iter().all(|s| s.channel.as_deref() != Some("ws:close")));
+    assert_eq!(transport.calls()[1].headers, [("authorization".to_string(), "Bearer tok".to_string())]);
+}
+
+#[test]
+fn given_session_mode_when_the_server_restarts_then_the_prelude_runs_again() {
+    let clock = FakeClock::default();
+    let transport = session_server(&clock, 1);
+    let target = FixedTarget::new("/tmp/ws", "cred-1");
+    let (mints, generation) = (target.mints.clone(), target.generation.clone());
+    let mut interpreter = Interpreter::new(Box::new(transport.clone()), Box::new(target), Box::new(clock.clone()), Policy::default()).with_prelude(prelude_entries()).with_session(true);
+    interpreter.run_case(&Case::parse(&session_case()).unwrap()).unwrap();
+
+    generation.set(1);
+    transport.reply(200, &[], r#"{"access_token":"tok2"}"#).reply(200, &[], r#"{"ticket":"tk-r"}"#).open(101, vec![]).answer_send(vec![(5, exit_of("p1"))]).answer_send(vec![(5, exit_of("p2"))]);
+    transport.reply(200, &[], r#"{"ticket":"tk-r2"}"#).open(101, vec![]).answer_send(vec![(5, exit_of("c"))]);
+    interpreter.run_case(&Case::parse(&session_case()).unwrap()).unwrap();
+
+    assert_eq!((transport.calls().iter().filter(|c| c.path == "/oauth/token").count(), mints.get()), (2, 2));
+}
+
 fn cassette_steps(dir: &std::path::Path) -> Vec<(String, Value, Vec<Step>)> {
     let read = |name: &str| std::fs::read_to_string(dir.join(name)).unwrap_or_else(|e| panic!("{}: {e}", dir.join(name).display()));
     let cassette = mimic_core::cassette::Cassette::parse(&read("cassette.json"), &read("interactions.jsonl")).unwrap();

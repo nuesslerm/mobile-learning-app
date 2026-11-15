@@ -1,0 +1,22 @@
+[package]
+name = "mimic-script-net"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The wire adapters of the `wf mimic` step interpreter: an HTTP/1.1 client that keeps raw status, repeated headers and chunked bodies, a WebSocket on a worker thread, and the system clock"
+# What a published crate holds: fixtures, cassettes and tests stay out unless named here (`wf lib release` refuses a manifest without it).
+include = ["src/**", "Cargo.toml"]
+
+[lib]
+doctest = false
+
+[dependencies]
+mimic-script-core = { version = "0.1.1", registry = "mla", path = "../core" }
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
+flate2 = "1"
+
+[dev-dependencies]
+mimic-core = { version = "0.1.1", registry = "mla" }
+mimic-script-core = { version = "0.1.1", registry = "mla", path = "../core", features = ["testing"] }
+serde_json = "1"
+flate2 = "1"

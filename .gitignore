@@ -63,6 +63,8 @@ frontend/libraries/*/dist/**
 frontend/*/dist/
 backend/*/target*/
 clis/telemetry/target/
+clis/mimic/script/target/
+clis/mimic/core/target/
 backend/*/dist/
 clis/*/dist/
 clis/*/dist/**

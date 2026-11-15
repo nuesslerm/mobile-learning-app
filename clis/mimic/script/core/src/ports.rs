@@ -57,6 +57,10 @@ pub trait Target {
     fn workspace(&self) -> String;
     /// A fresh credential, asked for only when a script names `{credential}`.
     fn mint(&mut self) -> Result<String, String>;
+    /// Bumped by every (re)start of the server: state a session built (the prelude) belongs to one generation.
+    fn generation(&self) -> u64 {
+        0
+    }
 }
 
 pub trait Clock {

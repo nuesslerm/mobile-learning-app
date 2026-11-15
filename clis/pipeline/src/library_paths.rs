@@ -50,7 +50,9 @@ fn released(root: &Path, catalog: &serde_json::Value, library: &serde_json::Valu
 /// `<manifest>: <library>` for each path dependency on a released library, outside the libraries' own manifests.
 pub fn violations(root: &Path) -> Vec<String> {
     let Some(catalog) = std::fs::read_to_string(root.join("libraries.json")).ok().and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok()) else { return Vec::new() };
-    let libraries: Vec<(String, String)> = catalog["libraries"].as_array().into_iter().flatten().filter(|l| released(root, &catalog, l)).filter_map(|l| Some((l["name"].as_str()?.to_string(), l["path"].as_str()?.to_string()))).collect();
+    let named = |l: &serde_json::Value| Some((l["name"].as_str()?.to_string(), l["path"].as_str()?.to_string()));
+    let own: Vec<(String, String)> = catalog["libraries"].as_array().into_iter().flatten().filter_map(named).collect();
+    let libraries: Vec<(String, String)> = catalog["libraries"].as_array().into_iter().flatten().filter(|l| released(root, &catalog, l)).filter_map(named).collect();
     let mut files = Vec::new();
     for top in ["backend", "clis", "libraries", "infra"] {
         manifests(&root.join(top), &mut files);
@@ -59,7 +61,7 @@ pub fn violations(root: &Path) -> Vec<String> {
     let mut found = Vec::new();
     for file in files {
         let relative = file.strip_prefix(root).unwrap_or(&file).parent().unwrap_or(Path::new("")).to_path_buf();
-        if libraries.iter().any(|(_, path)| relative.starts_with(path)) {
+        if own.iter().any(|(_, path)| relative.starts_with(path)) {
             continue;
         }
         let Some(manifest) = std::fs::read_to_string(&file).ok().and_then(|t| t.parse::<Value>().ok()) else { continue };

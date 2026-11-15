@@ -9,6 +9,7 @@
     { "name": "telemetry", "kind": "rust", "path": "clis/telemetry", "registry": "mla" },
     { "name": "mimic-core", "kind": "rust", "path": "clis/mimic/core", "registry": "mla" },
     { "name": "mimic-script-core", "kind": "rust", "path": "clis/mimic/script/core", "registry": "mla" },
+    { "name": "mimic-script-net", "kind": "rust", "path": "clis/mimic/script/net", "registry": "mla" },
     { "name": "rca-core", "kind": "rust", "path": "libraries/rca-core", "registry": "mla" },
     { "name": "rca-ladder", "kind": "rust", "path": "libraries/rca-core/plugins/ladder", "registry": "mla" }
   ]
