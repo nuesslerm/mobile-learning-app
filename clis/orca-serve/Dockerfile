@@ -6,8 +6,14 @@
 FROM alpine:3.20 AS aptcerts
 RUN apk add --no-cache ca-certificates
 
-FROM docker.io/library/rust:1-bookworm AS builder
+# Dependencies first: cargo-chef compiles what the manifests and the lockfile name into an image layer, which `mode=max` exports and a recreated VM
+# imports; a source change then rebuilds the workspace crates alone.
+FROM docker.io/library/rust:1-bookworm AS chef
+RUN --mount=type=cache,id=cargo-registry-orca-serve,target=/usr/local/cargo/registry \
+    cargo install cargo-chef --locked --version 0.1.78
 WORKDIR /src
+
+FROM chef AS planner
 # The shared libraries come from the mla registry (a public bucket, plain HTTPS); the lockfile pins their versions.
 COPY .cargo/config.toml /src/.cargo/config.toml
 COPY clis/Cargo.toml clis/Cargo.lock ./clis/
@@ -38,8 +44,27 @@ COPY libraries/agent-api/exec-testkit/Cargo.toml ./libraries/agent-api/exec-test
 RUN mkdir -p libraries/agent-api/exec-testkit/src && : > libraries/agent-api/exec-testkit/src/lib.rs
 WORKDIR /src/clis
 RUN sed -i 's|^members = .*|members = ["wf-kit", "orca-serve", "orca-serve/crypto", "orca-serve/core", "orca-serve/map-settings", "orca-serve/map-mobile", "orca-serve/map-workspace", "orca-serve/map-agent", "orca-serve/map-terminal", "orca-serve/map-git", "orca-serve/map-accounts", "orca-serve/map-state", "orca-serve/map-hosted", "orca-serve/map-schedules"]|' Cargo.toml
+# --bin: the recipe keeps this binary's crates only, so a sibling's manifest does not move it.
 RUN --mount=type=cache,id=cargo-registry-orca-serve,target=/usr/local/cargo/registry \
-    cargo build --release -p orca-serve --bin orca-serve \
+    cargo chef prepare --recipe-path /recipe.json --bin orca-serve
+# The contract crates as the dependency layer sees them: each manifest and an empty library. Cargo needs their paths to exist, but the recipe
+# does not hold them, so an edit to their sources must not reach the layer below.
+RUN set -eu; for crate in /src/libraries/agent-api/*/; do \
+      name="$(basename "$crate")"; mkdir -p "/skel/$name/src"; cp "$crate/Cargo.toml" "/skel/$name/Cargo.toml"; : > "/skel/$name/src/lib.rs"; \
+    done
+
+FROM chef AS builder
+WORKDIR /src/clis
+COPY --from=planner /recipe.json /recipe.json
+COPY --from=planner /skel /src/libraries/agent-api
+# No --locked: the recipe's lockfile is cut to this binary's packages; the build below checks the real one.
+RUN --mount=type=cache,id=cargo-registry-orca-serve,target=/usr/local/cargo/registry \
+    cargo chef cook --release --recipe-path /recipe.json -p orca-serve
+COPY --from=planner /src /src
+# Every source must be newer than the stub the cook layer compiled, or cargo keeps the stub.
+RUN --mount=type=cache,id=cargo-registry-orca-serve,target=/usr/local/cargo/registry \
+    find /src/clis /src/libraries -not -path '/src/clis/target*' -name '*.rs' -exec touch {} + \
+    && cargo build --release --locked -p orca-serve --bin orca-serve \
     && cp target/release/orca-serve /orca-serve
 
 FROM debian:bookworm-slim AS runtime
