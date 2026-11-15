@@ -1,5 +1,5 @@
 {
-  "content_hash": "sha256:7866b82bb5557e16963dc6df7fda8a9c0fc50c73142fcd7f796880b41d76e47a",
+  "content_hash": "sha256:5e4559af93cc925ab0bf1a2facfbe56f6d2ed4541c1f3ad0cdc5a341ea1524fb",
   "corpus": {
     "hash": "sha256:5b33f8f6caf6dc2b99c8e32aa9251c173773daab994ad9023a3c510fbbbddc6d",
     "path": "corpus.json"
@@ -15,7 +15,7 @@
     "kind": "recorded",
     "recorded_at": "2026-11-15T15:31:47.435Z",
     "recorded_on": "ci",
-    "rules_hash": "sha256:0428debe1b62cd4f09fa76df781cea2e33c3a84eafb85538cf1f04c9f2f75d0b",
+    "rules_hash": "sha256:38b38bbceb700d079fdc7062580fc1ab8b4946b2fd37020ce83e66d9c1a7a809",
     "seed": 0,
     "source": "record-references run 43727351473",
     "target": {
@@ -31,7 +31,7 @@
     }
   },
   "rules": {
-    "hash": "sha256:0428debe1b62cd4f09fa76df781cea2e33c3a84eafb85538cf1f04c9f2f75d0b",
+    "hash": "sha256:38b38bbceb700d079fdc7062580fc1ab8b4946b2fd37020ce83e66d9c1a7a809",
     "path": "rules.json"
   },
   "schema": "mimic-cassette/1"

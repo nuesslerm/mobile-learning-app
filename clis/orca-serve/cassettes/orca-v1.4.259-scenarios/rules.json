@@ -21,6 +21,24 @@
       "keys": {
         "sortOrder": "<volatile:sortOrder>"
       }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "hiddenAt": "<volatile:hiddenAt>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "createdAt": "<volatile:createdAt>"
+      }
+    },
+    {
+      "kind": "volatile-number",
+      "keys": {
+        "updatedAt": "<volatile:updatedAt>"
+      }
     }
   ]
 }

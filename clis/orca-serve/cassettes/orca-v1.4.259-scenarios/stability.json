@@ -1,100 +1,115 @@
 {
   "runs": [
-    "orca-ss1",
-    "orca-ss2",
-    "orca-ss3"
+    "orca-v1.4.259-scenarios",
+    "r2"
   ],
-  "compared": 39,
+  "compared": 229,
   "unobserved": [],
-  "stable_before": 0,
-  "stable_after": 39,
-  "stable_pct": 100.0,
-  "causes": {},
+  "stable_before": 225,
+  "stable_after": 226,
+  "stable_pct": 98.69,
+  "causes": {
+    "array-length": 1,
+    "key-set": 1,
+    "text-change": 1
+  },
   "proposals": [
     {
       "rule": {
         "kind": "volatile-number",
         "keys": {
-          "addedAt": "<volatile:addedAt>"
+          "hiddenAt": "<volatile:hiddenAt>"
         }
       },
-      "why": "the number under `addedAt` differed in every recording that carried it (42 places)",
+      "why": "the number under `hiddenAt` differed in every recording that carried it (2 places)",
       "scope": "global",
       "seen_in": [
-        "orca-scn-agentSession.createSupport",
-        "orca-scn-files.delete",
-        "orca-scn-files.pathsExist",
-        "orca-scn-files.readDocPreviewChunk",
-        "orca-scn-files.resolveTerminalPath",
-        "orca-scn-files.writeIfUnchanged",
-        "orca-scn-git.bulkStage",
-        "orca-scn-git.commit",
-        "orca-scn-git.fastForward",
-        "orca-scn-git.localBranches",
-        "orca-scn-git.resolveConflict",
-        "orca-scn-github.addIssueComment",
-        "orca-scn-github.listAssignableUsers",
-        "orca-scn-github.markPRReadyForReview",
-        "orca-scn-github.prForBranch",
-        "orca-scn-github.project.updateIssueBySlug",
-        "orca-scn-github.repoSlug",
-        "orca-scn-github.setPRCommentReaction",
-        "orca-scn-github.validateAccountBinding",
-        "orca-scn-gitlab.addMRInlineComment",
-        "orca-scn-gitlab.listMRs",
-        "orca-scn-gitlab.updateIssue",
-        "orca-scn-hostedReview.create",
-        "orca-scn-markdown.readTab",
-        "orca-scn-repo.add",
-        "orca-scn-repo.hooks",
-        "orca-scn-repo.searchRefs",
-        "orca-scn-session.tabs.closeLifecycle",
-        "orca-scn-session.tabs.createTerminal",
-        "orca-scn-terminal.adoptOrphans",
-        "orca-scn-terminal.getDisplayMode",
-        "orca-scn-terminal.resetInputModes",
-        "orca-scn-terminal.setPaneTitle",
-        "orca-scn-workspacePorts.scanHost",
-        "orca-scn-worktree.adoptProvisionedRoot",
-        "orca-scn-worktree.resolvePrBase",
-        "orca-scn-worktree.sleep",
-        "orca-story-worktree-lifecycle",
-        "orca-story-files-roundtrip"
+        "orca-scn-repo.setHidden"
       ]
     },
     {
       "rule": {
         "kind": "volatile-number",
         "keys": {
-          "fetchedAt": "<volatile:fetchedAt>"
+          "createdAt": "<volatile:createdAt>"
         }
       },
-      "why": "the number under `fetchedAt` differed in every recording that carried it (1 places)",
+      "why": "the number under `createdAt` differed in every recording that carried it (1 places)",
       "scope": "global",
       "seen_in": [
-        "orca-scn-github.prForBranch"
+        "orca-story-state-after-repo"
       ]
     },
     {
       "rule": {
         "kind": "volatile-number",
         "keys": {
-          "sortOrder": "<volatile:sortOrder>"
+          "updatedAt": "<volatile:updatedAt>"
         }
       },
-      "why": "the number under `sortOrder` differed in every recording that carried it (6 places)",
+      "why": "the number under `updatedAt` differed in every recording that carried it (1 places)",
       "scope": "global",
       "seen_in": [
-        "orca-scn-worktree.adoptProvisionedRoot",
-        "orca-scn-worktree.resolvePrBase",
-        "orca-scn-worktree.sleep",
-        "orca-story-worktree-lifecycle"
+        "orca-story-state-after-repo"
       ]
     }
   ],
-  "unstable": [],
+  "unstable": [
+    {
+      "id": "orca-scn-worktree.listRetiredNames",
+      "row": "rpc:worktree.listRetiredNames",
+      "cause": "key-set",
+      "reason": "an object has different keys between runs",
+      "samples": [
+        {
+          "pointer": "/steps/3/payload/result/retiredNameTiersByRepo",
+          "cause": "key-set",
+          "a": "+0a7a56c1-ed22-49b2-8c1f-8dc3034b6013",
+          "b": "+58f2166e-3790-4964-82b1-59f8a99bebfa"
+        },
+        {
+          "pointer": "/steps/3/payload/result/retiredNamesByRepo",
+          "cause": "key-set",
+          "a": "+0a7a56c1-ed22-49b2-8c1f-8dc3034b6013",
+          "b": "+58f2166e-3790-4964-82b1-59f8a99bebfa"
+        }
+      ]
+    },
+    {
+      "id": "orca-scn-worktree.runApprovedSetup",
+      "row": "rpc:worktree.runApprovedSetup",
+      "cause": "array-length",
+      "reason": "the number of items or frames differs between runs (a race or a host-dependent listing)",
+      "samples": [
+        {
+          "pointer": "/tags",
+          "cause": "array-length",
+          "a": "5 items",
+          "b": "4 items"
+        }
+      ]
+    },
+    {
+      "id": "orca-story-state-after-repo",
+      "row": "rpc:status.get",
+      "cause": "text-change",
+      "reason": "free text differs between runs and has no id or timestamp shape",
+      "samples": [
+        {
+          "pointer": "/steps/5/payload/result/hostDescriptor/machineBinding",
+          "cause": "text-change",
+          "a": "dbZA-hZG2AnEZ6sFhkCJyvMlNln2mBNmdTquzimNztI",
+          "b": "72009pEOZYEHIP41ostRKS8HDGFQWSpUTxPho5lGt4Q"
+        }
+      ]
+    }
+  ],
   "accounting": {
-    "allowlisted": [],
+    "allowlisted": [
+      "orca-scn-worktree.listRetiredNames",
+      "orca-scn-worktree.runApprovedSetup",
+      "orca-story-state-after-repo"
+    ],
     "unlisted": [],
     "stale": [],
     "wrong_cause": []

@@ -30,5 +30,6 @@ env_pass = ["ORCA_PAIRING_URI", "MIMIC_ORCA_ROOT"]
 session = false
 
 [record]
+stability_pct = 98
 # the pinned reference is a live server whose ids and timestamps move between two records
 allow_nondeterministic = true
