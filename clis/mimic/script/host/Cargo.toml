@@ -28,4 +28,5 @@ sha2 = "0.10"
 
 [dev-dependencies]
 mimic-script-host = { path = ".", features = ["testing"] }
+mimic-script-core = { version = "0.1.2", registry = "mla", features = ["testing"] }
 tempfile = "3"

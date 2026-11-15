@@ -301,6 +301,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "mimic-script-orca"
+version = "0.1.0"
+dependencies = [
+ "mimic-core",
+ "mimic-script-core",
+ "mimic-script-host",
+ "mimic-script-net",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "miniz_oxide"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"

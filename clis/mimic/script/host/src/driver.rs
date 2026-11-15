@@ -3,7 +3,7 @@
 //! as long as the server does.
 use mimic_core::ports::{Driver, DriverError, Hello, Observed, Request};
 use mimic_script_core::case::Entry;
-use mimic_script_core::{Interpreter, Policy, Target};
+use mimic_script_core::{Interpreter, Phone, Policy, Target};
 use mimic_script_net::{SystemClock, TcpTransport};
 use std::net::SocketAddr;
 use std::rc::Rc;
@@ -14,6 +14,18 @@ pub trait Server {
     fn workspace(&self) -> String;
     fn mint(&self) -> Result<String, String>;
     fn stop(&self);
+    /// The Orca phone of a server that is reached through one instead of HTTP and WebSocket (`addr` is then never connected).
+    fn phone(&self) -> Option<Box<dyn Phone>> {
+        None
+    }
+    /// A deterministic one-commit repository `name` for a case's populated state (see `git::make_repo`).
+    fn make_git(&self, _name: &str) -> Result<String, String> {
+        Err("this server cannot make a repository".into())
+    }
+    /// Run-specific paths this server makes (its scratch folder) and the placeholder each becomes in every step.
+    fn masks(&self) -> Vec<(String, String)> {
+        Vec::new()
+    }
 }
 
 pub trait Launch {
@@ -38,6 +50,14 @@ impl Target for Running {
     fn generation(&self) -> u64 {
         self.generation
     }
+
+    fn make_git(&mut self, name: &str) -> Result<String, String> {
+        self.server.make_git(name)
+    }
+
+    fn masks(&self) -> Vec<(String, String)> {
+        self.server.masks()
+    }
 }
 
 pub struct ScriptDriver {
@@ -60,7 +80,10 @@ impl ScriptDriver {
             let server = self.launch.start().map_err(DriverError)?;
             self.generation += 1;
             let target = Running { server: server.clone(), generation: self.generation };
-            let interpreter = Interpreter::new(Box::new(TcpTransport::new(server.addr())), Box::new(target), Box::new(SystemClock::new()), self.policy.clone()).with_prelude(self.prelude.clone()).with_session(self.session);
+            let mut interpreter = Interpreter::new(Box::new(TcpTransport::new(server.addr())), Box::new(target), Box::new(SystemClock::new()), self.policy.clone()).with_prelude(self.prelude.clone()).with_session(self.session);
+            if let Some(phone) = server.phone() {
+                interpreter = interpreter.with_phone(phone);
+            }
             self.current = Some((server, interpreter));
         }
         Ok(&mut self.current.as_mut().expect("a server was started").1)

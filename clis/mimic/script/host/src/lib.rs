@@ -2,6 +2,7 @@
 //! its sha256 (`provision`), started in an environment of its own (`hermetic`), and a `ScriptDriver` keeps one server for many cases and
 //! starts a new one on `reset`. A candidate that is already running is a `UrlTarget`.
 pub mod driver;
+pub mod git;
 pub mod hermetic;
 pub mod pin;
 pub mod provision;

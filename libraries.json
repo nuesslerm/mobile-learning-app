@@ -11,6 +11,7 @@
     { "name": "mimic-script-core", "kind": "rust", "path": "clis/mimic/script/core", "registry": "mla" },
     { "name": "mimic-script-net", "kind": "rust", "path": "clis/mimic/script/net", "registry": "mla" },
     { "name": "mimic-script-host", "kind": "rust", "path": "clis/mimic/script/host", "registry": "mla" },
+    { "name": "mimic-script-orca", "kind": "rust", "path": "clis/mimic/script/orca", "registry": "mla" },
     { "name": "rca-core", "kind": "rust", "path": "libraries/rca-core", "registry": "mla" },
     { "name": "rca-ladder", "kind": "rust", "path": "libraries/rca-core/plugins/ladder", "registry": "mla" }
   ]

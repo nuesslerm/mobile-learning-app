@@ -146,3 +146,60 @@ fn given_a_script_that_names_a_credential_when_run_then_the_server_mints_one_and
     assert!(steps[0]["body"].as_str().unwrap().starts_with("cred-"), "{}", steps[0]);
     assert!(steps[1]["body"].as_str().unwrap().contains("tok-for-cred-"), "{}", steps[1]);
 }
+
+mod phone_server {
+    use mimic_core::cassette::{Dir, Step, StepKind};
+    use mimic_core::ports::{Driver, Request};
+    use mimic_script_core::testing::CassettePhone;
+    use mimic_script_core::{Phone, Policy};
+    use mimic_script_host::driver::{Launch, Server};
+    use mimic_script_host::ScriptDriver;
+    use serde_json::{json, Value};
+    use std::net::SocketAddr;
+    use std::rc::Rc;
+
+    /// A server reached through a phone, as Orca's is: no address anyone connects to, repositories under a scratch folder.
+    struct Phoned;
+
+    impl Server for Phoned {
+        fn addr(&self) -> SocketAddr {
+            "127.0.0.1:0".parse().unwrap()
+        }
+        fn workspace(&self) -> String {
+            String::new()
+        }
+        fn mint(&self) -> Result<String, String> {
+            Err("no credential".into())
+        }
+        fn stop(&self) {}
+        fn phone(&self) -> Option<Box<dyn Phone>> {
+            let answer = Step { dir: Dir::S2c, channel: None, kind: StepKind::Json, rid: Some("0".into()), len: None, payload: json!({"ok": true, "result": {"seen": 1}}) };
+            Some(Box::new(CassettePhone::new(&[answer])))
+        }
+        fn make_git(&self, name: &str) -> Result<String, String> {
+            Ok(format!("/scratch-7/{name}"))
+        }
+        fn masks(&self) -> Vec<(String, String)> {
+            vec![("/scratch-7".into(), "<scratch>".into())]
+        }
+    }
+
+    struct Once;
+
+    impl Launch for Once {
+        fn start(&mut self) -> Result<Rc<dyn Server>, String> {
+            Ok(Rc::new(Phoned))
+        }
+    }
+
+    #[test]
+    fn given_a_server_with_a_phone_when_an_orca_case_runs_then_the_request_goes_through_the_phone_and_the_scratch_path_is_masked() {
+        let mut driver = ScriptDriver::new(Box::new(Once), Policy::default(), Vec::new(), false, None);
+        let input = json!({"requests": [{"method": "repo.add", "params": {"path": "{git.main}"}}], "setup": [{"git": "main"}]});
+
+        let observed = driver.run(&Request { id: "c1".into(), op: Some("script".into()), input }).unwrap();
+
+        let payloads: Vec<Value> = observed.steps.iter().map(|s| s.payload.clone()).collect();
+        assert_eq!(payloads, [json!({"method": "repo.add", "params": {"path": "<scratch>/main"}}), json!({"ok": true, "result": {"seen": 1}})]);
+    }
+}
