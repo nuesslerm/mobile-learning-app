@@ -1,6 +1,6 @@
 [package]
 name = "mimic-script-core"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 publish = false
 description = "The pure core of the `wf mimic` step interpreter: the case and entry language, variables, the wait rules and the interpreter state machine, behind Transport, Target and Clock ports"

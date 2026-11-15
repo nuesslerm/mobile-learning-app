@@ -268,7 +268,7 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-core"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "base64",
  "mimic-core",
