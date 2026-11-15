@@ -17,7 +17,7 @@ live_when_named = "orcad is built at the pin on the VM (arm64): verify <set> --l
 [reference.script]
 target = "orca"
 sidecar = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "sidecar", "orca"]
-env_pass = ["ORCA_ORCAD_CHECKOUT", "ORCA_PAIRING_URI", "ORCA_ENDPOINT", "ORCA_DEVICE_TOKEN", "ORCA_SERVER_PUBLIC_KEY_B64"]
+env_pass = ["ORCA_ORCAD_CHECKOUT", "ORCA_PAIRING_URI", "ORCA_ENDPOINT", "ORCA_DEVICE_TOKEN", "ORCA_SERVER_PUBLIC_KEY_B64", "MIMIC_ORCA_ROOT"]
 session = false
 
 [candidate.orca-serve]
@@ -26,7 +26,7 @@ driver = "script"
 [candidate.orca-serve.script]
 target = "orca"
 sidecar = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "sidecar", "orca"]
-env_pass = ["ORCA_PAIRING_URI"]
+env_pass = ["ORCA_PAIRING_URI", "MIMIC_ORCA_ROOT"]
 session = false
 
 [record]

@@ -169,6 +169,8 @@ export async function serveSidecar(input: NodeJS.ReadableStream, write: (line: s
     try {
       emit({ id: message.id ?? null, ok: await side.handle(message) })
     } catch (e) {
+      // the interpreter sees only a failed op; the reason belongs in the job log
+      process.stderr.write(`orca sidecar: ${message.op} failed: ${(e as Error).stack ?? String(e)}\n`)
       emit({ id: message.id ?? null, error: (e as Error).message })
     }
     if (message.op === 'quit') return

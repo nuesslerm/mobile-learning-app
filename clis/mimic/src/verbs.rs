@@ -244,6 +244,16 @@ fn record(p: &Parsed) -> Done {
             return Ok((out, 0));
         }
     };
+    // every case ending in the same error means the reference was never reached (a host that did not start, a pairing refused): that is no recording
+    let ended: std::collections::BTreeSet<Option<String>> = recording.set.cassette.interactions.iter().map(|i| (i.outcome.status == mimic_core::cassette::Status::Error).then(|| i.outcome.code.clone().unwrap_or_default())).collect();
+    if recording.set.cassette.interactions.len() > 1 && ended.len() == 1 {
+        if let Some(Some(code)) = ended.into_iter().next() {
+            return Err(fail(
+                format!("every one of the {} cases ended in the error {code:?}: the reference was not reached, nothing was written", cases.len()),
+                "read the driver's stderr in the job log (a sidecar says why a connect failed), fix what keeps the reference from answering, and record again",
+            ));
+        }
+    }
     let mut store = FsStore::new(set.dir.parent().unwrap_or(Path::new(".")));
     let mut warnings: Vec<String> = Vec::new();
     let mut raw_path = None;

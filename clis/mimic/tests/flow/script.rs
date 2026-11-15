@@ -180,6 +180,21 @@ done"#;
     }
 
     #[test]
+    fn a_record_where_every_case_fails_to_connect_writes_nothing_and_says_the_reference_was_not_reached() {
+        // Given a sidecar whose host never pairs
+        let w = world();
+        w.write("reference.sh", "while read -r line; do\n  id=$(printf '%s' \"$line\" | sed -n 's/.*\"id\":\"\\([0-9]*\\)\".*/\\1/p')\n  case \"$line\" in\n    *'\"op\":\"connect\"'*) echo \"{\\\"id\\\":\\\"$id\\\",\\\"ok\\\":{\\\"state\\\":\\\"disconnected\\\"}}\" ;;\n    *'\"op\":\"quit\"'*) echo \"{\\\"id\\\":\\\"$id\\\",\\\"ok\\\":{}}\"; exit 0 ;;\n    *) echo \"{\\\"id\\\":\\\"$id\\\",\\\"ok\\\":{}}\" ;;\n  esac\ndone\n");
+
+        // When the corpus is recorded
+        let r = w.run("record", &[]);
+
+        // Then the record fails naming the error, and no cassette is written
+        assert_ne!(r.code, 0, "{}", r.json);
+        assert!(r.json["error"].as_str().unwrap_or_default().contains("the reference was not reached"), "{}", r.json);
+        assert!(!w.path("cassette.json").exists());
+    }
+
+    #[test]
     fn an_orca_target_without_a_sidecar_is_refused_when_the_file_is_read() {
         let w = world();
         w.write("mimic.toml", "[reference]\ndriver = \"script\"\npin = \"pin.json\"\n\n[reference.script]\ntarget = \"orca\"\n");
