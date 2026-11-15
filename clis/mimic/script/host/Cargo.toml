@@ -1,6 +1,6 @@
 [package]
 name = "mimic-script-host"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 publish = false
 description = "The host adapters of the `wf mimic` step interpreter: the pinned release's provisioning with its sha256 check, a hermetic environment with stub agent CLIs, spawned and URL targets, and a driver that owns the server lifecycle"
