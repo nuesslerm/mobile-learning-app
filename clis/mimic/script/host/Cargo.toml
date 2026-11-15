@@ -22,7 +22,7 @@ required-features = ["testing"]
 [dependencies]
 mimic-core = { version = "0.1.1", registry = "mla" }
 mimic-script-core = { version = "0.1.2", registry = "mla" }
-mimic-script-net = { version = "0.1.0", registry = "mla" }
+mimic-script-net = { version = "0.1.1", registry = "mla" }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 sha2 = "0.10"
 
