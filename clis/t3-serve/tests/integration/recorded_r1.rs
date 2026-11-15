@@ -70,8 +70,8 @@ fn the_answers_the_real_server_recorded_replay_through_t3_serve_and_every_differ
                 lines.extend(r["error"].as_str().map(|e| format!("error {e}")));
                 gaps::Found { id: r["id"].as_str().unwrap().to_string(), lines }
             }).collect();
-            // WF_MIMIC_WRITE_GAPS=<set> lists what this replay found as that set's known gaps (to review before it is committed)
-            if std::env::var("WF_MIMIC_WRITE_GAPS").is_ok_and(|v| v == name) {
+            // WF_MIMIC_WRITE_GAPS=<set>[,<set>...] lists what this replay found as that set's known gaps (to review before it is committed)
+            if std::env::var("WF_MIMIC_WRITE_GAPS").is_ok_and(|v| v.split(',').any(|s| s == name)) {
                 std::fs::write(&gaps_path, serde_json::to_string_pretty(&gaps::file(&found)).unwrap() + "\n").unwrap();
             }
             let mut listed = gaps::listed(&read(&gaps_path)).expect("known-gaps.json parses");
