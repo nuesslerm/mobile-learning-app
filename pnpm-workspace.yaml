@@ -84,6 +84,13 @@ overrides:
   # (vaul, react-remove-scroll, react-native-worklets, ...) resolved 19.2.7, and the hoisted react-native then
   # flipped to that copy between installs, which broke the app typecheck. One React for the whole workspace.
   react: 19.2.3
+  # tvOS is not a target of this app: skia's install script skips a missing tvOS package (about 205 MB of prebuilt frameworks); re-check
+  # node_modules/@shopify/react-native-skia/scripts/install-libs.js on each skia bump.
+  react-native-skia-apple-tvos: '-'
+  # autoInstallPeers resolved @react-native/metro-config twice (0.86.3 and 0.87.1), which forked every package that peers on it (four
+  # patched copies of lucide-react-native, two react-native-svg); react-native itself is 0.86.3.
+  '@react-native/metro-config': 0.86.3
+
 patchedDependencies:
   '@storybook/react-native-ui@10.4.4': patches/@storybook__react-native-ui@10.4.4.patch
   react-native-css-interop@0.2.5: patches/react-native-css-interop@0.2.5.patch
@@ -128,6 +135,8 @@ publicHoistPattern:
 # dependency timing run 1512
 # dependency timing rerun 1548
 
+# No Mac or iOS runner installs this tree (CI is linux only): `current` keeps a Mac or an EAS iOS builder resolving its own native
+# packages, and darwin binaries are not fetched for the linux fleet (about 350 MB).
 supportedArchitectures:
-  os: [linux, darwin]
+  os: [current, linux]
   cpu: [x64, arm64]

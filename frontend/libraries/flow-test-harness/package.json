@@ -36,9 +36,11 @@
     "@typescript/native": "catalog:",
     "@lib/eslint-plugin-mobile-learn": "workspace:*",
     "@types/react": "catalog:",
+    "lucide-react-native": "^1.17.0",
     "oxlint": "catalog:",
     "react-native-gesture-handler": "~2.32.0",
     "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "dependency-cruiser": "^17.4.3"

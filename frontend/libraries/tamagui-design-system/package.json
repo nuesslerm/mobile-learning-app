@@ -47,6 +47,7 @@
     "@tamagui/z-index-stack": "^2.7.7",
     "lucide-react-native": "^1.17.0",
     "react-native-markdown-display": "7.0.2",
+    "react-native-svg": "15.15.4",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
