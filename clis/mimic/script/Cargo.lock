@@ -278,7 +278,7 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-host"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "mimic-core",
  "mimic-script-core",
@@ -302,7 +302,7 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-orca"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "mimic-core",
  "mimic-script-core",
