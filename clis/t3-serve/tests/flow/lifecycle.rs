@@ -168,6 +168,21 @@ fn the_device_state_commands_are_kept_in_the_agent_apis_state_by_what_changed() 
 }
 
 #[test]
+fn titles_and_link_metadata_answer_for_the_threads_t3_holds_and_leave_the_rest_out() {
+    // Given threads t1 and a fork f1
+    let (_h, mut rpc) = started();
+    success(&dispatch(&mut rpc, json!({"type": "thread.fork", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}})));
+    // When the client asks for the titles and the link metadata of t1, f1 and an unknown thread
+    let titles = rpc.call("orchestration.getThreadTitles", json!({"threadIds": ["t1", "f1", "nobody"]}));
+    let meta = rpc.call("orchestration.getThreadLinkMetadata", json!({"threadIds": ["t1", "nobody"]}));
+    // Then the unknown thread is absent, each known one carries its title (and project), and ids that are not a list are a decode defect
+    assert_eq!(success(&titles).as_object().unwrap().len(), 2);
+    assert_eq!(success(&titles)["t1"], "Thread t1");
+    assert_eq!(success(&meta), &json!({"t1": {"title": "Thread t1", "projectId": "p1"}}));
+    assert!(rpc.call("orchestration.getThreadTitles", json!({"threadIds": "t1"}))["cause"][0]["defect"].is_string());
+}
+
+#[test]
 fn search_family_and_the_shelf_answer_t3s_shapes_from_what_the_agent_api_found() {
     // Given threads t1 and a fork f1, and an agent API that finds t1 by title and by a message, knows the family and holds both on the shelf
     let (h, mut rpc) = started();

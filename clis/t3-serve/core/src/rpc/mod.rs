@@ -232,11 +232,13 @@ impl Connection {
                 }
                 Err(LaunchFailure::Refused(error)) => vec![rpc::exit_failure(&id, error)],
             },
-            "orchestration.getTurnItem" | "orchestration.searchThreads" | "orchestration.getThreadFamily" | "orchestration.getOlderSettledThreads" | "orchestration.forceStopThread" | "orchestration.getWorkflowScript" => {
+            "orchestration.getTurnItem" | "orchestration.searchThreads" | "orchestration.getThreadFamily" | "orchestration.getThreadTitles" | "orchestration.getThreadLinkMetadata" | "orchestration.getOlderSettledThreads" | "orchestration.forceStopThread" | "orchestration.getWorkflowScript" => {
                 let answer = match tag {
                     "orchestration.getTurnItem" => self.svc.turn_item(payload),
                     "orchestration.searchThreads" => self.svc.search_threads(payload),
                     "orchestration.getThreadFamily" => self.svc.thread_family(payload),
+                    "orchestration.getThreadTitles" => self.svc.thread_titles(payload),
+                    "orchestration.getThreadLinkMetadata" => self.svc.thread_link_metadata(payload),
                     "orchestration.getOlderSettledThreads" => self.svc.older_settled(payload),
                     "orchestration.forceStopThread" => self.svc.force_stop(payload),
                     _ => self.svc.workflow_script(payload),

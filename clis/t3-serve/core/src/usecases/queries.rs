@@ -92,6 +92,24 @@ impl Service {
         Ok(json!({"snapshotSequence": sequence, "threads": rows}))
     }
 
+    /// The thread ids of `threadIds`, a decode defect for anything else.
+    fn requested_ids(payload: &Value) -> Result<Vec<&str>, QueryFailure> {
+        let ids = payload.get("threadIds").and_then(Value::as_array).ok_or_else(|| QueryFailure::Defect("Missing key\n  at [\"threadIds\"]".into()))?;
+        ids.iter().map(|id| id.as_str().filter(|s| !s.is_empty()).ok_or_else(|| QueryFailure::Defect("Expected a non-empty string at [\"threadIds\"][*]".into()))).collect()
+    }
+
+    /// `orchestration.getThreadTitles`: the titles of the asked threads t3 holds, archived ones included; unknown ids are absent.
+    pub fn thread_titles(&self, payload: &Value) -> Result<Value, QueryFailure> {
+        let titles: Map<String, Value> = Self::requested_ids(payload)?.into_iter().filter_map(|id| self.row(id).map(|row| (id.to_string(), row["title"].clone()))).collect();
+        Ok(Value::Object(titles))
+    }
+
+    /// `orchestration.getThreadLinkMetadata`: title and project of each asked thread t3 holds.
+    pub fn thread_link_metadata(&self, payload: &Value) -> Result<Value, QueryFailure> {
+        let meta: Map<String, Value> = Self::requested_ids(payload)?.into_iter().filter_map(|id| self.row(id).map(|row| (id.to_string(), json!({"title": row["title"], "projectId": row["projectId"]})))).collect();
+        Ok(Value::Object(meta))
+    }
+
     /// `orchestration.getOlderSettledThreads`: pages the agent API's settled shelf below the cursor until `limit` rows of the asked projects are
     /// found, counting across pages; with `limit` 0 only the per-project counts.
     pub fn older_settled(&self, payload: &Value) -> Result<Value, QueryFailure> {

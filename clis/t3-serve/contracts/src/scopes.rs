@@ -74,6 +74,8 @@ const TABLE: &[(&[&str], &[&str])] = &[
             "orchestration.getThreadProjection",
             "orchestration.getArchivedShellSnapshot",
             "orchestration.getThreadFamily",
+            "orchestration.getThreadTitles",
+            "orchestration.getThreadLinkMetadata",
             "orchestration.getWorktreeThreadIds",
             "orchestration.getOlderSettledThreads",
             "orchestration.getTurnItem",
