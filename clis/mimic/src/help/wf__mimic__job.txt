@@ -31,6 +31,7 @@ Options:
   --budget <minutes>          record: stop starting chunks after this long (default 100)
   --fresh                     record: delete the checkpoint first
   --candidate <name>          replay: only this candidate
+  --rows <prefix,...>         replay: only the rows that start with a prefix, and check the known gaps of that slice
   --out <dir>                 replay: write <set>.replay.json here
   --work-root <dir>           where the provisioned work directories are ({work}, default $MIMIC_WORK_ROOT)
   --root <dir>                the checkout {repo} names (default: this one)

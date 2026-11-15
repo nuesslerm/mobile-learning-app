@@ -7,7 +7,9 @@ whose message carries a marker; it is the one place the marker is parsed.
 Marker grammar (one marker per message, on a line of its own that begins with `[`;
 prose that mentions it mid-line, and a message without one, start nothing):
   [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on a hosted runner
-  [replay <set>...]                              replay each set against its candidates, publish the diff
+  [replay <set>... [rows=<prefix,...>]]          replay each set against its candidates, publish the diff;
+                                                 rows= limits it to the rows that start with a prefix and
+                                                 checks the known gaps of that slice
   <set>      a cassette set: its directory name, or its path from the repository root;
              the directory holds a mimic.toml (a bare name that matches two is refused)
   chunk=<n>  minutes per `wf mimic record --max-minutes` call, 1 to 60 (default 10)

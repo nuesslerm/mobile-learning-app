@@ -57,6 +57,19 @@ fn a_record_marker_names_its_sets_chunk_and_fresh_and_a_replay_marker_only_its_s
 }
 
 #[test]
+fn a_replay_marker_with_rows_hands_the_prefixes_to_the_job_and_one_without_hands_none() {
+    // Given a recorded set
+    let root = checkout(&["a/alpha"]);
+    std::fs::write(root.path().join("a/alpha/cassette.json"), "{}").unwrap();
+    // When a replay marker names two row prefixes, and another names none
+    let sliced = trigger(root.path(), "[replay alpha rows=orca.settings.,orca.state.get]");
+    let whole = trigger(root.path(), "[replay alpha]");
+    // Then the plan carries the prefixes as one comma-joined value, and the whole replay carries an empty one
+    assert_eq!((sliced.code, sliced.json["rows"].clone()), (0, json!("orca.settings.,orca.state.get")), "{}", sliced.json);
+    assert_eq!((whole.code, whole.json["rows"].clone()), (0, json!("")));
+}
+
+#[test]
 fn a_message_without_a_marker_starts_nothing() {
     // Given a checkout
     let root = checkout(&["a/alpha"]);
@@ -80,7 +93,12 @@ fn a_malformed_marker_or_an_unknown_set_fails_with_the_reason() {
         ("[record alpha chunk=x]", "not a number"),
         ("[record alpha chunk=5 chunk=6]", "twice"),
         ("[record alpha]\n[replay alpha]", "more than one"),
-        ("[replay alpha chunk=5]", "takes sets only"),
+        ("[replay alpha chunk=5]", "takes sets and rows= only"),
+        ("[replay alpha fresh]", "takes sets and rows= only"),
+        ("[record alpha rows=M5]", "rows= belongs to [replay"),
+        ("[replay alpha rows=M5 rows=M6]", "rows= is given twice"),
+        ("[replay alpha rows=M5,]", "not a row prefix"),
+        ("[replay alpha rows=a;b]", "not a row prefix"),
         ("[record ../etc]", "neither a set name"),
         ("[record nope]", "unknown set \"nope\""),
         ("[record twin]", "names 2 sets"),

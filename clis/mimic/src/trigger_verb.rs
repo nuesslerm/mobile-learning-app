@@ -63,7 +63,7 @@ fn check(root: &Path, dir: &Path, action: Action, name: &str) -> Result<Value, S
 pub fn trigger_verb(p: &Parsed) -> Done {
     let text = message(p)?;
     let root: PathBuf = p.val("root").map_or_else(wf_kit::root::repo_root, PathBuf::from);
-    let marker = marker::parse(&text).map_err(|e| fail(e, "write the marker as [record <set>... [chunk=<minutes>] [fresh]] or [replay <set>...] (wf mimic trigger --help)"))?;
+    let marker = marker::parse(&text).map_err(|e| fail(e, "write the marker as [record <set>... [chunk=<minutes>] [fresh]] or [replay <set>... [rows=<prefix,...>]] (wf mimic trigger --help)"))?;
     let Some(m) = marker else {
         return Ok((json!({"ok": true, "go": false, "action": null, "sets": [], "matrix": {"include": []}, "warnings": [], "next": "nothing to do: the message carries no marker"}), 0));
     };
@@ -75,7 +75,7 @@ pub fn trigger_verb(p: &Parsed) -> Done {
     let sets: Vec<&Value> = include.iter().map(|i| &i["name"]).collect();
     Ok((
         json!({
-            "ok": true, "go": true, "action": m.action.word(), "chunk": m.chunk, "fresh": m.fresh, "sets": sets,
+            "ok": true, "go": true, "action": m.action.word(), "chunk": m.chunk, "fresh": m.fresh, "rows": m.rows.join(","), "sets": sets,
             "matrix": {"include": include}, "warnings": [],
             "next": format!("wf mimic job {} <set>, once per set, on the runner", m.action.word()),
         }),

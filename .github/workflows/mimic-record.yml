@@ -10,6 +10,7 @@ name: Mimic record
 #     git commit --allow-empty -m "[record t3-v0.1.9-recorded-1 orca-v1.4.259-recorded]" && git push origin dev
 #     git commit --allow-empty -m "[record orca-v1.4.259-recorded chunk=15 fresh]" && git push origin dev     (15 minute chunks, no checkpoint)
 #     git commit --allow-empty -m "[replay t3-v0.1.9-recorded-1]" && git push origin dev                    (diff the candidates, nothing recorded)
+#     git commit --allow-empty -m "[replay orca-v1.4.259-recorded rows=<prefix>,<prefix>]" && git push origin dev   (only those rows, and their known gaps checked)
 # A record is resumable: an incomplete one uploads its checkpoint as an artifact, and the same marker again downloads it and goes on. The masked
 # set is the workflow artifact (14 days) and a bucket run that `wf mimic fetch <run-id>` reads from any checkout.
 on:
@@ -53,6 +54,7 @@ jobs:
     outputs:
       action: ${{ steps.marker.outputs.action }}
       chunk: ${{ steps.marker.outputs.chunk }}
+      rows: ${{ steps.marker.outputs.rows }}
       fresh: ${{ steps.marker.outputs.fresh }}
       matrix: ${{ steps.marker.outputs.matrix }}
     steps:
@@ -96,6 +98,7 @@ jobs:
           {
             echo "action=$(jq -r .action "$RUNNER_TEMP/plan.json")"
             echo "chunk=$(jq -r .chunk "$RUNNER_TEMP/plan.json")"
+            echo "rows=$(jq -r '.rows // ""' "$RUNNER_TEMP/plan.json")"
             echo "fresh=$(jq -r .fresh "$RUNNER_TEMP/plan.json")"
             echo "matrix=$(jq -c .matrix "$RUNNER_TEMP/plan.json")"
           } >> "$GITHUB_OUTPUT"
@@ -119,6 +122,7 @@ jobs:
       WF_SITE: ci
       ACTION: ${{ needs.plan.outputs.action }}
       CHUNK: ${{ needs.plan.outputs.chunk }}
+      ROWS: ${{ needs.plan.outputs.rows }}
       FRESH: ${{ needs.plan.outputs.fresh }}
       SET_NAME: ${{ matrix.name }}
       SET_DIR: ${{ matrix.dir }}
@@ -210,6 +214,7 @@ jobs:
             flags="--chunk $CHUNK --budget 120"
             if [ "$FRESH" = true ]; then flags="$flags --fresh"; fi
           fi
+          if [ "$ACTION" = replay ] && [ -n "$ROWS" ]; then flags="--rows $ROWS"; fi
           mkdir -p "$OUT_DIR"
           set +e
           # shellcheck disable=SC2086

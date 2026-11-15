@@ -240,7 +240,11 @@ fn replay(p: &Parsed, set_arg: &str) -> Done {
     let started = Instant::now();
     let (mut rows, mut diffs, mut ok) = (Vec::<Value>::new(), Vec::<String>::new(), true);
     for name in &wanted {
-        let c = call(&["replay", &dir, "--candidate", name], &env)?;
+        let mut argv = vec!["replay", dir.as_str(), "--candidate", name.as_str()];
+        if let Some(rows) = p.val("rows").filter(|r| !r.is_empty()) {
+            argv.extend(["--rows", rows, "--gaps", "check"]);
+        }
+        let c = call(&argv, &env)?;
         if c.code >= 2 || c.json.is_null() {
             let mut f = fail(format!("wf mimic replay {name} could not run: {}", c.json["error"].as_str().unwrap_or("no JSON in its output")), c.json["next"].as_str().unwrap_or("fix the candidate command in mimic.toml").to_string());
             f.evidence = json!({"candidate": name, "replay": c.json});

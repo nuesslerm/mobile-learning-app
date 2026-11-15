@@ -3,13 +3,13 @@
 //! ```text
 //! marker  = "[" action 1*( " " word ) "]"
 //! action  = "record" | "replay"
-//! word    = set | "chunk=" minutes | "fresh"       (chunk and fresh: record only, each at most once)
+//! word    = set | "chunk=" minutes | "fresh" | "rows=" prefix *( "," prefix )   (chunk and fresh: record only; rows: replay only; each at most once)
 //! set     = a cassette set: its directory name, or its path from the repository root; the directory holds a mimic.toml
 //! ```
 //!
 //! The marker is a line of its own that begins with `[` (the workflow's `if:` looks for `[record ` or `[replay ` at the start of the message or of
 //! a line, so the two agree): prose that mentions the text mid-line starts nothing. One marker per message; a message without one starts nothing. `chunk=<n>` is the minutes one `wf mimic record --max-minutes` call may take
-//! (default 10, 1 to 60); `fresh` drops the checkpoint of an earlier run so the record starts over.
+//! (default 10, 1 to 60); `rows=` limits a replay to the interactions whose row starts with a prefix and checks the known gaps of that slice; `fresh` drops the checkpoint of an earlier run so the record starts over.
 use std::path::{Path, PathBuf};
 
 pub const DEFAULT_CHUNK_MINUTES: u32 = 10;
@@ -37,6 +37,11 @@ pub struct Marker {
     pub sets: Vec<String>,
     pub chunk: u32,
     pub fresh: bool,
+    pub rows: Vec<String>,
+}
+
+fn prefix_ok(s: &str) -> bool {
+    !s.is_empty() && s.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b'-' | b':' | b'/'))
 }
 
 fn set_name_ok(s: &str) -> bool {
@@ -67,11 +72,22 @@ pub fn parse(message: &str) -> Result<Option<Marker>, String> {
         Some("record") => Action::Record,
         _ => Action::Replay,
     };
-    let (mut sets, mut chunk, mut fresh): (Vec<String>, Option<u32>, bool) = (Vec::new(), None, false);
+    let (mut sets, mut chunk, mut fresh, mut rows): (Vec<String>, Option<u32>, bool, Vec<String>) = (Vec::new(), None, false, Vec::new());
     for w in words {
-        if let Some(n) = w.strip_prefix("chunk=") {
+        if let Some(list) = w.strip_prefix("rows=") {
+            if action == Action::Record {
+                return Err("[record ...] records whole sets: rows= belongs to [replay ...]".into());
+            }
+            if !rows.is_empty() {
+                return Err("rows= is given twice".into());
+            }
+            rows = list.split(',').map(String::from).collect();
+            if let Some(bad) = rows.iter().find(|r| !prefix_ok(r)) {
+                return Err(format!("rows={list}: {bad:?} is not a row prefix (letters, digits, . _ - : and /; prefixes are separated by a comma)"));
+            }
+        } else if let Some(n) = w.strip_prefix("chunk=") {
             if action == Action::Replay {
-                return Err("[replay ...] takes sets only: chunk= belongs to [record ...]".into());
+                return Err("[replay ...] takes sets and rows= only: chunk= belongs to [record ...]".into());
             }
             let minutes: u32 = n.parse().map_err(|_| format!("chunk={n} is not a number of minutes"))?;
             if !(1..=MAX_CHUNK_MINUTES).contains(&minutes) {
@@ -82,7 +98,7 @@ pub fn parse(message: &str) -> Result<Option<Marker>, String> {
             }
         } else if w == "fresh" {
             if action == Action::Replay {
-                return Err("[replay ...] takes sets only: fresh belongs to [record ...]".into());
+                return Err("[replay ...] takes sets and rows= only: fresh belongs to [record ...]".into());
             }
             fresh = true;
         } else if set_name_ok(w) {
@@ -99,7 +115,7 @@ pub fn parse(message: &str) -> Result<Option<Marker>, String> {
     if sets.len() > MAX_SETS {
         return Err(format!("{} sets named: at most {MAX_SETS} per commit, so one trigger cannot hold the runner for a day", sets.len()));
     }
-    Ok(Some(Marker { action, sets, chunk: chunk.unwrap_or(DEFAULT_CHUNK_MINUTES), fresh }))
+    Ok(Some(Marker { action, sets, chunk: chunk.unwrap_or(DEFAULT_CHUNK_MINUTES), fresh, rows }))
 }
 
 const SKIP: [&str; 7] = ["node_modules", "target", ".git", "references", "dist", "tmp", ".nx"];
