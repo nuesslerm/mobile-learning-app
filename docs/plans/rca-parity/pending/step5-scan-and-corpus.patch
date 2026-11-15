@@ -1,24 +1,24 @@
 diff --git a/clis/orca-serve/map-agent/src/lib.rs b/clis/orca-serve/map-agent/src/lib.rs
-index 0f7386e..62fe7e2 100644
+index 613c1aa..da45656 100644
 --- a/clis/orca-serve/map-agent/src/lib.rs
 +++ b/clis/orca-serve/map-agent/src/lib.rs
 @@ -118,6 +118,10 @@ const METHODS: &[Method] = &[
  pub const NOT_OFFERED: &[NotOffered] = &[
-     NotOffered { name: "aiVault.listSessions", reason: "proposed default awaiting owner confirmation (decision 1): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves", decided_by: "M7" },
-     NotOffered { name: "aiVault.prepareSessionResume", reason: "proposed default awaiting owner confirmation (decision 1): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal", decided_by: "M7" },
-+    NotOffered { name: "orchestration.partyLocation", reason: "proposed default awaiting owner confirmation (decision 1): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate", decided_by: "M7" },
-+    NotOffered { name: "orchestration.partyOpen", reason: "proposed default awaiting owner confirmation (decision 1): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database", decided_by: "M7" },
-+    NotOffered { name: "orchestration.workerAutoClose", reason: "proposed default awaiting owner confirmation (decision 1): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers", decided_by: "M7" },
-+    NotOffered { name: "orchestration.workerKeepOpen", reason: "proposed default awaiting owner confirmation (decision 1): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers", decided_by: "M7" },
-     NotOffered { name: "preflight.check", reason: "proposed default awaiting owner confirmation: it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md)", decided_by: "M7" },
-     NotOffered { name: "agentSession.reveal", reason: "proposed default awaiting owner confirmation: it shows the chat's tab in the desktop's own window and this host has no desktop", decided_by: "M7" },
-     NotOffered { name: "agentSession.readVisual", reason: "proposed default awaiting owner confirmation: it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read", decided_by: "M7" },
+     NotOffered { name: "aiVault.listSessions", reason: "owner-confirmed (decision 7): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves", decided_by: "M7" },
+     NotOffered { name: "aiVault.prepareSessionResume", reason: "owner-confirmed (decision 7): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal", decided_by: "M7" },
++    NotOffered { name: "orchestration.partyLocation", reason: "owner-confirmed (decision 7): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate", decided_by: "M7" },
++    NotOffered { name: "orchestration.partyOpen", reason: "owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database", decided_by: "M7" },
++    NotOffered { name: "orchestration.workerAutoClose", reason: "owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers", decided_by: "M7" },
++    NotOffered { name: "orchestration.workerKeepOpen", reason: "owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers", decided_by: "M7" },
+     NotOffered { name: "preflight.check", reason: "owner-confirmed (decision 7): it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md)", decided_by: "M7" },
+     NotOffered { name: "agentSession.reveal", reason: "owner-confirmed (decision 7): it shows the chat's tab in the desktop's own window and this host has no desktop", decided_by: "M7" },
+     NotOffered { name: "agentSession.readVisual", reason: "owner-confirmed (decision 7): it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read", decided_by: "M7" },
 diff --git a/clis/orca-serve/map-agent/tests/flow.rs b/clis/orca-serve/map-agent/tests/flow.rs
-index 47fa43e..4d6cdbd 100644
+index fb4d845..fd24ee8 100644
 --- a/clis/orca-serve/map-agent/tests/flow.rs
 +++ b/clis/orca-serve/map-agent/tests/flow.rs
 @@ -799,7 +799,7 @@ fn given_the_rows_the_area_does_not_offer_when_called_then_each_answers_not_offe
-         assert!(row.reason.starts_with("proposed default awaiting owner confirmation"), "{}", row.name);
+         assert!(row.reason.starts_with("owner-confirmed (decision 7)"), "{}", row.name);
      }
      // And the rows the owner decision names are all among them
 -    for name in ["aiVault.listSessions", "aiVault.prepareSessionResume", "agentSession.reveal", "agentSession.readVisual"] {
@@ -82,22 +82,22 @@ index 317edcf..660a0b3 100644
      // And a capability flag is reported, not counted, and a non-literal method name is flagged as dynamic
      assert!(flags["capabilityNames"]["sites"].as_array().unwrap().iter().any(|s| rows[&format!("rpc:{}", s["name"].as_str().unwrap())]["phone"] == false));
 diff --git a/docs/plans/rca-parity/coverage/orca-decisions.json b/docs/plans/rca-parity/coverage/orca-decisions.json
-index 18a5289..4b4297b 100644
+index 34e8926..14855a7 100644
 --- a/docs/plans/rca-parity/coverage/orca-decisions.json
 +++ b/docs/plans/rca-parity/coverage/orca-decisions.json
 @@ -116,6 +116,10 @@
      "rpc:nativeChat.unsubscribe": {"oracle": "mimic"},
      "rpc:projectGroup.list": {"oracle": "mimic"},
      "rpc:runtime.clientEvents.unsubscribe": {"oracle": "mimic"},
-+    "rpc:orchestration.partyLocation": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate", "decidedBy": "M7"},
-+    "rpc:orchestration.partyOpen": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database", "decidedBy": "M7"},
-+    "rpc:orchestration.workerAutoClose": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers", "decidedBy": "M7"},
-+    "rpc:orchestration.workerKeepOpen": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation (decision 1): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers", "decidedBy": "M7"},
-     "rpc:agentSession.readVisual": {"state": "not-offered", "reason": "proposed default awaiting owner confirmation: it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read", "decidedBy": "M7"}
++    "rpc:orchestration.partyLocation": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate", "decidedBy": "M7"},
++    "rpc:orchestration.partyOpen": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database", "decidedBy": "M7"},
++    "rpc:orchestration.workerAutoClose": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers", "decidedBy": "M7"},
++    "rpc:orchestration.workerKeepOpen": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers", "decidedBy": "M7"},
+     "rpc:agentSession.readVisual": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read", "decidedBy": "M7"}
    },
    "reverify": {
 diff --git a/tooling/mimic-drivers/src/corpus/orca.ts b/tooling/mimic-drivers/src/corpus/orca.ts
-index e884091..1483dc5 100644
+index e884091..fe3c3a1 100644
 --- a/tooling/mimic-drivers/src/corpus/orca.ts
 +++ b/tooling/mimic-drivers/src/corpus/orca.ts
 @@ -11,6 +11,8 @@ import { derive } from '../orca/schema.ts'
@@ -136,3 +136,12 @@ index e884091..1483dc5 100644
      starts.forEach((s, i) => {
        const block = text.slice(s.at, starts[i + 1]?.at ?? text.length)
        const named = /name:\s*(?:'([A-Za-z0-9.]+)'|([A-Za-z_][A-Za-z0-9_.]*))/.exec(block)
+@@ -86,7 +88,7 @@ export type OrcaCorpus = { cases: Case[]; coverage: Disposition[]; pin: string }
+ 
+ export async function orcaCorpus(): Promise<OrcaCorpus> {
+   const pin = assertAtPin()
+-  const found = registrations()
++  const found = registrations(undefined, true)
+   const schemas = await schemasByMethod(found)
+   const cases: Case[] = []
+   const coverage: Disposition[] = []
