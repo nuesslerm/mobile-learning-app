@@ -51,8 +51,13 @@ pub fn exchange(addr: SocketAddr, call: &HttpCall) -> Result<HttpReply, Transpor
     stream.set_read_timeout(Some(TIMEOUT)).map_err(failed)?;
     let body = call.body.as_deref().unwrap_or("");
     let mut head = format!("{} {} HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\nAccept-Encoding: gzip, deflate\r\n", call.method, call.path);
-    if call.body.is_some() {
+    // what `fetch` sends: a body is sized, a bodiless POST, PUT or PATCH says so, and a string body without a type is plain text
+    if call.body.is_some() || matches!(call.method.as_str(), "POST" | "PUT" | "PATCH") {
         head.push_str(&format!("Content-Length: {}\r\n", body.len()));
+    }
+    let typed = call.headers.iter().any(|(n, _)| n.eq_ignore_ascii_case("content-type"));
+    if call.body.is_some() && !typed {
+        head.push_str("Content-Type: text/plain;charset=UTF-8\r\n");
     }
     for (name, value) in &call.headers {
         head.push_str(&format!("{name}: {value}\r\n"));

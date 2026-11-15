@@ -56,6 +56,7 @@ fn serve(stream: TcpStream) {
     let path = line.split(' ').nth(1).unwrap_or("/").to_string();
     let method = line.split(' ').next().unwrap_or("").to_string();
     let (mut upgrade, mut length) = (false, 0usize);
+    let mut seen: Vec<String> = Vec::new();
     loop {
         let mut header = String::new();
         reader.read_line(&mut header).unwrap();
@@ -68,6 +69,9 @@ fn serve(stream: TcpStream) {
         if let Some(n) = lower.strip_prefix("content-length:") {
             length = n.trim().parse().unwrap_or(0);
         }
+        if lower.starts_with("content-length:") || lower.starts_with("content-type:") {
+            seen.push(lower.trim().to_string());
+        }
     }
     let mut body = vec![0; length];
     reader.read_exact(&mut body).unwrap();
@@ -77,6 +81,7 @@ fn serve(stream: TcpStream) {
         "/dup" => respond(&mut stream, "204 No Content", &["Set-Cookie: a=1", "set-cookie: b=2"], b""),
         "/redirect" => respond(&mut stream, "302 Found", &["Location: /elsewhere"], b""),
         "/echo" => respond(&mut stream, "200 OK", &["Content-Type: text/plain"], format!("{method} {}", String::from_utf8_lossy(&body)).as_bytes()),
+        "/seen" => respond(&mut stream, "200 OK", &["Content-Type: text/plain"], seen.join(";").as_bytes()),
         "/gzip" => {
             let mut encoder = GzEncoder::new(Vec::new(), Compression::default());
             encoder.write_all(br#"{"zipped":true}"#).unwrap();
@@ -139,6 +144,24 @@ fn given_a_redirect_when_called_then_it_is_not_followed_and_a_body_goes_out_with
 
     assert_eq!((steps[1].payload["status"].clone(), steps[1].payload["headers"]["location"].clone()), (json!(302), json!("/elsewhere")));
     assert_eq!(steps[3].payload["body"], json!("POST payload"));
+}
+
+#[test]
+fn given_a_bodiless_post_and_an_untyped_string_body_when_sent_then_they_go_out_as_fetch_sends_them() {
+    let addr = toy();
+
+    let steps = run(addr, json!([
+        {"http": {"method": "POST", "path": "/seen"}},
+        {"http": {"method": "POST", "path": "/seen", "body": "x"}},
+        {"http": {"method": "POST", "path": "/seen", "body": "x", "headers": {"content-type": "application/json"}}},
+        {"http": {"method": "GET", "path": "/seen"}}
+    ]));
+
+    let seen = |at: usize| steps[at].payload["body"].as_str().unwrap_or("").to_string();
+    assert_eq!(seen(1), "content-length: 0");
+    assert_eq!(seen(3), "content-length: 1;content-type: text/plain;charset=utf-8");
+    assert_eq!(seen(5), "content-length: 1;content-type: application/json");
+    assert_eq!(seen(7), "");
 }
 
 #[test]
