@@ -67,7 +67,7 @@ fn release_verb(p: &Parsed) -> Option<i32> {
 fn status_verb(_: &Parsed) -> Option<i32> {
     let root = wf_kit::root::repo_root();
     let outcome = catalog(&root).and_then(|catalog| {
-        let store = wiring::first_bucket(&catalog).and_then(|r| wiring::index_source(r).ok());
+        let store = wiring::first_indexed(&catalog).and_then(|r| wiring::index_source(r).ok());
         status::status(&catalog, &WorkingTree(root.clone()), store.as_deref())
     });
     finish("status", outcome)

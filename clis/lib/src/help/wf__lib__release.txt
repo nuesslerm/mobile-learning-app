@@ -6,6 +6,9 @@ and when that fails the manifest is put back. A version is never replaced: a
 second release of a version is refused before anything is touched, and a fix is
 a new version.
 
+git-sparse: the bucket-sparse layout under registry/ of this repository (crates/, index/, index/config.json): the
+entry is written, committed and pushed to dev, readers fetch it at indexUrl (raw.githubusercontent.com). The checkout must
+hold the registry as origin/dev does; a failed commit or push removes what was written. No link is needed.
 bucket-sparse: `cargo package` the crate, upload crates/<name>/<version>.crate
 with an if-absent write, append the version to the crate's sparse index file
 (index/1/a, index/2/ab, index/3/a/abc, index/ab/cd/abcd...; the current file is read

@@ -291,3 +291,59 @@ fn a_release_refuses_a_file_that_holds_a_value_the_vault_holds_and_a_manifest_th
     assert!(last_json(&r)["error"].as_str().unwrap().contains("no `include` list"), "{}", r.stdout);
     assert!(repo.bucket.names().is_empty());
 }
+
+fn git_registry() -> String {
+    libraries_json("mla", "", "").replace(r#""tokenEnv": "LIBS_WRITE_PAR_URL", "publish": "bucket-sparse", "indexUrl": "@INDEX@""#, r#""publish": "git-sparse", "indexUrl": "https://raw.example.org/dev/registry/index/""#)
+}
+
+fn origin_has(repo: &Repo, path: &str) -> bool {
+    std::process::Command::new("git").arg("-C").arg(repo.dir.path().join("origin.git")).args(["cat-file", "-e", &format!("dev:{path}")]).status().unwrap().success()
+}
+
+#[test]
+fn a_release_to_a_git_registry_commits_the_crate_and_its_index_to_dev_and_needs_no_link() {
+    // Given a library whose registry is the repository itself
+    let repo = Repo::new(&git_registry());
+
+    // When it is released as a patch
+    let r = repo.lib(&["release", "fixture-core", "patch"]);
+
+    // Then the crate, its index file and config.json are committed under registry/ and pushed, and the bucket was not used
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!(last_json(&r)["publisher"], "git-sparse");
+    assert!(repo.bucket.names().is_empty());
+    for path in ["registry/crates/fixture-core/0.1.1.crate", "registry/index/fi/xt/fixture-core", "registry/index/config.json"] {
+        assert!(origin_has(&repo, path), "{path}");
+    }
+    assert!(repo.read("registry/index/config.json").contains("https://raw.example.org/dev/registry/crates/{crate}/{version}.crate"), "{}", repo.read("registry/index/config.json"));
+    assert!(repo.read("libs/fixture-core/Cargo.toml").contains("version = \"0.1.1\""));
+
+    // When the same version is released again, Then it is refused as already released
+    repo.write("libs/fixture-core/Cargo.toml", &repo.read("libs/fixture-core/Cargo.toml").replace("0.1.1", "0.1.0"));
+    repo.settle();
+    let again = repo.lib(&["release", "fixture-core", "patch"]);
+    assert_eq!(again.exit_code, 1, "{}", again.stdout);
+    assert!(last_json(&again)["error"].as_str().unwrap().contains("already released"), "{}", again.stdout);
+}
+
+#[test]
+fn a_release_to_a_git_registry_is_refused_while_origin_holds_registry_entries_this_checkout_lacks() {
+    // Given origin/dev with a registry file this checkout has not pulled
+    let repo = Repo::new(&git_registry());
+    let other = repo.dir.path().join("other");
+    let origin = repo.dir.path().join("origin.git");
+    let run = |dir: &std::path::Path, args: &[&str]| assert!(std::process::Command::new("git").arg("-C").arg(dir).args(args).status().unwrap().success(), "{args:?}");
+    run(repo.dir.path(), &["clone", "-q", "-b", "dev", origin.to_str().unwrap(), "other"]);
+    write(&other.join("registry/index/zz/zz/zzzz"), "{}\n");
+    run(&other, &["add", "-A"]);
+    run(&other, &["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-q", "-m", "registry entry"]);
+    run(&other, &["push", "-q", "origin", "dev"]);
+
+    // When the library is released
+    let r = repo.lib(&["release", "fixture-core", "patch"]);
+
+    // Then it is refused with the way out and the manifest is as it was
+    assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
+    assert!(last_json(&r)["next"].as_str().unwrap().contains("pull --rebase"), "{}", r.stdout);
+    assert!(repo.read("libs/fixture-core/Cargo.toml").contains("version = \"0.1.0\""));
+}

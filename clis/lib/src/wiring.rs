@@ -1,6 +1,7 @@
 //! The composition root: which adapter serves which registry, and where the links come from (the environment, then the vault).
 use crate::adapters::bucket_sparse::BucketSparse;
 use crate::adapters::cargo_publish::CargoPublish;
+use crate::adapters::git_sparse::GitSparse;
 use crate::adapters::index_source::PublicIndex;
 use crate::domain::libraries::{Catalog, Registry};
 use crate::ports::{Failure, IndexSource, Publisher};
@@ -50,6 +51,10 @@ pub fn publisher(registry: &Registry) -> Result<Box<dyn Publisher>, Failure> {
             let index_url = registry.index_url.as_deref().ok_or_else(|| Failure::new(format!("registry {} has no indexUrl", registry.alias)).next("set indexUrl to the bucket's public `<base>/index/` in libraries.json"))?;
             Ok(Box::new(BucketSparse::new(libs_store(registry, true)?, index_source(registry)?, index_url)?))
         }
+        Some("git-sparse") => {
+            let index_url = registry.index_url.as_deref().ok_or_else(|| Failure::new(format!("registry {} has no indexUrl", registry.alias)).next("set indexUrl to the registry's public `<base>/registry/index/` in libraries.json"))?;
+            Ok(Box::new(GitSparse::new(wf_kit::root::repo_root(), index_url)?))
+        }
         Some("cargo-publish") => {
             let token = token_of(registry)?.ok_or_else(|| Failure::new(format!("registry {} names no tokenEnv", registry.alias)))?;
             let index = if registry.kind == "crates-io" { None } else { url_of(registry)? };
@@ -62,6 +67,11 @@ pub fn publisher(registry: &Registry) -> Result<Box<dyn Publisher>, Failure> {
 
 pub fn publisher_can_delete(id: &str) -> bool {
     id == "bucket-sparse"
+}
+
+/// The first registry whose index readers can fetch from us: a bucket or the repository itself.
+pub fn first_indexed(catalog: &Catalog) -> Option<&Registry> {
+    catalog.registries.iter().find(|r| matches!(r.publish.as_deref(), Some("bucket-sparse" | "git-sparse")))
 }
 
 pub fn first_bucket(catalog: &Catalog) -> Option<&Registry> {
