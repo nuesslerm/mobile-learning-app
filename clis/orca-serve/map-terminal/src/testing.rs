@@ -14,6 +14,7 @@ struct State {
     cleared: Vec<String>,
     resized: Vec<(String, u64, u64)>,
     opened: Vec<Value>,
+    output: BTreeMap<(String, String), Vec<u8>>,
 }
 
 #[derive(Clone, Default)]
@@ -41,6 +42,12 @@ impl Terminals {
     /// What `terminal.resize` was sent, as (terminal, cols, rows).
     pub fn resized(&self) -> Vec<(String, u64, u64)> {
         self.0.lock().unwrap().resized.clone()
+    }
+
+    /// What the terminal has printed, kept from offset 0.
+    pub fn output(&self, workspace: &str, name: &str, bytes: &[u8]) -> &Self {
+        self.0.lock().unwrap().output.insert((workspace.into(), name.into()), bytes.to_vec());
+        self
     }
 
     /// What `terminal.open` was sent.
@@ -92,6 +99,19 @@ impl Terminals {
             }
             s.cleared.push(key.1.clone());
             Ok(json!({"workspace": key.0, "terminal": key.1}))
+        });
+        let me = self.clone();
+        agent.reply("terminal.read", move |p| {
+            let key = (p["workspace"].as_str().unwrap_or_default().to_string(), p["terminal"].as_str().unwrap_or_default().to_string());
+            let s = me.0.lock().unwrap();
+            let Some((_, running)) = s.terminals.get(&key) else { return Err(refused("UNKNOWN_TERMINAL", format!("no terminal {}", key.1))) };
+            let all = s.output.get(&key).cloned().unwrap_or_default();
+            let after = p["after_offset"].as_u64();
+            if after.is_some_and(|a| a > all.len() as u64) {
+                return Err(refused("OFFSET_AHEAD", "after_offset is past the end of the stream"));
+            }
+            let start = after.unwrap_or(0) as usize;
+            Ok(json!({"workspace": key.0, "terminal": key.1, "after_offset": after, "start_offset": start, "offset": all.len(), "reset": false, "data": agent_api_terminal::b64::encode(&all[start..]), "cols": 80, "rows": 24, "status": if *running { "running" } else { "exited" }, "exit_code": null}))
         });
         let me = self.clone();
         agent.reply("terminal.open", move |p| {

@@ -103,7 +103,6 @@
         "orca-speech.models.delete",
         "orca-speech.models.download",
         "orca-ssh.connect",
-        "orca-terminal.read",
         "orca-worktree.activate",
         "orca-worktree.create",
         "orca-worktree.listRetiredNames",

@@ -17,6 +17,7 @@ pub const GROUP: GroupName = GroupName::new("terminal");
 pub const OPEN: Method = Method::new(GROUP, "terminal.open");
 pub const WRITE: Method = Method::new(GROUP, "terminal.write");
 pub const RESIZE: Method = Method::new(GROUP, "terminal.resize");
+pub const READ: Method = Method::new(GROUP, "terminal.read");
 pub const CLOSE: Method = Method::new(GROUP, "terminal.close");
 pub const CLEAR: Method = Method::new(GROUP, "terminal.clear");
 pub const LIST: Method = Method::new(GROUP, "terminal.list");
@@ -24,7 +25,7 @@ pub const RENAME: Method = Method::new(GROUP, "terminal.rename");
 pub const ATTACH: Method = Method::new(GROUP, "terminal.attach");
 pub const SUBSCRIBE: Method = Method::new(GROUP, "terminal.subscribe");
 
-pub const METHODS: &[Method] = &[OPEN, WRITE, RESIZE, CLOSE, CLEAR, LIST, RENAME, ATTACH, SUBSCRIBE];
+pub const METHODS: &[Method] = &[OPEN, WRITE, RESIZE, CLOSE, CLEAR, LIST, RENAME, ATTACH, SUBSCRIBE, READ];
 
 pub mod code {
     /// No terminal of that name in the workspace.
@@ -247,6 +248,26 @@ pub struct OpenResult {
 pub struct ListResult {
     pub workspace: String,
     pub terminals: Vec<TerminalInfo>,
+}
+
+/// The answer to `terminal.read`: the bytes of the kept tail from `after_offset` (or all of it), as one answer with no stream after it. The params are
+/// those of `terminal.attach`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ReadResult {
+    pub workspace: String,
+    pub terminal: String,
+    pub after_offset: Option<u64>,
+    /// The offset of the first byte of `data`: the caller's, or the oldest kept byte when it asked for none or an older one.
+    pub start_offset: u64,
+    /// The offset the stream stands at: `data` ends there.
+    pub offset: u64,
+    /// True when `after_offset` was before the oldest kept byte, so bytes were missed.
+    pub reset: bool,
+    pub data: String,
+    pub cols: u16,
+    pub rows: u16,
+    pub status: Status,
+    pub exit_code: Option<i32>,
 }
 
 /// The answer to `terminal.attach`: where the replay starts and ends. The replay and then the live output follow as events.

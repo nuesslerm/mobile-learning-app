@@ -268,3 +268,31 @@ fn given_an_open_tabs_stream_when_a_tab_appears_then_the_phone_gets_a_snapshot_t
     let tail: Vec<Value> = ended[1..].iter().map(|f| f["result"].clone()).chain(rig.stream_events()).collect();
     assert!(tail.iter().any(|f| f["type"] == "end"), "{tail:?}");
 }
+
+#[test]
+fn given_a_terminal_that_printed_colored_lines_when_it_is_read_then_the_tail_is_plain_lines_limited_and_a_cursor_returns_only_what_followed() {
+    let mut rig = Rig::new();
+    // Given a terminal that printed three lines with colors and a title sequence
+    rig.terminals.output("main", "t1", b"\x1b]0;shell\x07\x1b[32mone\x1b[0m\r\ntwo\r\nthree\r\n");
+    // When the phone reads it with no cursor
+    let all = rig.ok("terminal.read", json!({"terminal": "main:t1"}))["terminal"].clone();
+    // Then it reads the lines without escape sequences, the stream's source, and the offsets as decimal strings
+    assert_eq!((all["tail"].clone(), all["source"].clone(), all["status"].clone()), (json!(["one", "two", "three"]), json!("stream"), json!("running")));
+    assert_eq!((all["oldestCursor"].clone(), all["latestCursor"].clone(), all["nextCursor"].clone(), all["returnedLineCount"].clone()), (json!("0"), json!("36"), json!("36"), json!(3)));
+    // When it reads with a limit of two
+    let last = rig.ok("terminal.read", json!({"terminal": "main:t1", "limit": 2}))["terminal"].clone();
+    // Then the last two lines come back and it says it truncated
+    assert_eq!((last["tail"].clone(), last["truncated"].clone()), (json!(["two", "three"]), json!(true)));
+    // When it reads from the end cursor after more output
+    rig.terminals.output("main", "t1", b"\x1b]0;shell\x07\x1b[32mone\x1b[0m\r\ntwo\r\nthree\r\nfour\r\n");
+    let more = rig.ok("terminal.read", json!({"terminal": "main:t1", "cursor": 36}))["terminal"].clone();
+    // Then only the new line comes back
+    assert_eq!((more["tail"].clone(), more["oldestCursor"].clone()), (json!(["four"]), json!("36")));
+    // And a screen read has no screen, a cursor with it is refused, and a bad cursor, an exited terminal and an unknown handle each answer as the host does
+    let screen = rig.ok("terminal.read", json!({"terminal": "main:t1", "screen": true}))["terminal"].clone();
+    assert_eq!((screen["source"].clone(), screen["tail"].clone()), (json!("screen-unavailable"), json!([])));
+    assert_eq!(rig.err("terminal.read", json!({"terminal": "main:t1", "screen": true, "cursor": 1})), "invalid_argument");
+    assert_eq!(rig.err("terminal.read", json!({"terminal": "main:t1", "cursor": "x"})), "invalid_argument");
+    assert_eq!(rig.ok("terminal.read", json!({"terminal": "feat:gone"}))["terminal"]["status"], json!("exited"));
+    assert_eq!(rig.err("terminal.read", json!({"terminal": "main:nope"})), "terminal_handle_stale");
+}

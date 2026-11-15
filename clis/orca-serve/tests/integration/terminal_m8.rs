@@ -60,6 +60,13 @@ fn a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_
         assert_eq!(sent["result"]["send"]["accepted"], json!(true));
         // Then the shell printed the computed answer
         screen_until(&mut direct, "computed-42");
+        // When the phone reads the terminal's tail
+        let read = phone.call(case, &chain, &["rpc:terminal.read"], "terminal.read", json!({"terminal": handle}));
+        // Then rca answered the read and the lines include the computed output, without escape sequences
+        answered(case, "terminal.read", true);
+        let tail = read["result"]["terminal"]["tail"].as_array().unwrap();
+        assert!(tail.iter().any(|l| l.as_str().is_some_and(|l| l.trim() == "computed-42")), "{read}");
+        assert!(tail.iter().all(|l| !l.as_str().unwrap_or_default().contains('\u{1b}')), "{read}");
         // When it renames the terminal
         let renamed = phone.call(case, &chain, &["rpc:terminal.rename"], "terminal.rename", json!({"terminal": handle, "title": "build"}));
         answered(case, "terminal.rename", true);

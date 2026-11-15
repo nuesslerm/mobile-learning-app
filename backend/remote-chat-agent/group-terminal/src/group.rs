@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 
 use exec_pty::{PTY_ATTACH, PTY_CLOSE, PTY_LIST, PTY_OPEN, PTY_RESIZE, PTY_WRITE};
 
-pub const SERVED: [Served; 9] = [
+pub const SERVED: [Served; 10] = [
     Served::service(api::OPEN, &[PTY_OPEN, PTY_ATTACH, PTY_LIST]),
     Served::service(api::WRITE, &[PTY_WRITE, PTY_LIST]),
     Served::service(api::RESIZE, &[PTY_RESIZE, PTY_LIST]),
@@ -27,6 +27,7 @@ pub const SERVED: [Served; 9] = [
     Served::service(api::RENAME, &[PTY_LIST]),
     Served::service(api::ATTACH, &[PTY_ATTACH, PTY_LIST]),
     Served::service(api::SUBSCRIBE, &[PTY_LIST, PTY_ATTACH]),
+    Served::service(api::READ, &[PTY_LIST, PTY_ATTACH]),
 ];
 
 struct Refusal(String, String);
@@ -228,6 +229,23 @@ impl TerminalGroup {
         infos
     }
 
+    /// The tail the service keeps from an offset, as one answer: what `attach` replays, without the stream that follows it.
+    async fn read(&self, params: &Value) -> Answer {
+        let p = AttachParams::parse(params)?;
+        let term = self.terminal(&p.session).await?;
+        let info = term.info();
+        if p.after_offset.is_some_and(|after| after > info.offset) {
+            return Err(refuse(api::code::OFFSET_AHEAD, format!("after_offset {} is past the end of the stream, {}", p.after_offset.unwrap_or_default(), info.offset)));
+        }
+        let (start, bytes) = {
+            let s = term.state();
+            let (at, bytes) = s.tail_from(p.after_offset.unwrap_or(0), usize::MAX);
+            (at, bytes.to_vec())
+        };
+        let reset = p.after_offset.is_some_and(|after| after < info.base_offset);
+        value(&api::ReadResult { workspace: info.workspace.clone(), terminal: info.terminal.clone(), after_offset: p.after_offset, start_offset: start, offset: start + bytes.len() as u64, reset, data: api::b64::encode(&bytes), cols: info.cols, rows: info.rows, status: info.status, exit_code: info.exit_code })
+    }
+
     async fn attach(&self, params: &Value, connection: &Connection) -> Answer {
         let p = AttachParams::parse(params)?;
         let term = self.terminal(&p.session).await?;
@@ -332,6 +350,7 @@ impl Group for TerminalGroup {
             api::LIST => self.list(call.params).await,
             api::RENAME => self.rename(call.params).await,
             api::ATTACH => self.attach(call.params, call.connection).await,
+            api::READ => self.read(call.params).await,
             api::SUBSCRIBE => self.subscribe(call.params, call.connection).await,
             other => unreachable!("{} is not a method of terminal", other.name()),
         };

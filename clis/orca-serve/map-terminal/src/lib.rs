@@ -2,7 +2,7 @@
 //! `<workspace>:<terminal>` (a terminal's name never holds a colon), a worktree selector names the workspace to list, and nothing here touches a
 //! pty. The streaming rows (`terminal.subscribe`, replay by byte offset) need the port to carry events and stay pending.
 use agent_api_proto::Method as AgentMethod;
-use agent_api_terminal::{code, CLEAR, CLOSE, LIST, OPEN, RENAME, RESIZE, WRITE};
+use agent_api_terminal::{b64, code, CLEAR, CLOSE, LIST, OPEN, READ, RENAME, RESIZE, WRITE};
 use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::{Area, AgentApi, AgentError, Ctx, Kind, Method};
 use serde_json::{json, Value};
@@ -20,11 +20,12 @@ pub const TERMINAL_UPDATE_VIEWPORT: &str = "terminal.updateViewport";
 pub const TERMINAL_SET_DISPLAY_MODE: &str = "terminal.setDisplayMode";
 pub const TERMINAL_ACK_OUTPUT: &str = "terminal.ackOutput";
 pub const TERMINAL_FOCUS: &str = "terminal.focus";
+pub const TERMINAL_READ: &str = "terminal.read";
 pub const TERMINAL_OPEN_INPUT_SESSION: &str = "terminal.openInputSession";
 pub use tabs::{SESSION_TABS_ACTIVATE, SESSION_TABS_CLOSE, SESSION_TABS_CREATE_TERMINAL, SESSION_TABS_LIST, SESSION_TABS_SUBSCRIBE, SESSION_TABS_UNSUBSCRIBE};
 
 /// The agent methods this crate sends: a flow test holds the list to the methods really sent.
-pub const USES: &[AgentMethod] = &[LIST, WRITE, CLOSE, CLEAR, RENAME, RESIZE, OPEN, orca_map_state::STATE_SET];
+pub const USES: &[AgentMethod] = &[LIST, WRITE, CLOSE, CLEAR, RENAME, RESIZE, OPEN, READ, orca_map_state::STATE_SET];
 
 const METHODS: &[Method] = &[
     Method { name: TERMINAL_LIST, kind: Kind::Unary },
@@ -36,6 +37,7 @@ const METHODS: &[Method] = &[
     Method { name: TERMINAL_SET_DISPLAY_MODE, kind: Kind::Unary },
     Method { name: TERMINAL_ACK_OUTPUT, kind: Kind::Unary },
     Method { name: TERMINAL_FOCUS, kind: Kind::Unary },
+    Method { name: TERMINAL_READ, kind: Kind::Unary },
     Method { name: TERMINAL_OPEN_INPUT_SESSION, kind: Kind::Unary },
     Method { name: SESSION_TABS_LIST, kind: Kind::Unary },
     Method { name: SESSION_TABS_ACTIVATE, kind: Kind::Unary },
@@ -82,6 +84,7 @@ impl Area for TerminalArea {
             TERMINAL_SET_DISPLAY_MODE => set_display_mode(agent, params),
             TERMINAL_ACK_OUTPUT => ack_output(params),
             TERMINAL_FOCUS => focus(agent, params),
+            TERMINAL_READ => read(agent, params),
             TERMINAL_OPEN_INPUT_SESSION => open_input_session(params),
             other => Err(Failure::new(orca_core::wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }
@@ -336,4 +339,85 @@ fn open_input_session(params: &Value) -> Result<Value, Failure> {
         return Err(Failure::invalid("Invalid input: expected \"mobile\""));
     }
     Ok(json!({"inputSessionId": null}))
+}
+
+/// Lines of at most this many are kept when the phone names no limit.
+const DEFAULT_LINES: usize = 200;
+
+/// The text of terminal bytes without its escape sequences (CSI, OSC and two-byte ones) and carriage returns, one string per line.
+fn lines_of(bytes: &[u8]) -> Vec<String> {
+    let text = String::from_utf8_lossy(bytes);
+    let mut out = String::new();
+    let mut chars = text.chars().peekable();
+    while let Some(c) = chars.next() {
+        match c {
+            '\u{1b}' => match chars.next() {
+                Some('[') => {
+                    for n in chars.by_ref() {
+                        if ('\u{40}'..='\u{7e}').contains(&n) {
+                            break;
+                        }
+                    }
+                }
+                Some(']') => {
+                    while let Some(n) = chars.next() {
+                        if n == '\u{7}' || (n == '\u{1b}' && chars.next_if_eq(&'\\').is_some()) {
+                            break;
+                        }
+                    }
+                }
+                _ => {}
+            },
+            '\r' => {}
+            c if c.is_control() && c != '\n' && c != '\t' => {}
+            c => out.push(c),
+        }
+    }
+    let mut lines: Vec<String> = out.split('\n').map(str::to_string).collect();
+    if lines.last().is_some_and(String::is_empty) {
+        lines.pop();
+    }
+    lines
+}
+
+/// The last lines the service keeps of a terminal, from a cursor (a byte offset) when the phone holds one. A screen read has no screen to read.
+fn read(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    handle_param(params)?;
+    let cursor = match params.get("cursor") {
+        None | Some(Value::Null) => None,
+        Some(Value::Number(n)) => Some(n.as_u64().ok_or_else(|| Failure::invalid("Invalid input: expected number, received NaN"))?),
+        Some(_) => return Err(Failure::invalid("Invalid input: expected number, received NaN")),
+    };
+    let screen = match params.get("screen") {
+        None | Some(Value::Null) => false,
+        Some(Value::Bool(true)) => true,
+        Some(_) => return Err(Failure::invalid("Invalid input: expected true")),
+    };
+    if screen && cursor.is_some() {
+        return Err(Failure::invalid("Cursor cannot be combined with a screen read"));
+    }
+    let limit = params.get("limit").and_then(Value::as_f64).filter(|l| l.is_finite() && *l >= 1.0).map_or(DEFAULT_LINES, |l| l as usize);
+    let (workspace, terminal) = parse(params)?;
+    let mut request = addressed(&workspace, &terminal);
+    if let Some(after) = cursor {
+        request["after_offset"] = json!(after);
+    }
+    let read = ask(agent, READ, request)?;
+    let bytes = read["data"].as_str().and_then(b64::decode).unwrap_or_default();
+    let (mut tail, source) = if screen { (Vec::new(), "screen-unavailable") } else { (lines_of(&bytes), "stream") };
+    let dropped = tail.len().saturating_sub(limit);
+    tail.drain(..dropped);
+    let exited = read["status"] != "running";
+    let (start, end) = (read["start_offset"].as_u64().unwrap_or(0), read["offset"].as_u64().unwrap_or(0));
+    Ok(json!({"terminal": {
+        "handle": handle_of(&workspace, &terminal),
+        "status": if exited { "exited" } else { "running" },
+        "tail": tail,
+        "truncated": dropped > 0 || read["reset"] == true,
+        "nextCursor": end.to_string(),
+        "oldestCursor": start.to_string(),
+        "latestCursor": end.to_string(),
+        "returnedLineCount": tail.len(),
+        "source": source,
+    }}))
 }
