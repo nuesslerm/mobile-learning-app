@@ -2,8 +2,8 @@
 use mimic_core::cassette::{Dir, Status, Step};
 use mimic_core::ports::Observed;
 use mimic_script_core::case::Case;
-use mimic_script_core::testing::{text, CassetteEchoTransport, CassettePhone, FakeClock, FixedTarget, ScriptedTransport};
-use mimic_script_core::{Clock, Event, Interpreter, Policy};
+use mimic_script_core::testing::{text, CassetteEchoTransport, CassettePhone, ScriptedPhone, FakeClock, FixedTarget, ScriptedTransport};
+use mimic_script_core::{Clock, Event, Interpreter, Policy, PhoneEvent};
 use serde_json::{json, Value};
 
 fn run_with(case: Value, transport: Box<dyn mimic_script_core::Transport>, clock: &FakeClock, policy: Policy, target: FixedTarget) -> Observed {
@@ -346,6 +346,102 @@ fn given_the_committed_orca_recordings_when_their_requests_run_against_their_own
     }
     assert!(checked > 250, "only {checked} recorded Orca cases were found");
     assert!(mismatched.is_empty(), "{} of {checked} differ, first: {:#?}", mismatched.len(), &mismatched[..mismatched.len().min(3)]);
+}
+
+fn orca_run(case: Value, phone: &ScriptedPhone, clock: &FakeClock) -> Observed {
+    let mut interpreter = Interpreter::new(Box::new(ScriptedTransport::new(clock)), Box::new(FixedTarget::new("", "cred")), Box::new(clock.clone()), Policy::default()).with_phone(Box::new(phone.clone()));
+    interpreter.run_case(&Case::parse(&case).unwrap()).unwrap()
+}
+
+fn frame(payload: Value) -> PhoneEvent {
+    PhoneEvent::Frame { sub: String::new(), binary: false, payload, len: None }
+}
+
+fn shape(o: &Observed) -> Vec<(String, Option<String>, Option<String>, Value)> {
+    o.steps.iter().map(|s| (format!("{:?}", s.dir), s.channel.clone(), s.rid.clone(), s.payload.clone())).collect()
+}
+
+#[test]
+fn given_a_stream_when_opened_and_listened_to_then_the_opener_and_the_frames_inside_the_window_are_steps_with_its_rid() {
+    let clock = FakeClock::default();
+    let phone = ScriptedPhone::new(&clock);
+    phone.streams(vec![(50, frame(json!({"n": 1}))), (200, frame(json!({"n": 2}))), (900, frame(json!({"n": 3})))]);
+
+    let observed = orca_run(json!({"script": [{"connect": {}}, {"subscribe": {"method": "notifications.subscribe", "params": {}, "rid": "s0", "listen_ms": 300}}]}), &phone, &clock);
+
+    assert_eq!(
+        shape(&observed),
+        [
+            ("C2s".to_string(), None, Some("s0".to_string()), json!({"method": "notifications.subscribe", "params": {}})),
+            ("S2c".to_string(), None, Some("s0".to_string()), json!({"n": 1})),
+            ("S2c".to_string(), None, Some("s0".to_string()), json!({"n": 2})),
+        ]
+    );
+    assert_eq!(phone.subscribed().len(), 1);
+}
+
+#[test]
+fn given_a_binary_frame_when_it_arrives_then_the_step_is_binary_with_its_length_and_base64_payload() {
+    let clock = FakeClock::default();
+    let phone = ScriptedPhone::new(&clock);
+    phone.streams(vec![(10, PhoneEvent::Frame { sub: String::new(), binary: true, payload: json!("AQID"), len: Some(3) })]);
+
+    let observed = orca_run(json!({"script": [{"connect": {}}, {"subscribe": {"method": "terminal.subscribe", "rid": "s0", "listen_ms": 100}}]}), &phone, &clock);
+
+    let step = &observed.steps[1];
+    assert_eq!((format!("{:?}", step.kind), step.len, step.payload.clone()), ("Binary".to_string(), Some(3), json!("AQID")));
+}
+
+#[test]
+fn given_an_open_stream_when_unsubscribed_then_the_phone_is_told_and_frames_still_on_their_way_are_taken() {
+    let clock = FakeClock::default();
+    let phone = ScriptedPhone::new(&clock);
+    phone.streams(vec![(300, frame(json!({"late": true})))]);
+
+    let observed = orca_run(json!({"script": [{"connect": {}}, {"subscribe": {"method": "m", "rid": "s0", "listen_ms": 100}}, {"unsubscribe": {"rid": "s0"}}], "settle_ms": 400}), &phone, &clock);
+
+    assert_eq!(phone.unsubscribed(), ["sub-0"]);
+    assert_eq!(observed.steps.last().unwrap().payload, json!({"late": true}));
+}
+
+#[test]
+fn given_a_phone_that_refuses_a_stream_when_subscribed_then_the_failure_is_the_answer_step_and_the_script_goes_on() {
+    let clock = FakeClock::default();
+    let phone = ScriptedPhone::new(&clock);
+    phone.refusing("Connection interrupted");
+
+    let observed = orca_run(json!({"script": [{"connect": {}}, {"subscribe": {"method": "m", "rid": "s0"}}, {"request": {"method": "files.list", "params": {}, "rid": "0"}}]}), &phone, &clock);
+
+    assert_eq!(observed.steps[1].payload, json!({"client_error": "Connection interrupted"}));
+    assert_eq!(observed.steps.len(), 4);
+    assert_eq!(observed.outcome.status, Status::Ok);
+}
+
+#[test]
+fn given_the_handshake_tap_when_connected_then_each_stage_is_a_handshake_step_and_without_the_tap_there_are_none() {
+    let clock = FakeClock::default();
+    let phone = ScriptedPhone::new(&clock);
+    phone.handshake(vec![
+        PhoneEvent::Handshake { stage: "hello".into(), client_to_server: true, payload: json!({"key": "<b64:32>"}) },
+        PhoneEvent::Handshake { stage: "ready".into(), client_to_server: false, payload: json!({"key": "<b64:32>"}) },
+    ]);
+
+    let tapped = orca_run(json!({"script": [{"connect": {"capture_handshake": true}}]}), &phone, &clock);
+    let plain = orca_run(json!({"script": [{"connect": {}}]}), &ScriptedPhone::new(&clock), &clock);
+
+    assert_eq!(shape(&tapped).iter().map(|s| (s.0.as_str(), s.1.as_deref())).collect::<Vec<_>>(), [("C2s", Some("handshake")), ("S2c", Some("handshake"))]);
+    assert_eq!(tapped.steps[0].payload, json!({"stage": "hello", "frame": {"key": "<b64:32>"}}));
+    assert!(plain.steps.is_empty());
+}
+
+#[test]
+fn given_the_close_tap_when_a_case_ends_then_the_end_of_the_connection_is_its_last_step_and_without_the_tap_there_is_none() {
+    let clock = FakeClock::default();
+    let tapped = orca_run(json!({"script": [{"connect": {"capture_close": true}}]}), &ScriptedPhone::new(&clock), &clock);
+    let plain = orca_run(json!({"script": [{"connect": {}}]}), &ScriptedPhone::new(&clock), &clock);
+
+    assert_eq!(shape(&tapped), [("S2c".to_string(), Some("ws:close".to_string()), None, json!({"code": 1000, "reason": ""}))]);
+    assert!(plain.steps.is_empty());
 }
 
 #[allow(dead_code)]

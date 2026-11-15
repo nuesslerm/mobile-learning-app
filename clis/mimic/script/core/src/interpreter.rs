@@ -2,12 +2,13 @@
 //! Frames arrive on a queue the core drains at every step boundary and during every wait, so the order of steps is the order of arrival.
 use crate::case::{Case, Entry};
 use crate::policy::Policy;
-use crate::ports::{Clock, Event, HttpCall, Phone, Target, Transport};
+use crate::ports::{Clock, Event, HttpCall, Phone, PhoneEvent, Target, Transport};
 use crate::vars::{captured, fill, js_string, unbound, Vars};
 use mimic_core::cassette::{Dir, DriverInfo, Outcome, Status, Step, StepKind};
 use mimic_core::ports::{Driver, DriverError, Hello, Observed, Request};
 use mimic_core::wire::{raw_steps, WireEvent, OP_TEXT};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 
 pub const BAD_CREDENTIAL: &str = "NOTACREDENTIAL";
 
@@ -43,6 +44,9 @@ struct Run {
     socket: bool,
     /// A `connect` that did not reach `connected` ends the script with no steps; the state is the outcome's code.
     connect_failed: Option<String>,
+    /// Streams the case opened: the request id of the opener to the id the phone gave the stream, and back.
+    sub_of_rid: HashMap<String, String>,
+    rid_of_sub: HashMap<String, String>,
 }
 
 fn orca_step(dir: Dir, rid: &str, payload: Value) -> Step {
@@ -217,6 +221,9 @@ impl Interpreter {
             "ws-send" => self.ws_send(run, entry, &arg),
             "git" => self.git(run, &arg),
             "connect" => self.connect(run, &arg),
+            "subscribe" => self.subscribe(run, &arg),
+            "listen" => self.listen(run, &arg),
+            "unsubscribe" => self.unsubscribe(run, &arg),
             _ => self.ws_close(run, &arg),
         }
     }
@@ -241,13 +248,83 @@ impl Interpreter {
             Self::transport_failed(run, "no phone");
             return false;
         };
+        phone.tap(arg.get("capture_handshake").and_then(Value::as_bool).unwrap_or(false), arg.get("capture_close").and_then(Value::as_bool).unwrap_or(false));
         let state = phone.connect(timeout);
         if state == "connected" {
+            self.pump(run);
             return true;
         }
         run.steps.clear();
         run.connect_failed = Some(state);
         false
+    }
+
+    /// Takes what the phone has reported: stream frames, handshake steps and the end of the connection become steps in arrival order.
+    fn pump(&mut self, run: &mut Run) {
+        let events = self.phone.as_mut().map(|p| p.poll()).unwrap_or_default();
+        for event in events {
+            run.steps.push(match event {
+                PhoneEvent::Frame { sub, binary, payload, len } => {
+                    let rid = run.rid_of_sub.get(&sub).cloned().unwrap_or(sub);
+                    Step { dir: Dir::S2c, channel: None, kind: if binary { StepKind::Binary } else { StepKind::Json }, rid: Some(rid), len: len.map(|n| n as u64), payload }
+                }
+                PhoneEvent::Handshake { stage, client_to_server, payload } => {
+                    let dir = if client_to_server { Dir::C2s } else { Dir::S2c };
+                    Step { dir, channel: Some("handshake".into()), kind: StepKind::Json, rid: None, len: None, payload: json!({"stage": stage, "frame": payload}) }
+                }
+                PhoneEvent::Close { code, reason } => Step { dir: Dir::S2c, channel: Some("ws:close".into()), kind: StepKind::Json, rid: None, len: None, payload: json!({"code": code, "reason": reason}) },
+            });
+        }
+    }
+
+    /// Everything the phone reports for `ms`, in poll steps.
+    fn listen_for(&mut self, run: &mut Run, ms: u64) {
+        let mut waited = 0;
+        loop {
+            self.pump(run);
+            if waited >= ms {
+                break;
+            }
+            let step = (ms - waited).min(self.policy.poll_ms);
+            self.clock.sleep(step);
+            waited += step;
+        }
+    }
+
+    fn listen(&mut self, run: &mut Run, arg: &Value) -> bool {
+        self.listen_for(run, arg.get("ms").and_then(Value::as_u64).unwrap_or(0));
+        true
+    }
+
+    /// Opens a stream. The opener is recorded like a request; its frames follow with the same rid for `listen_ms`.
+    fn subscribe(&mut self, run: &mut Run, arg: &Value) -> bool {
+        let rid = arg.get("rid").map(js_string).unwrap_or_default();
+        let method = arg.get("method").map(js_string).unwrap_or_default();
+        let params = arg.get("params").cloned().unwrap_or(Value::Null);
+        run.steps.push(orca_step(Dir::C2s, &rid, json!({"method": method, "params": params})));
+        match self.phone.as_mut().map(|p| p.subscribe(&method, &params)) {
+            Some(Ok(sub)) => {
+                run.rid_of_sub.insert(sub.clone(), rid.clone());
+                run.sub_of_rid.insert(rid, sub);
+            }
+            Some(Err(message)) => run.steps.push(orca_step(Dir::S2c, &rid, json!({"client_error": message}))),
+            None => run.steps.push(orca_step(Dir::S2c, &rid, json!({"client_error": "no phone"}))),
+        }
+        self.listen_for(run, arg.get("listen_ms").and_then(Value::as_u64).unwrap_or(0));
+        true
+    }
+
+    /// Ends a stream and takes the frames that were still on their way.
+    fn unsubscribe(&mut self, run: &mut Run, arg: &Value) -> bool {
+        let rid = arg.get("rid").map(js_string).unwrap_or_default();
+        if let (Some(sub), Some(phone)) = (run.sub_of_rid.get(&rid).cloned(), self.phone.as_mut()) {
+            if let Err(message) = phone.unsubscribe(&sub) {
+                run.steps.push(orca_step(Dir::S2c, &rid, json!({"client_error": message})));
+            }
+        }
+        let quiet = self.policy.quiet(run.settle_ms);
+        self.listen_for(run, quiet);
+        true
     }
 
     /// One sealed request. The request step is recorded as written; a value an earlier answer did not carry is the finding, never sent as text.
@@ -271,6 +348,7 @@ impl Interpreter {
                 None => json!({"client_error": "no phone"}),
             }
         };
+        self.pump(run);
         run.steps.push(orca_step(Dir::S2c, &rid, payload));
         true
     }
@@ -378,7 +456,7 @@ impl Interpreter {
 
     /// Runs `entries` from `vars`; the steps and the variables the run ended with.
     fn execute(&mut self, entries: &[Entry], settle_ms: Option<u64>, declared: &[String], vars: Vars) -> (Vec<Step>, Vars) {
-        let mut run = Run { steps: Vec::new(), vars, last_frame_at: self.clock.now_ms(), settle_ms, socket: false, connect_failed: None };
+        let mut run = Run { steps: Vec::new(), vars, last_frame_at: self.clock.now_ms(), settle_ms, socket: false, connect_failed: None, sub_of_rid: HashMap::new(), rid_of_sub: HashMap::new() };
         for entry in entries {
             if !self.entry(&mut run, entry, declared) {
                 break;
@@ -386,6 +464,7 @@ impl Interpreter {
         }
         if let Some(phone) = self.phone.as_mut().filter(|_| entries.iter().any(|e| e.op == "connect")) {
             phone.close();
+            self.pump(&mut run);
         }
         self.connect_failed = run.connect_failed.take();
         (run.steps, run.vars)

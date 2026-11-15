@@ -39,7 +39,7 @@ impl Server for OrcaServer {
     }
 
     fn stop(&self) {
-        self.phone.0.borrow_mut().stop();
+        self.phone.sidecar.borrow_mut().stop();
         for root in self.roots.borrow_mut().drain(..) {
             let _ = std::fs::remove_dir_all(root);
         }

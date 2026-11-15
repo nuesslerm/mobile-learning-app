@@ -109,11 +109,18 @@ fn a_script_driver_without_its_script_table_is_refused_when_the_file_is_read() {
 mod orca_target {
     use crate::support::*;
 
-    /// A sidecar that answers every request with `echo` and ends on `close`.
+    /// A sidecar that answers every control line by its id, every request with `echo`, and ends on `quit`.
     fn sidecar(echo: &str) -> String {
-        format!(
-            "while read -r line; do\n  case \"$line\" in\n    *'\"op\":\"connect\"'*) echo '{{\"state\":\"connected\"}}' ;;\n    *'\"op\":\"request\"'*) echo '{{\"ok\":true,\"payload\":{{\"ok\":true,\"result\":{{\"echo\":\"{echo}\"}}}}}}' ;;\n    *'\"op\":\"disconnect\"'*) echo '{{}}' ;;\n    *'\"op\":\"close\"'*) echo '{{}}'; exit 0 ;;\n  esac\ndone\n"
-        )
+        let script = r#"while read -r line; do
+  id=$(printf '%s' "$line" | sed -n 's/.*"id":"\([0-9]*\)".*/\1/p')
+  case "$line" in
+    *'"op":"connect"'*) echo "{\"id\":\"$id\",\"ok\":{\"state\":\"connected\"}}" ;;
+    *'"op":"request"'*) echo "{\"id\":\"$id\",\"ok\":{\"response\":{\"ok\":true,\"result\":{\"echo\":ECHO}}}}" ;;
+    *'"op":"quit"'*) echo "{\"id\":\"$id\",\"ok\":{}}"; exit 0 ;;
+    *) echo "{\"id\":\"$id\",\"ok\":{}}" ;;
+  esac
+done"#;
+        script.replace("ECHO", &format!("\\\"{echo}\\\""))
     }
 
     fn world() -> World {

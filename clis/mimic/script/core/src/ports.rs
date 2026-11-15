@@ -51,12 +51,38 @@ pub trait Transport {
     fn ws_close(&mut self, code: u16, reason: &str) -> Result<(), TransportError>;
 }
 
-/// The phone's own sealed session with one Orca host (`connect` once, then request/response); the adapter owns the handshake and the keys.
+/// What the phone's session reports besides the answer to a request, in arrival order.
+#[derive(Clone, Debug, PartialEq)]
+pub enum PhoneEvent {
+    /// A frame of an open stream; `sub` is the id `subscribe` returned. A binary frame carries its bytes as base64 and its length.
+    Frame { sub: String, binary: bool, payload: serde_json::Value, len: Option<usize> },
+    /// A step of the e2ee handshake the phone tapped (`hello`, `ready`, `auth`, `authenticated`, `error`), with keys and nonces already shaped.
+    Handshake { stage: String, client_to_server: bool, payload: serde_json::Value },
+    /// The connection ended.
+    Close { code: Option<u16>, reason: String },
+}
+
+/// The phone's own sealed session with one Orca host (`connect` once, then requests and streams); the adapter owns the handshake and the keys.
 pub trait Phone {
     /// Pairs and waits for the session; the state the client ended in (`connected`, `auth-failed`, `disconnected`, `timeout`).
     fn connect(&mut self, timeout_ms: u64) -> String;
     /// One request. `Ok` is the host's answer without its per-run id; `Err` is the client's own failure text (a timeout, a closed session).
     fn request(&mut self, method: &str, params: &serde_json::Value, timeout_ms: u64) -> Result<serde_json::Value, String>;
+    /// Opens a stream; its frames arrive through `poll` with the id returned here.
+    fn subscribe(&mut self, _method: &str, _params: &serde_json::Value) -> Result<String, String> {
+        Err("this phone cannot subscribe".into())
+    }
+    /// Ends a stream the way the client does (the client sends the method-specific unsubscribe itself).
+    fn unsubscribe(&mut self, _sub: &str) -> Result<(), String> {
+        Ok(())
+    }
+    /// Which extra events `poll` may report; set before `connect`. Neither the handshake nor the end of the connection is reported unless asked for.
+    fn tap(&mut self, _handshake: bool, _close: bool) {}
+    /// Everything that arrived since the last call, without waiting.
+    fn poll(&mut self) -> Vec<PhoneEvent> {
+        Vec::new()
+    }
+    /// Ends the session. With the close tap on, the end of the connection is then reported through `poll`.
     fn close(&mut self);
 }
 

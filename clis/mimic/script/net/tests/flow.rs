@@ -204,17 +204,24 @@ fn given_an_open_socket_when_closed_at_once_then_the_close_ends_the_script() {
 }
 
 mod sidecar {
-    use mimic_script_core::Phone;
+    use mimic_script_core::{Phone, PhoneEvent};
     use mimic_script_net::{Sidecar, SidecarPhone};
     use serde_json::json;
 
+    /// A sidecar that answers by `id` and, on a subscribe, emits two frames and a handshake line before it answers (an event ahead of a reply).
     const FAKE: &str = r#"while read -r line; do
+  id=$(printf '%s' "$line" | sed -n 's/.*"id":"\([0-9]*\)".*/\1/p')
   case "$line" in
-    *'"op":"connect"'*) echo '{"state":"connected"}' ;;
-    *'"method":"boom"'*) echo '{"ok":false,"error":"timed out"}' ;;
-    *'"op":"request"'*) echo '{"ok":true,"payload":{"ok":true,"result":{"echo":1}}}' ;;
-    *'"op":"disconnect"'*) echo '{}' ;;
-    *'"op":"close"'*) echo '{}'; exit 0 ;;
+    *'"op":"connect"'*) echo "{\"id\":\"$id\",\"ok\":{\"state\":\"connected\"}}" ;;
+    *'"method":"boom"'*) echo "{\"id\":\"$id\",\"ok\":{\"client_error\":\"timed out\"}}" ;;
+    *'"op":"request"'*) echo "{\"id\":\"$id\",\"ok\":{\"response\":{\"ok\":true,\"result\":{\"echo\":1}}}}" ;;
+    *'"op":"subscribe"'*)
+      echo '{"event":"frame","sub":"s0","kind":"json","payload":{"n":1}}'
+      echo '{"event":"handshake","stage":"hello","dir":"c2s","payload":{"k":"<b64:32>"}}'
+      echo "{\"id\":\"$id\",\"ok\":{\"sub\":\"s0\"}}" ;;
+    *'"op":"tap"'*|*'"op":"unsubscribe"'*) echo "{\"id\":\"$id\",\"ok\":{}}" ;;
+    *'"op":"close"'*) echo '{"event":"close","code":1000,"reason":""}'; echo "{\"id\":\"$id\",\"ok\":{\"state\":\"disconnected\"}}" ;;
+    *'"op":"quit"'*) echo "{\"id\":\"$id\",\"ok\":{}}"; exit 0 ;;
   esac
 done"#;
 
@@ -229,8 +236,29 @@ done"#;
         assert_eq!(phone.connect(1000), "connected");
         assert_eq!(phone.request("accounts.list", &json!({}), 1000), Ok(json!({"ok": true, "result": {"echo": 1}})));
         assert_eq!(phone.request("boom", &json!({}), 1000), Err("timed out".to_string()));
+        phone.sidecar.borrow_mut().stop();
+    }
+
+    #[test]
+    fn given_events_ahead_of_a_reply_when_a_stream_is_opened_then_the_reply_still_matches_and_the_events_wait_in_the_queue_in_order() {
+        let mut phone = fake();
+        phone.connect(1000);
+
+        let sub = phone.subscribe("notifications.subscribe", &json!({}));
         phone.close();
-        phone.0.borrow_mut().stop();
+        let events = phone.poll();
+
+        assert_eq!(sub, Ok("s0".to_string()));
+        assert_eq!(
+            events,
+            [
+                PhoneEvent::Frame { sub: "s0".into(), binary: false, payload: json!({"n": 1}), len: None },
+                PhoneEvent::Handshake { stage: "hello".into(), client_to_server: true, payload: json!({"k": "<b64:32>"}) },
+                PhoneEvent::Close { code: Some(1000), reason: String::new() },
+            ]
+        );
+        assert!(phone.poll().is_empty());
+        phone.sidecar.borrow_mut().stop();
     }
 
     #[test]

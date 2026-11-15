@@ -9,6 +9,8 @@ export type RpcResponse = { id: string; ok: true; result: unknown; _meta?: unkno
 
 export type PhoneClient = {
   sendRequest(method: string, params?: unknown, options?: { timeoutMs?: number }): Promise<RpcResponse>
+  /** A stream: every frame the host sends for it goes to `onData` (and a binary one to `options.onBinaryFrame`); the returned function ends it. */
+  subscribe(method: string, params: unknown, onData: (result: unknown) => void, options?: { onBinaryFrame?: (frame: unknown) => void }): () => void
   getState(): string
   onStateChange(listener: (state: string) => void): () => void
   close(): void

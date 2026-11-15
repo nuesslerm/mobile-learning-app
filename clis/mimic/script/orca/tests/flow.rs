@@ -7,11 +7,12 @@ use mimic_script_orca::OrcaLaunch;
 use serde_json::{json, Value};
 
 const FAKE: &str = r#"while read -r line; do
+  id=$(printf '%s' "$line" | sed -n 's/.*"id":"\([0-9]*\)".*/\1/p')
   case "$line" in
-    *'"op":"connect"'*) echo '{"state":"connected"}' ;;
-    *'"op":"request"'*) echo '{"ok":true,"payload":{"ok":true,"result":{"echo":1}}}' ;;
-    *'"op":"disconnect"'*) echo '{}' ;;
-    *'"op":"close"'*) echo '{}'; exit 0 ;;
+    *'"op":"connect"'*) echo "{\"id\":\"$id\",\"ok\":{\"state\":\"connected\"}}" ;;
+    *'"op":"request"'*) echo "{\"id\":\"$id\",\"ok\":{\"response\":{\"ok\":true,\"result\":{\"echo\":1}}}}" ;;
+    *'"op":"quit"'*) echo "{\"id\":\"$id\",\"ok\":{}}"; exit 0 ;;
+    *) echo "{\"id\":\"$id\",\"ok\":{}}" ;;
   esac
 done"#;
 

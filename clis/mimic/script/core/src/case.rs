@@ -2,7 +2,7 @@
 //! beside an optional `capture` and, on a `ws-send`, an optional `await: "exit"`.
 use serde_json::Value;
 
-pub const OPS: [&str; 7] = ["http", "ws-open", "ws-send", "ws-close", "git", "connect", "request"];
+pub const OPS: [&str; 10] = ["http", "ws-open", "ws-send", "ws-close", "git", "connect", "request", "subscribe", "listen", "unsubscribe"];
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Entry {

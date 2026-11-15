@@ -1,6 +1,6 @@
 //! In-memory doubles of the ports. They share one `FakeClock` handle so a frame can be scheduled to arrive some milliseconds after a send,
 //! and a test can read what the interpreter sent and how long it slept. Clones of a double are handles on the same state.
-use crate::ports::{Clock, Event, HttpCall, HttpReply, Phone, Target, Transport, TransportError};
+use crate::ports::{Clock, Event, HttpCall, HttpReply, Phone, PhoneEvent, Target, Transport, TransportError};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use mimic_core::cassette::{Dir, Step, StepKind};
@@ -335,5 +335,118 @@ impl Transport for CassetteEchoTransport {
         self.next(|s| s.dir == Dir::C2s && Self::channel_is(s, "ws:close")).ok_or_else(|| TransportError("no socket".into()))?;
         self.queue_arrivals();
         Ok(())
+    }
+}
+
+/// A phone that reports events at set times on the shared clock: what a stream sends after it is opened, and what the handshake tap sees.
+#[derive(Clone)]
+pub struct ScriptedPhone {
+    clock: FakeClock,
+    state: Rc<RefCell<PhoneState>>,
+}
+
+#[derive(Default)]
+struct PhoneState {
+    refuse: Option<String>,
+    tapped: bool,
+    tap_close: bool,
+    handshake: Vec<PhoneEvent>,
+    stream: Vec<(u64, PhoneEvent)>,
+    pending: Vec<(u64, PhoneEvent)>,
+    subscribed: Vec<(String, Value)>,
+    unsubscribed: Vec<String>,
+}
+
+impl ScriptedPhone {
+    pub fn new(clock: &FakeClock) -> ScriptedPhone {
+        ScriptedPhone { clock: clock.clone(), state: Rc::default() }
+    }
+
+    /// The frames a stream sends: each after its delay from the moment the stream is opened (its `sub` is filled in).
+    pub fn streams(&self, frames: Vec<(u64, PhoneEvent)>) -> &Self {
+        self.state.borrow_mut().stream = frames;
+        self
+    }
+
+    /// What the handshake tap reports when `connect` runs with the tap on.
+    pub fn handshake(&self, events: Vec<PhoneEvent>) -> &Self {
+        self.state.borrow_mut().handshake = events;
+        self
+    }
+
+    pub fn refusing(&self, message: &str) -> &Self {
+        self.state.borrow_mut().refuse = Some(message.into());
+        self
+    }
+
+    pub fn subscribed(&self) -> Vec<(String, Value)> {
+        self.state.borrow().subscribed.clone()
+    }
+
+    pub fn unsubscribed(&self) -> Vec<String> {
+        self.state.borrow().unsubscribed.clone()
+    }
+}
+
+impl Phone for ScriptedPhone {
+    fn connect(&mut self, _timeout_ms: u64) -> String {
+        let mut state = self.state.borrow_mut();
+        if state.tapped {
+            let now = self.clock.now_ms();
+            let events: Vec<_> = state.handshake.drain(..).map(|e| (now, e)).collect();
+            state.pending.extend(events);
+        }
+        "connected".into()
+    }
+
+    fn request(&mut self, _method: &str, _params: &Value, _timeout_ms: u64) -> Result<Value, String> {
+        Ok(serde_json::json!({"ok": true, "result": {}}))
+    }
+
+    fn subscribe(&mut self, method: &str, params: &Value) -> Result<String, String> {
+        let mut state = self.state.borrow_mut();
+        if let Some(message) = state.refuse.clone() {
+            return Err(message);
+        }
+        let sub = format!("sub-{}", state.subscribed.len());
+        state.subscribed.push((method.into(), params.clone()));
+        let now = self.clock.now_ms();
+        let frames: Vec<_> = state
+            .stream
+            .iter()
+            .map(|(delay, e)| match e {
+                PhoneEvent::Frame { binary, payload, len, .. } => (now + delay, PhoneEvent::Frame { sub: sub.clone(), binary: *binary, payload: payload.clone(), len: *len }),
+                other => (now + delay, other.clone()),
+            })
+            .collect();
+        state.pending.extend(frames);
+        Ok(sub)
+    }
+
+    fn unsubscribe(&mut self, sub: &str) -> Result<(), String> {
+        self.state.borrow_mut().unsubscribed.push(sub.into());
+        Ok(())
+    }
+
+    fn tap(&mut self, handshake: bool, close: bool) {
+        let mut state = self.state.borrow_mut();
+        state.tapped = handshake;
+        state.tap_close = close;
+    }
+
+    fn poll(&mut self) -> Vec<PhoneEvent> {
+        let now = self.clock.now_ms();
+        let mut state = self.state.borrow_mut();
+        let (due, later): (Vec<_>, Vec<_>) = state.pending.drain(..).partition(|(at, _)| *at <= now);
+        state.pending = later;
+        due.into_iter().map(|(_, e)| e).collect()
+    }
+
+    fn close(&mut self) {
+        let now = self.clock.now_ms();
+        let mut state = self.state.borrow_mut();
+        if state.tap_close {
+            state.pending.push((now, PhoneEvent::Close { code: Some(1000), reason: String::new() }));
+        }
     }
 }
