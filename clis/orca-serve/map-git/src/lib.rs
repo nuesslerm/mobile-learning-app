@@ -5,7 +5,7 @@
 //! generation runs to its end), `git.discoverCommitMessageModels` (one configured model, no list) and `git.generatePullRequestFields` (no group
 //! writes pull request text).
 use agent_api_git::ai::GENERATE_COMMIT_MESSAGE;
-use agent_api_git::{CHECKOUT, COMMIT, COMPARE, CONFLICT_RESOLVE, DISCARD, FAST_FORWARD, FETCH, HISTORY, MERGE, PULL, PUSH, REBASE, REFS, STAGE, STATUS, UNSTAGE, UPSTREAM_STATUS};
+use agent_api_git::{BLOB, CHECKOUT, COMMIT, COMPARE, CONFLICT_RESOLVE, DISCARD, FAST_FORWARD, FETCH, HISTORY, MERGE, PULL, PUSH, REBASE, REFS, STAGE, STATUS, UNSTAGE, UPSTREAM_STATUS};
 use agent_api_proto::Method as AgentMethod;
 use orca_core::wire::{Failure, METHOD_NOT_FOUND, RUNTIME_ERROR};
 use orca_core::{Area, AgentApi, AgentError, Ctx, Kind, Method};
@@ -13,6 +13,7 @@ use serde_json::{json, Map, Value};
 
 mod ai;
 mod compare;
+mod diff;
 mod read;
 mod sync;
 mod write;
@@ -43,9 +44,11 @@ pub const GIT_RESOLVE_CONFLICT: &str = "git.resolveConflict";
 pub const GIT_BRANCH_COMPARE: &str = "git.branchCompare";
 pub const GIT_COMMIT_COMPARE: &str = "git.commitCompare";
 pub const GIT_GENERATE_COMMIT_MESSAGE: &str = "git.generateCommitMessage";
+pub const GIT_BRANCH_DIFF: &str = "git.branchDiff";
+pub const GIT_COMMIT_DIFF: &str = "git.commitDiff";
 
 /// The agent methods this crate sends: a flow test holds the list to the methods really sent.
-pub const USES: &[AgentMethod] = &[STATUS, REFS, HISTORY, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, GENERATE_COMMIT_MESSAGE];
+pub const USES: &[AgentMethod] = &[STATUS, REFS, HISTORY, COMPARE, STAGE, UNSTAGE, DISCARD, COMMIT, CHECKOUT, FETCH, PULL, PUSH, FAST_FORWARD, UPSTREAM_STATUS, MERGE, REBASE, CONFLICT_RESOLVE, GENERATE_COMMIT_MESSAGE, BLOB];
 
 const METHODS: &[Method] = &[
     Method { name: GIT_STATUS, kind: Kind::Unary },
@@ -71,6 +74,8 @@ const METHODS: &[Method] = &[
     Method { name: GIT_BRANCH_COMPARE, kind: Kind::Unary },
     Method { name: GIT_COMMIT_COMPARE, kind: Kind::Unary },
     Method { name: GIT_GENERATE_COMMIT_MESSAGE, kind: Kind::Unary },
+    Method { name: GIT_BRANCH_DIFF, kind: Kind::Unary },
+    Method { name: GIT_COMMIT_DIFF, kind: Kind::Unary },
 ];
 
 pub struct GitArea;
@@ -88,6 +93,8 @@ impl Area for GitArea {
         let repo = Repo::of(ctx.agent, params)?;
         match method {
             GIT_STATUS => read::status(&repo),
+            GIT_BRANCH_DIFF => diff::branch(&repo, params),
+            GIT_COMMIT_DIFF => diff::commit(&repo, params),
             GIT_UPSTREAM_STATUS => read::upstream_status(&repo, params),
             GIT_HISTORY => read::history(&repo, params),
             GIT_LOCAL_BRANCHES => read::local_branches(&repo),

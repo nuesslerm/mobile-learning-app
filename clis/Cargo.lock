@@ -2033,6 +2033,7 @@ version = "0.1.0"
 dependencies = [
  "agent-api-git",
  "agent-api-proto",
+ "base64 0.22.1",
  "orca-core",
  "orca-map-git",
  "orca-map-workspace",

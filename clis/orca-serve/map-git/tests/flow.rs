@@ -357,3 +357,81 @@ fn given_rca_answers_a_generation_without_a_message_when_it_is_asked_then_the_ca
     assert_eq!(code, "runtime_error");
     assert!(message.contains("no message"), "{message}");
 }
+
+const OLD: &str = "1111111111111111111111111111111111111111";
+const NEW: &str = "2222222222222222222222222222222222222222";
+
+fn pad(c: char) -> String {
+    c.to_string().repeat(40)
+}
+
+#[test]
+fn given_two_commits_when_a_files_branch_diff_is_read_then_it_is_the_text_of_each_side_and_a_missing_side_is_empty() {
+    // Given a repository whose merge base holds a file, whose head changed it and added another
+    let mut rig = Rig::new();
+    rig.repo.blob(OLD, "src/a.txt", b"one\ntwo\n").blob(NEW, "src/a.txt", b"one\n2\n").blob(NEW, "src/new.txt", b"fresh\n");
+    // When the phone reads the diff of the changed file and of the added one
+    let compare = json!({"mergeBase": OLD, "headOid": NEW});
+    let changed = rig.ok("git.branchDiff", json!({"filePath": "src/a.txt", "compare": compare}));
+    let added = rig.ok("git.branchDiff", json!({"filePath": "src/new.txt", "compare": compare}));
+    // Then the first is the two texts, the second has an empty original
+    assert_eq!(changed, json!({"kind": "text", "originalContent": "one\ntwo\n", "modifiedContent": "one\n2\n", "originalIsBinary": false, "modifiedIsBinary": false}));
+    assert_eq!((added["originalContent"].clone(), added["modifiedContent"].clone()), (json!(""), json!("fresh\n")));
+    // And a rename reads the original side under the old path
+    rig.repo.blob(OLD, "old/name.txt", b"same\n").blob(NEW, "new/name.txt", b"same\n");
+    let renamed = rig.ok("git.branchDiff", json!({"filePath": "new/name.txt", "oldPath": "old/name.txt", "compare": compare}));
+    assert_eq!((renamed["originalContent"].clone(), renamed["modifiedContent"].clone()), (json!("same\n"), json!("same\n")));
+}
+
+#[test]
+fn given_a_commit_when_a_files_commit_diff_is_read_then_the_parent_is_the_original_and_a_root_commit_has_none() {
+    // Given a commit, its parent, and a root commit, each holding the file
+    let mut rig = Rig::new();
+    let (parent, commit, root) = (pad('a'), pad('b'), pad('c'));
+    rig.repo.blob(&parent, "f.txt", b"before").blob(&commit, "f.txt", b"after").blob(&root, "f.txt", b"first");
+    // When the phone reads the commit's diff, and the root commit's (no parent, and a null one)
+    let diff = rig.ok("git.commitDiff", json!({"filePath": "f.txt", "commitOid": commit, "parentOid": parent}));
+    let first = rig.ok("git.commitDiff", json!({"filePath": "f.txt", "commitOid": root}));
+    let first_null = rig.ok("git.commitDiff", json!({"filePath": "f.txt", "commitOid": root, "parentOid": null}));
+    // Then the parent is the original side, and a root commit's original is empty
+    assert_eq!((diff["originalContent"].clone(), diff["modifiedContent"].clone()), (json!("before"), json!("after")));
+    assert_eq!((first["originalContent"].clone(), first["modifiedContent"].clone()), (json!(""), json!("first")));
+    assert_eq!(first, first_null);
+}
+
+#[test]
+fn given_binary_and_oversized_files_when_diffed_then_the_result_is_binary_with_the_preview_the_pinned_host_gives_or_the_text_is_withheld() {
+    // Given a png with a NUL byte, a binary with no preview, and a text file far past the render limit
+    let mut rig = Rig::new();
+    let (a, b) = (pad('a'), pad('b'));
+    rig.repo.blob(&a, "pic.png", b"\x89PNG\0old").blob(&b, "pic.png", b"\x89PNG\0new").blob(&b, "data.bin", b"\0\x01\x02").blob(&b, "big.txt", &vec![b'x'; 6_000_001]);
+    // When each is read through the commit diff
+    let png = rig.ok("git.commitDiff", json!({"filePath": "pic.png", "commitOid": b, "parentOid": a}));
+    let bin = rig.ok("git.commitDiff", json!({"filePath": "data.bin", "commitOid": b}));
+    let big = rig.ok("git.commitDiff", json!({"filePath": "big.txt", "commitOid": b}));
+    // Then the image is binary on both sides with its bytes in base64 and its mime type, the other has no content, and the big text is withheld with its counts
+    assert_eq!((png["kind"].clone(), png["isImage"].clone(), png["mimeType"].clone(), png["originalIsBinary"].clone(), png["modifiedIsBinary"].clone()), (json!("binary"), json!(true), json!("image/png"), json!(true), json!(true)));
+    assert_eq!((png["originalContent"].clone(), png["modifiedContent"].clone()), (json!("iVBORwBvbGQ="), json!("iVBORwBuZXc=")));
+    assert_eq!((bin["kind"].clone(), bin["modifiedContent"].clone(), bin["originalIsBinary"].clone(), bin["modifiedIsBinary"].clone(), bin.get("mimeType").cloned()), (json!("binary"), json!(""), json!(false), json!(true), None));
+    assert_eq!((big["kind"].clone(), big["modifiedContent"].clone(), big["largeDiffRenderLimit"]["reason"].clone(), big["largeDiffRenderLimit"]["characterCount"].clone()), (json!("text"), json!(""), json!("character-count"), json!(6_000_001)));
+}
+
+#[test]
+fn given_malformed_diff_requests_when_made_then_each_is_refused_in_the_order_and_words_of_the_pinned_schema() {
+    // Given a host with a workspace
+    let mut rig = Rig::new();
+    let cases = [
+        ("git.branchDiff", json!({}), "Missing file path"),
+        ("git.branchDiff", json!({"filePath": "a"}), "Invalid input: expected object, received undefined"),
+        ("git.branchDiff", json!({"filePath": "a", "compare": {}}), "Invalid input: expected string, received undefined"),
+        ("git.branchDiff", json!({"filePath": "a", "compare": {"headOid": "abc", "mergeBase": OLD}}), "Expected a full git object id"),
+        ("git.commitDiff", json!({"filePath": "a"}), "Invalid input: expected string, received undefined"),
+        ("git.commitDiff", json!({"filePath": "a", "commitOid": "xyz"}), "Expected a full git object id"),
+        ("git.commitDiff", json!({"filePath": "a", "commitOid": OLD, "oldPath": 3}), "Invalid input: expected string, received number"),
+    ];
+    // When each is sent, Then it is refused as invalid_argument with that sentence, and rca is asked for no blob
+    for (method, params, message) in cases {
+        assert_eq!(rig.err(method, params.clone()), ("invalid_argument".to_string(), message.to_string()), "{method} {params}");
+    }
+    assert!(rig.sent().iter().all(|(m, _)| m != "git.blob"));
+}

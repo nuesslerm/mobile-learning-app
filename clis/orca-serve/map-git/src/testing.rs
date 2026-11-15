@@ -31,6 +31,7 @@ struct State {
     rebase_stops_on: Option<String>,
     model_down: bool,
     asked_model: Vec<Vec<String>>,
+    blobs: Vec<(String, String, Vec<u8>)>,
 }
 
 #[derive(Clone)]
@@ -55,6 +56,7 @@ impl Default for Repos {
             rebase_stops_on: None,
             model_down: false,
             asked_model: Vec::new(),
+            blobs: Vec::new(),
         })))
     }
 }
@@ -68,6 +70,12 @@ fn sha(n: usize) -> String {
 }
 
 impl Repos {
+    /// The file `path` as commit `rev` holds it.
+    pub fn blob(&self, rev: &str, path: &str, bytes: &[u8]) -> &Self {
+        self.0.lock().unwrap().blobs.push((rev.into(), path.into(), bytes.to_vec()));
+        self
+    }
+
     /// A file in git's two status columns (`.` for none, `?` for both of an untracked file).
     pub fn file(&self, path: &str, index: &str, worktree: &str) -> &Self {
         self.0.lock().unwrap().files.push(File { path: path.into(), index: index.into(), worktree: worktree.into(), conflicted: false });
@@ -180,6 +188,14 @@ impl Repos {
             Ok(json!({"message": format!("feat: change {}", staged.join(", ")), "model": "double-model"}))
         });
         on("git.compare", compare);
+        on("git.blob", |s, p| {
+            use base64::Engine;
+            let (rev, path) = (required(p, "rev")?, required(p, "path")?);
+            let max = p["max_bytes"].as_u64().unwrap_or(1 << 20) as usize;
+            let (_, _, bytes) = s.blobs.iter().find(|(r, f, _)| *r == rev && *f == path).ok_or_else(|| refused("GIT_FAILED", "path does not exist in that revision"))?;
+            let taken = &bytes[..bytes.len().min(max)];
+            Ok(json!({"rev": rev, "path": path, "size": bytes.len(), "data": base64::engine::general_purpose::STANDARD.encode(taken), "truncated": taken.len() < bytes.len(), "binary": bytes.iter().take(8192).any(|b| *b == 0)}))
+        });
         on("git.stage", |s, p| edit(s, p, stage));
         on("git.unstage", |s, p| edit(s, p, unstage));
         on("git.discard", |s, p| {

@@ -292,3 +292,31 @@ fn a_rebase_from_a_base_is_applied_and_one_that_stops_on_conflicts_is_aborted_an
         assert_eq!((repo.head(), repo.git(&["status", "--porcelain"]), repo.git(&["rev-parse", "--abbrev-ref", "HEAD"])), (tip, String::new(), "clash".to_string()));
     });
 }
+
+#[test]
+fn a_files_branch_diff_and_commit_diff_are_the_text_git_holds_at_each_commit() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a repository whose second commit changes README.md and adds a file, and a paired phone
+        let chain = Chain::start(None);
+        let mut phone = Phone::connect(case, &chain);
+        let repo = &chain.repo;
+        let base = repo.head();
+        let before = repo.git(&["show", &format!("{base}:README.md")]);
+        repo.write("README.md", "changed\n");
+        repo.write("added.txt", "fresh\n");
+        repo.git(&["add", "--all"]);
+        repo.git(&["commit", "--quiet", "--message", "Second"]);
+        let head = repo.head();
+        // When the phone reads the branch diff of the changed file and of the added one
+        let compare = json!({"mergeBase": base, "headOid": head});
+        let changed = served(case, &mut phone, &chain, "git.branchDiff", json!({"filePath": "README.md", "compare": compare}), "git.blob", "git_blob");
+        let added = served(case, &mut phone, &chain, "git.branchDiff", json!({"filePath": "added.txt", "compare": compare}), "git.blob", "git_blob");
+        // Then each side is the file as the commit holds it, and the added file's original is empty
+        assert_eq!((changed["result"]["kind"].clone(), changed["result"]["originalContent"].clone(), changed["result"]["modifiedContent"].clone()), (json!("text"), json!(format!("{before}\n")), json!("changed\n")));
+        assert_eq!((added["result"]["originalContent"].clone(), added["result"]["modifiedContent"].clone()), (json!(""), json!("fresh\n")));
+        // When it reads the commit diff of the same file against the commit's parent
+        let commit = served(case, &mut phone, &chain, "git.commitDiff", json!({"filePath": "README.md", "commitOid": head, "parentOid": base}), "git.blob", "git_blob");
+        // Then it is the same two sides
+        assert_eq!((commit["result"]["originalContent"].clone(), commit["result"]["modifiedContent"].clone()), (changed["result"]["originalContent"].clone(), json!("changed\n")));
+    });
+}
