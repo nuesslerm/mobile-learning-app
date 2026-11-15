@@ -339,20 +339,6 @@
       ]
     },
     {
-      "class": "kind at steps._:s2c:*.[*].payload.error",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.error kind breaking",
-        "steps._:s2c:0.[0].payload.hasMore missing breaking",
-        "steps._:s2c:0.[0].payload.messages missing breaking",
-        "steps._:s2c:0.[0].payload.type changed drift",
-        "steps._:s2c:0.[0].payload.message extra drift"
-      ],
-      "ids": [
-        "orca-nativeChat.subscribe"
-      ]
-    },
-    {
       "class": "missing at steps._:s2c:*.[*].payload.error.data",
       "severity": "breaking",
       "diffs": [

@@ -329,7 +329,7 @@ pub(crate) fn read_session(agent: &dyn AgentApi, params: &Value) -> Result<Value
     let folded = fold(&events);
     let all: Vec<&Item> = folded.items.iter().filter(|i| i.body["kind"] == "message" && params["beforeOffset"].as_u64().is_none_or(|b| i.sequence < b)).collect();
     let start = all.len().saturating_sub(limit);
-    let messages: Vec<Value> = all[start..].iter().map(|i| json!({"id": i.id, "role": i.body["role"], "blocks": i.body["blocks"], "timestamp": null, "source": "transcript", "transcriptOffset": i.sequence})).collect();
+    let messages: Vec<Value> = all[start..].iter().map(|i| json!({"id": i.id, "role": i.body["role"], "blocks": i.body["blocks"], "timestamp": null, "source": "transcript", "transcriptOffset": i.sequence, "transcriptOrder": i.sequence})).collect();
     let before = all.get(start).map_or_else(|| params["beforeOffset"].as_u64().unwrap_or(0), |i| i.sequence);
     Ok(json!({"messages": messages, "hasMore": start > 0, "beforeOffset": before}))
 }

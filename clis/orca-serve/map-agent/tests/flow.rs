@@ -1128,3 +1128,73 @@ fn given_a_host_when_the_phone_lists_its_agents_then_each_served_driver_is_an_ag
     // And a key the schema lacks is refused in its words
     assert_eq!(rig.err("agentSession.agents", json!({"x": 1})), ("invalid_argument".to_string(), "Unrecognized key: \"x\"".to_string()));
 }
+
+#[test]
+fn given_a_native_chat_subscription_when_the_chat_grows_then_the_phone_gets_the_tail_snapshot_then_the_changed_rows_with_the_turn_state_and_an_unsubscribe_ends_it() {
+    // Given the recorded thread
+    let mut rig = Rig::new();
+    rig.recorded("claude_rec");
+    // When the phone subscribes with a window of two
+    let opened = rig.frames("nativeChat.subscribe", json!({"agent": "claude", "sessionId": "claude_rec", "limit": 2, "subscriptionId": "s1"}));
+    // Then the only frame is the snapshot: the newest two message rows of readSession, a page before them, and no error
+    assert_eq!(opened.len(), 1);
+    let snap = &opened[0]["result"];
+    let read = rig.ok("nativeChat.readSession", json!({"agent": "claude", "sessionId": "claude_rec", "limit": 2}));
+    assert_eq!((opened[0]["streaming"].clone(), snap["type"].clone(), snap["messages"].clone(), snap["hasMore"].clone(), snap["beforeOffset"].clone()), (json!(true), json!("snapshot"), read["messages"].clone(), json!(true), read["beforeOffset"].clone()));
+    assert!(snap.get("error").is_none() && snap["messages"][0].get("transcriptOrder").is_some(), "{snap}");
+    // When a turn starts and the assistant answers
+    rig.agent.request("turn.start", json!({"thread": "claude_rec", "workspace": "main", "driver": "claudeAgent", "prompt": "again"})).unwrap();
+    rig.threads.push("claude_rec", json!({"type": "message.delta", "role": "assistant", "text": "done"}));
+    std::thread::sleep(Duration::from_millis(300));
+    let frames: Vec<Value> = rig.conn.poll().iter().map(|f| serde_json::from_str(f).unwrap()).collect();
+    // Then one appended frame carries the changed rows and the chat is working
+    assert_eq!(frames.len(), 1, "{frames:?}");
+    let appended = &frames[0]["result"];
+    assert_eq!((appended["type"].clone(), appended["lifecycle"]["state"].clone()), (json!("appended"), json!("working")));
+    assert!(appended["messages"].as_array().unwrap().iter().any(|m| m["blocks"][0]["text"] == "done" || m["blocks"][0]["text"] == "again"), "{appended}");
+    // When the phone unsubscribes by its token, Then no stream remains
+    assert_eq!(rig.ok("nativeChat.unsubscribe", json!({"subscriptionId": "s1"})), json!({"unsubscribed": true}));
+    rig.conn.poll();
+    assert_eq!(rig.conn.open_streams(), 0);
+}
+
+#[test]
+fn given_an_agent_the_host_does_not_run_or_a_chat_rca_lacks_when_subscribed_then_the_first_is_the_recorded_unavailable_snapshot_and_the_second_waits_in_silence() {
+    // Given a host with no chat yet
+    let mut rig = Rig::new();
+    // When the phone subscribes with an agent the host does not run (the recorded case), and to a chat of a known agent rca has not made
+    let unknown = rig.frames("nativeChat.subscribe", json!({"agent": "a", "sessionId": "a"}));
+    let waiting = rig.frames("nativeChat.subscribe", json!({"agent": "claude", "sessionId": "claude_later"}));
+    // Then the first is the recorded snapshot and the second says nothing
+    assert_eq!((unknown.len(), unknown[0]["result"].clone()), (1, json!({"type": "snapshot", "messages": [], "hasMore": false, "error": "Transcript unavailable"})));
+    assert!(waiting.is_empty(), "{waiting:?}");
+    // When the chat appears and the stream is polled, Then its snapshot follows
+    rig.recorded("claude_later");
+    std::thread::sleep(Duration::from_millis(300));
+    let frames: Vec<Value> = rig.conn.poll().iter().map(|f| serde_json::from_str(f).unwrap()).collect();
+    assert_eq!(frames.iter().filter(|f| f["result"]["type"] == "snapshot" && f["result"]["messages"].as_array().is_some_and(|m| !m.is_empty())).count(), 1, "{frames:?}");
+}
+
+#[test]
+fn given_malformed_native_chat_subscriptions_when_made_then_each_is_refused_with_the_first_issue_of_the_schema() {
+    // Given a host
+    let mut rig = Rig::new();
+    // When the phone subscribes with missing, empty and mistyped fields
+    let cases = [
+        (json!({}), "Missing agent"),
+        (json!({"agent": 7, "sessionId": "x"}), "Missing agent"),
+        (json!({"agent": "claude"}), "Missing session id"),
+        (json!({"agent": "claude", "sessionId": ""}), "Missing session id"),
+        (json!({"agent": "claude", "sessionId": "x", "limit": 0}), "Too small: expected number to be >0"),
+        (json!({"agent": "claude", "sessionId": "x", "limit": 1.5}), "Invalid input: expected int, received number"),
+        (json!({"agent": "claude", "sessionId": "x", "limit": "3"}), "Invalid input: expected number, received string"),
+        (json!({"agent": "claude", "sessionId": "x", "subscriptionId": ""}), "Too small: expected string to have >=1 characters"),
+    ];
+    // Then each is an invalid_argument error frame with that sentence
+    for (params, message) in cases {
+        let frames = rig.frames("nativeChat.subscribe", params.clone());
+        assert_eq!(frames.len(), 1, "{params}: {frames:?}");
+        let text = frames[0]["error"]["message"].as_str().or_else(|| frames[0]["message"].as_str()).unwrap_or_default().to_string();
+        assert_eq!(text, message, "{params}: {}", frames[0]);
+    }
+}

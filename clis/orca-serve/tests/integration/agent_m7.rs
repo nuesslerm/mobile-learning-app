@@ -145,6 +145,8 @@ fn a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_
         // When the phone reads the chat as a native chat, holds and releases it, and asks for its open prompts
         let native = phone.call(case, &chain, &["rpc:nativeChat.readSession"], "nativeChat.readSession", json!({"agent": "claude", "sessionId": "claude_s1", "limit": 50}));
         assert!(native["result"]["messages"].as_array().unwrap().iter().any(|m| m["blocks"][0]["text"] == "write the note"), "{native}");
+        let (_, first) = phone.subscribe(case, &chain, &["rpc:nativeChat.subscribe"], "nativeChat.subscribe", json!({"agent": "claude", "sessionId": "claude_s1", "limit": 50}));
+        assert_eq!(first["result"]["messages"], native["result"]["messages"], "{first}");
         let held = phone.call(case, &chain, &["rpc:agentSession.hold"], "agentSession.hold", json!({"sessionId": "claude_s1", "holderId": "h1"}));
         let released = phone.call(case, &chain, &["rpc:agentSession.release"], "agentSession.release", json!({"sessionId": "claude_s1", "holderId": "h1"}));
         let none = phone.call(case, &chain, &["rpc:agentSession.currentRequests"], "agentSession.currentRequests", json!({"sessionId": "claude_s1", "version": "00000000-0000-4000-8000-000000000000"}));
