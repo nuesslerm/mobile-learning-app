@@ -13,6 +13,11 @@
         "orca-accounts.selectClaude",
         "orca-accounts.selectCodex",
         "orca-accounts.selectCodexForTarget",
+        "orca-agentActivity.clear",
+        "orca-agentActivity.setRead",
+        "orca-agentSession.continueInterrupted",
+        "orca-agentSession.rewind",
+        "orca-agentSession.sendRecorded",
         "orca-agentSession.threadGoal",
         "orca-browser.back",
         "orca-browser.dialogAccept",
@@ -32,6 +37,7 @@
         "orca-clipboard.appendImageUploadChunk",
         "orca-clipboard.commitImageUpload",
         "orca-clipboard.saveImageAsTempFile",
+        "orca-files.pathsExist",
         "orca-files.readTerminalArtifact",
         "orca-files.readTerminalArtifactPreview",
         "orca-files.resolveTerminalPath",
@@ -110,6 +116,7 @@
         "orca-speech.models.download",
         "orca-ssh.connect",
         "orca-terminal.focus",
+        "orca-terminal.read",
         "orca-terminal.setDisplayMode",
         "orca-terminal.updateViewport",
         "orca-worktree.activate",
@@ -130,6 +137,7 @@
       "ids": [
         "orca-aiVault.prepareSessionResume",
         "orca-automation.runs",
+        "orca-browser.screencast.ack",
         "orca-clipboard.abortImageUpload",
         "orca-github.project.addIssueCommentBySlug",
         "orca-github.project.clearItemField",
@@ -150,16 +158,18 @@
         "orca-hostedReview.create",
         "orca-linear.connect",
         "orca-nativeChat.readSession",
-        "orca-orchestration.partyLocation",
-        "orca-orchestration.partyOpen",
         "orca-preflight.check",
         "orca-settings.getAgentLaunch",
+        "orca-skills.discover",
         "orca-speech.dictation.cancel",
         "orca-speech.dictation.setup",
         "orca-speech.models.list",
         "orca-ssh.getState",
         "orca-ssh.listTargetSummaries",
+        "orca-stats.summary",
+        "orca-terminal.ackOutput",
         "orca-terminal.getAutoRestoreFit",
+        "orca-terminal.openInputSession",
         "orca-terminal.setAutoRestoreFit",
         "orca-worktree.ps",
         "orca-worktree.resolveMrBase",
@@ -212,10 +222,23 @@
         "orca-files.openDiff",
         "orca-markdown.readTab",
         "orca-markdown.saveTab",
-        "orca-orchestration.workerAutoClose",
-        "orca-orchestration.workerKeepOpen",
         "orca-pairing.getEndpoints",
         "orca-pairing.provisionRelay"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.result",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload._meta.runtimeId changed drift",
+        "steps._:s2c:0.[0].payload.ok changed drift",
+        "steps._:s2c:0.[0].payload.result missing breaking",
+        "steps._:s2c:0.[0].payload.error extra drift"
+      ],
+      "ids": [
+        "orca-aiVault.listSessions",
+        "orca-clipboard.startImageUpload",
+        "orca-notifications.getMissedSince"
       ]
     },
     {
@@ -246,20 +269,6 @@
       ]
     },
     {
-      "class": "missing at steps._:s2c:*.[*].payload.result",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload._meta.runtimeId changed drift",
-        "steps._:s2c:0.[0].payload.ok changed drift",
-        "steps._:s2c:0.[0].payload.result missing breaking",
-        "steps._:s2c:0.[0].payload.error extra drift"
-      ],
-      "ids": [
-        "orca-clipboard.startImageUpload",
-        "orca-notifications.getMissedSince"
-      ]
-    },
-    {
       "class": "missing at steps._:s2c:*.[*].payload.error.data",
       "severity": "breaking",
       "diffs": [
@@ -268,7 +277,38 @@
         "steps._:s2c:0.[0].payload.error.message changed drift"
       ],
       "ids": [
+        "orca-agentSession.cancelUsageLimitContinue",
         "orca-agentSession.createSupport"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.result.settings.nativeChatCiResultLines",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.settings.agentDefaultArgs.kimi changed drift",
+        "steps._:s2c:0.[0].payload.result.settings.nativeChatCiResultLines missing breaking",
+        "steps._:s2c:0.[0].payload.result.settings.voice missing breaking",
+        "steps._:s2c:0.[0].payload.result.settings.workspaceCleanupPolicy missing breaking"
+      ],
+      "ids": [
+        "orca-settings.get",
+        "orca-settings.update"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.result.ui.gitGraphFiltersByWorktree",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.result.ui.gitGraphFiltersByWorktree missing breaking",
+        "steps._:s2c:0.[0].payload.result.ui.statusBarItems changed breaking",
+        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[10] changed drift",
+        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[11] changed drift",
+        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[12] changed drift",
+        "steps._:s2c:0.[0].payload.result.ui.statusBarUsageFormat missing breaking"
+      ],
+      "ids": [
+        "orca-ui.get",
+        "orca-ui.set"
       ]
     },
     {
@@ -282,24 +322,20 @@
       ]
     },
     {
-      "class": "changed at steps._:s2c:*.[*].payload.result.[*]",
-      "severity": "drift",
+      "class": "changed at steps._:s2c:*.[*].payload.result",
+      "severity": "breaking",
       "diffs": [
-        "steps._:s2c:0.[0].payload.result.[0] changed drift",
-        "steps._:s2c:0.[0].payload.result.[1] changed drift",
-        "steps._:s2c:0.[0].payload.result.[2] changed drift"
+        "steps._:s2c:0.[0].payload.result changed breaking"
       ],
       "ids": [
         "orca-preflight.detectAgents"
       ]
     },
     {
-      "class": "kind at steps._:s2c:*.[*].payload.result.pathFailureReason",
+      "class": "changed at steps._:s2c:*.[*].payload.result.agents",
       "severity": "breaking",
       "diffs": [
-        "steps._:s2c:0.[0].payload.result.agents.[0] changed drift",
-        "steps._:s2c:0.[0].payload.result.agents.[1] changed drift",
-        "steps._:s2c:0.[0].payload.result.agents.[2] changed drift",
+        "steps._:s2c:0.[0].payload.result.agents changed breaking",
         "steps._:s2c:0.[0].payload.result.pathFailureReason kind breaking",
         "steps._:s2c:0.[0].payload.result.pathSource changed drift",
         "steps._:s2c:0.[0].payload.result.shellHydrationOk changed drift"
@@ -319,6 +355,7 @@
         "steps._:s2c:0.[0].payload.result.desktopWindowStatus missing breaking",
         "steps._:s2c:0.[0].payload.result.deviceScope changed drift",
         "steps._:s2c:0.[0].payload.result.hostDescriptor missing breaking",
+        "steps._:s2c:0.[0].payload.result.hostMachine missing breaking",
         "steps._:s2c:0.[0].payload.result.machineName changed drift",
         "steps._:s2c:0.[0].payload.result.pairedDeviceId changed drift",
         "steps._:s2c:0.[0].payload.result.remoteUpdateSupport missing breaking",
