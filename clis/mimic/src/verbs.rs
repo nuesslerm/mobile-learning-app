@@ -32,7 +32,7 @@ use std::path::{Path, PathBuf};
 use wf_kit::args::{parse_spec, Parsed, Positional, Spec};
 
 const RECORD: Spec = Spec { values: &["target", "seed", "recorded-on", "source", "stand-in", "chunk", "batch", "write-chunk", "stability", "max-minutes"], flags: &["keep-raw", "allow-nondeterministic", "resume", "fresh"], positional: Positional::Exactly(1), ..Spec::NONE };
-const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "allowlist", "suite"], positional: Positional::Exactly(1), ..Spec::NONE };
+const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "rows", "allowlist", "suite"], positional: Positional::Exactly(1), ..Spec::NONE };
 const DIFF: Spec = Spec { values: &["allowlist"], positional: Positional::Exactly(2), ..Spec::NONE };
 const IMPORT: Spec = Spec { values: &["out", "root", "allowlist", "pin"], positional: Positional::Exactly(2), ..Spec::NONE };
 const EXPORT: Spec = Spec { values: &["out"], positional: Positional::Exactly(2), ..Spec::NONE };
@@ -310,12 +310,21 @@ fn replay(p: &Parsed) -> Done {
     let (name, candidate) = pick(&cfg, p.val("candidate"))?;
     let pin_hash = content.cassette.header.provenance.target.as_ref().and_then(|t| t.pin_hash.clone());
     let (allow, mut warnings) = allowlist(p.val("allowlist").map(PathBuf::from).or_else(|| cfg.allowlist.clone()), pin_hash.as_deref())?;
-    let only = ids(p, "only");
+    let mut only = ids(p, "only");
     if let Some(only) = &only {
         let unknown: Vec<&String> = only.iter().filter(|id| !content.cassette.interactions.iter().any(|i| &i.id == *id)).collect();
         if !unknown.is_empty() {
             return Err(fail(format!("--only names interactions the cassette does not have: {unknown:?}"), format!("wf mimic replay {}", set.dir.display())));
         }
+    }
+    // --rows: the interactions of the rows that start with a prefix (a milestone's slice), narrowed by --only when both are given
+    let prefixes = ids(p, "rows");
+    if let Some(prefixes) = &prefixes {
+        let chosen: Vec<String> = content.cassette.interactions.iter().filter(|i| i.row.as_deref().is_some_and(|r| prefixes.iter().any(|x| r.starts_with(x.as_str())))).map(|i| i.id.clone()).filter(|id| only.as_ref().is_none_or(|o| o.contains(id))).collect();
+        if chosen.is_empty() {
+            return Err(fail(format!("--rows {} names no row of the cassette (a row is `rpc:git.diff`, `http:voice.status`: the prefix matches from its start)", prefixes.join(",")), format!("wf mimic replay {}", set.dir.display())));
+        }
+        only = Some(chosen);
     }
     let started = wf_kit::time::now_ms();
     let mut driver = open_driver(candidate, candidate.spec.clone()).map_err(|e| fail(e, "fix [candidate] in mimic.toml"))?;
@@ -337,7 +346,7 @@ fn replay(p: &Parsed) -> Done {
     };
     let out = json!({
         "ok": ok, "set": set.name, "candidate": name, "severity": verdict.severity, "summary": verdict.summary, "results": labelled(&verdict),
-        "shrunk": verdict.shrunk, "evidence_rows": rows.len(), "unused_allowlist": verdict.unused_allowlist, "evidence": evidence_paths, "warnings": warnings, "next": next,
+        "shrunk": verdict.shrunk, "chosen": only.as_ref().map(Vec::len), "evidence_rows": rows.len(), "unused_allowlist": verdict.unused_allowlist, "evidence": evidence_paths, "warnings": warnings, "next": next,
     });
     Ok((out, i32::from(!ok)))
 }

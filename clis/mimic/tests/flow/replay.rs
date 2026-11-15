@@ -207,3 +207,23 @@ fn the_sdk_replays_a_set_in_process_with_the_same_verdict_as_the_cli() {
     // Then it is clean, as the CLI found the same program
     assert!(verdict.ok() && verdict.summary.clean == set.cassette.interactions.len(), "{verdict:?}");
 }
+
+#[test]
+fn a_slice_of_rows_replays_only_the_interactions_of_the_rows_that_start_with_a_prefix() {
+    // Given a recorded set whose interactions name their rows
+    let w = recorded();
+    let all = w.interactions();
+    let wanted = |prefix: &str| all.iter().filter(|i| i["row"].as_str().is_some_and(|r| r.starts_with(prefix))).count();
+    assert!(wanted("rpc:echo") > 0 && wanted("rpc:echo") < all.len(), "the fixture has more than one row");
+    // When one row's slice is replayed
+    let r = w.run("replay", &["--candidate", "same", "--rows", "rpc:echo"]);
+    // Then only its interactions were chosen and compared
+    assert_eq!((r.code, r.json["chosen"].clone(), r.json["summary"]["total"].clone()), (0, json!(wanted("rpc:echo")), json!(wanted("rpc:echo"))), "{}", r.json);
+    // And a prefix that names no row is refused with the way a prefix matches, and --only narrows the slice to the ids both name
+    let none = w.run("replay", &["--candidate", "same", "--rows", "rpc:no-such-row"]);
+    assert_eq!(none.code, 2, "{}", none.json);
+    assert!(none.json["error"].as_str().unwrap().contains("rpc:no-such-row") && none.json["error"].as_str().unwrap().contains("prefix"), "{}", none.json);
+    let id = all.iter().find(|i| i["row"].as_str().is_some_and(|r| r.starts_with("rpc:echo"))).unwrap()["id"].as_str().unwrap().to_string();
+    let narrowed = w.run("replay", &["--candidate", "same", "--rows", "rpc:echo", "--only", &id]);
+    assert_eq!(narrowed.json["chosen"], json!(1), "{}", narrowed.json);
+}
