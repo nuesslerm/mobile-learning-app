@@ -110,6 +110,23 @@ impl Service {
         Ok(Value::Object(meta))
     }
 
+    /// `orchestration.getNativeChildWork`: the work of an Antigravity subagent's children. rca runs no provider-native subagents, so a thread t3
+    /// holds has none (the pinned server answers the same for any thread that is not one), and an unknown thread is the query's declared error.
+    pub fn native_child_work(&self, payload: &Value) -> Result<Value, QueryFailure> {
+        let thread = field(payload, "threadId")?;
+        if self.row(thread).is_none() {
+            return Err(QueryFailure::Error(json!({"_tag": "OrchestrationV2GetNativeChildWorkError", "threadId": thread, "message": "Failed to read the subagent's work."})));
+        }
+        Ok(json!({"children": []}))
+    }
+
+    /// `orchestration.subscribePromptSuggestion`: the predicted next prompt of a run, which rca does not predict, so the stream holds the one
+    /// frame the pinned server sends when there is none (null), for a thread t3 holds or not.
+    pub fn prompt_suggestion(&self, payload: &Value) -> Result<Vec<Value>, QueryFailure> {
+        field(payload, "threadId")?;
+        Ok(vec![Value::Null])
+    }
+
     /// `orchestration.getOlderSettledThreads`: pages the agent API's settled shelf below the cursor until `limit` rows of the asked projects are
     /// found, counting across pages; with `limit` 0 only the per-project counts.
     pub fn older_settled(&self, payload: &Value) -> Result<Value, QueryFailure> {

@@ -513,6 +513,10 @@ fn a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_wh
         assert_eq!(success(&titles).as_object().map(|t| t.len()), Some(2), "{titles:?}");
         let link = phone.call(case, &chain, &["rpc:orchestration.getThreadLinkMetadata"], "orchestration.getThreadLinkMetadata", json!({"threadIds": ["t1", "nobody"]}));
         assert_eq!((success(&link)["t1"]["projectId"].as_str(), success(&link).as_object().map(|t| t.len())), (Some("p1"), Some(1)), "{link:?}");
+        let children = phone.call(case, &chain, &["rpc:orchestration.getNativeChildWork"], "orchestration.getNativeChildWork", json!({"threadId": "t1"}));
+        assert_eq!(success(&children), &json!({"children": []}), "{children:?}");
+        let (_, suggestion) = phone.stream(case, &chain, &["rpc:orchestration.subscribePromptSuggestion"], "orchestration.subscribePromptSuggestion", json!({"threadId": "t1"}));
+        assert_eq!(suggestion, [Value::Null]);
         success(&phone.command(case, &chain, cmd("thread.archive", "f1", json!({}))));
         let archived = phone.call(case, &chain, &["rpc:orchestration.getArchivedShellSnapshot"], "orchestration.getArchivedShellSnapshot", json!({}));
         // Then the snapshot holds the fork alone, and the shell over HTTP lists the thread live and the fork archived at the same sequence

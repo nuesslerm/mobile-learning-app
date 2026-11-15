@@ -14,7 +14,7 @@
     "notOffered": 44,
     "excluded": 0,
     "flagged": 0,
-    "answeredByMapper": 2,
+    "answeredByMapper": 4,
     "byKind": {
       "command": 40,
       "http": 23,
@@ -1324,7 +1324,8 @@
       "kind": "rpc",
       "name": "orchestration.getNativeChildWork",
       "state": "pending",
-      "milestone": "M4"
+      "milestone": "M4",
+      "note": "answered by the mapper (clis/t3-serve/contracts/src/rpc.rs IMPLEMENTED_RPCS); no run-bundle evidence yet"
     },
     {
       "id": "rpc:orchestration.getOlderSettledThreads",
@@ -1485,7 +1486,8 @@
       "name": "orchestration.subscribePromptSuggestion",
       "subscription": true,
       "state": "pending",
-      "milestone": "M4"
+      "milestone": "M4",
+      "note": "answered by the mapper (clis/t3-serve/contracts/src/rpc.rs IMPLEMENTED_RPCS); no run-bundle evidence yet"
     },
     {
       "id": "rpc:orchestration.subscribeShell",

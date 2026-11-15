@@ -180,6 +180,13 @@ fn titles_and_link_metadata_answer_for_the_threads_t3_holds_and_leave_the_rest_o
     assert_eq!(success(&titles)["t1"], "Thread t1");
     assert_eq!(success(&meta), &json!({"t1": {"title": "Thread t1", "projectId": "p1"}}));
     assert!(rpc.call("orchestration.getThreadTitles", json!({"threadIds": "t1"}))["cause"][0]["defect"].is_string());
+    // And a thread t3 holds has no native child work, an unknown thread is the query's declared error
+    assert_eq!(success(&rpc.call("orchestration.getNativeChildWork", json!({"threadId": "t1"}))), &json!({"children": []}));
+    let missing = rpc.call("orchestration.getNativeChildWork", json!({"threadId": "nobody"}));
+    assert_eq!(missing["cause"][0]["error"]["_tag"], "OrchestrationV2GetNativeChildWorkError", "{missing}");
+    // And the prompt suggestion stream holds the single frame of no suggestion
+    let stream = rpc.send("orchestration.subscribePromptSuggestion", json!({"threadId": "t1"}));
+    assert_eq!(rpc.chunk(&stream), [Value::Null]);
 }
 
 #[test]

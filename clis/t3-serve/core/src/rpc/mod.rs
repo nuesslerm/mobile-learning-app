@@ -232,12 +232,13 @@ impl Connection {
                 }
                 Err(LaunchFailure::Refused(error)) => vec![rpc::exit_failure(&id, error)],
             },
-            "orchestration.getTurnItem" | "orchestration.searchThreads" | "orchestration.getThreadFamily" | "orchestration.getThreadTitles" | "orchestration.getThreadLinkMetadata" | "orchestration.getOlderSettledThreads" | "orchestration.forceStopThread" | "orchestration.getWorkflowScript" => {
+            "orchestration.getTurnItem" | "orchestration.searchThreads" | "orchestration.getThreadFamily" | "orchestration.getThreadTitles" | "orchestration.getNativeChildWork" | "orchestration.getThreadLinkMetadata" | "orchestration.getOlderSettledThreads" | "orchestration.forceStopThread" | "orchestration.getWorkflowScript" => {
                 let answer = match tag {
                     "orchestration.getTurnItem" => self.svc.turn_item(payload),
                     "orchestration.searchThreads" => self.svc.search_threads(payload),
                     "orchestration.getThreadFamily" => self.svc.thread_family(payload),
                     "orchestration.getThreadTitles" => self.svc.thread_titles(payload),
+                    "orchestration.getNativeChildWork" => self.svc.native_child_work(payload),
                     "orchestration.getThreadLinkMetadata" => self.svc.thread_link_metadata(payload),
                     "orchestration.getOlderSettledThreads" => self.svc.older_settled(payload),
                     "orchestration.forceStopThread" => self.svc.force_stop(payload),
@@ -253,6 +254,13 @@ impl Connection {
             "peerLinks.link" => vec![self.answered(&id, tag, Err(self.svc.peer_links_link(payload)))],
             "peerLinks.answerRequest" => vec![self.answered(&id, tag, Err(self.svc.peer_links_answer(payload)))],
             "secrets.answerRequest" => vec![self.answered(&id, tag, self.svc.answer_secret(payload).map(|()| None))],
+            "orchestration.subscribePromptSuggestion" => match self.svc.prompt_suggestion(payload) {
+                Ok(frames) => {
+                    self.open(id, Kind::Idle, 0, frames);
+                    vec![]
+                }
+                Err(failure) => vec![self.answered(&id, tag, Err(failure))],
+            },
             "orchestration.subscribeCommandOutput" => match self.svc.command_output(payload) {
                 Ok(frames) => {
                     self.open(id, Kind::Idle, 0, frames);
