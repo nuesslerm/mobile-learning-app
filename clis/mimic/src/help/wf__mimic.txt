@@ -35,7 +35,7 @@ mimic.toml (paths relative to the file):
                                    or "url" (addr = "127.0.0.1:7000", workspace = "/w", mint = ["cmd"] prints a credential)
                                    or "orca" (the phone's own client in a sidecar: sidecar = ["node", "cli.ts", "sidecar", "orca"],
                                    env_pass = ["ORCA_PAIRING_URI"] names the variables it gets, never a value);
-                                   cache, cli_dir (default $T3_CLI_DIR), prelude = "prelude.json", session, ready_ms, settle_ms, first_answer_ms, quiet_cap_ms
+                                   cache, cli_dir (default $MIMIC_CLI_DIR, else $T3_CLI_DIR), prelude = "prelude.json", session, ready_ms, settle_ms, first_answer_ms, quiet_cap_ms
   cwd, env, timeout_ms             name, version, commit
   pin = "pin.json"                 version_pointer = "/version", commit_pointer
   [candidate.<name>]               the program a replay runs (same keys)

@@ -20,11 +20,19 @@ fn cache(spec: &ScriptSpec) -> PathBuf {
     spec.cache.clone().unwrap_or_else(|| PathBuf::from(std::env::var("T3_RELEASE_CACHE").or_else(|_| std::env::var("HOME").map(|h| format!("{h}/.cache/mimic-t3"))).unwrap_or_else(|_| ".mimic-cache".into())))
 }
 
-/// What the sidecar gets: a fixed few variables, the ones the set names, and nothing else of the caller's environment.
+/// What the sidecar gets: a fixed few variables, the ones the set names, and nothing else of the caller's environment. The scripted agent CLIs
+/// (`cli_dir`) come first on its `PATH`, so the host it starts sees the same CLIs the replayed chain does.
 fn sidecar_env(spec: &ScriptSpec) -> Vec<(String, String)> {
     let fixed = [("TZ", "UTC".to_string()), ("LANG", "C.UTF-8".to_string())];
     let inherited = ["PATH", "HOME", "MIMIC_FIXED_PORT"].into_iter().chain(spec.env_pass.iter().map(String::as_str)).filter_map(|n| Some((n.to_string(), std::env::var(n).ok()?)));
-    fixed.into_iter().map(|(k, v)| (k.to_string(), v)).chain(inherited).collect()
+    let mut env: Vec<(String, String)> = fixed.into_iter().map(|(k, v)| (k.to_string(), v)).chain(inherited).collect();
+    if let Some(dir) = &spec.cli_dir {
+        match env.iter_mut().find(|(k, _)| k == "PATH") {
+            Some((_, path)) => *path = format!("{}:{path}", dir.display()),
+            None => env.push(("PATH".into(), dir.display().to_string())),
+        }
+    }
+    env
 }
 
 fn launch(target: &Target, spec: &ScriptSpec) -> Result<Box<dyn Launch>, String> {

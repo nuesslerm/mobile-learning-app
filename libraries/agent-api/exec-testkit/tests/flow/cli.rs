@@ -226,3 +226,14 @@ fn a_program_started_with_version_alone_prints_the_scripted_version_without_play
     // And a program with no scripted version treats `--version` as an ordinary start
     assert_eq!((unscripted.stdout, cli.invocations("codex").len()), (vec!["codex turn".to_string()], 1));
 }
+
+#[test]
+fn a_program_nobody_scripted_answers_a_version_query_like_the_recording_hosts_stub_and_is_not_logged() {
+    // Given the scripted CLIs with no script written for any of them
+    let (cli, cwd) = (ScriptedCli::install(), tempfile::tempdir().unwrap());
+    // When each is asked for its version
+    let asked: Vec<_> = ["claude", "codex", "opencode"].iter().map(|p| run(&cli, p, &["--version"], cwd.path(), &[])).collect();
+    // Then each prints its name and 0.0.0-mimic with code 0, as the hermetic host's stubs do, and no start is logged
+    assert_eq!(asked.iter().map(|r| (r.stdout.clone(), r.code)).collect::<Vec<_>>(), [(vec!["claude 0.0.0-mimic".to_string()], Some(0)), (vec!["codex 0.0.0-mimic".to_string()], Some(0)), (vec!["opencode 0.0.0-mimic".to_string()], Some(0))]);
+    assert!(cli.invocations("claude").is_empty());
+}

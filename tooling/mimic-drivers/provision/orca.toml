@@ -5,6 +5,7 @@ workdir = "orca"
 
 [toolchain]
 node = "24"
+rust = "stable"
 
 [source]
 repo = "https://github.com/stablyai/orca"
@@ -14,6 +15,7 @@ commit_pointer = "/commit"
 [env]
 MIMIC_ORCA_ROOT = "{source}"
 ORCA_ORCAD_CHECKOUT = "{source}"
+MIMIC_CLI_DIR = "{work}/scripted-clis"
 
 [[step]]
 name = "orca-install"
@@ -34,3 +36,30 @@ timeout_minutes = 45
 name = "build-orcad"
 run = ["pnpm", "run", "build:orcad"]
 timeout_minutes = 45
+
+# The scripted agent CLIs both sides see (docs/plans mimic decision 5): exec-testkit's `scripted-cli` under the names `claude`, `codex` and `opencode`.
+[[step]]
+name = "build-scripted-cli"
+cwd = "{repo}"
+run = ["cargo", "build", "--locked", "--manifest-path", "libraries/agent-api/Cargo.toml", "--target-dir", "{work}/scripted-target", "-p", "exec-testkit", "--bin", "scripted-cli"]
+timeout_minutes = 45
+
+[[step]]
+name = "scripted-cli-dir"
+cwd = "{work}"
+run = ["mkdir", "-p", "scripted-clis"]
+
+[[step]]
+name = "scripted-cli-claude"
+cwd = "{work}"
+run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/claude"]
+
+[[step]]
+name = "scripted-cli-codex"
+cwd = "{work}"
+run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/codex"]
+
+[[step]]
+name = "scripted-cli-opencode"
+cwd = "{work}"
+run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/opencode"]

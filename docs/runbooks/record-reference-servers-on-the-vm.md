@@ -83,8 +83,7 @@ args = ["--keep-raw"]               # extra `wf mimic record` flags (never --res
 ```
 
 With `allow_nondeterministic` (or without it, when the record fails) the job output carries `differences`: for each interaction whose two stability passes differed after masking (the first 40), the first 8 JSON pointers into the interaction where they differed, as `{"path": "/steps/0/payload/id", "first": "string(len 36)", "second": "string(len 36)"}`. Only the kind and length of each side is shown, never the value (a capture may hold a secret). Which interactions vary changes from run to run (only the sampled ones are run twice, and ids, timestamps and counters differ each time), so look for the same path or key recurring across interactions and mask that, not the interaction. Add to `rules.json`, using only the kinds `wf mimic --help` lists: a `pointer` rule (`{"kind": "pointer", "pointer": "/steps/0/payload/id", "interaction": "thread.pin"}`; the pointer is the reported path, `interaction` is optional and scopes it to one id), or, when the same key recurs, `volatile-number` / `volatile-string` with `{"keys": {"<key>": "<placeholder>"}}`, `timestamp` with `keys`, `sequence` with `keys`, or `token` with `pattern` and `placeholder`. Then push the marker again; the list of differences shrinks to what is still unmasked.
- Not yet declared:
-the `t3-scenarios` and `orca-scenarios`-style sets that need a scripted CLI built first (`T3_CLI_DIR`): add a step that builds it, then the block.
+ The scripted agent CLIs: the `provision` blocks of both apps (`tooling/mimic-drivers/provision/{t3,orca}.toml`) build exec-testkit's `scripted-cli` and place it under the names `claude`, `codex` and `opencode` in `{work}/scripted-clis`, and `MIMIC_CLI_DIR` (read by every script target as `cli_dir`, `T3_CLI_DIR` still works) puts that directory first on the server's or the sidecar's `PATH`. The replay rigs install the same program, so a recorded host and a replayed chain see the same CLIs.
 
 ### Land new rules together with the re-record
 
@@ -133,7 +132,7 @@ scenario, or when the crawl lacks a payload a scenario needs.
 
 Each scenario is one `script` case, so one fresh server, user data and HOME. Orca `setup: [{"git":"main"}]` makes a real one-commit repository (fixed
 dates, so the commit id is stable) and `{git.main}` is its path; the scratch and user-data paths are masked in the steps. T3 turns need the scripted CLI:
-build exec-testkit's `scripted-cli` once and export `T3_CLI_DIR=<dir holding its claude/codex>` for the record (the driver puts it first on the server's
+build exec-testkit's `scripted-cli` once and export `MIMIC_CLI_DIR=<dir holding its claude/codex>` (`T3_CLI_DIR` works too) for the record (the driver puts it first on the server's
 PATH; no model credentials). Record like any set: `wf mimic record clis/<crate>/cassettes/<app>-scenarios` (section 3), then `wf mimic stabilize`.
 
 ## 1. Once per VM: the pinned T3 release, Node 24 and the pinned Orca build (about 5 minutes)

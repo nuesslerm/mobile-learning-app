@@ -130,11 +130,20 @@ fn write_credential(env: &str, file: &str, content: &str, pasted: &str) {
     std::fs::write(&path, content.replace("{paste}", pasted)).unwrap_or_else(|e| fail(5, &format!("{}: {e}", path.display())));
 }
 
+/// The version an unscripted program prints (`claude 0.0.0-mimic`); the hermetic host of `mimic-script-host` prints the same.
+const DEFAULT_VERSION: &str = "0.0.0-mimic";
+
 fn main() {
     let exe = std::env::current_exe().unwrap_or_else(|e| fail(1, &format!("no path of its own: {e}")));
     let (dir, program) = (exe.parent().unwrap_or(Path::new(".")).to_path_buf(), exe.file_name().and_then(|n| n.to_str()).unwrap_or_default().to_string());
     let args: Vec<String> = std::env::args().skip(1).collect();
-    let script: Script = std::fs::read_to_string(dir.join(script_file(&program))).ok().and_then(|text| serde_json::from_str(&text).ok()).unwrap_or_default();
+    let written = std::fs::read_to_string(dir.join(script_file(&program))).ok();
+    // A program nobody scripted answers a version query like the recording host's stub does, so a recorded server and a replayed chain see the same CLIs.
+    let unscripted = Script { turns: Vec::new(), version: Some(format!("{program} {DEFAULT_VERSION}")) };
+    let script: Script = match &written {
+        None => unscripted,
+        Some(text) => serde_json::from_str(text).unwrap_or_default(),
+    };
     if let (Some(text), [only]) = (&script.version, args.as_slice()) {
         if only == "--version" {
             println!("{text}");

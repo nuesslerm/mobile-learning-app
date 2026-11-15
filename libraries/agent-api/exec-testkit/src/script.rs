@@ -50,7 +50,7 @@ pub struct Turn {
 pub struct Script {
     pub turns: Vec<Turn>,
     /// What the program prints, and ends with code 0, when it is started with `--version` alone: that start plays no turn and is not logged, so
-    /// a version probe never shifts which turn a real start plays. Without it a `--version` start is an ordinary start.
+    /// a version probe never shifts which turn a real start plays. Without it a `--version` start is an ordinary start, except for a program that was never scripted: it prints `<name> 0.0.0-mimic`.
     #[serde(default)]
     pub version: Option<String>,
 }
