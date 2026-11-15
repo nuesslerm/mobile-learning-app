@@ -1,5 +1,5 @@
-//! The run log file (`plugins/ledger/fileStore.ts`).
-use crate::run_log::{parse_run_log, serialize_run_log_entry, RunLogEntry};
+//! The run log file (`plugins/ledger/fileStore.ts`), kept here as a test double of the host's log: `rca-core` does no I/O.
+use rca_core::run_log::{parse_run_log, serialize_run_log_entry, RunLogEntry};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 

@@ -2,11 +2,13 @@
 //! a dispatch (ladder, cooldown ledger, `run_once`, the file stores).
 #[path = "flow/golden.rs"]
 mod golden;
+#[path = "flow/run_log_file.rs"]
+mod run_log_file;
 #[path = "flow/script_host.rs"]
 mod script_host;
 
 use golden::{golden, norm, opt, s, TempDir};
-use rca_core::file_store::FileRunLog;
+use run_log_file::FileRunLog;
 use rca_ladder::file_store::FileLedgerStore;
 use rca_ladder::ladder::{classify_failure, model_ladders, next_rung, next_rung_index, resolve_ladder, should_escalate, Attempt, LadderFile};
 use rca_ladder::pool_ledger::{clear_cooldown, cold_pools, cold_window_for_reset_hint, mark_cold, next_ledger, observe_ok, record_timeout, Ledger};

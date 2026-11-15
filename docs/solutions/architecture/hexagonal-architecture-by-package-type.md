@@ -115,7 +115,7 @@ Empty since vm-ops-api moved to Rust (`docs/plans/vm-ops-api-rs/plan.md`). The n
 ### 5. Core library
 
 - Pure modules, port traits, fakes behind a feature. An adapter that several consumers share is its own adapter crate (type 6), not a feature of the core.
-- Today: rca-core's port is `RunHost` (`libraries/rca-core/plugins/ladder/src/run.rs:49`), but its file store calls `std::fs` (`libraries/rca-core/src/file_store.rs:19-54`). Target: the file store moves into an adapter crate used by wf's adapters and rca-service's infrastructure; the core-does-no-io rule guards rca-core.
+- Today: rca-core's port is `RunHost` (`libraries/rca-core/plugins/ladder/src/run.rs:49`), and since 15 Nov 2026 the core does no I/O: its run-log file left it (only the ladder plugin's flow tests used it, as `libraries/rca-core/plugins/ladder/tests/flow/run_log_file.rs`), and the plugin's own `FileLedgerStore` is the one file store left; the core-does-no-io rule guards rca-core.
 
 ### 6. Adapter library
 
