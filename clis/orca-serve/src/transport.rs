@@ -116,7 +116,7 @@ fn upgrade(mut stream: TcpStream, head: &Head, shared: &Shared, stop: &AtomicBoo
             Ok(Message::Binary(bytes)) => socket.on_binary(&bytes),
             Ok(Message::Close(_)) => break,
             Ok(_) => Ok(vec![]),
-            Err(Error::Io(e)) if matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut) => Ok(vec![]),
+            Err(Error::Io(e)) if matches!(e.kind(), ErrorKind::WouldBlock | ErrorKind::TimedOut | ErrorKind::Interrupted) => Ok(vec![]),
             Err(_) => break,
         };
         // Any traffic, pings included, must not keep an unauthenticated socket past the deadline.
