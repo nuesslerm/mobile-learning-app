@@ -2,6 +2,7 @@
 //! and the processes' adapters live in `remote-chat-agent-host`; here are the outbound HTTP client, the vault and the executor's WebSocket.
 
 pub mod agent_socket;
+pub mod ambient;
 pub mod agent_state;
 pub mod device_bearers;
 pub mod env;

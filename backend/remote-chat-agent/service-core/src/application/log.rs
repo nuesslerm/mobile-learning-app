@@ -3,12 +3,6 @@
 //! A call site names typed fields, `log::info!("server.listening", port = port)`; the slice functions serve the sites whose fields are built at run time.
 
 use serde_json::{Map, Value};
-use std::time::{SystemTime, UNIX_EPOCH};
-
-pub fn now_ms() -> u64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0)
-}
-
 fn meta_of(meta: &[(&str, Value)]) -> Value {
     Value::Object(meta.iter().map(|(k, v)| ((*k).to_string(), v.clone())).collect::<Map<_, _>>())
 }

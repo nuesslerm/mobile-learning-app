@@ -1,6 +1,7 @@
 //! The adapters of the preview sessions' ports: the system clock and ids from the system's randomness.
 use rca_service_core::application::agent_groups::{PreviewClock, PreviewIds};
-use rca_service_core::domain::util::{now_ms, random_hex};
+use super::ambient::random_hex;
+use rca_service_core::domain::util::now_ms;
 
 pub struct SystemClock;
 

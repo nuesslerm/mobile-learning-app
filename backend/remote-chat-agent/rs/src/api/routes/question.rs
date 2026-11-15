@@ -5,7 +5,7 @@
 use super::{empty, respond, Call};
 use crate::api::app::App;
 use remote_chat_agent_core::domain::types::*;
-use rca_service_core::domain::util::{js_string, uuid_v4};
+use rca_service_core::domain::util::js_string;
 use axum::extract::Path;
 use axum::response::Response;
 use serde_json::{json, Map, Value};
@@ -84,7 +84,7 @@ pub async fn reply(Path(request_id): Path<String>, Call { app, body, .. }: Call)
                 Body::UserInputRespond { request_id: request_id.into(), answers: by_header, created_at }
             };
             let tag = if open.approval { "question-approval" } else { "question-user-input" };
-            return match app.orch.dispatch_awaiting(Command { command_id: format!("{tag}:{}", uuid_v4()), thread_id, body }, "client").await {
+            return match app.orch.dispatch_awaiting(Command { command_id: format!("{tag}:{}", app.orch.engine.ids().uuid()), thread_id, body }, "client").await {
                 Ok(_) => empty(204),
                 Err(e) => bad_gateway(e),
             };

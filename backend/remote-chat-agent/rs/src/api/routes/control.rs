@@ -5,7 +5,7 @@
 use super::{respond, truthy, Call};
 use crate::api::app::App;
 use remote_chat_agent_core::domain::types::*;
-use rca_service_core::domain::util::{js_string, uuid_v4};
+use rca_service_core::domain::util::js_string;
 use axum::response::Response;
 use serde_json::{json, Value};
 
@@ -23,7 +23,7 @@ fn failure(message: String) -> Response {
 }
 
 async fn interrupt(app: &App, thread_id: &str, tag: &str) -> Result<Receipt, String> {
-    let command = Command { command_id: format!("{tag}:{}", uuid_v4()), thread_id: thread_id.into(), body: Body::TurnInterrupt { turn_id: None, created_at: rca_service_core::domain::util::iso_now() } };
+    let command = Command { command_id: format!("{tag}:{}", app.orch.engine.ids().uuid()), thread_id: thread_id.into(), body: Body::TurnInterrupt { turn_id: None, created_at: rca_service_core::domain::util::iso_now() } };
     app.orch.dispatch_awaiting(command, "client").await
 }
 
@@ -31,10 +31,10 @@ async fn interrupt(app: &App, thread_id: &str, tag: &str) -> Result<Receipt, Str
 fn start_turn(app: &App, thread_id: &str, message: &str, tag: &str) -> Result<Receipt, String> {
     let thread = app.orch.engine.get_thread(thread_id).ok().flatten();
     let command = Command {
-        command_id: format!("{tag}:{}", uuid_v4()),
+        command_id: format!("{tag}:{}", app.orch.engine.ids().uuid()),
         thread_id: thread_id.into(),
         body: Body::TurnStart {
-            message_id: format!("msg_{}", uuid_v4()),
+            message_id: format!("msg_{}", app.orch.engine.ids().uuid()),
             text: message.into(),
             attachments: None,
             model_selection: thread.as_ref().map(|t| t.model_selection.clone()),

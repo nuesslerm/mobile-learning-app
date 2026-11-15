@@ -189,7 +189,7 @@ fn permission_rules() -> Value {
 }
 
 fn now() -> i64 {
-    log::now_ms() as i64
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
 }
 
 impl RunHost for Host<'_> {

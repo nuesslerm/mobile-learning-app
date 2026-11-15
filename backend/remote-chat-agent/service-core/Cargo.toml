@@ -26,7 +26,6 @@ serde_json.workspace = true
 time = { workspace = true, features = ["macros"] }
 tokio.workspace = true
 tracing.workspace = true
-uuid.workspace = true
 fancy-regex = "0.19.2"
 serde_path_to_error = "0.1"
 rca-core = { version = "0.1", registry = "mla" }

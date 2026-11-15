@@ -1,6 +1,7 @@
 //! The system behind the core's clock and id ports.
 
-use rca_service_core::domain::util::{now_ms, random_hex, uuid_v4};
+use super::ambient::{random_hex, uuid_v4};
+use rca_service_core::domain::util::now_ms;
 use remote_chat_agent_core::domain::ids::{Clock, IdSource};
 
 pub struct SystemClock;

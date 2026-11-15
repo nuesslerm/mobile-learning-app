@@ -1,7 +1,8 @@
 //! The adapters of the schedules groups' ports: the schedules as one JSON file on the state volume (written beside the target and renamed over it,
 //! readable by the service's user only: it holds the digests of webhook tokens), the system clock, and ids and tokens from the system's randomness.
 use rca_service_core::application::agent_groups::{ScheduleClock, ScheduleIds, ScheduleStore, StoredSchedule};
-use rca_service_core::domain::util::{now_ms, random_hex};
+use super::ambient::random_hex;
+use rca_service_core::domain::util::now_ms;
 use std::io::Write;
 use std::os::unix::fs::OpenOptionsExt;
 use std::path::PathBuf;

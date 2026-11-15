@@ -51,6 +51,7 @@ name = "rca-service"
 path = "src/main.rs"
 
 [dependencies]
+uuid.workspace = true
 agent-api-attachments = { path = "../../../libraries/agent-api/agent-api-attachments" }
 async-trait.workspace = true
 axum.workspace = true
