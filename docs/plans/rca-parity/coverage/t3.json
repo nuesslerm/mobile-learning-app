@@ -10,8 +10,8 @@
   "summary": {
     "rows": 222,
     "served": 169,
-    "pending": 9,
-    "notOffered": 44,
+    "pending": 6,
+    "notOffered": 47,
     "excluded": 0,
     "flagged": 0,
     "answeredByMapper": 6,
@@ -23,8 +23,7 @@
     },
     "pendingByMilestone": {
       "M4": 4,
-      "M9": 2,
-      "M12": 3
+      "M9": 2
     }
   },
   "rows": [
@@ -917,8 +916,10 @@
       "id": "http:voice.models",
       "kind": "http",
       "name": "voice.models",
-      "state": "pending",
-      "milestone": "M12"
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
+      "decidedBy": "M12"
     },
     {
       "id": "http:voice.selectModel",
@@ -942,15 +943,19 @@
       "id": "http:voice.status",
       "kind": "http",
       "name": "voice.status",
-      "state": "pending",
-      "milestone": "M12"
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
+      "decidedBy": "M12"
     },
     {
       "id": "http:voice.transcribe",
       "kind": "http",
       "name": "voice.transcribe",
-      "state": "pending",
-      "milestone": "M12"
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
+      "decidedBy": "M12"
     },
     {
       "id": "http:voice.transcribeCloud",

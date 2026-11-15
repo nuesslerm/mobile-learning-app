@@ -389,6 +389,21 @@
       "state": "not-offered",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca keeps no provider sign-in methods of its own: an agent CLI is signed in on the executor's machine, outside the service, so there is no method to remove.",
       "decidedBy": "M10"
+    },
+    "http:voice.models": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
+      "decidedBy": "M12"
+    },
+    "http:voice.status": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
+      "decidedBy": "M12"
+    },
+    "http:voice.transcribe": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
+      "decidedBy": "M12"
     }
   },
   "reverify": {}
