@@ -138,7 +138,7 @@ PATH; no model credentials). Record like any set: `wf mimic record clis/<crate>/
 
 ## 1. Once per VM: the pinned T3 release, Node 24 and the pinned Orca build (about 5 minutes)
 
-T3 is the pinned release (`t3-pin.json`: version, sha256 of the linux-arm64 tarball); the Provisioner (`tooling/mimic-drivers/src/t3/release.ts`) downloads it
+T3 is the pinned release (`t3-pin.json`: version, sha256 of the linux-arm64 tarball); the provisioner (`clis/mimic/script/host/src/provision.rs`, sha-verified, shared by every `driver = "script"` set) downloads it
 into `T3_RELEASE_CACHE` and refuses it when the pin and the release's `SHA256SUMS` do not both name the tarball's hash.
 
 Orca needs Node 24 (the VM has 22) and is built from the pinned commit; the VM has no checkout, so fetch exactly the pin:

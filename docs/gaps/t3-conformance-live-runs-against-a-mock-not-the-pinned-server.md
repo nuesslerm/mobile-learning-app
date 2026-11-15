@@ -2,7 +2,7 @@
 status: open
 area: rca-parity
 paths:
-  - "tooling/mimic-drivers/src/t3/release.ts"
+  - "clis/mimic/script/host/src/provision.rs"
   - "clis/t3-serve/cassettes/t3-v0.1.6/mimic.toml"
   - "tooling/t3-conformance/t3-pin.json"
 opened: 2026-11-04
@@ -16,7 +16,7 @@ links:
 ## What is broken
 
 The mock (`mock-server.ts`) and the Nx target `t3-conformance-live` are gone (mimic X5). `wf mimic verify t3-v0.1.6 --live` re-records the pinned
-server through the T3 driver (`tooling/mimic-drivers/src/t3`) and diffs it with the committed set, but it has only run against a stand-in server and
+server through the step interpreter (`clis/mimic/script`, `driver = "script"`; the TypeScript T3 driver was retired on 15 Nov 2026) and diffs it with the committed set, but it has only run against a stand-in server and
 faked downloads: nothing has yet replayed the real `t3@0.1.6` as a server, so a golden that no longer matches what the pinned T3 does would not show.
 
 ## Why blocked

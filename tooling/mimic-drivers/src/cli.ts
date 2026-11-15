@@ -9,13 +9,12 @@ import { serve } from './protocol.ts'
 import { orca } from './orca/index.ts'
 import { orcaLib } from './orca-lib/index.ts'
 import { cases, spike } from './orca/schema.ts'
-import { t3 } from './t3/index.ts'
 import { refreshCorpus, writeCorpus } from './corpus/index.ts'
 import { crawl } from './crawl/index.ts'
 import { writeScenarios } from './scenarios/index.ts'
 import { voiceEditDsl } from './voice-edit-dsl/index.ts'
 
-const TARGETS = { orca, 'orca-lib': orcaLib, 'voice-edit-dsl': voiceEditDsl, t3 }
+const TARGETS = { orca, 'orca-lib': orcaLib, 'voice-edit-dsl': voiceEditDsl }
 
 const [verb, name, namespace, flag] = process.argv.slice(2)
 if (verb === 'crawl' && (name === 'orca' || name === 't3')) {
