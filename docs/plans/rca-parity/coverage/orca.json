@@ -10,8 +10,8 @@
   "summary": {
     "rows": 315,
     "served": 135,
-    "pending": 155,
-    "notOffered": 15,
+    "pending": 119,
+    "notOffered": 51,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -28,7 +28,7 @@
       "M9": 4,
       "M10": 10,
       "M11": 17,
-      "M12": 86
+      "M12": 50
     }
   },
   "rows": [
@@ -941,177 +941,200 @@
       "id": "rpc:browser.back",
       "kind": "rpc",
       "name": "browser.back",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page history to go back in"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.dialogAccept",
       "kind": "rpc",
       "name": "browser.dialogAccept",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page whose dialog could be accepted"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.dialogDismiss",
       "kind": "rpc",
       "name": "browser.dialogDismiss",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page whose dialog could be dismissed"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.forward",
       "kind": "rpc",
       "name": "browser.forward",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page history to go forward in"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.goto",
       "kind": "rpc",
       "name": "browser.goto",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to navigate"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.keyboardInsertText",
       "kind": "rpc",
       "name": "browser.keyboardInsertText",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to insert text into"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.keypress",
       "kind": "rpc",
       "name": "browser.keypress",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to type into"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.mouseClick",
       "kind": "rpc",
       "name": "browser.mouseClick",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to click"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.mouseDown",
       "kind": "rpc",
       "name": "browser.mouseDown",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to press on"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.mouseMove",
       "kind": "rpc",
       "name": "browser.mouseMove",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to move over"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.mouseUp",
       "kind": "rpc",
       "name": "browser.mouseUp",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to release on"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.mouseWheel",
       "kind": "rpc",
       "name": "browser.mouseWheel",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to scroll"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.reload",
       "kind": "rpc",
       "name": "browser.reload",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page to reload"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.screencast",
       "kind": "rpc",
       "name": "browser.screencast",
       "subscription": true,
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there are no frames of a page to stream"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.screencast.ack",
       "kind": "rpc",
       "name": "browser.screencast.ack",
-      "state": "pending",
-      "milestone": "M12"
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.screencast.unsubscribe",
       "kind": "rpc",
       "name": "browser.screencast.unsubscribe",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no frame stream to end"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:browser.tabCreate",
       "kind": "rpc",
       "name": "browser.tabCreate",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so a tab would be opened that shows nothing"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:clipboard.abortImageUpload",
       "kind": "rpc",
       "name": "clipboard.abortImageUpload",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; there is no stored upload to drop"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:clipboard.appendImageUploadChunk",
       "kind": "rpc",
       "name": "clipboard.appendImageUploadChunk",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the chunks would only be held in the mapper"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:clipboard.commitImageUpload",
       "kind": "rpc",
       "name": "clipboard.commitImageUpload",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the committed image would have no path on the executor to answer"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:clipboard.saveImageAsTempFile",
       "kind": "rpc",
       "name": "clipboard.saveImageAsTempFile",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the image would have no temp file on the executor to name"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:clipboard.startImageUpload",
       "kind": "rpc",
       "name": "clipboard.startImageUpload",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the upload would only be held in the mapper"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:files.createFile",
@@ -2741,50 +2764,56 @@
       "id": "rpc:notifications.getMissedSince",
       "kind": "rpc",
       "name": "notifications.getMissedSince",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no numbered feed to read what a phone missed from"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:notifications.registerPush",
       "kind": "rpc",
       "name": "notifications.registerPush",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so a push token would be stored for nothing to send to"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:notifications.subscribe",
       "kind": "rpc",
       "name": "notifications.subscribe",
       "subscription": true,
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to open"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:notifications.testPush",
       "kind": "rpc",
       "name": "notifications.testPush",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no sender to deliver a test push"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:notifications.unregisterPush",
       "kind": "rpc",
       "name": "notifications.unregisterPush",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no stored push token to remove"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:notifications.unsubscribe",
       "kind": "rpc",
       "name": "notifications.unsubscribe",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to end"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:pairing.exchangeTicket",
@@ -3248,65 +3277,73 @@
       "id": "rpc:speech.dictation.cancel",
       "kind": "rpc",
       "name": "speech.dictation.cancel",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to cancel"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:speech.dictation.chunk",
       "kind": "rpc",
       "name": "speech.dictation.chunk",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to feed audio into"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:speech.dictation.finish",
       "kind": "rpc",
       "name": "speech.dictation.finish",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to end with a transcript"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:speech.dictation.setup",
       "kind": "rpc",
       "name": "speech.dictation.setup",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation engine to set up"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:speech.dictation.start",
       "kind": "rpc",
       "name": "speech.dictation.start",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to start"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:speech.models.delete",
       "kind": "rpc",
       "name": "speech.models.delete",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no model store to delete from"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:speech.models.download",
       "kind": "rpc",
       "name": "speech.models.download",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no model store to download into"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:speech.models.list",
       "kind": "rpc",
       "name": "speech.models.list",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M12",
-      "reverify": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there are no speech models on the executor to list"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:ssh.connect",

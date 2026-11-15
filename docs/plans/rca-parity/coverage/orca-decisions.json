@@ -90,33 +90,303 @@
   },
   "targets": {},
   "decisions": {
-    "rpc:ssh.connect": {"state": "not-offered", "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach", "decidedBy": "M12"},
-    "rpc:ssh.getState": {"state": "not-offered", "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach", "decidedBy": "M12"},
-    "rpc:pairing.getEndpoints": {"state": "not-offered", "reason": "owner-confirmed (decision 7): a product choice, not something the chain cannot prove (the pinned host lets a directly paired phone call it): a phone is paired with this one host by its own offer, which already carries the endpoint; there is no desktop whose other addresses it could list", "decidedBy": "M5"},
-    "rpc:pairing.provisionRelay": {"state": "not-offered", "reason": "owner-confirmed (decision 7): provisioning a relay credential needs a relay service, which this host does not run", "decidedBy": "M5"},
-    "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1": {"state": "not-offered", "reason": "owner-confirmed (decision 7): the phone posts /v1/resolve to the relay director a pairing offer names (directorUrl), which only pairing.provisionRelay mints, and that is not offered; a directly paired phone never calls it, and this host runs no director", "decidedBy": "M5"},
-    "http:mobile/src/diagnostics/connection-diagnostics-submission.ts#1": {"state": "excluded", "reason": "owner-confirmed (decision 7): the phone posts its redacted connection report to the constant https://www.onorca.dev/v1/feedback after an explicit tap; no host is involved, as with the other fixed third-party fetches"},
-    "rpc:ssh.listTargetSummaries": {"state": "not-offered", "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach", "decidedBy": "M12"},
-    "rpc:files.open": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it opens an editor tab in the desktop's own window and this host has no desktop; the phone reads a file with files.read and files.readPreview", "decidedBy": "M6"},
-    "rpc:files.openDiff": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it opens a diff tab in the desktop's own window and this host has no desktop", "decidedBy": "M6"},
-    "rpc:markdown.readTab": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it reads a markdown editor tab of the desktop by its tab id and this host has no tab; the phone's own fallback reads the file with files.read", "decidedBy": "M6"},
-    "rpc:markdown.saveTab": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it saves a markdown editor tab of the desktop by its tab id and this host has no tab to save", "decidedBy": "M6"},
-    "http:mobile/src/app-update/app-store-update-source.ts#1": {"state": "excluded", "reason": "third-party fetch: the phone asks the App Store lookup API for its own update; no host is involved"},
-    "http:mobile/src/app-update/github-release-update-source.ts#1": {"state": "excluded", "reason": "third-party fetch: the phone lists Orca's release tags on the GitHub API for its own update; no host is involved"},
-    "http:mobile/src/app-update/github-release-update-source.ts#2": {"state": "excluded", "reason": "third-party fetch: the phone reads an Orca release on the GitHub API for its own update; no host is involved"},
-    "http:mobile/src/components/MobileAgentIcon.tsx#1": {"state": "excluded", "reason": "third-party fetch: an agent icon loads a site favicon from Google; no host is involved"},
-    "http:mobile/src/diagnostics/use-troubleshoot-diagnostics.ts#1": {"state": "excluded", "reason": "third-party fetch: the troubleshooter probes DNS over dns.google; no host is involved"},
-    "rpc:aiVault.listSessions": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves", "decidedBy": "M7"},
-    "rpc:aiVault.prepareSessionResume": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal", "decidedBy": "M7"},
-    "rpc:preflight.check": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md)", "decidedBy": "M7"},
-    "rpc:agentSession.reveal": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it shows the chat's tab in the desktop's own window and this host has no desktop", "decidedBy": "M7"},
-    "rpc:mobileWeb.bundle.chunk": {"oracle": "mimic"},
-    "rpc:folderWorkspace.list": {"oracle": "mimic"},
-    "rpc:host.platform": {"oracle": "mimic"},
-    "rpc:nativeChat.unsubscribe": {"oracle": "mimic"},
-    "rpc:projectGroup.list": {"oracle": "mimic"},
-    "rpc:runtime.clientEvents.unsubscribe": {"oracle": "mimic"},
-    "rpc:agentSession.readVisual": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read", "decidedBy": "M7"}
+    "rpc:ssh.connect": {
+      "state": "not-offered",
+      "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach",
+      "decidedBy": "M12"
+    },
+    "rpc:ssh.getState": {
+      "state": "not-offered",
+      "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach",
+      "decidedBy": "M12"
+    },
+    "rpc:pairing.getEndpoints": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): a product choice, not something the chain cannot prove (the pinned host lets a directly paired phone call it): a phone is paired with this one host by its own offer, which already carries the endpoint; there is no desktop whose other addresses it could list",
+      "decidedBy": "M5"
+    },
+    "rpc:pairing.provisionRelay": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): provisioning a relay credential needs a relay service, which this host does not run",
+      "decidedBy": "M5"
+    },
+    "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): the phone posts /v1/resolve to the relay director a pairing offer names (directorUrl), which only pairing.provisionRelay mints, and that is not offered; a directly paired phone never calls it, and this host runs no director",
+      "decidedBy": "M5"
+    },
+    "http:mobile/src/diagnostics/connection-diagnostics-submission.ts#1": {
+      "state": "excluded",
+      "reason": "owner-confirmed (decision 7): the phone posts its redacted connection report to the constant https://www.onorca.dev/v1/feedback after an explicit tap; no host is involved, as with the other fixed third-party fetches"
+    },
+    "rpc:ssh.listTargetSummaries": {
+      "state": "not-offered",
+      "reason": "ssh.* is not offered (docs/plans/rca-client/architecture.md:54): the executor runs at the workspace, so there is no ssh target to reach",
+      "decidedBy": "M12"
+    },
+    "rpc:files.open": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it opens an editor tab in the desktop's own window and this host has no desktop; the phone reads a file with files.read and files.readPreview",
+      "decidedBy": "M6"
+    },
+    "rpc:files.openDiff": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it opens a diff tab in the desktop's own window and this host has no desktop",
+      "decidedBy": "M6"
+    },
+    "rpc:markdown.readTab": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it reads a markdown editor tab of the desktop by its tab id and this host has no tab; the phone's own fallback reads the file with files.read",
+      "decidedBy": "M6"
+    },
+    "rpc:markdown.saveTab": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it saves a markdown editor tab of the desktop by its tab id and this host has no tab to save",
+      "decidedBy": "M6"
+    },
+    "http:mobile/src/app-update/app-store-update-source.ts#1": {
+      "state": "excluded",
+      "reason": "third-party fetch: the phone asks the App Store lookup API for its own update; no host is involved"
+    },
+    "http:mobile/src/app-update/github-release-update-source.ts#1": {
+      "state": "excluded",
+      "reason": "third-party fetch: the phone lists Orca's release tags on the GitHub API for its own update; no host is involved"
+    },
+    "http:mobile/src/app-update/github-release-update-source.ts#2": {
+      "state": "excluded",
+      "reason": "third-party fetch: the phone reads an Orca release on the GitHub API for its own update; no host is involved"
+    },
+    "http:mobile/src/components/MobileAgentIcon.tsx#1": {
+      "state": "excluded",
+      "reason": "third-party fetch: an agent icon loads a site favicon from Google; no host is involved"
+    },
+    "http:mobile/src/diagnostics/use-troubleshoot-diagnostics.ts#1": {
+      "state": "excluded",
+      "reason": "third-party fetch: the troubleshooter probes DNS over dns.google; no host is involved"
+    },
+    "rpc:aiVault.listSessions": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves",
+      "decidedBy": "M7"
+    },
+    "rpc:aiVault.prepareSessionResume": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal",
+      "decidedBy": "M7"
+    },
+    "rpc:preflight.check": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md)",
+      "decidedBy": "M7"
+    },
+    "rpc:agentSession.reveal": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it shows the chat's tab in the desktop's own window and this host has no desktop",
+      "decidedBy": "M7"
+    },
+    "rpc:mobileWeb.bundle.chunk": {
+      "oracle": "mimic"
+    },
+    "rpc:folderWorkspace.list": {
+      "oracle": "mimic"
+    },
+    "rpc:host.platform": {
+      "oracle": "mimic"
+    },
+    "rpc:nativeChat.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:projectGroup.list": {
+      "oracle": "mimic"
+    },
+    "rpc:runtime.clientEvents.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.readVisual": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read",
+      "decidedBy": "M7"
+    },
+    "rpc:browser.back": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.dialogAccept": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.dialogDismiss": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.forward": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.goto": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.keyboardInsertText": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.keypress": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.mouseClick": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.mouseDown": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.mouseMove": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.mouseUp": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.mouseWheel": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.reload": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.screencast": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.screencast.ack": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.screencast.unsubscribe": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:browser.tabCreate": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor is a workspace host with no display and no browser to drive, so there is no page to navigate, click, type into or screencast.",
+      "decidedBy": "M12"
+    },
+    "rpc:clipboard.abortImageUpload": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
+      "decidedBy": "M12"
+    },
+    "rpc:clipboard.appendImageUploadChunk": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
+      "decidedBy": "M12"
+    },
+    "rpc:clipboard.commitImageUpload": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
+      "decidedBy": "M12"
+    },
+    "rpc:clipboard.saveImageAsTempFile": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
+      "decidedBy": "M12"
+    },
+    "rpc:clipboard.startImageUpload": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
+      "decidedBy": "M12"
+    },
+    "rpc:notifications.getMissedSince": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
+    },
+    "rpc:notifications.registerPush": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
+    },
+    "rpc:notifications.subscribe": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
+    },
+    "rpc:notifications.testPush": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
+    },
+    "rpc:notifications.unregisterPush": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
+    },
+    "rpc:notifications.unsubscribe": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
+      "decidedBy": "M12"
+    },
+    "rpc:speech.dictation.cancel": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
+    },
+    "rpc:speech.dictation.chunk": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
+    },
+    "rpc:speech.dictation.finish": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
+    },
+    "rpc:speech.dictation.setup": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
+    },
+    "rpc:speech.dictation.start": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
+    },
+    "rpc:speech.models.delete": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
+    },
+    "rpc:speech.models.download": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
+    },
+    "rpc:speech.models.list": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
+      "decidedBy": "M12"
+    }
   },
   "reverify": {
     "rpc:accounts.consumeCodexResetCredit": "reverify when a model API can spend a reset credit (M10): rca's provider.resetCredit is refused NOT_SUPPORTED by the real model API the service is configured with (it has no credit to reset), so the phone's spend would only ever be a refusal",
