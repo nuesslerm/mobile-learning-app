@@ -1,0 +1,38 @@
+name: Image build probe
+
+# Builds the Dockerfiles of the images that the deploy legs cannot build while HOSTED_DEPLOY is off (the VM is being recreated), so a change to one of
+# them is proven by a real `docker build` on a hosted runner before it reaches a deploy. It pushes nothing and holds no secret: the context is the
+# repository, as in `wf ship build`.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - .github/workflows/image-build-probe.yml
+      - clis/t3-serve/Dockerfile
+      - clis/orca-serve/Dockerfile
+      - libraries/agent-api/**
+      - clis/wf-kit/**
+      - clis/Cargo.lock
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build (${{ matrix.app }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        app: [t3-serve, orca-serve]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Build the image
+        env:
+          DOCKER_BUILDKIT: '1'
+        run: docker build --file "clis/${{ matrix.app }}/Dockerfile" --tag "probe/${{ matrix.app }}:ci" --build-arg GIT_COMMIT="$GITHUB_SHA" .
+      - name: The binary is in the image
+        run: docker run --rm --entrypoint /bin/sh "probe/${{ matrix.app }}:ci" -c 'test -x "/usr/local/bin/${{ matrix.app }}"'
