@@ -12,6 +12,7 @@ struct State {
     terminals: BTreeMap<(String, String), (String, bool)>,
     written: Vec<(String, String, String)>,
     cleared: Vec<String>,
+    resized: Vec<(String, u64, u64)>,
 }
 
 #[derive(Clone, Default)]
@@ -34,6 +35,11 @@ impl Terminals {
 
     pub fn cleared(&self) -> Vec<String> {
         self.0.lock().unwrap().cleared.clone()
+    }
+
+    /// What `terminal.resize` was sent, as (terminal, cols, rows).
+    pub fn resized(&self) -> Vec<(String, u64, u64)> {
+        self.0.lock().unwrap().resized.clone()
     }
 
     pub fn title(&self, workspace: &str, name: &str) -> Option<String> {
@@ -80,6 +86,20 @@ impl Terminals {
             }
             s.cleared.push(key.1.clone());
             Ok(json!({"workspace": key.0, "terminal": key.1}))
+        });
+        let me = self.clone();
+        agent.reply("terminal.resize", move |p| {
+            let key = (p["workspace"].as_str().unwrap_or_default().to_string(), p["terminal"].as_str().unwrap_or_default().to_string());
+            let (cols, rows) = (p["cols"].as_u64().unwrap_or_default(), p["rows"].as_u64().unwrap_or_default());
+            let mut s = me.0.lock().unwrap();
+            match s.terminals.get(&key) {
+                None => Err(refused("UNKNOWN_TERMINAL", format!("no terminal {}", key.1))),
+                Some((_, false)) => Err(refused("TERMINAL_EXITED", format!("{} has ended", key.1))),
+                Some(_) => {
+                    s.resized.push((key.1.clone(), cols, rows));
+                    Ok(json!({"workspace": key.0, "terminal": key.1, "cols": cols, "rows": rows}))
+                }
+            }
         });
         let me = self.clone();
         agent.reply("terminal.rename", move |p| {

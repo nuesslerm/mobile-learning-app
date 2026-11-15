@@ -87,3 +87,40 @@ fn a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_
         assert_eq!(stale["error"]["code"], json!("terminal_handle_stale"));
     });
 }
+
+#[test]
+fn a_phone_fits_a_terminal_to_its_screen_and_the_executors_pty_is_resized_and_a_dead_handle_reaches_rca_before_it_is_refused() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a shell on the executor and a paired phone
+        let chain = Chain::start(None);
+        let mut direct = chain.direct();
+        direct.call("terminal", "terminal.open", json!({"workspace": WS, "terminal": "t1"})).expect("the service opens the shell");
+        let mut phone = Phone::connect(case, &chain);
+        let handle = format!("{WS}:t1");
+        let client = json!({"id": "c1", "type": "mobile"});
+        // When the phone fits the terminal to its viewport
+        let fitted = phone.call(case, &chain, &["rpc:terminal.updateViewport"], "terminal.updateViewport", json!({"terminal": handle, "client": client, "viewport": {"cols": 52, "rows": 18}}));
+        // Then rca resized the pty and the phone reads the fit as applied
+        answered(case, "terminal.resize", true);
+        assert!(ran(case, "pty_resize"), "{}", chain.evidence());
+        assert_eq!(fitted["result"], json!({"updated": true, "applied": true}));
+        // And the service lists the terminal at that size
+        let listed = direct.call("terminal", "terminal.list", json!({"workspace": WS})).unwrap();
+        assert_eq!((listed["terminals"][0]["cols"].clone(), listed["terminals"][0]["rows"].clone()), (json!(52), json!(18)));
+        // When it sets the display mode to auto with another viewport
+        let mode = phone.call(case, &chain, &["rpc:terminal.setDisplayMode"], "terminal.setDisplayMode", json!({"terminal": handle, "mode": "auto", "viewport": {"cols": 60, "rows": 24}}));
+        // Then the pty was resized again
+        answered(case, "terminal.resize", true);
+        assert_eq!(mode["result"], json!({"mode": "auto"}));
+        // When it focuses the terminal
+        let focused = phone.call(case, &chain, &["rpc:terminal.focus"], "terminal.focus", json!({"terminal": handle}));
+        // Then rca listed the workspace's terminals and the phone reads that nothing navigated
+        answered(case, "terminal.list", true);
+        assert_eq!(focused["result"]["focus"]["navigated"], json!(false));
+        // When it fits a handle the service holds no terminal for
+        let dead = phone.refused(case, &chain, &["rpc:terminal.updateViewport"], "terminal.updateViewport", json!({"terminal": format!("{WS}:nope"), "client": client, "viewport": {"cols": 52, "rows": 18}}));
+        // Then rca was asked first, and the refusal is the host's no_connected_pty
+        answered(case, "terminal.list", true);
+        assert_eq!(dead["error"]["message"], json!("no_connected_pty"));
+    });
+}
