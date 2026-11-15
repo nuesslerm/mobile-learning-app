@@ -416,6 +416,11 @@
       "state": "not-offered",
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it marks or clears the panes of the desktop's Agents list by pane key, and this host has no desktop panes.",
       "decidedBy": "M7"
+    },
+    "rpc:git.remoteCommitUrl": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it builds the hosted commit link from the URL of the `origin` remote, and rca's git group reports a repository's remotes by name only (`git.upstreamStatus` `remotes`), never their URLs, so there is nothing to build the link from; serving it needs a remote-URL read added to the agent API.",
+      "decidedBy": "M9"
     }
   },
   "reverify": {
@@ -448,11 +453,8 @@
     "rpc:files.readTerminalArtifactPreview": "reverify with terminal.* (M8): a terminal artifact is authorised by a grant the terminal itself issued, so a plain file read would pass without proving the grant [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
     "rpc:files.resolveTerminalPath": "reverify with terminal.* (M8): the path is resolved against the terminal's own working directory, which only a terminal session knows [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
     "rpc:files.writeTerminalArtifact": "reverify with terminal.* (M8): a terminal artifact is written under a grant the terminal itself issued, so a plain file write would pass without proving the grant [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
-    "rpc:git.branchDiff": "reverify with git.blob (M9 not built): it gives one file's text at the merge base and at the head oid of a branch comparison, which git.blob can read by revision, but this mapper sends no git.blob yet; build it and check both sides against git show of each oid in the chain",
     "rpc:git.cancelGenerateCommitMessage": "reverify when git.generateCommitMessage can be cancelled (M10): the group's generation is one request that runs to its end and has no cancel, so an accepted cancel would stop nothing",
     "rpc:git.cancelGeneratePullRequestFields": "reverify with git.generatePullRequestFields (M10): there is no generation of pull request text to cancel",
-    "rpc:git.commitDiff": "reverify with git.blob (M9 not built): it gives one file's text at a commit's parent and at the commit, which git.blob can read by revision, but this mapper sends no git.blob yet; build it and check both sides against git show of each oid in the chain, with a root commit's original side empty",
-    "rpc:git.diff": "reverify with a diff that gives both sides' contents (M9 built none): the phone reads one file's original and modified text, the original being the index for an unstaged diff and HEAD for a staged one, and git.blob reads a revision, never the index, so any answer built from the patch text or from HEAD alone would pass without proving the index side",
     "rpc:git.discoverCommitMessageModels": "reverify when the service lists its models (M10): rca's git.ai group writes with the one model its environment configures and no method lists models, so any list would be invented",
     "rpc:git.generatePullRequestFields": "reverify when the git.ai group writes pull request text (M10): it has git.generateCommitMessage alone, and a title and body built by the mapper from the commit message would pass without a model",
     "rpc:git.remoteCommitUrl": "reverify when the group reports a remote's address (M9): git.upstreamStatus lists the remotes' names and never their URLs, so the web address of a commit cannot be built, and any other answer would pass without reading the remote",

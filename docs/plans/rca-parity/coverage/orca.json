@@ -10,8 +10,8 @@
   "summary": {
     "rows": 319,
     "served": 135,
-    "pending": 117,
-    "notOffered": 57,
+    "pending": 116,
+    "notOffered": 58,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -25,7 +25,7 @@
       "M6": 1,
       "M7": 8,
       "M8": 22,
-      "M9": 4,
+      "M9": 3,
       "M10": 10,
       "M11": 17,
       "M12": 50
@@ -1436,8 +1436,7 @@
       "kind": "rpc",
       "name": "git.branchDiff",
       "state": "pending",
-      "milestone": "M9",
-      "reverify": "reverify with git.blob (M9 not built): it gives one file's text at the merge base and at the head oid of a branch comparison, which git.blob can read by revision, but this mapper sends no git.blob yet; build it and check both sides against git show of each oid in the chain"
+      "milestone": "M9"
     },
     {
       "id": "rpc:git.bulkStage",
@@ -1552,8 +1551,7 @@
       "kind": "rpc",
       "name": "git.commitDiff",
       "state": "pending",
-      "milestone": "M9",
-      "reverify": "reverify with git.blob (M9 not built): it gives one file's text at a commit's parent and at the commit, which git.blob can read by revision, but this mapper sends no git.blob yet; build it and check both sides against git show of each oid in the chain, with a root commit's original side empty"
+      "milestone": "M9"
     },
     {
       "id": "rpc:git.completeMerge",
@@ -1578,8 +1576,7 @@
       "kind": "rpc",
       "name": "git.diff",
       "state": "pending",
-      "milestone": "M9",
-      "reverify": "reverify with a diff that gives both sides' contents (M9 built none): the phone reads one file's original and modified text, the original being the index for an unstaged diff and HEAD for a staged one, and git.blob reads a revision, never the index, so any answer built from the patch text or from HEAD alone would pass without proving the index side"
+      "milestone": "M9"
     },
     {
       "id": "rpc:git.discard",
@@ -1765,9 +1762,10 @@
       "id": "rpc:git.remoteCommitUrl",
       "kind": "rpc",
       "name": "git.remoteCommitUrl",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M9",
-      "reverify": "reverify when the group reports a remote's address (M9): git.upstreamStatus lists the remotes' names and never their URLs, so the web address of a commit cannot be built, and any other answer would pass without reading the remote"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it builds the hosted commit link from the URL of the `origin` remote, and rca's git group reports a repository's remotes by name only (`git.upstreamStatus` `remotes`), never their URLs, so there is nothing to build the link from; serving it needs a remote-URL read added to the agent API.",
+      "decidedBy": "M9"
     },
     {
       "id": "rpc:git.resolveConflict",
