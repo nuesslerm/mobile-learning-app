@@ -347,3 +347,26 @@ fn a_release_to_a_git_registry_is_refused_while_origin_holds_registry_entries_th
     assert!(last_json(&r)["next"].as_str().unwrap().contains("pull --rebase"), "{}", r.stdout);
     assert!(repo.read("libs/fixture-core/Cargo.toml").contains("version = \"0.1.0\""));
 }
+
+#[test]
+fn a_release_to_a_git_registry_commits_with_a_hook_that_uses_git_and_refuses_while_something_else_is_staged() {
+    // Given a pre-commit hook that runs git in a repository of its own, as the gate's tests do, and a file staged outside registry/
+    let repo = Repo::new(&git_registry());
+    let hook = repo.work().join(".git/hooks/pre-commit");
+    write(&hook, "#!/bin/sh\nd=$(mktemp -d) && git -C \"$d\" init -q && echo x > \"$d/f\" && git -C \"$d\" add -A\n");
+    std::process::Command::new("chmod").arg("+x").arg(&hook).status().unwrap();
+    repo.write("notes.txt", "staged\n");
+    git(&repo.work(), &["add", "notes.txt"]);
+
+    // When the library is released, Then it is refused naming the staged file and the manifest is as it was
+    let refused = repo.lib(&["release", "fixture-core", "patch"]);
+    assert_eq!(refused.exit_code, 1, "{}", refused.stdout);
+    assert!(last_json(&refused)["error"].as_str().unwrap().contains("notes.txt is staged"), "{}", refused.stdout);
+    assert!(repo.read("libs/fixture-core/Cargo.toml").contains("version = \"0.1.0\""));
+
+    // Given it unstaged, When it is released, Then the hook ran and the commit reached origin
+    git(&repo.work(), &["reset", "-q", "notes.txt"]);
+    let r = repo.lib(&["release", "fixture-core", "patch"]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(origin_has(&repo, "registry/index/config.json"));
+}

@@ -63,10 +63,15 @@ impl Publisher for GitSparse {
     }
 
     fn publish(&self, release: &Release) -> Result<Published, Failure> {
+        let staged = git(&self.root, &["diff", "--cached", "--name-only"])?;
+        if let Some(other) = staged.lines().find(|f| !f.starts_with("registry/")) {
+            return Err(Failure::new(format!("{other} is staged: the registry commit would carry it")).next("commit or unstage it, then release again"));
+        }
         let published = self.inner.publish(release)?;
         let message = format!("registry: {} {}", release.library.name, release.version);
         let done = git(&self.root, &["add", "--", DIR])
-            .and_then(|_| git(&self.root, &["commit", "-q", "-m", &message, "--", DIR]))
+            // no pathspec: that commit runs the hooks on a temporary index, which their own git calls then trip over
+            .and_then(|_| git(&self.root, &["commit", "-q", "-m", &message]))
             .inspect_err(|_| self.discard())
             .and_then(|_| git(&self.root, &["push", "-q", "origin", "HEAD:dev"]).inspect_err(|_| self.undo()));
         done.map_err(|f| Failure::new(f.error).next("nothing was published and the manifest is as it was; fix what git reports and release again"))?;
