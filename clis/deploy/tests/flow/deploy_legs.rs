@@ -134,7 +134,7 @@ fn a_push_ships_exactly_the_legs_built_from_what_it_changed() {
         ("the agent service's integration test, which replays the DSL cassette through wf-mimic and is no image's input", "backend/remote-chat-agent/rs/tests/integration.rs", vec![], false),
         ("the Orca chain's integration test of the mobile bundle replay", "clis/orca-serve/tests/integration/mimic_x2.rs", vec![], false),
         ("the Orca oracle's integration test of the dual-target replay", "clis/orca-serve/tests/integration/mimic_x6.rs", vec![], false),
-        ("the Orca oracle's cassette", "clis/orca-serve/cassettes/orca-files/cassette.json", vec![], false),
+        ("the Orca oracle's cassette", "clis/orca-serve/cassettes/orca-v1.4.259-files/cassette.json", vec![], false),
         ("the voice edit DSL library the cassette pins, which the app bundles and the services never read", "frontend/libraries/voice-edit-dsl/src/validator.ts", vec![], true),
         ("the agent.threads contract's recorded exchanges", "libraries/agent-api/agent-api-agent/tests/fixtures/thread.get.json", vec![], false),
         ("the agent.threads contract's recorded events", "libraries/agent-api/agent-api-agent/tests/fixtures/thread-events.jsonl", vec![], false),

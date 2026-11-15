@@ -221,7 +221,7 @@ fn given_the_same_case_and_transport_behaviour_when_run_twice_then_the_steps_are
 
 /// The five entries every session-prelude case starts with, as the first recorded case carries them inline.
 fn session_prelude(root: &std::path::Path) -> Vec<mimic_script_core::case::Entry> {
-    let first = cassette_steps(&root.join("t3-recorded-1")).into_iter().find(|(_, input, _)| input["script"].as_array().is_some_and(|s| s.len() > 5)).expect("a recorded case with the full session");
+    let first = cassette_steps(&root.join("t3-v0.1.9-recorded-1")).into_iter().find(|(_, input, _)| input["script"].as_array().is_some_and(|s| s.len() > 5)).expect("a recorded case with the full session");
     Case::parse(&first.1).unwrap().entries.into_iter().take(5).collect()
 }
 
@@ -301,7 +301,7 @@ fn given_the_committed_t3_recordings_when_their_scripts_run_against_their_own_st
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../t3-serve/cassettes");
     let (mut checked, mut mismatched) = (0, Vec::new());
     let prelude = session_prelude(&root);
-    for set in ["t3-recorded-1", "t3-recorded-2", "t3-recorded-3", "t3-crawl", "t3-scenarios"] {
+    for set in ["t3-v0.1.9-recorded-1", "t3-v0.1.9-recorded-2", "t3-v0.1.9-recorded-3", "t3-v0.1.9-crawl", "t3-v0.1.9-scenarios"] {
         let dir = root.join(set);
         let rules: mimic_core::rules::RuleSet = serde_json::from_str(&std::fs::read_to_string(dir.join("rules.json")).unwrap()).unwrap();
         let compiled = rules.compile().unwrap();
@@ -328,7 +328,7 @@ fn given_the_committed_t3_recordings_when_their_scripts_run_against_their_own_st
 fn given_the_committed_orca_recordings_when_their_requests_run_against_their_own_answers_then_the_interpreter_reproduces_them() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../orca-serve/cassettes");
     let (mut checked, mut mismatched) = (0, Vec::new());
-    for set in ["orca-recorded", "orca-crawl", "orca-scenarios"] {
+    for set in ["orca-v1.4.259-recorded", "orca-v1.4.259-crawl", "orca-v1.4.259-scenarios"] {
         let dir = root.join(set);
         let rules: mimic_core::rules::RuleSet = serde_json::from_str(&std::fs::read_to_string(dir.join("rules.json")).unwrap()).unwrap();
         let compiled = rules.compile().unwrap();

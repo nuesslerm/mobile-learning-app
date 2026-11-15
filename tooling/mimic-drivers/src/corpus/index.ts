@@ -43,6 +43,6 @@ export async function refreshCorpus(app: 'orca' | 't3', dirs: string[]): Promise
   const { cases, coverage } = app === 'orca' ? await orcaCorpus() : t3Corpus()
   const read = (dir: string) => (JSON.parse(readFileSync(join(dir, 'corpus.json'), 'utf8')) as { generators: { cases: Case[] }[] }).generators.flatMap((g) => g.cases)
   const shards = assignCases(dirs.map(read), cases)
-  // a shard keeps a coverage table only when it already had one (orca-recorded does, the T3 shards do not)
+  // a shard keeps a coverage table only when it already had one (orca-v1.4.259-recorded does, the T3 shards do not)
   return dirs.map((dir, i) => write(app, dir, shards[i]!, coverage, existsSync(join(dir, 'coverage.json'))))
 }

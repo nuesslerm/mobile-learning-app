@@ -7,9 +7,9 @@ name: Mimic record
 # its set, never a change here.
 #
 # Started by scheduled-triggers.yml (dispatch) on an EMPTY commit to dev tagged [record <set>...] or [replay <set>...], never by `push` itself:
-#     git commit --allow-empty -m "[record t3-recorded-1 orca-recorded]" && git push origin dev
-#     git commit --allow-empty -m "[record orca-recorded chunk=15 fresh]" && git push origin dev     (15 minute chunks, no checkpoint)
-#     git commit --allow-empty -m "[replay t3-recorded-1]" && git push origin dev                    (diff the candidates, nothing recorded)
+#     git commit --allow-empty -m "[record t3-v0.1.9-recorded-1 orca-v1.4.259-recorded]" && git push origin dev
+#     git commit --allow-empty -m "[record orca-v1.4.259-recorded chunk=15 fresh]" && git push origin dev     (15 minute chunks, no checkpoint)
+#     git commit --allow-empty -m "[replay t3-v0.1.9-recorded-1]" && git push origin dev                    (diff the candidates, nothing recorded)
 # A record is resumable: an incomplete one uploads its checkpoint as an artifact, and the same marker again downloads it and goes on. The masked
 # set is the workflow artifact (14 days) and a bucket run that `wf mimic fetch <run-id>` reads from any checkout.
 on:

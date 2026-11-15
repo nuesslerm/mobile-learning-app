@@ -1,13 +1,13 @@
-//! The Evidence port over the real recorded sets (`clis/t3-serve/cassettes/t3-recorded`, `clis/orca-serve/cassettes/orca-recorded`): a row decided
+//! The Evidence port over the real recorded sets (`clis/t3-serve/cassettes/t3-v0.1.9-recorded-{1,2,3}`, `clis/orca-serve/cassettes/orca-v1.4.259-recorded`): a row decided
 //! `oracle: mimic` is served only by a clean replay of a set whose kind is `recorded`. The replays are those the chain tests of the two adapters
 //! proved (an interaction differs only where `known-gaps.json` lists it); the sets, their rows and their gaps are read from the repository.
 use super::support::*;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
-/// The recorded sets of an app: every directory of its crate's cassettes named `<app>-recorded*`.
+/// The recorded sets of an app: every directory of its crate's cassettes named `<app>-v<version>-recorded*`.
 fn recorded_sets(app: &str, cassettes: &str) -> Vec<PathBuf> {
-    let mut sets: Vec<PathBuf> = std::fs::read_dir(clis().join(cassettes)).unwrap().filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with(&format!("{app}-recorded")))).collect();
+    let mut sets: Vec<PathBuf> = std::fs::read_dir(clis().join(cassettes)).unwrap().filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.file_name().is_some_and(|n| n.to_string_lossy().starts_with(&format!("{app}-v")) && n.to_string_lossy().contains("-recorded"))).collect();
     sets.sort();
     assert!(!sets.is_empty(), "no recorded set of {app}");
     sets

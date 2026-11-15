@@ -1,6 +1,6 @@
 # Re-record the real T3 and Orca servers on the VM
 
-The cassettes `clis/t3-serve/cassettes/t3-recorded-{1,2,3}` and `clis/orca-serve/cassettes/orca-recorded` are what the pinned reference servers answered on the
+The cassettes `clis/t3-serve/cassettes/t3-v0.1.9-recorded-{1,2,3}` and `clis/orca-serve/cassettes/orca-v1.4.259-recorded` are what the pinned reference servers answered on the
 VM, kind `recorded`. Nothing in them is written by hand: the inputs come from the phone coverage tables (`docs/plans/rca-parity/coverage/<app>-methods.json`),
 the answers from the real server. Re-record when a pin (`tooling/t3-conformance/t3-pin.json`, `tooling/orca-conformance/orca-pin.json`), a
 driver (`tooling/mimic-drivers/src`) or a corpus generator changes: the replay tests and `wf mimic verify` fail on a stale pin hash.
@@ -17,9 +17,9 @@ marker. `mimic-record.yml` starts only for such a commit (the gate of `scheduled
 either) and runs niced.
 
 ```sh
-git commit --allow-empty -m "[record t3-recorded-1 orca-recorded]" && git push origin dev    # record two sets, one after the other
-git commit --allow-empty -m "[record orca-recorded chunk=15 fresh]" && git push origin dev   # 15 minute chunks, ignore an earlier checkpoint
-git commit --allow-empty -m "[replay t3-recorded-1]" && git push origin dev                  # replay against the candidates, diff table in the summary
+git commit --allow-empty -m "[record t3-v0.1.9-recorded-1 orca-v1.4.259-recorded]" && git push origin dev    # record two sets, one after the other
+git commit --allow-empty -m "[record orca-v1.4.259-recorded chunk=15 fresh]" && git push origin dev   # 15 minute chunks, ignore an earlier checkpoint
+git commit --allow-empty -m "[replay t3-v0.1.9-recorded-1]" && git push origin dev                  # replay against the candidates, diff table in the summary
 ```
 
 Grammar, one marker per message on a line of its own that begins with `[` (a mention of the text mid-line in prose starts nothing), parsed by `wf mimic trigger` (`--help` is the one place it is written down): `[record <set>... [chunk=<minutes>] [fresh]]` or
@@ -36,11 +36,11 @@ proxy refuses the Actions API. The run summary has the counts, the stability (`1
 
 ```sh
 wf mimic fetch <run-id>               # or: wf mimic fetch latest --set <name>
-wf mimic verify clis/t3-serve/cassettes/t3-recorded-1
-git add clis/t3-serve/cassettes/t3-recorded-1 && git commit -m "mimic: re-record t3-recorded-1"
+wf mimic verify clis/t3-serve/cassettes/t3-v0.1.9-recorded-1
+git add clis/t3-serve/cassettes/t3-v0.1.9-recorded-1 && git commit -m "mimic: re-record t3-v0.1.9-recorded-1"
 ```
 
-`wf mimic record --resume --max-minutes <n>` is what the chunked job calls: it stops cleanly at the first batch boundary after `n` minutes (a decimal is fine, and every call records at least one batch), leaves its state under `<set>/raw/checkpoint` (bound to the corpus, rules, seed and batching: a changed one refuses to resume) and prints `complete:false`; the call that finishes prints `complete:true`. A killed call loses at most its current batch. It is the same checkpoint the crawl sets use (`--chunk`, `--write-chunk`), so every set kind (`t3-recorded-*`, `orca-recorded`, the scenarios and the crawls) goes through one path.
+`wf mimic record --resume --max-minutes <n>` is what the chunked job calls: it stops cleanly at the first batch boundary after `n` minutes (a decimal is fine, and every call records at least one batch), leaves its state under `<set>/raw/checkpoint` (bound to the corpus, rules, seed and batching: a changed one refuses to resume) and prints `complete:false`; the call that finishes prints `complete:true`. A killed call loses at most its current batch. It is the same checkpoint the crawl sets use (`--chunk`, `--write-chunk`), so every set kind (`t3-v*-recorded-*`, `orca-v1.4.259-recorded`, the scenarios and the crawls) goes through one path.
 A `wf-mimic` without it fails a `[record ...]` at once with a message naming both flags; `[replay ...]` does not need it. Why a dispatch is not used:
 `docs/gaps/record-trigger-without-dispatch.md`.
 
@@ -122,7 +122,7 @@ recorded sets are re-recorded from `t3-api` and `orca-api`.
 
 The crawl asks every method against an empty server (T3: after the session prelude). The scenario sets ask the methods that need stored state with that
 state present: `node tooling/mimic-drivers/src/cli.ts scenarios <orca|t3>` reads the committed crawl (no reference tree needed) and writes `corpus.json` and
-`scenarios.json` of `clis/orca-serve/cassettes/orca-scenarios` and `clis/t3-serve/cassettes/t3-scenarios`. A method whose valid payload names an entity key
+`scenarios.json` of `clis/orca-serve/cassettes/orca-v1.4.259-scenarios` and `clis/t3-serve/cassettes/t3-v0.1.9-scenarios`. A method whose valid payload names an entity key
 (Orca `repo`, `worktree`, `terminal`; T3 `threadId`, `projectId`, `cwd`, and `messageId`/`runId` after a turn) gets the chain that creates the entity,
 then itself with the captured id, then a list readback; the stories (repo, worktree, files, git, terminal, settings and host state for Orca; thread and
 project lifecycles and one scripted turn for T3) only choose methods and their order, every payload is the crawl's. `scenarios.json` lists each endpoint as
@@ -214,7 +214,7 @@ wf vm exec pack.sh --artifact r1/t3-set.tgz --artifact r1/orca-set.tgz --out /tm
 tar xzf /tmp/r1-art/r1/t3-sets.tgz  -C clis/t3-serve/cassettes
 tar xzf /tmp/r1-art/r1/orca-set.tgz -C clis/orca-serve/cassettes
 rm -rf clis/*/cassettes/*-recorded*/raw    # raw/capture.jsonl holds the unmasked run: never commit it
-for s in clis/t3-serve/cassettes/t3-recorded-* clis/orca-serve/cassettes/orca-recorded; do wf mimic verify $s; done   # offline: hashes, kind, pin
+for s in clis/t3-serve/cassettes/t3-v*-recorded-* clis/orca-serve/cassettes/orca-v1.4.259-recorded; do wf mimic verify $s; done   # offline: hashes, kind, pin
 grep -lE 'eyJ[A-Za-z0-9_-]{10}|Bearer [A-Za-z0-9]{8}' clis/*/cassettes/*-recorded*/interactions.jsonl   # must print nothing: tokens are masked
 ```
 
@@ -228,8 +228,8 @@ rules, each with `--allow-nondeterministic`, niced and one server at a time (scr
 holds the unmasked capture), bring them back (step 4), then locally:
 
 ```sh
-wf mimic stabilize clis/t3-serve/cassettes/t3-recorded-1 /tmp/r2/t3-new-1 /tmp/r2/t3-new-2 /tmp/r2/t3-new-3            # dry run: the proposals and what stays unstable
-wf mimic stabilize clis/t3-serve/cassettes/t3-recorded-1 /tmp/r2/t3-new-1 /tmp/r2/t3-new-2 /tmp/r2/t3-new-3 --write    # rules.json, masked interactions, tags, stability.json
+wf mimic stabilize clis/t3-serve/cassettes/t3-v0.1.9-recorded-1 /tmp/r2/t3-new-1 /tmp/r2/t3-new-2 /tmp/r2/t3-new-3            # dry run: the proposals and what stays unstable
+wf mimic stabilize clis/t3-serve/cassettes/t3-v0.1.9-recorded-1 /tmp/r2/t3-new-1 /tmp/r2/t3-new-2 /tmp/r2/t3-new-3 --write    # rules.json, masked interactions, tags, stability.json
 ```
 
 The first recording is the set that is rewritten; the others are only compared (cases missing from one are `unobserved`, not judged). The proposals are in
@@ -241,8 +241,8 @@ that interaction, never a global mask. Every case that still differs must be lis
 ## 5. Replay and settle the gaps (local)
 
 ```sh
-cargo test -p t3-serve --test integration recorded_r1          # replays t3-recorded-* against t3-serve, a fresh chain per interaction (about 4 minutes)
-cargo test -p orca-serve --test integration recorded_r1     # replays orca-recorded against orca-serve (25 s)
+cargo test -p t3-serve --test integration recorded_r1          # replays t3-v*-recorded-* against t3-serve, a fresh chain per interaction (about 4 minutes)
+cargo test -p orca-serve --test integration recorded_r1     # replays orca-v1.4.259-recorded against orca-serve (25 s)
 ```
 
 Each test fails on a difference that `known-gaps.json` of the set does not list, and on a listed gap that no longer differs as listed. After an adapter fix,
@@ -268,8 +268,8 @@ nice -n 19 wf mimic record <app>-crawl --recorded-on vm --chunk 400 --resume --w
 ## 7. Replay the crawl against the adapters (R2c)
 
 ```sh
-MIMIC_ORCA_ROOT=<a checkout of references/orca at the pin> cargo test -p orca-serve --test integration the_answers_the_real    # orca-recorded and orca-crawl: about 77 s wall, 68 s CPU
-cargo test -p t3-serve --test integration the_answers_the_real                                                                      # t3-recorded-* and t3-crawl: about 12.5 min wall, 59 s CPU
+MIMIC_ORCA_ROOT=<a checkout of references/orca at the pin> cargo test -p orca-serve --test integration the_answers_the_real    # orca-v1.4.259-recorded and orca-v1.4.259-crawl: about 77 s wall, 68 s CPU
+cargo test -p t3-serve --test integration the_answers_the_real                                                                      # t3-v*-recorded-* and t3-v0.1.9-crawl: about 12.5 min wall, 59 s CPU
 ```
 
 The crawl's reads share one chain and its state-changing cases another, in cassette order (a T3 interaction replays the recorded session prelude once per chain and then runs on a socket of its own). Each test fails on a difference its set's `known-gaps.json` (`mimic-known-gaps/2`) does not list and on a listed gap that no longer differs as listed. To re-derive a crawl set's gaps after a re-record or an adapter fix: `WF_MIMIC_WRITE_GAPS=<set> cargo test ...` writes the file (grouped by identical difference, classes derived from the path and kind of the worst difference), review the diff and commit it; the hand-curated recorded slices are never overwritten. The honest diff table by severity is `docs/audits/2026-11-07-mimic-r2c-replay.md`; each interaction id in a gap group is an adapter bug or an unserved method until the adapter is fixed. The replays write `wf-mimic-orca-crawl/trace.json` (one test per interaction) into `WF_TEST_OUTPUT_DIR`; the evidence tables are refreshed from a complete run only (section 5).

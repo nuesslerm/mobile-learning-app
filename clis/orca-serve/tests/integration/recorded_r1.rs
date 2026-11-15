@@ -1,4 +1,4 @@
-//! Every answer the real headless Orca host (`orcad`, built at the pin on the VM) gave to the phone's transport (`cassettes/orca-recorded`,
+//! Every answer the real headless Orca host (`orcad`, built at the pin on the VM) gave to the phone's transport (`cassettes/orca-v1.4.259-recorded`,
 //! kind `recorded`) replayed against `orca-serve`. Inputs and expected answers are the cassette's. A difference that is not deliberate (the
 //! allowlist) is an adapter bug: it is listed in `known-gaps.json` with its row until fixed, so a new difference fails and a fixed one must leave.
 use crate::mimic_x6::{mimic, out_dir, read_json, root, scratch};
@@ -9,7 +9,7 @@ use std::path::Path;
 use std::process::Command;
 
 pub fn set_dir() -> std::path::PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("cassettes/orca-recorded")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("cassettes/orca-v1.4.259-recorded")
 }
 
 /// `sha256:` of the pin file, the way `wf mimic record` stamps it.
@@ -18,12 +18,12 @@ fn pin_hash() -> String {
     format!("sha256:{}", String::from_utf8_lossy(&out.stdout).split_whitespace().next().unwrap())
 }
 
-const CRAWL: &str = "orca-crawl";
+const CRAWL: &str = "orca-v1.4.259-crawl";
 /// Ids on one command line: the `--only` list of a whole crawl would not fit an argument.
 const IDS_PER_CALL: usize = 1500;
 
 fn sets() -> Vec<&'static str> {
-    vec!["orca-recorded", CRAWL]
+    vec!["orca-v1.4.259-recorded", CRAWL]
 }
 
 #[test]

@@ -1,4 +1,4 @@
-//! Every answer the real, pinned T3 server gave on the VM (the sets `cassettes/t3-recorded-*`, kind `recorded`, one slice of the corpus each) replayed
+//! Every answer the real, pinned T3 server gave on the VM (the sets `cassettes/t3-v*-recorded-*`, kind `recorded`, one slice of the corpus each) replayed
 //! against `t3-serve serve` over the whole chain, each interaction against a fresh chain as it was recorded against a fresh server. The inputs and the expected answers are the cassette's; nothing here names a method. A difference that is not a deliberate divergence
 //! (the allowlist) is an adapter bug: it is listed in `known-gaps.json` with its row and severity until the adapter is fixed, so a new
 //! difference fails and a fixed one has to leave the list.
@@ -11,7 +11,7 @@ use mimic_core::gaps;
 const CASSETTES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/cassettes");
 /// The crawl set (every valid, boundary and invalid case of every endpoint): its reads share one chain and its state-changing cases another, in
 /// cassette order, as the VM recording shared one server between them. The recorded slices run each interaction on a chain of its own.
-const CRAWL: &str = "t3-crawl";
+const CRAWL: &str = "t3-v0.1.9-crawl";
 const PIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tooling/t3-conformance/t3-pin.json");
 
 fn read(path: &str) -> Value {
@@ -24,9 +24,9 @@ fn pin_hash() -> String {
     format!("sha256:{}", String::from_utf8_lossy(&out.stdout).split_whitespace().next().unwrap())
 }
 
-/// The recorded sets, by directory: every `t3-recorded-*` beside the imported one.
+/// The recorded sets, by directory: every `t3-v*-recorded-*` beside the imported one.
 fn recorded_sets() -> Vec<String> {
-    let mut sets: Vec<String> = std::fs::read_dir(CASSETTES).unwrap().filter_map(|e| e.ok()).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.starts_with("t3-recorded-") || n == CRAWL).collect();
+    let mut sets: Vec<String> = std::fs::read_dir(CASSETTES).unwrap().filter_map(|e| e.ok()).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.starts_with("t3-v") && n.contains("-recorded-") || n == CRAWL).collect();
     sets.sort();
     assert!(!sets.is_empty(), "no recorded set under {CASSETTES}");
     sets

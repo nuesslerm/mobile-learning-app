@@ -32,4 +32,4 @@ On the VM (or any session that may start the pinned binary): `wf mimic verify t3
 
 ## Update (R1, 7 Nov 2026)
 
-The pinned server was run on the VM (linux-arm64 release, sha256 equal to the pin) and 202 of 205 phone rows were recorded from it: `clis/t3-serve/cassettes/t3-recorded-{1,2,3}`. `verify <set> --live` on the VM is the re-run. See `docs/plans/mimic/plan.md` R1 and `docs/runbooks/record-reference-servers-on-the-vm.md`.
+The pinned server was run on the VM (linux-arm64 release, sha256 equal to the pin) and 202 of 205 phone rows were recorded from it: `clis/t3-serve/cassettes/t3-v0.1.9-recorded-{1,2,3}`. `verify <set> --live` on the VM is the re-run. See `docs/plans/mimic/plan.md` R1 and `docs/runbooks/record-reference-servers-on-the-vm.md`.

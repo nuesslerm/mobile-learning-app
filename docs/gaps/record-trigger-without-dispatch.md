@@ -27,10 +27,10 @@ For the same reason the cassette set also travels through the verification-artif
 - The checkpoint artifact holds the unmasked raw capture for 3 days (a private Actions artifact, readable by anyone with read access to the repository). It is uploaded only after a clean out-of-budget exit and only when a scan for Bearer-token and JWT shapes finds nothing, which is a heuristic: other secrets in raw captures are not detected. Moving it to a private bucket path needs a private write path in `wf-bucket`.
 - Toolchain steps other than node (`actions/setup-python`, `actions/setup-go`, `rustup`) and the checkpoint deletion (`actions: write`) are checked by actionlint and the matrix-key contract test only.
 - Provisioning timeouts (`timeout_minutes`) are not covered by a test: the smallest value is a minute.
-- The `t3-scenarios` set (needs the scripted CLI built, `T3_CLI_DIR`) declares no `[provision]` yet.
+- The `t3-v0.1.9-scenarios` set (needs the scripted CLI built, `T3_CLI_DIR`) declares no `[provision]` yet.
 - Test data from the first development runs of `wf mimic publish` reached the real bucket before the flow-test helper was made hermetic: `verification/record-references/42/`, `.../7/` and
   `.../latest/toy-set.json` hold a masked toy set and can be deleted.
 
 ## What unblocks it
 
-Land the checkpointed `wf mimic record`, push `[record t3-recorded-1]`, read the run, then `wf mimic fetch latest --set t3-recorded-1` from an agent session; push `[replay t3-recorded-1]` for the diff table.
+Land the checkpointed `wf mimic record`, push `[record t3-v0.1.9-recorded-1]`, read the run, then `wf mimic fetch latest --set t3-v0.1.9-recorded-1` from an agent session; push `[replay t3-v0.1.9-recorded-1]` for the diff table.

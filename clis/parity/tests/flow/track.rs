@@ -145,7 +145,7 @@ fn a_new_orca_release_is_drift_until_the_pin_is_bumped_to_it() {
     assert_eq!(bumped.code, 0, "{}", bumped.stdout);
     let after = pin(dir.path(), "orca");
     assert_eq!((after["version"].as_str(), after["commit"].as_str(), &after["repository"]), (Some(next.as_str()), Some("0123456789abcdef0123456789abcdef01234567"), &before["repository"]));
-    assert!(bumped.json["rerecord"].as_array().unwrap().iter().any(|s| s == "orca-recorded"), "{}", bumped.stdout);
+    assert!(bumped.json["rerecord"].as_array().unwrap().iter().any(|s| s == "orca-v1.4.259-recorded"), "{}", bumped.stdout);
     assert!(bumped.json["stale"].as_array().is_some_and(|s| !s.is_empty()));
     // And a check after it is no longer drift
     let level = track(dir.path(), &upstream.base, &["check", "--app", "orca"]);

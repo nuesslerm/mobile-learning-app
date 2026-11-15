@@ -33,14 +33,14 @@ function committed(dirs: string[]): Case[] {
 test('Given the T3 methods list, When the corpus is derived, Then each phone row is a case or skipped with a reason, and the committed shards hold exactly those cases', () => {
   const { cases, coverage } = t3Corpus()
   accounted(phoneRows('t3'), cases, coverage)
-  const shards = ['1', '2', '3'].map((i) => `clis/t3-serve/cassettes/t3-recorded-${i}`)
+  const shards = ['1', '2', '3'].map((i) => `clis/t3-serve/cassettes/t3-v0.1.9-recorded-${i}`)
   assert.deepEqual(committed(shards).map((c) => c.id).sort(), cases.map((c) => c.id).sort())
 })
 
 test('Given the Orca methods list and the checkout at the pin, When the corpus is derived, Then each phone row is a case or skipped with a reason', { skip: !process.env.MIMIC_ORCA_ROOT && 'needs MIMIC_ORCA_ROOT: a checkout of references/orca at the pin' }, async () => {
   const { cases, coverage } = await orcaCorpus()
   accounted(phoneRows('orca'), cases, coverage)
-  assert.deepEqual(committed(['clis/orca-serve/cassettes/orca-recorded']).map((c) => c.id).sort(), cases.map((c) => c.id).sort())
+  assert.deepEqual(committed(['clis/orca-serve/cassettes/orca-v1.4.259-recorded']).map((c) => c.id).sort(), cases.map((c) => c.id).sort())
 })
 
 test('Given the Orca checkout at the pin, When the corpus is derived, Then each stream is a subscribe script, the handshake has its paired and two refused cases, and no phone row is skipped for streaming or transport', { skip: !process.env.MIMIC_ORCA_ROOT && 'needs MIMIC_ORCA_ROOT: a checkout of references/orca at the pin' }, async () => {
@@ -66,7 +66,7 @@ test('Given shards from before a pin move, When the cases are assigned again, Th
 })
 
 test('Given the committed shards and the table they came from, When the cases are assigned again, Then every shard keeps its cases', () => {
-  const shards = ['1', '2', '3'].map((i) => committed([`clis/t3-serve/cassettes/t3-recorded-${i}`]))
+  const shards = ['1', '2', '3'].map((i) => committed([`clis/t3-serve/cassettes/t3-v0.1.9-recorded-${i}`]))
   const { cases } = t3Corpus()
   const ids = new Set(cases.map((x) => x.id))
   const out = assignCases(shards, cases)

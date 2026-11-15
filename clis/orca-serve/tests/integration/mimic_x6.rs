@@ -16,7 +16,7 @@ pub(crate) fn root() -> PathBuf {
 }
 
 fn set_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("cassettes/orca-files")
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("cassettes/orca-v1.4.259-files")
 }
 
 fn drivers() -> PathBuf {
@@ -149,7 +149,7 @@ fn given_a_candidate_that_answers_otherwise_when_the_set_is_replayed_then_the_di
 fn given_the_double_when_the_set_is_recorded_again_then_the_interactions_are_the_committed_ones() {
     // Given a copy of the set whose paths are absolute, and the double named as a stand-in
     let scratch = scratch("record");
-    let copy = scratch.join("orca-files");
+    let copy = scratch.join("orca-v1.4.259-files");
     std::fs::create_dir_all(&copy).unwrap();
     for name in ["rules.json", "corpus.json", "allowlist.json", "double.json"] {
         std::fs::copy(set_dir().join(name), copy.join(name)).unwrap();
@@ -249,7 +249,7 @@ fn given_payloads_derived_from_the_pinned_zod_schemas_when_orca_serve_is_asked_t
     let scratch = scratch("spike");
     let dir = out_dir(&scratch);
     std::fs::create_dir_all(&dir).unwrap();
-    std::fs::write(dir.join("orca-files-schema-spike.json"), serde_json::to_string_pretty(&summary).unwrap()).unwrap();
+    std::fs::write(dir.join("orca-v1.4.259-files-schema-spike.json"), serde_json::to_string_pretty(&summary).unwrap()).unwrap();
     eprintln!("SCHEMA SPIKE {summary}");
     assert_eq!((summary["grounded"]["clean"].clone(), summary["as_derived"]["clean"].clone()), (json!(cases.len()), json!(cases.len())), "{summary}");
     std::fs::remove_dir_all(&scratch).ok();

@@ -450,7 +450,7 @@
       "target": "state:thread.pins",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-command-thread.pin",
+        "test": "t3-v0.1.9-recorded-2::t3-command-thread.pin",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -716,7 +716,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-http-auth.session",
+        "test": "t3-v0.1.9-recorded-3::t3-http-auth.session",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -732,7 +732,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-http-auth.token",
+        "test": "t3-v0.1.9-recorded-1::t3-http-auth.token",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -748,7 +748,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-http-auth.webSocketTicket",
+        "test": "t3-v0.1.9-recorded-2::t3-http-auth.webSocketTicket",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -1146,7 +1146,7 @@
       "milestone": "M6",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-filesystem.browse",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-filesystem.browse",
         "agent": [],
         "executor": []
       }
@@ -1266,7 +1266,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-orchestration.dispatchCommand",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-orchestration.dispatchCommand",
         "agent": [],
         "executor": []
       }
@@ -1279,7 +1279,7 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-orchestration.forceStopThread",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.forceStopThread",
         "agent": [],
         "executor": []
       }
@@ -1292,7 +1292,7 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-orchestration.getArchivedShellSnapshot",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-orchestration.getArchivedShellSnapshot",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -1334,7 +1334,7 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-orchestration.getOlderSettledThreads",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.getOlderSettledThreads",
         "agent": [],
         "executor": []
       }
@@ -1347,7 +1347,7 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-orchestration.getThreadFamily",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-orchestration.getThreadFamily",
         "agent": [],
         "executor": []
       }
@@ -1430,7 +1430,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-orchestration.launchThread",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.launchThread",
         "agent": [],
         "executor": []
       }
@@ -1458,7 +1458,7 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-orchestration.stopWorkflow",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-orchestration.stopWorkflow",
         "agent": [],
         "executor": []
       }
@@ -1472,7 +1472,7 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-orchestration.subscribeCommandOutput",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.subscribeCommandOutput",
         "agent": [],
         "executor": []
       }
@@ -1508,7 +1508,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-orchestration.subscribeThread",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-orchestration.subscribeThread",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -1566,7 +1566,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-preview.close",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-preview.close",
         "agent": [],
         "executor": []
       }
@@ -1594,7 +1594,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-preview.open",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-preview.open",
         "agent": [],
         "executor": []
       }
@@ -1607,7 +1607,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-preview.resize",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-preview.resize",
         "agent": [],
         "executor": []
       }
@@ -1635,7 +1635,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-projectClone.retry",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-projectClone.retry",
         "agent": [],
         "executor": []
       }
@@ -1648,7 +1648,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-projectClone.start",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-projectClone.start",
         "agent": [],
         "executor": []
       }
@@ -1661,7 +1661,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-projects.createFromThread",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-projects.createFromThread",
         "agent": [],
         "executor": []
       }
@@ -1674,7 +1674,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-projects.createNew",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-projects.createNew",
         "agent": [],
         "executor": []
       }
@@ -1687,7 +1687,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-projects.ensureScratch",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-projects.ensureScratch",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -1759,7 +1759,7 @@
       "milestone": "M6",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-projects.searchEntries",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-projects.searchEntries",
         "agent": [],
         "executor": []
       }
@@ -1772,7 +1772,7 @@
       "milestone": "M6",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-projects.writeFile",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-projects.writeFile",
         "agent": [],
         "executor": []
       }
@@ -1785,7 +1785,7 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-provider.auth.cancel",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-provider.auth.cancel",
         "agent": [],
         "executor": []
       }
@@ -1798,7 +1798,7 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-provider.auth.complete",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-provider.auth.complete",
         "agent": [],
         "executor": []
       }
@@ -1811,7 +1811,7 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-provider.auth.logout",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-provider.auth.logout",
         "agent": [],
         "executor": []
       }
@@ -1833,7 +1833,7 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-provider.auth.respond",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-provider.auth.respond",
         "agent": [],
         "executor": []
       }
@@ -1846,7 +1846,7 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-provider.auth.start",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-provider.auth.start",
         "agent": [],
         "executor": []
       }
@@ -1860,7 +1860,7 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-provider.auth.subscribe",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-provider.auth.subscribe",
         "agent": [],
         "executor": []
       }
@@ -1909,7 +1909,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-pullRequests.activity",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.activity",
         "agent": [],
         "executor": []
       }
@@ -1922,7 +1922,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-pullRequests.changeBreakdown",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.changeBreakdown",
         "agent": [],
         "executor": []
       }
@@ -1935,7 +1935,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-pullRequests.checks",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.checks",
         "agent": [],
         "executor": []
       }
@@ -1967,7 +1967,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-pullRequests.detail",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.detail",
         "agent": [],
         "executor": []
       }
@@ -1980,7 +1980,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-pullRequests.diffFileContents",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.diffFileContents",
         "agent": [],
         "executor": []
       }
@@ -1993,7 +1993,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-pullRequests.filesViewed",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.filesViewed",
         "agent": [],
         "executor": []
       }
@@ -2056,7 +2056,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-pullRequests.labelCandidates",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.labelCandidates",
         "agent": [],
         "executor": []
       }
@@ -2126,7 +2126,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-pullRequests.preview",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.preview",
         "agent": [],
         "executor": []
       }
@@ -2167,7 +2167,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-pullRequests.requestReviewers",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.requestReviewers",
         "agent": [],
         "executor": []
       }
@@ -2180,7 +2180,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-pullRequests.reviewGuide",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.reviewGuide",
         "agent": [],
         "executor": []
       }
@@ -2193,7 +2193,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-pullRequests.reviewerCandidates",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.reviewerCandidates",
         "agent": [],
         "executor": []
       }
@@ -2206,7 +2206,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-pullRequests.routing",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.routing",
         "agent": [],
         "executor": []
       }
@@ -2219,7 +2219,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-pullRequests.routingIdentity",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.routingIdentity",
         "agent": [],
         "executor": []
       }
@@ -2251,7 +2251,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-pullRequests.setFilesViewed",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.setFilesViewed",
         "agent": [],
         "executor": []
       }
@@ -2264,7 +2264,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-pullRequests.setLabels",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.setLabels",
         "agent": [],
         "executor": []
       }
@@ -2315,7 +2315,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-pullRequests.stack",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.stack",
         "agent": [],
         "executor": []
       }
@@ -2357,7 +2357,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-pullRequests.summary",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.summary",
         "agent": [],
         "executor": []
       }
@@ -2427,7 +2427,7 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-review.getDiffFileContents",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-review.getDiffFileContents",
         "agent": [],
         "executor": []
       }
@@ -2440,7 +2440,7 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-review.getDiffPreview",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-review.getDiffPreview",
         "agent": [],
         "executor": []
       }
@@ -2453,7 +2453,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-scheduledTasks.delete",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-scheduledTasks.delete",
         "agent": [],
         "executor": []
       }
@@ -2466,7 +2466,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-scheduledTasks.rotateWebhookToken",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-scheduledTasks.rotateWebhookToken",
         "agent": [],
         "executor": []
       }
@@ -2479,7 +2479,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-scheduledTasks.runNow",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-scheduledTasks.runNow",
         "agent": [],
         "executor": []
       }
@@ -2492,7 +2492,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-scheduledTasks.setEnabled",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-scheduledTasks.setEnabled",
         "agent": [],
         "executor": []
       }
@@ -2506,7 +2506,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-scheduledTasks.subscribe",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-scheduledTasks.subscribe",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -2590,7 +2590,7 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-server.getUsageSummary",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-server.getUsageSummary",
         "agent": [],
         "executor": []
       }
@@ -2612,7 +2612,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-server.probe",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-server.probe",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -2696,7 +2696,7 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-server.updateSettings",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-server.updateSettings",
         "agent": [],
         "executor": []
       }
@@ -2709,7 +2709,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-sourceControl.appAccess",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-sourceControl.appAccess",
         "agent": [],
         "executor": []
       }
@@ -2722,7 +2722,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-sourceControl.lookupRepository",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-sourceControl.lookupRepository",
         "agent": [],
         "executor": []
       }
@@ -2735,7 +2735,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-sourceControl.publishRepository",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-sourceControl.publishRepository",
         "agent": [],
         "executor": []
       }
@@ -2748,7 +2748,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-sourceControl.signInCancel",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-sourceControl.signInCancel",
         "agent": [],
         "executor": []
       }
@@ -2761,7 +2761,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-sourceControl.signInStart",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-sourceControl.signInStart",
         "agent": [],
         "executor": []
       }
@@ -2774,7 +2774,7 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-sourceControl.signInWait",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-sourceControl.signInWait",
         "agent": [],
         "executor": []
       }
@@ -2798,7 +2798,7 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-subscribePreviewEvents",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-subscribePreviewEvents",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -2871,7 +2871,7 @@
       "milestone": "M8",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-subscribeTerminalMetadata",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-subscribeTerminalMetadata",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -2896,7 +2896,7 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-subscribeVcsStatus",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-subscribeVcsStatus",
         "agent": [],
         "executor": []
       }
@@ -2969,7 +2969,7 @@
       "milestone": "M8",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-terminal.close",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-terminal.close",
         "agent": [],
         "executor": []
       }
@@ -2983,7 +2983,7 @@
       "milestone": "M8",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-terminal.observe",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-terminal.observe",
         "agent": [],
         "executor": []
       }
@@ -3016,7 +3016,7 @@
       "milestone": "M8",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-terminal.resize",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-terminal.resize",
         "agent": [],
         "executor": []
       }
@@ -3029,7 +3029,7 @@
       "milestone": "M8",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-3::t3-rpc-terminal.write",
+        "test": "t3-v0.1.9-recorded-3::t3-rpc-terminal.write",
         "agent": [],
         "executor": []
       }
@@ -3042,7 +3042,7 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-vcs.createRef",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-vcs.createRef",
         "agent": [],
         "executor": []
       }
@@ -3055,7 +3055,7 @@
       "milestone": "M6",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-vcs.createWorktree",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-vcs.createWorktree",
         "agent": [],
         "executor": []
       }
@@ -3089,7 +3089,7 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-vcs.pull",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-vcs.pull",
         "agent": [],
         "executor": []
       }
@@ -3109,7 +3109,7 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-2::t3-rpc-vcs.refreshStatus",
+        "test": "t3-v0.1.9-recorded-2::t3-rpc-vcs.refreshStatus",
         "agent": [],
         "executor": []
       }
@@ -3143,7 +3143,7 @@
       "milestone": "M6",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-recorded-1::t3-rpc-worktreeSetup.cancel",
+        "test": "t3-v0.1.9-recorded-1::t3-rpc-worktreeSetup.cancel",
         "agent": [],
         "executor": []
       }

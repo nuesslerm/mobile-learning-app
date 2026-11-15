@@ -37,7 +37,7 @@ fn differs(replay: &Value) -> u64 {
     replay["candidates"].as_array().into_iter().flatten().map(|c| c["drift"].as_u64().unwrap_or(0) + c["breaking"].as_u64().unwrap_or(0)).sum()
 }
 
-/// Which of the sets belongs to the app: its name starts with the app's (`t3-recorded-1`, `orca-recorded`).
+/// Which of the sets belongs to the app: its name starts with the app's (`t3-v0.1.9-recorded-1`, `orca-v1.4.259-recorded`).
 fn app_sets<'a>(sets: &'a [String], app: &str) -> Vec<&'a String> {
     sets.iter().filter(|s| s.starts_with(&format!("{app}-"))).collect()
 }
@@ -114,7 +114,7 @@ mod tests {
     use super::*;
 
     fn plan() -> String {
-        json!({"verdicts": [{"app": "t3", "pinned": "0.1.6", "latest": "0.1.7", "drifted": true}, {"app": "orca", "pinned": "1.4.214", "latest": "1.4.214", "drifted": false}], "sets": ["t3-recorded-1", "t3-recorded-2"]}).to_string()
+        json!({"verdicts": [{"app": "t3", "pinned": "0.1.6", "latest": "0.1.7", "drifted": true}, {"app": "orca", "pinned": "1.4.214", "latest": "1.4.214", "drifted": false}], "sets": ["t3-v0.1.9-recorded-1", "t3-v0.1.9-recorded-2"]}).to_string()
     }
 
     fn file(name: &str, v: Value) -> (String, String) {
@@ -150,28 +150,28 @@ mod tests {
         // Given both T3 sets recorded and one replayed with drift against the candidate
         let ok = json!({"ok": true, "complete": true});
         let replay = json!({"ok": false, "candidates": [{"candidate": "t3-serve", "severity": "drift", "summary": {"total": 10, "clean": 7, "allowlisted": 0, "drift": 3, "breaking": 0}}]});
-        let out = built(&[file("t3-recorded-1.record.json", ok.clone()), file("t3-recorded-2.record.json", ok), file("t3-recorded-1.replay.json", replay)]);
+        let out = built(&[file("t3-v0.1.9-recorded-1.record.json", ok.clone()), file("t3-v0.1.9-recorded-2.record.json", ok), file("t3-v0.1.9-recorded-1.replay.json", replay)]);
         // Then T3 has discrepancies, the report names the set and its counts, and the run is ok (a discrepancy is a finding, not a failed run)
         assert_eq!(status_of(&out, "t3"), "discrepancies");
         let report: Value = serde_json::from_str(&out["drift-report.json"]).unwrap();
         assert_eq!(report["ok"], true);
         assert_eq!(report["apps"][0]["sets"][0]["replay"]["candidates"][0]["drift"], 3);
-        assert!(out["summary.md"].contains("t3-recorded-1 complete"));
+        assert!(out["summary.md"].contains("t3-v0.1.9-recorded-1 complete"));
     }
 
     #[test]
     fn a_checkpointed_record_is_incomplete_and_a_clean_replay_with_clean_tables_is_clean() {
         // Given one set that ran out of its budget
-        let out = built(&[file("t3-recorded-1.record.json", json!({"ok": false, "incomplete": true})), file("t3-recorded-2.record.json", json!({"ok": true}))]);
+        let out = built(&[file("t3-v0.1.9-recorded-1.record.json", json!({"ok": false, "incomplete": true})), file("t3-v0.1.9-recorded-2.record.json", json!({"ok": true}))]);
         // Then T3 is incomplete and the next step says to push the marker again
         assert_eq!(status_of(&out, "t3"), "incomplete");
         assert!(serde_json::from_str::<Value>(&out["drift-report.json"]).unwrap()["next"].as_str().unwrap().contains("push the same [track"));
         // Given both recorded, replays clean and a coverage rebuild without problems
         let clean = json!({"ok": true, "candidates": [{"candidate": "t3-serve", "severity": "clean", "summary": {"total": 4, "clean": 4, "allowlisted": 0, "drift": 0, "breaking": 0}}]});
-        let out = built(&[file("t3-recorded-1.record.json", json!({"ok": true})), file("t3-recorded-2.record.json", json!({"ok": true})), file("t3-recorded-1.replay.json", clean), file("coverage-t3.json", json!({"ok": true, "summary": {"pending": 12}, "problems": []}))]);
+        let out = built(&[file("t3-v0.1.9-recorded-1.record.json", json!({"ok": true})), file("t3-v0.1.9-recorded-2.record.json", json!({"ok": true})), file("t3-v0.1.9-recorded-1.replay.json", clean), file("coverage-t3.json", json!({"ok": true, "summary": {"pending": 12}, "problems": []}))]);
         // Then it is clean, and a coverage problem would turn it into needs-work
         assert_eq!(status_of(&out, "t3"), "clean");
-        let out = built(&[file("t3-recorded-1.record.json", json!({"ok": true})), file("t3-recorded-2.record.json", json!({"ok": true})), file("coverage-t3.json", json!({"ok": false, "problems": [{"rule": "stale"}]}))]);
+        let out = built(&[file("t3-v0.1.9-recorded-1.record.json", json!({"ok": true})), file("t3-v0.1.9-recorded-2.record.json", json!({"ok": true})), file("coverage-t3.json", json!({"ok": false, "problems": [{"rule": "stale"}]}))]);
         assert_eq!(status_of(&out, "t3"), "needs-work");
     }
 

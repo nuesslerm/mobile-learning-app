@@ -165,10 +165,11 @@ pub fn record_sets(app: App, tree: &dyn Tree) -> Vec<String> {
     sets
 }
 
-fn stale_artifacts(app: App, sets: &[String], commit: &str) -> Vec<String> {
+fn stale_artifacts(app: App, sets: &[String], commit: &str, version: &str) -> Vec<String> {
     let name = app.name();
     let reference = app.reference();
     let mut steps = vec![
+        format!("name the recordings after the new version: `git mv` each cassette set called `{name}-v<old version>-<kind>` to `{name}-v{version}-<kind>` (the `*-api` inventories keep their names), and follow the names in the tests, docs, `wf parity coverage` evidence and mimic-drivers corpus lists"),
         format!("re-record the cassette sets {} (CI: git commit --allow-empty -m \"[track {name}]\" && git push origin dev; by hand: wf mimic record <set>, docs/runbooks/record-reference-servers-on-the-vm.md)", sets.join(", ")),
         format!("git submodule update --init {reference} and check it out at {commit}, then wf parity coverage --app {name} (the methods list and the coverage table; a commit marked 'parity: pin-bump' may raise pending)"),
         format!("wf mimic crawl --all (the crawl sets of {name}: inventory, corpus and coverage of the new source), then node tooling/mimic-drivers/src/cli.ts scenarios {name}"),
@@ -209,7 +210,7 @@ pub fn bump(app: App, tree: &dyn Tree, up: &dyn Upstream, src: &Sources) -> Outc
         report["wrote"] = json!([app.pin_file()]);
         report["commit"] = commit.clone().into();
         report["rerecord"] = json!(sets);
-        report["stale"] = json!(stale_artifacts(app, &sets, &commit));
+        report["stale"] = json!(stale_artifacts(app, &sets, &commit, next["version"].as_str().unwrap_or("")));
         report["review"] = json!(review_fields(app).iter().map(|f| format!("{} `{f}` is not derived from the release: read it in the new source and set it by hand", app.pin_file())).collect::<Vec<_>>());
         report["next"] = format!("commit the pin in a commit marked '{}', then re-record: git commit --allow-empty -m \"[track {}]\"", crate::coverage::PIN_BUMP, app.name()).into();
         let text = serde_json::to_string_pretty(&next).map_err(|e| failure(e.to_string(), "report this"))? + "\n";
@@ -308,9 +309,9 @@ mod tests {
     fn orca_tree() -> MemoryTree {
         MemoryTree::of(&[
             ("tooling/orca-conformance/orca-pin.json", r#"{"version": "1.4.214", "commit": "aaa", "repository": "https://github.com/stablyai/orca"}"#),
-            ("clis/orca-serve/cassettes/orca-recorded/mimic.toml", "provision_file = \"//tooling/mimic-drivers/provision/orca.toml\"\n"),
-            ("clis/orca-serve/cassettes/orca-crawl/mimic.toml", "corpus = \"corpus.json\"\n"),
-            ("clis/t3-serve/cassettes/t3-recorded-1/mimic.toml", "provision_file = \"//tooling/mimic-drivers/provision/t3.toml\"\n"),
+            ("clis/orca-serve/cassettes/orca-v1.4.259-recorded/mimic.toml", "provision_file = \"//tooling/mimic-drivers/provision/orca.toml\"\n"),
+            ("clis/orca-serve/cassettes/orca-v1.4.259-crawl/mimic.toml", "corpus = \"corpus.json\"\n"),
+            ("clis/t3-serve/cassettes/t3-v0.1.9-recorded-1/mimic.toml", "provision_file = \"//tooling/mimic-drivers/provision/t3.toml\"\n"),
         ])
     }
 
@@ -320,8 +321,8 @@ mod tests {
 
     fn t3_tree() -> MemoryTree {
         let mut tree = MemoryTree::of(&[
-            ("clis/t3-serve/cassettes/t3-recorded-1/mimic.toml", "provision_file = \"//tooling/mimic-drivers/provision/t3.toml\"\n"),
-            ("clis/t3-serve/cassettes/t3-recorded-2/mimic.toml", "provision_file = \"//tooling/mimic-drivers/provision/t3.toml\"\n"),
+            ("clis/t3-serve/cassettes/t3-v0.1.9-recorded-1/mimic.toml", "provision_file = \"//tooling/mimic-drivers/provision/t3.toml\"\n"),
+            ("clis/t3-serve/cassettes/t3-v0.1.9-recorded-2/mimic.toml", "provision_file = \"//tooling/mimic-drivers/provision/t3.toml\"\n"),
         ]);
         tree.files.insert(
             "tooling/t3-conformance/t3-pin.json".into(),
@@ -385,8 +386,10 @@ mod tests {
         assert_eq!((pin["version"].as_str(), pin["commit"].as_str(), pin["repository"].as_str()), (Some("1.4.215"), Some("bbb"), Some("https://github.com/stablyai/orca")));
         assert!(text.ends_with('\n'));
         // And the report lists the sets of Orca a runner re-records, and no others
-        assert_eq!(out.report["rerecord"], json!(["orca-recorded"]));
+        assert_eq!(out.report["rerecord"], json!(["orca-v1.4.259-recorded"]));
         assert!(out.report["stale"].as_array().unwrap().iter().any(|s| s.as_str().unwrap().contains("wf parity coverage --app orca")));
+        // And the first thing to do names the recordings after the new version
+        assert!(out.report["stale"][0].as_str().unwrap().contains("`orca-v1.4.215-<kind>`"), "{}", out.report["stale"][0]);
     }
 
     #[test]
@@ -402,7 +405,7 @@ mod tests {
         // And what the release does not say stays as it was and is listed for review
         assert_eq!((pin["protocol"].as_u64(), pin["databaseMigration"].as_u64(), pin["conformedStable"].as_str()), (Some(2), Some(76), Some("0.1.6")));
         assert_eq!(out.report["review"].as_array().unwrap().len(), 3);
-        assert_eq!(out.report["rerecord"], json!(["t3-recorded-1", "t3-recorded-2"]));
+        assert_eq!(out.report["rerecord"], json!(["t3-v0.1.9-recorded-1", "t3-v0.1.9-recorded-2"]));
     }
 
     #[test]
@@ -435,7 +438,7 @@ mod tests {
         assert_eq!(m, Marker { apps: vec![App::T3, App::Orca], chunk: Some(15), fresh: true });
         // And a message without a marker line, or with the text mid-line, starts nothing
         assert_eq!(parse_marker("fix: the [track t3] marker").unwrap(), None);
-        assert_eq!(parse_marker("[record orca-recorded]").unwrap(), None);
+        assert_eq!(parse_marker("[record orca-v1.4.259-recorded]").unwrap(), None);
     }
 
     #[test]
@@ -459,7 +462,7 @@ mod tests {
         assert!(out.ok, "{}", out.report);
         assert_eq!(out.report["drifted"], json!(["orca"]));
         assert_eq!(out.report["verdicts"].as_array().unwrap().len(), 2);
-        assert_eq!(out.report["record_marker"], "[record orca-recorded chunk=20]");
+        assert_eq!(out.report["record_marker"], "[record orca-v1.4.259-recorded chunk=20]");
     }
 
     #[test]

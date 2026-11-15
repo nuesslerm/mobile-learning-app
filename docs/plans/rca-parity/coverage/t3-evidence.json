@@ -230,7 +230,7 @@
     },
     "command:thread.pin": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-command-thread.pin",
+      "test": "t3-v0.1.9-recorded-2::t3-command-thread.pin",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -370,7 +370,7 @@
     },
     "http:auth.session": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-http-auth.session",
+      "test": "t3-v0.1.9-recorded-3::t3-http-auth.session",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -379,7 +379,7 @@
     },
     "http:auth.token": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-http-auth.token",
+      "test": "t3-v0.1.9-recorded-1::t3-http-auth.token",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -388,7 +388,7 @@
     },
     "http:auth.webSocketTicket": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-http-auth.webSocketTicket",
+      "test": "t3-v0.1.9-recorded-2::t3-http-auth.webSocketTicket",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -513,7 +513,7 @@
     },
     "rpc:filesystem.browse": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-filesystem.browse",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-filesystem.browse",
       "agent": [],
       "executor": []
     },
@@ -568,19 +568,19 @@
     },
     "rpc:orchestration.dispatchCommand": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-orchestration.dispatchCommand",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-orchestration.dispatchCommand",
       "agent": [],
       "executor": []
     },
     "rpc:orchestration.forceStopThread": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-orchestration.forceStopThread",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.forceStopThread",
       "agent": [],
       "executor": []
     },
     "rpc:orchestration.getArchivedShellSnapshot": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-orchestration.getArchivedShellSnapshot",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-orchestration.getArchivedShellSnapshot",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -601,13 +601,13 @@
     },
     "rpc:orchestration.getOlderSettledThreads": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-orchestration.getOlderSettledThreads",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.getOlderSettledThreads",
       "agent": [],
       "executor": []
     },
     "rpc:orchestration.getThreadFamily": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-orchestration.getThreadFamily",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-orchestration.getThreadFamily",
       "agent": [],
       "executor": []
     },
@@ -639,7 +639,7 @@
     },
     "rpc:orchestration.launchThread": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-orchestration.launchThread",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.launchThread",
       "agent": [],
       "executor": []
     },
@@ -653,13 +653,13 @@
     },
     "rpc:orchestration.stopWorkflow": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-orchestration.stopWorkflow",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-orchestration.stopWorkflow",
       "agent": [],
       "executor": []
     },
     "rpc:orchestration.subscribeCommandOutput": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-orchestration.subscribeCommandOutput",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.subscribeCommandOutput",
       "agent": [],
       "executor": []
     },
@@ -671,7 +671,7 @@
     },
     "rpc:orchestration.subscribeThread": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-orchestration.subscribeThread",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-orchestration.subscribeThread",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -688,7 +688,7 @@
     },
     "rpc:preview.close": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-preview.close",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-preview.close",
       "agent": [],
       "executor": []
     },
@@ -702,13 +702,13 @@
     },
     "rpc:preview.open": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-preview.open",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-preview.open",
       "agent": [],
       "executor": []
     },
     "rpc:preview.resize": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-preview.resize",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-preview.resize",
       "agent": [],
       "executor": []
     },
@@ -722,31 +722,31 @@
     },
     "rpc:projectClone.retry": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-projectClone.retry",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-projectClone.retry",
       "agent": [],
       "executor": []
     },
     "rpc:projectClone.start": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-projectClone.start",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-projectClone.start",
       "agent": [],
       "executor": []
     },
     "rpc:projects.createFromThread": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-projects.createFromThread",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-projects.createFromThread",
       "agent": [],
       "executor": []
     },
     "rpc:projects.createNew": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-projects.createNew",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-projects.createNew",
       "agent": [],
       "executor": []
     },
     "rpc:projects.ensureScratch": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-projects.ensureScratch",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-projects.ensureScratch",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -790,67 +790,67 @@
     },
     "rpc:projects.searchEntries": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-projects.searchEntries",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-projects.searchEntries",
       "agent": [],
       "executor": []
     },
     "rpc:projects.writeFile": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-projects.writeFile",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-projects.writeFile",
       "agent": [],
       "executor": []
     },
     "rpc:provider.auth.cancel": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-provider.auth.cancel",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-provider.auth.cancel",
       "agent": [],
       "executor": []
     },
     "rpc:provider.auth.complete": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-provider.auth.complete",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-provider.auth.complete",
       "agent": [],
       "executor": []
     },
     "rpc:provider.auth.logout": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-provider.auth.logout",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-provider.auth.logout",
       "agent": [],
       "executor": []
     },
     "rpc:provider.auth.respond": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-provider.auth.respond",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-provider.auth.respond",
       "agent": [],
       "executor": []
     },
     "rpc:provider.auth.start": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-provider.auth.start",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-provider.auth.start",
       "agent": [],
       "executor": []
     },
     "rpc:provider.auth.subscribe": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-provider.auth.subscribe",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-provider.auth.subscribe",
       "agent": [],
       "executor": []
     },
     "rpc:pullRequests.activity": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.activity",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.activity",
       "agent": [],
       "executor": []
     },
     "rpc:pullRequests.changeBreakdown": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-pullRequests.changeBreakdown",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.changeBreakdown",
       "agent": [],
       "executor": []
     },
     "rpc:pullRequests.checks": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.checks",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.checks",
       "agent": [],
       "executor": []
     },
@@ -868,19 +868,19 @@
     },
     "rpc:pullRequests.detail": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-pullRequests.detail",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.detail",
       "agent": [],
       "executor": []
     },
     "rpc:pullRequests.diffFileContents": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.diffFileContents",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.diffFileContents",
       "agent": [],
       "executor": []
     },
     "rpc:pullRequests.filesViewed": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.filesViewed",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.filesViewed",
       "agent": [],
       "executor": []
     },
@@ -913,7 +913,7 @@
     },
     "rpc:pullRequests.labelCandidates": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-pullRequests.labelCandidates",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.labelCandidates",
       "agent": [],
       "executor": []
     },
@@ -955,7 +955,7 @@
     },
     "rpc:pullRequests.preview": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.preview",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.preview",
       "agent": [],
       "executor": []
     },
@@ -973,31 +973,31 @@
     },
     "rpc:pullRequests.requestReviewers": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.requestReviewers",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.requestReviewers",
       "agent": [],
       "executor": []
     },
     "rpc:pullRequests.reviewGuide": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-pullRequests.reviewGuide",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.reviewGuide",
       "agent": [],
       "executor": []
     },
     "rpc:pullRequests.reviewerCandidates": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.reviewerCandidates",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.reviewerCandidates",
       "agent": [],
       "executor": []
     },
     "rpc:pullRequests.routing": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.routing",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.routing",
       "agent": [],
       "executor": []
     },
     "rpc:pullRequests.routingIdentity": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.routingIdentity",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.routingIdentity",
       "agent": [],
       "executor": []
     },
@@ -1015,13 +1015,13 @@
     },
     "rpc:pullRequests.setFilesViewed": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-pullRequests.setFilesViewed",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.setFilesViewed",
       "agent": [],
       "executor": []
     },
     "rpc:pullRequests.setLabels": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.setLabels",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.setLabels",
       "agent": [],
       "executor": []
     },
@@ -1051,7 +1051,7 @@
     },
     "rpc:pullRequests.stack": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.stack",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.stack",
       "agent": [],
       "executor": []
     },
@@ -1069,7 +1069,7 @@
     },
     "rpc:pullRequests.summary": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-pullRequests.summary",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.summary",
       "agent": [],
       "executor": []
     },
@@ -1111,43 +1111,43 @@
     },
     "rpc:review.getDiffFileContents": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-review.getDiffFileContents",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-review.getDiffFileContents",
       "agent": [],
       "executor": []
     },
     "rpc:review.getDiffPreview": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-review.getDiffPreview",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-review.getDiffPreview",
       "agent": [],
       "executor": []
     },
     "rpc:scheduledTasks.delete": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-scheduledTasks.delete",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-scheduledTasks.delete",
       "agent": [],
       "executor": []
     },
     "rpc:scheduledTasks.rotateWebhookToken": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-scheduledTasks.rotateWebhookToken",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-scheduledTasks.rotateWebhookToken",
       "agent": [],
       "executor": []
     },
     "rpc:scheduledTasks.runNow": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-scheduledTasks.runNow",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-scheduledTasks.runNow",
       "agent": [],
       "executor": []
     },
     "rpc:scheduledTasks.setEnabled": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-scheduledTasks.setEnabled",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-scheduledTasks.setEnabled",
       "agent": [],
       "executor": []
     },
     "rpc:scheduledTasks.subscribe": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-scheduledTasks.subscribe",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-scheduledTasks.subscribe",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1184,13 +1184,13 @@
     },
     "rpc:server.getUsageSummary": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-server.getUsageSummary",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-server.getUsageSummary",
       "agent": [],
       "executor": []
     },
     "rpc:server.probe": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-server.probe",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-server.probe",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1216,49 +1216,49 @@
     },
     "rpc:server.updateSettings": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-server.updateSettings",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-server.updateSettings",
       "agent": [],
       "executor": []
     },
     "rpc:sourceControl.appAccess": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-sourceControl.appAccess",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-sourceControl.appAccess",
       "agent": [],
       "executor": []
     },
     "rpc:sourceControl.lookupRepository": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-sourceControl.lookupRepository",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-sourceControl.lookupRepository",
       "agent": [],
       "executor": []
     },
     "rpc:sourceControl.publishRepository": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-sourceControl.publishRepository",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-sourceControl.publishRepository",
       "agent": [],
       "executor": []
     },
     "rpc:sourceControl.signInCancel": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-sourceControl.signInCancel",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-sourceControl.signInCancel",
       "agent": [],
       "executor": []
     },
     "rpc:sourceControl.signInStart": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-sourceControl.signInStart",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-sourceControl.signInStart",
       "agent": [],
       "executor": []
     },
     "rpc:sourceControl.signInWait": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-sourceControl.signInWait",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-sourceControl.signInWait",
       "agent": [],
       "executor": []
     },
     "rpc:subscribePreviewEvents": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-subscribePreviewEvents",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-subscribePreviewEvents",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1289,7 +1289,7 @@
     },
     "rpc:subscribeTerminalMetadata": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-subscribeTerminalMetadata",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-subscribeTerminalMetadata",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1298,7 +1298,7 @@
     },
     "rpc:subscribeVcsStatus": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-subscribeVcsStatus",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-subscribeVcsStatus",
       "agent": [],
       "executor": []
     },
@@ -1341,13 +1341,13 @@
     },
     "rpc:terminal.close": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-terminal.close",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-terminal.close",
       "agent": [],
       "executor": []
     },
     "rpc:terminal.observe": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-terminal.observe",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-terminal.observe",
       "agent": [],
       "executor": []
     },
@@ -1366,25 +1366,25 @@
     },
     "rpc:terminal.resize": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-terminal.resize",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-terminal.resize",
       "agent": [],
       "executor": []
     },
     "rpc:terminal.write": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-3::t3-rpc-terminal.write",
+      "test": "t3-v0.1.9-recorded-3::t3-rpc-terminal.write",
       "agent": [],
       "executor": []
     },
     "rpc:vcs.createRef": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-vcs.createRef",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-vcs.createRef",
       "agent": [],
       "executor": []
     },
     "rpc:vcs.createWorktree": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-vcs.createWorktree",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-vcs.createWorktree",
       "agent": [],
       "executor": []
     },
@@ -1404,13 +1404,13 @@
     },
     "rpc:vcs.pull": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-vcs.pull",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-vcs.pull",
       "agent": [],
       "executor": []
     },
     "rpc:vcs.refreshStatus": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-2::t3-rpc-vcs.refreshStatus",
+      "test": "t3-v0.1.9-recorded-2::t3-rpc-vcs.refreshStatus",
       "agent": [],
       "executor": []
     },
@@ -1430,7 +1430,7 @@
     },
     "rpc:worktreeSetup.cancel": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-recorded-1::t3-rpc-worktreeSetup.cancel",
+      "test": "t3-v0.1.9-recorded-1::t3-rpc-worktreeSetup.cancel",
       "agent": [],
       "executor": []
     }
