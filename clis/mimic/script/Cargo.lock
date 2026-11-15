@@ -302,7 +302,7 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-orca"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "mimic-core",
  "mimic-script-core",

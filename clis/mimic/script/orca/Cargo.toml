@@ -1,6 +1,6 @@
 [package]
 name = "mimic-script-orca"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 publish = false
 description = "The Orca target of the `wf mimic` step interpreter: starts the codec sidecar around the phone's own client, makes the deterministic scratch repositories a case needs and masks their paths"
