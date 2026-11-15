@@ -291,7 +291,7 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-net"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "flate2",
  "mimic-core",

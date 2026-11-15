@@ -1,6 +1,6 @@
 [package]
 name = "mimic-script-net"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2021"
 publish = false
 description = "The wire adapters of the `wf mimic` step interpreter: an HTTP/1.1 client that keeps raw status, repeated headers and chunked bodies, a WebSocket on a worker thread, and the system clock"
