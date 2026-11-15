@@ -60,7 +60,7 @@ flate2 = { version = "1", default-features = false, features = ["rust_backend"] 
 orca-serve = { path = ".", features = ["testing"] }
 agent-api-terminal = { path = "../../libraries/agent-api/agent-api-terminal" }
 exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }
-mimic-core = { path = "../mimic/core" }
+mimic-core = { version = "0.1.1", registry = "mla" }
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 tempfile = "3"
 base64 = "0.22"

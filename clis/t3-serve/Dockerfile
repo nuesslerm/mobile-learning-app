@@ -38,9 +38,6 @@ COPY libraries/agent-api/exec-proto ./libraries/agent-api/exec-proto
 # The test kit is a dev-dependency cargo resolves but the build never compiles: its manifest and an empty library are all it needs here.
 COPY libraries/agent-api/exec-testkit/Cargo.toml ./libraries/agent-api/exec-testkit/Cargo.toml
 RUN mkdir -p libraries/agent-api/exec-testkit/src && : > libraries/agent-api/exec-testkit/src/lib.rs
-# The replay tests use mimic-core as a dev-dependency cargo resolves but the build never compiles: its manifest and an empty library are all it needs, so an edit to its sources rebuilds no image.
-COPY clis/mimic/core/Cargo.toml ./clis/mimic/core/Cargo.toml
-RUN mkdir -p clis/mimic/core/src && : > clis/mimic/core/src/lib.rs
 WORKDIR /src/clis
 RUN sed -i 's|^members = .*|members = ["wf-kit", "t3-serve", "t3-serve/contracts", "t3-serve/core", "t3-serve/store", "t3-serve/http"]|' Cargo.toml
 RUN --mount=type=cache,id=cargo-registry-t3,target=/usr/local/cargo/registry \

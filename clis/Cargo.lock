@@ -1669,10 +1669,11 @@ dependencies = [
 
 [[package]]
 name = "mimic-core"
-version = "0.1.0"
+version = "0.1.1"
+source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
+checksum = "e6a735a7b73a08821e99c571cc2cd8c8b2965dc768bc0c9f6b835ee19b2d18c5"
 dependencies = [
  "base64 0.22.1",
- "mimic-core",
  "regex",
  "serde",
  "serde_json",

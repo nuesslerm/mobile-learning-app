@@ -39,7 +39,7 @@ testing = ["mimic-core/testing"]
 [dependencies]
 wf-kit = { path = "../wf-kit" }
 wf-bucket = { path = "../wf-bucket" }
-mimic-core = { path = "core" }
+mimic-core = { version = "0.1.1", registry = "mla" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 toml = { version = "0.8", default-features = false, features = ["parse"] }
@@ -47,7 +47,7 @@ toml = { version = "0.8", default-features = false, features = ["parse"] }
 # The pre-push gate runs the flow test without features: the self dev-dependency builds the toy for it.
 [dev-dependencies]
 wf-mimic = { path = ".", features = ["testing"] }
-mimic-core = { path = "core", features = ["testing"] }
+mimic-core = { version = "0.1.1", registry = "mla", features = ["testing"] }
 tempfile = "3"
 tiny_http = "0.12"
 regex = "1"

@@ -36,9 +36,6 @@ COPY libraries/agent-api/exec-proto ./libraries/agent-api/exec-proto
 # The test kit is a dev-dependency cargo resolves but the build never compiles: its manifest and an empty library are all it needs here.
 COPY libraries/agent-api/exec-testkit/Cargo.toml ./libraries/agent-api/exec-testkit/Cargo.toml
 RUN mkdir -p libraries/agent-api/exec-testkit/src && : > libraries/agent-api/exec-testkit/src/lib.rs
-# The replay tests use mimic-core as a dev-dependency cargo resolves but the build never compiles: its manifest and an empty library are all it needs, so an edit to its sources rebuilds no image.
-COPY clis/mimic/core/Cargo.toml ./clis/mimic/core/Cargo.toml
-RUN mkdir -p clis/mimic/core/src && : > clis/mimic/core/src/lib.rs
 WORKDIR /src/clis
 RUN sed -i 's|^members = .*|members = ["wf-kit", "orca-serve", "orca-serve/crypto", "orca-serve/core", "orca-serve/map-settings", "orca-serve/map-mobile", "orca-serve/map-workspace", "orca-serve/map-agent", "orca-serve/map-terminal", "orca-serve/map-git", "orca-serve/map-accounts", "orca-serve/map-state", "orca-serve/map-hosted", "orca-serve/map-schedules"]|' Cargo.toml
 RUN --mount=type=cache,id=cargo-registry-orca-serve,target=/usr/local/cargo/registry \
