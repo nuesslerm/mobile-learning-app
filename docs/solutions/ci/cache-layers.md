@@ -48,6 +48,8 @@ Moving to R2 or Hetzner Object Storage is the variable plus the two store lists 
 
 What each layer is worth, measured on 14 Nov (run 43558013495, `docs/audits/2026-11-14-ci-cache-bench.md`): sccache 96 s per use for 268 MB, metro 70 s for 17 MB, nx 38 s (identical rerun) for 1 MB, the pnpm store 13 to 17 s for 705 MB (and none in the real jobs), the rust target directory 86 s for 348 MB (sccache beats it), toolchain 4 s, cargo registry 0.5 s. Together the layers kept hold about 0.6 GB: the 10 GB quota is not the constraint, key churn is.
 
+No shard can skip the pnpm install. Planned with `wf test plan --all`, every `flow-tests`, `typecheck-lint-unit-tests` and `integration-tests` shard (6 each) carries at least one Node package, and the six `cli-e2e-tests` shards hold crates only; but a stage runs its crates' tasks through Nx (`crate-<name>` projects, `clis/pipeline/src/test_plan.rs`), and Nx is a pnpm dependency. So the install is the price of every shard, a Node-free shard included (measured 15 Nov).
+
 | Layer | Path | Key | Restore keys | Saved when |
 |---|---|---|---|---|
 | sccache | `~/.cache/sccache` (`SCCACHE_DIR`; `RUSTC_WRAPPER=sccache`, `CARGO_INCREMENTAL=0`) | `sccache-<stage>-<os>-<arch>-<ISO week>-<hash of every Cargo.lock>` | `sccache-<stage>-<os>-<arch>-` | `wf-build` and shard 1 of `flow-tests`, `integration-tests`, `cli-e2e-tests`; exact key missed, under 1.5 GB |
