@@ -90,6 +90,16 @@ overrides:
   # autoInstallPeers resolved @react-native/metro-config twice (0.86.3 and 0.87.1), which forked every package that peers on it (four
   # patched copies of lucide-react-native, two react-native-svg); react-native itself is 0.86.3.
   '@react-native/metro-config': 0.86.3
+  # @react-types 3.16/3.11/3.6/... add hard deps on @react-spectrum/* (which pull all of @adobe/react-spectrum) and a provider peer;
+  # these are type-only packages for gluestack, and the previous patch releases have neither.
+  '@react-types/button': 3.15.1
+  '@react-types/checkbox': 3.10.4
+  '@react-types/dialog': 3.5.24
+  '@react-types/menu': 3.10.7
+  '@react-types/overlays': 3.9.4
+  '@react-types/radio': 3.9.4
+  '@react-types/slider': 3.8.4
+  '@react-types/switch': 3.5.17
 
 patchedDependencies:
   '@storybook/react-native-ui@10.4.4': patches/@storybook__react-native-ui@10.4.4.patch
