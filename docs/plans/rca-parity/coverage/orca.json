@@ -10,8 +10,8 @@
   "summary": {
     "rows": 319,
     "served": 135,
-    "pending": 119,
-    "notOffered": 55,
+    "pending": 117,
+    "notOffered": 57,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -23,7 +23,7 @@
     "pendingByMilestone": {
       "M5": 5,
       "M6": 1,
-      "M7": 10,
+      "M7": 8,
       "M8": 22,
       "M9": 4,
       "M10": 10,
@@ -228,15 +228,19 @@
       "id": "rpc:agentActivity.clear",
       "kind": "rpc",
       "name": "agentActivity.clear",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "not-offered",
+      "milestone": "M7",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it marks or clears the panes of the desktop's Agents list by pane key, and this host has no desktop panes.",
+      "decidedBy": "M7"
     },
     {
       "id": "rpc:agentActivity.setRead",
       "kind": "rpc",
       "name": "agentActivity.setRead",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "not-offered",
+      "milestone": "M7",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it marks or clears the panes of the desktop's Agents list by pane key, and this host has no desktop panes.",
+      "decidedBy": "M7"
     },
     {
       "id": "rpc:agentSession.agents",
