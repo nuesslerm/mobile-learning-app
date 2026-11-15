@@ -10,8 +10,8 @@
   "summary": {
     "rows": 317,
     "served": 135,
-    "pending": 47,
-    "notOffered": 125,
+    "pending": 34,
+    "notOffered": 138,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -24,10 +24,10 @@
       "M5": 3,
       "M6": 1,
       "M7": 5,
-      "M8": 19,
+      "M8": 13,
       "M9": 2,
-      "M10": 5,
-      "M11": 12
+      "M10": 3,
+      "M11": 7
     }
   },
   "rows": [
@@ -160,17 +160,19 @@
       "kind": "rpc",
       "name": "accounts.subscribe",
       "subscription": true,
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M10",
-      "reverify": "reverify when the accounts group streams changes of its providers (M10): provider.auth.subscribe follows one login session, not the list, so a snapshot stream would be an answer built once and never pushed again"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host pushes the account list with rate limits, the system default and the per-runtime active accounts, and rca has no push stream of provider changes, so a polled provider.list snapshot would be a poorer list that changes late.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:accounts.unsubscribe",
       "kind": "rpc",
       "name": "accounts.unsubscribe",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M10",
-      "reverify": "reverify with accounts.subscribe (M10): it ends the stream that row opens, and there is none to end"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it ends the stream accounts.subscribe opens, which this host does not offer.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:agent.launch",
@@ -1304,9 +1306,10 @@
       "id": "rpc:files.resolveTerminalPath",
       "kind": "rpc",
       "name": "files.resolveTerminalPath",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M8",
-      "reverify": "reverify with terminal.* (M8): the path is resolved against the terminal's own working directory, which only a terminal session knows [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it classifies a path printed in a terminal as a file inside or outside the worktree and mints the grant that files.readTerminalArtifact reads under; rca has no grant concept and its file actions are confined to the workspace root, so only the in-root half could be answered and the phone's terminal link would break for every path outside it.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:files.searchPaths",
@@ -1985,9 +1988,10 @@
       "id": "rpc:github.prCheckDetails",
       "kind": "rpc",
       "name": "github.prCheckDetails",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when the hosted group reads a check's annotations and log summary (M11): pr.checks gives a check's name, state and link only, so the details would be empty"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it reads a check run's annotations, output text, steps and job log tail, and rca's pr.run gives the jobs of a run only, so the answer would be an empty shell of the host's.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.prChecks",
@@ -2210,9 +2214,10 @@
       "id": "rpc:github.repoSlug",
       "kind": "rpc",
       "name": "github.repoSlug",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when mapped over sourceControl.lookupRepository of hosted.auth (M11): it needs the machine's gh sign-in to name the workspace's repository, and a null for a signed-out machine would pass without the work; not mapped in this milestone"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host parses the origin remote's URL locally with no sign-in, and rca has no method that reads a remote URL (git.refs and git.upstreamStatus give names only), so the slug could only come from a network lookup through the signed-in gh that may name another casing or a renamed repository.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.requestPRReviewers",
@@ -2253,9 +2258,10 @@
       "id": "rpc:github.setPRAutoMerge",
       "kind": "rpc",
       "name": "github.setPRAutoMerge",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when the hosted group can turn auto-merge off (M11): pr.merge with auto enables it but no action disables it, so enabled: false would answer without doing it, and the host's answer carries the repository's merge method settings"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host enables auto-merge through the GraphQL mutation after refusing a PR that is already clean, because `gh pr merge --auto` can merge at once, and rca's pr.merge is that command and has no way to turn auto-merge off, so serving it could merge a pull request the phone only meant to queue.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:github.setPRFileViewed",
@@ -2360,9 +2366,10 @@
       "id": "rpc:gitlab.addMRComment",
       "kind": "rpc",
       "name": "gitlab.addMRComment",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when mr.comment answers the posted comment (M11): the host's answer is {ok, comment} with the note's author, time and id, and the group answers only done"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's mr.comment answers only {done, url} through `glab mr note`, where the phone reads the created comment back (id, author, body, time), so the answer would lack what the row returns until rca's GitLab comment is changed to the notes API.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:gitlab.createIssue",
@@ -2487,9 +2494,10 @@
       "id": "rpc:hostedReview.create",
       "kind": "rpc",
       "name": "hostedReview.create",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when mapped over pr.create with a chain over a pushed branch (M11): the phone's creation flow pushes the branch first, then creates the review and, for the stacked form, a chain of them; the answer needs the created review's number and url; not mapped in this milestone"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it opens a pull or merge request after a preflight of the branch, its upstream, its base and the working tree rebuilt from several reads, and a creation that skips one of those checks could push a review the host would have refused; rca's pr.create takes the head and title only.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:hostedReview.forBranch",
@@ -3538,8 +3546,10 @@
       "id": "rpc:terminal.getAutoRestoreFit",
       "kind": "rpc",
       "name": "terminal.getAutoRestoreFit",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "not-offered",
+      "milestone": "M8",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host keeps how long a phone-fitted terminal stays fitted before the desktop size is restored; rca has no desktop size to restore and no timer that resizes a pty back, so a kept value would change nothing.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:terminal.list",
@@ -3609,8 +3619,10 @@
       "id": "rpc:terminal.setAutoRestoreFit",
       "kind": "rpc",
       "name": "terminal.setAutoRestoreFit",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "not-offered",
+      "milestone": "M8",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host keeps how long a phone-fitted terminal stays fitted before the desktop size is restored; rca has no desktop size to restore and no timer that resizes a pty back, so a kept value would change nothing.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:terminal.setDisplayMode",
@@ -3690,9 +3702,10 @@
       "id": "rpc:worktree.activate",
       "kind": "rpc",
       "name": "worktree.activate",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M8",
-      "reverify": "reverify with terminal.* and the agent groups (M8): it wakes a worktree's agents and terminals, and a state flag alone would pass without proving that [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it wakes the worktree's sleeping agents and terminals, rca keeps no sleeping panes and has no wake call, and an answer that only stores a flag would pass without doing what the row does (the reverify note asks for proof on the terminal and agent groups).",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:worktree.create",
@@ -3770,9 +3783,10 @@
       "id": "rpc:worktree.ps",
       "kind": "rpc",
       "name": "worktree.ps",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M8",
-      "reverify": "reverify with the agent and terminal groups (M7/M8): the row lists worktrees with their agent and terminal activity, and an answer that is only the worktree list would pass without proving the activity half [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: each row reports the worktree's live terminals and agents next to its links and sort state, and an answer built from the worktree list and a terminal count alone would pass without the activity half the row exists for (the reverify note asks for it); rca has no per-worktree activity read.",
+      "decidedBy": "M12"
     },
     {
       "id": "rpc:worktree.resolveMrBase",
@@ -3879,9 +3893,10 @@
       "id": "rpc:worktree.sleep",
       "kind": "rpc",
       "name": "worktree.sleep",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M8",
-      "reverify": "reverify with terminal.* and the agent groups (M8): it stops a worktree's agents and terminals, and a state flag alone would pass without proving that [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]"
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it stops the worktree's agents and closes its terminals; rca's terminal.close deletes the terminal where the host keeps a sleeping pane, so a later activate could not restore the shells, and the step cannot be undone.",
+      "decidedBy": "M12"
     },
     {
       "id": "transport:e2ee.handshake",

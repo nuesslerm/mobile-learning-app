@@ -773,11 +773,64 @@
       "state": "not-offered",
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host keeps how long a phone-fitted terminal stays fitted before the desktop size is restored; rca has no desktop size to restore and no timer that resizes a pty back, so a kept value would change nothing.",
       "decidedBy": "M12"
+    },
+    "rpc:worktree.activate": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it wakes the worktree's sleeping agents and terminals, rca keeps no sleeping panes and has no wake call, and an answer that only stores a flag would pass without doing what the row does (the reverify note asks for proof on the terminal and agent groups).",
+      "decidedBy": "M12"
+    },
+    "rpc:worktree.ps": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: each row reports the worktree's live terminals and agents next to its links and sort state, and an answer built from the worktree list and a terminal count alone would pass without the activity half the row exists for (the reverify note asks for it); rca has no per-worktree activity read.",
+      "decidedBy": "M12"
+    },
+    "rpc:worktree.sleep": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it stops the worktree's agents and closes its terminals; rca's terminal.close deletes the terminal where the host keeps a sleeping pane, so a later activate could not restore the shells, and the step cannot be undone.",
+      "decidedBy": "M12"
+    },
+    "rpc:files.resolveTerminalPath": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it classifies a path printed in a terminal as a file inside or outside the worktree and mints the grant that files.readTerminalArtifact reads under; rca has no grant concept and its file actions are confined to the workspace root, so only the in-root half could be answered and the phone's terminal link would break for every path outside it.",
+      "decidedBy": "M12"
+    },
+    "rpc:github.setPRAutoMerge": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host enables auto-merge through the GraphQL mutation after refusing a PR that is already clean, because `gh pr merge --auto` can merge at once, and rca's pr.merge is that command and has no way to turn auto-merge off, so serving it could merge a pull request the phone only meant to queue.",
+      "decidedBy": "M12"
+    },
+    "rpc:github.repoSlug": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host parses the origin remote's URL locally with no sign-in, and rca has no method that reads a remote URL (git.refs and git.upstreamStatus give names only), so the slug could only come from a network lookup through the signed-in gh that may name another casing or a renamed repository.",
+      "decidedBy": "M12"
+    },
+    "rpc:github.prCheckDetails": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it reads a check run's annotations, output text, steps and job log tail, and rca's pr.run gives the jobs of a run only, so the answer would be an empty shell of the host's.",
+      "decidedBy": "M12"
+    },
+    "rpc:hostedReview.create": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it opens a pull or merge request after a preflight of the branch, its upstream, its base and the working tree rebuilt from several reads, and a creation that skips one of those checks could push a review the host would have refused; rca's pr.create takes the head and title only.",
+      "decidedBy": "M12"
+    },
+    "rpc:gitlab.addMRComment": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's mr.comment answers only {done, url} through `glab mr note`, where the phone reads the created comment back (id, author, body, time), so the answer would lack what the row returns until rca's GitLab comment is changed to the notes API.",
+      "decidedBy": "M12"
+    },
+    "rpc:accounts.subscribe": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host pushes the account list with rate limits, the system default and the per-runtime active accounts, and rca has no push stream of provider changes, so a polled provider.list snapshot would be a poorer list that changes late.",
+      "decidedBy": "M12"
+    },
+    "rpc:accounts.unsubscribe": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it ends the stream accounts.subscribe opens, which this host does not offer.",
+      "decidedBy": "M12"
     }
   },
   "reverify": {
-    "rpc:accounts.subscribe": "reverify when the accounts group streams changes of its providers (M10): provider.auth.subscribe follows one login session, not the list, so a snapshot stream would be an answer built once and never pushed again",
-    "rpc:accounts.unsubscribe": "reverify with accounts.subscribe (M10): it ends the stream that row opens, and there is none to end",
     "rpc:browser.back": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page history to go back in",
     "rpc:browser.dialogAccept": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page whose dialog could be accepted",
     "rpc:browser.dialogDismiss": "reverify when rca has a browser executor (an exec-browser action family that loads a page in a headless Chromium on the executor and drives and captures it; M12 built none): the preview group starts the workspace's dev server and keeps the tabs the phone draws, but nothing on the executor loads, drives or captures a page, so there is no page whose dialog could be dismissed",
@@ -799,19 +852,13 @@
     "rpc:clipboard.commitImageUpload": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the committed image would have no path on the executor to answer",
     "rpc:clipboard.saveImageAsTempFile": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the image would have no temp file on the executor to name",
     "rpc:clipboard.startImageUpload": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the upload would only be held in the mapper",
-    "rpc:files.resolveTerminalPath": "reverify with terminal.* (M8): the path is resolved against the terminal's own working directory, which only a terminal session knows [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
     "rpc:git.cancelGenerateCommitMessage": "reverify when git.generateCommitMessage can be cancelled (M10): the group's generation is one request that runs to its end and has no cancel, so an accepted cancel would stop nothing",
     "rpc:git.cancelGeneratePullRequestFields": "reverify with git.generatePullRequestFields (M10): there is no generation of pull request text to cancel",
     "rpc:git.remoteCommitUrl": "reverify when the group reports a remote's address (M9): git.upstreamStatus lists the remotes' names and never their URLs, so the web address of a commit cannot be built, and any other answer would pass without reading the remote",
     "rpc:github.addPRReviewCommentReply": "reverify when the reply's answer can be built (M11): the phone names the review comment by its numeric id while pr.reply takes a review thread's id (pr.threads), and the host answers the posted comment (author, time, url) which pr.reply does not return",
     "rpc:github.listLabels": "reverify when mapped over pr.labelCandidates (M11): it answers the repository's labels with their colors, and the candidates give names; not mapped in this milestone",
-    "rpc:github.prCheckDetails": "reverify when the hosted group reads a check's annotations and log summary (M11): pr.checks gives a check's name, state and link only, so the details would be empty",
     "rpc:github.prFileContents": "reverify when mapped over git.blob (M11): the two sides of a changed file are read at the pull request's head and merge base after the fetch that worktree.resolvePrBase makes, with the host's binary and size answers; not mapped in this milestone",
-    "rpc:github.repoSlug": "reverify when mapped over sourceControl.lookupRepository of hosted.auth (M11): it needs the machine's gh sign-in to name the workspace's repository, and a null for a signed-out machine would pass without the work; not mapped in this milestone",
     "rpc:github.resolveReviewThread": "reverify when rca can find a thread's pull request (M11): the phone sends the thread id alone, pr.resolveThread needs the pull request's number too, and rca keeps no thread to pull request index",
-    "rpc:github.setPRAutoMerge": "reverify when the hosted group can turn auto-merge off (M11): pr.merge with auto enables it but no action disables it, so enabled: false would answer without doing it, and the host's answer carries the repository's merge method settings",
-    "rpc:gitlab.addMRComment": "reverify when mr.comment answers the posted comment (M11): the host's answer is {ok, comment} with the note's author, time and id, and the group answers only done",
-    "rpc:hostedReview.create": "reverify when mapped over pr.create with a chain over a pushed branch (M11): the phone's creation flow pushes the branch first, then creates the review and, for the stacked form, a chain of them; the answer needs the created review's number and url; not mapped in this milestone",
     "rpc:hostedReview.forBranch": "reverify when the provider-neutral review summary is built (M11): github.prForBranch is the GitHub form of it and is served, but this row answers for either provider with the host's review shape; not mapped in this milestone",
     "rpc:hostedReview.getCreationEligibility": "reverify when mapped over git.upstreamStatus and pr.list (M11): it says whether the branch is pushed, ahead of its base and has no review yet, which needs those three reads and the host's reason codes; not mapped in this milestone",
     "rpc:notifications.getMissedSince": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no numbered feed to read what a phone missed from",
@@ -827,10 +874,7 @@
     "rpc:speech.dictation.start": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to start",
     "rpc:speech.models.delete": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no model store to delete from",
     "rpc:speech.models.download": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no model store to download into",
-    "rpc:speech.models.list": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there are no speech models on the executor to list",
-    "rpc:worktree.activate": "reverify with terminal.* and the agent groups (M8): it wakes a worktree's agents and terminals, and a state flag alone would pass without proving that [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
-    "rpc:worktree.ps": "reverify with the agent and terminal groups (M7/M8): the row lists worktrees with their agent and terminal activity, and an answer that is only the worktree list would pass without proving the activity half [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]",
-    "rpc:worktree.sleep": "reverify with terminal.* and the agent groups (M8): it stops a worktree's agents and terminals, and a state flag alone would pass without proving that [M8 built terminal.list/send/close/clearBuffer/rename only: the terminal group issues no grant and reports no per-worktree activity, so this row stays pending until it does; reverify then]"
+    "rpc:speech.models.list": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there are no speech models on the executor to list"
   },
   "traceNoise": {
     "rpc:layout.*": "the desktop window's workspace layout (apply, snapshots, held panes, view reports, subscribe): the scan finds no phone caller, and the recorded crawl drives the host's whole method surface, so its trace names them without a phone row to serve",
