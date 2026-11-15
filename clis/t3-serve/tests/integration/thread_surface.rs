@@ -508,6 +508,11 @@ fn a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_wh
         let family = phone.call(case, &chain, &["rpc:orchestration.getThreadFamily"], "orchestration.getThreadFamily", json!({"threadId": "f1"}));
         assert!(answered(case, "thread.family"), "{:?}", asked(case));
         assert_eq!(success(&family)["threads"].as_array().unwrap().iter().map(|t| t["id"].as_str().unwrap()).collect::<Vec<_>>(), ["t1", "f1"]);
+        // And the titles and the link metadata of both threads come from what t3 holds, an unknown thread left out
+        let titles = phone.call(case, &chain, &["rpc:orchestration.getThreadTitles"], "orchestration.getThreadTitles", json!({"threadIds": ["t1", "f1", "nobody"]}));
+        assert_eq!(success(&titles).as_object().map(|t| t.len()), Some(2), "{titles:?}");
+        let link = phone.call(case, &chain, &["rpc:orchestration.getThreadLinkMetadata"], "orchestration.getThreadLinkMetadata", json!({"threadIds": ["t1", "nobody"]}));
+        assert_eq!((success(&link)["t1"]["projectId"].as_str(), success(&link).as_object().map(|t| t.len())), (Some("p1"), Some(1)), "{link:?}");
         success(&phone.command(case, &chain, cmd("thread.archive", "f1", json!({}))));
         let archived = phone.call(case, &chain, &["rpc:orchestration.getArchivedShellSnapshot"], "orchestration.getArchivedShellSnapshot", json!({}));
         // Then the snapshot holds the fork alone, and the shell over HTTP lists the thread live and the fork archived at the same sequence
