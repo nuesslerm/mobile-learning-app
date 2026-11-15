@@ -170,7 +170,7 @@ fn a_push_ships_exactly_the_legs_built_from_what_it_changed() {
         ("wf outside the listener, which no image holds", "clis/wf/src/main.rs", vec![], false),
         ("the mimic core's code, of which the Orca and T3 images copy only the manifest and stub the library, so no image rebuilds", "clis/mimic/core/src/differ.rs", vec![], false),
         ("the mimic CLI's adapters, which no image holds", "clis/mimic/src/adapters/stdio.rs", vec![], false),
-        ("the mimic core's manifest, which the Orca and T3 images copy to resolve the dev-dependency of their replay tests", "clis/mimic/core/Cargo.toml", vec!["t3-serve", "orca-serve"], false),
+        ("the mimic core's manifest, a library the Orca and T3 images take from the registry, so no image rebuilds", "clis/mimic/core/Cargo.toml", vec![], false),
         ("the T3 server's imported cassettes, read by its tests only", "clis/t3-serve/cassettes/t3-v0.1.6/interactions.jsonl", vec![], false),
         ("the CLIs' lockfile", "clis/Cargo.lock", vec![], false),
         ("the Nx config", "nx.json", vec![], false),
