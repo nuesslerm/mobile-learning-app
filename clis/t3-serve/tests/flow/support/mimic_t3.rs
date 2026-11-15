@@ -173,7 +173,7 @@ impl Session {
     /// Whether the server's Exit for the request `id` is among the events since `from`.
     fn exited(&self, from: usize, id: &Value) -> bool {
         self.events[from..].iter().any(|e| match e {
-            WireEvent::Ws { dir: Dir::S2c, data, .. } => serde_json::from_slice::<Value>(data).is_ok_and(|f| f["_tag"] == "Exit" && f["requestId"].to_string() == id.to_string()),
+            WireEvent::Ws { dir: Dir::S2c, data, .. } => serde_json::from_slice::<Value>(data).is_ok_and(|f| f["_tag"] == "Exit" && f["requestId"] == *id),
             _ => false,
         })
     }
