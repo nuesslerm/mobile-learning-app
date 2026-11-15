@@ -100,6 +100,8 @@ struct ScriptFile {
     mint: Vec<String>,
     /// A JSON file with the entries every case that names `prelude: "session"` starts with.
     prelude: Option<String>,
+    /// `spawn`: a directory of scripted agent CLIs placed ahead of the stubs on the server's PATH (default `$T3_CLI_DIR`).
+    cli_dir: Option<String>,
     /// One server and one prelude for many cases (default for `spawn`).
     session: Option<bool>,
     ready_ms: Option<u64>,
@@ -117,6 +119,7 @@ pub struct ScriptSpec {
     pub workspace: Option<String>,
     pub mint: Vec<String>,
     pub prelude: Option<PathBuf>,
+    pub cli_dir: Option<PathBuf>,
     pub session: bool,
     pub ready_ms: u64,
     pub settle_ms: Option<u64>,
@@ -140,6 +143,7 @@ fn script_spec(dir: &Path, name: &str, s: ScriptFile) -> Result<ScriptSpec, Stri
         workspace: s.workspace,
         mint: s.mint,
         prelude: s.prelude.map(|p| dir.join(p)),
+        cli_dir: s.cli_dir.map(|p| dir.join(p)).or_else(|| std::env::var_os("T3_CLI_DIR").map(PathBuf::from)),
         session: s.session.unwrap_or(spawn),
         ready_ms: s.ready_ms.unwrap_or(60_000),
         settle_ms: s.settle_ms,

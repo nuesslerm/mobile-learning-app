@@ -24,7 +24,7 @@ fn launch(target: &Target, spec: &ScriptSpec) -> Result<Box<dyn Launch>, String>
         let pin_path = target.pin.as_ref().ok_or("a spawned script target needs a pin file (the release it runs)")?;
         let pin = Pin::parse(&std::fs::read_to_string(pin_path).map_err(|e| format!("{}: {e}", pin_path.display()))?)?;
         let runtime = ensure_runtime(&pin, &platform(), &cache(spec), &CurlGet)?;
-        Ok(Box::new(SpawnLaunch { runtime: runtime.dir, ready_ms: spec.ready_ms }))
+        Ok(Box::new(SpawnLaunch { runtime: runtime.dir, ready_ms: spec.ready_ms, cli_dir: spec.cli_dir.clone() }))
     } else {
         let addr = spec.addr.clone().unwrap_or_default().parse().map_err(|e| format!("script addr: {e}"))?;
         Ok(Box::new(UrlLaunch { addr, workspace: spec.workspace.clone().unwrap_or_default(), mint: spec.mint.clone() }))

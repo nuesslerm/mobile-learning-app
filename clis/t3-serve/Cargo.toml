@@ -75,6 +75,6 @@ exec-git = { path = "../../libraries/agent-api/exec-git" }
 exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }
 mimic-core = { version = "0.1.1", registry = "mla" }
 mimic-script-core = { version = "0.1.3", registry = "mla" }
-mimic-script-host = { version = "0.1.1", registry = "mla" }
+mimic-script-host = { version = "0.1.2", registry = "mla" }
 tempfile = "3"
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
