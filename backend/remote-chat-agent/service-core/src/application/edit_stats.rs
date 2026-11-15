@@ -10,7 +10,8 @@ use super::settings::Settings;
 use serde_json::{json, Map, Value};
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use super::opencode_client::Client;
+use std::time::Duration;
 use tokio::sync::Notify;
 
 pub const COLUMNS: [&str; 38] = [
@@ -24,7 +25,7 @@ pub const COLUMNS: [&str; 38] = [
 pub const FLUSH_EVERY: Duration = Duration::from_secs(5);
 const FLUSH_AT: usize = 20;
 const MAX_QUEUE: usize = 500;
-const ERROR_LOG_EVERY: Duration = Duration::from_secs(60);
+const ERROR_LOG_EVERY_MS: u64 = 60_000;
 
 /// A fully-null row with the required fields set; callers fill in what they know.
 pub fn empty_row(edit_id: &str, side: &str, route: &str) -> Map<String, Value> {
@@ -183,13 +184,14 @@ pub use crate::domain::util::iso_now;
 struct State {
     queue: VecDeque<Map<String, Value>>,
     /// When the oldest queued row is due to be sent.
-    due: Option<Instant>,
+    due: Option<u64>,
 }
 
 struct Shared {
     state: Mutex<State>,
     wake: Notify,
     flush_every: Duration,
+    client: Client,
 }
 
 /// Rows are queued and a background task posts them through `outbound`; a full queue drops the oldest, a failing endpoint is logged
@@ -202,12 +204,12 @@ pub struct EditStats {
 
 impl EditStats {
     /// The table the settings name, flushed a row's `flush_every` after it was queued (or at once when twenty are waiting).
-    pub fn new(settings: &Settings, outbound: Arc<dyn Outbound>, flush_every: Duration, host: String) -> Self {
+    pub fn new(settings: &Settings, outbound: Arc<dyn Outbound>, flush_every: Duration, host: String, client: Client) -> Self {
         let config = read_config(settings).map(Arc::new);
         if config.is_none() {
             log::info!("edit_stats.disabled", reason = "EDIT_STATS_ORDS_BASE_URL or HEALTH_REPORTS_ORDS_PASSWORD not set");
         }
-        let shared = Arc::new(Shared { state: Mutex::new(State { queue: VecDeque::new(), due: None }), wake: Notify::new(), flush_every });
+        let shared = Arc::new(Shared { state: Mutex::new(State { queue: VecDeque::new(), due: None }), wake: Notify::new(), flush_every, client });
         if let Some(config) = &config {
             tokio::spawn(flush_loop(outbound, Arc::clone(config), Arc::clone(&shared)));
         }
@@ -232,10 +234,10 @@ impl EditStats {
             }
             state.queue.push_back(row);
             if state.due.is_none() {
-                state.due = Some(Instant::now() + self.shared.flush_every);
+                state.due = Some(self.shared.client.now_ms() + self.shared.flush_every.as_millis() as u64);
             }
             if state.queue.len() >= FLUSH_AT {
-                state.due = Some(Instant::now());
+                state.due = Some(self.shared.client.now_ms());
             }
         }
         self.shared.wake.notify_one();
@@ -248,9 +250,9 @@ async fn next_batch(shared: &Shared) -> Vec<Map<String, Value>> {
         let due = shared.state.lock().unwrap_or_else(|e| e.into_inner()).due;
         match due {
             None => shared.wake.notified().await,
-            Some(due) if Instant::now() < due => {
+            Some(due) if shared.client.now_ms() < due => {
                 tokio::select! {
-                    () = tokio::time::sleep_until(due.into()) => {}
+                    () = tokio::time::sleep(Duration::from_millis(due - shared.client.now_ms().min(due))) => {}
                     () = shared.wake.notified() => {}
                 }
             }
@@ -258,7 +260,7 @@ async fn next_batch(shared: &Shared) -> Vec<Map<String, Value>> {
                 let mut state = shared.state.lock().unwrap_or_else(|e| e.into_inner());
                 let take = state.queue.len().min(FLUSH_AT);
                 let batch = state.queue.drain(..take).collect();
-                state.due = if state.queue.is_empty() { None } else { Some(Instant::now()) };
+                state.due = if state.queue.is_empty() { None } else { Some(shared.client.now_ms()) };
                 return batch;
             }
         }
@@ -266,7 +268,7 @@ async fn next_batch(shared: &Shared) -> Vec<Map<String, Value>> {
 }
 
 async fn flush_loop(outbound: Arc<dyn Outbound>, config: Arc<Config>, shared: Arc<Shared>) {
-    let mut last_error_log: Option<Instant> = None;
+    let mut last_error_log: Option<u64> = None;
     loop {
         let batch = next_batch(&shared).await;
         let (mut failed, mut first_error) = (0usize, String::new());
@@ -294,8 +296,8 @@ async fn flush_loop(outbound: Arc<dyn Outbound>, config: Arc<Config>, shared: Ar
                 }
             }
         }
-        if failed > 0 && last_error_log.is_none_or(|t| t.elapsed() >= ERROR_LOG_EVERY) {
-            last_error_log = Some(Instant::now());
+        if failed > 0 && last_error_log.is_none_or(|t| shared.client.now_ms().saturating_sub(t) >= ERROR_LOG_EVERY_MS) {
+            last_error_log = Some(shared.client.now_ms());
             log::warn!("edit_stats.flush_failed", failed = failed, sent = batch.len() - failed, error = first_error);
         }
     }

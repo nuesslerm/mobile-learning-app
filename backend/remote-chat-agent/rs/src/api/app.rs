@@ -130,7 +130,7 @@ impl App {
         let orch = ports.orch;
         let planner = Planner::new(client.clone());
         let ws = Arc::new(ws::Context { orch: Arc::clone(&orch), opencode: client.clone(), version: "1.0.0", secret: config.api_secret.clone(), heartbeat: config.heartbeat });
-        let edit_stats = EditStats::new(&ports.env.settings(), Arc::clone(&ports.outbound), config.edit_stats_flush, rca_service_core::application::edit_stats::host_name(ports.files.as_ref()));
+        let edit_stats = EditStats::new(&ports.env.settings(), Arc::clone(&ports.outbound), config.edit_stats_flush, rca_service_core::application::edit_stats::host_name(ports.files.as_ref()), client.clone());
         Self { config, env: ports.env, opencode: client, commands: ports.commands, outbound: ports.outbound, ledgers: ports.ledgers, files: ports.files, hosts: ports.hosts, documents: ports.documents, speech: ports.speech, edit_stats, orch, gateway: ports.gateway, planner, executors: agent_api.executors, sockets: agent_api.sockets, agent_socket: agent_api.agent_socket, agent_groups: agent_api.groups, schedules: agent_api.schedules, bearers: agent_api.bearers, service_tools: agent_api.tools, agent_threads: agent_api.threads, mcp: agent_api.mcp, ws }
     }
 
