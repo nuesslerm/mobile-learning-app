@@ -396,3 +396,30 @@ fn an_evidence_file_that_recorded_a_scratch_path_fails_the_check_until_a_refresh
     assert_eq!(f.json(&f.table("-evidence.json"))["source"].get("traces"), None);
     assert_eq!(problems(&f.run(&["--check"])), vec![]);
 }
+
+#[test]
+fn a_sliced_refresh_replaces_the_evidence_of_the_rows_it_names_and_leaves_every_other_entry_as_it_was() {
+    // Given tables whose evidence serves two rows from a first run
+    let f = Fixture::at_pin("t3");
+    assert_eq!(f.run(&[]).code, 0);
+    let rows: Vec<String> = f.methods().into_iter().filter(|(id, r)| r["phone"] == true && id.starts_with("rpc:")).map(|(id, _)| id).collect();
+    let (a, b) = (rows[0].as_str(), rows[1].as_str());
+    let first = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(first.path().join("t3-serve-integration")).unwrap();
+    std::fs::write(first.path().join("t3-serve-integration/trace.json"), trace(true, &[("chain::old", "pass", vec![(vec![a], true, vec![], vec![]), (vec![b], true, vec![], vec![])])])).unwrap();
+    assert_eq!(f.run(&["--traces", first.path().to_str().unwrap()]).code, 0);
+    let before = f.json(&f.table("-evidence.json"));
+
+    // When a second run, whose tests are named otherwise, refreshes the slice of row a alone
+    let second = tempfile::tempdir().unwrap();
+    std::fs::create_dir_all(second.path().join("t3-serve-integration")).unwrap();
+    std::fs::write(second.path().join("t3-serve-integration/trace.json"), trace(true, &[("chain::new", "pass", vec![(vec![a], true, vec![], vec![]), (vec![b], true, vec![], vec![])])])).unwrap();
+    let run = f.run(&["--traces", second.path().to_str().unwrap(), "--rows", a]);
+
+    // Then row a is served by the new test and row b keeps its entry byte for byte
+    assert_eq!((run.code, problems(&run)), (0, vec![]), "{}", run.stdout);
+    let after = f.json(&f.table("-evidence.json"));
+    assert_eq!(after["rows"][a]["test"], "chain::new");
+    assert_eq!(after["rows"][b], before["rows"][b]);
+    assert_eq!(after["rows"].as_object().unwrap().len(), 2);
+}

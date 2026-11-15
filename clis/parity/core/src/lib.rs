@@ -81,6 +81,9 @@ pub struct Request {
     /// Where the method-hit traces of a chain run are (a test output dir, a trace file, a bundle or its URL): a write refreshes the evidence
     /// from them, a check compares the checked-in evidence with them. Without it the checked-in evidence stands.
     pub traces: Option<String>,
+    /// Row-id prefixes that limit a refresh to the rows they start: the evidence of every other row stays as checked in, and only the problems
+    /// of these rows are listed. Empty means every row.
+    pub rows: Vec<String>,
 }
 
 pub struct Outcome {
@@ -103,6 +106,17 @@ pub fn pending_rose(history: &dyn History, table: &str, dirty: bool, base: Optio
         return None;
     }
     Some(Problem { rule: "pending-rose", message: format!("pending rose from {before} at {rev} to {now}; only a commit whose message carries '{PIN_BUMP}' may raise it, and its milestone lists the new rows"), rows: vec![] })
+}
+
+fn in_slice(prefixes: &[String], row: &str) -> bool {
+    prefixes.iter().any(|p| row.starts_with(p.as_str()))
+}
+
+/// The evidence a sliced refresh leaves: the checked-in entries of the rows outside the slice, and the traces' entries of the rows inside it.
+fn slice_of(prefixes: &[String], checked_in: Option<&str>, served: BTreeMap<String, evidence::Entry>) -> BTreeMap<String, evidence::Entry> {
+    let mut kept: BTreeMap<String, evidence::Entry> = checked_in.and_then(|t| evidence::parse(t).ok()).unwrap_or_default().into_iter().filter(|(id, _)| !in_slice(prefixes, id)).collect();
+    kept.extend(served.into_iter().filter(|(id, _)| in_slice(prefixes, id)));
+    kept
 }
 
 pub fn run(req: &Request, tree: &dyn Tree, history: &dyn History, traces: &dyn Traces, oracle: &dyn Evidence) -> Outcome {
@@ -183,6 +197,7 @@ pub fn run(req: &Request, tree: &dyn Tree, history: &dyn History, traces: &dyn T
             let mut served = evidence::resolve(&calls, &rows, oracle);
             // a row decided not offered is not served, whatever a call of it did
             served.retain(|id, _| !decisions.rows.get(id).is_some_and(|d| matches!(d.get("state").and_then(Value::as_str), Some("not-offered" | "excluded"))));
+            let served = if req.rows.is_empty() { served } else { slice_of(&req.rows, checked_in.as_deref(), served) };
             let text = evidence::document(app.name(), evidence::source_json(source, runs), &served);
             (served, Some(text))
         }
@@ -213,6 +228,9 @@ pub fn run(req: &Request, tree: &dyn Tree, history: &dyn History, traces: &dyn T
     }
     if req.mode == Mode::Check && !changed.is_empty() {
         problems.push(Problem { rule: "stale", message: "the checked-in files differ from what the generator builds".into(), rows: changed.clone() });
+    }
+    if !req.rows.is_empty() {
+        problems.retain(|p| p.rows.is_empty() || p.rule == "stale" || p.rows.iter().any(|r| in_slice(&req.rows, r)));
     }
     let ok = req.mode == Mode::Write || problems.is_empty();
     let mut report = json!({
@@ -264,11 +282,11 @@ mod tests {
         let tree = MemoryTree::of(&[("tooling/t3-conformance/t3-pin.json", r#"{"version": "0.1.6", "commit": "aaa"}"#)]);
         let history = MemoryHistory { heads: [("references/t3code".to_string(), "bbb".to_string())].into(), ..Default::default() };
         // When a write is asked, Then it is refused naming both commits
-        let write = run(&Request { app: App::T3, mode: Mode::Write, base: None, traces: None }, &tree, &history, &MemoryTraces::default(), &AdmitOnly::default());
+        let write = run(&Request { app: App::T3, mode: Mode::Write, base: None, traces: None, rows: vec![] }, &tree, &history, &MemoryTraces::default(), &AdmitOnly::default());
         assert!(!write.ok && write.writes.is_empty());
         assert!(write.report["error"].as_str().unwrap().contains("bbb") && write.report["error"].as_str().unwrap().contains("aaa"));
         // When a check is asked, Then it falls back to the methods list, which is missing here
-        let check = run(&Request { app: App::T3, mode: Mode::Check, base: None, traces: None }, &tree, &history, &MemoryTraces::default(), &AdmitOnly::default());
+        let check = run(&Request { app: App::T3, mode: Mode::Check, base: None, traces: None, rows: vec![] }, &tree, &history, &MemoryTraces::default(), &AdmitOnly::default());
         assert!(!check.ok);
         assert!(check.report["error"].as_str().unwrap().contains("t3-methods.json is missing"), "{}", check.report);
     }

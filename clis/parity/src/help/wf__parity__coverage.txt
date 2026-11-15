@@ -1,4 +1,4 @@
-Usage: wf parity coverage --app t3|orca [--check] [--traces <dir|bundle>] [--root <dir>] [--base <rev>]
+Usage: wf parity coverage --app t3|orca [--check] [--traces <dir|bundle>] [--rows <prefix,...>] [--root <dir>] [--base <rev>]
 
 Scan the pinned phone app and build its coverage table. The reference is
 references/t3code (pinned by tooling/t3-conformance/t3-pin.json) or
@@ -51,6 +51,9 @@ Options:
                               phone does not reach, or pending rose
   --traces <dir|bundle>       The method-hit traces of a chain run: a test output
                               dir, a trace.json, or a bundle.json (path or URL)
+  --rows <prefix,...>         With --traces: refresh only the rows whose id starts
+                              with a prefix; the evidence of the other rows stays
+                              as checked in and only these rows' problems show
   --root <dir>                The repository root (default: the git top level)
   --base <rev>                What pending is compared with (default HEAD when
                               the table is dirty, else HEAD^); a commit since it
