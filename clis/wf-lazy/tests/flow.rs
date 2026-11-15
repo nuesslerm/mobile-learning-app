@@ -79,11 +79,11 @@ fn a_verb_no_thin_binary_serves_and_help_run_the_full_router() {
     let b = Bench::new(0);
 
     // When an unlisted verb and `--help` run
-    let check = b.run(&["check", "--staged"]);
+    let check = b.run(&["check"]);
     let help = b.run(&["--help"]);
 
     // Then both built and ran the full `wf` package
-    assert_eq!((stdout(&check), stdout(&help)), ("ran:wf check --staged".into(), "ran:wf --help".into()));
+    assert_eq!((stdout(&check), stdout(&help)), ("ran:wf check".into(), "ran:wf --help".into()));
     assert!(b.builds().iter().all(|l| l.starts_with("build --locked -p wf --bin wf ")), "{:?}", b.builds());
 }
 
@@ -129,5 +129,71 @@ fn every_verb_of_the_table_is_served_by_its_crate_and_its_binary_exists_there() 
         // Then it names the binary and serves the verb
         assert!(manifest.contains(&format!("name = \"{bin}\"")), "{package} has no binary {bin}");
         assert!(commands.contains(&format!("(\"{verb}\", ")), "{package} does not serve {verb}");
+    }
+}
+
+fn ran(b: &Bench, args: &[&str]) -> String {
+    stdout(&b.run(args))
+}
+
+#[test]
+fn the_gates_that_need_only_the_checkout_run_the_pipeline_binary() {
+    // Given a bench
+    let b = Bench::new(0);
+
+    // When the staged, budget, dead-refs and pushed gates run, alone and with their own options
+    let ran: Vec<String> = [
+        vec!["check", "--staged"],
+        vec!["check", "--budget", "--strict"],
+        vec!["check", "--dead-refs"],
+        vec!["check", "--dead-refs", "--staged"],
+        vec!["check", "--staged", "--dead-refs"],
+        vec!["check", "--pushed", "--base", "main"],
+    ]
+    .iter()
+    .map(|a| ran(&b, a))
+    .collect();
+
+    // Then each ran the pipeline package's binary with the same words
+    assert_eq!(
+        ran,
+        vec![
+            "ran:pipeline check --staged",
+            "ran:pipeline check --budget --strict",
+            "ran:pipeline check --dead-refs",
+            "ran:pipeline check --dead-refs --staged",
+            "ran:pipeline check --staged --dead-refs",
+            "ran:pipeline check --pushed --base main",
+        ]
+    );
+    assert!(b.builds().iter().all(|l| l.starts_with("build --locked -p pipeline --bin pipeline ")), "{:?}", b.builds());
+}
+
+#[test]
+fn a_gate_combined_with_a_flag_only_the_router_reads_runs_the_full_router() {
+    // Given a bench
+    let b = Bench::new(0);
+
+    // When combined or router-only shapes run
+    let shapes: Vec<Vec<&str>> = vec![
+        vec!["check", "--dead-refs", "--budget"],
+        vec!["check", "--dead-refs", "--dead-refs"],
+        vec!["check", "--staged", "--health"],
+        vec!["check", "--budget", "--visual", "x.png"],
+        vec!["check", "--staged", "--drift"],
+        vec!["check", "--staged", "--deployed", "abc"],
+        vec!["check", "--staged", "--arch"],
+        vec!["check", "--staged", "--dry-run"],
+        vec!["check", "--health"],
+        vec!["check", "--arch"],
+        vec!["check", "--drift"],
+        vec!["check", "--deployed", "abc"],
+        vec!["check", "--help"],
+    ];
+
+    // Then every one ran the `wf` package, never the thin pipeline
+    for shape in shapes {
+        let out = ran(&b, &shape);
+        assert_eq!(out, format!("ran:wf {}", shape.join(" ")), "{shape:?}");
     }
 }

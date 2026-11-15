@@ -213,3 +213,16 @@ fn mcp_guard(rest: &[String]) -> Option<i32> {
     println!("{}", serde_json::json!({ "error": "wf mcp-guard is gone", "next": format!("wf agent-config mcp-guard {}", rest.join(" ")).trim() }));
     Some(2)
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn the_thin_pipeline_binary_knows_every_word_the_router_routes() {
+        // Given the router's table and the word list the thin binary scans dead references with
+        let routed: Vec<&str> = super::COMMANDS.iter().map(|(n, _)| *n).collect();
+
+        // When they are compared
+        // Then they are the same words in the same order
+        assert_eq!(routed, pipeline::ROUTER_WORDS);
+    }
+}

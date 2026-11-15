@@ -71,14 +71,27 @@ pub fn run_test(rest: &[String]) -> Option<i32> {
     }
 }
 
-/// `check --staged`, `check --pushed` and `check --budget`, the gates that need nothing but the checkout. `wf` adds the dead-reference scan, which
-/// reads its whole command surface, and tier 3; the thin binary has neither.
+/// Every first word the router of `wf` routes, for the dead-reference scan in the thin binary (a flow test of `wf` keeps it equal to its table).
+pub const ROUTER_WORDS: &[&str] = &[
+    "check", "ship", "ask", "plan", "run", "flow", "test", "ci", "android", "browser", "vm", "secret", "repo", "bench", "knowledge", "agent-config", "offload", "cache", "bucket", "lib", "t3", "exec", "mimic",
+    "parity", "help", "log", "worker", "browser-daemon", "mcp-guard", "build-sha",
+];
+
+/// `check --staged`, `--pushed`, `--budget` and `--dead-refs`, spelled and ordered as the router of `wf` does, so the thin binary answers the same.
 fn check(rest: &[String]) -> Option<i32> {
+    dead_refs::set_commands(|w| ROUTER_WORDS.contains(&w));
+    if let Some(at) = rest.iter().position(|a| a == "--dead-refs") {
+        let mut left = rest.to_vec();
+        left.remove(at);
+        if left.is_empty() || left == ["--staged"] {
+            return Some(dead_refs::run(&wf_kit::root::repo_root(), !left.is_empty()));
+        }
+    }
     let modes = wf_kit::args::probe(rest, &[&verify::STAGED, &verify::BUDGET, &pushed::PUSHED])?;
     if modes.flag("pushed") {
         pushed::run(rest)
     } else if modes.flag("staged") {
-        verify::staged(rest, |_| None)
+        verify::staged(rest, |root| dead_refs::gate(root).or_else(|| arch_rules::gate(root)))
     } else if modes.flag("budget") || modes.flag("unused-workspace-deps") || modes.flag("unused-deps") || modes.flag("workspace-crossings") || modes.flag("ts-packages") || modes.flag("cargo-inputs") {
         verify::budget(rest)
     } else {

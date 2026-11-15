@@ -17,10 +17,27 @@ pub const TABLE: &[(&str, &str, &str)] = &[
     ("vm", "deploy", "deploy"),
 ];
 
+/// The `check` shapes the pipeline crate's thin binary serves like the router: a gate mode of its own and none of the router-only ones.
+/// `--dead-refs` is served alone or with `--staged` only, exactly as the router reads it.
+fn check_is_thin(rest: &[String]) -> bool {
+    const ROUTER_ONLY: &[&str] = &["--health", "--visual", "--drift", "--deployed", "--arch", "--dry-run"];
+    const GATES: &[&str] = &["--staged", "--pushed", "--budget", "--unused-workspace-deps", "--unused-deps", "--workspace-crossings", "--ts-packages", "--cargo-inputs"];
+    if rest.iter().any(|a| ROUTER_ONLY.contains(&a.as_str())) {
+        return false;
+    }
+    if rest.iter().any(|a| a == "--dead-refs") {
+        let others: Vec<&str> = rest.iter().map(String::as_str).filter(|a| *a != "--dead-refs").collect();
+        return rest.iter().filter(|a| *a == "--dead-refs").count() == 1 && (others.is_empty() || others == ["--staged"]);
+    }
+    rest.iter().any(|a| GATES.contains(&a.as_str()))
+}
+
 fn target_of(args: &[String]) -> (&'static str, &'static str) {
-    args.first()
-        .and_then(|verb| TABLE.iter().find(|(v, _, _)| v == verb))
-        .map_or(("wf", "wf"), |(_, package, bin)| (package, bin))
+    match args.first().map(String::as_str) {
+        Some("check") if check_is_thin(&args[1..]) => ("pipeline", "pipeline"),
+        Some(verb) => TABLE.iter().find(|(v, _, _)| *v == verb).map_or(("wf", "wf"), |(_, package, bin)| (package, bin)),
+        None => ("wf", "wf"),
+    }
 }
 
 fn repo_root() -> PathBuf {
