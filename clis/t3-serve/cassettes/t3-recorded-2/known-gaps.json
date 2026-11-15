@@ -13,6 +13,17 @@
       ]
     },
     {
+      "id": "t3-command-queued-run.edit",
+      "row": "command:queued-run.edit",
+      "severity": "breaking",
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
       "id": "t3-command-runtime-request.respond",
       "row": "command:runtime-request.respond",
       "severity": "breaking",
@@ -24,12 +35,34 @@
       ]
     },
     {
+      "id": "t3-command-thread.guest-share.close",
+      "row": "command:thread.guest-share.close",
+      "severity": "breaking",
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value extra drift"
+      ]
+    },
+    {
       "id": "t3-command-thread.merge_back",
       "row": "command:thread.merge_back",
       "severity": "drift",
       "class": "rpc-exit: the failure/success envelope of the stream reply differs (exit tag, cause, defect)",
       "diffs": [
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ]
+    },
+    {
+      "id": "t3-command-thread.pin",
+      "row": "command:thread.pin",
+      "severity": "breaking",
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value extra drift"
       ]
     },
     {
@@ -44,6 +77,17 @@
       ]
     },
     {
+      "id": "t3-command-thread.settle",
+      "row": "command:thread.settle",
+      "severity": "breaking",
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value extra drift"
+      ]
+    },
+    {
       "id": "t3-command-thread.unarchive",
       "row": "command:thread.unarchive",
       "severity": "breaking",
@@ -51,6 +95,30 @@
       "diffs": [
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking"
+      ]
+    },
+    {
+      "id": "t3-command-thread.unsnooze",
+      "row": "command:thread.unsnooze",
+      "severity": "breaking",
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value extra drift"
+      ]
+    },
+    {
+      "id": "t3-http-auth.pairingCredential",
+      "row": "http:auth.pairingCredential",
+      "severity": "breaking",
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
+        "steps.http:ret:_.[2].payload.headers.cache-control extra drift",
+        "steps.http:ret:_.[2].payload.headers.pragma extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
       ]
     },
     {
@@ -74,6 +142,74 @@
         "steps.http:ret:_.[2].payload.headers.content-type extra drift",
         "steps.http:ret:_.[2].payload.headers.vary extra drift",
         "steps.http:ret:_.[2].payload.status changed breaking"
+      ]
+    },
+    {
+      "id": "t3-http-pullRequests.diff",
+      "row": "http:pullRequests.diff",
+      "severity": "breaking",
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ]
+    },
+    {
+      "id": "t3-http-voice.cancelModelDownload",
+      "row": "http:voice.cancelModelDownload",
+      "severity": "breaking",
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ]
+    },
+    {
+      "id": "t3-http-voice.downloadModel",
+      "row": "http:voice.downloadModel",
+      "severity": "breaking",
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ]
+    },
+    {
+      "id": "t3-http-voice.setCloudKey",
+      "row": "http:voice.setCloudKey",
+      "severity": "breaking",
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type extra drift",
+        "steps.http:ret:_.[2].payload.headers.vary extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ]
+    },
+    {
+      "id": "t3-http-voice.transcribeCloud",
+      "row": "http:voice.transcribeCloud",
+      "severity": "breaking",
+      "class": "kind at steps.http:ret:_.[*].payload.body",
+      "diffs": [
+        "steps.http:ret:_.[2].payload.body kind breaking",
+        "steps.http:ret:_.[2].payload.headers.content-type extra drift",
+        "steps.http:ret:_.[2].payload.headers.vary extra drift",
+        "steps.http:ret:_.[2].payload.status changed breaking"
+      ]
+    },
+    {
+      "id": "t3-mutation-project.update",
+      "row": "mutation:project.update",
+      "severity": "breaking",
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
       ]
     },
     {
@@ -116,6 +252,15 @@
         "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-orchestration.getThreadTitles",
+      "row": "rpc:orchestration.getThreadTitles",
+      "severity": "drift",
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
       ]
     },
     {
@@ -238,10 +383,52 @@
     {
       "id": "t3-rpc-server.refreshUsageRates",
       "row": "rpc:server.refreshUsageRates",
-      "severity": "drift",
-      "class": "frames: extra or missing frames",
+      "severity": "breaking",
+      "class": "kind at steps.ws:s2c:*.[*].payload.exit.value.fetchedAt",
       "diffs": [
-        "steps.ws:s2c:1.[0] extra drift"
+        "steps.ws:s2c:1.[0].payload.exit.value.fetchedAt kind breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.knownModels changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.source changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value.status changed drift"
+      ]
+    },
+    {
+      "id": "t3-rpc-subscribeServerLifecycle",
+      "row": "rpc:subscribeServerLifecycle",
+      "severity": "breaking",
+      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].payload.environment.capabilities.cloudVoiceTranscription",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.freshContext missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.mcpApprovalCodes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.mcpHostedApproval missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.modelCatalogRefresh missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.oneTimeSchedules missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.vcsBranchStatus missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.voiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.databaseMigration changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.platform.machine missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.freshContext missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.mcpApprovalCodes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.mcpHostedApproval missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.modelCatalogRefresh missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.oneTimeSchedules missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.vcsBranchStatus missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.voiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.databaseMigration changed drift",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.platform.machine missing breaking"
+      ]
+    },
+    {
+      "id": "t3-rpc-subscribeVcsBranch",
+      "row": "rpc:subscribeVcsBranch",
+      "severity": "drift",
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
       ]
     },
     {
