@@ -96,8 +96,599 @@ index 34e8926..14855a7 100644
      "rpc:agentSession.readVisual": {"state": "not-offered", "reason": "owner-confirmed (decision 7): it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read", "decidedBy": "M7"}
    },
    "reverify": {
+diff --git a/docs/plans/rca-parity/coverage/orca-methods.json b/docs/plans/rca-parity/coverage/orca-methods.json
+index 6761d5b..8e7891f 100644
+--- a/docs/plans/rca-parity/coverage/orca-methods.json
++++ b/docs/plans/rca-parity/coverage/orca-methods.json
+@@ -9,22 +9,15 @@
+   },
+   "counts": {
+     "catalog": {
+-      "registered": 830,
+-      "streaming": 24,
++      "registered": 886,
++      "streaming": 26,
+       "allowlist": 373,
+       "allowlistShipped": 370,
+       "allowlistFlagged": 3,
+-      "allowlistUnregistered": [
+-        "orchestration.partyLocation",
+-        "orchestration.partyOpen",
+-        "orchestration.workerAutoClose",
+-        "orchestration.workerChatTouch",
+-        "orchestration.workerKeepOpen",
+-        "orchestration.workerTerminalUserInput"
+-      ]
++      "allowlistUnregistered": []
+     },
+     "phone": {
+-      "methods": 304,
++      "methods": 308,
+       "flagged": 3,
+       "offAllowlist": 1,
+       "subscriptions": 9,
+@@ -5712,6 +5705,468 @@
+       "registered": "src/main/runtime/rpc/methods/orcad/orcad-terminal-census.ts:18",
+       "allowlist": null
+     },
++    {
++      "id": "rpc:orchestration.approvalAnswer",
++      "kind": "rpc",
++      "name": "orchestration.approvalAnswer",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-approval-answer.ts:36",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.ask",
++      "kind": "rpc",
++      "name": "orchestration.ask",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/ask-methods.ts:24",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.callerShow",
++      "kind": "rpc",
++      "name": "orchestration.callerShow",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/caller-show.ts:68",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.check",
++      "kind": "rpc",
++      "name": "orchestration.check",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/check-methods.ts:20",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.crewSubscribe",
++      "kind": "rpc",
++      "name": "orchestration.crewSubscribe",
++      "phone": false,
++      "subscription": true,
++      "registered": "src/main/runtime/rpc/methods/orchestration/crew-methods.ts:46",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.dispatch",
++      "kind": "rpc",
++      "name": "orchestration.dispatch",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/runs/dispatch-methods.ts:28",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.dispatchShow",
++      "kind": "rpc",
++      "name": "orchestration.dispatchShow",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/runs/dispatch-methods.ts:210",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.federationAck",
++      "kind": "rpc",
++      "name": "orchestration.federationAck",
++      "phone": false,
++      "registered": "src/main/runtime/orchestration/legacy-remote/federation-relay.ts:44",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.federationAttachStart",
++      "kind": "rpc",
++      "name": "orchestration.federationAttachStart",
++      "phone": false,
++      "registered": "src/main/runtime/orchestration/legacy-remote/federation.ts:33",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.federationFleetSnapshot",
++      "kind": "rpc",
++      "name": "orchestration.federationFleetSnapshot",
++      "phone": false,
++      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:25",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.federationImport",
++      "kind": "rpc",
++      "name": "orchestration.federationImport",
++      "phone": false,
++      "registered": "src/main/runtime/orchestration/legacy-remote/federation-relay.ts:111",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.federationPull",
++      "kind": "rpc",
++      "name": "orchestration.federationPull",
++      "phone": false,
++      "registered": "src/main/runtime/orchestration/legacy-remote/federation-relay.ts:20",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.federationRead",
++      "kind": "rpc",
++      "name": "orchestration.federationRead",
++      "phone": false,
++      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:120",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.federationReadOutput",
++      "kind": "rpc",
++      "name": "orchestration.federationReadOutput",
++      "phone": false,
++      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:145",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.federationRelease",
++      "kind": "rpc",
++      "name": "orchestration.federationRelease",
++      "phone": false,
++      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:62",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.federationRetain",
++      "kind": "rpc",
++      "name": "orchestration.federationRetain",
++      "phone": false,
++      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:77",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.federationShow",
++      "kind": "rpc",
++      "name": "orchestration.federationShow",
++      "phone": false,
++      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:90",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.federationStop",
++      "kind": "rpc",
++      "name": "orchestration.federationStop",
++      "phone": false,
++      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:230",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.gateCreate",
++      "kind": "rpc",
++      "name": "orchestration.gateCreate",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/gates/gates.ts:80",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.gateList",
++      "kind": "rpc",
++      "name": "orchestration.gateList",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/gates/gates.ts:122",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.gateResolve",
++      "kind": "rpc",
++      "name": "orchestration.gateResolve",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/gates/gates.ts:101",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.inbox",
++      "kind": "rpc",
++      "name": "orchestration.inbox",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/message-methods.ts:17",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.partyLocation",
++      "kind": "rpc",
++      "name": "orchestration.partyLocation",
++      "phone": true,
++      "registered": "src/main/runtime/rpc/methods/orchestration/caller-show.ts:111",
++      "allowlist": "execution-host",
++      "sites": [
++        "mobile/src/session/native-chat/agent-session/mobile-structured-session-open-rpc.ts:34"
++      ]
++    },
++    {
++      "id": "rpc:orchestration.partyOpen",
++      "kind": "rpc",
++      "name": "orchestration.partyOpen",
++      "phone": true,
++      "registered": "src/main/runtime/rpc/methods/orchestration/caller-show.ts:119",
++      "allowlist": "execution-host",
++      "sites": [
++        "mobile/src/session/native-chat/agent-session/mobile-structured-session-open-rpc.ts:37"
++      ]
++    },
++    {
++      "id": "rpc:orchestration.peerMailAck",
++      "kind": "rpc",
++      "name": "orchestration.peerMailAck",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/federation/peer-mail-methods.ts:201",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.peerMailDeliver",
++      "kind": "rpc",
++      "name": "orchestration.peerMailDeliver",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/federation/peer-mail-methods.ts:63",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.peerMailPull",
++      "kind": "rpc",
++      "name": "orchestration.peerMailPull",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/federation/peer-mail-methods.ts:173",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.peerRunCancel",
++      "kind": "rpc",
++      "name": "orchestration.peerRunCancel",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/federation/peer-run-methods.ts:13",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.reply",
++      "kind": "rpc",
++      "name": "orchestration.reply",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/reply-method.ts:26",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.requestShow",
++      "kind": "rpc",
++      "name": "orchestration.requestShow",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/runs/mutation-request-show.ts:9",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.reset",
++      "kind": "rpc",
++      "name": "orchestration.reset",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/runs/reset-methods.ts:7",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.run",
++      "kind": "rpc",
++      "name": "orchestration.run",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/gates/gates.ts:18",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.runCreate",
++      "kind": "rpc",
++      "name": "orchestration.runCreate",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/runs/runs.ts:51",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.runCurrent",
++      "kind": "rpc",
++      "name": "orchestration.runCurrent",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/runs/runs.ts:133",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.runList",
++      "kind": "rpc",
++      "name": "orchestration.runList",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/runs/runs.ts:154",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.runShow",
++      "kind": "rpc",
++      "name": "orchestration.runShow",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/runs/runs.ts:164",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.runStop",
++      "kind": "rpc",
++      "name": "orchestration.runStop",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/gates/gates.ts:59",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.runUse",
++      "kind": "rpc",
++      "name": "orchestration.runUse",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/runs/runs.ts:66",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.send",
++      "kind": "rpc",
++      "name": "orchestration.send",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/send-methods.ts:38",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.sessionAddress",
++      "kind": "rpc",
++      "name": "orchestration.sessionAddress",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/caller-show.ts:93",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.taskCreate",
++      "kind": "rpc",
++      "name": "orchestration.taskCreate",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/message-methods.ts:40",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.taskList",
++      "kind": "rpc",
++      "name": "orchestration.taskList",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/message-methods.ts:83",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.taskUpdate",
++      "kind": "rpc",
++      "name": "orchestration.taskUpdate",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/message-methods.ts:118",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.workerAbandon",
++      "kind": "rpc",
++      "name": "orchestration.workerAbandon",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-control.ts:218",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.workerApprovalsSubscribe",
++      "kind": "rpc",
++      "name": "orchestration.workerApprovalsSubscribe",
++      "phone": false,
++      "subscription": true,
++      "registered": "src/main/runtime/rpc/methods/orchestration/crew-methods.ts:64",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.workerAutoClose",
++      "kind": "rpc",
++      "name": "orchestration.workerAutoClose",
++      "phone": true,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-keep-open.ts:15",
++      "allowlist": "execution-host",
++      "sites": [
++        "mobile/src/session/tabs/mobile-worker-auto-close.ts:38"
++      ]
++    },
++    {
++      "id": "rpc:orchestration.workerChatTouch",
++      "kind": "rpc",
++      "name": "orchestration.workerChatTouch",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-keep-open.ts:65",
++      "allowlist": "execution-host"
++    },
++    {
++      "id": "rpc:orchestration.workerKeepOpen",
++      "kind": "rpc",
++      "name": "orchestration.workerKeepOpen",
++      "phone": true,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-keep-open.ts:30",
++      "allowlist": "execution-host",
++      "sites": [
++        "mobile/src/session/tabs/mobile-worker-auto-close.ts:48"
++      ]
++    },
++    {
++      "id": "rpc:orchestration.workerList",
++      "kind": "rpc",
++      "name": "orchestration.workerList",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-list-method.ts:35",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.workerRead",
++      "kind": "rpc",
++      "name": "orchestration.workerRead",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-control.ts:87",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.workerRelease",
++      "kind": "rpc",
++      "name": "orchestration.workerRelease",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-release.ts:24",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.workerRetain",
++      "kind": "rpc",
++      "name": "orchestration.workerRetain",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-release.ts:98",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.workerShow",
++      "kind": "rpc",
++      "name": "orchestration.workerShow",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-control.ts:30",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.workerStart",
++      "kind": "rpc",
++      "name": "orchestration.workerStart",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-start-method.ts:38",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.workerStop",
++      "kind": "rpc",
++      "name": "orchestration.workerStop",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-stop.ts:15",
++      "allowlist": null
++    },
++    {
++      "id": "rpc:orchestration.workerTerminalUserInput",
++      "kind": "rpc",
++      "name": "orchestration.workerTerminalUserInput",
++      "phone": false,
++      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-keep-open.ts:54",
++      "allowlist": "execution-host"
++    },
+     {
+       "id": "rpc:pairing.createOffer",
+       "kind": "rpc",
+diff --git a/docs/plans/rca-parity/coverage/orca.json b/docs/plans/rca-parity/coverage/orca.json
+index 0bc7838..54808af 100644
+--- a/docs/plans/rca-parity/coverage/orca.json
++++ b/docs/plans/rca-parity/coverage/orca.json
+@@ -8,16 +8,16 @@
+     "commit": "980c0024741812bd7ae934c0c22144d9926a784e"
+   },
+   "summary": {
+-    "rows": 315,
++    "rows": 319,
+     "served": 135,
+     "pending": 155,
+-    "notOffered": 15,
++    "notOffered": 19,
+     "excluded": 7,
+     "flagged": 3,
+     "answeredByMapper": 0,
+     "byKind": {
+       "http": 9,
+-      "rpc": 305,
++      "rpc": 309,
+       "transport": 1
+     },
+     "pendingByMilestone": {
+@@ -2786,6 +2786,42 @@
+       "milestone": "M12",
+       "reverify": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to end"
+     },
++    {
++      "id": "rpc:orchestration.partyLocation",
++      "kind": "rpc",
++      "name": "orchestration.partyLocation",
++      "state": "not-offered",
++      "milestone": "M7",
++      "reason": "owner-confirmed (decision 7): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate",
++      "decidedBy": "M7"
++    },
++    {
++      "id": "rpc:orchestration.partyOpen",
++      "kind": "rpc",
++      "name": "orchestration.partyOpen",
++      "state": "not-offered",
++      "milestone": "M7",
++      "reason": "owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database",
++      "decidedBy": "M7"
++    },
++    {
++      "id": "rpc:orchestration.workerAutoClose",
++      "kind": "rpc",
++      "name": "orchestration.workerAutoClose",
++      "state": "not-offered",
++      "milestone": "M7",
++      "reason": "owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers",
++      "decidedBy": "M7"
++    },
++    {
++      "id": "rpc:orchestration.workerKeepOpen",
++      "kind": "rpc",
++      "name": "orchestration.workerKeepOpen",
++      "state": "not-offered",
++      "milestone": "M7",
++      "reason": "owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers",
++      "decidedBy": "M7"
++    },
+     {
+       "id": "rpc:pairing.exchangeTicket",
+       "kind": "rpc",
+diff --git a/docs/plans/rca-parity/coverage/orca.md b/docs/plans/rca-parity/coverage/orca.md
+index 6023604..569987d 100644
+--- a/docs/plans/rca-parity/coverage/orca.md
++++ b/docs/plans/rca-parity/coverage/orca.md
+@@ -2,7 +2,7 @@
+ 
+ Generated by `wf parity coverage --app orca` from `orca-methods.json` (the reference scan at 1.4.259 980c0024), `orca-decisions.json` and the mapper's own tables. Do not edit by hand.
+ 
+-315 rows: 135 served (a passing test of a chain run and its method-hit trace, `orca-evidence.json`), 155 pending, 15 not offered, 7 excluded, 3 flagged. 0 of the pending rows are answered by the mapper today, with no run-bundle evidence yet.
++319 rows: 135 served (a passing test of a chain run and its method-hit trace, `orca-evidence.json`), 155 pending, 19 not offered, 7 excluded, 3 flagged. 0 of the pending rows are answered by the mapper today, with no run-bundle evidence yet.
+ 
+ | Milestone | Pending |
+ | --- | --- |
+@@ -252,6 +252,10 @@ Generated by `wf parity coverage --app orca` from `orca-methods.json` (the refer
+ | `rpc:notifications.testPush` | pending | M12 |  | reverify: reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no sender to deliver a test push |
+ | `rpc:notifications.unregisterPush` | pending | M12 |  | reverify: reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no stored push token to remove |
+ | `rpc:notifications.unsubscribe` | pending | M12 |  | reverify: reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to end |
++| `rpc:orchestration.partyLocation` | not-offered | M7 |  | owner-confirmed (decision 7): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate; decided by M7 |
++| `rpc:orchestration.partyOpen` | not-offered | M7 |  | owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database; decided by M7 |
++| `rpc:orchestration.workerAutoClose` | not-offered | M7 |  | owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers; decided by M7 |
++| `rpc:orchestration.workerKeepOpen` | not-offered | M7 |  | owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers; decided by M7 |
+ | `rpc:pairing.exchangeTicket` | pending | M5 |  |  |
+ | `rpc:pairing.getEndpoints` | not-offered | M5 |  | owner-confirmed (decision 7): a product choice, not something the chain cannot prove (the pinned host lets a directly paired phone call it): a phone is paired with this one host by its own offer, which already carries the endpoint; there is no desktop whose other addresses it could list; decided by M5 |
+ | `rpc:pairing.provisionRelay` | not-offered | M5 |  | owner-confirmed (decision 7): provisioning a relay credential needs a relay service, which this host does not run; decided by M5 |
 diff --git a/tooling/mimic-drivers/src/corpus/orca.ts b/tooling/mimic-drivers/src/corpus/orca.ts
-index e884091..fe3c3a1 100644
+index fc44071..e26b9b5 100644
 --- a/tooling/mimic-drivers/src/corpus/orca.ts
 +++ b/tooling/mimic-drivers/src/corpus/orca.ts
 @@ -11,6 +11,8 @@ import { derive } from '../orca/schema.ts'
@@ -107,9 +698,9 @@ index e884091..fe3c3a1 100644
 +/** The federation methods are defined beside their relay, outside the methods dir. */
 +const EXTRA_METHOD_DIRS = ['src/main/runtime/orchestration/legacy-remote']
  export const REQUEST_TIMEOUT_MS = 8000
- 
- /** `const NAME = 'value'` and `const NAME = { key: 'value' }` (as `NAME.key`) across the pinned src tree: method names given by a constant. */
-@@ -29,14 +31,14 @@ function stringConstants(root: string): Map<string, string> {
+ /** How long a stream is listened to after it opens: its snapshot and what follows it in the first moments. */
+ export const STREAM_LISTEN_MS = 1500
+@@ -33,14 +35,14 @@ function stringConstants(root: string): Map<string, string> {
  
  export type Registration = { method: string; streaming: boolean; schemaName: string | null; module: string | null }
  
@@ -127,7 +718,7 @@ index e884091..fe3c3a1 100644
      const text = readFileSync(file, 'utf8')
      const imports = new Map<string, string>()
      for (const m of text.matchAll(/import\s*\{([^}]*)\}\s*from\s*'([^']+)'/g)) {
-@@ -45,7 +47,7 @@ export function registrations(root: string = orcaRoot(), byConstant = false): Re
+@@ -49,7 +51,7 @@ export function registrations(root: string = orcaRoot(), byConstant = false): Re
          if (name) imports.set(name, resolve(file, '..', m[2]!))
        }
      }
@@ -136,7 +727,7 @@ index e884091..fe3c3a1 100644
      starts.forEach((s, i) => {
        const block = text.slice(s.at, starts[i + 1]?.at ?? text.length)
        const named = /name:\s*(?:'([A-Za-z0-9.]+)'|([A-Za-z_][A-Za-z0-9_.]*))/.exec(block)
-@@ -86,7 +88,7 @@ export type OrcaCorpus = { cases: Case[]; coverage: Disposition[]; pin: string }
+@@ -90,7 +92,7 @@ export type OrcaCorpus = { cases: Case[]; coverage: Disposition[]; pin: string }
  
  export async function orcaCorpus(): Promise<OrcaCorpus> {
    const pin = assertAtPin()
