@@ -11,9 +11,9 @@ include = ["src/**", "Cargo.toml"]
 doctest = false
 
 [dependencies]
-mimic-script-core = { version = "0.1.4", registry = "mla" }
-mimic-script-net = { version = "0.1.3", registry = "mla" }
-mimic-script-host = { version = "0.1.5", registry = "mla" }
+mimic-script-core = { version = "0.1.5", registry = "mla" }
+mimic-script-net = { version = "0.1.4", registry = "mla" }
+mimic-script-host = { version = "0.1.6", registry = "mla" }
 
 [dev-dependencies]
 mimic-core = { version = "0.1.1", registry = "mla" }
