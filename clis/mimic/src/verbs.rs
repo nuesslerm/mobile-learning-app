@@ -19,7 +19,8 @@ use mimic_core::allowlist::Allowlist;
 use mimic_core::cassette::{Current, Kind, ToolInfo};
 use mimic_core::corpus::{corpus_hash, expand, Case, CorpusSpec};
 use mimic_core::import::{self as legacy, Legacy};
-use mimic_core::differ::{diff_cassettes, Label, Verdict};
+use mimic_core::differ::{diff_cassettes, Label, Severity, Verdict};
+use mimic_core::gaps;
 use mimic_core::fixtures::{scan, FixtureFile, FixtureRules};
 use mimic_core::ports::{CassetteSet, Store, StoreError};
 use mimic_core::rules::RuleSet;
@@ -32,7 +33,7 @@ use std::path::{Path, PathBuf};
 use wf_kit::args::{parse_spec, Parsed, Positional, Spec};
 
 const RECORD: Spec = Spec { values: &["target", "seed", "recorded-on", "source", "stand-in", "chunk", "batch", "write-chunk", "stability", "max-minutes"], flags: &["keep-raw", "allow-nondeterministic", "resume", "fresh"], positional: Positional::Exactly(1), ..Spec::NONE };
-const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "rows", "allowlist", "suite"], positional: Positional::Exactly(1), ..Spec::NONE };
+const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "rows", "gaps", "allowlist", "suite"], positional: Positional::Exactly(1), ..Spec::NONE };
 const DIFF: Spec = Spec { values: &["allowlist"], positional: Positional::Exactly(2), ..Spec::NONE };
 const IMPORT: Spec = Spec { values: &["out", "root", "allowlist", "pin"], positional: Positional::Exactly(2), ..Spec::NONE };
 const EXPORT: Spec = Spec { values: &["out"], positional: Positional::Exactly(2), ..Spec::NONE };
@@ -326,6 +327,11 @@ fn replay(p: &Parsed) -> Done {
         }
         only = Some(chosen);
     }
+    let gaps_mode = match p.val("gaps") {
+        None => None,
+        Some(m @ ("check" | "write")) => Some(m),
+        Some(other) => return Err(fail(format!("--gaps takes check or write, not {other:?}"), format!("wf mimic replay {} --gaps check", set.dir.display()))),
+    };
     let started = wf_kit::time::now_ms();
     let mut driver = open_driver(candidate, candidate.spec.clone()).map_err(|e| fail(e, "fix [candidate] in mimic.toml"))?;
     let verdict = replay_set(&content, &mut *driver, &allow, &cfg.diff, only.as_deref()).map_err(|e| fail(e.to_string(), "fix rules.json"))?;
@@ -336,17 +342,57 @@ fn replay(p: &Parsed) -> Done {
         evidence_paths = json!({"report": report.display().to_string(), "trace": trace.display().to_string()});
     }
     warnings.extend(verdict.unused_allowlist.iter().map(|u| format!("allowlist entry {u} matched nothing: stale or over-broad")));
-    let ok = verdict.ok();
+    // --gaps: the differences are compared with (check) or written to (write) the set's known-gaps.json, for the chosen interactions only
+    let chosen: Vec<String> = only.clone().unwrap_or_else(|| content.cassette.interactions.iter().map(|i| i.id.clone()).collect());
+    let mut gaps_out = Value::Null;
+    let mut gaps_ok = true;
+    if let Some(mode) = gaps_mode {
+        let path = set.dir.join("known-gaps.json");
+        let listed = match std::fs::read_to_string(&path) {
+            Ok(text) => gaps::listed(&serde_json::from_str(&text).map_err(|e| fail(format!("{}: {e}", path.display()), "fix known-gaps.json"))?).map_err(|e| fail(format!("{}: {e}", path.display()), "fix known-gaps.json"))?,
+            Err(_) => Default::default(),
+        };
+        let name_of = |v: &serde_json::Value| v.as_str().unwrap_or_default().to_string();
+        let found: Vec<gaps::Found> = verdict
+            .results
+            .iter()
+            .map(|r| gaps::Found {
+                id: r.id.clone(),
+                lines: r
+                    .diffs
+                    .iter()
+                    .filter(|d| d.severity != Severity::None)
+                    .map(|d| format!("{} {} {}", d.path, name_of(&json!(d.kind)), name_of(&json!(d.severity))))
+                    .chain(r.error.as_ref().map(|e| format!("error {e}")))
+                    .collect(),
+            })
+            .collect();
+        if mode == "check" {
+            let slice: std::collections::BTreeMap<String, Vec<String>> = listed.iter().filter(|(id, _)| chosen.contains(id)).map(|(k, v)| (k.clone(), v.clone())).collect();
+            let (new, stale) = gaps::compare(&found, &slice);
+            gaps_ok = new.is_empty() && stale.is_empty();
+            gaps_out = json!({"mode": "check", "listed": slice.len(), "new": new, "stale": stale});
+        } else {
+            let mut merged: std::collections::BTreeMap<String, Vec<String>> = listed.into_iter().filter(|(id, _)| !chosen.contains(id)).collect();
+            merged.extend(found.iter().filter(|f| !f.lines.is_empty()).map(|f| (f.id.clone(), f.lines.clone())));
+            let all: Vec<gaps::Found> = merged.iter().map(|(id, lines)| gaps::Found { id: id.clone(), lines: lines.clone() }).collect();
+            let text = serde_json::to_string_pretty(&gaps::file(&all)).map_err(|e| fail(e.to_string(), "report a bug"))? + "\n";
+            std::fs::write(&path, text).map_err(|e| fail(format!("{}: {e}", path.display()), "make known-gaps.json writable"))?;
+            gaps_out = json!({"mode": "write", "listed": merged.len(), "wrote": path.display().to_string()});
+        }
+    }
+    let ok = if gaps_mode.is_some() { gaps_ok } else { verdict.ok() };
     wf_kit::logfmt::mcp("info", "mimic", "replay.done", &[("set", set.name.clone()), ("severity", format!("{:?}", verdict.severity))]);
     let first = labelled(&verdict).first().map(|r| r.id.clone());
     let next = match (&first, ok) {
         (_, true) => "nothing to do".to_string(),
+        _ if gaps_mode == Some("check") => format!("review the new and stale differences, then wf mimic replay {} --candidate {name} --gaps write (with the same --rows or --only)", set.dir.display()),
         (Some(id), _) => format!("wf mimic replay {} --candidate {name} --only {id}  (fix the candidate, or allowlist the path with a reason)", set.dir.display()),
         _ => "see results".to_string(),
     };
     let out = json!({
         "ok": ok, "set": set.name, "candidate": name, "severity": verdict.severity, "summary": verdict.summary, "results": labelled(&verdict),
-        "shrunk": verdict.shrunk, "chosen": only.as_ref().map(Vec::len), "evidence_rows": rows.len(), "unused_allowlist": verdict.unused_allowlist, "evidence": evidence_paths, "warnings": warnings, "next": next,
+        "shrunk": verdict.shrunk, "chosen": only.as_ref().map(Vec::len), "gaps": gaps_out, "evidence_rows": rows.len(), "unused_allowlist": verdict.unused_allowlist, "evidence": evidence_paths, "warnings": warnings, "next": next,
     });
     Ok((out, i32::from(!ok)))
 }

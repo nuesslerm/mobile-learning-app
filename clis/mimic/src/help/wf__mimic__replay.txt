@@ -19,6 +19,9 @@ Options:
   --only <id,...>             replay these interactions only
   --rows <prefix,...>         replay the interactions of the rows that start with a prefix (rpc:git.,http:voice.): a milestone's slice;
                               with --only, the ids of both; "chosen" in the output says how many
+  --gaps check|write          compare the differences with the set's known-gaps.json (check: a difference not listed, or a listed gap that no
+                              longer differs as listed, fails) or write them there (write: the chosen interactions' groups are replaced,
+                              the others kept); only the chosen interactions (--rows, --only) are compared. "gaps" holds the result
   --allowlist <file>          replace the allowlist of mimic.toml
   --suite <name>              write $WF_TEST_OUTPUT_DIR/<name>/report.json and
                               trace.json (method-trace/1 with each call's row and diff, and its test's cassette kind)
