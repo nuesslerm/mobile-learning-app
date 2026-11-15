@@ -179,6 +179,21 @@ fn given_a_file_and_a_folder_when_stat_then_size_kind_and_time_are_the_executors
 }
 
 #[test]
+fn given_a_batch_of_paths_when_checked_then_each_answers_whether_it_is_there_in_order_and_a_bad_batch_is_refused_whole() {
+    // Given a file and a folder
+    let mut rig = Rig::new();
+    rig.files.put("main", "d/f.txt", &payload(7));
+    // When a present file, a present folder and a missing path are checked together
+    let found = rig.ok("files.pathsExist", json!({"worktree": "main", "relativePaths": ["d/f.txt", "d", "nope.txt"]}));
+    // Then the answers are in the order asked: there, there, absent
+    assert_eq!(found, json!([{"exists": true}, {"exists": true}, {"exists": false}]));
+    // And an empty batch answers an empty list, a path outside the worktree and a batch of more than 128 are refused whole
+    assert_eq!(rig.ok("files.pathsExist", json!({"worktree": "main", "relativePaths": []})), json!([]));
+    assert_eq!(rig.err("files.pathsExist", json!({"worktree": "main", "relativePaths": ["../x"]})).0, "runtime_error");
+    assert_eq!(rig.err("files.pathsExist", json!({"worktree": "main", "relativePaths": vec!["a"; 129]})).0, "runtime_error");
+}
+
+#[test]
 fn given_a_new_name_when_a_file_is_created_then_it_is_there_empty_and_creating_it_again_is_refused() {
     // Given a workspace without the file
     let mut rig = Rig::new();

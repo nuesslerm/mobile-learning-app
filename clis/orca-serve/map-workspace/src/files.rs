@@ -8,7 +8,7 @@ use agent_api_workspace::FILE_LIST;
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use orca_core::wire::{Failure, RUNTIME_ERROR};
-use orca_core::AgentApi;
+use orca_core::{AgentApi, AgentError};
 use serde_json::{json, Value};
 
 const READ_MAX: usize = 512 * 1024;
@@ -208,6 +208,20 @@ pub(crate) fn stat(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
     let path = clean(text(params, "relativePath").filter(|p| !p.is_empty()).unwrap_or("."), true)?;
     let r = ask(agent, FILE_STAT.name(), args(&t, path))?;
     Ok(json!({"size": r["size"], "isDirectory": r["kind"] == "dir", "mtime": r["modified_ms"]}))
+}
+
+/// `files.pathsExist`: one answer per path, in order: whether it is there, or the sentence of a refusal that is not "absent". A batch the host
+/// would refuse whole (more than 128 paths, a path that is not a string, one outside the worktree) is refused whole.
+pub(crate) fn paths_exist(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    let t = resolve(agent, selector(params)?)?;
+    let paths = params["relativePaths"].as_array().filter(|p| p.len() <= 128 && p.iter().all(Value::is_string)).ok_or_else(|| plain("Invalid path existence batch"))?;
+    let cleaned = paths.iter().filter_map(Value::as_str).map(|p| clean(p, false)).collect::<Result<Vec<_>, _>>()?;
+    let answers = cleaned.into_iter().map(|path| match agent.request(FILE_STAT.name(), args(&t, path)) {
+        Ok(_) => json!({"exists": true}),
+        Err(AgentError::Refused { code, .. }) if code == "NOT_FOUND" => json!({"exists": false}),
+        Err(e) => json!({"error": crate::agent::refusal(e).message}),
+    });
+    Ok(Value::Array(answers.collect()))
 }
 
 pub(crate) fn create_file(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {

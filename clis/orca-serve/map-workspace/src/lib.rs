@@ -32,6 +32,7 @@ pub const FILES_READ_PREVIEW: &str = "files.readPreview";
 pub const FILES_READ_CHUNK: &str = "files.readChunk";
 pub const FILES_READ_DIR: &str = "files.readDir";
 pub const FILES_STAT: &str = "files.stat";
+pub const FILES_PATHS_EXIST: &str = "files.pathsExist";
 pub const FILES_CREATE_FILE: &str = "files.createFile";
 pub const FILES_OPEN: &str = "files.open";
 pub const FILES_OPEN_DIFF: &str = "files.openDiff";
@@ -68,6 +69,7 @@ const METHODS: &[Method] = &[
     Method { name: FILES_READ_CHUNK, kind: Kind::Unary },
     Method { name: FILES_READ_DIR, kind: Kind::Unary },
     Method { name: FILES_STAT, kind: Kind::Unary },
+    Method { name: FILES_PATHS_EXIST, kind: Kind::Unary },
     Method { name: FILES_CREATE_FILE, kind: Kind::Unary },
     Method { name: FOLDER_WORKSPACE_LIST, kind: Kind::Unary },
     Method { name: PROJECT_SECTIONS, kind: Kind::Unary },
@@ -123,6 +125,7 @@ impl Area for WorkspaceArea {
             FILES_READ_CHUNK => files::read_chunk(agent, params),
             FILES_READ_DIR => files::read_dir(agent, params),
             FILES_STAT => files::stat(agent, params),
+            FILES_PATHS_EXIST => files::paths_exist(agent, params),
             FILES_CREATE_FILE => files::create_file(agent, params),
             FOLDER_WORKSPACE_LIST => catalog::folder_workspaces(agent),
             PROJECT_SECTIONS => catalog::project_sections(agent),

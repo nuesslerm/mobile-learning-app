@@ -87,6 +87,10 @@ fn a_phone_lists_reads_and_previews_the_files_the_executor_holds_and_every_byte_
         let disk_ms = meta.modified().unwrap().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as u64;
         assert_eq!((stat["result"]["size"].clone(), stat["result"]["isDirectory"].clone()), (json!(blob.len()), json!(false)));
         assert!(stat["result"]["mtime"].as_u64().unwrap().abs_diff(disk_ms) < 2000, "{stat}");
+        // And a batch of an existing file, a folder and a missing name is answered by the executor's stat, in order
+        let exists = phone.call(case, &chain, &["rpc:files.pathsExist"], "files.pathsExist", with(json!({"relativePaths": ["data.bin", "no-such-file.txt"]})));
+        answered(case, "file.stat");
+        assert_eq!(exists["result"], json!([{"exists": true}, {"exists": false}]), "{exists}");
         let (mut got, mut offset) = (Vec::new(), 0usize);
         while got.len() < blob.len() {
             let chunk = phone.call(case, &chain, &["rpc:files.readChunk"], "files.readChunk", with(json!({"relativePath": "data.bin", "offset": offset, "length": 512})));
