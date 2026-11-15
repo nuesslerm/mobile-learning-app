@@ -115,7 +115,8 @@ impl Service {
     pub fn native_child_work(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let thread = field(payload, "threadId")?;
         if self.row(thread).is_none() {
-            return Err(QueryFailure::Error(json!({"_tag": "OrchestrationV2GetNativeChildWorkError", "threadId": thread, "message": "Failed to read the subagent's work."})));
+            let cause = json!({"cause": {"message": format!("No orchestration projection exists for thread {thread}."), "name": "ProjectionStoreThreadNotFoundError"}, "message": format!("Failed to load orchestration projection for thread {thread}."), "name": "OrchestratorProjectionError"});
+            return Err(QueryFailure::Error(json!({"_tag": "OrchestrationV2GetNativeChildWorkError", "cause": cause, "threadId": thread})));
         }
         Ok(json!({"children": []}))
     }

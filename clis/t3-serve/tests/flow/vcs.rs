@@ -278,6 +278,7 @@ fn the_branch_stream_is_the_branch_name_and_then_a_frame_only_when_it_changes_an
     }
     // Then the refresh succeeded with no value, the first frame is the branch, the second the new branch, and a changed file made no frame
     assert_eq!(refreshed["_tag"], "Success", "{refreshed}");
+    assert!(refreshed.get("value").is_some_and(Value::is_null), "{refreshed}");
     assert_eq!(frames, [json!({"refName": "main"}), json!({"refName": "feat"})]);
 }
 

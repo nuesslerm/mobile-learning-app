@@ -184,6 +184,7 @@ fn titles_and_link_metadata_answer_for_the_threads_t3_holds_and_leave_the_rest_o
     assert_eq!(success(&rpc.call("orchestration.getNativeChildWork", json!({"threadId": "t1"}))), &json!({"children": []}));
     let missing = rpc.call("orchestration.getNativeChildWork", json!({"threadId": "nobody"}));
     assert_eq!(missing["cause"][0]["error"]["_tag"], "OrchestrationV2GetNativeChildWorkError", "{missing}");
+    assert_eq!(missing["cause"][0]["error"]["cause"]["cause"]["message"], "No orchestration projection exists for thread nobody.", "{missing}");
     // And the prompt suggestion stream holds the single frame of no suggestion
     let stream = rpc.send("orchestration.subscribePromptSuggestion", json!({"threadId": "t1"}));
     assert_eq!(rpc.chunk(&stream), [Value::Null]);

@@ -279,20 +279,12 @@
         "t3-rpc-git.runStackedAction-invalid-wrong-type-actionId",
         "t3-rpc-orchestration.dispatchCommand-invalid-no-payload",
         "t3-rpc-orchestration.dispatchCommand-invalid-wrong-type",
-        "t3-rpc-orchestration.getNativeChildWork-invalid-drop-threadId",
-        "t3-rpc-orchestration.getNativeChildWork-invalid-no-payload",
         "t3-rpc-orchestration.getOlderSettledThreads-invalid-wrong-type-before",
-        "t3-rpc-orchestration.getThreadLinkMetadata-invalid-drop-threadIds",
-        "t3-rpc-orchestration.getThreadLinkMetadata-invalid-no-payload",
         "t3-rpc-orchestration.getThreadLinkMetadata-invalid-wrong-type-threadIds",
-        "t3-rpc-orchestration.getThreadTitles-invalid-drop-threadIds",
-        "t3-rpc-orchestration.getThreadTitles-invalid-no-payload",
         "t3-rpc-orchestration.getThreadTitles-invalid-wrong-type-threadIds",
         "t3-rpc-orchestration.getTurnDiff-invalid-drop-fromTurnCount",
         "t3-rpc-orchestration.getTurnDiff-invalid-no-payload",
         "t3-rpc-orchestration.getTurnDiff-invalid-wrong-type-fromTurnCount",
-        "t3-rpc-orchestration.subscribePromptSuggestion-invalid-drop-threadId",
-        "t3-rpc-orchestration.subscribePromptSuggestion-invalid-no-payload",
         "t3-rpc-peerLinks.answerRequest-invalid-drop-threadId",
         "t3-rpc-peerLinks.answerRequest-invalid-no-payload",
         "t3-rpc-peerLinks.link-invalid-drop-url",
@@ -366,8 +358,6 @@
         "t3-rpc-sourceControl.star-invalid-drop-provider",
         "t3-rpc-sourceControl.star-invalid-no-payload",
         "t3-rpc-sourceControl.star-invalid-wrong-type-provider",
-        "t3-rpc-subscribeVcsBranch-invalid-drop-cwd",
-        "t3-rpc-subscribeVcsBranch-invalid-no-payload",
         "t3-rpc-subscribeVcsBranch-invalid-wrong-type-cwd",
         "t3-rpc-terminal.open-invalid-drop-cwd",
         "t3-rpc-terminal.open-invalid-no-payload",
@@ -375,8 +365,6 @@
         "t3-rpc-vcs.createRef-invalid-wrong-type-cwd",
         "t3-rpc-vcs.listRefs-invalid-wrong-type-cwd",
         "t3-rpc-vcs.pull-invalid-wrong-type-cwd",
-        "t3-rpc-vcs.refreshBranch-invalid-drop-cwd",
-        "t3-rpc-vcs.refreshBranch-invalid-no-payload",
         "t3-rpc-vcs.refreshBranch-invalid-wrong-type-cwd",
         "t3-rpc-vcs.switchRef-invalid-wrong-type-cwd"
       ]
@@ -498,79 +486,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
-      ],
-      "ids": [
-        "t3-rpc-agentSessions.scan-invalid-no-payload",
-        "t3-rpc-agentSessions.scan-valid-min",
-        "t3-rpc-cloud.getRelayClientStatus-invalid-no-payload",
-        "t3-rpc-cloud.getRelayClientStatus-valid-min",
-        "t3-rpc-device.close-boundary-full",
-        "t3-rpc-device.close-invalid-wrong-type-threadId",
-        "t3-rpc-device.close-valid-min",
-        "t3-rpc-device.configure-boundary-full",
-        "t3-rpc-device.configure-invalid-no-payload",
-        "t3-rpc-device.configure-valid-min",
-        "t3-rpc-device.list-invalid-no-payload",
-        "t3-rpc-device.list-valid-min",
-        "t3-rpc-filesystem.browse-boundary-full",
-        "t3-rpc-filesystem.browse-valid-min",
-        "t3-rpc-orchestration.getFullThreadDiff-boundary-full",
-        "t3-rpc-orchestration.getFullThreadDiff-boundary-limit-toTurnCount",
-        "t3-rpc-orchestration.getFullThreadDiff-invalid-wrong-type-threadId",
-        "t3-rpc-orchestration.getFullThreadDiff-valid-min",
-        "t3-rpc-orchestration.getOlderSettledThreads-boundary-full",
-        "t3-rpc-orchestration.getOlderSettledThreads-valid-min",
-        "t3-rpc-orchestration.getThreadLinkMetadata-boundary-full",
-        "t3-rpc-orchestration.getThreadLinkMetadata-valid-min",
-        "t3-rpc-orchestration.getThreadTitles-boundary-full",
-        "t3-rpc-orchestration.getThreadTitles-valid-min",
-        "t3-rpc-orchestration.getTurnItem-boundary-full",
-        "t3-rpc-orchestration.getTurnItem-invalid-wrong-type-threadId",
-        "t3-rpc-orchestration.getTurnItem-valid-min",
-        "t3-rpc-orchestration.getWorktreeThreadIds-valid-min",
-        "t3-rpc-preview.clearProfile-valid-min",
-        "t3-rpc-preview.reportProfiles-valid-min",
-        "t3-rpc-pullRequests.filterOptions-boundary-full",
-        "t3-rpc-pullRequests.filterOptions-valid-min",
-        "t3-rpc-pullRequests.listStats-boundary-full",
-        "t3-rpc-scheduledTasks.delete-invalid-wrong-type-id",
-        "t3-rpc-scheduledTasks.delete-valid-min",
-        "t3-rpc-scheduledTasks.listWebhookDeliveries-boundary-full",
-        "t3-rpc-scheduledTasks.listWebhookDeliveries-invalid-wrong-type-id",
-        "t3-rpc-scheduledTasks.listWebhookDeliveries-valid-min",
-        "t3-rpc-server.acceptAcpRegistryUrlAuth-valid-min",
-        "t3-rpc-server.getProcessDiagnostics-invalid-no-payload",
-        "t3-rpc-server.getProcessDiagnostics-valid-min",
-        "t3-rpc-server.getProcessResourceHistory-boundary-limit-windowMs",
-        "t3-rpc-server.getProcessResourceHistory-valid-min",
-        "t3-rpc-server.getResourceTelemetryHistory-boundary-limit-windowMs",
-        "t3-rpc-server.getResourceTelemetryHistory-valid-min",
-        "t3-rpc-server.getTraceDiagnostics-invalid-no-payload",
-        "t3-rpc-server.getTraceDiagnostics-valid-min",
-        "t3-rpc-server.prepareTriage-boundary-full",
-        "t3-rpc-server.prepareTriage-valid-min",
-        "t3-rpc-server.refreshProviders-boundary-full",
-        "t3-rpc-server.retryResourceTelemetry-invalid-no-payload",
-        "t3-rpc-server.retryResourceTelemetry-valid-min",
-        "t3-rpc-server.runStorageCleanup-invalid-no-payload",
-        "t3-rpc-server.runStorageCleanup-valid-min",
-        "t3-rpc-server.searchAcpRegistry-valid-min",
-        "t3-rpc-server.signalProcess-boundary-limit-pid",
-        "t3-rpc-server.signalProcess-valid-min",
-        "t3-rpc-server.uninstallAcpRegistryManagedBinary-valid-min",
-        "t3-rpc-sourceControl.appAccess-valid-min",
-        "t3-rpc-sourceControl.star-valid-min",
-        "t3-rpc-sourceControl.starred-valid-min",
-        "t3-rpc-vcs.refreshBranch-valid-min"
-      ]
-    },
-    {
       "class": "kind at steps.http:ret:_.[*].payload.body",
       "severity": "breaking",
       "diffs": [
@@ -639,6 +554,74 @@
         "t3-http-voice.updateAcceleration-invalid-wrong-type-acceleration",
         "t3-http-voice.updateModelUnloadTimeout-invalid-drop-timeout",
         "t3-http-voice.updateModelUnloadTimeout-invalid-wrong-type-timeout"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
+      ],
+      "ids": [
+        "t3-rpc-agentSessions.scan-invalid-no-payload",
+        "t3-rpc-agentSessions.scan-valid-min",
+        "t3-rpc-cloud.getRelayClientStatus-invalid-no-payload",
+        "t3-rpc-cloud.getRelayClientStatus-valid-min",
+        "t3-rpc-device.close-boundary-full",
+        "t3-rpc-device.close-invalid-wrong-type-threadId",
+        "t3-rpc-device.close-valid-min",
+        "t3-rpc-device.configure-boundary-full",
+        "t3-rpc-device.configure-invalid-no-payload",
+        "t3-rpc-device.configure-valid-min",
+        "t3-rpc-device.list-invalid-no-payload",
+        "t3-rpc-device.list-valid-min",
+        "t3-rpc-filesystem.browse-boundary-full",
+        "t3-rpc-filesystem.browse-valid-min",
+        "t3-rpc-orchestration.getFullThreadDiff-boundary-full",
+        "t3-rpc-orchestration.getFullThreadDiff-boundary-limit-toTurnCount",
+        "t3-rpc-orchestration.getFullThreadDiff-invalid-wrong-type-threadId",
+        "t3-rpc-orchestration.getFullThreadDiff-valid-min",
+        "t3-rpc-orchestration.getOlderSettledThreads-boundary-full",
+        "t3-rpc-orchestration.getOlderSettledThreads-valid-min",
+        "t3-rpc-orchestration.getTurnItem-boundary-full",
+        "t3-rpc-orchestration.getTurnItem-invalid-wrong-type-threadId",
+        "t3-rpc-orchestration.getTurnItem-valid-min",
+        "t3-rpc-orchestration.getWorktreeThreadIds-valid-min",
+        "t3-rpc-preview.clearProfile-valid-min",
+        "t3-rpc-preview.reportProfiles-valid-min",
+        "t3-rpc-pullRequests.filterOptions-boundary-full",
+        "t3-rpc-pullRequests.filterOptions-valid-min",
+        "t3-rpc-pullRequests.listStats-boundary-full",
+        "t3-rpc-scheduledTasks.delete-invalid-wrong-type-id",
+        "t3-rpc-scheduledTasks.delete-valid-min",
+        "t3-rpc-scheduledTasks.listWebhookDeliveries-boundary-full",
+        "t3-rpc-scheduledTasks.listWebhookDeliveries-invalid-wrong-type-id",
+        "t3-rpc-scheduledTasks.listWebhookDeliveries-valid-min",
+        "t3-rpc-server.acceptAcpRegistryUrlAuth-valid-min",
+        "t3-rpc-server.getProcessDiagnostics-invalid-no-payload",
+        "t3-rpc-server.getProcessDiagnostics-valid-min",
+        "t3-rpc-server.getProcessResourceHistory-boundary-limit-windowMs",
+        "t3-rpc-server.getProcessResourceHistory-valid-min",
+        "t3-rpc-server.getResourceTelemetryHistory-boundary-limit-windowMs",
+        "t3-rpc-server.getResourceTelemetryHistory-valid-min",
+        "t3-rpc-server.getTraceDiagnostics-invalid-no-payload",
+        "t3-rpc-server.getTraceDiagnostics-valid-min",
+        "t3-rpc-server.prepareTriage-boundary-full",
+        "t3-rpc-server.prepareTriage-valid-min",
+        "t3-rpc-server.refreshProviders-boundary-full",
+        "t3-rpc-server.retryResourceTelemetry-invalid-no-payload",
+        "t3-rpc-server.retryResourceTelemetry-valid-min",
+        "t3-rpc-server.runStorageCleanup-invalid-no-payload",
+        "t3-rpc-server.runStorageCleanup-valid-min",
+        "t3-rpc-server.searchAcpRegistry-valid-min",
+        "t3-rpc-server.signalProcess-boundary-limit-pid",
+        "t3-rpc-server.signalProcess-valid-min",
+        "t3-rpc-server.uninstallAcpRegistryManagedBinary-valid-min",
+        "t3-rpc-sourceControl.appAccess-valid-min",
+        "t3-rpc-sourceControl.star-valid-min",
+        "t3-rpc-sourceControl.starred-valid-min"
       ]
     },
     {
@@ -720,32 +703,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.values",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.values missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit extra drift"
-      ],
-      "ids": [
-        "t3-rpc-orchestration.subscribePromptSuggestion-invalid-wrong-type-threadId",
-        "t3-rpc-orchestration.subscribePromptSuggestion-valid-min",
-        "t3-rpc-orchestration.subscribeThread-boundary-full",
-        "t3-rpc-server.getStorageCleanupReport-invalid-no-payload",
-        "t3-rpc-server.getStorageCleanupReport-valid-min",
-        "t3-rpc-subscribeAuthAccess-invalid-no-payload",
-        "t3-rpc-subscribeAuthAccess-valid-min",
-        "t3-rpc-subscribeDeviceState-invalid-no-payload",
-        "t3-rpc-subscribeDeviceState-valid-min",
-        "t3-rpc-subscribeDiscoveredLocalServers-boundary-full",
-        "t3-rpc-subscribeDiscoveredLocalServers-invalid-no-payload",
-        "t3-rpc-subscribeDiscoveredLocalServers-valid-min",
-        "t3-rpc-subscribeResourceTelemetry-invalid-no-payload",
-        "t3-rpc-subscribeResourceTelemetry-valid-min",
-        "t3-rpc-subscribeVcsBranch-valid-min"
-      ]
-    },
-    {
       "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error._tag",
       "severity": "drift",
       "diffs": [
@@ -773,6 +730,29 @@
       ]
     },
     {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.values missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit extra drift"
+      ],
+      "ids": [
+        "t3-rpc-orchestration.subscribeThread-boundary-full",
+        "t3-rpc-server.getStorageCleanupReport-invalid-no-payload",
+        "t3-rpc-server.getStorageCleanupReport-valid-min",
+        "t3-rpc-subscribeAuthAccess-invalid-no-payload",
+        "t3-rpc-subscribeAuthAccess-valid-min",
+        "t3-rpc-subscribeDeviceState-invalid-no-payload",
+        "t3-rpc-subscribeDeviceState-valid-min",
+        "t3-rpc-subscribeDiscoveredLocalServers-boundary-full",
+        "t3-rpc-subscribeDiscoveredLocalServers-invalid-no-payload",
+        "t3-rpc-subscribeDiscoveredLocalServers-valid-min",
+        "t3-rpc-subscribeResourceTelemetry-invalid-no-payload",
+        "t3-rpc-subscribeResourceTelemetry-valid-min"
+      ]
+    },
+    {
       "class": "missing at steps.http:ret:_.[*].payload.body._tag",
       "severity": "breaking",
       "diffs": [
@@ -795,27 +775,6 @@
         "t3-http-voice.removeModel-valid-min",
         "t3-http-voice.selectModel-boundary-limit-modelId",
         "t3-http-voice.selectModel-valid-min"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect extra drift"
-      ],
-      "ids": [
-        "t3-command-thread.created.record-invalid-wrong-type-commandId",
-        "t3-command-thread.created.record-valid-min",
-        "t3-command-thread.tag.set-invalid-wrong-type-commandId",
-        "t3-command-thread.tag.set-valid-min",
-        "t3-rpc-orchestration.getNativeChildWork-invalid-wrong-type-threadId",
-        "t3-rpc-orchestration.getNativeChildWork-valid-min",
-        "t3-rpc-provider.auth.removeMethod-valid-min",
-        "t3-rpc-server.listTextGeneratorModels-valid-min",
-        "t3-rpc-server.reclaimDatabaseSpace-invalid-no-payload",
-        "t3-rpc-server.reclaimDatabaseSpace-valid-min"
       ]
     },
     {
@@ -922,6 +881,25 @@
         "t3-http-webhooks.webhookPost-invalid-no-payload",
         "t3-http-webhooks.webhookPut-empty-empty-object",
         "t3-http-webhooks.webhookPut-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect extra drift"
+      ],
+      "ids": [
+        "t3-command-thread.created.record-invalid-wrong-type-commandId",
+        "t3-command-thread.created.record-valid-min",
+        "t3-command-thread.tag.set-invalid-wrong-type-commandId",
+        "t3-command-thread.tag.set-valid-min",
+        "t3-rpc-provider.auth.removeMethod-valid-min",
+        "t3-rpc-server.listTextGeneratorModels-valid-min",
+        "t3-rpc-server.reclaimDatabaseSpace-invalid-no-payload",
+        "t3-rpc-server.reclaimDatabaseSpace-valid-min"
       ]
     },
     {
@@ -3056,6 +3034,16 @@
       ],
       "ids": [
         "t3-rpc-orchestration.subscribeThread-valid-golden"
+      ]
+    },
+    {
+      "class": "kind at steps.ws:s2c:*.[*].payload.values.[*].refName",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.values.[0].refName kind breaking"
+      ],
+      "ids": [
+        "t3-rpc-subscribeVcsBranch-valid-min"
       ]
     }
   ]

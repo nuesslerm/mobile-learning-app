@@ -335,7 +335,7 @@ impl Connection {
                 };
                 vec![self.answered(&id, tag, answer.map(Some))]
             }
-            "vcs.refreshBranch" => vec![self.answered(&id, tag, self.svc.vcs_refresh_branch(payload).map(|()| None))],
+            "vcs.refreshBranch" => vec![self.answered(&id, tag, self.svc.vcs_refresh_branch(payload).map(|()| Some(Value::Null)))],
             "subscribeVcsBranch" => match self.svc.open_vcs_branch(payload) {
                 Ok((fold, first)) => {
                     let stop = Arc::new(AtomicBool::new(false));
