@@ -14,3 +14,11 @@ One entry per night, appended by the nightly audit session (the "Nightly audit c
 - Fixes landed: none. Cause of the cargo cache misses not yet read from the ledger; `wf ci audit` could not run here (no `bws`, no ledger credentials).
 - Earlier fixes checked: none listed in the last 7 days.
 - Tracker: t3 pinned 0.1.6, latest 0.1.9 (drifted); orca check failed with 403 from api.github.com (no `GITHUB_TOKEN`); run 43403225970 failed in the record legs `record orca-scenarios` and `record orca-recorded`. Nothing landed.
+
+## 2026-11-15
+
+- Verdict: run 43579208549 (scheduled 2026-11-14 09:09 UTC, about 19 h old), `ok: false`, 490 findings, 132 hard: 64 `should-have-hit`, 59 `rejected-write`, 9 `seeded-lost`, 358 `replayed-nothing`. Largest waste: `crate-deploy:cargo-flow` (345 s, 211 s), `crate-t3-serve:cargo-flow` (116 s), `@backend/reporting-service:test:flow` (100 s). Worse than 2026-11-14 (299 findings, 90 hard): the cache misses and rejected writes persist.
+- Fixes landed: none. The cause of the cache misses and rejected writes is not yet traced; `wf ci audit` cannot run here (no `bws`, no ledger credentials).
+- Earlier fixes checked: none listed in the last 7 days.
+- Tracker: t3 now pinned 0.1.9, latest 0.1.9 (current). Newest track-contracts run 43651197829 (2026-11-14 23:02 UTC) failed in the drift report step; the run before it, 43647841263, passed. Orca not checked (no `GITHUB_TOKEN`).
+- Inbox issue `#79` not updated: `gh issue view` is blocked in this session (GraphQL); the cache findings need a traced cause first.
