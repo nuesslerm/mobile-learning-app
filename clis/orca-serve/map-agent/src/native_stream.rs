@@ -57,7 +57,15 @@ fn first_message(params: &Value, key: &str, missing: &str) -> Result<String, Fai
 }
 
 /// `{agent, sessionId, limit?, subscriptionId?, resumeAfter?}`: the first issue of the pinned schema is the message; unknown keys are dropped.
-fn read(params: &Value) -> Result<(String, String, usize, Option<String>, Option<(String, u64)>), Failure> {
+struct Ask {
+    agent: String,
+    session: String,
+    window: usize,
+    token: Option<String>,
+    resume: Option<(String, u64)>,
+}
+
+fn read(params: &Value) -> Result<Ask, Failure> {
     if !params.is_object() {
         return Err(Failure::invalid(format!("Invalid input: expected object, received {}", if params.is_null() { "undefined" } else { received(params) })));
     }
@@ -84,7 +92,7 @@ fn read(params: &Value) -> Result<(String, String, usize, Option<String>, Option
         let (id, order, stamp) = (r.get("id")?.as_str().filter(|s| !s.is_empty())?, r.get("transcriptOrder")?.as_u64()?, r.get("timestamp")?);
         (stamp.is_null() || stamp.is_number()).then(|| (id.to_string(), order))
     });
-    Ok((agent, session, window, token, resume))
+    Ok(Ask { agent, session, window, token, resume })
 }
 
 fn unavailable() -> Value {
@@ -111,7 +119,7 @@ fn snapshot(folded: &Folded, window: usize, resume: &Option<(String, u64)>) -> V
 }
 
 pub(crate) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription>, Failure> {
-    let (agent_name, session, window, token, resume) = read(params)?;
+    let Ask { agent: agent_name, session, window, token, resume } = read(params)?;
     let id = format!("nativeChat:{}:{}", ctx.connection_id, token.unwrap_or_else(|| format!("{agent_name}:{session}")));
     // one stream per cleanup token: a second open of it replaces the first
     ctx.subscriptions.cancel(&id);

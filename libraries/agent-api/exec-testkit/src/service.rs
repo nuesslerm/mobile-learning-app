@@ -14,6 +14,7 @@ use std::time::{Duration, Instant};
 pub const ENV_BIN: &str = "RCA_SERVICE_BIN";
 
 /// How long the service may take to answer `/health` after it starts.
+const BIND_ATTEMPTS: usize = 5;
 const START_WAIT: Duration = Duration::from_secs(60);
 
 /// `<target>/<profile>/deps/<test binary>` is where a test runs from, so the target directory is three levels up.
@@ -89,6 +90,21 @@ impl RcaService {
 
     /// `start`, with the environment variables `env` set as well (such as the address of the model API the service writes commit messages with).
     pub fn start_with_env(secret: &str, path: &OsString, env: &[(&str, &str)]) -> RcaService {
+        // The port is chosen by binding port 0 and letting go of it, so another process (a test starting beside this one, a client's own
+        // ephemeral port) can take it before the service binds: that is a lost race for the port, not a failure of the service, and a new
+        // port settles it. Nothing else is tried again.
+        for _ in 0..BIND_ATTEMPTS {
+            match RcaService::try_start(secret, path, env) {
+                Ok(service) => return service,
+                Err(log) if log.contains("server.bind.failed") => continue,
+                Err(log) => panic!("{log}"),
+            }
+        }
+        panic!("rca-service could not bind a free port in {BIND_ATTEMPTS} attempts")
+    }
+
+    /// One start: the service, or what went wrong as text (the service's log when it ended before it served).
+    fn try_start(secret: &str, path: &OsString, env: &[(&str, &str)]) -> Result<RcaService, String> {
         let port = TcpListener::bind("127.0.0.1:0").and_then(|l| l.local_addr()).expect("a free port").port();
         let home = tempfile::Builder::new().prefix("rca-service-home-").tempdir().expect("a home for the service");
         let log = std::fs::File::create(home.path().join("service.log")).expect("a log file");
@@ -112,12 +128,14 @@ impl RcaService {
         let deadline = Instant::now() + START_WAIT;
         loop {
             if let Ok(Some(status)) = service.child.try_wait() {
-                panic!("rca-service ended with {status} before it served /health:\n{}", service.logs());
+                return Err(format!("rca-service ended with {status} before it served /health:\n{}", service.logs()));
             }
             if http(addr, "GET", "/health", &[], "").is_ok_and(|(status, _)| status == 200) {
-                return service;
+                return Ok(service);
             }
-            assert!(Instant::now() < deadline, "rca-service did not serve /health within {START_WAIT:?}:\n{}", service.logs());
+            if Instant::now() >= deadline {
+                return Err(format!("rca-service did not serve /health within {START_WAIT:?}:\n{}", service.logs()));
+            }
             std::thread::sleep(Duration::from_millis(50));
         }
     }
