@@ -763,6 +763,16 @@
     },
     "rpc:terminal.openInputSession": {
       "oracle": "mimic"
+    },
+    "rpc:terminal.getAutoRestoreFit": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host keeps how long a phone-fitted terminal stays fitted before the desktop size is restored; rca has no desktop size to restore and no timer that resizes a pty back, so a kept value would change nothing.",
+      "decidedBy": "M12"
+    },
+    "rpc:terminal.setAutoRestoreFit": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host keeps how long a phone-fitted terminal stays fitted before the desktop size is restored; rca has no desktop size to restore and no timer that resizes a pty back, so a kept value would change nothing.",
+      "decidedBy": "M12"
     }
   },
   "reverify": {

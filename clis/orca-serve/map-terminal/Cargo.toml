@@ -16,6 +16,7 @@ orca-core = { path = "../core" }
 orca-map-workspace = { path = "../map-workspace" }
 agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
 agent-api-terminal = { path = "../../../libraries/agent-api/agent-api-terminal" }
+orca-map-state = { path = "../map-state" }
 serde_json = { version = "1", features = ["preserve_order"] }
 
 [dev-dependencies]

@@ -124,3 +124,41 @@ fn a_phone_fits_a_terminal_to_its_screen_and_the_executors_pty_is_resized_and_a_
         assert_eq!(dead["error"]["message"], json!("no_connected_pty"));
     });
 }
+
+#[test]
+fn a_phone_creates_lists_activates_and_closes_terminal_tabs_and_each_call_reached_rca_and_the_phones_front_tab_is_kept_by_the_service() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a shell on the executor and a paired phone
+        let chain = Chain::start(None);
+        let mut direct = chain.direct();
+        direct.call("terminal", "terminal.open", json!({"workspace": WS, "terminal": "t1"})).expect("the service opens the shell");
+        let mut phone = Phone::connect(case, &chain);
+        let selector = json!({"worktree": format!("id:{WS}::")});
+        // When the phone lists the tabs
+        let listed = phone.call(case, &chain, &["rpc:session.tabs.list"], "session.tabs.list", selector.clone());
+        // Then rca listed the terminals and the shell is the one tab, in front, with its pty
+        answered(case, "terminal.list", true);
+        assert_eq!((listed["result"]["tabs"][0]["id"].clone(), listed["result"]["activeTabId"].clone(), listed["result"]["tabs"][0]["ptyId"].clone()), (json!("t1"), json!("t1"), json!(format!("{WS}:t1"))));
+        // When it creates a terminal tab
+        let created = phone.call(case, &chain, &["rpc:session.tabs.createTerminal"], "session.tabs.createTerminal", json!({"worktree": format!("id:{WS}::"), "title": "build"}));
+        // Then the executor opened a pty, the front tab is kept in the service's state, and the tab reads as in front
+        answered(case, "terminal.open", true);
+        assert!(ran(case, "pty_open"), "{}", chain.evidence());
+        answered(case, "state.set", true);
+        assert_eq!((created["result"]["tab"]["id"].clone(), created["result"]["tab"]["isActive"].clone()), (json!("terminal-1"), json!(true)));
+        // When it activates the first tab again
+        let activated = phone.call(case, &chain, &["rpc:session.tabs.activate"], "session.tabs.activate", json!({"worktree": format!("id:{WS}::"), "tabId": "t1"}));
+        // Then the service kept the choice and a list reads it
+        answered(case, "state.set", true);
+        assert_eq!(activated["result"]["activeTabId"], json!("t1"));
+        let again = phone.call(case, &chain, &["rpc:session.tabs.list"], "session.tabs.list", selector.clone());
+        assert_eq!(again["result"]["activeTabId"], json!("t1"));
+        // When it closes the second tab
+        let closed = phone.call(case, &chain, &["rpc:session.tabs.close"], "session.tabs.close", json!({"worktree": format!("id:{WS}::"), "tabId": "terminal-1"}));
+        // Then the executor closed that pty and only the shell is left
+        answered(case, "terminal.close", true);
+        assert!(ran(case, "pty_close"), "{}", chain.evidence());
+        assert_eq!(closed["result"]["closed"], json!(true));
+        assert_eq!(direct.call("terminal", "terminal.list", json!({"workspace": WS})).unwrap()["terminals"].as_array().unwrap().len(), 1);
+    });
+}

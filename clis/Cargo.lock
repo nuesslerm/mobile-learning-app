@@ -2106,6 +2106,7 @@ dependencies = [
  "agent-api-proto",
  "agent-api-terminal",
  "orca-core",
+ "orca-map-state",
  "orca-map-terminal",
  "orca-map-workspace",
  "serde_json",

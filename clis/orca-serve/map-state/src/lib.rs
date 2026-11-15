@@ -7,13 +7,21 @@
 use agent_api_proto::Method as AgentMethod;
 use agent_api_state::SET;
 use orca_core::wire::{Failure, METHOD_NOT_FOUND};
-use orca_core::{Area, Ctx, Kind, Method};
+use orca_core::{AgentApi, Area, Ctx, Kind, Method};
 use serde_json::{json, Value};
 
 mod quick;
 mod settings;
 mod store;
 mod ui;
+
+/// What a mapping crate that keeps a value of its own under the scope `orca` sends.
+pub use agent_api_state::SET as STATE_SET;
+
+/// Keeps `value` under `key` of the scope `orca`, for a mapping crate that holds phone-owned state (the front tab of a worktree).
+pub fn keep(agent: &dyn AgentApi, key: &str, value: Value) -> Result<(), Failure> {
+    store::write(agent, key, value)
+}
 
 pub const SETTINGS_GET: &str = "settings.get";
 pub const SETTINGS_UPDATE: &str = "settings.update";

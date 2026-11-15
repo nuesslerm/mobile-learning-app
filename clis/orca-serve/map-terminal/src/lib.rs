@@ -2,11 +2,12 @@
 //! `<workspace>:<terminal>` (a terminal's name never holds a colon), a worktree selector names the workspace to list, and nothing here touches a
 //! pty. The streaming rows (`terminal.subscribe`, replay by byte offset) need the port to carry events and stay pending.
 use agent_api_proto::Method as AgentMethod;
-use agent_api_terminal::{code, CLEAR, CLOSE, LIST, RENAME, RESIZE, WRITE};
+use agent_api_terminal::{code, CLEAR, CLOSE, LIST, OPEN, RENAME, RESIZE, WRITE};
 use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::{Area, AgentApi, AgentError, Ctx, Kind, Method};
 use serde_json::{json, Value};
 
+mod tabs;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
@@ -20,9 +21,10 @@ pub const TERMINAL_SET_DISPLAY_MODE: &str = "terminal.setDisplayMode";
 pub const TERMINAL_ACK_OUTPUT: &str = "terminal.ackOutput";
 pub const TERMINAL_FOCUS: &str = "terminal.focus";
 pub const TERMINAL_OPEN_INPUT_SESSION: &str = "terminal.openInputSession";
+pub use tabs::{SESSION_TABS_ACTIVATE, SESSION_TABS_CLOSE, SESSION_TABS_CREATE_TERMINAL, SESSION_TABS_LIST, SESSION_TABS_SUBSCRIBE, SESSION_TABS_UNSUBSCRIBE};
 
 /// The agent methods this crate sends: a flow test holds the list to the methods really sent.
-pub const USES: &[AgentMethod] = &[LIST, WRITE, CLOSE, CLEAR, RENAME, RESIZE];
+pub const USES: &[AgentMethod] = &[LIST, WRITE, CLOSE, CLEAR, RENAME, RESIZE, OPEN, orca_map_state::STATE_SET];
 
 const METHODS: &[Method] = &[
     Method { name: TERMINAL_LIST, kind: Kind::Unary },
@@ -35,6 +37,12 @@ const METHODS: &[Method] = &[
     Method { name: TERMINAL_ACK_OUTPUT, kind: Kind::Unary },
     Method { name: TERMINAL_FOCUS, kind: Kind::Unary },
     Method { name: TERMINAL_OPEN_INPUT_SESSION, kind: Kind::Unary },
+    Method { name: SESSION_TABS_LIST, kind: Kind::Unary },
+    Method { name: SESSION_TABS_ACTIVATE, kind: Kind::Unary },
+    Method { name: SESSION_TABS_CLOSE, kind: Kind::Unary },
+    Method { name: SESSION_TABS_CREATE_TERMINAL, kind: Kind::Unary },
+    Method { name: SESSION_TABS_SUBSCRIBE, kind: Kind::Streaming },
+    Method { name: SESSION_TABS_UNSUBSCRIBE, kind: Kind::Unary },
 ];
 
 const INTERRUPT: &str = "\u{3}";
@@ -50,9 +58,21 @@ impl Area for TerminalArea {
         METHODS
     }
 
+    fn open(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Box<dyn orca_core::Subscription>, Failure> {
+        match method {
+            SESSION_TABS_SUBSCRIBE => tabs::open(ctx, params),
+            other => Err(Failure::new(orca_core::wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
+        }
+    }
+
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
         let agent = ctx.agent;
         match method {
+            SESSION_TABS_LIST => tabs::list(agent, params),
+            SESSION_TABS_ACTIVATE => tabs::activate(agent, params),
+            SESSION_TABS_CLOSE => tabs::close(agent, params),
+            SESSION_TABS_CREATE_TERMINAL => tabs::create_terminal(agent, params),
+            SESSION_TABS_UNSUBSCRIBE => tabs::unsubscribe(ctx, params),
             TERMINAL_LIST => list(agent, params),
             TERMINAL_SEND => send(agent, params),
             TERMINAL_CLOSE => close(agent, params),
@@ -68,7 +88,7 @@ impl Area for TerminalArea {
     }
 }
 
-fn refusal(error: AgentError) -> Failure {
+pub(crate) fn refusal(error: AgentError) -> Failure {
     match error {
         AgentError::Refused { code, message } => match code.as_str() {
             code::UNKNOWN_TERMINAL => Failure::new("terminal_handle_stale", "terminal_handle_stale"),
@@ -81,11 +101,11 @@ fn refusal(error: AgentError) -> Failure {
     }
 }
 
-fn ask(agent: &dyn AgentApi, method: AgentMethod, params: Value) -> Result<Value, Failure> {
+pub(crate) fn ask(agent: &dyn AgentApi, method: AgentMethod, params: Value) -> Result<Value, Failure> {
     agent.request(method.name(), params).map_err(refusal)
 }
 
-fn handle_of(workspace: &str, terminal: &str) -> String {
+pub(crate) fn handle_of(workspace: &str, terminal: &str) -> String {
     format!("{workspace}:{terminal}")
 }
 

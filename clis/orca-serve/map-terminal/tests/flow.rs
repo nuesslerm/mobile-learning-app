@@ -33,6 +33,19 @@ impl Rig {
         serde_json::from_str(&self.conn.on_message(&frame)[0]).unwrap()
     }
 
+    /// Every frame a request brings back, the reply and then what the open streams queued.
+    fn frames(&mut self, method: &str, params: Value) -> Vec<Value> {
+        self.n += 1;
+        let frame = json!({"id": format!("r{}", self.n), "method": method, "params": params}).to_string();
+        self.conn.on_message(&frame).iter().map(|f| serde_json::from_str(f).unwrap()).collect()
+    }
+
+    /// The events the open streams queued after their poll interval, as the phone reads them.
+    fn stream_events(&mut self) -> Vec<Value> {
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        self.conn.poll().iter().map(|f| serde_json::from_str::<Value>(f).unwrap()["result"].clone()).collect()
+    }
+
     fn ok(&mut self, method: &str, params: Value) -> Value {
         let r = self.call(method, params);
         assert_eq!(r["ok"], true, "{method}: {r}");
@@ -178,4 +191,80 @@ fn given_a_terminal_when_it_is_focused_or_an_input_session_is_opened_then_focus_
     // Then the phone gets no ordering ledger and falls back to unordered input
     assert_eq!(session, json!({"inputSessionId": null}));
     assert_eq!(rig.err("terminal.openInputSession", json!({"terminal": "main:t1", "client": {"id": "c1", "type": "desktop"}})), "invalid_argument");
+}
+
+fn tabs_of(snapshot: &Value) -> Vec<(String, bool)> {
+    snapshot["tabs"].as_array().unwrap().iter().map(|t| (t["id"].as_str().unwrap().to_string(), t["isActive"].as_bool().unwrap())).collect()
+}
+
+#[test]
+fn given_a_worktree_with_terminals_when_its_tabs_are_listed_activated_and_closed_then_each_terminal_is_a_tab_and_the_phone_owns_which_is_in_front() {
+    let mut rig = Rig::new();
+    let feat = json!({"worktree": "path:/srv/wt/feat"});
+    // When the phone lists the tabs of a worktree
+    let listed = rig.ok("session.tabs.list", feat.clone());
+    // Then every terminal is a terminal tab, the running one is in front, and an exited one has no pty
+    assert_eq!(tabs_of(&listed), [("gone".to_string(), false), ("t2".to_string(), true)]);
+    assert_eq!((listed["activeTabId"].clone(), listed["activeTabType"].clone(), listed["activeGroupId"].clone()), (json!("t2"), json!("terminal"), Value::Null));
+    assert_eq!(listed["tabs"][1]["ptyId"], json!("feat:t2"));
+    assert!(listed["tabs"][0].get("ptyId").is_none());
+    // When it activates the other tab
+    let activated = rig.ok("session.tabs.activate", json!({"worktree": "path:/srv/wt/feat", "tabId": "gone"}));
+    // Then that tab is in front, and a later list agrees
+    assert_eq!(tabs_of(&activated), [("gone".to_string(), true), ("t2".to_string(), false)]);
+    assert_eq!(tabs_of(&rig.ok("session.tabs.list", feat.clone())), [("gone".to_string(), true), ("t2".to_string(), false)]);
+    // And a tab that is no terminal, a missing tab id, an unknown worktree and a missing selector are each refused
+    let missing = rig.call("session.tabs.activate", json!({"worktree": "path:/srv/wt/feat", "tabId": "nope"}));
+    assert_eq!((missing["error"]["code"].clone(), missing["error"]["message"].clone()), (json!("runtime_error"), json!("tab_not_found")));
+    assert_eq!(rig.err("session.tabs.activate", json!({"worktree": "path:/srv/wt/feat"})), "invalid_argument");
+    assert_eq!(rig.err("session.tabs.list", json!({"worktree": "path:/nowhere"})), "selector_not_found");
+    assert_eq!(rig.err("session.tabs.list", json!({})), "invalid_argument");
+    // When the front tab is closed
+    let closed = rig.ok("session.tabs.close", json!({"worktree": "path:/srv/wt/feat", "tabId": "gone"}));
+    // Then rca closed the terminal, the phone reads it closed, and the other tab is in front again
+    assert_eq!(closed, json!({"closed": true}));
+    assert!(!rig.terminals.exists("feat", "gone"));
+    assert_eq!(tabs_of(&rig.ok("session.tabs.list", feat)), [("t2".to_string(), true)]);
+}
+
+#[test]
+fn given_a_worktree_when_a_terminal_tab_is_created_then_rca_opens_it_under_a_free_name_with_its_command_and_it_is_in_front() {
+    let mut rig = Rig::new();
+    // When the phone creates a terminal tab with a command, a title and an environment that holds a non-string
+    let created = rig.ok("session.tabs.createTerminal", json!({"worktree": "path:/srv/wt/feat", "title": "build", "command": "make", "env": {"A": "1", "B": 2}}));
+    // Then rca opened a terminal with only the string environment, wrote the command with a carriage return, and the new tab is in front
+    assert_eq!(created["tab"]["id"], json!("terminal-1"));
+    assert_eq!((created["tab"]["title"].clone(), created["tab"]["isActive"].clone()), (json!("build"), json!(true)));
+    assert_eq!(rig.terminals.opened()[0]["env"], json!({"A": "1"}));
+    assert_eq!(rig.terminals.written(), [("feat".to_string(), "terminal-1".to_string(), "make\r".to_string())]);
+    // And a second one takes the next free name
+    assert_eq!(rig.ok("session.tabs.createTerminal", json!({"worktree": "path:/srv/wt/feat"}))["tab"]["id"], json!("terminal-2"));
+}
+
+#[test]
+fn given_an_open_tabs_stream_when_a_tab_appears_then_the_phone_gets_a_snapshot_then_an_update_and_unsubscribing_ends_it() {
+    let mut rig = Rig::new();
+    let feat = json!({"worktree": "path:/srv/wt/feat"});
+    // When the phone subscribes to a worktree's tabs
+    let opened = rig.frames("session.tabs.subscribe", feat.clone());
+    // Then the first frame is the snapshot of its two tabs
+    assert_eq!(opened.len(), 1, "{opened:?}");
+    assert_eq!((opened[0]["result"]["type"].clone(), tabs_of(&opened[0]["result"]).len()), (json!("snapshot"), 2));
+    // And nothing more comes while the tabs hold still
+    assert!(rig.stream_events().is_empty());
+    // When a tab is created
+    rig.ok("session.tabs.createTerminal", feat.clone());
+    // Then the next frame is an update with three tabs
+    let next = rig.stream_events();
+    assert_eq!((next[0]["type"].clone(), tabs_of(&next[0]).len()), (json!("updated"), 3));
+    // When the phone unsubscribes by an id: selector that matches nothing, it still answers unsubscribed and the stream goes on
+    assert_eq!(rig.ok("session.tabs.unsubscribe", json!({"worktree": "id:nowhere::/x"})), json!({"unsubscribed": true}));
+    rig.ok("session.tabs.createTerminal", feat.clone());
+    assert_eq!(rig.stream_events()[0]["type"], json!("updated"));
+    // When it unsubscribes by the worktree
+    let ended = rig.frames("session.tabs.unsubscribe", feat);
+    // Then it is told so and the stream ends
+    assert_eq!(ended[0]["result"], json!({"unsubscribed": true}));
+    let tail: Vec<Value> = ended[1..].iter().map(|f| f["result"].clone()).chain(rig.stream_events()).collect();
+    assert!(tail.iter().any(|f| f["type"] == "end"), "{tail:?}");
 }

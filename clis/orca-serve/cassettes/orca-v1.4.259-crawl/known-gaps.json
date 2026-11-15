@@ -2167,18 +2167,6 @@
         "orca-runtimeEnvironment.wakeRecipeVm-invalid-drop-environment",
         "orca-runtimeEnvironment.wakeRecipeVm-invalid-no-payload",
         "orca-runtimeEnvironment.wakeRecipeVm-invalid-wrong-type-environment",
-        "orca-session.tabs.activate-boundary-full",
-        "orca-session.tabs.activate-boundary-limit-leafId",
-        "orca-session.tabs.activate-invalid-drop-worktree",
-        "orca-session.tabs.activate-invalid-no-payload",
-        "orca-session.tabs.activate-invalid-wrong-type-worktree",
-        "orca-session.tabs.activate-valid-min",
-        "orca-session.tabs.close-boundary-full",
-        "orca-session.tabs.close-boundary-limit-leafId",
-        "orca-session.tabs.close-invalid-drop-worktree",
-        "orca-session.tabs.close-invalid-no-payload",
-        "orca-session.tabs.close-invalid-wrong-type-worktree",
-        "orca-session.tabs.close-valid-min",
         "orca-session.tabs.closeLifecycle-boundary-full",
         "orca-session.tabs.closeLifecycle-boundary-limit-leafId",
         "orca-session.tabs.closeLifecycle-invalid-drop-worktree",
@@ -2186,15 +2174,6 @@
         "orca-session.tabs.closeLifecycle-invalid-wrong-type-worktree",
         "orca-session.tabs.closeLifecycle-valid-min",
         "orca-session.tabs.createTerminal-boundary-full",
-        "orca-session.tabs.createTerminal-boundary-limit-launchToken",
-        "orca-session.tabs.createTerminal-invalid-drop-worktree",
-        "orca-session.tabs.createTerminal-invalid-no-payload",
-        "orca-session.tabs.createTerminal-invalid-wrong-type-worktree",
-        "orca-session.tabs.createTerminal-valid-min",
-        "orca-session.tabs.list-invalid-drop-worktree",
-        "orca-session.tabs.list-invalid-no-payload",
-        "orca-session.tabs.list-invalid-wrong-type-worktree",
-        "orca-session.tabs.list-valid-min",
         "orca-session.tabs.move-invalid-no-payload",
         "orca-session.tabs.move-invalid-wrong-type",
         "orca-session.tabs.move-valid-min",
@@ -2210,11 +2189,6 @@
         "orca-session.tabs.setTabProps-invalid-no-payload",
         "orca-session.tabs.setTabProps-invalid-wrong-type-worktree",
         "orca-session.tabs.setTabProps-valid-min",
-        "orca-session.tabs.unsubscribe-boundary-full",
-        "orca-session.tabs.unsubscribe-invalid-drop-worktree",
-        "orca-session.tabs.unsubscribe-invalid-no-payload",
-        "orca-session.tabs.unsubscribe-invalid-wrong-type-worktree",
-        "orca-session.tabs.unsubscribe-valid-min",
         "orca-session.tabs.unsubscribeAll-invalid-wrong-type-subscriptionId",
         "orca-session.tabs.updatePaneLayout-boundary-full",
         "orca-session.tabs.updatePaneLayout-boundary-limit-expandedLeafId",
@@ -3533,22 +3507,6 @@
       ]
     },
     {
-      "class": "missing at steps._:s2c:*.[*].payload.result.settings.nativeChatCiResultLines",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.result.settings.agentDefaultArgs.kimi changed drift",
-        "steps._:s2c:0.[0].payload.result.settings.nativeChatCiResultLines missing breaking",
-        "steps._:s2c:0.[0].payload.result.settings.voice missing breaking",
-        "steps._:s2c:0.[0].payload.result.settings.workspaceCleanupPolicy missing breaking"
-      ],
-      "ids": [
-        "orca-settings.get-empty-empty-object",
-        "orca-settings.get-invalid-no-payload",
-        "orca-settings.update-invalid-no-payload",
-        "orca-settings.update-valid-min"
-      ]
-    },
-    {
       "class": "missing at steps._:s2c:*.[*].payload.result.claude.activeAccountIdsByRuntime",
       "severity": "breaking",
       "diffs": [
@@ -3715,23 +3673,6 @@
       ]
     },
     {
-      "class": "missing at steps._:s2c:*.[*].payload.result.ui.featureInteractions.agent-orchestration",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.result.ui.featureInteractions.agent-orchestration missing breaking",
-        "steps._:s2c:0.[0].payload.result.ui.gitGraphFiltersByWorktree missing breaking",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems changed breaking",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[10] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[11] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[12] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarUsageFormat missing breaking"
-      ],
-      "ids": [
-        "orca-ui.get-empty-empty-object",
-        "orca-ui.get-invalid-no-payload"
-      ]
-    },
-    {
       "class": "changed at steps._:s2c:*.[*].payload.result.ui.contextualToursSeenIds",
       "severity": "breaking",
       "diffs": [
@@ -3779,30 +3720,29 @@
       "class": "missing at steps._:s2c:*.[*].payload.result.ui.featureInteractions.agent-orchestration",
       "severity": "breaking",
       "diffs": [
+        "steps._:s2c:0.[0].payload.result.ui.featureInteractions.agent-orchestration missing breaking"
+      ],
+      "ids": [
+        "orca-ui.get-empty-empty-object",
+        "orca-ui.get-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.result.ui.featureInteractions.agent-orchestration",
+      "severity": "breaking",
+      "diffs": [
         "steps._:s2c:0.[0].payload.result.ui.featureInteractions.agent-orchestration missing breaking",
-        "steps._:s2c:0.[0].payload.result.ui.gitGraphFiltersByWorktree missing breaking",
-        "steps._:s2c:0.[0].payload.result.ui.lastActiveRepoId kind breaking",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems changed breaking",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[10] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[11] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[12] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarUsageFormat missing breaking"
+        "steps._:s2c:0.[0].payload.result.ui.lastActiveRepoId kind breaking"
       ],
       "ids": [
         "orca-ui.set-invalid-wrong-type-lastActiveRepoId"
       ]
     },
     {
-      "class": "missing at steps._:s2c:*.[*].payload.result.ui.gitGraphFiltersByWorktree",
+      "class": "missing at steps._:s2c:*.[*].payload.result.ui.jiraSavedFilterState",
       "severity": "breaking",
       "diffs": [
-        "steps._:s2c:0.[0].payload.result.ui.gitGraphFiltersByWorktree missing breaking",
-        "steps._:s2c:0.[0].payload.result.ui.jiraSavedFilterState missing breaking",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems changed breaking",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[10] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[11] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[12] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarUsageFormat missing breaking"
+        "steps._:s2c:0.[0].payload.result.ui.jiraSavedFilterState missing breaking"
       ],
       "ids": [
         "orca-ui.set-valid-min"

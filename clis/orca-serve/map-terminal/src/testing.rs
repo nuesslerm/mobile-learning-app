@@ -13,6 +13,7 @@ struct State {
     written: Vec<(String, String, String)>,
     cleared: Vec<String>,
     resized: Vec<(String, u64, u64)>,
+    opened: Vec<Value>,
 }
 
 #[derive(Clone, Default)]
@@ -40,6 +41,11 @@ impl Terminals {
     /// What `terminal.resize` was sent, as (terminal, cols, rows).
     pub fn resized(&self) -> Vec<(String, u64, u64)> {
         self.0.lock().unwrap().resized.clone()
+    }
+
+    /// What `terminal.open` was sent.
+    pub fn opened(&self) -> Vec<Value> {
+        self.0.lock().unwrap().opened.clone()
     }
 
     pub fn title(&self, workspace: &str, name: &str) -> Option<String> {
@@ -86,6 +92,18 @@ impl Terminals {
             }
             s.cleared.push(key.1.clone());
             Ok(json!({"workspace": key.0, "terminal": key.1}))
+        });
+        let me = self.clone();
+        agent.reply("terminal.open", move |p| {
+            let key = (p["workspace"].as_str().unwrap_or_default().to_string(), p["terminal"].as_str().unwrap_or_default().to_string());
+            let mut s = me.0.lock().unwrap();
+            if s.terminals.contains_key(&key) {
+                return Err(refused("TERMINAL_EXISTS", format!("{} already exists", key.1)));
+            }
+            let title = p["title"].as_str().unwrap_or(&key.1).to_string();
+            s.terminals.insert(key.clone(), (title.clone(), true));
+            s.opened.push(p.clone());
+            Ok(json!({"workspace": key.0, "terminal": key.1, "title": title}))
         });
         let me = self.clone();
         agent.reply("terminal.resize", move |p| {

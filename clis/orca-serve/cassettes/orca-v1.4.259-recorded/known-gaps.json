@@ -96,11 +96,6 @@
         "orca-repo.searchRefs",
         "orca-repo.sparsePresets",
         "orca-repo.update",
-        "orca-session.tabs.activate",
-        "orca-session.tabs.close",
-        "orca-session.tabs.createTerminal",
-        "orca-session.tabs.list",
-        "orca-session.tabs.unsubscribe",
         "orca-settings.mutateNativeChatSessionOptions",
         "orca-speech.dictation.chunk",
         "orca-speech.dictation.finish",
@@ -258,7 +253,6 @@
       ],
       "ids": [
         "orca-browser.screencast",
-        "orca-session.tabs.subscribe",
         "orca-terminal.subscribe"
       ]
     },
@@ -289,30 +283,10 @@
       ]
     },
     {
-      "class": "missing at steps._:s2c:*.[*].payload.result.settings.nativeChatCiResultLines",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.result.settings.agentDefaultArgs.kimi changed drift",
-        "steps._:s2c:0.[0].payload.result.settings.nativeChatCiResultLines missing breaking",
-        "steps._:s2c:0.[0].payload.result.settings.voice missing breaking",
-        "steps._:s2c:0.[0].payload.result.settings.workspaceCleanupPolicy missing breaking"
-      ],
-      "ids": [
-        "orca-settings.get",
-        "orca-settings.update"
-      ]
-    },
-    {
       "class": "missing at steps._:s2c:*.[*].payload.result.ui.featureInteractions.agent-orchestration",
       "severity": "breaking",
       "diffs": [
-        "steps._:s2c:0.[0].payload.result.ui.featureInteractions.agent-orchestration missing breaking",
-        "steps._:s2c:0.[0].payload.result.ui.gitGraphFiltersByWorktree missing breaking",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems changed breaking",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[10] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[11] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarItems.[12] changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.statusBarUsageFormat missing breaking"
+        "steps._:s2c:0.[0].payload.result.ui.featureInteractions.agent-orchestration missing breaking"
       ],
       "ids": [
         "orca-ui.get",
