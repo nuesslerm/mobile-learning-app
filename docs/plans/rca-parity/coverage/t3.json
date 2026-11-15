@@ -10,8 +10,8 @@
   "summary": {
     "rows": 222,
     "served": 169,
-    "pending": 17,
-    "notOffered": 36,
+    "pending": 9,
+    "notOffered": 44,
     "excluded": 0,
     "flagged": 0,
     "answeredByMapper": 0,
@@ -24,8 +24,7 @@
     "pendingByMilestone": {
       "M4": 4,
       "M9": 2,
-      "M10": 1,
-      "M12": 10
+      "M12": 3
     }
   },
   "rows": [
@@ -882,29 +881,37 @@
       "id": "http:voice.cancelModelDownload",
       "kind": "http",
       "name": "voice.cancelModelDownload",
-      "state": "pending",
-      "milestone": "M12"
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
+      "decidedBy": "M12"
     },
     {
       "id": "http:voice.cloudKeys",
       "kind": "http",
       "name": "voice.cloudKeys",
-      "state": "pending",
-      "milestone": "M12"
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "decidedBy": "M12"
     },
     {
       "id": "http:voice.cloudModels",
       "kind": "http",
       "name": "voice.cloudModels",
-      "state": "pending",
-      "milestone": "M12"
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "decidedBy": "M12"
     },
     {
       "id": "http:voice.downloadModel",
       "kind": "http",
       "name": "voice.downloadModel",
-      "state": "pending",
-      "milestone": "M12"
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
+      "decidedBy": "M12"
     },
     {
       "id": "http:voice.models",
@@ -917,15 +924,19 @@
       "id": "http:voice.selectModel",
       "kind": "http",
       "name": "voice.selectModel",
-      "state": "pending",
-      "milestone": "M12"
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
+      "decidedBy": "M12"
     },
     {
       "id": "http:voice.setCloudKey",
       "kind": "http",
       "name": "voice.setCloudKey",
-      "state": "pending",
-      "milestone": "M12"
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "decidedBy": "M12"
     },
     {
       "id": "http:voice.status",
@@ -945,8 +956,10 @@
       "id": "http:voice.transcribeCloud",
       "kind": "http",
       "name": "voice.transcribeCloud",
-      "state": "pending",
-      "milestone": "M12"
+      "state": "not-offered",
+      "milestone": "M12",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "decidedBy": "M12"
     },
     {
       "id": "mutation:project.create",
@@ -1807,8 +1820,10 @@
       "id": "rpc:provider.auth.removeMethod",
       "kind": "rpc",
       "name": "provider.auth.removeMethod",
-      "state": "pending",
-      "milestone": "M10"
+      "state": "not-offered",
+      "milestone": "M10",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca keeps no provider sign-in methods of its own: an agent CLI is signed in on the executor's machine, outside the service, so there is no method to remove.",
+      "decidedBy": "M10"
     },
     {
       "id": "rpc:provider.auth.respond",

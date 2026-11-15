@@ -349,6 +349,46 @@
     },
     "rpc:subscribeTerminalMetadata": {
       "oracle": "mimic"
+    },
+    "http:voice.cloudKeys": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "decidedBy": "M12"
+    },
+    "http:voice.setCloudKey": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "decidedBy": "M12"
+    },
+    "http:voice.cloudModels": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "decidedBy": "M12"
+    },
+    "http:voice.transcribeCloud": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "decidedBy": "M12"
+    },
+    "http:voice.downloadModel": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
+      "decidedBy": "M12"
+    },
+    "http:voice.cancelModelDownload": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
+      "decidedBy": "M12"
+    },
+    "http:voice.selectModel": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
+      "decidedBy": "M12"
+    },
+    "rpc:provider.auth.removeMethod": {
+      "state": "not-offered",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca keeps no provider sign-in methods of its own: an agent CLI is signed in on the executor's machine, outside the service, so there is no method to remove.",
+      "decidedBy": "M10"
     }
   },
   "reverify": {}
