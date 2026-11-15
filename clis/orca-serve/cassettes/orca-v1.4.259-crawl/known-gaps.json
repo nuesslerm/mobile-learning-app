@@ -3539,6 +3539,8 @@
         "steps._:s2c:0.[0].payload.result.appVersion changed drift",
         "steps._:s2c:0.[0].payload.result.authoritativeWindowId kind breaking",
         "steps._:s2c:0.[0].payload.result.capabilities changed breaking",
+        "steps._:s2c:0.[0].payload.result.capabilities.[0] changed drift",
+        "steps._:s2c:0.[0].payload.result.capabilities.[1] changed drift",
         "steps._:s2c:0.[0].payload.result.degradations missing breaking",
         "steps._:s2c:0.[0].payload.result.desktopWindowStatus missing breaking",
         "steps._:s2c:0.[0].payload.result.deviceScope changed drift",

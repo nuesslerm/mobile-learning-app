@@ -340,6 +340,21 @@
       ]
     },
     {
+      "class": "missing at steps._:s2c:*.[*].payload.error",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error missing breaking",
+        "steps._:s2c:0.[0].payload.message missing breaking",
+        "steps._:s2c:0.[0].payload.type changed drift",
+        "steps._:s2c:0.[0].payload.sessions extra drift",
+        "steps._:s2c:0.[0].payload.namingActiveSessionIds extra drift",
+        "steps._:s2c:0.[1] extra drift"
+      ],
+      "ids": [
+        "orca-agentSession.subscribeStatus"
+      ]
+    },
+    {
       "class": "missing at steps._:s2c:*.[*].payload.error.data",
       "severity": "breaking",
       "diffs": [
