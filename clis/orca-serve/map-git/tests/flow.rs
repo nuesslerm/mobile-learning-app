@@ -451,3 +451,19 @@ fn given_no_generation_running_when_the_phone_cancels_one_then_the_host_says_ok_
     let r: Value = serde_json::from_str(&r[0]).unwrap();
     assert_eq!(r["error"]["code"], "selector_not_found");
 }
+
+#[test]
+fn given_diff_paths_the_host_would_not_accept_when_asked_then_they_are_the_plain_runtime_error_and_a_path_with_a_trailing_slash_or_backslash_is_normalized() {
+    // Given a repository with a file under a directory
+    let mut rig = Rig::new();
+    let commit = pad('b');
+    rig.repo.blob(&commit, "src/a.txt", b"hello");
+    // When bad paths are asked for (after a valid schema), Then each is the host's invalid_relative_path error and rca reads no blob
+    for bad in ["../x", "/abs", "C:/x", "a//b", "./a", ".", "/", "///"] {
+        assert_eq!(rig.err("git.commitDiff", json!({"filePath": bad, "commitOid": commit})), ("runtime_error".to_string(), "invalid_relative_path".to_string()), "{bad}");
+    }
+    assert!(rig.sent().iter().all(|(m, _)| m != "git.blob"));
+    // And a backslash path and a trailing slash read the same file, and an empty oldPath is no oldPath
+    let read = rig.ok("git.commitDiff", json!({"filePath": "src\\a.txt", "commitOid": commit, "oldPath": ""}));
+    assert_eq!(read["modifiedContent"], json!("hello"));
+}

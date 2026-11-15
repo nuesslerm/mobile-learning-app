@@ -108,6 +108,17 @@ fn build(left: Side, right: Side, path: &str) -> Value {
     }
 }
 
+/// `normalizeRuntimeGitRelativePath`: backslashes become `/`, a trailing `/` goes, and an empty, absolute or `.`/`..` path is the host's plain error.
+fn relative(path: &str) -> Result<String, Failure> {
+    let slashed = path.replace('\\', "/");
+    let trimmed = slashed.trim_end_matches('/');
+    let drive = trimmed.len() >= 2 && trimmed.as_bytes()[0].is_ascii_alphabetic() && trimmed.as_bytes()[1] == b':' && (trimmed.len() == 2 || trimmed.as_bytes()[2] == b'/');
+    if trimmed.is_empty() || trimmed.starts_with('/') || drive || trimmed.split('/').any(|s| matches!(s, "" | "." | "..")) {
+        return Err(Failure::new(orca_core::wire::RUNTIME_ERROR, "invalid_relative_path"));
+    }
+    Ok(trimmed.to_string())
+}
+
 fn file_path(params: &Value) -> Result<String, Failure> {
     text(params, "filePath").map(str::to_string).ok_or_else(|| Failure::invalid("Missing file path"))
 }
@@ -124,6 +135,8 @@ fn full_id(v: Option<&Value>) -> Result<String, Failure> {
 fn old_path(params: &Value) -> Result<Option<String>, Failure> {
     match params.get("oldPath") {
         None => Ok(None),
+        // an empty `oldPath` is no `oldPath`, as the host reads it by truthiness
+        Some(Value::String(s)) if s.is_empty() => Ok(None),
         Some(Value::String(s)) => Ok(Some(s.clone())),
         Some(other) => Err(Failure::invalid(format!("Invalid input: expected string, received {}", orca_core::wire::received(other)))),
     }
@@ -138,7 +151,8 @@ pub(crate) fn branch(repo: &Repo, params: &Value) -> Result<Value, Failure> {
         Some(other) => return Err(Failure::invalid(format!("Invalid input: expected object, received {}", orca_core::wire::received(other)))),
     };
     let (head, base) = (full_id(compare.get("headOid"))?, full_id(compare.get("mergeBase"))?);
-    let old = old_path(params)?;
+    let old = old_path(params)?.map(|p| relative(&p)).transpose()?;
+    let path = relative(&path)?;
     let left_path = old.as_deref().unwrap_or(&path);
     // the pinned host answers an empty text result for any read it cannot make
     let sides = read_side(repo, &base, left_path, &path).and_then(|l| read_side(repo, &head, &path, &path).map(|r| (l, r)));
@@ -157,7 +171,8 @@ pub(crate) fn commit(repo: &Repo, params: &Value) -> Result<Value, Failure> {
         None | Some(Value::Null) => None,
         other => Some(full_id(other)?),
     };
-    let old = old_path(params)?;
+    let old = old_path(params)?.map(|p| relative(&p)).transpose()?;
+    let path = relative(&path)?;
     let left = match &parent {
         Some(p) => read_side(repo, p, old.as_deref().unwrap_or(&path), &path)?,
         None => absent(),
