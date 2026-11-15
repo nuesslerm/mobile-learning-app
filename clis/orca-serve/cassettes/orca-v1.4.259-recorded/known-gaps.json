@@ -17,7 +17,6 @@
         "orca-agentActivity.setRead",
         "orca-agentSession.continueInterrupted",
         "orca-agentSession.rewind",
-        "orca-agentSession.sendRecorded",
         "orca-agentSession.threadGoal",
         "orca-browser.back",
         "orca-browser.dialogAccept",
@@ -41,10 +40,8 @@
         "orca-files.readTerminalArtifactPreview",
         "orca-files.resolveTerminalPath",
         "orca-files.writeTerminalArtifact",
-        "orca-git.branchDiff",
         "orca-git.cancelGenerateCommitMessage",
         "orca-git.cancelGeneratePullRequestFields",
-        "orca-git.commitDiff",
         "orca-git.diff",
         "orca-git.discoverCommitMessageModels",
         "orca-git.generatePullRequestFields",
@@ -92,12 +89,9 @@
         "orca-gitlab.workItemDetails",
         "orca-hostedReview.forBranch",
         "orca-hostedReview.getCreationEligibility",
-        "orca-mobileWeb.bundle.brotliRange",
-        "orca-mobileWeb.bundle.localeCatalog",
         "orca-notifications.registerPush",
         "orca-notifications.testPush",
         "orca-notifications.unregisterPush",
-        "orca-pairing.exchangeTicket",
         "orca-plugins.panelAction",
         "orca-repo.baseRefDefault",
         "orca-repo.hooks",
@@ -208,9 +202,7 @@
         "orca-agentSession.send",
         "orca-agentSession.setOption",
         "orca-agentSessionAttachment.uploadAppend",
-        "orca-agentSessionAttachment.uploadStart",
-        "orca-mobileWeb.bundle.chunk",
-        "orca-mobileWeb.bundle.range"
+        "orca-agentSessionAttachment.uploadStart"
       ]
     },
     {
@@ -272,7 +264,6 @@
         "steps._:s2c:0.[0].payload.error.message changed drift"
       ],
       "ids": [
-        "orca-agentSession.agents",
         "orca-agentSession.cancelUsageLimitContinue",
         "orca-agentSession.createSupport"
       ]
@@ -548,6 +539,18 @@
       ],
       "ids": [
         "orca-transport.e2ee.handshake"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.ok changed drift",
+        "steps._:s2c:0.[0].payload.error missing breaking",
+        "steps._:s2c:0.[0].payload.result extra drift"
+      ],
+      "ids": [
+        "orca-agentSession.agents"
       ]
     }
   ]

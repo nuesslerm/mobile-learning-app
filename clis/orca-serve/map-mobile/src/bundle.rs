@@ -120,7 +120,7 @@ impl MobileWebArea {
         if o.keys().any(|k| !matches!(k.as_str(), "locale" | "knownSha256")) {
             return Err(invalid("Unrecognized key in locale catalog params"));
         }
-        let locale = o.get("locale").and_then(Value::as_str).filter(|l| manifest::is_ui_locale(l)).ok_or_else(|| invalid("Invalid locale: expected a UI locale"))?;
+        let locale = window::typed_string(o.get("locale"))?.filter(|l| manifest::is_ui_locale(l)).ok_or_else(|| invalid("Invalid locale: expected a UI locale"))?;
         let known = match o.get("knownSha256") {
             None => None,
             Some(Value::String(s)) if manifest::is_sha256(s) => Some(s.as_str()),
