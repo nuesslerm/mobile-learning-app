@@ -60,6 +60,7 @@ pub const AGENT_SESSION_COMMANDS: &str = "agentSession.commands";
 pub const AGENT_SESSION_CREATE_SUPPORT: &str = "agentSession.createSupport";
 pub const AGENT_SESSION_MODEL_CATALOG: &str = "agentSession.modelCatalog";
 pub const AGENT_SESSION_OPTIONS: &str = "agentSession.options";
+pub const AGENT_SESSION_AGENTS: &str = "agentSession.agents";
 pub const AGENT_SESSION_SET_OPTION: &str = "agentSession.setOption";
 pub const PREFLIGHT_DETECT_AGENTS: &str = "preflight.detectAgents";
 pub const PREFLIGHT_DETECT_REMOTE_AGENTS: &str = "preflight.detectRemoteAgents";
@@ -105,6 +106,7 @@ const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_CREATE_SUPPORT, kind: Kind::Unary },
     Method { name: AGENT_SESSION_MODEL_CATALOG, kind: Kind::Unary },
     Method { name: AGENT_SESSION_OPTIONS, kind: Kind::Unary },
+    Method { name: AGENT_SESSION_AGENTS, kind: Kind::Unary },
     Method { name: AGENT_SESSION_SET_OPTION, kind: Kind::Unary },
     Method { name: PREFLIGHT_DETECT_AGENTS, kind: Kind::Unary },
     Method { name: PREFLIGHT_DETECT_REMOTE_AGENTS, kind: Kind::Unary },
@@ -186,6 +188,7 @@ impl Area for AgentArea {
             AGENT_SESSION_CREATE_SUPPORT => catalog::create_support(agent, params),
             AGENT_SESSION_MODEL_CATALOG => catalog::model_catalog(agent, params),
             AGENT_SESSION_OPTIONS => catalog::options(agent, params),
+            AGENT_SESSION_AGENTS => catalog::agents(params),
             AGENT_SESSION_SET_OPTION => catalog::set_option(agent, params),
             PREFLIGHT_DETECT_AGENTS => catalog::detect_agents(agent, params),
             PREFLIGHT_DETECT_REMOTE_AGENTS => catalog::detect_remote_agents(agent, params),

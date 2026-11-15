@@ -61,6 +61,20 @@ fn session_id(params: &Value) -> Result<&str, Failure> {
 }
 
 /// `agentSession.options`: the models of the session's driver and the model its next turn runs on.
+/// `agentSession.agents`: the agents this host runs and what a session of each can do, before any session exists. Nothing here is an installed-CLI
+/// check (the pinned host's list is static too). A session here compacts and takes images, holds a follow-up for a running turn until it ends, and has no rewind, goal,
+/// context meter or fork; approvals are answered by this host.
+pub(crate) fn agents(params: &Value) -> Result<Value, Failure> {
+    if let Some(key) = params.as_object().and_then(|o| o.keys().next()) {
+        return Err(Failure::invalid(format!("Unrecognized key: \"{key}\"")));
+    }
+    let capabilities = json!({"rewind": false, "compact": true, "threadGoal": false, "contextUsage": false, "imagePrompts": true, "steering": "queue", "approvalEnforcement": "orca"});
+    let served: Vec<&str> = drivers_served().into_iter().filter_map(agent_of).collect();
+    // the built-ins in the pinned host's order, then any other
+    let agents: Vec<Value> = ["claude", "codex", "opencode"].into_iter().filter(|a| served.contains(a)).map(|a| json!({"agent": a, "capabilities": capabilities})).collect();
+    Ok(json!({"agents": agents}))
+}
+
 pub(crate) fn options(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let session = session_id(params)?;
     let thread = view(agent, session)?;

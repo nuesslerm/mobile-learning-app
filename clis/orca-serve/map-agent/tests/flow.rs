@@ -1114,3 +1114,17 @@ fn given_a_send_the_phone_lost_the_reply_of_when_it_asks_whether_it_was_recorded
         assert_eq!(rig.err("agentSession.sendRecorded", params.clone()).1, message, "{params}");
     }
 }
+
+#[test]
+fn given_a_host_when_the_phone_lists_its_agents_then_each_served_driver_is_an_agent_with_the_capabilities_a_session_here_has() {
+    // Given a host serving claude, codex and opencode drivers
+    let mut rig = Rig::new();
+    // When the phone lists the agents
+    let r = rig.ok("agentSession.agents", json!({}));
+    // Then every served driver is there once, with the capabilities of this host's sessions
+    let names: Vec<&str> = r["agents"].as_array().unwrap().iter().map(|a| a["agent"].as_str().unwrap()).collect();
+    assert_eq!(names, ["claude", "codex", "opencode"]);
+    assert_eq!(r["agents"][0]["capabilities"], json!({"rewind": false, "compact": true, "threadGoal": false, "contextUsage": false, "imagePrompts": true, "steering": "queue", "approvalEnforcement": "orca"}));
+    // And a key the schema lacks is refused in its words
+    assert_eq!(rig.err("agentSession.agents", json!({"x": 1})), ("invalid_argument".to_string(), "Unrecognized key: \"x\"".to_string()));
+}
