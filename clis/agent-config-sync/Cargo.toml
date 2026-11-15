@@ -20,7 +20,7 @@ path = "src-rs/bin/agent-config.rs"
 [dependencies]
 wf-kit = { path = "../wf-kit" }
 serde_json = { version = "1", features = ["preserve_order"] }
-regex = { version = "1", default-features = false, features = ["std", "perf", "unicode"] }
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 toml = { version = "0.8", default-features = false, features = ["parse"] }
 nix = { version = "0.31", default-features = false, features = ["user"] }
 clap = { version = "4", default-features = false, features = ["std", "error-context", "usage"] }
