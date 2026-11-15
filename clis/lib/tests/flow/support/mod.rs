@@ -44,7 +44,7 @@ pub fn libraries_json(registry: &str, extra_registries: &str, extra_libraries: &
 }
 
 pub fn crate_manifest(name: &str, version: &str, deps: &str) -> String {
-    format!("[package]\nname = \"{name}\"\nversion = \"{version}\"\nedition = \"2021\"\ndescription = \"a fixture\"\nlicense = \"MIT\"\n\n[dependencies]\n{deps}")
+    format!("[package]\nname = \"{name}\"\nversion = \"{version}\"\nedition = \"2021\"\ndescription = \"a fixture\"\nlicense = \"MIT\"\ninclude = [\"src/**\", \"Cargo.toml\"]\n\n[dependencies]\n{deps}")
 }
 
 impl Repo {

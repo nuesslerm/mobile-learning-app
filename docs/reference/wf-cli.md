@@ -2438,8 +2438,8 @@ npm-tarball are named but not built yet.
 The bucket registry (alias mla) is a public bucket (read without listing) that holds only the
 index at index/ (config.json and one file per crate) and the .crate files at
 crates/<name>/<version>.crate. The libraries are public source, so a release publishes only
-files git tracks, committed, from a HEAD origin/dev already holds, with no credential-shaped
-string in them; anything else stops the release before it uploads. Readers (Cargo, `status`)
+files git tracks, committed, from a HEAD origin/dev already holds, that the manifest's `include` names, with no
+credential-shaped string and no vault value in them; anything else stops the release before it uploads. Readers (Cargo, `status`)
 fetch it with a plain GET (indexUrl); Cargo's config.json sends downloads to
 <bucket>/crates/. Writers (`release`, `prune`) write with LIBS_INDEX_WRITE_PAR_URL (a
 pre-authenticated write link ending in /o/). `prune` also needs the operator's `oci` CLI and ~/.oci.
@@ -2485,9 +2485,12 @@ with a plain GET) and write index/config.json, all in the one public bucket. con
 `dl` is <bucket base>/crates/{crate}/{version}.crate, derived from indexUrl; it holds no
 bucket link and no api field. Before anything is touched the release refuses: a HEAD that
 origin/dev does not hold, a file of the package that git does not track or that differs
-from HEAD, and any file with a credential-shaped string (a private key, a GitHub, AWS or
-Slack token, a JWT, an Oracle id): the bucket is public, so it may hold only what the
-public repository holds. After a release, commit and push the bumped manifest before the next.
+from HEAD, a manifest without an `include` list (a library ships only the paths it names), any
+file with a credential-shaped string (a private key, a GitHub, AWS, Slack or provider key, a
+JWT, a bearer token, a signed link, an Oracle id, a secret-named value assigned a literal) and any
+file holding a value the vault holds (the vault must be readable): the bucket is public, so it may
+hold only what the public repository holds. A hit is fixed by reading the value at runtime, never by
+skipping the release. After a release, commit and push the bumped manifest before the next.
 cargo-publish: `cargo publish --registry <alias>` with the registry and its token
 passed in the environment of that one child. A library whose own dependencies on
 other libraries are still paths is refused by cargo packaging: release in

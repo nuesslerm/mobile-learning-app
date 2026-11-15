@@ -245,13 +245,49 @@ fn a_release_publishes_only_committed_pushed_files_free_of_credentials_and_other
     repo.push();
 
     // Given a file the package would carry that git does not track
-    std::fs::create_dir_all(repo.work().join("libs/fixture-core/data")).unwrap();
-    repo.write("libs/fixture-core/data/extra.json", "{}\n");
+    std::fs::create_dir_all(repo.work().join("libs/fixture-core/src")).unwrap();
+    repo.write("libs/fixture-core/src/extra.rs", "pub const X: u32 = 1;\n");
     refused("untracked file", "is not tracked by git");
     repo.settle();
 
     // Given a credential-shaped string in a committed, pushed file
-    repo.write("libs/fixture-core/data/extra.json", "{ \"token\": \"ghp_0123456789abcdefghijklmnopqrstuvwxyz\" }\n");
+    repo.write("libs/fixture-core/src/extra.rs", "pub const T: &str = \"ghp_0123456789abcdefghijklmnopqrstuvwxyz\";\n");
     repo.settle();
     refused("a credential", "a GitHub token");
+
+    // Given a wider shape: a secret-named value assigned a literal
+    repo.write("libs/fixture-core/src/extra.rs", "pub const API_TOKEN: &str = \"abc123def456ghi789jkl\";\n");
+    repo.settle();
+    refused("a named literal", "a secret-named value assigned a literal");
+}
+
+#[test]
+fn a_release_refuses_a_file_that_holds_a_value_the_vault_holds_and_a_manifest_that_names_nothing_to_ship() {
+    // Given a library whose source holds a value the environment backend holds as a registered secret
+    let mut repo = Repo::new(&libraries_json("mla", "", ""));
+    repo.env.push(("GROQ_API_KEY".into(), "correct-horse-battery-staple".into()));
+    repo.write("libs/fixture-core/src/extra.rs", "pub const HOST: &str = \"correct-horse-battery-staple\";\n");
+    repo.settle();
+
+    // When it is released
+    let r = repo.lib(&["release", "fixture-core", "patch"]);
+
+    // Then it is refused with the way out, nothing is uploaded and the manifest is as it was
+    assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
+    let error = last_json(&r)["error"].as_str().unwrap().to_string();
+    assert!(error.contains("a value the vault holds") && !error.contains("correct-horse-battery-staple"), "{error}");
+    assert!(last_json(&r)["next"].as_str().unwrap().contains("at runtime"), "{}", r.stdout);
+    assert!(repo.bucket.names().is_empty());
+
+    // Given the value gone and the manifest without an include list
+    repo.write("libs/fixture-core/src/extra.rs", "pub const HOST: &str = \"example.org\";\n");
+    let manifest = repo.read("libs/fixture-core/Cargo.toml").replace("include = [\"src/**\", \"Cargo.toml\"]\n", "");
+    repo.write("libs/fixture-core/Cargo.toml", &manifest);
+    repo.settle();
+
+    // When it is released, Then the manifest is asked to name what ships
+    let r = repo.lib(&["release", "fixture-core", "patch"]);
+    assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
+    assert!(last_json(&r)["error"].as_str().unwrap().contains("no `include` list"), "{}", r.stdout);
+    assert!(repo.bucket.names().is_empty());
 }

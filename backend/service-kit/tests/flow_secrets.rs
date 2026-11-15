@@ -26,10 +26,12 @@ async fn given_a_registered_variable_the_container_lacks_when_secrets_load_then_
 }
 
 #[test]
-fn given_the_vault_registry_when_service_kit_embeds_its_copy_then_they_are_the_same_file() {
-    let source = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../clis/secrets/src/data/registry.json");
+fn given_the_vault_registry_when_service_kit_embeds_its_copy_then_it_names_the_same_variables_and_holds_no_other_field() {
+    let source: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../clis/secrets/src/data/registry.json")).unwrap()).unwrap();
+    let copy: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("data/registry.json")).unwrap()).unwrap();
 
-    let copy = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("data/registry.json")).unwrap();
+    let names = |registry: &serde_json::Value| registry.as_object().unwrap().iter().map(|(key, entry)| (key.clone(), entry["envVar"].clone())).collect::<Vec<_>>();
 
-    assert_eq!(copy, std::fs::read_to_string(source).unwrap(), "copy clis/secrets/src/data/registry.json to backend/service-kit/data/registry.json and release service-kit");
+    assert_eq!(names(&copy), names(&source), "regenerate backend/service-kit/data/registry.json from clis/secrets/src/data/registry.json (envVar only) and release service-kit");
+    assert!(copy.as_object().unwrap().values().all(|entry| entry.as_object().unwrap().keys().eq(["envVar"])), "the published copy holds variable names only: descriptions and values stay in the vault registry");
 }

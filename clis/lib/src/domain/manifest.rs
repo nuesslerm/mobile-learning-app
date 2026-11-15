@@ -152,3 +152,21 @@ pub fn with_registry_index(text: &str, alias: &str, index: &str) -> Result<Strin
     one.insert("index", value(index));
     Ok(doc.to_string())
 }
+
+/// Whether `[package]` carries a non-empty `include` list: the manifest, not the tree, decides what a published crate holds.
+pub fn names_what_ships(text: &str) -> bool {
+    text.parse::<DocumentMut>().ok().and_then(|doc| doc.get("package")?.get("include")?.as_array().map(|list| !list.is_empty())).unwrap_or(false)
+}
+
+#[cfg(test)]
+mod ships_tests {
+    use super::names_what_ships;
+
+    #[test]
+    fn given_manifests_when_asked_what_ships_then_only_a_non_empty_include_answers() {
+        assert!(names_what_ships("[package]\nname = \"a\"\ninclude = [\"src/**\"]\n"));
+        assert!(!names_what_ships("[package]\nname = \"a\"\n"));
+        assert!(!names_what_ships("[package]\nname = \"a\"\ninclude = []\n"));
+        assert!(!names_what_ships("not toml ["));
+    }
+}

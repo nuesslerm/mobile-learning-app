@@ -609,6 +609,14 @@ pub fn load_values(keys: &[&str]) -> HashMap<String, Option<String>> {
     out
 }
 
+/// Every registry value the default backend holds, for a scan that must refuse a file containing one. An unreadable vault is an error:
+/// a scan that silently compared against nothing would pass everything.
+pub fn all_values() -> Result<Vec<String>, String> {
+    let mut ctx = Ctx::new(None)?;
+    ctx.load()?;
+    Ok(ctx.registry.iter().filter_map(|e| ctx.env.get(&e.env_var)).filter(|v| !v.is_empty()).collect())
+}
+
 /// One registry secret through the default backend, for commands outside `wf secret` that need a value.
 pub fn secret(key: &str) -> Result<Option<String>, String> {
     let mut ctx = Ctx::new(None)?;

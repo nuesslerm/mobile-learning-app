@@ -3,6 +3,8 @@ name = "rca-ladder"
 version = "0.1.2"
 edition = "2021"
 publish = false
+# What a published crate holds: fixtures, cassettes and tests stay out unless named here (`wf lib release` refuses a manifest without it).
+include = ["src/**", "data/**", "Cargo.toml"]
 
 [dependencies]
 rca-core = { version = "0.1", registry = "mla", path = "../.." }
