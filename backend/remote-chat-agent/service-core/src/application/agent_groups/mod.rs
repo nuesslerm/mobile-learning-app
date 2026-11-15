@@ -16,7 +16,7 @@ pub mod service;
 
 pub use engine_threads::EngineThreads;
 
-pub use activity::{ActivityClock, ActivityGroup, SystemClock};
+pub use activity::{ActivityClock, ActivityGroup};
 pub use attachment_staging::StagesAttachments;
 pub use rca_group_attachments::{Attachments, AttachmentsGroup, BlobStore, Clock as AttachmentClock, Ids as AttachmentIds, Put as BlobPut};
 pub use rca_group_catalog::{CatalogGroup, Catalog, Clock as CatalogClock};
@@ -48,6 +48,20 @@ mod tests {
     use serde_json::{json, Value};
     use std::sync::Arc;
 
+    struct TestClock;
+
+    impl ActivityClock for TestClock {
+        fn now_ms(&self) -> u64 {
+            1
+        }
+    }
+
+    impl rca_group_terminal::Clock for TestClock {
+        fn now_ms(&self) -> u64 {
+            1
+        }
+    }
+
     struct NoMcp;
 
     impl rca_group_agent::McpEndpoint for NoMcp {
@@ -62,14 +76,14 @@ mod tests {
         let previews = Previews::new(Arc::new(rca_group_preview::testing::FakeClock::at(1)), Arc::new(rca_group_preview::testing::CountingIds::default()), 0);
         vec![
             Arc::new(ServiceGroup),
-            Arc::new(ActivityGroup::new(Arc::new(SystemClock))),
+            Arc::new(ActivityGroup::new(Arc::new(TestClock))),
             Arc::new(StateGroup::new(hub.clone())),
             Arc::new(StateWatchGroup::new(hub)),
             Arc::new(FilesGroup::new(executors.clone())),
             Arc::new(FilesEditGroup::new(executors.clone())),
             Arc::new(WorkspaceGroup::new(executors.clone())),
             Arc::new(WorktreesGroup::new(executors.clone())),
-            Arc::new(TerminalGroup::new(executors.clone(), Arc::new(SystemClock))),
+            Arc::new(TerminalGroup::new(executors.clone(), Arc::new(TestClock))),
             Arc::new(GitGroup::new(executors.clone())),
             Arc::new(HostedPrGroup::new(executors.clone())),
             Arc::new(HostedCloneGroup::new(executors.clone())),

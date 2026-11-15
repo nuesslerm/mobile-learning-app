@@ -15,13 +15,14 @@ use api::app::{AgentApi, Config};
 use compose::thread_engine;
 use infrastructure::agent_socket::AgentSockets;
 use infrastructure::mcp_address::LoopbackMcp;
+use infrastructure::system::SystemClock;
 use infrastructure::ws_channel::ExecutorSockets;
 use rca_agent_core::{DeviceBearers, Group};
 use rca_cli_driver::application::ports::Spawner;
 use rca_exec_channel::Registry;
 use rca_group_accounts::{AccountsGroup, GitAiGroup, ModelApi, ProviderDirs, ProviderLogin, Sessions};
 use rca_group_agent::{AgentLifecycleGroup, AgentQueueGroup, AgentRequestsGroup, AgentThreadsGroup, Runner};
-use rca_service_core::application::agent_groups::{ActivityGroup, EngineThreads, FilesEditGroup, FilesGroup, ServiceGroup, StateGroup, StateHub, StateStore, StateWatchGroup, SystemClock, TerminalGroup, GitGroup, HostedAuthGroup, HostedCloneGroup, HostedPrGroup, ExecutorCredentials, WorkspaceGroup, WorktreesGroup, ScheduleClock, ScheduleGroup, ScheduleIds, ScheduleStore, ScheduleWatchGroup, Schedules, ThreadsTrigger, AttachmentClock, AttachmentIds, Attachments, AttachmentsGroup, BlobStore, Catalog, CatalogGroup, StagesAttachments, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews};
+use rca_service_core::application::agent_groups::{ActivityGroup, EngineThreads, FilesEditGroup, FilesGroup, ServiceGroup, StateGroup, StateHub, StateStore, StateWatchGroup, TerminalGroup, GitGroup, HostedAuthGroup, HostedCloneGroup, HostedPrGroup, ExecutorCredentials, WorkspaceGroup, WorktreesGroup, ScheduleClock, ScheduleGroup, ScheduleIds, ScheduleStore, ScheduleWatchGroup, Schedules, ThreadsTrigger, AttachmentClock, AttachmentIds, Attachments, AttachmentsGroup, BlobStore, Catalog, CatalogGroup, StagesAttachments, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews};
 use std::sync::Arc;
 
 /// What the `accounts` and `git.ai` groups stand on: the providers' directories, the start of a CLI's login and the model the service asks.

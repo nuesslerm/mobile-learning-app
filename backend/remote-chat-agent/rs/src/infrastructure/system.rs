@@ -11,6 +11,18 @@ impl Clock for SystemClock {
     }
 }
 
+impl rca_service_core::application::agent_groups::ActivityClock for SystemClock {
+    fn now_ms(&self) -> u64 {
+        now_ms()
+    }
+}
+
+impl rca_group_terminal::Clock for SystemClock {
+    fn now_ms(&self) -> u64 {
+        now_ms()
+    }
+}
+
 pub struct RandomIds;
 
 impl IdSource for RandomIds {
