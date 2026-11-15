@@ -6,3 +6,8 @@ members = ["core", "net", "host"]
 
 [profile.dev]
 debug = "line-tables-only"
+
+# A library edited against its siblings: their manifests name them by registry version only, as they are packaged; this builds them from the tree.
+[patch.mla]
+mimic-script-core = { path = "core" }
+mimic-script-net = { path = "net" }
