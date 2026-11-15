@@ -13,7 +13,7 @@ mod provision_verb;
 #[path = "trigger_verb.rs"]
 mod trigger_verb;
 
-use crate::adapters::{FsCheckpoint, FsStore, StdioDriver};
+use crate::adapters::{open_driver, FsCheckpoint, FsStore};
 use crate::config::{relative, Config, Target};
 use mimic_core::allowlist::Allowlist;
 use mimic_core::cassette::{Current, Kind, ToolInfo};
@@ -217,7 +217,7 @@ fn record(p: &Parsed) -> Done {
     if batch > 1 && !command.env.iter().any(|(k, _)| k == "MIMIC_DRIVER_CONCURRENCY") {
         command.env.push(("MIMIC_DRIVER_CONCURRENCY".into(), batch.to_string()));
     }
-    let mut driver = StdioDriver::new(command);
+    let mut driver = open_driver(reference, command).map_err(|e| fail(e, "fix [reference] in mimic.toml"))?;
     let mut checkpoint = FsCheckpoint::new(&set.dir);
     let again = format!("wf mimic record {} --resume", set.dir.display());
     if p.flag("fresh") {
@@ -232,7 +232,7 @@ fn record(p: &Parsed) -> Done {
         meta.target = meta.target.map(|t| mimic_core::cassette::Target { pin_hash: None, ..t });
         meta.source.get_or_insert_with(|| format!("stand-in: {what}"));
     }
-    let progress = record_planned(&mut driver, &cases, &rules, Some(&spec), meta, &plan, &mut checkpoint).map_err(|e| {
+    let progress = record_planned(&mut *driver, &cases, &rules, Some(&spec), meta, &plan, &mut checkpoint).map_err(|e| {
         let saved = if checkpoint.exists() { format!("; what was recorded is saved: {again}") } else { String::new() };
         fail(e.to_string(), format!("check the [reference] command of mimic.toml runs and speaks mimic-driver/1 (wf mimic --help){saved}"))
     })?;
@@ -308,8 +308,8 @@ fn replay(p: &Parsed) -> Done {
         }
     }
     let started = wf_kit::time::now_ms();
-    let mut driver = StdioDriver::new(candidate.spec.clone());
-    let verdict = replay_set(&content, &mut driver, &allow, &cfg.diff, only.as_deref()).map_err(|e| fail(e.to_string(), "fix rules.json"))?;
+    let mut driver = open_driver(candidate, candidate.spec.clone()).map_err(|e| fail(e, "fix [candidate] in mimic.toml"))?;
+    let verdict = replay_set(&content, &mut *driver, &allow, &cfg.diff, only.as_deref()).map_err(|e| fail(e.to_string(), "fix rules.json"))?;
     let rows = evidence(&verdict, &content.cassette);
     let mut evidence_paths = json!({"report": null, "trace": null});
     if let Some(suite) = p.val("suite") {
@@ -466,8 +466,8 @@ fn verify_one(set: &SetRef, live: bool, named: bool) -> Value {
 fn live_check(cfg: &Config, set: &SetRef, content: &CassetteSet, rules: &RuleSet, spec: &CorpusSpec, cases: &[Case]) -> Result<Value, String> {
     let reference = cfg.reference.as_ref().ok_or("--live needs a [reference] in mimic.toml")?;
     let target = reference.provenance()?;
-    let mut driver = StdioDriver::new(reference.spec.clone());
-    let recording = record_set(&mut driver, cases, rules, Some(spec), meta(cfg, &set.dir, (Some("verify --live"), None), spec, target)).map_err(|e| e.to_string())?;
+    let mut driver = open_driver(reference, reference.spec.clone())?;
+    let recording = record_set(&mut *driver, cases, rules, Some(spec), meta(cfg, &set.dir, (Some("verify --live"), None), spec, target)).map_err(|e| e.to_string())?;
     let pin_hash = content.cassette.header.provenance.target.as_ref().and_then(|t| t.pin_hash.clone());
     let (allow, _) = allowlist(cfg.allowlist.clone(), pin_hash.as_deref()).map_err(|f| f.error)?;
     let verdict = diff_cassettes(&content.cassette, &recording.set.cassette, &allow, &cfg.diff);

@@ -3435,6 +3435,10 @@ mimic.toml (paths relative to the file):
   allowlist = "allowlist.json"     (optional; entries may carry "pin_hash")
   [reference]                      the pinned program a record runs
   driver = "stdio"                 command = ["node", "driver.mjs"]
+  driver = "script"                the step interpreter plays the corpus's `script` cases itself (docs/plans/mimic/step-language.md):
+  [reference.script]               target = "spawn" (the release the pin names, verified by sha256, started in a hermetic host)
+                                   or "url" (addr = "127.0.0.1:7000", workspace = "/w", mint = ["cmd"] prints a credential);
+                                   cache, prelude = "prelude.json", session, ready_ms, settle_ms, first_answer_ms, quiet_cap_ms
   cwd, env, timeout_ms             name, version, commit
   pin = "pin.json"                 version_pointer = "/version", commit_pointer
   [candidate.<name>]               the program a replay runs (same keys)

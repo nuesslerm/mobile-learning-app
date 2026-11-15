@@ -1681,6 +1681,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "mimic-script-core"
+version = "0.1.2"
+source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
+checksum = "793fbc77b3c86401abec4b941c069c4ff9db040edbd90d90ab04010978ae28a6"
+dependencies = [
+ "base64 0.22.1",
+ "mimic-core",
+ "serde_json",
+]
+
+[[package]]
+name = "mimic-script-host"
+version = "0.1.1"
+source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
+checksum = "406dfbb46518a6cfa25801f08a5a9cd813d31b6baa75d557e4e21a5479d8013f"
+dependencies = [
+ "mimic-core",
+ "mimic-script-core",
+ "mimic-script-net",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
+name = "mimic-script-net"
+version = "0.1.1"
+source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
+checksum = "0d53d7c8ace6ae1ffdac98a843e460f2114d42127f50696bec0f3461cc7c1ece"
+dependencies = [
+ "flate2",
+ "mimic-script-core",
+ "tungstenite",
+]
+
+[[package]]
 name = "minimal-lexical"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4050,6 +4085,8 @@ name = "wf-mimic"
 version = "0.1.0"
 dependencies = [
  "mimic-core",
+ "mimic-script-core",
+ "mimic-script-host",
  "regex",
  "serde",
  "serde_json",

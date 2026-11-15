@@ -85,12 +85,78 @@ struct DiffFile {
     advertised_prefixes: Vec<String>,
 }
 
+/// `[reference.script]` / `[candidate.<n>.script]`: the step interpreter's server and waits.
+#[derive(Deserialize, Debug)]
+#[serde(deny_unknown_fields)]
+struct ScriptFile {
+    /// `spawn`: start the release the pin names; `url`: a server that is already running.
+    target: String,
+    /// `spawn`: the directory the verified release is unpacked under; default `~/.cache/mimic-t3`.
+    cache: Option<String>,
+    /// `url`: the server's `host:port`, its workspace folder (masked in steps) and a command that prints one credential.
+    addr: Option<String>,
+    workspace: Option<String>,
+    #[serde(default)]
+    mint: Vec<String>,
+    /// A JSON file with the entries every case that names `prelude: "session"` starts with.
+    prelude: Option<String>,
+    /// One server and one prelude for many cases (default for `spawn`).
+    session: Option<bool>,
+    ready_ms: Option<u64>,
+    settle_ms: Option<u64>,
+    quiet_cap_ms: Option<u64>,
+    first_answer_ms: Option<u64>,
+}
+
+/// A script target as the driver factory needs it, with the paths made absolute.
+#[derive(Clone, Debug)]
+pub struct ScriptSpec {
+    pub spawn: bool,
+    pub cache: Option<PathBuf>,
+    pub addr: Option<String>,
+    pub workspace: Option<String>,
+    pub mint: Vec<String>,
+    pub prelude: Option<PathBuf>,
+    pub session: bool,
+    pub ready_ms: u64,
+    pub settle_ms: Option<u64>,
+    pub quiet_cap_ms: Option<u64>,
+    pub first_answer_ms: Option<u64>,
+}
+
+fn script_spec(dir: &Path, name: &str, s: ScriptFile) -> Result<ScriptSpec, String> {
+    let spawn = match s.target.as_str() {
+        "spawn" => true,
+        "url" => false,
+        other => return Err(format!("[{name}.script] target {other:?}: spawn or url")),
+    };
+    if !spawn && (s.addr.is_none() || s.workspace.is_none()) {
+        return Err(format!("[{name}.script] target \"url\" needs addr and workspace"));
+    }
+    Ok(ScriptSpec {
+        spawn,
+        cache: s.cache.map(|c| dir.join(c)),
+        addr: s.addr,
+        workspace: s.workspace,
+        mint: s.mint,
+        prelude: s.prelude.map(|p| dir.join(p)),
+        session: s.session.unwrap_or(spawn),
+        ready_ms: s.ready_ms.unwrap_or(60_000),
+        settle_ms: s.settle_ms,
+        quiet_cap_ms: s.quiet_cap_ms,
+        first_answer_ms: s.first_answer_ms,
+    })
+}
+
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 struct TargetFile {
     #[serde(default = "stdio")]
     driver: String,
+    #[serde(default)]
     command: Vec<String>,
+    /// Beside `driver = "script"`: how the step interpreter reaches its server.
+    script: Option<ScriptFile>,
     cwd: Option<String>,
     #[serde(default)]
     env: BTreeMap<String, String>,
@@ -112,6 +178,8 @@ struct TargetFile {
 pub struct Target {
     pub name: String,
     pub spec: StdioSpec,
+    /// Set for `driver = "script"`: the step interpreter instead of a child process speaking `mimic-driver/1`.
+    pub script: Option<ScriptSpec>,
     pub pin: Option<PathBuf>,
     pin_as_written: Option<String>,
     pin_tree: Option<PathBuf>,
@@ -160,18 +228,24 @@ fn load_provision(dir: &Path, file: &Path, inline: Option<crate::provision::Raw>
 }
 
 fn target(dir: &Path, name: &str, t: TargetFile) -> Result<Target, String> {
-    if t.driver != "stdio" {
-        return Err(format!("[{name}] driver {:?}: this build runs drivers of kind \"stdio\" (a Rust closure is the SDK's InProcessDriver)", t.driver));
+    if !matches!(t.driver.as_str(), "stdio" | "script") {
+        return Err(format!("[{name}] driver {:?}: this build runs drivers of kind \"stdio\" and \"script\" (a Rust closure is the SDK's InProcessDriver)", t.driver));
     }
+    let script = match (t.driver.as_str(), t.script) {
+        ("script", Some(s)) => Some(script_spec(dir, name, s)?),
+        ("script", None) => return Err(format!("[{name}] driver \"script\" needs a [{name}.script] table")),
+        (_, Some(_)) => return Err(format!("[{name}] has a script table but driver {:?}", t.driver)),
+        _ => None,
+    };
     if t.pin.is_some() && t.pin_tree.is_some() {
         return Err(format!("[{name}] names both pin and pin_tree: a reference has one pin"));
     }
-    if t.command.is_empty() {
+    if t.command.is_empty() && script.is_none() {
         return Err(format!("[{name}] command is empty"));
     }
     let mut command = t.command;
     // a relative program with a directory part is the file's, not the caller's working directory's
-    if command[0].contains('/') && Path::new(&command[0]).is_relative() {
+    if command.first().is_some_and(|c| c.contains('/') && Path::new(c).is_relative()) {
         command[0] = dir.join(&command[0]).display().to_string();
     }
     let spec = StdioSpec {
@@ -183,6 +257,7 @@ fn target(dir: &Path, name: &str, t: TargetFile) -> Result<Target, String> {
     Ok(Target {
         name: t.name.unwrap_or_else(|| name.to_string()),
         spec,
+        script,
         pin: t.pin.as_ref().map(|p| dir.join(p)),
         pin_as_written: t.pin,
         pin_tree: t.pin_tree.as_ref().map(|p| dir.join(p)),

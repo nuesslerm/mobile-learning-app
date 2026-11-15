@@ -17,6 +17,8 @@ mod record;
 mod record_references;
 #[path = "flow/replay.rs"]
 mod replay;
+#[path = "flow/script.rs"]
+mod script;
 #[path = "flow/stabilize.rs"]
 mod stabilize;
 #[path = "flow/t3_import.rs"]
