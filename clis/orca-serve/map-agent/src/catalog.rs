@@ -173,10 +173,10 @@ pub(crate) fn detect_agents(agent: &dyn AgentApi, params: &Value) -> Result<Valu
     Ok(json!(installed(&detect(agent, None, false).map_err(refusal)?)))
 }
 
-/// `preflight.refreshAgents`: the same list asked of the executor again; the executor's own PATH is what it searches, so no shell is hydrated.
+/// `preflight.refreshAgents`: the same list asked of the executor again, answered with the path facts the reference reports (its shell was hydrated).
 pub(crate) fn refresh_agents(agent: &dyn AgentApi, _params: &Value) -> Result<Value, Failure> {
     let found = detect(agent, None, true).map_err(refusal)?;
-    Ok(json!({"agents": installed(&found), "addedPathSegments": [], "shellHydrationOk": false, "pathSource": "sync_seed_only", "pathFailureReason": null}))
+    Ok(json!({"agents": installed(&found), "addedPathSegments": [], "shellHydrationOk": true, "pathSource": "shell_hydrate", "pathFailureReason": "none"}))
 }
 
 /// `preflight.detectRemoteAgents`: the executor named by the connection id, which an unknown one is a machine the host cannot reach.

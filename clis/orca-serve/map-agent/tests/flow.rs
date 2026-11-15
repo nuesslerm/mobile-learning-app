@@ -989,6 +989,7 @@ fn given_the_agent_clis_of_the_executor_when_detection_is_read_then_the_phone_ge
     assert_eq!((detected.clone(), by_repo), (json!(["claude", "codex"]), json!(["claude", "codex"])));
     // And the refresh answers the same agents with the path facts the host adds, and the executor was asked to look again
     assert_eq!((refreshed["agents"].clone(), refreshed["addedPathSegments"].clone()), (detected, json!([])));
+    assert_eq!((refreshed["shellHydrationOk"].clone(), refreshed["pathSource"].clone(), refreshed["pathFailureReason"].clone()), (json!(true), json!("shell_hydrate"), json!("none")));
     assert_eq!(rig.catalog.detections().iter().map(|p| p["refresh"] == true).collect::<Vec<_>>(), vec![false, false, true]);
     // And once opencode is installed a refresh lists it too
     rig.catalog.has(&["claude", "codex", "opencode"]);
