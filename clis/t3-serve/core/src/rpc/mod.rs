@@ -335,6 +335,16 @@ impl Connection {
                 };
                 vec![self.answered(&id, tag, answer.map(Some))]
             }
+            "vcs.refreshBranch" => vec![self.answered(&id, tag, self.svc.vcs_refresh_branch(payload).map(|()| None))],
+            "subscribeVcsBranch" => match self.svc.open_vcs_branch(payload) {
+                Ok((fold, first)) => {
+                    let stop = Arc::new(AtomicBool::new(false));
+                    self.svc.follow_vcs_status(fold, id.clone(), self.setup_tx.clone(), stop.clone());
+                    self.open(id, Kind::Followed { _stop: StopSetup(stop) }, 0, vec![first]);
+                    vec![]
+                }
+                Err(failure) => vec![self.answered(&id, tag, Err(failure))],
+            },
             "subscribeVcsStatus" => match self.svc.open_vcs_status(payload) {
                 Ok((fold, first)) => {
                     let stop = Arc::new(AtomicBool::new(false));

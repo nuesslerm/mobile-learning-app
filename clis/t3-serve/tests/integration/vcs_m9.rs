@@ -74,6 +74,11 @@ fn the_status_refs_and_diffs_of_the_repository_are_read_and_a_branch_is_made_and
         assert_eq!((status["refName"].clone(), status["hasWorkingTreeChanges"].clone(), status["hasUpstream"].clone()), (json!("main"), json!(true), json!(false)));
         assert_eq!(status["workingTree"]["files"], json!([{"path": "README.md", "insertions": 1, "deletions": 0}, {"path": "new.txt", "insertions": 0, "deletions": 0}]));
         assert_eq!(chain.repo.git(&["status", "--porcelain"]), " M README.md\n?? new.txt");
+        // And refreshing the branch answers with nothing and the branch stream's first frame names the branch git is on
+        let refreshed = phone.call(case, &chain, &["rpc:vcs.refreshBranch"], "vcs.refreshBranch", json!({"cwd": root}));
+        assert_eq!(refreshed["_tag"], "Success", "{refreshed}");
+        let (_branch, frames) = phone.stream(case, &chain, &["rpc:subscribeVcsBranch"], "subscribeVcsBranch", json!({"cwd": root}));
+        assert_eq!(frames[0], json!({"refName": "main"}), "{frames:?}");
         // When the phone makes a branch and switches to it
         let made = phone.call(case, &chain, &["rpc:vcs.createRef"], "vcs.createRef", json!({"cwd": root, "refName": "feature/x", "switchRef": true}));
         let (agent, executor) = last_window(case);

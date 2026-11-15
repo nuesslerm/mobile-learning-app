@@ -136,6 +136,8 @@ pub struct StatusFold {
     has_remote: bool,
     local: Value,
     remote: Value,
+    /// A branch subscription: the frames are `{refName}` and only the branch moves them.
+    branch_only: bool,
 }
 
 impl StatusFold {
@@ -181,7 +183,21 @@ impl Service {
         let root = field(payload, "cwd")?;
         let (local, remote, has_remote) = self.git_halves(root).map_err(|e| QueryFailure::Error(manager_error("subscribeStatus", root, &e.message())))?;
         let first = json!({"_tag": "snapshot", "local": local, "remote": remote});
-        Ok((StatusFold { root: root.into(), has_remote, local, remote }, first))
+        Ok((StatusFold { root: root.into(), has_remote, local, remote, branch_only: false }, first))
+    }
+
+    /// `vcs.refreshBranch`: reads the repository once so its branch is current; the answer carries nothing.
+    pub fn vcs_refresh_branch(&self, payload: &Value) -> Result<(), QueryFailure> {
+        let root = field(payload, "cwd")?;
+        self.git_halves(root).map(|_| ()).map_err(|e| QueryFailure::Error(manager_error("refreshBranch", root, &e.message())))
+    }
+
+    /// `subscribeVcsBranch`: the branch name, and then a frame each time it changes.
+    pub fn open_vcs_branch(&self, payload: &Value) -> Result<(StatusFold, Value), QueryFailure> {
+        let root = field(payload, "cwd")?;
+        let (local, remote, has_remote) = self.git_halves(root).map_err(|e| QueryFailure::Error(manager_error("subscribeBranch", root, &e.message())))?;
+        let first = json!({"refName": local["refName"]});
+        Ok((StatusFold { root: root.into(), has_remote, local, remote, branch_only: true }, first))
     }
 
     /// Follows the status on a thread of its own, sending a frame for each half that changed until the app's stream is gone or `stop` is set.
@@ -196,13 +212,20 @@ impl Service {
                 let Some(status) = status else { return Follow::Continue };
                 let (local, remote) = halves(&root, &status, fold.has_remote, &svc.git_counts(&root));
                 let mut frames = Vec::new();
-                if local != fold.local {
-                    frames.push(json!({"_tag": "localUpdated", "local": local}));
+                if fold.branch_only {
+                    if local["refName"] != fold.local["refName"] {
+                        frames.push(json!({"refName": local["refName"]}));
+                    }
                     fold.local = local;
-                }
-                if remote != fold.remote {
-                    frames.push(json!({"_tag": "remoteUpdated", "remote": remote}));
-                    fold.remote = remote;
+                } else {
+                    if local != fold.local {
+                        frames.push(json!({"_tag": "localUpdated", "local": local}));
+                        fold.local = local;
+                    }
+                    if remote != fold.remote {
+                        frames.push(json!({"_tag": "remoteUpdated", "remote": remote}));
+                        fold.remote = remote;
+                    }
                 }
                 if frames.into_iter().any(|frame| to.send((id.clone(), frame)).is_err()) {
                     return Follow::Stop;

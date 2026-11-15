@@ -257,6 +257,30 @@ fn the_status_stream_is_a_snapshot_and_then_a_frame_for_each_half_that_changed_a
     assert!(h.agent.calls.lock().unwrap().contains(&"git.subscribe"));
 }
 
+#[test]
+fn the_branch_stream_is_the_branch_name_and_then_a_frame_only_when_it_changes_and_a_refresh_answers_with_nothing() {
+    // Given a repository whose status stream says: the same branch, a file more, then another branch
+    let (h, mut rpc) = started();
+    let on = |branch: &str, files: Value| {
+        let mut status = status_with(files, 0);
+        status["branch"] = json!(branch);
+        status
+    };
+    reply(&h, "git.status", Ok(on("main", json!([]))));
+    reply(&h, "git.upstreamStatus", Ok(recorded("git.upstreamStatus", "no upstream")));
+    h.agent.git_statuses.lock().unwrap().insert(ROOT.into(), vec![on("main", json!([])), on("main", json!([changed("a.txt")])), on("feat", json!([changed("a.txt")]))]);
+    // When the phone refreshes the branch and subscribes to it
+    let refreshed = rpc.call("vcs.refreshBranch", json!({"cwd": ROOT}));
+    let id = rpc.send("subscribeVcsBranch", json!({"cwd": ROOT}));
+    let mut frames: Vec<Value> = Vec::new();
+    while frames.len() < 2 {
+        frames.extend(rpc.chunk(&id));
+    }
+    // Then the refresh succeeded with no value, the first frame is the branch, the second the new branch, and a changed file made no frame
+    assert_eq!(refreshed["_tag"], "Success", "{refreshed}");
+    assert_eq!(frames, [json!({"refName": "main"}), json!({"refName": "feat"})]);
+}
+
 fn progress(rpc: &mut Rpc, id: &Value) -> Vec<Value> {
     let mut frames: Vec<Value> = Vec::new();
     loop {

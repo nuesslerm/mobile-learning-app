@@ -14,7 +14,7 @@
     "notOffered": 44,
     "excluded": 0,
     "flagged": 0,
-    "answeredByMapper": 4,
+    "answeredByMapper": 6,
     "byKind": {
       "command": 40,
       "http": 23,
@@ -2889,7 +2889,8 @@
       "name": "subscribeVcsBranch",
       "subscription": true,
       "state": "pending",
-      "milestone": "M9"
+      "milestone": "M9",
+      "note": "answered by the mapper (clis/t3-serve/contracts/src/rpc.rs IMPLEMENTED_RPCS); no run-bundle evidence yet"
     },
     {
       "id": "rpc:subscribeVcsStatus",
@@ -3103,7 +3104,8 @@
       "kind": "rpc",
       "name": "vcs.refreshBranch",
       "state": "pending",
-      "milestone": "M9"
+      "milestone": "M9",
+      "note": "answered by the mapper (clis/t3-serve/contracts/src/rpc.rs IMPLEMENTED_RPCS); no run-bundle evidence yet"
     },
     {
       "id": "rpc:vcs.refreshStatus",
