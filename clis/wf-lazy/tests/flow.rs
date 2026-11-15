@@ -124,7 +124,7 @@ fn every_verb_of_the_table_is_served_by_its_crate_and_its_binary_exists_there() 
             .find(|d| std::fs::read_to_string(d.join("Cargo.toml")).is_ok_and(|m| m.contains(&format!("name = \"{package}\"\n"))))
             .unwrap_or_else(|| panic!("no crate named {package}"));
         let manifest = std::fs::read_to_string(dir.join("Cargo.toml")).unwrap();
-        let commands = std::fs::read_to_string(dir.join("src/lib.rs")).unwrap();
+        let commands: String = ["src", "src-rs"].iter().flat_map(|d| std::fs::read_dir(dir.join(d)).into_iter().flatten().flatten()).filter_map(|e| std::fs::read_to_string(e.path()).ok()).collect();
 
         // Then it names the binary and serves the verb
         assert!(manifest.contains(&format!("name = \"{bin}\"")), "{package} has no binary {bin}");
@@ -195,5 +195,33 @@ fn a_gate_combined_with_a_flag_only_the_router_reads_runs_the_full_router() {
     for shape in shapes {
         let out = ran(&b, &shape);
         assert_eq!(out, format!("ran:wf {}", shape.join(" ")), "{shape:?}");
+    }
+}
+
+#[test]
+fn secret_agent_config_and_flow_run_their_own_thin_binaries_with_the_same_words() {
+    // Given a bench
+    let b = Bench::new(0);
+
+    // When a secret, an agent-config and an unpublished flow verb run
+    let out: Vec<String> = [vec!["secret", "list"], vec!["agent-config", "sync", "--check"], vec!["flow", "--json", "x.flow.test.tsx"]].iter().map(|a| ran(&b, a)).collect();
+
+    // Then each ran the binary of its own crate
+    assert_eq!(out, vec!["ran:secrets secret list", "ran:agent-config agent-config sync --check", "ran:harness-flow flow --json x.flow.test.tsx"]);
+    let packages: Vec<String> = b.builds().iter().map(|l| l.split(' ').nth(3).unwrap().to_string()).collect();
+    assert_eq!(packages, vec!["secrets", "agent-config-sync", "harness-flow"]);
+}
+
+#[test]
+fn secret_login_and_a_published_flow_run_the_full_router() {
+    // Given a bench
+    let b = Bench::new(0);
+
+    // When the shapes only the router serves run
+    let shapes: Vec<Vec<&str>> = vec![vec!["secret", "login", "listener"], vec!["flow", "x.flow.test.tsx", "--publish"]];
+
+    // Then both ran the `wf` package
+    for shape in shapes {
+        assert_eq!(ran(&b, &shape), format!("ran:wf {}", shape.join(" ")), "{shape:?}");
     }
 }

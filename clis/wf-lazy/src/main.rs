@@ -15,7 +15,19 @@ pub const TABLE: &[(&str, &str, &str)] = &[
     ("bucket", "wf-bucket", "wf-bucket"),
     ("ship", "deploy", "deploy"),
     ("vm", "deploy", "deploy"),
+    ("secret", "secrets", "secrets"),
+    ("agent-config", "agent-config-sync", "agent-config"),
+    ("flow", "harness-flow", "harness-flow"),
 ];
+
+/// Shapes of a tabled verb that only the router serves: `secret login` (the login capture) and `flow --publish` (the bucket client).
+fn router_only(verb: &str, rest: &[String]) -> bool {
+    match verb {
+        "secret" => rest.first().is_some_and(|a| a == "login"),
+        "flow" => rest.iter().any(|a| a == "--publish"),
+        _ => false,
+    }
+}
 
 /// The `check` shapes the pipeline crate's thin binary serves like the router: a gate mode of its own and none of the router-only ones.
 /// `--dead-refs` is served alone or with `--staged` only, exactly as the router reads it.
@@ -35,6 +47,7 @@ fn check_is_thin(rest: &[String]) -> bool {
 fn target_of(args: &[String]) -> (&'static str, &'static str) {
     match args.first().map(String::as_str) {
         Some("check") if check_is_thin(&args[1..]) => ("pipeline", "pipeline"),
+        Some(verb) if router_only(verb, &args[1..]) => ("wf", "wf"),
         Some(verb) => TABLE.iter().find(|(v, _, _)| *v == verb).map_or(("wf", "wf"), |(_, package, bin)| (package, bin)),
         None => ("wf", "wf"),
     }
