@@ -1,7 +1,7 @@
 //! The session rows over `agent.threads`: a session is a thread (the session id is the thread id), a send is a turn, a cancel a forced stop.
 use crate::agent::{ask, refused_code};
 use crate::fold::{fold, Item};
-use crate::journal::{self, cursor, load, page, view, EPOCH, FENCE};
+use crate::journal::{self, cursor, epoch_of, load, page, view, FENCE};
 use crate::ops::{lookup, record, refused, Envelope};
 use agent_api_agent::lifecycle::THREAD_FORCE_STOP;
 use agent_api_agent::{code as thread_code, queue, requests, THREAD_CREATE, TURN_START};
@@ -258,7 +258,7 @@ pub(crate) fn history(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fai
     let reset = match (direction, from) {
         ("tail", _) => None,
         (_, None) => Some("epoch_changed"),
-        (_, Some(c)) if c["epoch"] != EPOCH => Some("epoch_changed"),
+        (_, Some(c)) if c["epoch"] != epoch_of(&loaded.folded).as_str() => Some("epoch_changed"),
         (_, Some(c)) if c["sequence"].as_u64().unwrap_or(0) > loaded.folded.last_seq => Some("cursor_ahead"),
         _ => None,
     };
@@ -305,7 +305,7 @@ pub(crate) fn current_requests(agent: &dyn AgentApi, params: &Value) -> Result<V
     let items: Vec<Value> = loaded.folded.items.iter().filter(|i| i.is_pending_prompt()).map(Item::render).collect();
     let json = serde_json::to_string(&items).unwrap_or_default();
     let version = version_of(session, &json);
-    let marker = json!({"contract": "agent-session.current-requests.v1", "sessionId": session, "epoch": EPOCH, "publisher": "rca", "revision": loaded.folded.last_seq, "owner": format!("rca:{session}"), "version": version});
+    let marker = json!({"contract": "agent-session.current-requests.v1", "sessionId": session, "epoch": epoch_of(&loaded.folded), "publisher": "rca", "revision": loaded.folded.last_seq, "owner": format!("rca:{session}"), "version": version});
     if params["version"] != version.as_str() {
         return Ok(json!({"marker": marker, "json": "", "nextCursor": 0, "restart": true}));
     }

@@ -858,6 +858,9 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     let open = item_of(&mut rig, "claude_open", "question:rq1");
     rig.ok("agentSession.respondToApproval", mutation("claude_open", "e7", json!({"itemId": "approval:ap1", "expectedRevision": 9, "optionId": "accept"})));
     rig.ok("agentSession.respondToQuestion", mutation("claude_open", "e8", json!({"itemId": "question:rq1", "expectedRevision": open["revision"], "optionId": open["body"]["options"][0]["id"]})));
+    let (_, second) = two_turns(&mut rig);
+    let epoch = rig.ok("agentSession.history", json!({"sessionId": "claude_two", "direction": "tail"}))["page"]["epoch"].clone();
+    rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "rw9", "fp"), "itemId": second, "expectedEpoch": epoch}));
     let mut status = rig.host.connection("dev9", "tok9", vec!["agent-session.structured.v1".to_string()]);
     status_frames(&mut status, "st");
     // When the methods asked of the agent API are collected
@@ -1127,7 +1130,7 @@ fn given_a_host_when_the_phone_lists_its_agents_then_each_served_driver_is_an_ag
     // Then every served driver is there once, with the capabilities of this host's sessions
     let names: Vec<&str> = r["agents"].as_array().unwrap().iter().map(|a| a["agent"].as_str().unwrap()).collect();
     assert_eq!(names, ["claude", "codex", "opencode"]);
-    assert_eq!(r["agents"][0]["capabilities"], json!({"rewind": false, "compact": true, "threadGoal": false, "contextUsage": false, "imagePrompts": true, "steering": "queue", "approvalEnforcement": "orca"}));
+    assert_eq!(r["agents"][0]["capabilities"], json!({"rewind": true, "compact": true, "threadGoal": false, "contextUsage": false, "imagePrompts": true, "steering": "queue", "approvalEnforcement": "orca"}));
     // And a key the schema lacks is refused in its words
     assert_eq!(rig.err("agentSession.agents", json!({"x": 1})), ("invalid_argument".to_string(), "Unrecognized key: \"x\"".to_string()));
 }
@@ -1258,4 +1261,67 @@ fn given_the_host_when_status_is_read_then_it_advertises_the_status_feed_and_str
     let area = AgentArea::default();
     // When its capabilities are read, Then it names both
     assert_eq!(orca_core::Area::capabilities(&area), ["agent-session.structured.v1", "agent-session.status-feed.v1"]);
+}
+
+/// A chat with two finished turns ("one" then "two"), nothing open, and the ids of the two user messages.
+fn two_turns(rig: &mut Rig) -> (String, String) {
+    rig.idle("claude_two");
+    for prompt in ["one", "two"] {
+        rig.agent.request("turn.start", json!({"thread": "claude_two", "workspace": "main", "driver": "claudeAgent", "prompt": prompt})).unwrap();
+        rig.threads.push("claude_two", json!({"type": "message.delta", "role": "assistant", "text": format!("answer {prompt}")}));
+        rig.threads.finish("claude_two", "completed");
+    }
+    let page = rig.ok("agentSession.history", json!({"sessionId": "claude_two", "direction": "tail"}))["page"].clone();
+    let users: Vec<String> = page["items"].as_array().unwrap().iter().filter(|i| i["body"]["kind"] == "message" && i["body"]["role"] == "user").map(|i| i["itemId"].as_str().unwrap().to_string()).collect();
+    (users[0].clone(), users[1].clone())
+}
+
+#[test]
+fn given_two_finished_turns_when_the_phone_rewinds_to_the_second_message_then_the_second_turn_is_rolled_back_the_journal_has_a_new_epoch_and_the_same_operation_replays() {
+    // Given a chat of two finished turns
+    let mut rig = Rig::new();
+    let (_, second) = two_turns(&mut rig);
+    let before = rig.ok("agentSession.history", json!({"sessionId": "claude_two", "direction": "tail"}))["page"].clone();
+    let epoch = before["epoch"].clone();
+    // When the phone rewinds to the second user message
+    let params = json!({"envelope": env("claude_two", "rw1", "fp"), "itemId": second, "expectedEpoch": epoch});
+    let done = rig.ok("agentSession.rewind", params.clone());
+    // Then rca rolled back to the first turn, the answer carries the item and a new epoch, and the history no longer holds the second turn's messages
+    assert_eq!(sent(&rig, "thread.rollback"), vec![json!({"thread": "claude_two", "turn": "u1", "restore_files": false})]);
+    assert_eq!((done["ok"].clone(), done["replayed"].clone(), done["value"]["itemId"].clone()), (json!(true), json!(false), json!(second)));
+    assert_ne!(done["value"]["epoch"], epoch);
+    assert_eq!(done["cursor"]["epoch"], done["value"]["epoch"]);
+    let after = rig.ok("agentSession.history", json!({"sessionId": "claude_two", "direction": "tail"}))["page"].clone();
+    let texts: Vec<String> = after["items"].as_array().unwrap().iter().filter(|i| i["body"]["kind"] == "message").map(|i| i["body"]["blocks"][0]["text"].as_str().unwrap().to_string()).collect();
+    assert_eq!(texts, ["one", "answer one"]);
+    assert_eq!(after["epoch"], done["value"]["epoch"]);
+    // When the same operation is sent again, Then the recorded answer comes back replayed and rca is asked no second time
+    let again = rig.ok("agentSession.rewind", params);
+    assert_eq!(again["replayed"], json!(true));
+    assert_eq!(sent(&rig, "thread.rollback").len(), 1);
+}
+
+#[test]
+fn given_a_chat_when_a_rewind_cannot_be_done_then_it_is_refused_with_the_hosts_reason_and_rca_is_asked_for_nothing() {
+    // Given a chat of two finished turns and the current epoch
+    let mut rig = Rig::new();
+    let (first, second) = two_turns(&mut rig);
+    let epoch = rig.ok("agentSession.history", json!({"sessionId": "claude_two", "direction": "tail"}))["page"]["epoch"].clone();
+    let reason = |r: &Value| (r["ok"].clone(), r["refusal"]["code"].clone(), r["refusal"]["message"].clone(), r["refusal"]["details"]["rewindReason"].clone());
+    // When the phone names an old epoch, the first turn's message (nothing is kept before it), an item that is no user message, and a missing item
+    let stale = rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "r1", "fp"), "itemId": second, "expectedEpoch": "rca-99"}));
+    let opening = rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "r2", "fp"), "itemId": first, "expectedEpoch": epoch}));
+    let not_user = rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "r3", "fp"), "itemId": "turn:u1", "expectedEpoch": epoch}));
+    let missing = rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "r4", "fp"), "itemId": "i999", "expectedEpoch": epoch}));
+    // Then each is a rewind refusal with its reason
+    let invalid = |why: &str| (json!(false), json!("agent_session_operation_invalid"), json!(format!("agent_session_rewind:{why}")), json!(why));
+    assert_eq!(reason(&stale), invalid("stale-epoch"));
+    assert_eq!(reason(&opening), invalid("unsupported"));
+    assert_eq!(reason(&not_user), invalid("invalid-target"));
+    assert_eq!(reason(&missing), invalid("invalid-target"));
+    // And a chat with a running turn is busy
+    rig.agent.request("turn.start", json!({"thread": "claude_two", "workspace": "main", "driver": "claudeAgent", "prompt": "three"})).unwrap();
+    let busy = rig.ok("agentSession.rewind", json!({"envelope": env("claude_two", "r5", "fp"), "itemId": second, "expectedEpoch": epoch}));
+    assert_eq!(reason(&busy), invalid("busy"));
+    assert!(sent(&rig, "thread.rollback").is_empty());
 }

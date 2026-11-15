@@ -16,7 +16,6 @@
         "orca-agentActivity.clear",
         "orca-agentActivity.setRead",
         "orca-agentSession.continueInterrupted",
-        "orca-agentSession.rewind",
         "orca-agentSession.threadGoal",
         "orca-browser.back",
         "orca-browser.dialogAccept",

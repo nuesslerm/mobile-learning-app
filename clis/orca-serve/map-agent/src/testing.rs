@@ -88,7 +88,7 @@ impl Threads {
 
     /// Makes `agent` answer the methods of `USES` from this thread set (`repo.list` comes from the workspace double).
     pub fn install(&self, agent: &ScriptedAgent) {
-        for method in ["thread.create", "thread.list", "thread.get", "thread.history", "turn.start", "thread.forceStop", "queue.add", "queue.list", "queue.edit", "queue.move", "queue.delete", "queue.resume", "turn.steer", "approval.answer", "input.answer", "input.dismiss", "upload.put", "attachment.get"] {
+        for method in ["thread.create", "thread.list", "thread.rollback", "thread.get", "thread.history", "turn.start", "thread.forceStop", "queue.add", "queue.list", "queue.edit", "queue.move", "queue.delete", "queue.resume", "turn.steer", "approval.answer", "input.answer", "input.dismiss", "upload.put", "attachment.get"] {
             let me = self.clone();
             agent.reply(method, move |p| me.answer(method, p));
         }
@@ -176,6 +176,24 @@ impl Threads {
                 self.push(&id, json!({"type": "turn.started"}));
                 self.push(&id, json!({"type": "message.delta", "role": "user", "text": p["prompt"]}));
                 Ok(json!({"thread": id, "turn": turn}))
+            }
+            "thread.rollback" => {
+                if snapshot.running.is_some() {
+                    return Err(refused("TURN_RUNNING", format!("thread {id} has a running turn")));
+                }
+                let kept = p["turn"].as_str().unwrap_or_default().to_string();
+                let mut turns: Vec<String> = Vec::new();
+                for e in &snapshot.events {
+                    if let Some(turn) = e["turn"].as_str() {
+                        if !turns.iter().any(|t| t == turn) {
+                            turns.push(turn.to_string());
+                        }
+                    }
+                }
+                let at = turns.iter().position(|t| *t == kept).ok_or_else(|| refused("TURN_NOT_FOUND", format!("no turn {kept}")))?;
+                let dropped: Vec<String> = turns[at + 1..].to_vec();
+                self.push(&id, json!({"type": "thread.rolled_back", "to_turn": kept, "dropped": dropped, "restored_files": false}));
+                Ok(json!({"thread": id, "to_turn": kept, "dropped": dropped}))
             }
             "thread.forceStop" => {
                 let Some(turn) = snapshot.running else { return Err(refused("NO_TURN", format!("thread {id} has no running turn"))) };

@@ -13,6 +13,7 @@ mod native_stream;
 mod ops;
 mod queued;
 mod respond;
+mod rewind;
 mod session;
 mod status_stream;
 mod stream;
@@ -21,7 +22,7 @@ mod stream;
 pub mod testing;
 
 use agent_api_agent::{queue, requests, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, THREAD_LIST, TURN_START};
-use agent_api_agent::lifecycle::THREAD_FORCE_STOP;
+use agent_api_agent::lifecycle::{THREAD_FORCE_STOP, THREAD_ROLLBACK};
 use agent_api_proto::Method as AgentMethod;
 use orca_core::wire::{self, string_field, Failure};
 use orca_core::{Area, Ctx, Kind, Method, NotOffered, Subscription};
@@ -42,6 +43,7 @@ pub const AGENT_SESSION_HOLD: &str = "agentSession.hold";
 pub const AGENT_SESSION_RELEASE: &str = "agentSession.release";
 pub const AGENT_SESSION_CURRENT_REQUESTS: &str = "agentSession.currentRequests";
 pub const AGENT_SESSION_SEND_RECORDED: &str = "agentSession.sendRecorded";
+pub const AGENT_SESSION_REWIND: &str = "agentSession.rewind";
 pub const AGENT_SESSION_SUBSCRIBE_STATUS: &str = "agentSession.subscribeStatus";
 pub const AGENT_SESSION_CONVERSATION_COMMAND: &str = "agentSession.conversationCommand";
 pub const AGENT_SESSION_QUEUED_MESSAGE_DELETE: &str = "agentSession.queuedMessageDelete";
@@ -76,7 +78,7 @@ pub const NATIVE_CHAT_UNSUBSCRIBE: &str = "nativeChat.unsubscribe";
 pub const NATIVE_CHAT_SUBSCRIBE: &str = "nativeChat.subscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST];
+pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, THREAD_ROLLBACK, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST];
 
 const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_CREATE, kind: Kind::Unary },
@@ -92,6 +94,7 @@ const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_RELEASE, kind: Kind::Unary },
     Method { name: AGENT_SESSION_CURRENT_REQUESTS, kind: Kind::Unary },
     Method { name: AGENT_SESSION_SEND_RECORDED, kind: Kind::Unary },
+    Method { name: AGENT_SESSION_REWIND, kind: Kind::Unary },
     Method { name: AGENT_SESSION_CONVERSATION_COMMAND, kind: Kind::Unary },
     Method { name: AGENT_SESSION_QUEUED_MESSAGE_DELETE, kind: Kind::Unary },
     Method { name: AGENT_SESSION_QUEUED_MESSAGE_EDIT_HOLD, kind: Kind::Unary },
@@ -178,6 +181,7 @@ impl Area for AgentArea {
             AGENT_SESSION_RELEASE => Ok(session::release()),
             AGENT_SESSION_CURRENT_REQUESTS => session::current_requests(agent, params),
             AGENT_SESSION_SEND_RECORDED => session::send_recorded(agent, params),
+            AGENT_SESSION_REWIND => rewind::rewind(agent, params),
             AGENT_SESSION_CONVERSATION_COMMAND => session::conversation_command(agent, params),
             AGENT_SESSION_QUEUED_MESSAGE_DELETE => queued::delete(agent, params),
             AGENT_SESSION_QUEUED_MESSAGE_EDIT_HOLD => queued::edit_hold(agent, params),

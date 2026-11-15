@@ -62,13 +62,13 @@ fn session_id(params: &Value) -> Result<&str, Failure> {
 
 /// `agentSession.options`: the models of the session's driver and the model its next turn runs on.
 /// `agentSession.agents`: the agents this host runs and what a session of each can do, before any session exists. Nothing here is an installed-CLI
-/// check (the pinned host's list is static too). A session here compacts and takes images, holds a follow-up for a running turn until it ends, and has no rewind, goal,
+/// check (the pinned host's list is static too). A session here compacts, rewinds to a user message and takes images, holds a follow-up for a running turn until it ends, and has no goal,
 /// context meter or fork; approvals are answered by this host.
 pub(crate) fn agents(params: &Value) -> Result<Value, Failure> {
     if let Some(key) = params.as_object().and_then(|o| o.keys().next()) {
         return Err(Failure::invalid(format!("Unrecognized key: \"{key}\"")));
     }
-    let capabilities = json!({"rewind": false, "compact": true, "threadGoal": false, "contextUsage": false, "imagePrompts": true, "steering": "queue", "approvalEnforcement": "orca"});
+    let capabilities = json!({"rewind": true, "compact": true, "threadGoal": false, "contextUsage": false, "imagePrompts": true, "steering": "queue", "approvalEnforcement": "orca"});
     let served: Vec<&str> = drivers_served().into_iter().filter_map(agent_of).collect();
     // the built-ins in the pinned host's order, then any other
     let agents: Vec<Value> = ["claude", "codex", "opencode"].into_iter().filter(|a| served.contains(a)).map(|a| json!({"agent": a, "capabilities": capabilities})).collect();
@@ -89,7 +89,7 @@ pub(crate) fn options(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fai
     if named.is_none() {
         current["defaulted"] = json!(["model"]);
     }
-    Ok(json!({"models": model_options(&catalog), "current": current, "acceptsImages": true, "conversationCommands": ["clear", "compact"], "compactInstructions": true}))
+    Ok(json!({"models": model_options(&catalog), "current": current, "acceptsImages": true, "rewind": {"supported": true}, "conversationCommands": ["clear", "compact"], "compactInstructions": true}))
 }
 
 /// `agentSession.setOption`: the model of the session's next turns. The turn takes no effort and no permission mode of the phone's, so those keys are refused.

@@ -33,6 +33,8 @@ impl Item {
 #[derive(Debug, Default, Clone, PartialEq)]
 pub struct Folded {
     pub items: Vec<Item>,
+    /// The `seq` of the newest rollback of the log: a rollback drops turns from the journal, so it opens a new epoch.
+    pub epoch_seq: u64,
     pub last_seq: u64,
     pub running_turn: Option<String>,
 }
@@ -82,6 +84,14 @@ pub fn fold(events: &[Value]) -> Folded {
                 let id = format!("turn:{}", turn.clone().unwrap_or_default());
                 out.items.push(Item { id, turn: turn.clone(), sequence: seq, revision: seq, body: json!({"kind": "turn", "turnId": turn, "state": "running"}) });
             }
+            "thread.rolled_back" => {
+                let dropped: Vec<&str> = e["dropped"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
+                out.items.retain(|i| !i.turn.as_deref().is_some_and(|t| dropped.contains(&t)));
+                if out.running_turn.as_deref().is_some_and(|t| dropped.contains(&t)) {
+                    out.running_turn = None;
+                }
+                out.epoch_seq = seq;
+            }
             "turn.finished" => {
                 let state = if e["reason"] == "interrupted" { "interrupted" } else { "completed" };
                 if out.running_turn == turn {
@@ -106,7 +116,8 @@ pub fn fold(events: &[Value]) -> Folded {
                         let id = format!("i{seq}");
                         if role == "user" {
                             let turn_id = format!("turn:{}", turn.clone().unwrap_or_default());
-                            if let Some(t) = out.items.iter_mut().find(|i| i.id == turn_id) {
+                            // the turn's opener is its first user item: a later one (a steer) leaves it as it was
+                            if let Some(t) = out.items.iter_mut().find(|i| i.id == turn_id && i.body.get("userItemId").is_none()) {
                                 t.body["userItemId"] = id.clone().into();
                             }
                         }
@@ -234,5 +245,31 @@ mod tests {
         let out = &fold(&log).items[0].body["output"];
         // Then
         assert_eq!((out["head"].as_str().unwrap().len(), out["byteLength"].clone(), out["truncated"].clone(), out["digest"].as_str().unwrap().len()), (8 * 1024, json!(20 * 1024), json!(true), 64));
+    }
+
+    #[test]
+    fn given_a_steer_in_the_middle_of_a_turn_when_folded_then_the_turns_opener_is_its_first_user_message_and_a_rollback_drops_the_turns_it_names_and_opens_a_new_epoch() {
+        // Given a turn with a prompt, an answer and a steer, then a second turn, then a rollback of the second
+        let log = vec![
+            json!({"seq": 1, "turn": "u1", "type": "turn.started"}),
+            json!({"seq": 2, "turn": "u1", "type": "message.delta", "role": "user", "text": "first"}),
+            json!({"seq": 3, "turn": "u1", "type": "message.delta", "role": "assistant", "text": "working"}),
+            json!({"seq": 4, "turn": "u1", "type": "message.delta", "role": "user", "text": "steer"}),
+            json!({"seq": 5, "turn": "u1", "type": "turn.finished", "reason": "completed"}),
+            json!({"seq": 6, "turn": "u2", "type": "turn.started"}),
+            json!({"seq": 7, "turn": "u2", "type": "message.delta", "role": "user", "text": "second"}),
+            json!({"seq": 8, "turn": "u2", "type": "turn.finished", "reason": "completed"}),
+        ];
+        // When folded, Then the first turn's opener is the first user item
+        let folded = fold(&log);
+        let turn = folded.items.iter().find(|i| i.id == "turn:u1").unwrap();
+        assert_eq!(turn.body["userItemId"], "i2");
+        // When the rollback of the second turn follows, Then its items are gone, the first turn's stay, and the epoch is the rollback's seq
+        let mut rolled = log.clone();
+        rolled.push(json!({"seq": 9, "type": "thread.rolled_back", "to_turn": "u1", "dropped": ["u2"], "restored_files": false}));
+        let after = fold(&rolled);
+        assert!(after.items.iter().all(|i| i.turn.as_deref() != Some("u2")));
+        assert!(after.items.iter().any(|i| i.id == "i2"));
+        assert_eq!((after.epoch_seq, after.last_seq), (9, 9));
     }
 }

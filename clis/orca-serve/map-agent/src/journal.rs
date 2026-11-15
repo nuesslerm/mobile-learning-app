@@ -17,6 +17,15 @@ pub(crate) fn cursor(seq: u64) -> Value {
     json!({"epoch": EPOCH, "sequence": seq})
 }
 
+/// The journal's epoch: `rca` until the log is rolled back, and the `seq` of the newest rollback after it, so a phone that held the old journal resets.
+pub(crate) fn epoch_of(folded: &Folded) -> String {
+    if folded.epoch_seq == 0 { EPOCH.to_string() } else { format!("{EPOCH}-{}", folded.epoch_seq) }
+}
+
+pub(crate) fn cursor_at(epoch: &str, seq: u64) -> Value {
+    json!({"epoch": epoch, "sequence": seq})
+}
+
 /// Every event of the thread after `after`, oldest first, and the thread's head.
 pub(crate) fn events_after(agent: &dyn AgentApi, thread: &str, after: u64) -> Result<(Vec<Value>, u64), Failure> {
     let (mut events, mut from, mut head) = (Vec::new(), after, after);
@@ -81,12 +90,13 @@ pub(crate) fn page(session: &str, folded: &Folded, direction: &str, cursor_seq: 
         "after" => newest.or(cursor_seq).unwrap_or(folded.last_seq),
         _ => oldest.unwrap_or(0),
     };
+    let epoch = epoch_of(folded);
     let mut page = json!({
-        "sessionId": session, "epoch": EPOCH, "fence": FENCE, "direction": direction,
+        "sessionId": session, "epoch": epoch, "fence": FENCE, "direction": direction,
         "items": items.iter().map(|i| i.render()).collect::<Vec<_>>(),
         "removedItemIds": [], "submissions": [],
-        "window": {"oldest": oldest.map(cursor), "newest": newest.map(cursor), "nextCursor": cursor(next)},
-        "liveCursor": cursor(folded.last_seq), "hasOlder": has_older, "hasNewer": has_newer,
+        "window": {"oldest": oldest.map(|s| cursor_at(&epoch, s)), "newest": newest.map(|s| cursor_at(&epoch, s)), "nextCursor": cursor_at(&epoch, next)},
+        "liveCursor": cursor_at(&epoch, folded.last_seq), "hasOlder": has_older, "hasNewer": has_newer,
     });
     if let (Some(p), Some(w)) = (page.as_object_mut(), current_work(folded).as_object()) {
         p.extend(w.clone());
