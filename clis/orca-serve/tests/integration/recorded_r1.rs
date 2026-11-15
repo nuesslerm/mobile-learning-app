@@ -4,7 +4,6 @@
 use crate::mimic_x6::{mimic, out_dir, read_json, root, scratch};
 use crate::rig::*;
 use serde_json::json;
-use mimic_core::gaps;
 use std::path::Path;
 use std::process::Command;
 
@@ -36,13 +35,13 @@ fn the_answers_the_real_host_recorded_replay_through_orca_serve_and_every_differ
         let set = base.join(name);
         let header = read_json(&set.join("cassette.json"));
         assert_eq!((header["provenance"]["kind"].clone(), header["provenance"]["target"]["pin_hash"].clone()), (json!("recorded"), json!(pin_hash())), "{header}");
-        let gaps_path = set.join("known-gaps.json");
         // (an interaction the recording runs disagreed on is noise, not a reference answer: it is not compared)
         let interactions: Vec<serde_json::Value> = std::fs::read_to_string(set.join("interactions.jsonl")).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).filter(|i: &serde_json::Value| !has(i, "nondeterministic")).collect();
         let ids = |keep: &dyn Fn(&serde_json::Value) -> bool| interactions.iter().filter(|i| keep(i)).map(|i| i["id"].as_str().unwrap().to_string()).collect::<Vec<_>>();
         // the crawl's reads share one host and its state-changing cases another, in cassette order, as the VM recording shared one server
         let groups = if name == CRAWL { vec![ids(&|i| !has(i, "state:write")), ids(&|i| has(i, "state:write"))] } else { vec![ids(&|_| true)] };
         let mut results = Vec::new();
+        let (mut new, mut stale): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
         // When wf-mimic replays them against orca-serve, the phone's transport driven by the link orca-serve pair printed
         for group in groups.iter().filter(|g| !g.is_empty()) {
             let chain = Chain::start(None);
@@ -50,26 +49,18 @@ fn the_answers_the_real_host_recorded_replay_through_orca_serve_and_every_differ
             let out = out_dir(&scratch);
             for ids in group.chunks(IDS_PER_CALL) {
                 let only = ids.join(",");
-                let mut args = vec!["replay", set.to_str().unwrap(), "--candidate", "orca-serve", "--only", &only];
+                let mut args = vec!["replay", set.to_str().unwrap(), "--candidate", "orca-serve", "--only", &only, "--gaps", "check"];
                 // the one-call recorded set leaves its own method trace; the crawl's is written below from every interaction
                 if name != CRAWL { args.extend(["--suite", "wf-mimic-orca-recorded"]); }
                 let run = mimic(&args, &chain.pair_url(), &out);
                 let found = run.json["results"].as_array().unwrap_or_else(|| panic!("no results: {}\n{}", run.json, chain.evidence())).clone();
                 results.extend(found);
+                new.extend(run.json["gaps"]["new"].as_array().into_iter().flatten().filter_map(|n| n.as_str().map(String::from)));
+                stale.extend(run.json["gaps"]["stale"].as_array().into_iter().flatten().filter_map(|n| n.as_str().map(String::from)));
             }
             std::fs::remove_dir_all(&scratch).ok();
         }
-        // Then the interactions with a difference (the report lists only those) are exactly the listed gaps, each with the differences it was listed for
-        let found: Vec<gaps::Found> = results.iter().map(|r| {
-            let mut lines: Vec<String> = r["diffs"].as_array().into_iter().flatten().filter(|d| d["severity"] != "none").map(|d| format!("{} {} {}", d["path"].as_str().unwrap(), d["kind"].as_str().unwrap(), d["severity"].as_str().unwrap())).collect();
-            lines.extend(r["error"].as_str().map(|e| format!("error {e}")));
-            gaps::Found { id: r["id"].as_str().unwrap().to_string(), lines }
-        }).collect();
-        // WF_MIMIC_WRITE_GAPS=<set>[,<set>...] lists what this replay found as that set's known gaps (to review before it is committed)
-        if std::env::var("WF_MIMIC_WRITE_GAPS").is_ok_and(|v| v.split(',').any(|s| s == name)) {
-            std::fs::write(&gaps_path, serde_json::to_string_pretty(&gaps::file(&found)).unwrap() + "\n").unwrap();
-        }
-        let (new, stale) = gaps::compare(&found, &gaps::listed(&read_json(&gaps_path)).expect("known-gaps.json parses"));
+        // Then the interactions with a difference are exactly the listed gaps, each with the differences it was listed for (the verb compared them)
         if !new.is_empty() || !stale.is_empty() {
             failures.push(format!("{name}: differences not in known-gaps.json:\n{}\nlisted gaps that no longer differ as listed:\n{stale:?}", new.join("\n")));
         }
