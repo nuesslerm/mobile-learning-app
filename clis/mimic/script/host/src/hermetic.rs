@@ -21,8 +21,9 @@ fn stub(name: &str) -> String {
 }
 
 impl Host {
-    /// A fresh host under `root`: its directories exist and the stubs are in place and executable.
-    pub fn prepare(root: &Path) -> Result<Host, String> {
+    /// A fresh host under `root`: its directories exist and the stubs are in place and executable. `cli_dir` is a directory of scripted agent
+    /// CLIs (`exec-testkit`) that, when given, comes before the stubs on `PATH`: a run that needs a turn answered says so.
+    pub fn prepare(root: &Path, cli_dir: Option<&Path>) -> Result<Host, String> {
         let (home, workspace, bin) = (root.join("home"), root.join("workspace"), root.join("bin"));
         for dir in [&home, &workspace, &bin] {
             std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
@@ -33,7 +34,7 @@ impl Host {
             set_executable(&path)?;
         }
         let env = vec![
-            ("PATH".to_string(), format!("{}:/usr/bin:/bin", bin.display())),
+            ("PATH".to_string(), cli_dir.map_or_else(|| format!("{}:/usr/bin:/bin", bin.display()), |c| format!("{}:{}:/usr/bin:/bin", c.display(), bin.display()))),
             ("HOME".to_string(), home.display().to_string()),
             ("T3CODE_HOME".to_string(), home.display().to_string()),
             ("TZ".to_string(), "UTC".to_string()),

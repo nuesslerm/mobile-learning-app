@@ -77,7 +77,7 @@ fn given_bytes_or_sums_that_disagree_with_the_pin_when_provisioned_then_nothing_
 fn given_a_prepared_host_when_the_agent_clis_are_asked_their_version_then_they_answer_the_same_everywhere_and_nothing_else() {
     let root = tempfile::tempdir().unwrap();
 
-    let host = Host::prepare(root.path()).unwrap();
+    let host = Host::prepare(root.path(), None).unwrap();
 
     for name in ["claude", "codex", "opencode"] {
         let out = Command::new(host.bin.join(name)).arg("--version").output().unwrap();
@@ -90,12 +90,23 @@ fn given_a_prepared_host_when_the_agent_clis_are_asked_their_version_then_they_a
 }
 
 fn driver(runtime: &Path) -> ScriptDriver {
-    ScriptDriver::new(Box::new(SpawnLaunch { runtime: runtime.to_path_buf(), ready_ms: 20_000 }), Policy { settle_ms: 20, ..Policy::default() }, vec![], false, Some("0.1.9".into()))
+    ScriptDriver::new(Box::new(SpawnLaunch { runtime: runtime.to_path_buf(), ready_ms: 20_000, cli_dir: None }), Policy { settle_ms: 20, ..Policy::default() }, vec![], false, Some("0.1.9".into()))
 }
 
 fn ask(driver: &mut ScriptDriver, id: &str, script: Value) -> Vec<Value> {
     let observed = driver.run(&Request { id: id.into(), op: Some("script".into()), input: json!({"script": script}) }).unwrap();
     observed.steps.into_iter().map(|s| s.payload).collect()
+}
+
+#[test]
+fn given_scripted_clis_when_the_host_is_prepared_then_they_come_before_the_stubs_on_the_path() {
+    let root = tempfile::tempdir().unwrap();
+    let scripted = tempfile::tempdir().unwrap();
+
+    let host = Host::prepare(root.path(), Some(scripted.path())).unwrap();
+
+    let path = host.env.iter().find(|(k, _)| k == "PATH").unwrap().1.clone();
+    assert!(path.starts_with(&format!("{}:{}:", scripted.path().display(), host.bin.display())), "{path}");
 }
 
 #[test]

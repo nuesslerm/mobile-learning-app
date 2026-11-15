@@ -32,6 +32,8 @@ pub struct SpawnLaunch {
     /// The unpacked runtime, holding the `t3` binary.
     pub runtime: PathBuf,
     pub ready_ms: u64,
+    /// Scripted agent CLIs that come before the stubs on the server's `PATH`.
+    pub cli_dir: Option<PathBuf>,
 }
 
 struct Spawned {
@@ -96,7 +98,7 @@ fn ready(addr: SocketAddr, child: &mut Child, ms: u64) -> Result<(), String> {
 impl Launch for SpawnLaunch {
     fn start(&mut self) -> Result<std::rc::Rc<dyn Server>, String> {
         let root = std::env::temp_dir().join(format!("mimic-host-{}-{}", std::process::id(), HOSTS.fetch_add(1, Ordering::Relaxed)));
-        let host = Host::prepare(&root)?;
+        let host = Host::prepare(&root, self.cli_dir.as_deref())?;
         let port = free_port()?;
         let binary = self.runtime.join("t3");
         let mut child = Command::new(&binary)
