@@ -171,7 +171,6 @@
         "orca-speech.models.list",
         "orca-ssh.getState",
         "orca-ssh.listTargetSummaries",
-        "orca-stats.summary",
         "orca-terminal.ackOutput",
         "orca-terminal.getAutoRestoreFit",
         "orca-terminal.openInputSession",

@@ -2992,8 +2992,6 @@
         "orca-ssh.listTargetSummaries-invalid-no-payload",
         "orca-ssh.listTargets-empty-empty-object",
         "orca-ssh.listTargets-invalid-no-payload",
-        "orca-stats.summary-empty-empty-object",
-        "orca-stats.summary-invalid-no-payload",
         "orca-terminal.ackOutput-boundary-limit-units",
         "orca-terminal.ackOutput-valid-min",
         "orca-terminal.agentId-valid-min",
