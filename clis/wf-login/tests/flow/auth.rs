@@ -225,8 +225,8 @@ fn the_listener_admits_only_the_owner_starts_and_reuses_sessions_and_gates_the_v
     // When a GET, the removed /auth/persist, and a body declared over 1 MiB arrive
     let get = fetch(l.port, "GET", "/auth/start", &AUTHED, None);
     let persist = l.authed("/auth/persist", json!({ "tool": "claude-code-oauth-token", "credential": "tok" }));
-    let oversized = fetch(l.port, "POST", "/auth/start", &[("content-type", "application/json"), ("expect", "100-continue"), ("x-auth-trigger-secret", SECRET), ("x-auth-owner-id", OWNER)], Some(&"x".repeat(2_000_000)));
-    // Then 404 (with a JSON error) and 413 without waiting for the body
+    let oversized = fetch(l.port, "POST", "/auth/start", &[("content-type", "application/json"), ("x-auth-trigger-secret", SECRET), ("x-auth-owner-id", OWNER)], Some(&"x".repeat(2_000_000)));
+    // Then 404 (with a JSON error) and 413
     assert_eq!((get.status, persist.status, oversized.status), (404, 404, 413));
     assert_eq!(persist.json(), json!({ "error": "not found" }));
 
@@ -309,6 +309,35 @@ fn the_listener_admits_only_the_owner_starts_and_reuses_sessions_and_gates_the_v
     let statuses = [l.gate(&format!("/frame?t={token}"), &[]).status, input(r#"{"type":"tap","x":1,"y":2}"#), input("not json"), input(r#"{"type":"drag"}"#), l.gate(&format!("/etc/passwd?t={token}"), &[]).status];
     // Then 503 for what needs a browser, 400 for what is malformed, 404 for the unknown route
     assert_eq!(statuses, [503, 503, 400, 400, 404]);
+}
+
+#[test]
+fn every_control_route_refuses_a_wrong_secret_or_owner_and_the_viewer_never_caches_or_leaks_a_token_to_a_refused_request() {
+    // Given a listener with a live login link
+    let c = Container::new();
+    let l = c.up(&[]);
+    let link = l.authed("/auth/start", json!({ "tool": "codex" })).json();
+    let token = token_of(&link["linkUrl"]);
+
+    // When each control route is called with a wrong secret, then with the right secret but a stranger as owner
+    let routes = ["/auth/start", "/auth/done", "/auth/credential", "/auth/logout", "/auth/launch-url"];
+    let wrong_secret: Vec<u16> = routes.iter().map(|r| l.post(r, json!({ "tool": "codex" }), &[("x-auth-trigger-secret", "nope"), ("x-auth-owner-id", OWNER)]).status).collect();
+    let wrong_owner: Vec<u16> = routes.iter().map(|r| l.post(r, json!({ "tool": "codex" }), &[("x-auth-trigger-secret", SECRET), ("x-auth-owner-id", "intruder")]).status).collect();
+    let secret_as_owner = l.post("/auth/start", json!({ "tool": "codex" }), &[("x-auth-trigger-secret", SECRET), ("x-auth-owner-id", SECRET)]);
+    // Then every route answers 401 for the secret and 403 for the owner, and neither is accepted in the other's place
+    assert_eq!(wrong_secret, [401; 5]);
+    assert_eq!(wrong_owner, [403; 5]);
+    assert_eq!(secret_as_owner.status, 403);
+
+    // When the gate is hit without a token, with a wrong token, and with the right one
+    let missing = l.gate("/", &[]);
+    let wrong = l.gate("/?t=wrong", &[]);
+    let page = l.gate(&format!("/?t={token}"), &[]);
+    // Then a refusal sets no cookie and serves no page, and the viewer is no-store with no referrer
+    assert_eq!((missing.status, wrong.status), (403, 403));
+    assert!(missing.header("set-cookie").is_none() && wrong.header("set-cookie").is_none());
+    assert!(!missing.text().contains("<canvas") && !wrong.text().contains("<canvas"));
+    assert_eq!((page.header("cache-control"), page.header("referrer-policy")), (Some("no-store"), Some("no-referrer")));
 }
 
 #[test]

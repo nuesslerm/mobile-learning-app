@@ -8,17 +8,12 @@ use super::descriptor::{self, assemble_credential, builtin, env_or_vault, Descri
 use super::desktop::Launcher;
 use super::engine::Engine;
 use super::log;
-use axum::body::Bytes;
+use super::http::{self, Reply};
 use base64::Engine as _;
-use axum::extract::State;
-use axum::http::header::CONTENT_TYPE;
-use axum::http::{HeaderMap, Method, StatusCode, Uri};
-use axum::response::{IntoResponse, Response};
-use axum::serve::ListenerExt;
-use axum::Router;
 use serde_json::{json, Value};
+use std::net::TcpListener;
 use std::sync::Arc;
-use tower_http::limit::RequestBodyLimitLayer;
+use tiny_http::Request;
 
 const MAX_BODY: usize = 1024 * 1024;
 
@@ -128,27 +123,22 @@ fn error(status: u16, message: &str) -> (u16, Value) {
     (status, json!({ "error": message }))
 }
 
-/// What `control` needs of a request: its method, path and headers.
+/// What `control` needs of a request: its method, path and the two auth headers.
 struct Call {
-    method: Method,
+    method: String,
     path: String,
-    headers: HeaderMap,
-}
-
-impl Call {
-    fn header(&self, name: &str) -> Option<&str> {
-        self.headers.get(name)?.to_str().ok()
-    }
+    secret: Option<String>,
+    owner: Option<String>,
 }
 
 fn control(call: &Call, body: &Value, deps: &Deps) -> (u16, Value) {
-    if call.method != Method::POST {
+    if call.method != "POST" {
         return error(404, "not found");
     }
-    if !call.header("x-auth-trigger-secret").is_some_and(|s| same_secret(s, &deps.trigger_secret)) {
+    if !call.secret.as_deref().is_some_and(|s| same_secret(s, &deps.trigger_secret)) {
         return error(401, "unauthorized");
     }
-    if !call.header("x-auth-owner-id").is_some_and(|o| deps.owners.iter().any(|a| a == o)) {
+    if !call.owner.as_deref().is_some_and(|o| deps.owners.iter().any(|a| a == o)) {
         return error(403, "forbidden");
     }
     match call.path.as_str() {
@@ -206,37 +196,27 @@ fn control(call: &Call, body: &Value, deps: &Deps) -> (u16, Value) {
     }
 }
 
-fn json_response(status: u16, body: &Value) -> Response {
-    (StatusCode::from_u16(status).unwrap_or(StatusCode::INTERNAL_SERVER_ERROR), [(CONTENT_TYPE, "application/json")], body.to_string()).into_response()
-}
-
-/// The blocking engine and launcher (they wait on the desktop and on Chromium) run off the async workers.
-async fn blocking<T: Send + 'static>(work: impl FnOnce() -> T + Send + 'static) -> Option<T> {
-    tokio::task::spawn_blocking(work).await.ok()
-}
-
-async fn control_route(State(deps): State<Arc<Deps>>, method: Method, uri: Uri, headers: HeaderMap, body: Bytes) -> Response {
-    let call = Call { method, path: uri.path().to_string(), headers };
-    let parsed = serde_json::from_slice::<Value>(&body).unwrap_or_else(|_| json!({}));
-    match blocking(move || control(&call, &parsed, &deps)).await {
-        Some((status, out)) => json_response(status, &out),
-        None => json_response(500, &json!({ "error": "internal error" })),
-    }
-}
-
-pub fn router(deps: Arc<Deps>) -> Router {
-    Router::new()
-        .fallback(control_route)
-        .layer(RequestBodyLimitLayer::new(MAX_BODY))
-        .with_state(deps)
+fn handle(deps: &Deps, mut request: Request) {
+    let reply = match http::read_body(&mut request, MAX_BODY) {
+        None => Reply::empty(413),
+        Some(bytes) => {
+            let call = Call {
+                method: request.method().as_str().to_string(),
+                path: http::split_url(request.url()).0.to_string(),
+                secret: http::header(&request, "x-auth-trigger-secret").map(str::to_string),
+                owner: http::header(&request, "x-auth-owner-id").map(str::to_string),
+            };
+            let parsed = serde_json::from_slice::<Value>(&bytes).unwrap_or_else(|_| json!({}));
+            let (status, out) = control(&call, &parsed, deps);
+            Reply::new(status, "application/json", out.to_string())
+        }
+    };
+    http::respond(request, reply);
 }
 
 /// Serves requests until the process ends.
-pub async fn serve(listener: tokio::net::TcpListener, deps: Arc<Deps>) {
-    let listener = listener.tap_io(|tcp| {
-        let _ = tcp.set_nodelay(true);
-    });
-    if let Err(e) = axum::serve(listener, router(deps)).await {
-        log::error("vnc_auth.listener.stopped", &[("err", e.to_string())]);
+pub fn serve(listener: TcpListener, deps: Arc<Deps>) {
+    if let Err(e) = http::serve(listener, move |request| handle(&deps, request)) {
+        log::error("vnc_auth.listener.stopped", &[("err", e)]);
     }
 }
