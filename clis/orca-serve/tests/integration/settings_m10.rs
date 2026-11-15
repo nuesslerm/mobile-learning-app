@@ -147,6 +147,9 @@ fn settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back() {
         answered(case, "state.get", true);
         assert_eq!(empty["result"]["settings"], over_defaults("settings", json!({})));
         assert_eq!(kept(&mut rca, "settings"), json!(null));
+        // And the stats summary is the host's empty one
+        let stats = phone.call(case, &chain, &["rpc:stats.summary"], "stats.summary", json!({}));
+        assert_eq!(stats["result"], json!({"firstEventAt": null, "totalAgentTimeMs": 0, "totalAgentsSpawned": 0, "totalPRsCreated": 0}), "{stats}");
         // When it updates two settings in two calls
         phone.call(case, &chain, &["rpc:settings.update"], "settings.update", json!({"compactWorktreeCards": true}));
         answered(case, "state.set", true);

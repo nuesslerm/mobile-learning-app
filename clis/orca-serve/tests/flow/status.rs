@@ -130,3 +130,14 @@ fn given_the_methods_a_mapper_uses_when_the_startup_groups_are_derived_then_each
     assert!(wanted.contains(&"git") && wanted.contains(&"workspace.worktrees") && wanted.contains(&"agent.threads") && wanted.contains(&"agent.queue") && wanted.contains(&"agent.requests") && wanted.contains(&"attachments") && wanted.contains(&"accounts") && wanted.contains(&"git.ai") && wanted.contains(&"state"), "the mappers use git, worktree, agent and attachment methods: {wanted:?}");
     assert!(!needed.contains(&"workspace"));
 }
+
+#[test]
+fn given_a_paired_phone_when_it_asks_for_the_stats_summary_then_the_answer_is_the_pinned_hosts_before_it_has_recorded_anything() {
+    // Given a paired phone
+    let h = harness();
+    let mut phone = paired(&h);
+    // When it asks for the stats summary
+    let answer = phone.call("stats.summary", json!({}));
+    // Then the host has counted nothing: no first event, no agent time, no agents and no pull requests
+    assert_eq!(answer["result"], json!({"firstEventAt": null, "totalAgentTimeMs": 0, "totalAgentsSpawned": 0, "totalPRsCreated": 0}), "{answer}");
+}
