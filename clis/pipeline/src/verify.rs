@@ -145,9 +145,9 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
     for found in &cargo_deps {
         wf_kit::wf_err!("wf: crate dependency rule broken ({found}): see docs/plans/rca-parity/plan.md section 3, Rules");
     }
-    let blast_radius = crate::blast_radius::check(root).findings;
-    for found in &blast_radius {
-        wf_kit::wf_err!("wf: blast radius rule broken ({found})");
+    let unused_workspace_deps = crate::workspace_deps::check(root);
+    for found in &unused_workspace_deps {
+        wf_kit::wf_err!("wf: workspace dependency rule broken ({found})");
     }
     let crossings = crate::workspace_crossings::check(root).findings;
     for found in &crossings {
@@ -193,8 +193,8 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
         // The plan's dependency rules between crates: exec-testkit is a dev-dependency of its few users only (`TESTKIT_USERS` in `cargo_deps`), and an adapter library
         // depends on nothing that consumes it (Cargo allows that cycle through a dev-dependency).
         Budget { name: "cargo-dep-violations", value: cargo_deps.len(), limit: 0, gated: true },
-        // A crate's blast radius stays within its checked-in budget, and no low-level crate depends on a heavy one (`blast_radius`).
-        Budget { name: "blast-radius-violations", value: blast_radius.len(), limit: 0, gated: true },
+        // No crate declares a workspace crate its sources never name (`workspace_deps`).
+        Budget { name: "unused-workspace-dep-violations", value: unused_workspace_deps.len(), limit: 0, gated: true },
         // A path dependency across a Cargo workspace boundary is on the checked-in list, and the list only shrinks (`workspace_crossings`).
         Budget { name: "workspace-crossing-violations", value: crossings.len(), limit: 0, gated: true },
         // A TypeScript package lives in frontend/ unless it is on the checked-in list, and the list only shrinks (`ts_packages`).
@@ -650,20 +650,20 @@ pub fn apps_for_paths(paths: &[String]) -> Vec<&'static str> {
     apps
 }
 
-pub const BUDGET: Spec = Spec { flags: &["budget", "strict", "blast-radius", "unused-deps", "workspace-crossings", "ts-packages", "cargo-inputs"], positional: Positional::None, ..Spec::NONE };
+pub const BUDGET: Spec = Spec { flags: &["budget", "strict", "unused-workspace-deps", "unused-deps", "workspace-crossings", "ts-packages", "cargo-inputs"], positional: Positional::None, ..Spec::NONE };
 
 /// `check --budget [--strict]`.
 pub fn budget(args: &[String]) -> Option<i32> {
     let p = parse_spec(args, &BUDGET)?;
     let strict = p.flag("strict");
     let root = repo_root();
-    if p.flag("blast-radius") {
-        let report = crate::blast_radius::check(&root);
-        println!("{}", report.json);
-        for found in &report.findings {
-            wf_kit::wf_err!("wf: blast radius rule broken ({found})");
+    if p.flag("unused-workspace-deps") {
+        let findings = crate::workspace_deps::check(&root);
+        println!("{}", serde_json::json!({ "findings": findings }));
+        for found in &findings {
+            wf_kit::wf_err!("wf: workspace dependency rule broken ({found})");
         }
-        return Some(i32::from(!report.findings.is_empty()));
+        return Some(i32::from(!findings.is_empty()));
     }
     if p.flag("workspace-crossings") {
         let report = crate::workspace_crossings::check(&root);
@@ -690,7 +690,7 @@ pub fn budget(args: &[String]) -> Option<i32> {
         return Some(i32::from(!report.findings.is_empty()));
     }
     if p.flag("unused-deps") {
-        let found = crate::blast_radius::unused_dependencies(&root);
+        let found = crate::workspace_deps::unused_dependencies(&root);
         println!("{}", serde_json::json!({ "unused": found, "note": "a word scan of each crate's sources: a dependency used only through a macro or a feature is a candidate to check" }));
         return Some(0);
     }

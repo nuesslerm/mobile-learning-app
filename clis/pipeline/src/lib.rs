@@ -12,7 +12,7 @@ mod ci_preflight;
 mod ci_tidy;
 mod ci_insights;
 pub mod arch_rules;
-pub mod blast_radius;
+pub mod workspace_deps;
 pub mod cargo_deps;
 pub mod cargo_inputs;
 pub mod copy_closure;
@@ -79,7 +79,7 @@ fn check(rest: &[String]) -> Option<i32> {
         pushed::run(rest)
     } else if modes.flag("staged") {
         verify::staged(rest, |_| None)
-    } else if modes.flag("budget") || modes.flag("blast-radius") || modes.flag("unused-deps") || modes.flag("workspace-crossings") || modes.flag("ts-packages") || modes.flag("cargo-inputs") {
+    } else if modes.flag("budget") || modes.flag("unused-workspace-deps") || modes.flag("unused-deps") || modes.flag("workspace-crossings") || modes.flag("ts-packages") || modes.flag("cargo-inputs") {
         verify::budget(rest)
     } else {
         None

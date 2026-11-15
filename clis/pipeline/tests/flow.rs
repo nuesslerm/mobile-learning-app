@@ -5,8 +5,8 @@
 #[path = "flow/support/mod.rs"]
 mod support;
 
-#[path = "flow/blast_radius.rs"]
-mod blast_radius;
+#[path = "flow/workspace_deps.rs"]
+mod workspace_deps;
 #[path = "flow/caller_drift.rs"]
 mod caller_drift;
 #[path = "flow/cargo_inputs.rs"]

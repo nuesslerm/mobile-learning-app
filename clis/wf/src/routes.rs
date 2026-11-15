@@ -94,7 +94,7 @@ fn check(rest: &[String]) -> Option<i32> {
         verify::staged(&args, |root| dead_refs::gate(root).or_else(|| arch_rules::gate(root)))
     } else if modes.flag("dry-run") {
         deploy::verify_tier3::dry_run(&args)
-    } else if modes.flag("budget") || modes.flag("blast-radius") || modes.flag("unused-deps") || modes.flag("workspace-crossings") || modes.flag("ts-packages") || modes.flag("cargo-inputs") {
+    } else if modes.flag("budget") || modes.flag("unused-workspace-deps") || modes.flag("unused-deps") || modes.flag("workspace-crossings") || modes.flag("ts-packages") || modes.flag("cargo-inputs") {
         verify::budget(&args)
     } else {
         deploy::verify_tier3::run(&args)
