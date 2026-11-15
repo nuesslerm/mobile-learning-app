@@ -74,6 +74,10 @@ pub fn fetch_call(s: &Site) -> Option<usize> {
         (Some(a), Some(b)) if a.is(")") && b.is("(") => at + 2,
         _ => return None,
     };
+    // A query family's `fetch(hostReadClient(client), ...)` reads through the RPC client: its first argument is the client, not a URL.
+    if toks.get(open + 1).and_then(|a| a.ident()) == Some("hostReadClient") {
+        return None;
+    }
     let args: Vec<&str> = toks[open + 1..closing(toks, open)].iter().filter(|t| !t.is(",")).map(|t| t.text.as_str()).collect();
     let params = at.checked_sub(1).filter(|&k| toks[k].is("=>")).map(|arrow| {
         let close = arrow - 1;
@@ -129,6 +133,8 @@ mod tests {
             let toks = lex(wrapper);
             assert_eq!(fetch_call(&site_at(&toks, "fetch")), None, "{wrapper}");
         }
+        let family = lex("queryFn: ({ client: q }) => fetch(hostReadClient(client), target, input, q.getQueryData(key))");
+        assert_eq!(fetch_call(&site_at(&family, "fetch")), None, "a read through the RPC client is no HTTP fetch");
         let method = lex("async fetch(client) { return this.fetch(client) }");
         assert_eq!(fetch_call(&site_at(&method, "fetch")), None);
     }

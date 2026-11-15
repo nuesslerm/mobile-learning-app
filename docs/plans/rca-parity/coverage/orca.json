@@ -8,20 +8,20 @@
     "commit": "980c0024741812bd7ae934c0c22144d9926a784e"
   },
   "summary": {
-    "rows": 319,
+    "rows": 317,
     "served": 135,
-    "pending": 116,
+    "pending": 114,
     "notOffered": 58,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
     "byKind": {
-      "http": 9,
+      "http": 7,
       "rpc": 309,
       "transport": 1
     },
     "pendingByMilestone": {
-      "M5": 5,
+      "M5": 3,
       "M6": 1,
       "M7": 8,
       "M8": 22,
@@ -74,20 +74,6 @@
       "name": "mobile/src/diagnostics/use-troubleshoot-diagnostics.ts#1",
       "state": "excluded",
       "reason": "third-party fetch: the troubleshooter probes DNS over dns.google; no host is involved"
-    },
-    {
-      "id": "http:mobile/src/query/host-query.ts#1",
-      "kind": "http",
-      "name": "mobile/src/query/host-query.ts#1",
-      "state": "pending",
-      "milestone": "M5"
-    },
-    {
-      "id": "http:mobile/src/query/host-query.ts#2",
-      "kind": "http",
-      "name": "mobile/src/query/host-query.ts#2",
-      "state": "pending",
-      "milestone": "M5"
     },
     {
       "id": "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1",

@@ -14,6 +14,8 @@ pub use relay::RelayArea;
 pub const MANIFEST: &str = "mobileWeb.bundle.manifest";
 pub const CHUNK: &str = "mobileWeb.bundle.chunk";
 pub const RANGE: &str = "mobileWeb.bundle.range";
+pub const BROTLI_RANGE: &str = "mobileWeb.bundle.brotliRange";
+pub const LOCALE_CATALOG: &str = "mobileWeb.bundle.localeCatalog";
 pub const HOSTS_LIST: &str = "mobileRelay.hosts.list";
 pub const HOSTS_WORKTREES: &str = "mobileRelay.hosts.worktrees";
 

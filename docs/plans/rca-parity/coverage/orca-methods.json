@@ -21,7 +21,7 @@
       "flagged": 3,
       "offAllowlist": 1,
       "subscriptions": 9,
-      "http": 9,
+      "http": 7,
       "transport": 1
     },
     "files": {
@@ -226,26 +226,6 @@
       "target": "'https://dns.google/resolve?name=example.com&type=A'",
       "sites": [
         "mobile/src/diagnostics/use-troubleshoot-diagnostics.ts:106"
-      ]
-    },
-    {
-      "id": "http:mobile/src/query/host-query.ts#1",
-      "kind": "http",
-      "name": "mobile/src/query/host-query.ts#1",
-      "phone": true,
-      "target": "hostReadClient(client)",
-      "sites": [
-        "mobile/src/query/host-query.ts:94"
-      ]
-    },
-    {
-      "id": "http:mobile/src/query/host-query.ts#2",
-      "kind": "http",
-      "name": "mobile/src/query/host-query.ts#2",
-      "phone": true,
-      "target": "hostReadClient(client)",
-      "sites": [
-        "mobile/src/query/host-query.ts:124"
       ]
     },
     {

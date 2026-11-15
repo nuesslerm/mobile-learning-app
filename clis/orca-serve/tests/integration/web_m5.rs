@@ -5,7 +5,7 @@ use orca_crypto::b64;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::io::Read;
-use orca_map_mobile::testing::Recorded;
+use orca_map_mobile::testing::{hand_bundle, Recorded, GRID};
 
 fn goldens() -> Value {
     Recorded::load().goldens()
@@ -85,5 +85,43 @@ fn a_phone_lists_the_hosts_this_host_relays_to_and_there_are_none() {
         // Then there are no hosts and no rows, which is what the pinned host answers when no desktop relays to a server
         assert_eq!(hosts["result"], json!({"hosts": []}));
         assert_eq!(worktrees["result"], json!({"worktrees": null}));
+    });
+}
+
+#[test]
+fn a_phone_reads_the_brotli_copy_of_an_asset_and_a_locale_catalog_through_the_chain() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given the chain holding a bundle whose index.html has a brotli copy and which carries an en catalog
+        let b = hand_bundle();
+        let chain = Chain::start(Some(b.dir.path()));
+        let mut phone = Phone::connect(case, &chain);
+        // When the phone reads every window of the copy
+        let mut got = Vec::new();
+        for offset in (0..b.brotli.len()).step_by(GRID) {
+            let window = phone.call(case, &chain, &["rpc:mobileWeb.bundle.brotliRange"], "mobileWeb.bundle.brotliRange", json!({"buildId": b.build, "path": "index.html", "offset": offset}));
+            got.extend(b64::decode_canonical(window["result"]["dataBase64"].as_str().unwrap()).unwrap());
+        }
+        // And asks for the en catalog, then again holding its hash
+        let first = phone.call(case, &chain, &["rpc:mobileWeb.bundle.localeCatalog"], "mobileWeb.bundle.localeCatalog", json!({"locale": "en"}));
+        let sha = first["result"]["sha256"].clone();
+        let known = phone.call(case, &chain, &["rpc:mobileWeb.bundle.localeCatalog"], "mobileWeb.bundle.localeCatalog", json!({"locale": "en", "knownSha256": sha}));
+        // Then the windows are the copy's bytes, the catalog is the file's object, and a held copy gets none
+        assert_eq!(got, b.brotli, "{}", chain.evidence());
+        assert_eq!(first["result"]["catalog"], json!({"hello": "Hello", "bye": "Bye"}));
+        assert_eq!(known["result"]["catalog"], Value::Null);
+        assert_eq!(hex(&b.en), sha.as_str().unwrap());
+    });
+}
+
+#[test]
+fn a_phone_that_proposes_a_replacement_token_is_told_its_device_is_no_ticket() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a connected phone
+        let chain = Chain::start(None);
+        let mut phone = Phone::connect(case, &chain);
+        // When it proposes a replacement token for its pairing
+        let reply = phone.refused(case, &chain, &["rpc:pairing.exchangeTicket"], "pairing.exchangeTicket", json!({"deviceToken": "ab".repeat(24)}));
+        // Then the host answers as the pinned host answers a device that is no single-use ticket
+        assert_eq!((reply["error"]["code"].clone(), reply["error"]["message"].clone()), (json!("runtime_error"), json!("not_a_ticket")));
     });
 }

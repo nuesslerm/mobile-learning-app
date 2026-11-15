@@ -3,10 +3,11 @@
 //! the pinned `mobile_web_bundle_unavailable` and does not advertise the capability.
 use crate::manifest::{self, Manifest};
 use crate::window;
-use crate::{CHUNK, MANIFEST, RANGE, WEB_BUNDLE_CAPABILITY, WINDOW_BYTES};
+use crate::{BROTLI_RANGE, CHUNK, LOCALE_CATALOG, MANIFEST, RANGE, WEB_BUNDLE_CAPABILITY, WINDOW_BYTES};
 use orca_core::wire::Failure;
 use orca_core::{Area, Ctx, Kind, Method};
 use serde_json::{json, Value};
+use sha2::Digest;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
@@ -37,7 +38,7 @@ impl BundleSource for NoBundle {
     }
 }
 
-const METHODS: &[Method] = &[Method { name: MANIFEST, kind: Kind::Unary }, Method { name: CHUNK, kind: Kind::Unary }, Method { name: RANGE, kind: Kind::Unary }];
+const METHODS: &[Method] = &[Method { name: MANIFEST, kind: Kind::Unary }, Method { name: CHUNK, kind: Kind::Unary }, Method { name: RANGE, kind: Kind::Unary }, Method { name: BROTLI_RANGE, kind: Kind::Unary }, Method { name: LOCALE_CATALOG, kind: Kind::Unary }];
 const CAPABILITIES: &[&str] = &[WEB_BUNDLE_CAPABILITY];
 
 pub struct MobileWebArea {
@@ -86,24 +87,58 @@ impl MobileWebArea {
     }
 
     /// Build, then member, then alignment, then the asset's hash, then the window: the order of the pinned host, so a phone reads the same code.
-    fn window(&self, params: &Value) -> Result<(Value, Vec<u8>), Failure> {
+    fn window(&self, params: &Value, brotli: bool) -> Result<(Value, Vec<u8>), Failure> {
         let p = window::params(params)?;
         let bundle = self.manifest()?;
         if p.build_id != bundle.build_id {
             return Err(Self::bundle_error("mobile_web_bundle_build_changed"));
         }
         let asset = bundle.assets.iter().find(|a| a.path == p.path).ok_or_else(|| Self::bundle_error("mobile_web_bundle_asset_unknown"))?;
+        // a brotli window is cut from the asset's copy, which only an asset the manifest gives one has
+        let (source_path, source_len) = match (brotli, asset.brotli_len) {
+            (false, _) => (p.path.clone(), asset.byte_length),
+            (true, Some(len)) => (format!("{}.br", p.path), len),
+            (true, None) => return Err(Self::bundle_error("mobile_web_bundle_asset_unknown")),
+        };
         let grid = WINDOW_BYTES as u64;
-        if p.offset % grid != 0 || (p.offset > 0 && p.offset >= asset.byte_length) {
+        if p.offset % grid != 0 || (p.offset > 0 && p.offset >= source_len) {
             return Err(Self::bundle_error("mobile_web_bundle_offset_invalid"));
         }
         if !self.verified(&p.build_id, &p.path, asset)? {
             return Err(Self::bundle_error("mobile_web_bundle_asset_changed"));
         }
-        let want = (asset.byte_length - p.offset).min(grid) as usize;
-        let data = self.source.read(&p.path, p.offset, want).ok().filter(|d| d.len() == want).ok_or_else(|| Self::bundle_error("mobile_web_bundle_asset_changed"))?;
-        let header = json!({"buildId": p.build_id, "path": p.path, "offset": p.offset, "assetByteLength": asset.byte_length, "sha256": asset.sha256, "eof": p.offset + data.len() as u64 >= asset.byte_length});
+        let want = (source_len - p.offset).min(grid) as usize;
+        let data = self.source.read(&source_path, p.offset, want).ok().filter(|d| d.len() == want).ok_or_else(|| Self::bundle_error("mobile_web_bundle_asset_changed"))?;
+        let header = json!({"buildId": p.build_id, "path": p.path, "offset": p.offset, "assetByteLength": asset.byte_length, "sha256": asset.sha256, "eof": p.offset + data.len() as u64 >= source_len});
         Ok((header, data))
+    }
+
+    /// `{locale, knownSha256?}`: the catalog of the build, or none when the phone already holds this copy; the file is read whole, hash checked.
+    fn locale_catalog(&self, params: &Value) -> Result<Value, Failure> {
+        let invalid = |m: &str| Failure::invalid(m.to_string());
+        let o = params.as_object().ok_or_else(|| invalid("Invalid input: expected object"))?;
+        if o.keys().any(|k| !matches!(k.as_str(), "locale" | "knownSha256")) {
+            return Err(invalid("Unrecognized key in locale catalog params"));
+        }
+        let locale = o.get("locale").and_then(Value::as_str).filter(|l| manifest::is_ui_locale(l)).ok_or_else(|| invalid("Invalid locale: expected a UI locale"))?;
+        let known = match o.get("knownSha256") {
+            None => None,
+            Some(Value::String(s)) if manifest::is_sha256(s) => Some(s.as_str()),
+            Some(_) => return Err(invalid("Invalid knownSha256: expected a sha-256 hex")),
+        };
+        let bundle = self.manifest()?;
+        let entry = bundle.catalogs.iter().find(|c| c.locale == locale).ok_or_else(|| Self::bundle_error("mobile_web_bundle_asset_unknown"))?;
+        if known == Some(entry.sha256.as_str()) {
+            return Ok(json!({"locale": entry.locale, "sha256": entry.sha256, "catalog": null}));
+        }
+        let changed = || Self::bundle_error("mobile_web_bundle_asset_changed");
+        let bytes = self.source.read(&entry.path, 0, entry.byte_length as usize).ok().filter(|b| b.len() as u64 == entry.byte_length).ok_or_else(changed)?;
+        let sha: String = sha2::Sha256::digest(&bytes).iter().map(|b| format!("{b:02x}")).collect();
+        if sha != entry.sha256 {
+            return Err(changed());
+        }
+        let catalog: Value = serde_json::from_slice(&bytes).ok().filter(Value::is_object).ok_or_else(changed)?;
+        Ok(json!({"locale": entry.locale, "sha256": entry.sha256, "catalog": catalog}))
     }
 }
 
@@ -133,17 +168,23 @@ impl Area for MobileWebArea {
         match method {
             MANIFEST => Ok(json!({"manifest": self.manifest()?.raw, "chunkBytes": WINDOW_BYTES, "rangeBytes": WINDOW_BYTES})),
             CHUNK => {
-                let (mut header, data) = self.window(params)?;
+                let (mut header, data) = self.window(params, false)?;
                 header["dataBase64"] = base64(&data).into();
                 Ok(header)
             }
             RANGE => {
-                let (mut header, data) = self.window(params)?;
+                let (mut header, data) = self.window(params, false)?;
                 let (encoding, bytes) = window::encode_range(&data);
                 header["encoding"] = encoding.into();
                 header["dataBase64"] = base64(&bytes).into();
                 Ok(header)
             }
+            BROTLI_RANGE => {
+                let (mut header, data) = self.window(params, true)?;
+                header["dataBase64"] = base64(&data).into();
+                Ok(header)
+            }
+            LOCALE_CATALOG => self.locale_catalog(params),
             other => Err(Failure::new(orca_core::wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }
     }

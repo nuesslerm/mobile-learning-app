@@ -18,8 +18,6 @@
     "rpc:pairing.*": "M5",
     "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1": "M5",
     "http:mobile/src/diagnostics/connection-diagnostics-submission.ts#1": "M5",
-    "http:mobile/src/query/host-query.ts#1": "M5",
-    "http:mobile/src/query/host-query.ts#2": "M5",
     "rpc:agentActivity.clear": "M7",
     "rpc:agentActivity.setRead": "M7",
     "rpc:stats.summary": "M10",
@@ -185,6 +183,9 @@
       "decidedBy": "M7"
     },
     "rpc:mobileWeb.bundle.chunk": {
+      "oracle": "mimic"
+    },
+    "rpc:pairing.exchangeTicket": {
       "oracle": "mimic"
     },
     "rpc:folderWorkspace.list": {
