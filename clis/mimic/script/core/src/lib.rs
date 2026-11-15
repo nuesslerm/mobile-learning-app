@@ -13,4 +13,4 @@ pub mod testing;
 
 pub use interpreter::Interpreter;
 pub use policy::Policy;
-pub use ports::{Clock, Event, HttpCall, HttpReply, Target, Transport, TransportError};
+pub use ports::{Clock, Event, HttpCall, HttpReply, Phone, Target, Transport, TransportError};

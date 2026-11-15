@@ -68,9 +68,12 @@ pub fn fill(v: &Value, vars: &Vars) -> Value {
     }
 }
 
-/// The first name `names` declares that appears in `v` with no value yet.
+/// The first name `names` declares, in declaration order, that appears in `v` with no value yet. The order of `names` and not the order of
+/// the text, because a parsed object's keys have no order a recording can rely on.
 pub fn unbound(v: &Value, vars: &Vars, names: &[String]) -> Option<String> {
-    placeholders(&v.to_string()).into_iter().find(|name| names.iter().any(|n| n == name) && !vars.contains_key(*name)).map(String::from)
+    let text = v.to_string();
+    let used = placeholders(&text);
+    names.iter().find(|n| used.contains(&n.as_str()) && !vars.contains_key(n.as_str())).cloned()
 }
 
 /// A JSON pointer: parts split on `/` with the first empty one dropped, `~1` and `~0` unescaped, arrays indexed by their text.
@@ -140,5 +143,14 @@ mod tests {
         let found = captured(&json!({"access": "abc", "n": 3, "obj": {}}), &capture);
 
         assert_eq!(Value::Object(found), json!({"token": "Bearer abc", "run": 3}));
+    }
+
+    #[test]
+    fn given_two_declared_names_without_values_when_checked_then_the_one_declared_first_is_reported_whatever_the_text_order() {
+        let names = ["worktree".to_string(), "terminal".to_string()];
+
+        let found = unbound(&json!({"terminal": "{terminal}", "worktree": "{worktree}"}), &Vars::new(), &names);
+
+        assert_eq!(found.as_deref(), Some("worktree"));
     }
 }

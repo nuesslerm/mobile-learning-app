@@ -2,7 +2,7 @@
 use mimic_core::cassette::{Dir, Status, Step};
 use mimic_core::ports::Observed;
 use mimic_script_core::case::Case;
-use mimic_script_core::testing::{text, CassetteEchoTransport, FakeClock, FixedTarget, ScriptedTransport};
+use mimic_script_core::testing::{text, CassetteEchoTransport, CassettePhone, FakeClock, FixedTarget, ScriptedTransport};
 use mimic_script_core::{Clock, Event, Interpreter, Policy};
 use serde_json::{json, Value};
 
@@ -321,6 +321,30 @@ fn given_the_committed_t3_recordings_when_their_scripts_run_against_their_own_st
         }
     }
     assert!(checked > 100, "only {checked} recorded scripts were found");
+    assert!(mismatched.is_empty(), "{} of {checked} differ, first: {:#?}", mismatched.len(), &mismatched[..mismatched.len().min(3)]);
+}
+
+#[test]
+fn given_the_committed_orca_recordings_when_their_requests_run_against_their_own_answers_then_the_interpreter_reproduces_them() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../orca-serve/cassettes");
+    let (mut checked, mut mismatched) = (0, Vec::new());
+    for set in ["orca-recorded", "orca-crawl", "orca-scenarios"] {
+        let dir = root.join(set);
+        let rules: mimic_core::rules::RuleSet = serde_json::from_str(&std::fs::read_to_string(dir.join("rules.json")).unwrap()).unwrap();
+        let compiled = rules.compile().unwrap();
+        for (id, input, recorded) in cassette_steps(&dir) {
+            let case = Case::parse(&input).unwrap();
+            let phone = CassettePhone::new(&recorded);
+            let mut interpreter = Interpreter::new(Box::new(ScriptedTransport::new(&FakeClock::default())), Box::new(FixedTarget::new("", "cred-1")), Box::new(FakeClock::default()), Policy::default()).with_phone(Box::new(phone));
+            let observed = interpreter.run_case(&case).unwrap();
+            let masked = compiled.interaction(&mimic_core::cassette::Interaction { id: id.clone(), row: None, op: None, input: input.clone(), steps: observed.steps, effects: vec![], outcome: observed.outcome, tags: vec![] });
+            checked += 1;
+            if masked.steps != recorded {
+                mismatched.push(format!("{set}/{id}: got {} steps, recorded {}", masked.steps.len(), recorded.len()));
+            }
+        }
+    }
+    assert!(checked > 250, "only {checked} recorded Orca cases were found");
     assert!(mismatched.is_empty(), "{} of {checked} differ, first: {:#?}", mismatched.len(), &mismatched[..mismatched.len().min(3)]);
 }
 

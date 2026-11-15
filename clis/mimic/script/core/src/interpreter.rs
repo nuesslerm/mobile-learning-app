@@ -2,7 +2,7 @@
 //! Frames arrive on a queue the core drains at every step boundary and during every wait, so the order of steps is the order of arrival.
 use crate::case::{Case, Entry};
 use crate::policy::Policy;
-use crate::ports::{Clock, Event, HttpCall, Target, Transport};
+use crate::ports::{Clock, Event, HttpCall, Phone, Target, Transport};
 use crate::vars::{captured, fill, js_string, unbound, Vars};
 use mimic_core::cassette::{Dir, DriverInfo, Outcome, Status, Step, StepKind};
 use mimic_core::ports::{Driver, DriverError, Hello, Observed, Request};
@@ -13,6 +13,8 @@ pub const BAD_CREDENTIAL: &str = "NOTACREDENTIAL";
 
 pub struct Interpreter {
     transport: Box<dyn Transport>,
+    /// The Orca phone, for cases that use `connect` and `request`.
+    phone: Option<Box<dyn Phone>>,
     target: Box<dyn Target>,
     clock: Box<dyn Clock>,
     policy: Policy,
@@ -21,6 +23,8 @@ pub struct Interpreter {
     /// Session mode: the prelude runs once per server generation and its steps open every case that asks for it.
     session: bool,
     begun: Option<Begun>,
+    /// The state a failed `connect` of the last run ended in.
+    connect_failed: Option<String>,
 }
 
 /// What the prelude of one server generation left behind.
@@ -37,6 +41,12 @@ struct Run {
     last_frame_at: u64,
     settle_ms: Option<u64>,
     socket: bool,
+    /// A `connect` that did not reach `connected` ends the script with no steps; the state is the outcome's code.
+    connect_failed: Option<String>,
+}
+
+fn orca_step(dir: Dir, rid: &str, payload: Value) -> Step {
+    Step { dir, channel: None, kind: StepKind::Json, rid: Some(rid.into()), len: None, payload }
 }
 
 fn driver_step(payload: Value) -> Step {
@@ -93,18 +103,31 @@ fn normalise_headers(headers: &[(String, String)]) -> Vec<(String, String)> {
     merged
 }
 
-fn mask_workspace(v: &mut Value, workspace: &str) {
+/// Each run-specific path becomes its placeholder wherever it reaches a step (an empty path never matches).
+fn mask_paths(v: &mut Value, masks: &[(String, String)]) {
     match v {
-        Value::String(s) if s.contains(workspace) => *s = s.replace(workspace, "<workspace>"),
-        Value::Array(a) => a.iter_mut().for_each(|x| mask_workspace(x, workspace)),
-        Value::Object(o) => o.values_mut().for_each(|x| mask_workspace(x, workspace)),
+        Value::String(s) => {
+            for (path, placeholder) in masks.iter().filter(|(p, _)| !p.is_empty()) {
+                if s.contains(path.as_str()) {
+                    *s = s.replace(path.as_str(), placeholder);
+                }
+            }
+        }
+        Value::Array(a) => a.iter_mut().for_each(|x| mask_paths(x, masks)),
+        Value::Object(o) => o.values_mut().for_each(|x| mask_paths(x, masks)),
         _ => {}
     }
 }
 
 impl Interpreter {
     pub fn new(transport: Box<dyn Transport>, target: Box<dyn Target>, clock: Box<dyn Clock>, policy: Policy) -> Interpreter {
-        Interpreter { transport, target, clock, policy, prelude: Vec::new(), session: false, begun: None }
+        Interpreter { transport, phone: None, target, clock, policy, prelude: Vec::new(), session: false, begun: None, connect_failed: None }
+    }
+
+    /// The phone the `connect` and `request` ops speak through.
+    pub fn with_phone(mut self, phone: Box<dyn Phone>) -> Interpreter {
+        self.phone = Some(phone);
+        self
     }
 
     /// Session mode: one prelude per server generation instead of one per case; needs a prelude of at least the token, ticket and open entries.
@@ -181,6 +204,9 @@ impl Interpreter {
     /// Runs one entry; `false` ends the script (a transport failure).
     fn entry(&mut self, run: &mut Run, entry: &Entry, declared: &[String]) -> bool {
         let arg = fill(&entry.arg, &run.vars);
+        if entry.op == "request" {
+            return self.request(run, entry, &arg, declared);
+        }
         if let Some(name) = unbound(&arg, &run.vars, declared) {
             run.steps.push(driver_step(json!({"client_error": format!("unbound variable {name}"), "op": entry.op})));
             return true;
@@ -189,8 +215,64 @@ impl Interpreter {
             "http" => self.http(run, entry, &arg),
             "ws-open" => self.ws_open(run, &arg),
             "ws-send" => self.ws_send(run, entry, &arg),
+            "git" => self.git(run, &arg),
+            "connect" => self.connect(run, &arg),
             _ => self.ws_close(run, &arg),
         }
+    }
+
+    fn git(&mut self, run: &mut Run, arg: &Value) -> bool {
+        let name = arg.get("name").map(js_string).unwrap_or_default();
+        match self.target.make_git(&name) {
+            Ok(path) => {
+                run.vars.insert(format!("git.{name}"), Value::String(path));
+                true
+            }
+            Err(e) => {
+                Self::transport_failed(run, &e);
+                false
+            }
+        }
+    }
+
+    fn connect(&mut self, run: &mut Run, arg: &Value) -> bool {
+        let timeout = arg.get("timeout_ms").and_then(Value::as_u64).unwrap_or(10_000);
+        let Some(phone) = self.phone.as_mut() else {
+            Self::transport_failed(run, "no phone");
+            return false;
+        };
+        let state = phone.connect(timeout);
+        if state == "connected" {
+            return true;
+        }
+        run.steps.clear();
+        run.connect_failed = Some(state);
+        false
+    }
+
+    /// One sealed request. The request step is recorded as written; a value an earlier answer did not carry is the finding, never sent as text.
+    fn request(&mut self, run: &mut Run, entry: &Entry, arg: &Value, declared: &[String]) -> bool {
+        let rid = arg.get("rid").map(js_string).unwrap_or_default();
+        let method = arg.get("method").map(js_string).unwrap_or_default();
+        let params = arg.get("params").cloned().unwrap_or(Value::Null);
+        run.steps.push(orca_step(Dir::C2s, &rid, json!({"method": method, "params": params})));
+        let payload = if let Some(name) = unbound(&params, &run.vars, declared) {
+            json!({"client_error": format!("unbound variable {name}")})
+        } else {
+            let timeout = arg.get("timeout_ms").and_then(Value::as_u64).unwrap_or(10_000);
+            match self.phone.as_mut().map(|p| p.request(&method, &params, timeout)) {
+                Some(Ok(answer)) => {
+                    if let Some(capture) = &entry.capture {
+                        run.vars.extend(captured(&answer, capture));
+                    }
+                    answer
+                }
+                Some(Err(message)) => json!({"client_error": message}),
+                None => json!({"client_error": "no phone"}),
+            }
+        };
+        run.steps.push(orca_step(Dir::S2c, &rid, payload));
+        true
     }
 
     fn http(&mut self, run: &mut Run, entry: &Entry, arg: &Value) -> bool {
@@ -296,12 +378,16 @@ impl Interpreter {
 
     /// Runs `entries` from `vars`; the steps and the variables the run ended with.
     fn execute(&mut self, entries: &[Entry], settle_ms: Option<u64>, declared: &[String], vars: Vars) -> (Vec<Step>, Vars) {
-        let mut run = Run { steps: Vec::new(), vars, last_frame_at: self.clock.now_ms(), settle_ms, socket: false };
+        let mut run = Run { steps: Vec::new(), vars, last_frame_at: self.clock.now_ms(), settle_ms, socket: false, connect_failed: None };
         for entry in entries {
             if !self.entry(&mut run, entry, declared) {
                 break;
             }
         }
+        if let Some(phone) = self.phone.as_mut().filter(|_| entries.iter().any(|e| e.op == "connect")) {
+            phone.close();
+        }
+        self.connect_failed = run.connect_failed.take();
         (run.steps, run.vars)
     }
 
@@ -369,8 +455,13 @@ impl Interpreter {
             }
             steps = self.execute(&entries, case.settle_ms, &declared, vars).0;
         }
+        let mut masks = vec![(workspace, "<workspace>".to_string())];
+        masks.extend(self.target.masks());
         for step in &mut steps {
-            mask_workspace(&mut step.payload, &workspace);
+            mask_paths(&mut step.payload, &masks);
+        }
+        if let Some(state) = self.connect_failed.take() {
+            return Ok(Observed { steps: Vec::new(), effects: Vec::new(), outcome: Outcome { status: Status::Error, code: Some(state), reference_accepts: None } });
         }
         let transport = steps.last().is_some_and(|s| s.channel.as_deref() == Some("driver") && s.payload.get("transport_error").is_some());
         let outcome = if transport { Outcome { status: Status::Error, code: Some("transport".into()), reference_accepts: None } } else { Outcome::default() };

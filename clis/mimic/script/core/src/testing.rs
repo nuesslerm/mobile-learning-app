@@ -1,6 +1,6 @@
 //! In-memory doubles of the ports. They share one `FakeClock` handle so a frame can be scheduled to arrive some milliseconds after a send,
 //! and a test can read what the interpreter sent and how long it slept. Clones of a double are handles on the same state.
-use crate::ports::{Clock, Event, HttpCall, HttpReply, Target, Transport, TransportError};
+use crate::ports::{Clock, Event, HttpCall, HttpReply, Phone, Target, Transport, TransportError};
 use base64::engine::general_purpose::STANDARD;
 use base64::Engine;
 use mimic_core::cassette::{Dir, Step, StepKind};
@@ -60,6 +60,57 @@ impl Target for FixedTarget {
     fn generation(&self) -> u64 {
         self.generation.get()
     }
+
+    fn make_git(&mut self, name: &str) -> Result<String, String> {
+        Ok(format!("{SCRATCH}/{name}"))
+    }
+
+    fn masks(&self) -> Vec<(String, String)> {
+        vec![(SCRATCH.into(), "<scratch>".into())]
+    }
+}
+
+/// Where `FixedTarget` makes repositories: one throwaway folder, masked as `<scratch>` like the real target's.
+pub const SCRATCH: &str = "/tmp/mimic-scratch-Ab12Cd";
+
+/// A phone that answers from recorded steps: the s2c payloads in order, a `client_error` payload as the client's own failure.
+pub struct CassettePhone {
+    answers: VecDeque<Value>,
+    pub requests: Rc<RefCell<Vec<(String, Value)>>>,
+    state: String,
+}
+
+impl CassettePhone {
+    pub fn new(steps: &[Step]) -> CassettePhone {
+        // an unbound variable is answered by the interpreter itself, never asked of the host
+        let answers = steps.iter().filter(|s| s.dir == Dir::S2c).map(|s| s.payload.clone()).filter(|p| !p.get("client_error").and_then(Value::as_str).is_some_and(|m| m.starts_with("unbound variable"))).collect();
+        CassettePhone { answers, requests: Rc::default(), state: "connected".into() }
+    }
+
+    /// The state `connect` ends in, for a host that refuses the phone.
+    pub fn refusing(mut self, state: &str) -> CassettePhone {
+        self.state = state.into();
+        self
+    }
+}
+
+impl Phone for CassettePhone {
+    fn connect(&mut self, _timeout_ms: u64) -> String {
+        self.state.clone()
+    }
+
+    fn request(&mut self, method: &str, params: &Value, _timeout_ms: u64) -> Result<Value, String> {
+        self.requests.borrow_mut().push((method.into(), params.clone()));
+        match self.answers.pop_front() {
+            Some(answer) => match answer.get("client_error").and_then(Value::as_str) {
+                Some(message) => Err(message.into()),
+                None => Ok(answer),
+            },
+            None => Err("the cassette has no further answer".into()),
+        }
+    }
+
+    fn close(&mut self) {}
 }
 
 #[derive(Default)]

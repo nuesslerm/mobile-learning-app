@@ -25,4 +25,4 @@ mimic-script-core = { path = ".", features = ["testing"] }
 
 # The flow test reads the committed T3 cassettes as the oracle of the steps.
 [package.metadata.flow]
-inputs = ["../../../t3-serve/cassettes/**"]
+inputs = ["../../../t3-serve/cassettes/**", "../../../orca-serve/cassettes/**"]

@@ -51,6 +51,15 @@ pub trait Transport {
     fn ws_close(&mut self, code: u16, reason: &str) -> Result<(), TransportError>;
 }
 
+/// The phone's own sealed session with one Orca host (`connect` once, then request/response); the adapter owns the handshake and the keys.
+pub trait Phone {
+    /// Pairs and waits for the session; the state the client ended in (`connected`, `auth-failed`, `disconnected`, `timeout`).
+    fn connect(&mut self, timeout_ms: u64) -> String;
+    /// One request. `Ok` is the host's answer without its per-run id; `Err` is the client's own failure text (a timeout, a closed session).
+    fn request(&mut self, method: &str, params: &serde_json::Value, timeout_ms: u64) -> Result<serde_json::Value, String>;
+    fn close(&mut self);
+}
+
 /// The server a case runs against: its workspace folder and one credential per run.
 pub trait Target {
     /// The server's workspace folder, masked as `<workspace>` in every step.
@@ -60,6 +69,14 @@ pub trait Target {
     /// Bumped by every (re)start of the server: state a session built (the prelude) belongs to one generation.
     fn generation(&self) -> u64 {
         0
+    }
+    /// A deterministic one-commit repository named `name` in a scratch folder (an Orca case's populated state); its path.
+    fn make_git(&mut self, _name: &str) -> Result<String, String> {
+        Err("this target cannot make a repository".into())
+    }
+    /// Run-specific paths the target knows (scratch folder, user data dir) and the placeholder each becomes in every step.
+    fn masks(&self) -> Vec<(String, String)> {
+        Vec::new()
     }
 }
 
