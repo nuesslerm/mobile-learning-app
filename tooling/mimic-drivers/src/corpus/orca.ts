@@ -11,6 +11,8 @@ import { derive } from '../orca/schema.ts'
 import type { Case, Disposition } from './types.ts'
 
 const METHODS_DIR = 'src/main/runtime/rpc/methods'
+/** The federation methods are defined beside their relay, outside the methods dir. */
+const EXTRA_METHOD_DIRS = ['src/main/runtime/orchestration/legacy-remote']
 export const REQUEST_TIMEOUT_MS = 8000
 /** How long a stream is listened to after it opens: its snapshot and what follows it in the first moments. */
 export const STREAM_LISTEN_MS = 1500
@@ -33,14 +35,14 @@ function stringConstants(root: string): Map<string, string> {
 
 export type Registration = { method: string; streaming: boolean; schemaName: string | null; module: string | null }
 
-/** Every `defineMethod` / `defineStreamingMethod` of the pinned methods dir: name, kind, and the params identifier with the module it is imported from. */
+/** Every `defineMethod` / `defineStreamingMethod` (and the orchestration wrappers of both) of the pinned methods dir: name, kind, and the params identifier with the module it is imported from. */
 /** `byConstant` also resolves a `name: SOME_CONSTANT` the way the catalog scan does; the R1 corpus (superseded by the crawl) leaves those out. */
 export function registrations(root: string = orcaRoot(), byConstant = false): Registration[] {
-  const dir = join(root, METHODS_DIR)
+  const dirs = [METHODS_DIR, ...EXTRA_METHOD_DIRS].map((d) => join(root, d))
   const out: Registration[] = []
   const walk = (d: string): string[] => readdirSync(d, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]))
   const constants = byConstant ? stringConstants(root) : new Map<string, string>()
-  for (const file of walk(dir).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts')).sort()) {
+  for (const file of dirs.flatMap((d) => walk(d)).filter((f) => f.endsWith('.ts') && !f.endsWith('.test.ts')).sort()) {
     const text = readFileSync(file, 'utf8')
     const imports = new Map<string, string>()
     for (const m of text.matchAll(/import\s*\{([^}]*)\}\s*from\s*'([^']+)'/g)) {
@@ -49,7 +51,7 @@ export function registrations(root: string = orcaRoot(), byConstant = false): Re
         if (name) imports.set(name, resolve(file, '..', m[2]!))
       }
     }
-    const starts = [...text.matchAll(/define(Streaming)?Method\s*\(?\s*\{?/g)].map((m) => ({ at: m.index!, streaming: m[1] !== undefined }))
+    const starts = [...text.matchAll(/(?<!function\s)define(?:Orchestration)?(Streaming)?Method\s*\(?\s*\{?/g)].map((m) => ({ at: m.index!, streaming: m[1] !== undefined }))
     starts.forEach((s, i) => {
       const block = text.slice(s.at, starts[i + 1]?.at ?? text.length)
       const named = /name:\s*(?:'([A-Za-z0-9.]+)'|([A-Za-z_][A-Za-z0-9_.]*))/.exec(block)
@@ -90,7 +92,7 @@ export type OrcaCorpus = { cases: Case[]; coverage: Disposition[]; pin: string }
 
 export async function orcaCorpus(): Promise<OrcaCorpus> {
   const pin = assertAtPin()
-  const found = registrations()
+  const found = registrations(undefined, true)
   const schemas = await schemasByMethod(found)
   const cases: Case[] = []
   const coverage: Disposition[] = []

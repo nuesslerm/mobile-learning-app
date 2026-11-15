@@ -386,6 +386,26 @@
       "state": "not-offered",
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
       "decidedBy": "M12"
+    },
+    "rpc:orchestration.partyLocation": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate",
+      "decidedBy": "M7"
+    },
+    "rpc:orchestration.partyOpen": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database",
+      "decidedBy": "M7"
+    },
+    "rpc:orchestration.workerAutoClose": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers",
+      "decidedBy": "M7"
+    },
+    "rpc:orchestration.workerKeepOpen": {
+      "state": "not-offered",
+      "reason": "owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers",
+      "decidedBy": "M7"
     }
   },
   "reverify": {

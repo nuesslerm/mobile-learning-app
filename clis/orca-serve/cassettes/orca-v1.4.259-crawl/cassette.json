@@ -1,24 +1,23 @@
 {
-  "content_hash": "sha256:a57fb55ee8735cb2630b0ad9a253853effb056c15e2a8229d7aff4b48f4c44b6",
+  "content_hash": "sha256:3d9b5048f78abc2459ccf2ca295f3b80e4ecaad4c03adb0291741e1a6cc3a7dd",
   "corpus": {
-    "hash": "sha256:d113be4933cea33a53a7d936e7690fcd94d622e37d9f0adbd03e43e2b1e2be83",
+    "hash": "sha256:8d8448d27ae30c025964b7065fa17a9353442f9c866a042fdd4a8b00f07e7a5e",
     "path": "corpus.json"
   },
-  "interactions": 3729,
+  "interactions": 3970,
   "provenance": {
-    "corpus_hash": "sha256:d113be4933cea33a53a7d936e7690fcd94d622e37d9f0adbd03e43e2b1e2be83",
+    "corpus_hash": "sha256:8d8448d27ae30c025964b7065fa17a9353442f9c866a042fdd4a8b00f07e7a5e",
     "driver": {
-      "name": "mimic-drivers/orca",
+      "name": "mimic-script",
       "protocol": "mimic-driver/1",
-      "toolchain_lock_hash": "sha256:4c806ef5145e3de231789ae3728af4e4ad5050bc4150cbb8f01c57c5addc382a",
-      "version": "1"
+      "version": "0.1.6"
     },
     "kind": "recorded",
-    "recorded_at": "2026-11-14T23:08:25.384Z",
+    "recorded_at": "2026-11-15T15:06:12.538Z",
     "recorded_on": "ci",
     "rules_hash": "sha256:3678bcdd7524dfa4087c21b7565dabbb8c838926fb1be01f7545861d3491f3e1",
     "seed": 0,
-    "source": "record-references run 43651197829",
+    "source": "record-references run 43727351473",
     "target": {
       "commit": "980c0024741812bd7ae934c0c22144d9926a784e",
       "name": "orca",
@@ -27,7 +26,7 @@
       "version": "1.4.259"
     },
     "tool": {
-      "git": "358739bbb13f7b1ba2d89e04351b1206245cb616",
+      "git": "aea471d9fb3423436fa107fd40875e6b28a64e9e",
       "mimic": "0.1.0"
     }
   },

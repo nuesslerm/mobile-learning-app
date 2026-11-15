@@ -8,16 +8,16 @@
     "commit": "980c0024741812bd7ae934c0c22144d9926a784e"
   },
   "summary": {
-    "rows": 315,
+    "rows": 319,
     "served": 135,
     "pending": 119,
-    "notOffered": 51,
+    "notOffered": 55,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
     "byKind": {
       "http": 9,
-      "rpc": 305,
+      "rpc": 309,
       "transport": 1
     },
     "pendingByMilestone": {
@@ -2814,6 +2814,42 @@
       "milestone": "M12",
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca holds no push gateway and no device registry, and has no notification source of its own to stream, so a phone has nothing to register with, subscribe to or be told about.",
       "decidedBy": "M12"
+    },
+    {
+      "id": "rpc:orchestration.partyLocation",
+      "kind": "rpc",
+      "name": "orchestration.partyLocation",
+      "state": "not-offered",
+      "milestone": "M7",
+      "reason": "owner-confirmed (decision 7): it resolves a party address in the desktop's orchestration database, which this host does not keep; rca has no orchestration runs or terminal workers to locate",
+      "decidedBy": "M7"
+    },
+    {
+      "id": "rpc:orchestration.partyOpen",
+      "kind": "rpc",
+      "name": "orchestration.partyOpen",
+      "state": "not-offered",
+      "milestone": "M7",
+      "reason": "owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database",
+      "decidedBy": "M7"
+    },
+    {
+      "id": "rpc:orchestration.workerAutoClose",
+      "kind": "rpc",
+      "name": "orchestration.workerAutoClose",
+      "state": "not-offered",
+      "milestone": "M7",
+      "reason": "owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers",
+      "decidedBy": "M7"
+    },
+    {
+      "id": "rpc:orchestration.workerKeepOpen",
+      "kind": "rpc",
+      "name": "orchestration.workerKeepOpen",
+      "state": "not-offered",
+      "milestone": "M7",
+      "reason": "owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers",
+      "decidedBy": "M7"
     },
     {
       "id": "rpc:pairing.exchangeTicket",

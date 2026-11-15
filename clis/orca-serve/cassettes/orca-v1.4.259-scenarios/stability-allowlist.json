@@ -17,14 +17,9 @@
    "reason": "answered differently on the two records of the live reference at this pin; the moving value is not masked by a rule yet"
   },
   {
-   "id": "orca-scn-repo.show",
+   "id": "orca-scn-worktree.runApprovedSetup",
    "cause": "volatile",
-   "reason": "answered differently on the two records of the live reference at this pin; the moving value is not masked by a rule yet"
-  },
-  {
-   "id": "orca-scn-repo.update",
-   "cause": "volatile",
-   "reason": "answered differently on the two records of the live reference at this pin; the moving value is not masked by a rule yet"
+   "reason": "answered by a live reference whose ids, epochs or timestamps move between recordings; one recording so far (B3), the double-run stabilizer over the next recording will name the cause and mask what it can"
   }
  ]
 }

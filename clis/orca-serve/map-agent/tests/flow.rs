@@ -799,7 +799,7 @@ fn given_the_rows_the_area_does_not_offer_when_called_then_each_answers_not_offe
         assert!(row.reason.starts_with("owner-confirmed (decision 7)"), "{}", row.name);
     }
     // And the rows the owner decision names are all among them
-    for name in ["aiVault.listSessions", "aiVault.prepareSessionResume", "agentSession.reveal", "agentSession.readVisual"] {
+    for name in ["aiVault.listSessions", "aiVault.prepareSessionResume", "orchestration.partyLocation", "orchestration.partyOpen", "orchestration.workerAutoClose", "orchestration.workerKeepOpen", "agentSession.reveal", "agentSession.readVisual"] {
         assert!(NOT_OFFERED.iter().any(|r| r.name == name), "{name}");
     }
 }

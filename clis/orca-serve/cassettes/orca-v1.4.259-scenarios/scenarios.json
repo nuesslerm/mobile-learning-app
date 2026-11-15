@@ -3,10 +3,10 @@
  "app": "orca",
  "source": "clis/orca-serve/cassettes/orca-api",
  "counts": {
-  "endpoints": 840,
-  "scenarios": 228,
-  "populated": 231,
-  "emptyOnly": 609
+  "endpoints": 896,
+  "scenarios": 229,
+  "populated": 232,
+  "emptyOnly": 664
  },
  "scenarios": [
   {
@@ -1036,6 +1036,13 @@
    "kind": "derived",
    "rows": [
     "rpc:markdown.saveTab"
+   ]
+  },
+  {
+   "id": "orca-scn-orchestration.federationAttachStart",
+   "kind": "derived",
+   "rows": [
+    "rpc:orchestration.federationAttachStart"
    ]
   },
   {
@@ -5254,6 +5261,343 @@
    "state": "empty-only",
    "via": [],
    "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.approvalAnswer",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.ask",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.callerShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.check",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.crewSubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:orchestration.dispatch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.dispatchShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.federationAck",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationAttachStart",
+   "state": "populated",
+   "via": [
+    "orca-scn-orchestration.federationAttachStart"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.federationFleetSnapshot",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.federationImport",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationPull",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationRead",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationReadOutput",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationRelease",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationRetain",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.federationStop",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names dispatchId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.gateCreate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.gateList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.gateResolve",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.inbox",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.partyLocation",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.partyOpen",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.peerMailAck",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.peerMailDeliver",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.peerMailPull",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.peerRunCancel",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.reply",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.requestShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.reset",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.run",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runCreate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runCurrent",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runStop",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.runUse",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.send",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.sessionAddress",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unresolved-entity: names sessionId, no provider chain makes it"
+  },
+  {
+   "row": "rpc:orchestration.taskCreate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.taskList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.taskUpdate",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerAbandon",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerApprovalsSubscribe",
+   "state": "empty-only",
+   "via": [],
+   "reason": "streaming: the script op cannot carry a subscription"
+  },
+  {
+   "row": "rpc:orchestration.workerAutoClose",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.workerChatTouch",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.workerKeepOpen",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.workerList",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerRead",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerRelease",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerRetain",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerShow",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerStart",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
+  },
+  {
+   "row": "rpc:orchestration.workerStop",
+   "state": "empty-only",
+   "via": [],
+   "reason": "stateless: names no stored entity, the empty-state answer is the answer"
+  },
+  {
+   "row": "rpc:orchestration.workerTerminalUserInput",
+   "state": "empty-only",
+   "via": [],
+   "reason": "unreadable-schema: only the empty payload is asked"
   },
   {
    "row": "rpc:pairing.createOffer",

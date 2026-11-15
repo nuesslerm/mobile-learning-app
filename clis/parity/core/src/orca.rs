@@ -1,4 +1,4 @@
-//! The Orca reference scan. The catalog is the host's registry: every `defineMethod` and `defineStreamingMethod` under `src/`
+//! The Orca reference scan. The catalog is the host's registry: every `defineMethod`, `defineStreamingMethod` and the orchestration wrappers of both (`defineOrchestrationMethod`, `defineOrchestrationStreamingMethod`) under `src/`
 //! (a name may be a constant). The paired-phone allowlist is `MOBILE_RPC_METHOD_ROUTES`, the arrays it maps, their spreads and
 //! their flag-gated spreads. The phone is `mobile/` (its app, sources and modules) and what it imports from `src/shared`.
 use crate::graph::{in_type_union, Graph, Scope, Site};
@@ -89,7 +89,7 @@ fn registry(c: &Constants, files: &BTreeMap<String, Vec<Token>>) -> (BTreeMap<St
     let (mut out, mut unresolved) = (BTreeMap::new(), vec![]);
     for (path, toks) in files {
         for i in 1..toks.len().saturating_sub(2) {
-            let Some(kind @ ("defineMethod" | "defineStreamingMethod")) = toks[i].ident() else { continue };
+            let Some(kind @ ("defineMethod" | "defineStreamingMethod" | "defineOrchestrationMethod" | "defineOrchestrationStreamingMethod")) = toks[i].ident() else { continue };
             if !(toks[i + 1].is("(") && toks[i + 2].is("{")) || toks[i - 1].ident() == Some("function") {
                 continue;
             }
@@ -109,7 +109,7 @@ fn registry(c: &Constants, files: &BTreeMap<String, Vec<Token>>) -> (BTreeMap<St
             }
             match name {
                 Some(n) => {
-                    out.insert(n, Registered { site: site(REFERENCE, path, toks[i].line), streaming: kind == "defineStreamingMethod" });
+                    out.insert(n, Registered { site: site(REFERENCE, path, toks[i].line), streaming: kind.ends_with("StreamingMethod") });
                 }
                 None => unresolved.push(site(REFERENCE, path, toks[i].line)),
             }

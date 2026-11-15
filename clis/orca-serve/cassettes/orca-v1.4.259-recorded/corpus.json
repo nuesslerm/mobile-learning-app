@@ -105,6 +105,36 @@
           ]
         },
         {
+          "id": "orca-accounts.subscribe",
+          "row": "rpc:accounts.subscribe",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "connect": {}
+              },
+              {
+                "subscribe": {
+                  "method": "accounts.subscribe",
+                  "params": {},
+                  "rid": "0",
+                  "listen_ms": 1500
+                }
+              },
+              {
+                "unsubscribe": {
+                  "rid": "0"
+                }
+              }
+            ],
+            "settle_ms": 300
+          },
+          "tags": [
+            "input:empty",
+            "kind:stream"
+          ]
+        },
+        {
           "id": "orca-accounts.unsubscribe",
           "row": "rpc:accounts.unsubscribe",
           "op": "script",
@@ -158,6 +188,66 @@
           ]
         },
         {
+          "id": "orca-agentActivity.clear",
+          "row": "rpc:agentActivity.clear",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentActivity.clear",
+                "params": {
+                  "paneKeys": [
+                    "a"
+                  ]
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentActivity.setRead",
+          "row": "rpc:agentActivity.setRead",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentActivity.setRead",
+                "params": {
+                  "paneKeys": [
+                    "a"
+                  ],
+                  "read": true
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-agentSession.agents",
+          "row": "rpc:agentSession.agents",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.agents",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
           "id": "orca-agentSession.cancel",
           "row": "rpc:agentSession.cancel",
           "op": "script",
@@ -175,6 +265,27 @@
           ]
         },
         {
+          "id": "orca-agentSession.cancelUsageLimitContinue",
+          "row": "rpc:agentSession.cancelUsageLimitContinue",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.cancelUsageLimitContinue",
+                "params": {
+                  "sessionId": "a",
+                  "turnItemId": "a",
+                  "resetsAt": 0
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
           "id": "orca-agentSession.commands",
           "row": "rpc:agentSession.commands",
           "op": "script",
@@ -182,6 +293,23 @@
             "requests": [
               {
                 "method": "agentSession.commands",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.continueInterrupted",
+          "row": "rpc:agentSession.continueInterrupted",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.continueInterrupted",
                 "params": {},
                 "timeout_ms": 8000
               }
@@ -537,6 +665,23 @@
           ]
         },
         {
+          "id": "orca-agentSession.rewind",
+          "row": "rpc:agentSession.rewind",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.rewind",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
           "id": "orca-agentSession.send",
           "row": "rpc:agentSession.send",
           "op": "script",
@@ -544,6 +689,23 @@
             "requests": [
               {
                 "method": "agentSession.send",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.sendRecorded",
+          "row": "rpc:agentSession.sendRecorded",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "agentSession.sendRecorded",
                 "params": {},
                 "timeout_ms": 8000
               }
@@ -568,6 +730,66 @@
           },
           "tags": [
             "input:empty"
+          ]
+        },
+        {
+          "id": "orca-agentSession.subscribe",
+          "row": "rpc:agentSession.subscribe",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "connect": {}
+              },
+              {
+                "subscribe": {
+                  "method": "agentSession.subscribe",
+                  "params": {},
+                  "rid": "0",
+                  "listen_ms": 1500
+                }
+              },
+              {
+                "unsubscribe": {
+                  "rid": "0"
+                }
+              }
+            ],
+            "settle_ms": 300
+          },
+          "tags": [
+            "input:empty",
+            "kind:stream"
+          ]
+        },
+        {
+          "id": "orca-agentSession.subscribeStatus",
+          "row": "rpc:agentSession.subscribeStatus",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "connect": {}
+              },
+              {
+                "subscribe": {
+                  "method": "agentSession.subscribeStatus",
+                  "params": {},
+                  "rid": "0",
+                  "listen_ms": 1500
+                }
+              },
+              {
+                "unsubscribe": {
+                  "rid": "0"
+                }
+              }
+            ],
+            "settle_ms": 300
+          },
+          "tags": [
+            "input:empty",
+            "kind:stream"
           ]
         },
         {
@@ -1110,6 +1332,56 @@
           ]
         },
         {
+          "id": "orca-browser.screencast",
+          "row": "rpc:browser.screencast",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "connect": {}
+              },
+              {
+                "subscribe": {
+                  "method": "browser.screencast",
+                  "params": {},
+                  "rid": "0",
+                  "listen_ms": 1500
+                }
+              },
+              {
+                "unsubscribe": {
+                  "rid": "0"
+                }
+              }
+            ],
+            "settle_ms": 300
+          },
+          "tags": [
+            "input:schema",
+            "kind:stream"
+          ]
+        },
+        {
+          "id": "orca-browser.screencast.ack",
+          "row": "rpc:browser.screencast.ack",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "browser.screencast.ack",
+                "params": {
+                  "subscriptionId": "a",
+                  "seq": 0
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
           "id": "orca-browser.screencast.unsubscribe",
           "row": "rpc:browser.screencast.unsubscribe",
           "op": "script",
@@ -1306,6 +1578,26 @@
                 "params": {
                   "worktree": "a",
                   "relativePath": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-files.pathsExist",
+          "row": "rpc:files.pathsExist",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "files.pathsExist",
+                "params": {
+                  "worktree": "a",
+                  "relativePaths": []
                 },
                 "timeout_ms": 8000
               }
@@ -3783,6 +4075,144 @@
           ]
         },
         {
+          "id": "orca-mobileRelay.hosts.list",
+          "row": "rpc:mobileRelay.hosts.list",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "mobileRelay.hosts.list",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-mobileRelay.hosts.worktrees",
+          "row": "rpc:mobileRelay.hosts.worktrees",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "mobileRelay.hosts.worktrees",
+                "params": {
+                  "hostId": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-mobileRelay.projectSections",
+          "row": "rpc:mobileRelay.projectSections",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "mobileRelay.projectSections",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-mobileWeb.bundle.brotliRange",
+          "row": "rpc:mobileWeb.bundle.brotliRange",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "mobileWeb.bundle.brotliRange",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-mobileWeb.bundle.chunk",
+          "row": "rpc:mobileWeb.bundle.chunk",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "mobileWeb.bundle.chunk",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-mobileWeb.bundle.localeCatalog",
+          "row": "rpc:mobileWeb.bundle.localeCatalog",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "mobileWeb.bundle.localeCatalog",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-mobileWeb.bundle.manifest",
+          "row": "rpc:mobileWeb.bundle.manifest",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "mobileWeb.bundle.manifest",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-mobileWeb.bundle.range",
+          "row": "rpc:mobileWeb.bundle.range",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "mobileWeb.bundle.range",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
           "id": "orca-nativeChat.readSession",
           "row": "rpc:nativeChat.readSession",
           "op": "script",
@@ -3800,6 +4230,39 @@
           },
           "tags": [
             "input:schema"
+          ]
+        },
+        {
+          "id": "orca-nativeChat.subscribe",
+          "row": "rpc:nativeChat.subscribe",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "connect": {}
+              },
+              {
+                "subscribe": {
+                  "method": "nativeChat.subscribe",
+                  "params": {
+                    "agent": "a",
+                    "sessionId": "a"
+                  },
+                  "rid": "0",
+                  "listen_ms": 1500
+                }
+              },
+              {
+                "unsubscribe": {
+                  "rid": "0"
+                }
+              }
+            ],
+            "settle_ms": 300
+          },
+          "tags": [
+            "input:schema",
+            "kind:stream"
           ]
         },
         {
@@ -3856,6 +4319,36 @@
           ]
         },
         {
+          "id": "orca-notifications.subscribe",
+          "row": "rpc:notifications.subscribe",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "connect": {}
+              },
+              {
+                "subscribe": {
+                  "method": "notifications.subscribe",
+                  "params": {},
+                  "rid": "0",
+                  "listen_ms": 1500
+                }
+              },
+              {
+                "unsubscribe": {
+                  "rid": "0"
+                }
+              }
+            ],
+            "settle_ms": 300
+          },
+          "tags": [
+            "input:schema",
+            "kind:stream"
+          ]
+        },
+        {
           "id": "orca-notifications.testPush",
           "row": "rpc:notifications.testPush",
           "op": "script",
@@ -3906,6 +4399,95 @@
           },
           "tags": [
             "input:schema"
+          ]
+        },
+        {
+          "id": "orca-orchestration.partyLocation",
+          "row": "rpc:orchestration.partyLocation",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "orchestration.partyLocation",
+                "params": {
+                  "address": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-orchestration.partyOpen",
+          "row": "rpc:orchestration.partyOpen",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "orchestration.partyOpen",
+                "params": {
+                  "address": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-orchestration.workerAutoClose",
+          "row": "rpc:orchestration.workerAutoClose",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "orchestration.workerAutoClose",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-orchestration.workerKeepOpen",
+          "row": "rpc:orchestration.workerKeepOpen",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "orchestration.workerKeepOpen",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
+          "id": "orca-pairing.exchangeTicket",
+          "row": "rpc:pairing.exchangeTicket",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "pairing.exchangeTicket",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
           ]
         },
         {
@@ -4235,6 +4817,36 @@
           ]
         },
         {
+          "id": "orca-runtime.clientEvents.subscribe",
+          "row": "rpc:runtime.clientEvents.subscribe",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "connect": {}
+              },
+              {
+                "subscribe": {
+                  "method": "runtime.clientEvents.subscribe",
+                  "params": {},
+                  "rid": "0",
+                  "listen_ms": 1500
+                }
+              },
+              {
+                "unsubscribe": {
+                  "rid": "0"
+                }
+              }
+            ],
+            "settle_ms": 300
+          },
+          "tags": [
+            "input:schema",
+            "kind:stream"
+          ]
+        },
+        {
           "id": "orca-runtime.clientEvents.unsubscribe",
           "row": "rpc:runtime.clientEvents.unsubscribe",
           "op": "script",
@@ -4329,6 +4941,38 @@
           },
           "tags": [
             "input:schema"
+          ]
+        },
+        {
+          "id": "orca-session.tabs.subscribe",
+          "row": "rpc:session.tabs.subscribe",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "connect": {}
+              },
+              {
+                "subscribe": {
+                  "method": "session.tabs.subscribe",
+                  "params": {
+                    "worktree": "a"
+                  },
+                  "rid": "0",
+                  "listen_ms": 1500
+                }
+              },
+              {
+                "unsubscribe": {
+                  "rid": "0"
+                }
+              }
+            ],
+            "settle_ms": 300
+          },
+          "tags": [
+            "input:schema",
+            "kind:stream"
           ]
         },
         {
@@ -4714,6 +5358,23 @@
           ]
         },
         {
+          "id": "orca-stats.summary",
+          "row": "rpc:stats.summary",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "stats.summary",
+                "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:empty"
+          ]
+        },
+        {
           "id": "orca-status.get",
           "row": "rpc:status.get",
           "op": "script",
@@ -4722,6 +5383,26 @@
               {
                 "method": "status.get",
                 "params": {},
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.ackOutput",
+          "row": "rpc:terminal.ackOutput",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.ackOutput",
+                "params": {
+                  "streamToken": "a",
+                  "units": 1
+                },
                 "timeout_ms": 8000
               }
             ]
@@ -4822,6 +5503,48 @@
           ]
         },
         {
+          "id": "orca-terminal.openInputSession",
+          "row": "rpc:terminal.openInputSession",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.openInputSession",
+                "params": {
+                  "terminal": "a",
+                  "client": {
+                    "id": "a",
+                    "type": "mobile"
+                  }
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.read",
+          "row": "rpc:terminal.read",
+          "op": "script",
+          "input": {
+            "requests": [
+              {
+                "method": "terminal.read",
+                "params": {
+                  "terminal": "a"
+                },
+                "timeout_ms": 8000
+              }
+            ]
+          },
+          "tags": [
+            "input:schema"
+          ]
+        },
+        {
           "id": "orca-terminal.rename",
           "row": "rpc:terminal.rename",
           "op": "script",
@@ -4894,6 +5617,38 @@
           },
           "tags": [
             "input:schema"
+          ]
+        },
+        {
+          "id": "orca-terminal.subscribe",
+          "row": "rpc:terminal.subscribe",
+          "op": "script",
+          "input": {
+            "script": [
+              {
+                "connect": {}
+              },
+              {
+                "subscribe": {
+                  "method": "terminal.subscribe",
+                  "params": {
+                    "terminal": "a"
+                  },
+                  "rid": "0",
+                  "listen_ms": 1500
+                }
+              },
+              {
+                "unsubscribe": {
+                  "rid": "0"
+                }
+              }
+            ],
+            "settle_ms": 300
+          },
+          "tags": [
+            "input:schema",
+            "kind:stream"
           ]
         },
         {
@@ -5227,237 +5982,68 @@
           ]
         },
         {
-          "id": "orca-agentActivity.clear",
-          "row": "rpc:agentActivity.clear",
+          "id": "orca-transport.e2ee.handshake",
+          "row": "transport:e2ee.handshake",
           "op": "script",
           "input": {
-            "requests": [
+            "script": [
               {
-                "method": "agentActivity.clear",
-                "params": {
-                  "paneKeys": [
-                    "a"
-                  ]
-                },
-                "timeout_ms": 8000
+                "connect": {
+                  "capture_handshake": true,
+                  "capture_close": true,
+                  "timeout_ms": 5000
+                }
               }
-            ]
+            ],
+            "settle_ms": 300
           },
           "tags": [
-            "input:schema"
+            "kind:handshake",
+            "case:paired"
           ]
         },
         {
-          "id": "orca-agentActivity.setRead",
-          "row": "rpc:agentActivity.setRead",
+          "id": "orca-transport.e2ee.handshake.wrong-token",
+          "row": "transport:e2ee.handshake",
           "op": "script",
           "input": {
-            "requests": [
+            "script": [
               {
-                "method": "agentActivity.setRead",
-                "params": {
-                  "paneKeys": [
-                    "a"
-                  ],
-                  "read": true
-                },
-                "timeout_ms": 8000
+                "connect": {
+                  "capture_handshake": true,
+                  "capture_close": true,
+                  "timeout_ms": 5000,
+                  "device_token": "{bad-credential}"
+                }
               }
-            ]
+            ],
+            "settle_ms": 300
           },
           "tags": [
-            "input:schema"
+            "kind:handshake",
+            "case:wrong-token"
           ]
         },
         {
-          "id": "orca-agentSession.cancelUsageLimitContinue",
-          "row": "rpc:agentSession.cancelUsageLimitContinue",
+          "id": "orca-transport.e2ee.handshake.wrong-host-key",
+          "row": "transport:e2ee.handshake",
           "op": "script",
           "input": {
-            "requests": [
+            "script": [
               {
-                "method": "agentSession.cancelUsageLimitContinue",
-                "params": {
-                  "sessionId": "a",
-                  "turnItemId": "a",
-                  "resetsAt": 0
-                },
-                "timeout_ms": 8000
+                "connect": {
+                  "capture_handshake": true,
+                  "capture_close": true,
+                  "timeout_ms": 5000,
+                  "server_public_key_b64": "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
+                }
               }
-            ]
+            ],
+            "settle_ms": 300
           },
           "tags": [
-            "input:schema"
-          ]
-        },
-        {
-          "id": "orca-agentSession.continueInterrupted",
-          "row": "rpc:agentSession.continueInterrupted",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "agentSession.continueInterrupted",
-                "params": {},
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:empty"
-          ]
-        },
-        {
-          "id": "orca-agentSession.rewind",
-          "row": "rpc:agentSession.rewind",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "agentSession.rewind",
-                "params": {},
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:empty"
-          ]
-        },
-        {
-          "id": "orca-agentSession.sendRecorded",
-          "row": "rpc:agentSession.sendRecorded",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "agentSession.sendRecorded",
-                "params": {},
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:empty"
-          ]
-        },
-        {
-          "id": "orca-browser.screencast.ack",
-          "row": "rpc:browser.screencast.ack",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "browser.screencast.ack",
-                "params": {
-                  "subscriptionId": "a",
-                  "seq": 0
-                },
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:schema"
-          ]
-        },
-        {
-          "id": "orca-files.pathsExist",
-          "row": "rpc:files.pathsExist",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "files.pathsExist",
-                "params": {
-                  "worktree": "a",
-                  "relativePaths": []
-                },
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:schema"
-          ]
-        },
-        {
-          "id": "orca-stats.summary",
-          "row": "rpc:stats.summary",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "stats.summary",
-                "params": {},
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:empty"
-          ]
-        },
-        {
-          "id": "orca-terminal.ackOutput",
-          "row": "rpc:terminal.ackOutput",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "terminal.ackOutput",
-                "params": {
-                  "streamToken": "a",
-                  "units": 1
-                },
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:schema"
-          ]
-        },
-        {
-          "id": "orca-terminal.openInputSession",
-          "row": "rpc:terminal.openInputSession",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "terminal.openInputSession",
-                "params": {
-                  "terminal": "a",
-                  "client": {
-                    "id": "a",
-                    "type": "mobile"
-                  }
-                },
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:schema"
-          ]
-        },
-        {
-          "id": "orca-terminal.read",
-          "row": "rpc:terminal.read",
-          "op": "script",
-          "input": {
-            "requests": [
-              {
-                "method": "terminal.read",
-                "params": {
-                  "terminal": "a"
-                },
-                "timeout_ms": 8000
-              }
-            ]
-          },
-          "tags": [
-            "input:schema"
+            "kind:handshake",
+            "case:wrong-host-key"
           ]
         }
       ]

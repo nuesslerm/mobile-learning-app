@@ -34,8 +34,9 @@
     },
     {
       "row": "rpc:accounts.subscribe",
-      "status": "skipped",
-      "reason": "streaming method: the script op carries request and response only"
+      "status": "case",
+      "case": "orca-accounts.subscribe",
+      "input": "empty"
     },
     {
       "row": "rpc:accounts.unsubscribe",
@@ -69,8 +70,9 @@
     },
     {
       "row": "rpc:agentSession.agents",
-      "status": "skipped",
-      "reason": "not registered in the pinned methods dir (dynamic registration)"
+      "status": "case",
+      "case": "orca-agentSession.agents",
+      "input": "schema"
     },
     {
       "row": "rpc:agentSession.cancel",
@@ -242,13 +244,15 @@
     },
     {
       "row": "rpc:agentSession.subscribe",
-      "status": "skipped",
-      "reason": "streaming method: the script op carries request and response only"
+      "status": "case",
+      "case": "orca-agentSession.subscribe",
+      "input": "empty"
     },
     {
       "row": "rpc:agentSession.subscribeStatus",
-      "status": "skipped",
-      "reason": "streaming method: the script op carries request and response only"
+      "status": "case",
+      "case": "orca-agentSession.subscribeStatus",
+      "input": "empty"
     },
     {
       "row": "rpc:agentSession.threadGoal",
@@ -432,8 +436,9 @@
     },
     {
       "row": "rpc:browser.screencast",
-      "status": "skipped",
-      "reason": "streaming method: the script op carries request and response only"
+      "status": "case",
+      "case": "orca-browser.screencast",
+      "input": "schema"
     },
     {
       "row": "rpc:browser.screencast.ack",
@@ -1253,43 +1258,51 @@
     },
     {
       "row": "rpc:mobileRelay.hosts.list",
-      "status": "skipped",
-      "reason": "not registered in the pinned methods dir (dynamic registration)"
+      "status": "case",
+      "case": "orca-mobileRelay.hosts.list",
+      "input": "empty"
     },
     {
       "row": "rpc:mobileRelay.hosts.worktrees",
-      "status": "skipped",
-      "reason": "not registered in the pinned methods dir (dynamic registration)"
+      "status": "case",
+      "case": "orca-mobileRelay.hosts.worktrees",
+      "input": "schema"
     },
     {
       "row": "rpc:mobileRelay.projectSections",
-      "status": "skipped",
-      "reason": "not registered in the pinned methods dir (dynamic registration)"
+      "status": "case",
+      "case": "orca-mobileRelay.projectSections",
+      "input": "empty"
     },
     {
       "row": "rpc:mobileWeb.bundle.brotliRange",
-      "status": "skipped",
-      "reason": "not registered in the pinned methods dir (dynamic registration)"
+      "status": "case",
+      "case": "orca-mobileWeb.bundle.brotliRange",
+      "input": "empty"
     },
     {
       "row": "rpc:mobileWeb.bundle.chunk",
-      "status": "skipped",
-      "reason": "not registered in the pinned methods dir (dynamic registration)"
+      "status": "case",
+      "case": "orca-mobileWeb.bundle.chunk",
+      "input": "empty"
     },
     {
       "row": "rpc:mobileWeb.bundle.localeCatalog",
-      "status": "skipped",
-      "reason": "not registered in the pinned methods dir (dynamic registration)"
+      "status": "case",
+      "case": "orca-mobileWeb.bundle.localeCatalog",
+      "input": "empty"
     },
     {
       "row": "rpc:mobileWeb.bundle.manifest",
-      "status": "skipped",
-      "reason": "not registered in the pinned methods dir (dynamic registration)"
+      "status": "case",
+      "case": "orca-mobileWeb.bundle.manifest",
+      "input": "empty"
     },
     {
       "row": "rpc:mobileWeb.bundle.range",
-      "status": "skipped",
-      "reason": "not registered in the pinned methods dir (dynamic registration)"
+      "status": "case",
+      "case": "orca-mobileWeb.bundle.range",
+      "input": "empty"
     },
     {
       "row": "rpc:nativeChat.readSession",
@@ -1299,8 +1312,9 @@
     },
     {
       "row": "rpc:nativeChat.subscribe",
-      "status": "skipped",
-      "reason": "streaming method: the script op carries request and response only"
+      "status": "case",
+      "case": "orca-nativeChat.subscribe",
+      "input": "schema"
     },
     {
       "row": "rpc:nativeChat.unsubscribe",
@@ -1322,8 +1336,9 @@
     },
     {
       "row": "rpc:notifications.subscribe",
-      "status": "skipped",
-      "reason": "streaming method: the script op carries request and response only"
+      "status": "case",
+      "case": "orca-notifications.subscribe",
+      "input": "schema"
     },
     {
       "row": "rpc:notifications.testPush",
@@ -1344,9 +1359,34 @@
       "input": "schema"
     },
     {
+      "row": "rpc:orchestration.partyLocation",
+      "status": "case",
+      "case": "orca-orchestration.partyLocation",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:orchestration.partyOpen",
+      "status": "case",
+      "case": "orca-orchestration.partyOpen",
+      "input": "schema"
+    },
+    {
+      "row": "rpc:orchestration.workerAutoClose",
+      "status": "case",
+      "case": "orca-orchestration.workerAutoClose",
+      "input": "empty"
+    },
+    {
+      "row": "rpc:orchestration.workerKeepOpen",
+      "status": "case",
+      "case": "orca-orchestration.workerKeepOpen",
+      "input": "empty"
+    },
+    {
       "row": "rpc:pairing.exchangeTicket",
-      "status": "skipped",
-      "reason": "not registered in the pinned methods dir (dynamic registration)"
+      "status": "case",
+      "case": "orca-pairing.exchangeTicket",
+      "input": "empty"
     },
     {
       "row": "rpc:pairing.getEndpoints",
@@ -1458,8 +1498,9 @@
     },
     {
       "row": "rpc:runtime.clientEvents.subscribe",
-      "status": "skipped",
-      "reason": "streaming method: the script op carries request and response only"
+      "status": "case",
+      "case": "orca-runtime.clientEvents.subscribe",
+      "input": "schema"
     },
     {
       "row": "rpc:runtime.clientEvents.unsubscribe",
@@ -1493,8 +1534,9 @@
     },
     {
       "row": "rpc:session.tabs.subscribe",
-      "status": "skipped",
-      "reason": "streaming method: the script op carries request and response only"
+      "status": "case",
+      "case": "orca-session.tabs.subscribe",
+      "input": "schema"
     },
     {
       "row": "rpc:session.tabs.unsubscribe",
@@ -1708,8 +1750,9 @@
     },
     {
       "row": "rpc:terminal.subscribe",
-      "status": "skipped",
-      "reason": "streaming method: the script op carries request and response only"
+      "status": "case",
+      "case": "orca-terminal.subscribe",
+      "input": "schema"
     },
     {
       "row": "rpc:terminal.unsubscribe",
@@ -1814,6 +1857,12 @@
       "input": "schema"
     },
     {
+      "row": "transport:e2ee.handshake",
+      "status": "case",
+      "case": "orca-transport.e2ee.handshake",
+      "input": "script"
+    },
+    {
       "row": "http:mobile/src/app-update/app-store-update-source.ts#1",
       "status": "skipped",
       "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
@@ -1857,11 +1906,6 @@
       "row": "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1",
       "status": "skipped",
       "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
-    },
-    {
-      "row": "transport:e2ee.handshake",
-      "status": "skipped",
-      "reason": "the e2ee handshake is the connection every case opens, answered once per case"
     }
   ]
 }

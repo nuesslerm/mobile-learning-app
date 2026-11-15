@@ -13,5 +13,7 @@ export const FIXTURE_METHODS = [
   defineMethod({ name: 'reached.offAllowlist', params: null, handler }),
   defineMethod({ name: 'reached.flagged', params: null, handler }),
   defineMethod({ name: 'unreached.allowed', params: null, handler }),
-  defineMethod({ name: 'unreached.capability', params: null, handler })
+  defineMethod({ name: 'unreached.capability', params: null, handler }),
+  defineOrchestrationMethod({ name: 'unreached.orchestrated', access: ACCESS, params: null, handler }),
+  defineOrchestrationStreamingMethod({ name: 'unreached.orchestratedStream', access: ACCESS, params: null, handler })
 ]

@@ -9,24 +9,24 @@
     {
       "name": "registry",
       "available": true,
-      "found": 830
+      "found": 886
     },
     {
       "name": "schema",
       "available": true,
-      "found": 756,
-      "note": "74 methods have no readable params schema"
+      "found": 811,
+      "note": "75 methods have no readable params schema"
     },
     {
       "name": "mobile-calls",
       "available": true,
-      "found": 295,
+      "found": 299,
       "note": "quoted method names under mobile/src, plus the reachability scan of the catalog (wf parity coverage)"
     },
     {
       "name": "cli-source",
       "available": true,
-      "found": 286,
+      "found": 316,
       "note": "quoted method names under src/cli"
     },
     {
@@ -38,7 +38,7 @@
     {
       "name": "catalog",
       "available": true,
-      "found": 840
+      "found": 896
     },
     {
       "name": "runtime",
@@ -12597,6 +12597,1199 @@
       }
     },
     {
+      "id": "rpc:orchestration.approvalAnswer",
+      "kind": "rpc",
+      "name": "orchestration.approvalAnswer",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.ask",
+      "kind": "rpc",
+      "name": "orchestration.ask",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 2
+      }
+    },
+    {
+      "id": "rpc:orchestration.callerShow",
+      "kind": "rpc",
+      "name": "orchestration.callerShow",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.check",
+      "kind": "rpc",
+      "name": "orchestration.check",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.crewSubscribe",
+      "kind": "rpc",
+      "name": "orchestration.crewSubscribe",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {},
+      "skipped": "streaming method: the script op carries request and response only"
+    },
+    {
+      "id": "rpc:orchestration.dispatch",
+      "kind": "rpc",
+      "name": "orchestration.dispatch",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.dispatchShow",
+      "kind": "rpc",
+      "name": "orchestration.dispatchShow",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.federationAck",
+      "kind": "rpc",
+      "name": "orchestration.federationAck",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.federationAttachStart",
+      "kind": "rpc",
+      "name": "orchestration.federationAttachStart",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.federationFleetSnapshot",
+      "kind": "rpc",
+      "name": "orchestration.federationFleetSnapshot",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.federationImport",
+      "kind": "rpc",
+      "name": "orchestration.federationImport",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.federationPull",
+      "kind": "rpc",
+      "name": "orchestration.federationPull",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.federationRead",
+      "kind": "rpc",
+      "name": "orchestration.federationRead",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.federationReadOutput",
+      "kind": "rpc",
+      "name": "orchestration.federationReadOutput",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.federationRelease",
+      "kind": "rpc",
+      "name": "orchestration.federationRelease",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.federationRetain",
+      "kind": "rpc",
+      "name": "orchestration.federationRetain",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.federationShow",
+      "kind": "rpc",
+      "name": "orchestration.federationShow",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.federationStop",
+      "kind": "rpc",
+      "name": "orchestration.federationStop",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.gateCreate",
+      "kind": "rpc",
+      "name": "orchestration.gateCreate",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.gateList",
+      "kind": "rpc",
+      "name": "orchestration.gateList",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.gateResolve",
+      "kind": "rpc",
+      "name": "orchestration.gateResolve",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.inbox",
+      "kind": "rpc",
+      "name": "orchestration.inbox",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.partyLocation",
+      "kind": "rpc",
+      "name": "orchestration.partyLocation",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "mobile-calls",
+        "catalog"
+      ],
+      "access": "execution-host",
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.partyOpen",
+      "kind": "rpc",
+      "name": "orchestration.partyOpen",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "mobile-calls",
+        "catalog"
+      ],
+      "access": "execution-host",
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.peerMailAck",
+      "kind": "rpc",
+      "name": "orchestration.peerMailAck",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.peerMailDeliver",
+      "kind": "rpc",
+      "name": "orchestration.peerMailDeliver",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.peerMailPull",
+      "kind": "rpc",
+      "name": "orchestration.peerMailPull",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.peerRunCancel",
+      "kind": "rpc",
+      "name": "orchestration.peerRunCancel",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.reply",
+      "kind": "rpc",
+      "name": "orchestration.reply",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.requestShow",
+      "kind": "rpc",
+      "name": "orchestration.requestShow",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.reset",
+      "kind": "rpc",
+      "name": "orchestration.reset",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 2
+      }
+    },
+    {
+      "id": "rpc:orchestration.run",
+      "kind": "rpc",
+      "name": "orchestration.run",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.runCreate",
+      "kind": "rpc",
+      "name": "orchestration.runCreate",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.runCurrent",
+      "kind": "rpc",
+      "name": "orchestration.runCurrent",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.runList",
+      "kind": "rpc",
+      "name": "orchestration.runList",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.runShow",
+      "kind": "rpc",
+      "name": "orchestration.runShow",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.runStop",
+      "kind": "rpc",
+      "name": "orchestration.runStop",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.runUse",
+      "kind": "rpc",
+      "name": "orchestration.runUse",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.send",
+      "kind": "rpc",
+      "name": "orchestration.send",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.sessionAddress",
+      "kind": "rpc",
+      "name": "orchestration.sessionAddress",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.taskCreate",
+      "kind": "rpc",
+      "name": "orchestration.taskCreate",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.taskList",
+      "kind": "rpc",
+      "name": "orchestration.taskList",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.taskUpdate",
+      "kind": "rpc",
+      "name": "orchestration.taskUpdate",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerAbandon",
+      "kind": "rpc",
+      "name": "orchestration.workerAbandon",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerApprovalsSubscribe",
+      "kind": "rpc",
+      "name": "orchestration.workerApprovalsSubscribe",
+      "transport": "stream",
+      "streaming": true,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {},
+      "skipped": "streaming method: the script op carries request and response only"
+    },
+    {
+      "id": "rpc:orchestration.workerAutoClose",
+      "kind": "rpc",
+      "name": "orchestration.workerAutoClose",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "mobile-calls",
+        "catalog"
+      ],
+      "access": "execution-host",
+      "input": "empty",
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 2
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerChatTouch",
+      "kind": "rpc",
+      "name": "orchestration.workerChatTouch",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "access": "execution-host",
+      "input": "empty",
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 2
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerKeepOpen",
+      "kind": "rpc",
+      "name": "orchestration.workerKeepOpen",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "mobile"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "mobile-calls",
+        "catalog"
+      ],
+      "access": "execution-host",
+      "input": "empty",
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 3
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerList",
+      "kind": "rpc",
+      "name": "orchestration.workerList",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 2,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerRead",
+      "kind": "rpc",
+      "name": "orchestration.workerRead",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerRelease",
+      "kind": "rpc",
+      "name": "orchestration.workerRelease",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerRetain",
+      "kind": "rpc",
+      "name": "orchestration.workerRetain",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerShow",
+      "kind": "rpc",
+      "name": "orchestration.workerShow",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerStart",
+      "kind": "rpc",
+      "name": "orchestration.workerStart",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "empty",
+      "classes": {
+        "boundary": 2,
+        "empty": 1,
+        "invalid": 3
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerStop",
+      "kind": "rpc",
+      "name": "orchestration.workerStop",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "cli"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "cli-source",
+        "catalog"
+      ],
+      "input": "schema",
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "id": "rpc:orchestration.workerTerminalUserInput",
+      "kind": "rpc",
+      "name": "orchestration.workerTerminalUserInput",
+      "transport": "rpc",
+      "streaming": false,
+      "users": [
+        "internal"
+      ],
+      "sources": [
+        "registry",
+        "schema",
+        "catalog"
+      ],
+      "access": "execution-host",
+      "input": "empty",
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 2
+      }
+    },
+    {
       "id": "rpc:pairing.createOffer",
       "kind": "rpc",
       "name": "pairing.createOffer",
@@ -21090,60 +22283,60 @@
       "version": "1.4.259",
       "commit": "980c0024741812bd7ae934c0c22144d9926a784e"
     },
-    "endpoints": 840,
+    "endpoints": 896,
     "by_kind": {
       "http": 9,
-      "rpc": 830,
+      "rpc": 886,
       "transport": 1
     },
     "by_user": {
-      "cli": 286,
-      "internal": 299,
-      "mobile": 315
+      "cli": 316,
+      "internal": 321,
+      "mobile": 319
     },
     "by_source": {
-      "catalog": 840,
-      "cli-source": 286,
-      "mobile-calls": 295,
-      "registry": 830,
-      "schema": 756
+      "catalog": 896,
+      "cli-source": 316,
+      "mobile-calls": 299,
+      "registry": 886,
+      "schema": 811
     },
     "by_input": {
-      "empty": 227,
-      "schema": 613
+      "empty": 237,
+      "schema": 659
     },
     "by_class": {
-      "boundary": 774,
-      "empty": 193,
-      "invalid": 2149,
-      "valid": 613
+      "boundary": 818,
+      "empty": 201,
+      "invalid": 2292,
+      "valid": 659
     },
-    "cases": 3729,
-    "skipped": 34,
-    "streaming": 24,
+    "cases": 3970,
+    "skipped": 36,
+    "streaming": 26,
     "cli_commands": 343,
     "sources": [
       {
         "name": "registry",
         "available": true,
-        "found": 830
+        "found": 886
       },
       {
         "name": "schema",
         "available": true,
-        "found": 756,
-        "note": "74 methods have no readable params schema"
+        "found": 811,
+        "note": "75 methods have no readable params schema"
       },
       {
         "name": "mobile-calls",
         "available": true,
-        "found": 295,
+        "found": 299,
         "note": "quoted method names under mobile/src, plus the reachability scan of the catalog (wf parity coverage)"
       },
       {
         "name": "cli-source",
         "available": true,
-        "found": 286,
+        "found": 316,
         "note": "quoted method names under src/cli"
       },
       {
@@ -21155,7 +22348,7 @@
       {
         "name": "catalog",
         "available": true,
-        "found": 840
+        "found": 896
       },
       {
         "name": "runtime",

@@ -63,34 +63,3 @@ run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/codex"]
 name = "scripted-cli-opencode"
 cwd = "{work}"
 run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/opencode"]
-
-# The corpora are derived from the pinned source and the crawl. The scan change that adds rows (docs/plans/rca-parity/pending) cannot be committed ahead of its
-# re-record (the gate refuses a stale set), so the record job applies it to its own checkout and derives the corpora again before it records; the landing
-# commit holds the same change next to the new cassettes. Remove the first step with the patch.
-[[step]]
-name = "apply-step5"
-cwd = "{repo}"
-run = ["git", "apply", "docs/plans/rca-parity/pending/step5-scan-and-corpus.patch"]
-
-[[step]]
-name = "refresh-crawl"
-cwd = "{repo}"
-run = ["wf", "mimic", "crawl", "clis/orca-serve/cassettes/orca-api"]
-timeout_minutes = 20
-
-[[step]]
-name = "refresh-crawl-corpus"
-cwd = "{repo}"
-run = ["cp", "clis/orca-serve/cassettes/orca-api/corpus.json", "clis/orca-serve/cassettes/orca-v1.4.259-crawl/corpus.json"]
-
-[[step]]
-name = "refresh-recorded-corpus"
-cwd = "{repo}"
-run = ["node", "tooling/mimic-drivers/src/cli.ts", "corpus", "orca", "clis/orca-serve/cassettes/orca-v1.4.259-recorded"]
-timeout_minutes = 20
-
-[[step]]
-name = "refresh-scenarios"
-cwd = "{repo}"
-run = ["node", "tooling/mimic-drivers/src/cli.ts", "scenarios", "orca", "clis/orca-serve/cassettes/orca-v1.4.259-scenarios"]
-timeout_minutes = 20

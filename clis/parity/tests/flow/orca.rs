@@ -34,6 +34,9 @@ fn the_scan_classes_off_allowlist_flagged_and_capability_names_and_reads_fetches
     assert!(methods.iter().any(|r| r["flag"].is_string()) && methods.iter().any(|r| r["class"] == "offAllowlist"));
     // And the streaming registration is the subscription, and a name registered through a constant resolves
     assert_eq!(methods.iter().filter(|r| r["subscription"] == true).count(), run.json["counts"]["catalog"]["streaming"].as_u64().unwrap() as usize);
+    // And the orchestration wrappers register too, the streaming one as a subscription
+    assert!(rows["rpc:unreached.orchestrated"]["subscription"].is_null());
+    assert_eq!(rows["rpc:unreached.orchestratedStream"]["subscription"], true);
     let flags = f.json(&f.table("-methods.json"))["flags"].clone();
     // And a capability flag is reported, not counted, and a non-literal method name is flagged as dynamic
     assert!(flags["capabilityNames"]["sites"].as_array().unwrap().iter().any(|s| rows[&format!("rpc:{}", s["name"].as_str().unwrap())]["phone"] == false));

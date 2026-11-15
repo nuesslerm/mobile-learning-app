@@ -6076,6 +6076,594 @@
       }
     },
     {
+      "row": "rpc:orchestration.approvalAnswer",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.ask",
+      "status": "case",
+      "input": "empty",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 2
+      }
+    },
+    {
+      "row": "rpc:orchestration.callerShow",
+      "status": "case",
+      "input": "empty",
+      "cases": 2,
+      "classes": {
+        "empty": 1,
+        "invalid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.check",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.crewSubscribe",
+      "status": "skipped",
+      "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:orchestration.dispatch",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.dispatchShow",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.federationAck",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.federationAttachStart",
+      "status": "case",
+      "input": "schema",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.federationFleetSnapshot",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.federationImport",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.federationPull",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.federationRead",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.federationReadOutput",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.federationRelease",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.federationRetain",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.federationShow",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.federationStop",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.gateCreate",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.gateList",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.gateResolve",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.inbox",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.partyLocation",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.partyOpen",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.peerMailAck",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.peerMailDeliver",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.peerMailPull",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.peerRunCancel",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.reply",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.requestShow",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.reset",
+      "status": "case",
+      "input": "empty",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 2
+      }
+    },
+    {
+      "row": "rpc:orchestration.run",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.runCreate",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.runCurrent",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.runList",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 2,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.runShow",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.runStop",
+      "status": "case",
+      "input": "schema",
+      "cases": 2,
+      "classes": {
+        "invalid": 1,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.runUse",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.send",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.sessionAddress",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.taskCreate",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.taskList",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.taskUpdate",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerAbandon",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerApprovalsSubscribe",
+      "status": "skipped",
+      "reason": "streaming method: the script op carries request and response only"
+    },
+    {
+      "row": "rpc:orchestration.workerAutoClose",
+      "status": "case",
+      "input": "empty",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 2
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerChatTouch",
+      "status": "case",
+      "input": "empty",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 2
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerKeepOpen",
+      "status": "case",
+      "input": "empty",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 3
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerList",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 2,
+        "invalid": 2,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerRead",
+      "status": "case",
+      "input": "schema",
+      "cases": 5,
+      "classes": {
+        "boundary": 1,
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerRelease",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerRetain",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerShow",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerStart",
+      "status": "case",
+      "input": "empty",
+      "cases": 6,
+      "classes": {
+        "boundary": 2,
+        "empty": 1,
+        "invalid": 3
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerStop",
+      "status": "case",
+      "input": "schema",
+      "cases": 4,
+      "classes": {
+        "invalid": 3,
+        "valid": 1
+      }
+    },
+    {
+      "row": "rpc:orchestration.workerTerminalUserInput",
+      "status": "case",
+      "input": "empty",
+      "cases": 4,
+      "classes": {
+        "boundary": 1,
+        "empty": 1,
+        "invalid": 2
+      }
+    },
+    {
       "row": "rpc:pairing.createOffer",
       "status": "case",
       "input": "schema",

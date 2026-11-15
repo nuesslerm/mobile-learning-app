@@ -9,22 +9,15 @@
   },
   "counts": {
     "catalog": {
-      "registered": 830,
-      "streaming": 24,
+      "registered": 886,
+      "streaming": 26,
       "allowlist": 373,
       "allowlistShipped": 370,
       "allowlistFlagged": 3,
-      "allowlistUnregistered": [
-        "orchestration.partyLocation",
-        "orchestration.partyOpen",
-        "orchestration.workerAutoClose",
-        "orchestration.workerChatTouch",
-        "orchestration.workerKeepOpen",
-        "orchestration.workerTerminalUserInput"
-      ]
+      "allowlistUnregistered": []
     },
     "phone": {
-      "methods": 304,
+      "methods": 308,
       "flagged": 3,
       "offAllowlist": 1,
       "subscriptions": 9,
@@ -5711,6 +5704,468 @@
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/orcad/orcad-terminal-census.ts:18",
       "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.approvalAnswer",
+      "kind": "rpc",
+      "name": "orchestration.approvalAnswer",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-approval-answer.ts:36",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.ask",
+      "kind": "rpc",
+      "name": "orchestration.ask",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/ask-methods.ts:24",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.callerShow",
+      "kind": "rpc",
+      "name": "orchestration.callerShow",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/caller-show.ts:68",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.check",
+      "kind": "rpc",
+      "name": "orchestration.check",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/check-methods.ts:20",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.crewSubscribe",
+      "kind": "rpc",
+      "name": "orchestration.crewSubscribe",
+      "phone": false,
+      "subscription": true,
+      "registered": "src/main/runtime/rpc/methods/orchestration/crew-methods.ts:46",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.dispatch",
+      "kind": "rpc",
+      "name": "orchestration.dispatch",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/runs/dispatch-methods.ts:28",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.dispatchShow",
+      "kind": "rpc",
+      "name": "orchestration.dispatchShow",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/runs/dispatch-methods.ts:210",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.federationAck",
+      "kind": "rpc",
+      "name": "orchestration.federationAck",
+      "phone": false,
+      "registered": "src/main/runtime/orchestration/legacy-remote/federation-relay.ts:44",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.federationAttachStart",
+      "kind": "rpc",
+      "name": "orchestration.federationAttachStart",
+      "phone": false,
+      "registered": "src/main/runtime/orchestration/legacy-remote/federation.ts:33",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.federationFleetSnapshot",
+      "kind": "rpc",
+      "name": "orchestration.federationFleetSnapshot",
+      "phone": false,
+      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:25",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.federationImport",
+      "kind": "rpc",
+      "name": "orchestration.federationImport",
+      "phone": false,
+      "registered": "src/main/runtime/orchestration/legacy-remote/federation-relay.ts:111",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.federationPull",
+      "kind": "rpc",
+      "name": "orchestration.federationPull",
+      "phone": false,
+      "registered": "src/main/runtime/orchestration/legacy-remote/federation-relay.ts:20",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.federationRead",
+      "kind": "rpc",
+      "name": "orchestration.federationRead",
+      "phone": false,
+      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:120",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.federationReadOutput",
+      "kind": "rpc",
+      "name": "orchestration.federationReadOutput",
+      "phone": false,
+      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:145",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.federationRelease",
+      "kind": "rpc",
+      "name": "orchestration.federationRelease",
+      "phone": false,
+      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:62",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.federationRetain",
+      "kind": "rpc",
+      "name": "orchestration.federationRetain",
+      "phone": false,
+      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:77",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.federationShow",
+      "kind": "rpc",
+      "name": "orchestration.federationShow",
+      "phone": false,
+      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:90",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.federationStop",
+      "kind": "rpc",
+      "name": "orchestration.federationStop",
+      "phone": false,
+      "registered": "src/main/runtime/orchestration/legacy-remote/federation-control.ts:230",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.gateCreate",
+      "kind": "rpc",
+      "name": "orchestration.gateCreate",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/gates/gates.ts:80",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.gateList",
+      "kind": "rpc",
+      "name": "orchestration.gateList",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/gates/gates.ts:122",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.gateResolve",
+      "kind": "rpc",
+      "name": "orchestration.gateResolve",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/gates/gates.ts:101",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.inbox",
+      "kind": "rpc",
+      "name": "orchestration.inbox",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/message-methods.ts:17",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.partyLocation",
+      "kind": "rpc",
+      "name": "orchestration.partyLocation",
+      "phone": true,
+      "registered": "src/main/runtime/rpc/methods/orchestration/caller-show.ts:111",
+      "allowlist": "execution-host",
+      "sites": [
+        "mobile/src/session/native-chat/agent-session/mobile-structured-session-open-rpc.ts:34"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.partyOpen",
+      "kind": "rpc",
+      "name": "orchestration.partyOpen",
+      "phone": true,
+      "registered": "src/main/runtime/rpc/methods/orchestration/caller-show.ts:119",
+      "allowlist": "execution-host",
+      "sites": [
+        "mobile/src/session/native-chat/agent-session/mobile-structured-session-open-rpc.ts:37"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.peerMailAck",
+      "kind": "rpc",
+      "name": "orchestration.peerMailAck",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/federation/peer-mail-methods.ts:201",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.peerMailDeliver",
+      "kind": "rpc",
+      "name": "orchestration.peerMailDeliver",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/federation/peer-mail-methods.ts:63",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.peerMailPull",
+      "kind": "rpc",
+      "name": "orchestration.peerMailPull",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/federation/peer-mail-methods.ts:173",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.peerRunCancel",
+      "kind": "rpc",
+      "name": "orchestration.peerRunCancel",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/federation/peer-run-methods.ts:13",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.reply",
+      "kind": "rpc",
+      "name": "orchestration.reply",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/reply-method.ts:26",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.requestShow",
+      "kind": "rpc",
+      "name": "orchestration.requestShow",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/runs/mutation-request-show.ts:9",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.reset",
+      "kind": "rpc",
+      "name": "orchestration.reset",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/runs/reset-methods.ts:7",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.run",
+      "kind": "rpc",
+      "name": "orchestration.run",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/gates/gates.ts:18",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.runCreate",
+      "kind": "rpc",
+      "name": "orchestration.runCreate",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/runs/runs.ts:51",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.runCurrent",
+      "kind": "rpc",
+      "name": "orchestration.runCurrent",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/runs/runs.ts:133",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.runList",
+      "kind": "rpc",
+      "name": "orchestration.runList",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/runs/runs.ts:154",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.runShow",
+      "kind": "rpc",
+      "name": "orchestration.runShow",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/runs/runs.ts:164",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.runStop",
+      "kind": "rpc",
+      "name": "orchestration.runStop",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/gates/gates.ts:59",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.runUse",
+      "kind": "rpc",
+      "name": "orchestration.runUse",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/runs/runs.ts:66",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.send",
+      "kind": "rpc",
+      "name": "orchestration.send",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/send-methods.ts:38",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.sessionAddress",
+      "kind": "rpc",
+      "name": "orchestration.sessionAddress",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/caller-show.ts:93",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.taskCreate",
+      "kind": "rpc",
+      "name": "orchestration.taskCreate",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/message-methods.ts:40",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.taskList",
+      "kind": "rpc",
+      "name": "orchestration.taskList",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/message-methods.ts:83",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.taskUpdate",
+      "kind": "rpc",
+      "name": "orchestration.taskUpdate",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/messaging/message-methods.ts:118",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.workerAbandon",
+      "kind": "rpc",
+      "name": "orchestration.workerAbandon",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-control.ts:218",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.workerApprovalsSubscribe",
+      "kind": "rpc",
+      "name": "orchestration.workerApprovalsSubscribe",
+      "phone": false,
+      "subscription": true,
+      "registered": "src/main/runtime/rpc/methods/orchestration/crew-methods.ts:64",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.workerAutoClose",
+      "kind": "rpc",
+      "name": "orchestration.workerAutoClose",
+      "phone": true,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-keep-open.ts:15",
+      "allowlist": "execution-host",
+      "sites": [
+        "mobile/src/session/tabs/mobile-worker-auto-close.ts:38"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.workerChatTouch",
+      "kind": "rpc",
+      "name": "orchestration.workerChatTouch",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-keep-open.ts:65",
+      "allowlist": "execution-host"
+    },
+    {
+      "id": "rpc:orchestration.workerKeepOpen",
+      "kind": "rpc",
+      "name": "orchestration.workerKeepOpen",
+      "phone": true,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-keep-open.ts:30",
+      "allowlist": "execution-host",
+      "sites": [
+        "mobile/src/session/tabs/mobile-worker-auto-close.ts:48"
+      ]
+    },
+    {
+      "id": "rpc:orchestration.workerList",
+      "kind": "rpc",
+      "name": "orchestration.workerList",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-list-method.ts:35",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.workerRead",
+      "kind": "rpc",
+      "name": "orchestration.workerRead",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-control.ts:87",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.workerRelease",
+      "kind": "rpc",
+      "name": "orchestration.workerRelease",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-release.ts:24",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.workerRetain",
+      "kind": "rpc",
+      "name": "orchestration.workerRetain",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-release.ts:98",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.workerShow",
+      "kind": "rpc",
+      "name": "orchestration.workerShow",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-control.ts:30",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.workerStart",
+      "kind": "rpc",
+      "name": "orchestration.workerStart",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-start-method.ts:38",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.workerStop",
+      "kind": "rpc",
+      "name": "orchestration.workerStop",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-stop.ts:15",
+      "allowlist": null
+    },
+    {
+      "id": "rpc:orchestration.workerTerminalUserInput",
+      "kind": "rpc",
+      "name": "orchestration.workerTerminalUserInput",
+      "phone": false,
+      "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-keep-open.ts:54",
+      "allowlist": "execution-host"
     },
     {
       "id": "rpc:pairing.createOffer",
