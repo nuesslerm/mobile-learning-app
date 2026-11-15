@@ -6,7 +6,6 @@ members = ["core", "cli-driver", "exec-channel", "agent-core", "group-agent", "g
 async-trait = "0.1"
 base64 = "0.22"
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "multipart", "query", "tokio", "ws"] }
-eventsource-stream = "0.2"
 futures-util = "0.3"
 html-escape = "0.2"
 http-body-util = "0.1"
