@@ -2020,7 +2020,7 @@
       "name": "github.prComments",
       "state": "pending",
       "milestone": "M11",
-      "reverify": "reverify when rca reports what the host's comment carries beyond text (M11): an author's avatar, reactions, the bot mark, a thread root's diff hunk and the review summaries, which pr.reviews gives by node id and no address, so no database id; the mapper answers the conversation and thread comments with numeric ids from their addresses and none of the rest"
+      "reverify": "reverify when the body image urls the host lists beside a comment (transient, signed links to attachments) can be kept and offered: the mapper answers them as an empty list; the host's noCache option is ignored, rca keeps no read cache to bypass"
     },
     {
       "id": "rpc:github.prFileContents",
