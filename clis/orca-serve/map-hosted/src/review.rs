@@ -49,38 +49,96 @@ fn by_branch(t: &Target, branch: &str) -> Result<Option<Value>, Failure> {
     github::find_for_branch(t, branch)?.map(|n| github::summary(t, n)).transpose()
 }
 
-fn when(ms: &Value) -> String {
-    ms.as_u64().map(time::iso).unwrap_or_default()
-}
-
-/// A comment's number in the host's sense (the database id): rca's thread comments carry it, a conversation comment's id is a node id and its number is
-/// the end of its address (`#issuecomment-<n>`). A comment with neither is left out, as the host leaves out one with no database id.
+/// A comment's number in the host's sense (the database id). An executor that reports none leaves the number to the thread comment's id or the end of a
+/// conversation comment's address (`#issuecomment-<n>`); a comment with neither is left out, as the host leaves out one with no database id.
 fn numeric_id(c: &Value) -> Option<u64> {
-    c["id"].as_u64().or_else(|| c["id"].as_str().and_then(|s| s.parse().ok())).or_else(|| c["url"].as_str().and_then(|u| u.rsplit_once('-')).and_then(|(_, n)| n.parse().ok()))
+    c["database_id"].as_u64().or_else(|| c["id"].as_u64()).or_else(|| c["id"].as_str().and_then(|s| s.parse().ok())).or_else(|| c["url"].as_str().and_then(|u| u.rsplit_once('-')).and_then(|(_, n)| n.parse().ok()))
 }
 
-fn comment_row(c: &Value) -> Option<(u64, Value)> {
+fn comment_row(c: &Value, at_key: &str) -> Option<(u64, Value)> {
     let id = numeric_id(c)?;
-    let at = c["created_at_ms"].as_u64().unwrap_or(0);
-    Some((at, json!({"id": id, "author": c["author"].as_str().unwrap_or("ghost"), "authorAvatarUrl": "", "body": c["body"].as_str().unwrap_or(""), "createdAt": when(&c["created_at_ms"]), "url": c["url"].as_str().unwrap_or("")})))
+    let at = c[at_key].as_u64().or_else(|| c["created_at_ms"].as_u64());
+    let mut row = json!({
+        "id": id,
+        "author": c["author"].as_str().unwrap_or("ghost"),
+        "authorAvatarUrl": c["avatar_url"].as_str().unwrap_or(""),
+        "body": c["body"].as_str().unwrap_or(""),
+        "createdAt": at.map(time::iso).unwrap_or_default(),
+        "url": c["url"].as_str().unwrap_or(""),
+        "isBot": c["is_bot"] == true,
+    });
+    if c["viewer_did_author"] == true {
+        row["viewerDidAuthor"] = json!(true);
+    }
+    if let Some(subject) = c["reaction_subject_id"].as_str() {
+        row["reactionSubjectId"] = json!(subject);
+    }
+    let reactions: Vec<Value> = c["reactions"].as_array().into_iter().flatten().filter(|r| r["count"].as_u64().unwrap_or(0) > 0).map(|r| {
+        let mut out = json!({"content": r["content"], "count": r["count"]});
+        if let Some(reacted) = r["viewer_has_reacted"].as_bool() {
+            out["viewerHasReacted"] = json!(reacted);
+        }
+        out
+    }).collect();
+    if !reactions.is_empty() {
+        row["reactions"] = json!(reactions);
+    }
+    Some((at.unwrap_or(0), row))
 }
 
-/// `github.prComments`: the conversation comments and the review thread comments of the pull request, oldest first. rca reports no avatar, reaction, bot mark
-/// or diff hunk, and no review summary with a number, so those parts of the host's answer are absent.
+/// The last lines of a diff hunk without its `@@` headers, as the host forwards them.
+fn tail_diff_hunk(hunk: &str) -> Option<String> {
+    let lines: Vec<&str> = hunk.split('\n').filter(|l| !l.starts_with("@@")).collect();
+    (!hunk.is_empty() && !lines.is_empty()).then(|| lines[lines.len().saturating_sub(8)..].join("\n"))
+}
+
+/// Whether a review summary shows anything once its HTML comments are removed.
+fn has_visible_body(body: &str) -> bool {
+    let mut rest = body;
+    let mut visible = String::new();
+    while let Some((before, after)) = rest.split_once("<!--") {
+        visible.push_str(before);
+        match after.split_once("-->") {
+            Some((_, tail)) => rest = tail,
+            None => {
+                rest = "";
+                break;
+            }
+        }
+    }
+    visible.push_str(rest);
+    !visible.trim().is_empty()
+}
+
+/// `github.prComments`: the conversation comments, the review summaries and the review thread comments of the pull request, oldest first, as the host
+/// answers them. `bodyImageUrls` is left out: it is transient display data the host never persists.
 pub fn pr_comments(t: &Target, params: &Value) -> Result<Value, Failure> {
     let args = with_repo(json!({"number": number(params, "prNumber", "PR")?}), params, "prRepo")?;
     let conversation = t.ask(pr::COMMENTS, args.clone())?;
-    let threads = t.ask(pr::THREADS, args)?;
-    let mut rows: Vec<(u64, Value)> = conversation["comments"].as_array().ok_or_else(|| Failure::new(RUNTIME_ERROR, "rca's pr.comments answered no comments list"))?.iter().filter_map(comment_row).collect();
+    let threads = t.ask(pr::THREADS, args.clone())?;
+    let reviews = t.ask(pr::REVIEWS, args)?;
+    let mut rows: Vec<(u64, Value)> = conversation["comments"].as_array().ok_or_else(|| Failure::new(RUNTIME_ERROR, "rca's pr.comments answered no comments list"))?.iter().filter_map(|c| comment_row(c, "created_at_ms")).collect();
+    rows.extend(reviews["reviews"].as_array().ok_or_else(|| Failure::new(RUNTIME_ERROR, "rca's pr.reviews answered no reviews list"))?.iter().filter(|r| has_visible_body(r["body"].as_str().unwrap_or(""))).filter_map(|r| comment_row(r, "submitted_at_ms")));
     for thread in threads["threads"].as_array().ok_or_else(|| Failure::new(RUNTIME_ERROR, "rca's pr.threads answered no threads list"))? {
         let Some(id) = thread["id"].as_str() else { continue };
-        for (at, mut row) in thread["comments"].as_array().into_iter().flatten().filter_map(comment_row) {
+        let line = thread["line"].as_u64().or_else(|| thread["original_line"].as_u64()).filter(|l| *l > 0);
+        let start = thread["start_line"].as_u64().or_else(|| thread["original_start_line"].as_u64()).filter(|l| *l > 0);
+        let outdated = thread["line"].as_u64().is_none();
+        for (index, (at, mut row)) in thread["comments"].as_array().into_iter().flatten().filter_map(|c| comment_row(c, "created_at_ms")).enumerate() {
+            if index == 0 && thread["diff_side"] != "LEFT" {
+                if let Some(hunk) = thread["root_diff_hunk"].as_str().and_then(tail_diff_hunk) {
+                    row["diffHunk"] = json!(hunk);
+                }
+            }
             row["path"] = thread["path"].clone();
             row["threadId"] = json!(id);
             row["isResolved"] = json!(thread["resolved"] == true);
-            row["isOutdated"] = json!(thread["outdated"] == true);
-            if let Some(line) = thread["line"].as_u64().filter(|l| *l > 0) {
+            row["isOutdated"] = json!(outdated);
+            if let Some(line) = line {
                 row["line"] = json!(line);
+            }
+            if let Some(start) = start {
+                row["startLine"] = json!(start);
             }
             rows.push((at, row));
         }

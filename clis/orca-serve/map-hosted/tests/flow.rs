@@ -2,7 +2,7 @@
 //! phone reads it, and a change is read back from the request itself. Given/When/Then in each test.
 use orca_core::testing::{RevocablePrincipals, ScriptedAgent};
 use orca_core::{Connection, Host, HostInfo, ServiceStatus};
-use orca_map_hosted::testing::Hosting;
+use orca_map_hosted::testing::{Extras, Hosting};
 use orca_map_hosted::HostedArea;
 use orca_map_workspace::testing::Workspaces;
 use serde_json::{json, Value};
@@ -380,15 +380,52 @@ fn given_conversation_and_review_thread_comments_when_the_comments_are_read_then
     assert_eq!(
         comments,
         json!([
-            {"id": 6001, "author": "hubot", "authorAvatarUrl": "", "body": "Use a constant", "createdAt": "2026-10-02T10:15:00.000Z", "url": "https://example.test/pull/12#discussion_r6001", "path": "src/retry.rs", "threadId": "PRRT_1", "isResolved": true, "isOutdated": false, "line": 14},
-            {"id": 6003, "author": "hubot", "authorAvatarUrl": "", "body": "Stale", "createdAt": "2026-10-02T10:15:50.000Z", "url": "https://example.test/pull/12#discussion_r6003", "path": "src/old.rs", "threadId": "PRRT_2", "isResolved": false, "isOutdated": true},
-            {"id": 5001, "author": "octocat", "authorAvatarUrl": "", "body": "Looks good", "createdAt": "2026-10-02T10:16:40.000Z", "url": "https://example.test/pull/12#issuecomment-5001"},
-            {"id": 6002, "author": "octocat", "authorAvatarUrl": "", "body": "Done", "createdAt": "2026-10-02T10:18:20.000Z", "url": "https://example.test/pull/12#discussion_r6002", "path": "src/retry.rs", "threadId": "PRRT_1", "isResolved": true, "isOutdated": false, "line": 14},
+            {"id": 6001, "author": "hubot", "authorAvatarUrl": "", "isBot": false, "body": "Use a constant", "createdAt": "2026-10-02T10:15:00.000Z", "url": "https://example.test/pull/12#discussion_r6001", "path": "src/retry.rs", "threadId": "PRRT_1", "isResolved": true, "isOutdated": false, "line": 14},
+            {"id": 6003, "author": "hubot", "authorAvatarUrl": "", "isBot": false, "body": "Stale", "createdAt": "2026-10-02T10:15:50.000Z", "url": "https://example.test/pull/12#discussion_r6003", "path": "src/old.rs", "threadId": "PRRT_2", "isResolved": false, "isOutdated": true},
+            {"id": 5001, "author": "octocat", "authorAvatarUrl": "", "isBot": false, "body": "Looks good", "createdAt": "2026-10-02T10:16:40.000Z", "url": "https://example.test/pull/12#issuecomment-5001"},
+            {"id": 6002, "author": "octocat", "authorAvatarUrl": "", "isBot": false, "body": "Done", "createdAt": "2026-10-02T10:18:20.000Z", "url": "https://example.test/pull/12#discussion_r6002", "path": "src/retry.rs", "threadId": "PRRT_1", "isResolved": true, "isOutdated": false, "line": 14},
         ])
     );
     // And a pull request with no comments reads as an empty list
     rig.hosting.pull_request(14, "Quiet", "feat/quiet", "main");
     assert_eq!(rig.ok("github.prComments", json!({"prNumber": 14})), json!([]));
+}
+
+#[test]
+fn given_rich_conversation_review_and_thread_comments_when_the_comments_are_read_then_each_carries_what_the_host_answers() {
+    // Given a bot's conversation comment with reactions, a review with a visible body and one with only an HTML comment, and a left-side outdated thread
+    // and a right-side thread with a long hunk and a range
+    let mut rig = Rig::new();
+    rig.hosting.pull_request(12, "Add retry", "feat/retry", "main");
+    let bot = Extras { database_id: Some(5001), avatar_url: Some("https://avatars.test/bot.png"), is_bot: true, reaction_subject_id: Some("IC_kwDOBot"), reactions: &[("+1", 2, true), ("eyes", 1, false)], ..Extras::default() };
+    let me = Extras { database_id: Some(7001), avatar_url: Some("https://avatars.test/me.png"), viewer_did_author: true, reaction_subject_id: Some("PRR_kept"), ..Extras::default() };
+    let hidden = Extras { database_id: Some(7002), ..Extras::default() };
+    let root = Extras { database_id: Some(6001), avatar_url: Some("https://avatars.test/hubot.png"), reaction_subject_id: Some("PRRC_1"), ..Extras::default() };
+    let hunk = "@@ -1,12 +1,12 @@ fn main\n l1\n l2\n l3\n l4\n l5\n l6\n l7\n l8\n-l9\n+l9b\n l10";
+    rig.hosting
+        .conversation_comment(12, "IC_kwDOBot", "ci-bot", "Coverage 91%", 1_790_936_200_000, "https://example.test/pull/12#issuecomment-5001")
+        .conversation_comment_extras(&bot)
+        .review(12, ("PRR_kept", "octocat", "APPROVED", "Ship it"), Some(1_790_936_400_000), Some(&me))
+        .review(12, ("PRR_hidden", "octocat", "COMMENTED", "<!-- generated -->\n"), Some(1_790_936_450_000), Some(&hidden))
+        .review_thread(12, "PRRT_1", "src/retry.rs", Some(14), (false, false), &[(6001, "hubot", "Use a constant", 1_790_936_100_000)])
+        .thread_comment_extras(0, &root)
+        .thread_hunk((Some(12), Some(14), Some(12)), "RIGHT", hunk)
+        .review_thread(12, "PRRT_2", "src/old.rs", None, (false, true), &[(6003, "hubot", "Stale", 1_790_936_150_000)])
+        .thread_hunk((None, Some(3), Some(2)), "LEFT", "@@ -1,3 +1,3 @@\n-old");
+    // When the phone reads the comments of the pull request
+    let comments = rig.ok("github.prComments", json!({"prNumber": 12}));
+    // Then every comment answers the host's fields in time order: the bot mark, avatar, reactions with the viewer's own, the viewer's authorship only when true,
+    // the review summary stamped at its submission, the hidden review dropped, the hunk tail on the thread root of the right side only, and an outdated
+    // left-side thread keeps its original lines without a hunk
+    assert_eq!(
+        comments,
+        json!([
+            {"id": 6001, "author": "hubot", "authorAvatarUrl": "https://avatars.test/hubot.png", "isBot": false, "body": "Use a constant", "createdAt": "2026-10-02T10:15:00.000Z", "url": "https://example.test/pull/12#discussion_r6001", "reactionSubjectId": "PRRC_1", "path": "src/retry.rs", "threadId": "PRRT_1", "isResolved": false, "isOutdated": false, "line": 14, "startLine": 12, "diffHunk": " l4\n l5\n l6\n l7\n l8\n-l9\n+l9b\n l10"},
+            {"id": 6003, "author": "hubot", "authorAvatarUrl": "", "isBot": false, "body": "Stale", "createdAt": "2026-10-02T10:15:50.000Z", "url": "https://example.test/pull/12#discussion_r6003", "path": "src/old.rs", "threadId": "PRRT_2", "isResolved": false, "isOutdated": true, "line": 3, "startLine": 2},
+            {"id": 5001, "author": "ci-bot", "authorAvatarUrl": "https://avatars.test/bot.png", "isBot": true, "body": "Coverage 91%", "createdAt": "2026-10-02T10:16:40.000Z", "url": "https://example.test/pull/12#issuecomment-5001", "reactionSubjectId": "IC_kwDOBot", "reactions": [{"content": "+1", "count": 2, "viewerHasReacted": true}, {"content": "eyes", "count": 1, "viewerHasReacted": false}]},
+            {"id": 7001, "author": "octocat", "authorAvatarUrl": "https://avatars.test/me.png", "isBot": false, "body": "Ship it", "createdAt": "2026-10-02T10:20:00.000Z", "url": "", "viewerDidAuthor": true, "reactionSubjectId": "PRR_kept"},
+        ])
+    );
 }
 
 #[test]
