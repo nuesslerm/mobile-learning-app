@@ -83,6 +83,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("server.getUsageSummary", "sinceDay:p(day) untilDay:p(day) timeZone:s resolution:l(day|hour)? sinceTime:s? untilTime:s? awaitRefresh:b?"),
     ("shell.openInEditor", "cwd:s editor:l(cursor|trae|kiro|vscode|vscode-insiders|vscodium|zed|antigravity|idea|aqua|clion|datagrip|dataspell|goland|phpstorm|pycharm|rider|rubymine|rustrover|webstorm|file-manager) reveal:b?"),
     ("peerLinks.unlink", "environmentId:s"),
+    ("peerLinks.link", "url:s alternateUrls:a? pairingCode:s access:l(read-only|approval-required|auto-accept-edits|auto|full-access) expectedEnvironmentId:s? expectedLabel:s?"),
+    ("peerLinks.answerRequest", "threadId:s turnItemId:s answer:x"),
     ("preview.clearProfile", "profileId:s"),
     ("preview.stopLocalServer", "pid:pi port:pp"),
     ("preview.reportProfiles", "profiles:a(browserProfile) defaultProfileId:s recordingFrameRate:ln(30|60)~"),

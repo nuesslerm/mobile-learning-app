@@ -25,8 +25,7 @@
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
       ],
       "ids": [
-        "t3-rpc-attachments.createUploadUrl",
-        "t3-rpc-peerLinks.answerRequest"
+        "t3-rpc-attachments.createUploadUrl"
       ]
     },
     {

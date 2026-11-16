@@ -133,17 +133,24 @@ fn peer_links_are_listed_empty_unlinked_to_nothing_and_a_link_or_an_answer_is_re
     // When it lists, unlinks, links and answers
     let list = rpc.call("peerLinks.list", json!({}));
     let unlink = rpc.call("peerLinks.unlink", json!({"environmentId": "e1"}));
-    let link = rpc.call("peerLinks.link", json!({"url": "https://peer.example", "pairingCode": "ABCDEFGH2345", "access": {"type": "read"}}));
+    let link = rpc.call("peerLinks.link", json!({"url": "https://peer.example", "pairingCode": "ABCDEFGH2345", "access": "read-only"}));
     let answer = rpc.call("peerLinks.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "decline"}}));
     // Then the list is empty, nothing was removed, the link is disabled and the request is unknown
     assert_eq!(success(&list), &json!({"links": []}));
     assert_eq!(success(&unlink), &json!({"removed": false}));
     assert_eq!((failure(&link)["_tag"].clone(), failure(&link)["reason"].clone()), (json!("PeerLinkError"), json!("disabled")));
     assert_eq!((failure(&answer)["_tag"].clone(), failure(&answer)["reason"].clone()), (json!("PeerLinkRequestError"), json!("not_found")));
-    // And a link with no code and an answer of no known type are decoder defects
-    for exit in [rpc.call("peerLinks.link", json!({"url": "https://peer.example", "access": {}})), rpc.call("peerLinks.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "shrug"}}))] {
-        assert_eq!(exit["cause"][0]["_tag"], "Die", "{exit}");
+    // And a link with no code, a link with a numeric url, an answer with no thread and an answer of no known type are decoder defects
+    let defects = [
+        (rpc.call("peerLinks.link", json!({"url": "https://peer.example", "access": "read-only"})), "Missing key\n  at [\"pairingCode\"]"),
+        (rpc.call("peerLinks.link", json!({"url": 7, "pairingCode": "a", "access": "read-only"})), "Expected string\n  at [\"url\"]"),
+        (rpc.call("peerLinks.answerRequest", json!({"turnItemId": "i1", "answer": {"type": "decline"}})), "Missing key\n  at [\"threadId\"]"),
+    ];
+    for (exit, text) in defects {
+        assert_eq!((exit["cause"][0]["_tag"].clone(), exit["cause"][0]["defect"].clone()), (json!("Die"), json!(text)), "{exit}");
     }
+    let shrug = rpc.call("peerLinks.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "shrug"}}));
+    assert_eq!(shrug["cause"][0]["_tag"], "Die", "{shrug}");
     logged(&h, "peer.link.disabled");
 }
 
