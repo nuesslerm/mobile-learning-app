@@ -109,6 +109,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("vcs.pull", "cwd:s"),
     ("vcs.refreshBranch", "cwd:s"),
     ("subscribeVcsBranch", "cwd:s"),
+    ("subscribeWorktreeSetup", "threadId:s"),
     ("vcs.removeWorktree", "cwd:s path:s force:b?"),
     ("git.resolvePullRequest", "cwd:s reference:s"),
     ("git.preparePullRequestThread", "cwd:s reference:s mode:l(local|worktree) threadId:s?"),
@@ -754,6 +755,9 @@ mod tests {
         assert_eq!(minimal("projects.mutate").and_then(|m| defect("projects.mutate", &m)), None);
         assert_eq!(d("projects.readFile", json!({})).unwrap(), "Missing key\n  at [\"cwd\"]");
         assert_eq!(d("projects.readFile", json!({"cwd": 7})).unwrap(), "Expected string\n  at [\"cwd\"]");
+        // And a worktree setup subscription needs its thread
+        assert_eq!(d("subscribeWorktreeSetup", json!({})).unwrap(), "Missing key\n  at [\"threadId\"]");
+        assert_eq!(d("subscribeWorktreeSetup", json!({"threadId": "t"})), None);
         assert_eq!(minimal("device.testHost").and_then(|m| defect("device.testHost", &m)), None);
         // And a guest link request without a thread id names the missing key, a string id is the handler's
         assert_eq!(d("guestShare.create", json!({})).unwrap(), "Missing key\n  at [\"threadId\"]");
