@@ -23,7 +23,9 @@ struct Running {
 }
 
 static RUNNING: Mutex<Vec<Running>> = Mutex::new(Vec::new());
-static ENV: Mutex<Option<HashMap<Model, &'static [(&'static str, String)]>>> = Mutex::new(None);
+type EnvVars = &'static [(&'static str, String)];
+
+static ENV: Mutex<Option<HashMap<Model, EnvVars>>> = Mutex::new(None);
 static EXIT_HOOK: OnceLock<()> = OnceLock::new();
 
 /// Statics are not dropped when the test process exits, so the servers are stopped here.

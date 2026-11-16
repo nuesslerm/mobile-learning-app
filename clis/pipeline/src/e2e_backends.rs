@@ -69,7 +69,7 @@ fn up(p: &wf_kit::args::Parsed, dir: &Path) -> i32 {
         return fail(format!("unknown backend '{bad}'"), "wf test backends up [--only stt,opencode-server,rca-service,leetcode-backend]");
     }
     if let Some(state) = read_state(dir) {
-        let alive: Vec<String> = recorded(&state).into_iter().filter(|r| is_ours(r)).map(|r| format!("{} (pid {})", r.name, r.pid)).collect();
+        let alive: Vec<String> = recorded(&state).into_iter().filter(is_ours).map(|r| format!("{} (pid {})", r.name, r.pid)).collect();
         if !alive.is_empty() {
             return fail(format!("backends are already up: {}", alive.join(", ")), "wf test backends down");
         }
@@ -151,7 +151,9 @@ fn start_one(def: &Def, p: &wf_kit::args::Parsed, dir: &Path, wait: Duration, pe
 }
 
 /// The server's own environment and the one a test (or an app export) points at it with. Secrets are made for this run alone.
-fn environment(def: &Def, port: u16, home: &Path, peers: &[Value]) -> Result<(Vec<(String, String)>, Vec<(String, String)>), String> {
+type EnvPairs = Vec<(String, String)>;
+
+fn environment(def: &Def, port: u16, home: &Path, peers: &[Value]) -> Result<(EnvPairs, EnvPairs), String> {
     let s = |k: &str, v: String| (k.to_string(), v);
     let url = format!("http://127.0.0.1:{port}");
     let peer_url = |name: &str| peers.iter().find(|p| p["name"] == name).and_then(|p| p["url"].as_str().map(str::to_string));
