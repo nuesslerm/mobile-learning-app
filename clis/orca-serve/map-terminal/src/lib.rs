@@ -1,8 +1,8 @@
 //! Orca's terminal rows over rca's terminal group: `terminal.list`, `send`, `close`, `clearBuffer` and `rename`. An Orca terminal handle is
 //! `<workspace>:<terminal>` (a terminal's name never holds a colon), a worktree selector names the workspace to list, and nothing here touches a
-//! pty. The streaming rows (`terminal.subscribe`, replay by byte offset) need the port to carry events and stay pending.
+//! pty except through `terminal.subscribe`, which reads the tail and follows rca's attach stream.
 use agent_api_proto::Method as AgentMethod;
-use agent_api_terminal::{b64, code, CLEAR, CLOSE, LIST, OPEN, READ, RENAME, RESIZE, WRITE};
+use agent_api_terminal::{b64, code, ATTACH, CLEAR, CLOSE, LIST, OPEN, READ, RENAME, RESIZE, WRITE};
 use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::{Area, AgentApi, AgentError, Ctx, Kind, Method};
 use serde_json::{json, Value};
@@ -10,6 +10,7 @@ use serde_json::{json, Value};
 #[allow(dead_code)] // the stream units that follow call these
 mod replay;
 pub mod resume;
+mod subscribe;
 mod tabs;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
@@ -24,11 +25,12 @@ pub const TERMINAL_SET_DISPLAY_MODE: &str = "terminal.setDisplayMode";
 pub const TERMINAL_ACK_OUTPUT: &str = "terminal.ackOutput";
 pub const TERMINAL_FOCUS: &str = "terminal.focus";
 pub const TERMINAL_READ: &str = "terminal.read";
+pub const TERMINAL_SUBSCRIBE: &str = "terminal.subscribe";
 pub const TERMINAL_OPEN_INPUT_SESSION: &str = "terminal.openInputSession";
 pub use tabs::{SESSION_TABS_ACTIVATE, SESSION_TABS_CLOSE, SESSION_TABS_CREATE_TERMINAL, SESSION_TABS_LIST, SESSION_TABS_SUBSCRIBE, SESSION_TABS_UNSUBSCRIBE};
 
 /// The agent methods this crate sends: a flow test holds the list to the methods really sent.
-pub const USES: &[AgentMethod] = &[LIST, WRITE, CLOSE, CLEAR, RENAME, RESIZE, OPEN, READ, orca_map_state::STATE_SET];
+pub const USES: &[AgentMethod] = &[LIST, WRITE, CLOSE, CLEAR, RENAME, RESIZE, OPEN, READ, ATTACH, orca_map_state::STATE_SET];
 
 const METHODS: &[Method] = &[
     Method { name: TERMINAL_LIST, kind: Kind::Unary },
@@ -42,6 +44,7 @@ const METHODS: &[Method] = &[
     Method { name: TERMINAL_FOCUS, kind: Kind::Unary },
     Method { name: TERMINAL_READ, kind: Kind::Unary },
     Method { name: TERMINAL_OPEN_INPUT_SESSION, kind: Kind::Unary },
+    Method { name: TERMINAL_SUBSCRIBE, kind: Kind::Streaming },
     Method { name: SESSION_TABS_LIST, kind: Kind::Unary },
     Method { name: SESSION_TABS_ACTIVATE, kind: Kind::Unary },
     Method { name: SESSION_TABS_CLOSE, kind: Kind::Unary },
@@ -66,6 +69,7 @@ impl Area for TerminalArea {
     fn open(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Box<dyn orca_core::Subscription>, Failure> {
         match method {
             SESSION_TABS_SUBSCRIBE => tabs::open(ctx, params),
+            TERMINAL_SUBSCRIBE => subscribe::open(ctx, params),
             other => Err(Failure::new(orca_core::wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }
     }

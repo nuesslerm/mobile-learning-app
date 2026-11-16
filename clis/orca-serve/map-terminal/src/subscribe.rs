@@ -1,0 +1,214 @@
+//! `terminal.subscribe` over rca's `terminal.read` and a held `terminal.attach`: the refusals, the lease and exited answers and the JSON
+//! stream (`scrollback`, `data`, `end`). The scrollback replays rca's retained tail, there is no screen to serialize.
+use crate::replay::{strip_queries, trim_to_budget, Utf8Carry};
+use crate::{addressed, ask, client_param, dimension, handle_of, handle_param, lines_of, parse, refusal, DEFAULT_LINES};
+use agent_api_terminal::{b64, kind, ATTACH, READ};
+use orca_core::wire::{Failure, RUNTIME_ERROR};
+use orca_core::{Ctx, EventStream, StreamEvent, Subscription};
+use serde_json::{json, Value};
+use std::time::Duration;
+
+const POLL_WAIT: Duration = Duration::from_millis(1);
+const MAX_EVENTS: usize = 256;
+
+struct Params {
+    client_id: Option<String>,
+    mobile: bool,
+    viewport: Option<(u64, u64)>,
+    binary: bool,
+    lease_only: bool,
+    budget: Option<usize>,
+}
+
+fn literal_one(caps: &Value, key: &str) -> Result<bool, Failure> {
+    match caps.get(key) {
+        None => Ok(false),
+        Some(v) if v.as_f64() == Some(1.0) => Ok(true),
+        Some(_) => Err(Failure::invalid("Invalid input: expected 1")),
+    }
+}
+
+fn whole(value: &Value, min: u64, floor: &str) -> Result<u64, Failure> {
+    match value {
+        Value::Number(n) => match (n.as_u64(), n.as_i64()) {
+            (Some(v), _) if v >= min => Ok(v),
+            (_, Some(_)) => Err(Failure::invalid(floor)),
+            _ if n.is_f64() => Err(Failure::invalid("Invalid input: expected int, received number")),
+            _ => Err(Failure::invalid(floor)),
+        },
+        _ => Err(Failure::invalid("Invalid input: expected number, received undefined")),
+    }
+}
+
+impl Params {
+    fn read(params: &Value) -> Result<Params, Failure> {
+        handle_param(params)?;
+        client_param(params, false)?;
+        let client = params.get("client").filter(|c| c.is_object());
+        let viewport = match params.get("viewport") {
+            None => None,
+            Some(Value::Object(_)) => {
+                let v = &params["viewport"];
+                Some((dimension(v, "cols", 1, 1000)?, dimension(v, "rows", 1, 500)?))
+            }
+            Some(_) => return Err(Failure::invalid("Invalid input: expected object, received undefined")),
+        };
+        let caps = match params.get("capabilities") {
+            None => Value::Null,
+            Some(c @ Value::Object(_)) => c.clone(),
+            Some(_) => return Err(Failure::invalid("Invalid input: expected object, received undefined")),
+        };
+        let (binary, lease_only) = (literal_one(&caps, "terminalBinaryStream")?, literal_one(&caps, "mobileInputLeaseOnly")?);
+        for key in ["desktopViewportClaims", "writeUnavailable", "outputAck"] {
+            literal_one(&caps, key)?;
+        }
+        if let Some(resume) = params.get("resume") {
+            if resume.get("streamToken").and_then(Value::as_str).is_none_or(str::is_empty) {
+                return Err(Failure::invalid("Missing stream token"));
+            }
+            whole(resume.get("units").unwrap_or(&Value::Null), 0, "Too small: expected number to be >=0")?;
+        }
+        let budget = params.get("snapshotByteBudget").map(|b| whole(b, 1, "Too small: expected number to be >0")).transpose()?;
+        Ok(Params {
+            client_id: client.and_then(|c| c["id"].as_str()).map(str::to_string),
+            mobile: client.is_some_and(|c| c["type"] == "mobile"),
+            viewport,
+            binary,
+            lease_only,
+            budget: budget.map(|b| b as usize),
+        })
+    }
+}
+
+fn subscribed(lines: Vec<String>, truncated: bool) -> Value {
+    json!({"type": "subscribed", "streamId": null, "lines": lines, "truncated": truncated})
+}
+
+/// The last lines of the retained bytes; truncated when older lines are gone, either dropped here or from rca's tail.
+fn tail(bytes: &[u8], start_offset: u64) -> (Vec<String>, bool) {
+    let mut lines = lines_of(bytes);
+    let dropped = lines.len().saturating_sub(DEFAULT_LINES);
+    lines.drain(..dropped);
+    (lines, dropped > 0 || start_offset > 0)
+}
+
+struct Live {
+    events: Box<dyn EventStream>,
+    carry: Utf8Carry,
+}
+
+impl Live {
+    /// Turns one attach event into frames; true when the terminal is over.
+    fn apply(&mut self, event: StreamEvent, out: &mut Vec<Value>) -> bool {
+        match event.kind.as_str() {
+            kind::OUTPUT | kind::SNAPSHOT => {
+                let bytes = event.data["data"].as_str().and_then(b64::decode).unwrap_or_default();
+                let text = self.carry.push(&bytes).text;
+                if !text.is_empty() {
+                    out.push(json!({"type": "data", "chunk": text}));
+                }
+                false
+            }
+            kind::EXITED | kind::CLOSED => true,
+            _ => false,
+        }
+    }
+}
+
+struct Stream {
+    id: String,
+    first: Vec<Value>,
+    live: Option<Live>,
+    finished: bool,
+}
+
+impl Subscription for Stream {
+    fn id(&self) -> &str {
+        &self.id
+    }
+
+    fn poll(&mut self) -> Vec<Value> {
+        let mut out = std::mem::take(&mut self.first);
+        let Some(live) = self.live.as_mut() else { return out };
+        let mut over = false;
+        for _ in 0..MAX_EVENTS {
+            match live.events.next(POLL_WAIT) {
+                Ok(Some(event)) => {
+                    if live.apply(event, &mut out) {
+                        over = true;
+                        break;
+                    }
+                }
+                Ok(None) => break,
+                Err(_) => {
+                    over = true;
+                    break;
+                }
+            }
+        }
+        if over {
+            self.live = None;
+            self.finished = true;
+            out.push(json!({"type": "end"}));
+        }
+        out
+    }
+
+    fn end(&mut self) -> Vec<Value> {
+        self.live = None;
+        if std::mem::replace(&mut self.finished, true) { Vec::new() } else { vec![json!({"type": "end"})] }
+    }
+}
+
+pub(crate) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription>, Failure> {
+    let p = Params::read(params)?;
+    if p.mobile && !p.binary {
+        return Err(Failure::new(RUNTIME_ERROR, "binary_terminal_stream_required"));
+    }
+    let (workspace, terminal) = parse(params)?;
+    let agent = ctx.agent_handle.clone();
+    let read = ask(agent.as_ref(), READ, addressed(&workspace, &terminal))?;
+    let bytes = read["data"].as_str().and_then(b64::decode).unwrap_or_default();
+    let (start, end) = (read["start_offset"].as_u64().unwrap_or(0), read["offset"].as_u64().unwrap_or(0));
+    let handle = handle_of(&workspace, &terminal);
+    let id = match &p.client_id {
+        Some(client) => format!("terminal:{}:{handle}:{client}", ctx.connection_id),
+        None => format!("terminal:{}:{handle}", ctx.connection_id),
+    };
+    let stream = |first: Vec<Value>, live: Option<Live>, finished: bool| -> Box<dyn Subscription> { Box::new(Stream { id: id.clone(), first, live, finished }) };
+
+    if read["status"] != "running" {
+        let (lines, truncated) = tail(&bytes, start);
+        let done = stream(vec![subscribed(lines, truncated), json!({"type": "end"})], None, true);
+        ctx.subscriptions.cancel(&id);
+        return Ok(done);
+    }
+    if p.mobile {
+        // The binary stream is the next unit; a mobile client takes only the lease until then.
+        if !(p.lease_only && p.client_id.is_some()) {
+            return Err(Failure::new(RUNTIME_ERROR, "terminal_binary_stream_not_served"));
+        }
+        let lease = stream(vec![subscribed(Vec::new(), false)], None, false);
+        ctx.subscriptions.cancel(&id);
+        return Ok(lease);
+    }
+
+    let mut carry = Utf8Carry::default();
+    let replay = strip_queries(&carry.push(&bytes).text);
+    let (serialized, trimmed) = match p.budget {
+        Some(budget) => {
+            let (kept, trimmed) = trim_to_budget(&replay, budget, 0);
+            (kept.to_string(), trimmed)
+        }
+        None => (replay, false),
+    };
+    let (lines, truncated) = tail(&bytes, start);
+    let cols = read["cols"].as_u64().or(p.viewport.map(|v| v.0));
+    let rows = read["rows"].as_u64().or(p.viewport.map(|v| v.1));
+    let scrollback = json!({"type": "scrollback", "lines": lines, "truncated": truncated || trimmed, "serialized": serialized, "cols": cols, "rows": rows, "displayMode": "auto"});
+    let attach = json!({"workspace": workspace, "terminal": terminal, "after_offset": end});
+    let (_, events) = agent.follow(ATTACH.name(), &format!("terminal/{workspace}/{terminal}"), attach, "after_offset").map_err(refusal)?;
+    let live = stream(vec![scrollback], Some(Live { events, carry }), false);
+    ctx.subscriptions.cancel(&id);
+    Ok(live)
+}
