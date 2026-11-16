@@ -2,8 +2,10 @@
 //! (`orca-crypto`): the flow tests' server and caller.
 use crate::transport::{self, Running, Shared};
 use crate::wiring;
+use orca_core::area::Out;
 use orca_core::testing::{RevocablePrincipals, ScriptedAgent};
-use orca_core::{Host, ServiceStatus};
+use orca_core::wire::{self, Failure};
+use orca_core::{Area, Ctx, Host, Kind as MethodKind, Method, ServiceStatus, Subscription};
 use orca_crypto::legacy::LegacyChannel;
 use orca_crypto::pairing::PairingOffer;
 use orca_crypto::ports::{mint_device, Device, DeviceRegistry};
@@ -13,7 +15,7 @@ use orca_crypto::v2_frame::{self, Direction, Kind, SESSION_ID_LEN};
 use orca_crypto::{b64, boxes, KeyPair, SystemEntropy};
 use serde_json::{json, Value};
 use std::net::{SocketAddr, TcpStream};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tungstenite::client::IntoClientRequest;
 use tungstenite::{Error, Message, WebSocket};
@@ -28,8 +30,63 @@ pub struct Harness {
     /// A paired phone's device, registered in `devices`.
     pub device: Device,
     pub host_public: [u8; 32],
+    /// The binary frames the `probe.wire` stream received, in order (empty unless started with `start_with_probe`).
+    pub probe_inbound: Arc<Mutex<Vec<Vec<u8>>>>,
     running: Option<Running>,
     pub addr: SocketAddr,
+}
+
+/// Payload of the one binary frame `probe.wire` emits.
+pub const PROBE_PAYLOAD: &[u8] = b"probe-bytes";
+
+struct ProbeArea(Arc<Mutex<Vec<Vec<u8>>>>);
+
+struct ProbeStream {
+    id: String,
+    number: u32,
+    opened: bool,
+    inbound: Arc<Mutex<Vec<Vec<u8>>>>,
+}
+
+impl Subscription for ProbeStream {
+    fn id(&self) -> &str {
+        &self.id
+    }
+    fn poll(&mut self) -> Vec<Value> {
+        Vec::new()
+    }
+    fn end(&mut self) -> Vec<Value> {
+        Vec::new()
+    }
+    fn poll_out(&mut self) -> Vec<Out> {
+        if std::mem::replace(&mut self.opened, true) {
+            return Vec::new();
+        }
+        let frame = [vec![0x74, 1, 0, 0], self.number.to_le_bytes().to_vec(), PROBE_PAYLOAD.to_vec()].concat();
+        vec![Out::Text(json!({"type": "subscribed", "streamNumber": self.number}).to_string()), Out::Binary(frame), Out::Text(json!({"type": "after"}).to_string())]
+    }
+    fn number(&self) -> Option<u32> {
+        Some(self.number)
+    }
+    fn on_binary(&mut self, frame: &[u8]) -> Vec<Out> {
+        self.inbound.lock().unwrap().push(frame.to_vec());
+        Vec::new()
+    }
+}
+
+impl Area for ProbeArea {
+    fn name(&self) -> &'static str {
+        "probe"
+    }
+    fn methods(&self) -> &'static [Method] {
+        &[Method { name: "probe.wire", kind: MethodKind::Streaming }]
+    }
+    fn call(&self, _ctx: &mut Ctx, method: &str, _params: &Value) -> Result<Value, Failure> {
+        Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {method}")))
+    }
+    fn open(&self, ctx: &mut Ctx, _method: &str, _params: &Value) -> Result<Box<dyn Subscription>, Failure> {
+        Ok(Box::new(ProbeStream { id: ctx.subscription_id("probe-"), number: ctx.stream_number(), opened: false, inbound: self.0.clone() }))
+    }
 }
 
 impl Harness {
@@ -39,19 +96,29 @@ impl Harness {
 
     /// The server of `start` holding the web bundle `bundle` reads.
     pub fn start_with_bundle(status: ServiceStatus, bundle: Box<dyn orca_map_mobile::BundleSource>) -> Harness {
-        Harness::start_full(status, bundle, transport::HANDSHAKE_DEADLINE)
+        Harness::start_full(status, bundle, transport::HANDSHAKE_DEADLINE, false)
+    }
+
+    /// The server of `start` plus the `probe.wire` stream: one JSON frame, one binary frame, one JSON frame, and it records inbound binary.
+    pub fn start_with_probe(status: ServiceStatus) -> Harness {
+        Harness::start_full(status, Box::new(orca_map_mobile::NoBundle), transport::HANDSHAKE_DEADLINE, true)
     }
 
     /// The server of `start` with a shorter handshake deadline, for the tests of the 4002 close.
     pub fn start_with_deadline(status: ServiceStatus, deadline: Duration) -> Harness {
-        Harness::start_full(status, Box::new(orca_map_mobile::NoBundle), deadline)
+        Harness::start_full(status, Box::new(orca_map_mobile::NoBundle), deadline, false)
     }
 
-    fn start_full(status: ServiceStatus, bundle: Box<dyn orca_map_mobile::BundleSource>, deadline: Duration) -> Harness {
+    fn start_full(status: ServiceStatus, bundle: Box<dyn orca_map_mobile::BundleSource>, deadline: Duration, probe: bool) -> Harness {
         let agent = Arc::new(ScriptedAgent::serving(status));
         let keys = KeyPair::generate(&PatternEntropy::new(7));
         let principals = Arc::new(RevocablePrincipals::default());
-        let host = Host::new(RUNTIME_ID.into(), wiring::areas(orca_map_mobile::MobileWebArea::new(bundle)), agent.clone(), principals.clone(), wiring::host_info("test rca")).expect("a table without duplicates");
+        let probe_inbound = Arc::new(Mutex::new(Vec::new()));
+        let mut areas = wiring::areas(orca_map_mobile::MobileWebArea::new(bundle));
+        if probe {
+            areas.push(Box::new(ProbeArea(probe_inbound.clone())));
+        }
+        let host = Host::new(RUNTIME_ID.into(), areas, agent.clone(), principals.clone(), wiring::host_info("test rca")).expect("a table without duplicates");
         let devices = Arc::new(MemoryDevices::default());
         let device = mint_device(&PatternEntropy::new(99));
         devices.register(device.clone()).expect("a device");
@@ -59,7 +126,7 @@ impl Harness {
         let shared = Shared { host: host.clone(), keys: Arc::new(keys), devices: devices.clone(), entropy: Arc::new(SystemEntropy), handshake_deadline: deadline };
         let running = transport::serve("127.0.0.1:0", shared).expect("loopback");
         let addr = running.addr();
-        Harness { agent, host, devices, principals, device, host_public, running: Some(running), addr }
+        Harness { agent, host, devices, principals, device, host_public, probe_inbound, running: Some(running), addr }
     }
 
     /// The link `orca-serve pair` would print for this device.
@@ -189,6 +256,32 @@ impl PhoneClient {
         Ok(serde_json::from_str(&plain).expect("sealed JSON"))
     }
 
+    /// Seals `plaintext` as a binary frame in the connection's framing and sends it.
+    pub fn send_sealed_binary(&mut self, plaintext: &[u8]) {
+        let frame = match self.keys.as_mut().expect("a hello came first") {
+            Keys::V2 { to_host, session, out, .. } => {
+                let frame = v2_frame::seal(to_host, session, Direction::MobileToDesktop, Kind::Binary, *out, plaintext);
+                *out += 1;
+                frame
+            }
+            Keys::Legacy(c) => c.seal_bytes(&self.entropy, plaintext),
+        };
+        self.send_binary(frame);
+    }
+
+    /// The next frame, which must be a sealed binary one, opened.
+    pub fn recv_sealed_binary(&mut self) -> Result<Vec<u8>, Closed> {
+        let Message::Binary(bytes) = self.recv_message()? else { panic!("expected a sealed binary frame") };
+        Ok(match self.keys.as_mut().expect("a hello came first") {
+            Keys::V2 { from_host, session, inn, .. } => {
+                let plain = v2_frame::open(from_host, session, Direction::DesktopToMobile, Kind::Binary, *inn, &bytes).expect("a frame this phone can open");
+                *inn += 1;
+                plain
+            }
+            Keys::Legacy(c) => c.open_bytes(&bytes).expect("a frame this phone can open"),
+        })
+    }
+
     /// Sends `e2ee_auth` with the token (in the shape the framing needs) and returns the host's sealed answer.
     pub fn authenticate(&mut self, token: &str) -> Result<Value, Closed> {
         let auth = match self.keys.as_ref().expect("a hello came first") {
@@ -200,6 +293,15 @@ impl PhoneClient {
     }
 
     /// The v2 handshake and a token auth in one: the state in which requests can be made.
+    /// The legacy handshake and a token auth in one.
+    pub fn open_legacy(addr: SocketAddr, host_public: [u8; 32], token: &str) -> PhoneClient {
+        let mut phone = PhoneClient::connect(addr, host_public);
+        phone.hello_legacy().expect("e2ee_ready");
+        let answer = phone.authenticate(token).expect("an answer to e2ee_auth");
+        assert_eq!(answer["type"], "e2ee_authenticated", "the host accepted the token: {answer}");
+        phone
+    }
+
     pub fn open_v2(addr: SocketAddr, host_public: [u8; 32], token: &str) -> PhoneClient {
         let mut phone = PhoneClient::connect(addr, host_public);
         phone.hello_v2().expect("e2ee_ready");
