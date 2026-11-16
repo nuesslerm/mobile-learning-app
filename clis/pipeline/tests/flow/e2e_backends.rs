@@ -168,7 +168,7 @@ fn given_the_leetcode_backend_up_when_its_env_is_read_then_every_name_is_one_the
     assert!(env["EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL"].as_str().unwrap().starts_with("http://127.0.0.1:"));
     assert_eq!(env["EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN"].as_str().unwrap().len(), 32);
     // And the app reads each name
-    let config = std::fs::read_to_string(wf_kit::root::repo_root().join("frontend/libraries/app-config/src/appConfig.ts")).unwrap();
+    let config = std::fs::read_to_string(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../frontend/libraries/app-config/src/appConfig.ts")).unwrap();
     assert!(names.iter().all(|n| config.contains(n)), "appConfig.ts does not read every name in {names:?}");
     sb.wf(&["down"], &rca, &leetcode);
 }

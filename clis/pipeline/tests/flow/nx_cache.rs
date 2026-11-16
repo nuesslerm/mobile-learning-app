@@ -692,6 +692,83 @@ fn nx_reruns_an_e2e_group_exactly_when_its_test_file_or_what_every_group_reads_c
     assert_eq!(w.run_stage("cli-e2e-tests", &plan, &[]).1, ran(&[]));
 }
 
+/// The repo-relative files the t3-serve chain names through `concat!(env!("CARGO_MANIFEST_DIR"), "/<path>")`, a directory as one file in it.
+fn t3_serve_files_the_chain_reads(w: &Workspace) -> BTreeSet<String> {
+    let krate = Path::new("clis/t3-serve");
+    let mut found = BTreeSet::new();
+    for dir in ["tests/integration", "tests/flow/support"] {
+        for entry in std::fs::read_dir(w.path(&krate.join(dir).display().to_string())).unwrap().flatten() {
+            let text = std::fs::read_to_string(entry.path()).unwrap();
+            for part in text.split("env!(\"CARGO_MANIFEST_DIR\"), \"").skip(1) {
+                let mut at = krate.to_path_buf();
+                for c in Path::new(part.split('"').next().unwrap().trim_start_matches('/')).components() {
+                    match c {
+                        std::path::Component::ParentDir => {
+                            at.pop();
+                        }
+                        c => at.push(c),
+                    }
+                }
+                let mut file = w.path(&at.display().to_string());
+                while file.is_dir() {
+                    file = std::fs::read_dir(&file).unwrap().flatten().map(|e| e.path()).filter(|p| p.is_file() || p.is_dir()).min().unwrap();
+                }
+                found.insert(file.strip_prefix(w.dir.path()).unwrap().display().to_string());
+            }
+        }
+    }
+    found
+}
+
+#[test]
+fn nx_reruns_the_t3_serve_chain_exactly_when_a_file_the_chain_builds_or_reads_changed() {
+    // Given this repository's files with the hash Nx computes for the chain's task
+    let w = Workspace::copy();
+    let hash = || {
+        let r = w.wf(&["test", "drift", "--projects", "crate-t3-serve", "--targets", "cargo-integration"], &[]);
+        assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
+        last_line(&r)["hashes"]["crate-t3-serve:cargo-integration"].clone()
+    };
+    let before = hash();
+    let moves = |file: &str| {
+        let mut moved = false;
+        if file.ends_with(".toml") {
+            w.with_replace(file, "edition = \"2021\"", "edition = \"2021\" ", || moved = hash() != before);
+        } else {
+            w.with_edit(file, || moved = hash() != before);
+        }
+        moved
+    };
+
+    // When a file the binary is built from or the chain runs on changes, Then the task hashes differently
+    let rerun = [
+        "clis/t3-serve/contracts/src/payload.rs",
+        "clis/t3-serve/contracts/src/scopes.rs",
+        "clis/t3-serve/http/src/lib.rs",
+        "clis/t3-serve/src/lib.rs",
+        "clis/t3-serve/tests/integration.rs",
+        "clis/t3-serve/tests/integration/rig.rs",
+        "clis/t3-serve/tests/flow/support/mod.rs",
+        "clis/t3-serve/Cargo.toml",
+        "docs/plans/rca-parity/coverage/t3-methods.json",
+        "tooling/t3-conformance/t3-pin.json",
+    ];
+    for file in rerun {
+        assert!(moves(file), "{file} must rerun the chain");
+    }
+    // And so does every file the chain's code reads by a path of its own
+    let read = t3_serve_files_the_chain_reads(&w);
+    assert!(read.len() >= 3, "{read:?}");
+    for file in &read {
+        assert!(moves(file), "{file} is read by the chain but is no input of its task");
+    }
+
+    // When a file only the flow tests, the image or the compose file use changes, Then it hashes the same
+    for file in ["clis/t3-serve/tests/flow.rs", "clis/t3-serve/tests/flow/pairing.rs", "clis/t3-serve/Dockerfile", "clis/t3-serve/docker-compose.prod.yml", "clis/t3-serve/README.md"] {
+        assert!(!moves(file), "{file} must not rerun the chain");
+    }
+}
+
 #[test]
 fn fresh_package_stage_runs_again_every_task_the_cache_would_replay() {
     let w = Workspace::copy();

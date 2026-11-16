@@ -314,7 +314,7 @@ fn a_key_is_generated_only_for_a_directory_the_package_has() {
 }
 
 fn git(root: &Path, args: &[&str]) {
-    let out = std::process::Command::new("git").args(["-c", "user.email=t@t", "-c", "user.name=t", "-c", "commit.gpgsign=false"]).args(args).current_dir(root).output().unwrap();
+    let out = crate::support::git_command().args(["-c", "user.email=t@t", "-c", "user.name=t", "-c", "commit.gpgsign=false"]).args(args).current_dir(root).output().unwrap();
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
 }
 

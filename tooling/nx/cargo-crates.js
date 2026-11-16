@@ -67,6 +67,8 @@ function crates(root, manifest) {
       integration: {
         inputs: integration.inputs ?? [],
         uses: integration.uses ?? [],
+        // when set, the crate files the integration task is keyed by (from the crate dir) instead of every file of the crate
+        sources: integration.sources ?? [],
       },
     };
   });
@@ -370,7 +372,12 @@ exports.createNodes = [
       const flowCommand = `cargo test --locked -p ${c.name} --test flow --manifest-path ${c.manifest}`;
       const flow = testTarget('flow.rs', flowCommand, [...OWN, ...tier, ...extra(c, [], 'flow')]);
       // the built binaries as a black box with every dependency a fake, one test at a time on a port of its own, after the services are deployed
-      const integration = testTarget('integration.rs', `cargo test --locked -p ${c.name} --test integration --manifest-path ${c.manifest} -- --test-threads=1`, [...OWN, ...tier, ...extra(c, [], 'integration')]);
+      const narrowed = c.integration.sources.length > 0;
+      const integration = testTarget(
+        'integration.rs',
+        `cargo test --locked -p ${c.name} --test integration --manifest-path ${c.manifest} -- --test-threads=1`,
+        [...(narrowed ? ['nativeToolchain', '^rustProduction', OWN[2]] : OWN), ...tier, ...extra(c, narrowed ? ['Cargo.toml', ...c.integration.sources].map(own) : [], 'integration')]
+      );
       // a real Chromium or other real dependency the flow tests double: one test at a time, after the services are deployed
       const e2eChecks = [...OWN, ...tier, ...extra(c, [], 'e2e')];
       const e2e = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1`, e2eChecks);

@@ -29,6 +29,8 @@ inputs = ["cassettes/**", "../../docs/plans/rca-parity/coverage/t3-methods.json"
 # neither the crates it uses nor these files.
 [package.metadata.integration]
 uses = ["rca-service", "rca-exec", "exec-testkit", "mimic-core"]
+# the crate files the chain reads: the binary's sources, its own tests and the client they share with the flow tests; a flow test, the Dockerfile and the compose file are not
+sources = ["src/**", "tests/integration.rs", "tests/integration/**", "tests/flow/support/**"]
 inputs = ["cassettes/**", "../../tooling/t3-conformance/t3-pin.json", "../../docs/plans/rca-parity/coverage/t3-methods.json", "../../libraries/agent-api/exec-hosted/tests/cassettes/**"]
 
 [features]
