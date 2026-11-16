@@ -1,4 +1,4 @@
-//! The remote-chat-agent service: the HTTP and WebSocket routes the flow tests in `tests/flow.rs` pin, over the orchestration
+//! The remote-chat-agent service: the HTTP and WebSocket routes the flow tests in `tests/flow.rs` and `tests/log_lines.rs` pin, over the orchestration
 //! engine and the opencode gateway. Standard crates carry the server, the clients and the telemetry.
 //!
 //! This crate holds the adapters and the front door only. The use cases, the rules and the ports they call out through are

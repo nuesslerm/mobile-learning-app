@@ -8,9 +8,6 @@ mod harness;
 #[path = "flow/mapper.rs"]
 mod mapper;
 
-#[path = "flow/log_lines.rs"]
-mod log_lines;
-
 #[path = "flow/agent_accounts.rs"]
 mod agent_accounts;
 #[path = "flow/agent_api.rs"]
