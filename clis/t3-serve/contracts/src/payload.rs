@@ -30,6 +30,11 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("provider.chatgpt.import-profile", "instanceId:s profile:o"),
     ("provider.chatgpt.handoff.subscribe", "instanceId:s environmentId:s attemptId:s returnUrl:s"),
     ("server.updateProvider", "provider:s targetVersion:s? instanceId:s?"),
+    ("projects.searchEntries", "cwd:s query:s limit:n kind:l(file|directory)? imageOnly:b?"),
+    ("projects.searchContents", "cwd:s query:s limit:n caseSensitive:b wholeWord:b useRegex:b"),
+    ("projects.listIgnoredFiles", "cwd:s"),
+    ("projects.writeFile", "cwd:s relativePath:s contents:s"),
+    ("projects.createNew", "name:s"),
     ("vcs.init", "cwd:s kind:l(git|jj|unknown)?"),
     ("vcs.listRefs", "cwd:s query:s? cursor:n? includeMatchingRemoteRefs:b? refKind:l(all|local|remote)? refresh:b? limit:n?"),
     ("vcs.createRef", "cwd:s refName:s switchRef:b?"),
@@ -78,6 +83,24 @@ fn is(kind: &str, value: &Value) -> bool {
     }
 }
 
+/// The smallest payload that decodes as the schema of `tag`: every required field with a value of its kind.
+pub fn minimal(tag: &str) -> Option<Value> {
+    let (_, schema) = SCHEMAS.iter().find(|(t, _)| *t == tag)?;
+    let fields = schema.split(' ').filter_map(|f| f.split_once(':')).filter(|(_, kind)| !kind.ends_with('?')).map(|(name, kind)| {
+        let value = match kind {
+            "n" => Value::from(1),
+            "b" => Value::Bool(true),
+            "a" => Value::Array(Vec::new()),
+            "o" => Value::Object(Default::default()),
+            "sn" => Value::Null,
+            k if k.starts_with("l(") => Value::from(k[2..k.len() - 1].split('|').next().unwrap_or("")),
+            _ => Value::from("a"),
+        };
+        (name.to_string(), value)
+    });
+    Some(Value::Object(fields.collect()))
+}
+
 /// The defect text when `payload` does not decode as the schema of `tag`; `None` when it does or the tag has no schema here.
 pub fn defect(tag: &str, payload: &Value) -> Option<String> {
     let (_, schema) = SCHEMAS.iter().find(|(t, _)| *t == tag)?;
@@ -110,6 +133,14 @@ mod tests {
         // And a number where a string belongs names that field, and a whole payload decodes
         assert_eq!(defect(tag, &json!({"instanceId": 7, "operationId": "a"})).unwrap(), "Expected string\n  at [\"instanceId\"]");
         assert_eq!(defect(tag, &json!({"instanceId": "a", "operationId": "a"})), None);
+    }
+
+    #[test]
+    fn the_minimal_payload_of_every_schema_decodes() {
+        for (tag, _) in SCHEMAS {
+            let minimal = minimal(tag).unwrap();
+            assert_eq!(defect(tag, &minimal), None, "{tag}: {minimal}");
+        }
     }
 
     #[test]

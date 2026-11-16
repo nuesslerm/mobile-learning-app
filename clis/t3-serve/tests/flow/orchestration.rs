@@ -206,9 +206,9 @@ fn every_rpc_of_the_scope_table_this_server_does_not_build_is_a_typed_unsupporte
     let mut rpc = connect_with(&h, PairingRequest { scopes: t3_contracts::scopes::ALL_SCOPES.iter().map(|s| s.to_string()).collect(), ..PairingRequest::default() });
     let unsupported: Vec<&str> = t3_contracts::scopes::known_tags().into_iter().filter(|t| !t3_contracts::rpc::IMPLEMENTED_RPCS.contains(t)).collect();
     assert!(unsupported.len() > 30);
-    // When each is called with an empty payload
+    // When each is called with the smallest payload that decodes (an empty one where no schema is declared)
     for tag in unsupported.iter().copied() {
-        let exit = rpc.call(tag, json!({}));
+        let exit = rpc.call(tag, t3_contracts::payload::minimal(tag).unwrap_or_else(|| json!({})));
         // Then it fails with the typed error and the tag, never a closed socket
         let error = failure(&exit);
         assert_eq!((error["_tag"].as_str(), error["method"].as_str()), (Some("UnsupportedOperationError"), Some(tag)), "{tag}");
