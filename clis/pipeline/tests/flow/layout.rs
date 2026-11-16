@@ -13,8 +13,14 @@ fn put(root: &Path, rel: &str, content: &str) {
 
 fn repo() -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
-    put(dir.path(), "clis/pipeline/data/package-types.json", MANIFEST);
+    put(dir.path(), "clis/pipeline/data/package-types.json", &manifest_with(serde_json::json!([])));
     dir
+}
+
+fn manifest_with(generated: Value) -> String {
+    let mut manifest: Value = serde_json::from_str(MANIFEST).unwrap();
+    manifest["generated"] = generated;
+    manifest.to_string()
 }
 
 fn crate_at(root: &Path, dir: &str, name: &str, ty: Option<&str>, deps: &str, files: &[&str]) {
@@ -218,4 +224,91 @@ fn a_generated_region_that_no_longer_matches_its_generator_is_drift() {
     assert_eq!(drift.len(), 2, "{drift:?}");
     assert!(drift.iter().any(|m| m.starts_with("docs/stale.md: region types is stale")), "{drift:?}");
     assert!(drift.iter().any(|m| m.starts_with("docs/bare.md: region types has no BEGIN/END")), "{drift:?}");
+}
+
+const LS_REGION: &str = "# BEGIN generated:ls-lint\n# END generated:ls-lint\n";
+
+fn ls_repo() -> tempfile::TempDir {
+    let dir = repo();
+    put(dir.path(), "clis/pipeline/data/package-types.json", &manifest_with(serde_json::json!([{ "file": ".ls-lint.yml", "region": "ls-lint" }])));
+    put(dir.path(), ".ls-lint.yml", &format!("ls:\n  {}  hand/written:\n    .rs: snake_case\n", LS_REGION.replace('\n', "\n  ").trim_end()));
+    dir
+}
+
+fn ls_lint(root: &Path) -> String {
+    std::fs::read_to_string(root.join(".ls-lint.yml")).unwrap()
+}
+
+#[test]
+fn the_ls_lint_keys_of_every_typed_package_come_from_the_manifest() {
+    // Given a service, a contract crate and a flat adapter that lists its modules, and a stale generated region
+    let dir = ls_repo();
+    let root = dir.path();
+    service(root);
+    crate_at(root, "libraries/wire", "wire", Some("rust-contract"), "", &["lib.rs"]);
+    put(root, "backend/svc/group-x/Cargo.toml", "[package]\nname = \"group-x\"\n[package.metadata.arch]\ntype = \"rust-flat-adapter\"\nmodules = [\"alpha\", \"beta\"]\n");
+    put(root, "backend/svc/group-x/src/lib.rs", "");
+    crate_at(root, "backend/svc/group-y", "group-y", Some("rust-flat-adapter"), "", &["lib.rs"]);
+    // When the check reports and then rewrites the region
+    let before = report(&run(root, &[]));
+    run(root, &["--write"]);
+    let text = ls_lint(root);
+    let after = report(&run(root, &["--strict"]));
+    // Then the stale region was drift, each package got keys of its type, modules became a regex, and the hand-written key stayed
+    assert_eq!(messages(&before, "drift").len(), 1, "{before}");
+    assert!(text.contains("  backend/svc/core/src:\n    .dir: regex:(src|domain|application|testing)\n    .rs: regex:(lib|testing)\n"), "{text}");
+    assert!(text.contains("  backend/svc/rs/src/*/*:\n    .dir: snake_case"), "{text}");
+    assert!(text.contains("  libraries/wire/src:\n    .dir: regex:(src|testing)"), "{text}");
+    assert!(text.contains("  backend/svc/group-x/src:\n    .dir: regex:src\n    .rs: regex:(lib|alpha|beta)\n"), "{text}");
+    assert!(text.contains("  backend/svc/group-y/src:\n    .dir: regex:src\n    .rs: snake_case\n"), "{text}");
+    assert!(text.contains("  hand/written:\n    .rs: snake_case\n"), "{text}");
+    assert_eq!(after["findings"].as_array().unwrap().len(), 0, "{after}");
+}
+
+#[test]
+fn a_package_added_without_regenerating_is_ls_lint_drift() {
+    // Given a region generated for one service, then a second typed package added
+    let dir = ls_repo();
+    let root = dir.path();
+    service(root);
+    run(root, &["--write"]);
+    crate_at(root, "libraries/wire", "wire", Some("rust-contract"), "", &["lib.rs"]);
+    // When the check runs strictly
+    let r = run(root, &["--strict"]);
+    // Then the stale region fails the run and names the command that fixes it
+    assert_eq!(r.exit_code, 1);
+    let drift = messages(&report(&r), "drift");
+    assert!(drift.iter().any(|m| m.starts_with(".ls-lint.yml: region ls-lint is stale") && m.contains("--write")), "{drift:?}");
+}
+
+#[test]
+fn a_hand_edited_generated_key_is_overwritten_not_kept() {
+    // Given a generated region that someone loosened by hand
+    let dir = ls_repo();
+    let root = dir.path();
+    service(root);
+    run(root, &["--write"]);
+    std::fs::write(root.join(".ls-lint.yml"), ls_lint(root).replace(".rs: regex:(lib|testing)", ".rs: snake_case")).unwrap();
+    // When the check runs and then rewrites
+    let stale = messages(&report(&run(root, &[])), "drift");
+    run(root, &["--write"]);
+    // Then the loosening was drift and the rewrite restores the manifest's rule
+    assert_eq!(stale.len(), 1, "{stale:?}");
+    assert!(ls_lint(root).contains(".rs: regex:(lib|testing)"));
+}
+
+#[test]
+fn a_key_is_generated_only_for_a_directory_the_package_has() {
+    // Given two testkits, one with a src/bin directory and one without
+    let dir = ls_repo();
+    let root = dir.path();
+    crate_at(root, "libraries/kit-a", "kit-a", Some("rust-testkit"), "", &["lib.rs", "bin/tool.rs"]);
+    crate_at(root, "libraries/kit-b", "kit-b", Some("rust-testkit"), "", &["lib.rs"]);
+    // When the region is generated
+    run(root, &["--write"]);
+    // Then only the first gets a src/bin key, so no key names a path that does not exist
+    let text = ls_lint(root);
+    assert!(text.contains("  libraries/kit-a/src/bin:\n    .dir: kebab-case"), "{text}");
+    assert!(text.contains("  libraries/kit-b/src:\n"), "{text}");
+    assert!(!text.contains("libraries/kit-b/src/bin"), "{text}");
 }

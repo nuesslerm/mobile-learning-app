@@ -28,3 +28,4 @@ rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
 
 [package.metadata.arch]
 type = "rust-flat-adapter"
+modules = ["edit", "files", "relay", "setup", "tests", "workspaces", "worktrees"]

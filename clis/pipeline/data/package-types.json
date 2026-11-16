@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "note": "The shape of each package type (docs/solutions/architecture/hexagonal-architecture-by-package-type.md), read by `wf check --layout`. A package opts in with `[package.metadata.arch] type = \"...\"` in Cargo.toml, an `arch` key in package.json, or an `arch` key in the project.json of an in-app feature. Paths are relative to the ring root: the first of `ringRoots` that exists. `allowedRoot` lists what may sit at the ring root besides the rings (`*` is a wildcard; a ring may be a directory or `<ring>.rs`). `a|b` in a required list means either. `mayDependOn` names the types a package of this type may depend on; `mayDevDependOn` adds to it for dev-dependencies; `devOnly` means a package of this type is reachable only through dev-dependencies. A dependency on a package with no type is not checked.",
-  "generated": [],
+  "note": "The shape of each package type (docs/solutions/architecture/hexagonal-architecture-by-package-type.md), read by `wf check --layout`. A package opts in with `[package.metadata.arch] type = \"...\"` in Cargo.toml, an `arch` key in package.json, or an `arch` key in the project.json of an in-app feature. Paths are relative to the ring root: the first of `ringRoots` that exists. `allowedRoot` lists what may sit at the ring root besides the rings (`*` is a wildcard; a ring may be a directory or `<ring>.rs`). `a|b` in a required list means either. `mayDependOn` names the types a package of this type may depend on; `mayDevDependOn` adds to it for dev-dependencies; `devOnly` means a package of this type is reachable only through dev-dependencies. A dependency on a package with no type is not checked. `lsLint` lists the ls-lint keys of a type as paths under the package directory; `.rs@modules` replaces `.rs` when the package lists `modules` in its arch table, and `{modules}` becomes `|a|b`. The `ls-lint` region of `.ls-lint.yml` is rendered from them; `wf check --layout --write` rewrites it.",
+  "generated": [{ "file": ".ls-lint.yml", "region": "ls-lint" }],
   "types": {
     "rust-core": {
       "ecosystem": "rust",
@@ -14,7 +14,11 @@
       "forbiddenFiles": ["main.rs"],
       "forbiddenDirs": ["api", "infrastructure"],
       "mayDependOn": ["rust-core", "rust-contract"],
-      "mayDevDependOn": ["rust-testkit"]
+      "mayDevDependOn": ["rust-testkit"],
+    "lsLint": [
+      {"path": "src", "rules": {".dir": "regex:(src|domain|application|testing)", ".rs": "regex:(lib|testing)"}},
+      {"path": "src/*", "rules": {".dir": "snake_case", ".rs": "snake_case"}}
+    ]
     },
     "rust-rs": {
       "ecosystem": "rust",
@@ -25,7 +29,12 @@
       "allowedRoot": ["lib.rs", "main.rs", "compose.rs", "ports.rs"],
       "forbiddenDirs": ["domain", "application"],
       "mayDependOn": ["rust-core", "rust-contract", "rust-flat-adapter", "rust-single-hexagon"],
-      "mayDevDependOn": ["rust-testkit"]
+      "mayDevDependOn": ["rust-testkit"],
+    "lsLint": [
+      {"path": "src", "rules": {".dir": "regex:(src|api|infrastructure)", ".rs": "regex:(lib|main|compose|ports)"}},
+      {"path": "src/*", "rules": {".dir": "regex:(api|infrastructure)", ".rs": "snake_case"}},
+      {"path": "src/*/*", "rules": {".dir": "snake_case", ".rs": "snake_case"}}
+    ]
     },
     "rust-contract": {
       "ecosystem": "rust",
@@ -35,7 +44,11 @@
       "requiredFiles": ["lib.rs"],
       "allowedRoot": ["*.rs", "testing"],
       "mayDependOn": ["rust-contract"],
-      "mayDevDependOn": ["rust-testkit"]
+      "mayDevDependOn": ["rust-testkit"],
+    "lsLint": [
+      {"path": "src", "rules": {".dir": "regex:(src|testing)", ".rs": "snake_case"}},
+      {"path": "src/*", "rules": {".dir": "snake_case", ".rs": "snake_case"}}
+    ]
     },
     "rust-flat-adapter": {
       "ecosystem": "rust",
@@ -45,7 +58,10 @@
       "requiredFiles": ["lib.rs"],
       "allowedRoot": ["*.rs"],
       "mayDependOn": ["rust-contract", "rust-core", "rust-flat-adapter"],
-      "mayDevDependOn": ["rust-testkit"]
+      "mayDevDependOn": ["rust-testkit"],
+    "lsLint": [
+      {"path": "src", "rules": {".dir": "regex:src", ".rs": "snake_case", ".rs@modules": "regex:(lib{modules})"}}
+    ]
     },
     "rust-single-hexagon": {
       "ecosystem": "rust",
@@ -56,7 +72,12 @@
       "requiredAnyOf": [["domain", "domain.rs"], ["adapters"], ["bin"]],
       "allowedRoot": ["lib.rs"],
       "mayDependOn": ["rust-contract"],
-      "mayDevDependOn": ["rust-testkit"]
+      "mayDevDependOn": ["rust-testkit"],
+    "lsLint": [
+      {"path": "src", "rules": {".dir": "regex:(src|domain|adapters|bin)", ".rs": "snake_case"}},
+      {"path": "src/*", "rules": {".dir": "snake_case", ".rs": "snake_case"}},
+      {"path": "src/bin", "rules": {".dir": "kebab-case", ".rs": "kebab-case"}}
+    ]
     },
     "rust-testkit": {
       "ecosystem": "rust",
@@ -67,7 +88,12 @@
       "requiredFiles": ["lib.rs"],
       "allowedRoot": ["*.rs", "bin"],
       "mayDependOn": ["rust-contract", "rust-testkit"],
-      "mayDevDependOn": []
+      "mayDevDependOn": [],
+    "lsLint": [
+      {"path": "src", "rules": {".dir": "regex:(src|bin)", ".rs": "snake_case"}},
+      {"path": "src/*", "rules": {".dir": "snake_case", ".rs": "snake_case"}},
+      {"path": "src/bin", "rules": {".dir": "kebab-case", ".rs": "kebab-case"}}
+    ]
     },
     "hexagonal-feature": {
       "ecosystem": "ts",

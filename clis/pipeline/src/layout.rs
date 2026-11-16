@@ -8,7 +8,7 @@ use std::path::Path;
 pub const MANIFEST: &str = "clis/pipeline/data/package-types.json";
 const SKIP: [&str; 5] = ["node_modules", "target", "references", "dist", "fixtures"];
 
-pub const LAYOUT: wf_kit::args::Spec = wf_kit::args::Spec { flags: &["layout", "strict"], positional: wf_kit::args::Positional::None, ..wf_kit::args::Spec::NONE };
+pub const LAYOUT: wf_kit::args::Spec = wf_kit::args::Spec { flags: &["layout", "strict", "write"], positional: wf_kit::args::Positional::None, ..wf_kit::args::Spec::NONE };
 
 pub struct Report {
     pub json: Json,
@@ -204,38 +204,84 @@ fn purity(packages: &[Package], types: &Json, out: &mut Vec<Finding>) {
     }
 }
 
+/// The ls-lint keys of every typed package, from its type's `lsLint` entries.
+fn ls_lint(root: &Path, types: &Json, packages: &[Package]) -> String {
+    let mut sorted: Vec<&Package> = packages.iter().collect();
+    sorted.sort_by(|a, b| a.dir.cmp(&b.dir));
+    let mut out = String::new();
+    for p in sorted {
+        let Some(spec) = p.ty.as_deref().and_then(|t| types.get(t)) else { continue };
+        let modules = strings(&p.options["modules"]);
+        for entry in spec["lsLint"].as_array().into_iter().flatten() {
+            let path = entry["path"].as_str().unwrap_or("src");
+            // a key for a directory the package does not have would be a dead reference
+            let fixed = path.split('*').next().unwrap_or(path).trim_end_matches('/');
+            if !root.join(&p.dir).join(fixed).exists() {
+                continue;
+            }
+            out.push_str(&format!("  {}/{path}:\n", p.dir));
+            let mut rules: BTreeMap<String, String> = BTreeMap::new();
+            for (ext, value) in entry["rules"].as_object().into_iter().flatten() {
+                let value = value.as_str().unwrap_or("");
+                match ext.strip_suffix("@modules") {
+                    Some(base) if !modules.is_empty() => {
+                        rules.insert(base.to_string(), value.replace("{modules}", &modules.iter().map(|m| format!("|{m}")).collect::<String>()));
+                    }
+                    Some(_) => {}
+                    None => {
+                        rules.entry(ext.clone()).or_insert_with(|| value.to_string());
+                    }
+                }
+            }
+            for (ext, value) in rules {
+                out.push_str(&format!("    {ext}: {value}\n"));
+            }
+        }
+    }
+    out
+}
+
 /// What a generated region of the given name holds, one line per entry.
-fn render(region: &str, types: &Json) -> Option<String> {
+fn render(root: &Path, region: &str, types: &Json, packages: &[Package]) -> Option<String> {
     match region {
         "types" => Some(types.as_object()?.keys().map(|k| format!("- {k}\n")).collect()),
+        "ls-lint" => Some(ls_lint(root, types, packages)),
         _ => None,
     }
 }
 
-fn drift(root: &Path, manifest: &Json, out: &mut Vec<Finding>) -> usize {
+fn region_span(lines: &[&str], region: &str) -> Option<(usize, usize)> {
+    let begin = lines.iter().position(|l| l.contains(&format!("BEGIN generated:{region}")))?;
+    let end = lines.iter().position(|l| l.contains(&format!("END generated:{region}")))?;
+    (begin < end).then_some((begin, end))
+}
+
+fn drift(root: &Path, manifest: &Json, packages: &[Package], write: bool, out: &mut Vec<Finding>) -> usize {
     let regions = manifest["generated"].as_array().cloned().unwrap_or_default();
     for entry in &regions {
         let (file, region) = (entry["file"].as_str().unwrap_or(""), entry["region"].as_str().unwrap_or(""));
         let mut add = |message: String| out.push(Finding { pass: "drift", dir: file.to_string(), message });
-        let Some(want) = render(region, &manifest["types"]) else { add(format!("region {region} has no generator")); continue };
+        let Some(want) = render(root, region, &manifest["types"], packages) else { add(format!("region {region} has no generator")); continue };
         let Ok(text) = std::fs::read_to_string(root.join(file)) else { add("the file cannot be read".into()); continue };
         let lines: Vec<&str> = text.lines().collect();
-        let begin = lines.iter().position(|l| l.contains(&format!("BEGIN generated:{region}")));
-        let end = lines.iter().position(|l| l.contains(&format!("END generated:{region}")));
-        match (begin, end) {
-            (Some(b), Some(e)) if b < e => {
-                let have: String = lines[b + 1..e].iter().map(|l| format!("{l}\n")).collect();
-                if have != want {
-                    add(format!("region {region} is stale; regenerate it from {MANIFEST}"));
-                }
-            }
-            _ => add(format!("region {region} has no BEGIN/END generated:{region} marker pair")),
+        let Some((b, e)) = region_span(&lines, region) else { add(format!("region {region} has no BEGIN/END generated:{region} marker pair")); continue };
+        let have: String = lines[b + 1..e].iter().map(|l| format!("{l}\n")).collect();
+        if have == want {
+            continue;
+        }
+        if write {
+            let mut next: Vec<String> = lines[..=b].iter().map(|l| l.to_string()).collect();
+            next.extend(want.lines().map(str::to_string));
+            next.extend(lines[e..].iter().map(|l| l.to_string()));
+            let _ = std::fs::write(root.join(file), next.join("\n") + "\n");
+        } else {
+            add(format!("region {region} is stale; regenerate it with `wf check --layout --write`"));
         }
     }
     regions.len()
 }
 
-pub fn check(root: &Path) -> Report {
+pub fn check(root: &Path, write: bool) -> Report {
     let Some(manifest) = read_json(&root.join(MANIFEST)) else {
         let e = format!("{MANIFEST} is missing or not JSON");
         return Report { json: json!({ "error": e }), findings: vec![e] };
@@ -253,7 +299,7 @@ pub fn check(root: &Path) -> Report {
     }
     edges(&packages, types, &mut found);
     purity(&packages, types, &mut found);
-    let regions = drift(root, &manifest, &mut found);
+    let regions = drift(root, &manifest, &packages, write, &mut found);
     let typed: Vec<&Package> = packages.iter().filter(|p| p.ty.as_deref().is_some_and(|t| types.get(t).is_some())).collect();
     let broken: BTreeSet<&str> = found.iter().filter(|f| f.pass != "membership" && f.pass != "drift").map(|f| f.dir.as_str()).collect();
     let mut by_type: BTreeMap<String, (usize, usize)> = BTreeMap::new();
@@ -277,7 +323,7 @@ pub fn check(root: &Path) -> Report {
 /// `check --layout [--strict]`.
 pub fn run(args: &[String]) -> Option<i32> {
     let p = wf_kit::args::parse_spec(args, &LAYOUT)?;
-    let report = check(&wf_kit::root::repo_root());
+    let report = check(&wf_kit::root::repo_root(), p.flag("write"));
     println!("{}", report.json);
     for found in &report.findings {
         wf_kit::wf_err!("wf: layout: {found}");

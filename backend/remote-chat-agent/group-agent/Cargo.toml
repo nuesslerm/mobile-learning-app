@@ -37,3 +37,4 @@ agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent", featu
 
 [package.metadata.arch]
 type = "rust-flat-adapter"
+modules = ["checkpoint", "group", "lifecycle", "neutral", "port", "queue", "refusal", "requests", "runner", "staging", "testing", "turns"]
