@@ -65,6 +65,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("projects.createNew", "name:s"),
     ("projects.readFile", "cwd:s relativePath:s allowMissing:b?"),
     ("pullRequests.routingIdentity", "host:s"),
+    ("pullRequests.filterOptions", "kind:l(labels|authors|references) projectId:s? projectIds:a? host:s? query:s? sigil:l(#|!)?"),
     ("pullRequests.linkedThreads", "projectId:s host:s? expectedAccountId:s? allowStale:b? repository:s number:n"),
     ("pullRequests.generateReviewGuide", "projectId:s host:s? expectedAccountId:s? allowStale:b? repository:s number:n"),
     ("pullRequests.comment", "projectId:s host:s? expectedAccountId:s? allowStale:b? repository:s number:n body:s"),
@@ -792,6 +793,9 @@ mod tests {
         assert_eq!(d("projects.mutate", json!("wrong")).unwrap(), union);
         assert_eq!(d("projects.mutate", json!({"type": "project.delete"})), None);
         assert_eq!(minimal("projects.mutate").and_then(|m| defect("projects.mutate", &m)), None);
+        assert_eq!(d("pullRequests.filterOptions", json!({})).unwrap(), "Missing key\n  at [\"kind\"]");
+        assert_eq!(d("pullRequests.filterOptions", json!({"kind": 7})).unwrap(), "Expected \"labels\" | \"authors\" | \"references\"\n  at [\"kind\"]");
+        assert_eq!(d("pullRequests.filterOptions", json!({"kind": "labels"})), None);
         assert_eq!(d("projects.readFile", json!({})).unwrap(), "Missing key\n  at [\"cwd\"]");
         assert_eq!(d("projects.readFile", json!({"cwd": 7})).unwrap(), "Expected string\n  at [\"cwd\"]");
         // And a worktree setup subscription needs its thread

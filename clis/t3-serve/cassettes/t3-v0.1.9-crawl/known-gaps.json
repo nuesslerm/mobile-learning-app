@@ -438,27 +438,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
-      ],
-      "ids": [
-        "t3-command-delegated-task.request-boundary-full",
-        "t3-command-delegated-task.request-invalid-wrong-type-commandId",
-        "t3-command-delegated-task.request-valid-min",
-        "t3-command-message.dispatch-boundary-full",
-        "t3-rpc-agentSessions.import-invalid-drop-projectId",
-        "t3-rpc-agentSessions.import-invalid-no-payload",
-        "t3-rpc-pullRequests.filterOptions-invalid-drop-kind",
-        "t3-rpc-pullRequests.filterOptions-invalid-no-payload",
-        "t3-rpc-pullRequests.filterOptions-invalid-wrong-type-kind",
-        "t3-rpc-scheduledTasks.upsert-boundary-full"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.reason",
       "severity": "breaking",
       "diffs": [
@@ -636,6 +615,24 @@
         "t3-rpc-scheduledTasks.runNow-valid-min",
         "t3-rpc-scheduledTasks.setEnabled-invalid-wrong-type-id",
         "t3-rpc-scheduledTasks.setEnabled-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ],
+      "ids": [
+        "t3-command-delegated-task.request-boundary-full",
+        "t3-command-delegated-task.request-invalid-wrong-type-commandId",
+        "t3-command-delegated-task.request-valid-min",
+        "t3-command-message.dispatch-boundary-full",
+        "t3-rpc-agentSessions.import-invalid-drop-projectId",
+        "t3-rpc-agentSessions.import-invalid-no-payload",
+        "t3-rpc-scheduledTasks.upsert-boundary-full"
       ]
     },
     {
