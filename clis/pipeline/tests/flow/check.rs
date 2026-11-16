@@ -443,7 +443,7 @@ fn the_e2e_summary_step_lists_a_replayed_pass_that_lacks_a_fresh_units_fields() 
         [
             "### android e2e tests for ef90df980",
             "- editor-typing: pass (replayed) in 0 s",
-            "- voice-edit chunk=1: pass in 41.5 s · [bundle](https://b.example/x)",
+            "- voice-edit chunk=1: pass in 41.5 s · bundle `https://b.example/x`",
             "- tamil-writing part=write: fail in 3.25 s · no ink · next: look",
         ]
     );

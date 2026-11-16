@@ -286,6 +286,14 @@ jobs:
         run: |
           # shellcheck disable=SC2086
           wf test run $SELECT --sha "$SHA" --out "$RUNNER_TEMP/e2e-runs" -- $FLAGS | tee "$RUNNER_TEMP/e2e-tests.jsonl"
+      - name: Upload the run bundles
+        if: ${{ !cancelled() && (steps.pick.outputs.any == 'true' || steps.pick.outputs.replay > 0) }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-runs-${{ inputs.platform }}-e2e
+          path: ${{ runner.temp }}/test-runs
+          retention-days: 10
+          if-no-files-found: ignore
       - name: Stop the backends
         if: always() && steps.pick.outputs.any == 'true'
         run: wf test backends down
@@ -309,6 +317,6 @@ jobs:
           {
             echo "### $PLATFORM e2e tests for ${SHA:0:9}"
             if [ -s "$RUNNER_TEMP/e2e-runs/summary.json" ]; then
-              jq -r '(.units // [])[] | "- \([.test] + (.args // []) | join(" ")): \(.verdict)\(if .cached then " (replayed)" else "" end) in \(.durationS // 0) s\(if .bundle then " · [bundle](\(.bundle))" else "" end)\(if (.note // "") != "" then " · \(.note)" else "" end)\(if .next then " · next: \(.next)" else "" end)"' "$RUNNER_TEMP/e2e-runs/summary.json"
+              jq -r '(.units // [])[] | "- \([.test] + (.args // []) | join(" ")): \(.verdict)\(if .cached then " (replayed)" else "" end) in \(.durationS // 0) s\(if .bundle then " · bundle `\(.bundle)`" else "" end)\(if (.note // "") != "" then " · \(.note)" else "" end)\(if .next then " · next: \(.next)" else "" end)"' "$RUNNER_TEMP/e2e-runs/summary.json"
             fi
           } >> "$GITHUB_STEP_SUMMARY"

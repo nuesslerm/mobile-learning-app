@@ -5,7 +5,7 @@ name: Track contracts
 # stablyai/orca). An app that is not behind is done. For an app that is, the legs of the record machinery of mimic-record.yml record each of
 # its cassette sets against the newest release (the pin is bumped in the runner's checkout only, nothing is committed), resumable in chunks, and
 # replay the new set against our candidate; the last job rebuilds the method lists and coverage tables from the new source and publishes the
-# drift report with the new contracts as one artifact and as a run bundle (`wf test publish`, verification/test-runs/<runId>/).
+# drift report with the new contracts as one artifact and as a run bundle (`wf test publish`, the `test-runs-track-contracts` artifact).
 #
 # Started daily at 02:23 UTC by its own schedule (an empty message means `[track t3 orca]`), on a GitHub-hosted runner, or by scheduled-triggers.yml
 # (dispatch) on an EMPTY commit to dev tagged `[track t3|orca]`, never by `push` itself:
@@ -434,12 +434,19 @@ jobs:
           retention-days: 14
           if-no-files-found: error
       - uses: ./.github/actions/install-bws
-      - name: Publish the run bundle
-        # verification/test-runs/<runId>/ in the verification-artifacts bucket: where an agent session whose proxy refuses the Actions API reads it
+      - name: Write the run bundle
+        # the metrics row is posted from here, so the vault credentials stay
         env:
           SECRETS_BACKEND: bitwarden
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
         run: wf test publish "$RUNNER_TEMP/bundle" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Upload the run bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-runs-track-contracts
+          path: ${{ runner.temp }}/test-runs
+          retention-days: 10
+          if-no-files-found: error
       # an initialized references/t3code breaks the next job's actions/checkout (its recursive submodule step fails on a nested gitlink without a url)
       - name: Reference trees
         if: always()

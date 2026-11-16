@@ -190,6 +190,14 @@ jobs:
           [ -f "$RUNNER_TEMP/audit/report.json" ] || { echo "no replay report: the run stopped before the comparison"; exit 0; }
           rm -f "$RUNNER_TEMP/audit/started"
           WF_SITE=ci wf test publish "$RUNNER_TEMP/audit"
+      - name: Upload the replay check's run bundle
+        if: ${{ !cancelled() && steps.mode.outputs.replay == 'true' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-runs-ci-audit
+          path: ${{ runner.temp }}/test-runs
+          retention-days: 10
+          if-no-files-found: ignore
       # One verdict: the replay check's lines join the findings, then the summary and the artifact.
       - name: The verdict
         if: ${{ !cancelled() }}

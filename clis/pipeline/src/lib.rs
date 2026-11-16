@@ -59,7 +59,7 @@ pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[("check", check), ("ci",
 const PLAN: Spec = Spec { values: &["sha", "base", "platform", "force"], flags: &["json", "changed", "all", "github-output"], positional: Positional::Any, ..Spec::NONE };
 
 /// What `wf test publish` takes.
-const PUBLISH: Spec = Spec { values: &["ran-on"], flags: &["no-record"], positional: Positional::Any, ..Spec::NONE };
+const PUBLISH: Spec = Spec { values: &["ran-on", "out"], flags: &["no-record"], positional: Positional::Any, ..Spec::NONE };
 
 /// `wf test plan`, `wf test run --stage`, `wf test drift` and `wf test publish <dir>`: the words after `test`, for the router of `wf`
 /// and the thin binary.
@@ -107,9 +107,9 @@ fn check(rest: &[String]) -> Option<i32> {
 fn publish_verb(rest: &[String]) -> Option<i32> {
     let p = parse_spec(rest, &PUBLISH)?;
     match p.positional.get(1) {
-        Some(dir) => Some(test_publish::run(dir, !p.flag("no-record"), p.val("ran-on"))),
+        Some(dir) => Some(test_publish::run(dir, !p.flag("no-record"), p.val("ran-on"), p.val("out"))),
         None => {
-            println!("{}", serde_json::json!({ "error": "wf test publish wants a dir", "next": "wf test publish <run dir|flow report dir|e2e run dir> [--no-record] [--ran-on <host>]" }));
+            println!("{}", serde_json::json!({ "error": "wf test publish wants a dir", "next": "wf test publish <run dir|flow report dir|e2e run dir> [--no-record] [--ran-on <host>] [--out <folder>]" }));
             Some(1)
         }
     }

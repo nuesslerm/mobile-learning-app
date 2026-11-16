@@ -59,7 +59,7 @@ fn command_line(unit: &Unit, dir: &Path, serial: Option<&str>, flags: &[String],
     if let Some(s) = serial.filter(|_| unit.platform == "android") {
         a.extend(["--device".into(), s.to_string()]);
     }
-    // WF_TEST_PUBLISH=1 (the workflow): each run becomes a run bundle in the bucket, which also posts its test_runs row
+    // WF_TEST_PUBLISH=1 (the workflow): each run becomes a run bundle folder the workflow uploads as an artifact, which also posts its test_runs row
     if std::env::var("WF_TEST_PUBLISH").as_deref() == Ok("1") && !flags.iter().any(|f| f == "--publish") {
         a.push("--publish".into());
     }

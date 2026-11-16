@@ -360,16 +360,18 @@ jobs:
         timeout-minutes: 5
         run: |
           if [ -f frontend/mla-tamagui/.flow-report/report.json ]; then
-            if out=$(WF_SITE=ci wf test publish frontend/mla-tamagui/.flow-report); then
-              printf '%s\n' "$out"
-            else
-              printf '%s\n' "$out"
-              # the artifact store is a convenience for reading the run: a store that refuses the PUT must not fail a green job
-              case "$out" in *"report PUT failed"*) echo "::warning::the flow run bundle was not published: the artifact store refused it" ;; *) exit 1 ;; esac
-            fi
+            WF_SITE=ci wf test publish frontend/mla-tamagui/.flow-report
           else
             echo "no flow report this run (the app's package graph did not change)"
           fi
+      - name: Upload the flow run bundle
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-runs-flow-tests-${{ matrix.shard }}
+          path: ${{ runner.temp }}/test-runs
+          retention-days: 10
+          if-no-files-found: ignore
       - name: Deinitialize the reference trees
         if: always()
         run: git submodule deinit -f references/orca references/t3code || true
@@ -747,12 +749,20 @@ jobs:
             if ! out=$(WF_SITE=ci wf test publish "$dir"); then
               printf '%s\n' "$out"
               # the wf this job runs is the previous push's; one from before the integration platform refuses the record
-              case "$out" in *"not a test harness platform: 'integration'"*) echo "::warning::$dir not published: this push's clis build adds the integration platform" ;; *"report PUT failed"*) echo "::warning::$dir not published: the artifact store refused it" ;; *) exit 1 ;; esac
+              case "$out" in *"not a test harness platform: 'integration'"*) echo "::warning::$dir not published: this push's clis build adds the integration platform" ;; *) exit 1 ;; esac
             else
               printf '%s\n' "$out"
             fi
           done
           [ "$found" = 1 ] || echo "no integration report this run (no suite changed, or Nx replayed the run)"
+      - name: Upload the integration run bundles
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: test-runs-integration-tests-${{ matrix.shard }}
+          path: ${{ runner.temp }}/test-runs
+          retention-days: 10
+          if-no-files-found: ignore
       - name: Deinitialize the reference trees
         if: always()
         run: git submodule deinit -f references/orca references/t3code || true

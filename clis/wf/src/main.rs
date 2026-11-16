@@ -9,7 +9,7 @@ use wf_kit::cli::{self, Recorder, Surface};
 
 fn main() {
     pipeline::dead_refs::set_commands(routes::is_command);
-    wf_harness::run::set_publisher(|dir, ran_on, record| pipeline::test_publish::publish(dir, ran_on, record).map(|bundle| bundle.base));
+    wf_harness::run::set_publisher(|dir, ran_on, record| pipeline::test_publish::publish(dir, ran_on, record, None).map(|bundle| bundle.folder));
     cli::run(&Surface {
         version: env!("CARGO_PKG_VERSION"),
         commands: routes::COMMANDS,
