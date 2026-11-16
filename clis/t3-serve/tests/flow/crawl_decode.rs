@@ -12,7 +12,7 @@ use mimic_core::usecase::replay;
 const DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/cassettes/t3-v0.1.9-crawl");
 
 /// The groups whose invalid cases the router decodes as the real server does.
-const GROUPS: [&str; 6] = ["t3-rpc-provider.install.", "AcpRegistry", "t3-rpc-vcs.", "t3-rpc-subscribeVcsBranch-", "t3-rpc-git.", "t3-rpc-review."];
+const GROUPS: [&str; 12] = ["t3-rpc-provider.install.", "AcpRegistry", "t3-rpc-vcs.", "t3-rpc-subscribeVcsBranch-", "t3-rpc-git.", "t3-rpc-review.", "t3-rpc-sourceControl.lookup", "t3-rpc-sourceControl.clone", "t3-rpc-sourceControl.signIn", "t3-rpc-sourceControl.appAccess", "t3-rpc-sourceControl.starred-", "t3-rpc-sourceControl.publish"];
 
 fn found(set: &mimic_core::ports::CassetteSet, allow: &mimic_core::allowlist::Allowlist, ids: &[String]) -> Vec<gaps::Found> {
     let mut out = Vec::new();
@@ -63,6 +63,7 @@ fn a_slice_named_by_crawl_prefix_is_compared_with_the_known_gaps() {
     let mut listed = gaps::listed(&serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap()).unwrap();
     listed.retain(|id, _| ids.contains(id));
     let (new, stale) = gaps::compare(&differences, &listed);
+    eprintln!("found:\n{differences:#?}");
     eprintln!("slice of {} ids: {} differ\nnot listed:\n{}\nlisted and no longer differing as listed:\n{stale:?}", ids.len(), differences.len(), new.join("\n"));
     if std::env::var("CRAWL_WRITE_GAPS").is_ok() {
         let all: std::collections::BTreeMap<String, Vec<String>> = gaps::listed(&serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap()).unwrap().into_iter().filter(|(id, _)| !ids.contains(id)).chain(differences.iter().map(|f| (f.id.clone(), f.lines.clone()))).collect();
