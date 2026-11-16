@@ -5959,7 +5959,7 @@ Actions:
                          {runs, hits, misses, puts, skipped, requests, bytes, degraded, latencyMs: {get, put, exists: {n, sumMs, avgMs, maxMs}}}, null when none did.
                          verification/test-runs/index.json lists the newest 500 runs (read through the public URL and merged,
                          never replaced). --no-record skips the row; --ran-on <host> names the runner (default WF_SITE or the
-                         hostname). Needs VERIFICATION_ARTIFACTS_PAR_URL (env or vault). Prints {runId, base, bundle, report, cache,
+                         hostname). Prints {runId, base, bundle, report, cache,
                          files, bytes, index, recorded}.
   results                read what publish wrote; runs nothing. --query "<terms>" filters the test_runs table and the bundle
                          index, joined on runId (index runs first, completed from their row; table runs the index no longer

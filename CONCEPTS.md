@@ -104,9 +104,9 @@ It differs from a flow test, which calls the entry point in-process and replaces
 
 A test of the same entry point against the real running production environment: the VM, the real vault, the real services and network. Nothing is replaced. It runs through runbooks (`wf offload ask --runbook`) and `wf vm exec`, and it is the tier that catches the real environment disagreeing with the assumptions the lower tiers encode. See `docs/solutions/testing/verification-ladder.md`.
 
-## Verification artifacts bucket
+## Run bundle
 
-The OCI Object Storage bucket (`mobile-learning-verification-artifacts`) that every `e2e`/`visual` unit group's closing step publishes into (today via `wf check --deployed <sha> --publish`, which renders the verify report to `verification/verify/dev/<sha>/`), holding the run's logs, screenshots, and judge verdicts behind a PAR; the printed public URL is the durable pointer a report cites, independent of whatever the VM-side artifact store retains.
+The folder `wf test publish` writes for one test run (report, screenshots, recordings, timing, `bundle.json`) and the workflow uploads as the `test-run-<runId>` GitHub Actions artifact (retention 10 days); the run page of the workflow is the durable pointer a report cites. Small cross-run files (the EAS Update pointer, `test-runs/index.json`) live under the `refs/wf/state` git ref (`wf bucket state read|write`). The OCI verification-artifacts bucket that held them was deleted with the OCI infrastructure.
 
 ## Sandbox-only orchestrator
 
