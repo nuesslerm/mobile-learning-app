@@ -7,8 +7,8 @@ publish = false
 include = ["src/**", "data/**", "Cargo.toml"]
 
 [dependencies]
-axum = { version = "0.8", default-features = false, features = ["http1", "json", "multipart", "query", "tokio", "ws"] }
-governor = "0.8"
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "matched-path", "multipart", "query", "tokio", "ws"] }
+governor = { version = "0.8", optional = true }
 memory-stats = "1"
 opentelemetry = "0.30"
 opentelemetry-http = "0.30"
@@ -16,7 +16,7 @@ serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
 telemetry = { version = "0.1", registry = "mla", path = "../../clis/telemetry", features = ["service"] }
 tokio = { version = "1", features = ["macros", "rt", "sync", "time", "fs", "io-util", "net", "process", "rt-multi-thread", "signal"] }
 tower-http = { version = "0.6", features = ["catch-panic", "cors", "limit", "trace"] }
-tower_governor = "0.7"
+tower_governor = { version = "0.7", optional = true }
 tracing = "0.1"
 tracing-opentelemetry = "0.31"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "json", "multipart", "stream"], optional = true }
@@ -24,6 +24,9 @@ uuid = { version = "1", features = ["v4"], optional = true }
 tempfile = { version = "3", optional = true }
 
 [features]
+default = ["rate-limit"]
+# The per-caller request limit; services that never call `rate_limit` build with `default-features = false`.
+rate-limit = ["dep:governor", "dep:tower_governor"]
 # What each service's deployment verification test uses to find its own log line in BetterStack.
 e2e = ["dep:reqwest", "dep:uuid"]
 # What each service's integration test uses to run its built binary as a black box: a free port, a temp dir, a clean environment.
