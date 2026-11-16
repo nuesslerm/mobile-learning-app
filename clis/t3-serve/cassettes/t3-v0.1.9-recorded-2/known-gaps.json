@@ -13,7 +13,6 @@
         "t3-command-message.dispatch",
         "t3-command-queued-run.edit",
         "t3-command-runtime-request.respond",
-        "t3-rpc-device.close",
         "t3-rpc-mcpApps.toolInfo",
         "t3-rpc-provider.consumeResetCredit",
         "t3-rpc-pullRequests.filterOptions",

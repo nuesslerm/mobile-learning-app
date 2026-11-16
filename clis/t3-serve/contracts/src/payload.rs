@@ -3,7 +3,7 @@
 use serde_json::{Map, Value};
 
 /// Fields in the order the contract's struct declares them: `name:kind`, kind `s` string, `n` number, `b` boolean, `a` array, `o` object, `sn` string or null, `p(day|http|npm)` a string matching a contract pattern, `l(x|y)` one of
-/// the literals, a trailing `?` for an optional key. What a field holds beyond its kind (a string's trim and length, an array's items) is the handler's.
+/// the literals, a trailing `?` for an optional key, a trailing `~` for an optional key that also takes null (its defect names `| null`). What a field holds beyond its kind (a string's trim and length, an array's items) is the handler's.
 const SCHEMAS: &[(&str, &str)] = &[
     ("provider.install.start", "instanceId:s"),
     ("provider.install.cancel", "instanceId:s operationId:s"),
@@ -27,6 +27,15 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("orchestration.subscribeShell", "afterSequence:n?"),
     ("orchestration.subscribeThread", "threadId:s afterSequence:n? requestCompletionMarker:b? acceptBoundedSnapshot:b? acceptDeferredWork:b? acceptCompactTurnItems:b? acceptDedupedBodies:b? acceptCompactIds:b?"),
     ("orchestration.launchThread", "commandId:s creationSource:l(web|mobile|mcp|provider|server)? threadId:s? reuseExistingThread:b? projectId:s title:s generateTitle:b? modelSelection:ms runtimeMode:l(approval-required|auto-accept-edits|auto|full-access) interactionMode:l(default|plan) workspaceStrategy:x initialMessage:x?"),
+    ("device.configure", "enabled:b~ agentAccessEnabled:b~ onboardingCompleted:b~"),
+    ("device.list", "updateTool:l(hub|agent)~ inspectOnly:b~ retryHostId:s~"),
+    ("device.testHost", "kind:l(ssh)~ id:s label:s target:s identityFile:s~ port:r(1,65535)~"),
+    ("device.easAccount", "hostId:s~ accessToken:x~"),
+    ("device.simlockIdentity", "gatewayUrl:s~ hostId:s~ agentToken:x~"),
+    ("device.open", "threadId:s hostId:s~ deviceId:s platform:l(ios|android) boot:b~"),
+    ("device.close", "hostId:s~ threadId:s deviceId:s~ shutdown:b~"),
+    ("device.shutdown", "hostId:s~ deviceId:s platform:l(ios|android)"),
+    ("device.detail", "hostId:s~ deviceId:s"),
     ("server.prepareAcpRegistryAgent", "agentId:s"),
     ("server.uninstallAcpRegistryManagedBinary", "agentId:s"),
     ("server.acceptAcpRegistryUrlAuth", "instanceId:s elicitationId:s"),
@@ -212,12 +221,15 @@ fn is(kind: &str, value: &Value) -> bool {
 
 /// The smallest payload that decodes as the schema of `tag`: every required field with a value of its kind.
 pub fn minimal(tag: &str) -> Option<Value> {
+    if tag == "device.action" {
+        return Some(serde_json::json!({"deviceId": "a", "type": "shake"}));
+    }
     let (_, schema) = SCHEMAS.iter().find(|(t, _)| *t == tag)?;
     Some(minimal_of(schema))
 }
 
 fn minimal_of(schema: &str) -> Value {
-    let fields = schema.split(' ').filter_map(|f| f.split_once(':')).filter(|(_, kind)| !kind.ends_with('?')).map(|(name, kind)| {
+    let fields = schema.split(' ').filter_map(|f| f.split_once(':')).filter(|(_, kind)| !kind.ends_with(['?', '~'])).map(|(name, kind)| {
         let value = match kind {
             "n" => Value::from(1),
             "b" => Value::Bool(true),
@@ -244,8 +256,20 @@ fn minimal_of(schema: &str) -> Value {
 
 /// The defect text when `payload` does not decode as the schema of `tag`; `None` when it does or the tag has no schema here.
 pub fn defect(tag: &str, payload: &Value) -> Option<String> {
+    if tag == "device.action" {
+        return device_action_defect(payload);
+    }
     let (_, schema) = SCHEMAS.iter().find(|(t, _)| *t == tag)?;
     decode(schema, payload.as_object()?)
+}
+
+const DEVICE_ACTIONS: [&str; 14] = ["setAppearance", "setTextSize", "setToggle", "setLiquidGlass", "setColorFilter", "setOrientation", "setLocation", "clearLocation", "setPermission", "openUrl", "launchApp", "terminateApp", "shake", "sendPush"];
+
+/// A device action that names none of the union's members fails the whole union; a named member's own fields are the handler's.
+fn device_action_defect(payload: &Value) -> Option<String> {
+    let named = payload.get("type").and_then(Value::as_str).is_some_and(|t| DEVICE_ACTIONS.contains(&t));
+    let members: Vec<String> = DEVICE_ACTIONS.iter().map(|t| format!("{{ readonly \"type\": \"{t}\", ... }}")).collect();
+    (!named).then(|| format!("Expected {}", members.join(" | ")))
 }
 
 /// How a command of `kind` decodes: `None` when its member is not decoded here, else `Err` with the defect text of the first field that fails.
@@ -265,11 +289,14 @@ fn decode(schema: &str, body: &Map<String, Value>) -> Option<String> {
 fn decode_in(schema: &str, body: &Map<String, Value>, prefix: &[String]) -> Option<String> {
     for field in schema.split(' ') {
         let (name, kind) = field.split_once(':')?;
-        let (kind, optional) = kind.strip_suffix('?').map_or((kind, false), |k| (k, true));
+        let (kind, nullable) = kind.strip_suffix('~').map_or((kind, false), |k| (k, true));
+        let (kind, optional) = kind.strip_suffix('?').map_or((kind, nullable), |k| (k, true));
         let key: Vec<String> = prefix.iter().cloned().chain([name.to_string()]).collect();
         match body.get(name) {
             None if optional => {}
             None => return Some(format!("Missing key\n  at {}", at(&key))),
+            Some(Value::Null) if nullable => {}
+            Some(v) if nullable && kind != "x" && !(if kind.starts_with("r(") { v.is_number() } else { is(kind, v) }) => return Some(format!("Expected {} | null\n  at {}", if kind.starts_with("r(") { "number".into() } else { expected(kind) }, at(&key))),
             Some(v) if kind == "ms" => {
                 if let Some(d) = model_selection(v, name) {
                     return Some(d);
@@ -528,6 +555,26 @@ mod tests {
         assert_eq!(defect("orchestration.launchThread", &launch(json!({"model": "a", "instanceId": "a", "options": "a"}))).unwrap(), "Expected array | object\n  at [\"modelSelection\"][\"options\"]");
         assert_eq!(defect("orchestration.launchThread", &launch(json!({"model": "a", "instanceId": "a"}))), None);
         assert_eq!(minimal("orchestration.launchThread").and_then(|m| defect("orchestration.launchThread", &m)), None);
+    }
+
+    #[test]
+    fn the_device_payloads_name_the_first_failing_field_and_a_null_where_the_key_is_optional() {
+        let d = |tag: &str, p: Value| defect(tag, &p);
+        // Given a close or open without its thread, then the thread is the missing key whatever else is there
+        assert_eq!(d("device.close", json!({})).unwrap(), "Missing key\n  at [\"threadId\"]");
+        assert_eq!(d("device.open", json!({"deviceId": "a", "platform": "ios"})).unwrap(), "Missing key\n  at [\"threadId\"]");
+        // And an optional key of the wrong type is refused with `| null`, a null passes, and the port is bounded
+        assert_eq!(d("device.list", json!({"updateTool": 7})).unwrap(), "Expected \"hub\" | \"agent\" | null\n  at [\"updateTool\"]");
+        assert_eq!(d("device.configure", json!({"enabled": "wrong"})).unwrap(), "Expected boolean | null\n  at [\"enabled\"]");
+        assert_eq!(d("device.configure", json!({"enabled": null})), None);
+        assert_eq!(d("device.testHost", json!({"id": "a", "label": "a", "target": "a", "port": 0})).unwrap(), "Expected a value between 1 and 65535\n  at [\"port\"]");
+        assert_eq!(d("device.shutdown", json!({"deviceId": 7, "platform": "ios"})).unwrap(), "Expected string\n  at [\"deviceId\"]");
+        // And an action naming no member fails the union, a named one is left to its handler
+        assert!(d("device.action", json!("wrong")).unwrap().starts_with("Expected { readonly \"type\": \"setAppearance\", ... } | "));
+        assert!(d("device.action", json!({})).is_some());
+        assert_eq!(d("device.action", json!({"deviceId": "a", "type": "shake"})), None);
+        assert_eq!(minimal("device.action").and_then(|m| defect("device.action", &m)), None);
+        assert_eq!(minimal("device.testHost").and_then(|m| defect("device.testHost", &m)), None);
     }
 
     #[test]
