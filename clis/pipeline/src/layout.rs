@@ -6,9 +6,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 pub const MANIFEST: &str = "clis/pipeline/data/package-types.json";
+pub const KNOWN: &str = "clis/pipeline/data/layout-known.json";
 const SKIP: [&str; 5] = ["node_modules", "target", "references", "dist", "fixtures"];
 
-pub const LAYOUT: wf_kit::args::Spec = wf_kit::args::Spec { flags: &["layout", "strict", "write"], positional: wf_kit::args::Positional::None, ..wf_kit::args::Spec::NONE };
+pub const LAYOUT: wf_kit::args::Spec = wf_kit::args::Spec { flags: &["layout", "strict", "write", "write-known"], positional: wf_kit::args::Positional::None, ..wf_kit::args::Spec::NONE };
 
 pub struct Report {
     pub json: Json,
@@ -281,7 +282,79 @@ fn drift(root: &Path, manifest: &Json, packages: &[Package], write: bool, out: &
     regions.len()
 }
 
+fn key(f: &Finding) -> String {
+    format!("{}|{}|{}", f.pass, f.dir, f.message)
+}
+
+fn known_keys(doc: &Json) -> Vec<(String, String)> {
+    let entries = doc["known"].as_array().into_iter().flatten();
+    entries.map(|e| (format!("{}|{}|{}", e["pass"].as_str().unwrap_or(""), e["package"].as_str().unwrap_or(""), e["message"].as_str().unwrap_or("")), e["reason"].as_str().unwrap_or("").to_string())).collect()
+}
+
+/// The known file as committed at HEAD; `None` outside a git checkout or before the file was first committed.
+fn committed_known(root: &Path) -> Option<Json> {
+    let out = std::process::Command::new("git").args(["show", &format!("HEAD:{KNOWN}")]).current_dir(root).output().ok().filter(|o| o.status.success())?;
+    serde_json::from_slice(&out.stdout).ok()
+}
+
+fn default_reason(pass: &str) -> &'static str {
+    match pass {
+        "membership" => "not yet typed: opts in with its section H item",
+        "placement" => "layout predates its type: fixed or retyped in a later H item",
+        "edges" => "edge predates its type: decided in H6",
+        _ => "recorded when the known file was created",
+    }
+}
+
+/// Splits the findings into the new ones and the known ones, and reports every known entry that no longer occurs, has no reason or is
+/// new since HEAD: the known file only shrinks.
+fn apply_known(root: &Path, found: Vec<Finding>, write_known: bool) -> (Vec<Finding>, usize) {
+    let doc = read_json(&root.join(KNOWN)).unwrap_or(Json::Null);
+    let known = known_keys(&doc);
+    if write_known {
+        let reasons: BTreeMap<&str, &str> = known.iter().map(|(k, r)| (k.as_str(), r.as_str())).collect();
+        let mut entries: Vec<&Finding> = found.iter().collect();
+        entries.sort_by_key(|f| key(f));
+        let list: Vec<Json> = entries.iter().map(|f| json!({ "pass": f.pass, "package": f.dir, "message": f.message, "reason": reasons.get(key(f).as_str()).copied().unwrap_or_else(|| default_reason(f.pass)) })).collect();
+        let note = "Findings of `wf check --layout` that exist today. The file only shrinks: an entry that no longer occurs must be removed, and an entry added since HEAD fails the check. `wf check --layout --write-known` rewrites it from the current findings.";
+        let text = serde_json::to_string_pretty(&json!({ "version": 1, "note": note, "known": list })).unwrap_or_default();
+        let _ = std::fs::write(root.join(KNOWN), text + "\n");
+        return (Vec::new(), found.len());
+    }
+    let keys: BTreeSet<&str> = known.iter().map(|(k, _)| k.as_str()).collect();
+    let mut fresh = Vec::new();
+    let mut matched = BTreeSet::new();
+    for f in found {
+        let k = key(&f);
+        if keys.contains(k.as_str()) {
+            matched.insert(k);
+        } else {
+            fresh.push(f);
+        }
+    }
+    let head = committed_known(root);
+    let at_head: BTreeSet<String> = head.iter().flat_map(|d| known_keys(d).into_iter().map(|(k, _)| k)).collect();
+    for (k, reason) in &known {
+        let mut parts = k.splitn(3, '|');
+        let (pass, dir, message) = (parts.next().unwrap_or(""), parts.next().unwrap_or(""), parts.next().unwrap_or(""));
+        let mut add = |m: String| fresh.push(Finding { pass: "known", dir: dir.to_string(), message: m });
+        if !matched.contains(k) {
+            add(format!("the known {pass} entry \"{message}\" no longer occurs; remove it from {KNOWN}"));
+        } else if reason.trim().is_empty() {
+            add(format!("the known {pass} entry \"{message}\" has no reason"));
+        }
+        if head.is_some() && !at_head.contains(k) {
+            add(format!("the known {pass} entry \"{message}\" is new since HEAD; {KNOWN} only shrinks, fix the finding instead"));
+        }
+    }
+    (fresh, matched.len())
+}
+
 pub fn check(root: &Path, write: bool) -> Report {
+    check_with(root, write, false)
+}
+
+pub fn check_with(root: &Path, write: bool, write_known: bool) -> Report {
     let Some(manifest) = read_json(&root.join(MANIFEST)) else {
         let e = format!("{MANIFEST} is missing or not JSON");
         return Report { json: json!({ "error": e }), findings: vec![e] };
@@ -313,17 +386,19 @@ pub fn check(root: &Path, write: bool) -> Report {
     for f in &found {
         *by_pass.entry(f.pass).or_default() += 1;
     }
+    let total = found.len();
+    let (found, known) = apply_known(root, found, write_known);
     let list: Vec<Json> = found.iter().map(|f| json!({ "pass": f.pass, "package": f.dir, "message": f.message })).collect();
     let findings = found.iter().map(|f| format!("{}: {} ({})", f.dir, f.message, f.pass)).collect();
     let types_json: Json = by_type.iter().map(|(k, (n, ok))| (k.clone(), json!({ "packages": n, "passing": ok }))).collect::<serde_json::Map<_, _>>().into();
-    let json = json!({ "mode": "report-only", "packages": packages.len(), "typed": typed.len(), "passing": passing, "unlisted": packages.len() - typed.len(), "generatedRegions": regions, "byPass": by_pass, "byType": types_json, "findings": list });
+    let json = json!({ "mode": "report-only", "packages": packages.len(), "typed": typed.len(), "passing": passing, "unlisted": packages.len() - typed.len(), "findingsTotal": total, "known": known, "new": found.len(), "generatedRegions": regions, "byPass": by_pass, "byType": types_json, "findings": list });
     Report { json, findings }
 }
 
 /// `check --layout [--strict]`.
 pub fn run(args: &[String]) -> Option<i32> {
     let p = wf_kit::args::parse_spec(args, &LAYOUT)?;
-    let report = check(&wf_kit::root::repo_root(), p.flag("write"));
+    let report = check_with(&wf_kit::root::repo_root(), p.flag("write"), p.flag("write-known"));
     println!("{}", report.json);
     for found in &report.findings {
         wf_kit::wf_err!("wf: layout: {found}");

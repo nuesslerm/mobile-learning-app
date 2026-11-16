@@ -1,0 +1,690 @@
+{
+  "version": 1,
+  "note": "Findings of `wf check --layout` that exist today. The file only shrinks: an entry that no longer occurs must be removed, and an entry added since HEAD fails the check. `wf check --layout --write-known` rewrites it from the current findings.",
+  "known": [
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "depends on rca-group-agent (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "depends on rca-group-attachments (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "depends on rca-group-catalog (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "depends on rca-group-git (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "depends on rca-group-hosted (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "depends on rca-group-preview (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "depends on rca-group-schedules (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "depends on rca-group-state (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "depends on rca-group-terminal (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "depends on rca-group-workspace (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "dev-depends on rca-group-agent (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract, rust-testkit]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "dev-depends on rca-group-attachments (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract, rust-testkit]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "dev-depends on rca-group-catalog (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract, rust-testkit]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "dev-depends on rca-group-hosted (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract, rust-testkit]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "dev-depends on rca-group-preview (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract, rust-testkit]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "edges",
+      "package": "backend/remote-chat-agent/service-core",
+      "message": "dev-depends on rca-group-state (rust-flat-adapter); type rust-core may depend on [rust-core, rust-contract, rust-testkit]",
+      "reason": "edge predates its type: decided in H6"
+    },
+    {
+      "pass": "membership",
+      "package": "backend/remote-chat-agent/agent-core",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "backend/remote-chat-agent/exec-channel",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "backend/remote-chat-agent/host",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "backend/remote-chat-agent/opencode",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "backend/remote-chat-agent/render",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "backend/remote-chat-agent/speech",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "backend/service-kit",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "backend/vm-ops-api/integration",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/agent-config-sync",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/blob-cache",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/cdp",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/deploy",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/harness-android",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/harness-browser",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/harness-core",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/harness-flow",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/http",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/knowledge",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/lib",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/mimic/core",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/mimic/script/core",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/mimic/script/host",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/mimic/script/net",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/mimic/script/orca",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/mimic",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/offload",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/core",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/crypto",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/map-accounts",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/map-agent",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/map-git",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/map-hosted",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/map-mobile",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/map-schedules",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/map-settings",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/map-state",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/map-terminal",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve/map-workspace",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/orca-serve",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/parity/core",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/parity",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/pipeline",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/secrets",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/t3-serve/contracts",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/t3-serve/core",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/t3-serve/http",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/t3-serve/store",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/t3-serve",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/telemetry",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/vnc-auth-capture/listener",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/vnc-auth-capture",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/wf-bench",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/wf-bucket",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/wf-harness",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/wf-kit",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/wf-lazy",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/wf-login",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/wf-vmops",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "clis/wf",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/feature-kit",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/app-config",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/app-di",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/flow-test-harness",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/gesture-geometry",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/lint-rules",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/logging",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/remote-chat-agent-contracts",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/rn-agentation",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/tamagui-design-system",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/libraries/voice-edit-dsl",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "frontend/mla-tamagui",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "infra/oracle-cloud/watchdog",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/agent-api/agent-api-client",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/agent-api/exec-fs",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/agent-api/exec-git",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/agent-api/exec-hosted",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/agent-api/exec-preview",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/agent-api/exec-proc",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/agent-api/exec-proto",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/agent-api/exec-pty",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/browser-client",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/hook-runtime",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/rca-core/plugins/ladder",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "libraries/rca-core",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness/contracts",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness/data",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness/di",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness/ui",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness/use-cases",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/browser-harness",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "membership",
+      "package": "tooling/mimic-drivers",
+      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
+      "reason": "not yet typed: opts in with its section H item"
+    },
+    {
+      "pass": "placement",
+      "package": "clis/rca-exec",
+      "message": "src/help is not part of type rust-single-hexagon; allowed: lib.rs, domain, domain.rs, adapters, adapters.rs, bin, bin.rs",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "clis/rca-exec",
+      "message": "src/help_table.rs is not part of type rust-single-hexagon; allowed: lib.rs, domain, domain.rs, adapters, adapters.rs, bin, bin.rs",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "clis/rca-exec",
+      "message": "src/hosted is not part of type rust-single-hexagon; allowed: lib.rs, domain, domain.rs, adapters, adapters.rs, bin, bin.rs",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "clis/rca-exec",
+      "message": "src/verbs.rs is not part of type rust-single-hexagon; allowed: lib.rs, domain, domain.rs, adapters, adapters.rs, bin, bin.rs",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "libraries/agent-api/agent-api-agent",
+      "message": "src/lifecycle is not part of type rust-contract; allowed: *.rs, testing",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "libraries/agent-api/agent-api-agent",
+      "message": "src/queue is not part of type rust-contract; allowed: *.rs, testing",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    },
+    {
+      "pass": "placement",
+      "package": "libraries/agent-api/agent-api-agent",
+      "message": "src/requests is not part of type rust-contract; allowed: *.rs, testing",
+      "reason": "layout predates its type: fixed or retyped in a later H item"
+    }
+  ]
+}

@@ -312,3 +312,103 @@ fn a_key_is_generated_only_for_a_directory_the_package_has() {
     assert!(text.contains("  libraries/kit-b/src:\n"), "{text}");
     assert!(!text.contains("libraries/kit-b/src/bin"), "{text}");
 }
+
+fn git(root: &Path, args: &[&str]) {
+    let out = std::process::Command::new("git").args(["-c", "user.email=t@t", "-c", "user.name=t", "-c", "commit.gpgsign=false"]).args(args).current_dir(root).output().unwrap();
+    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+}
+
+fn known_entries(root: &Path) -> Vec<Value> {
+    let doc: Value = serde_json::from_str(&std::fs::read_to_string(root.join("clis/pipeline/data/layout-known.json")).unwrap()).unwrap();
+    doc["known"].as_array().unwrap().clone()
+}
+
+#[test]
+fn a_known_finding_passes_strictly_and_a_new_one_fails() {
+    // Given an untyped crate recorded in the known file
+    let dir = repo();
+    let root = dir.path();
+    crate_at(root, "libraries/old", "old", None, "", &["lib.rs"]);
+    assert_eq!(run(root, &["--write-known"]).exit_code, 0);
+    // When the check runs strictly, then plants a second untyped crate and runs again
+    let before = run(root, &["--strict"]);
+    crate_at(root, "libraries/fresh", "fresh", None, "", &["lib.rs"]);
+    let after = run(root, &["--strict"]);
+    // Then the known one is counted and passes, and the planted one fails the gate by name
+    assert_eq!(before.exit_code, 0, "{}", before.stderr);
+    assert_eq!((report(&before)["known"].as_u64(), report(&before)["new"].as_u64()), (Some(1), Some(0)));
+    assert_eq!(after.exit_code, 1);
+    assert!(messages(&report(&after), "membership").iter().any(|m| m.starts_with("libraries/fresh:")), "{}", after.stdout);
+}
+
+#[test]
+fn a_known_entry_that_no_longer_occurs_must_be_removed() {
+    // Given a known untyped crate that then opts into a type
+    let dir = repo();
+    let root = dir.path();
+    crate_at(root, "libraries/old", "old", None, "", &["lib.rs"]);
+    run(root, &["--write-known"]);
+    crate_at(root, "libraries/old", "old", Some("rust-contract"), "", &["lib.rs"]);
+    // When the check runs strictly
+    let r = run(root, &["--strict"]);
+    // Then the stale entry is a finding, and rewriting the known file empties it
+    assert_eq!(r.exit_code, 1);
+    assert!(messages(&report(&r), "known").iter().any(|m| m.contains("no longer occurs")), "{}", r.stdout);
+    run(root, &["--write-known"]);
+    assert_eq!(known_entries(root).len(), 0);
+    assert_eq!(run(root, &["--strict"]).exit_code, 0);
+}
+
+#[test]
+fn an_entry_added_to_the_known_file_since_the_last_commit_fails() {
+    // Given a committed known file with one entry, and a second untyped crate added afterwards
+    let dir = repo();
+    let root = dir.path();
+    crate_at(root, "libraries/old", "old", None, "", &["lib.rs"]);
+    run(root, &["--write-known"]);
+    git(root, &["init", "-q"]);
+    git(root, &["add", "-A"]);
+    git(root, &["commit", "-q", "-m", "base"]);
+    crate_at(root, "libraries/fresh", "fresh", None, "", &["lib.rs"]);
+    // When the known file is regenerated to swallow it
+    run(root, &["--write-known"]);
+    let r = run(root, &["--strict"]);
+    // Then the check refuses the growth
+    assert_eq!(r.exit_code, 1);
+    assert!(messages(&report(&r), "known").iter().any(|m| m.starts_with("libraries/fresh:") && m.contains("only shrinks")), "{}", r.stdout);
+}
+
+#[test]
+fn a_known_entry_without_a_reason_fails() {
+    // Given a known file whose entry has an empty reason
+    let dir = repo();
+    let root = dir.path();
+    crate_at(root, "libraries/old", "old", None, "", &["lib.rs"]);
+    run(root, &["--write-known"]);
+    let path = root.join("clis/pipeline/data/layout-known.json");
+    std::fs::write(&path, std::fs::read_to_string(&path).unwrap().replace("not yet typed: opts in with its section H item", "")).unwrap();
+    // When the check runs strictly
+    let r = run(root, &["--strict"]);
+    // Then the entry is reported as lacking a reason
+    assert_eq!(r.exit_code, 1);
+    assert!(messages(&report(&r), "known").iter().any(|m| m.contains("has no reason")), "{}", r.stdout);
+}
+
+#[test]
+fn a_known_missing_required_file_is_recorded_and_a_planted_one_fails() {
+    // Given a rs crate missing main.rs that is recorded as known, then a core missing lib.rs planted
+    let dir = repo();
+    let root = dir.path();
+    crate_at(root, "backend/svc/rs", "svc-rs", Some("rust-rs"), "", &["lib.rs", "api/mod.rs", "infrastructure/mod.rs"]);
+    run(root, &["--write-known"]);
+    let known = run(root, &["--strict"]);
+    crate_at(root, "backend/svc/core", "svc-core", Some("rust-core"), "", &["domain/mod.rs"]);
+    // When the check runs strictly again
+    let planted = run(root, &["--strict"]);
+    // Then only the planted missing lib.rs fails
+    assert_eq!(known.exit_code, 0, "{}", known.stderr);
+    assert_eq!(planted.exit_code, 1);
+    let found = report(&planted);
+    assert!(messages(&found, "placement").iter().any(|m| m.starts_with("backend/svc/core:") && m.contains("requires src/lib.rs")), "{found}");
+    assert!(!messages(&found, "placement").iter().any(|m| m.starts_with("backend/svc/rs:")), "{found}");
+}

@@ -46,6 +46,12 @@ pre-commit:
       glob: '{backend/**/*.rs,libraries/agent-api/**/*.rs,clis/rca-exec/src/domain.rs,.ls-lint.yml,backend/sgconfig.yml,backend/arch-rules/**,backend/arch-utils/**,backend/arch-tests/**,libraries/rca-core/**/*.rs,clis/sgconfig.yml,clis/arch-rules/**,clis/arch-utils/**,clis/rule-tests/**,libraries/hook-runtime/src/**,tooling/browser-harness/*/src/**,scripts/**}'
       run: pnpm run arch:services
 
+    - name: layout
+      # Every package declares a package type, sits and depends the way the type says (`wf check --layout`); a finding not in the shrink-only
+      # clis/pipeline/data/layout-known.json fails, and so does a known entry that no longer occurs.
+      glob: '{**/Cargo.toml,**/package.json,**/project.json,clis/pipeline/data/*.json,.ls-lint.yml,**/src/*}'
+      run: cargo run -q --locked --manifest-path clis/Cargo.toml -p wf-lazy -- check --layout --strict
+
     - name: workflows
       # The pipeline crate's flow tests read every workflow and action as text (no step writes into the checkout, the jobs the callers share, the tags). Always run, through Nx:
       # `.github/**` is an input of the task, so an unchanged tree replays in about 2 s and a changed one runs (about 15 s); actionlint alone let a red workflow reach CI once.
