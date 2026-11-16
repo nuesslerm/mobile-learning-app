@@ -343,6 +343,16 @@ fn is_ours(r: &Recorded) -> bool {
     std::fs::read(format!("/proc/{}/cmdline", r.pid)).is_ok_and(|c| String::from_utf8_lossy(&c).contains(&r.bin))
 }
 
+/// `is_ours`, or a process that is exiting: its command line is already empty but it is not yet a zombie, and a stop that returns then reports a pid that is still listed.
+fn still_there(r: &Recorded) -> bool {
+    if is_ours(r) {
+        return true;
+    }
+    let Ok(stat) = std::fs::read_to_string(format!("/proc/{}/stat", r.pid)) else { return false };
+    let state = stat.rsplit_once(')').and_then(|(_, rest)| rest.trim().chars().next());
+    state != Some('Z') && std::fs::read(format!("/proc/{}/cmdline", r.pid)).is_ok_and(|c| c.is_empty())
+}
+
 fn kill_group(pid: u32, hard: bool) {
     use nix::sys::signal::{killpg, Signal};
     let _ = killpg(nix::unistd::Pid::from_raw(pid as i32), if hard { Signal::SIGKILL } else { Signal::SIGTERM });
@@ -357,10 +367,10 @@ fn stop_all(all: &[Recorded]) -> Vec<Value> {
             } else {
                 kill_group(r.pid, false);
                 let deadline = Instant::now() + STOP_WAIT;
-                while is_ours(r) && Instant::now() < deadline {
+                while still_there(r) && Instant::now() < deadline {
                     std::thread::sleep(Duration::from_millis(50));
                 }
-                if is_ours(r) {
+                if still_there(r) {
                     kill_group(r.pid, true);
                     "kill"
                 } else {
