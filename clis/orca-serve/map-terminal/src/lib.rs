@@ -7,6 +7,8 @@ use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::{Area, AgentApi, AgentError, Ctx, Kind, Method};
 use serde_json::{json, Value};
 
+#[allow(dead_code)] // the stream units that follow call these
+mod replay;
 mod tabs;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
