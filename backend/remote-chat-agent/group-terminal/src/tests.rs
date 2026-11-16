@@ -259,6 +259,9 @@ async fn given_an_opened_terminal_when_input_is_written_then_the_attached_stream
     assert_eq!((again["result"]["start_offset"].clone(), again["result"]["reset"].clone()), (json!(7), json!(false)));
     second.until("the tail", |e| e.last().is_some_and(|e| e.seq == 15)).await;
     assert_eq!((second.text(), second.events().iter().any(|e| e.kind == "terminal.snapshot")), ("got:pwd\n".to_string(), false));
+    // And a read after offset 7 answers the same rest as one reply
+    let read = rig.ask(api::READ, json!({"workspace": "w1", "terminal": "t1", "after_offset": 7})).await;
+    assert_eq!((read["result"]["start_offset"].clone(), read["result"]["offset"].clone(), b64::decode(read["result"]["data"].as_str().unwrap()).unwrap()), (json!(7), json!(15), b"got:pwd\n".to_vec()));
 }
 
 #[tokio::test]

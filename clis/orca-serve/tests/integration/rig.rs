@@ -214,6 +214,94 @@ pub struct Direct {
     client: agent_api_client::Client,
 }
 
+/// A terminal stream the phone opened with the binary stream and output credit: the request that carries its text frames, the number its binary
+/// frames carry, the token that acknowledges and resumes it, and the JSON answer it opened with.
+pub struct TerminalStream {
+    pub request: String,
+    pub number: u32,
+    pub token: String,
+    pub opened: Value,
+}
+
+/// What the phone read of a stream's snapshot or output: the text, and the UTF-16 units of the Output frames, which is what it acknowledges.
+#[derive(Default)]
+pub struct Heard {
+    pub text: String,
+    pub units: u64,
+}
+
+pub fn phone_client_params(handle: &str, resume: Option<(&str, u64)>) -> Value {
+    let mut params = json!({"terminal": handle, "client": {"id": "chain-phone", "type": "mobile"}, "capabilities": {"terminalBinaryStream": 1, "outputAck": 1}});
+    if let Some((token, units)) = resume {
+        params["resume"] = json!({"streamToken": token, "units": units});
+    }
+    params
+}
+
+impl Phone {
+    /// `terminal.subscribe` as the phone makes it, as one call of the trace: served when the host opens a stream with `subscribed`.
+    pub fn subscribe_terminal(&mut self, case: &mut Case, chain: &Chain, handle: &str, resume: Option<(&str, u64)>) -> TerminalStream {
+        let (request, opened) = self.subscribe(case, chain, &["rpc:terminal.subscribe"], "terminal.subscribe", phone_client_params(handle, resume));
+        let result = &opened["result"];
+        assert_eq!(result["type"], json!("subscribed"), "{opened}");
+        TerminalStream { request, number: result["streamId"].as_u64().expect("a stream number") as u32, token: result["streamToken"].as_str().expect("a stream token").to_string(), opened }
+    }
+
+    /// The next binary frame of the stream, decoded with the mapper's own codec.
+    fn terminal_frame(&mut self, stream: &TerminalStream) -> (u8, u64, Vec<u8>) {
+        let bytes = self.client.next_binary().expect("the socket stays open");
+        let frame = orca_map_terminal::binary::decode(&bytes).expect("a terminal frame");
+        assert_eq!(frame.stream, stream.number, "a frame of another stream");
+        (frame.opcode, frame.seq, frame.payload.to_vec())
+    }
+
+    /// The snapshot the stream opens with, from its start frame to its end frame.
+    pub fn snapshot(&mut self, stream: &TerminalStream) -> String {
+        use orca_map_terminal::binary::op;
+        let (opcode, _, _) = self.terminal_frame(stream);
+        assert_eq!(opcode, op::SNAPSHOT_START);
+        let mut text = Vec::new();
+        loop {
+            let (opcode, _, payload) = self.terminal_frame(stream);
+            match opcode {
+                op::SNAPSHOT_CHUNK => text.extend(payload),
+                op::SNAPSHOT_END => return String::from_utf8_lossy(&text).into_owned(),
+                other => panic!("opcode {other} inside a snapshot"),
+            }
+        }
+    }
+
+    /// Output frames until their text holds `needle`.
+    pub fn output_until(&mut self, stream: &TerminalStream, needle: &str) -> Heard {
+        use orca_map_terminal::binary::op;
+        let mut heard = Heard::default();
+        while !heard.text.contains(needle) {
+            let (opcode, _, payload) = self.terminal_frame(stream);
+            if opcode == op::OUTPUT {
+                let text = String::from_utf8(payload).expect("Output frames carry text");
+                heard.units += text.encode_utf16().count() as u64;
+                heard.text.push_str(&text);
+            }
+        }
+        heard
+    }
+
+    /// The Resized announcement of the stream, past any output before it.
+    pub fn resized(&mut self, stream: &TerminalStream) -> Value {
+        loop {
+            let (opcode, _, payload) = self.terminal_frame(stream);
+            if opcode == orca_map_terminal::binary::op::RESIZED {
+                return serde_json::from_slice(&payload).expect("a JSON body");
+            }
+        }
+    }
+
+    /// An Input, Resize or Unsubscribe frame to the stream.
+    pub fn send_terminal_frame(&mut self, stream: &TerminalStream, opcode: u8, payload: &[u8]) {
+        self.client.send_sealed_binary(&orca_map_terminal::binary::encode(opcode, stream.number, 0, payload));
+    }
+}
+
 /// How long the chain waits for rca to log what a scripted turn does.
 const SETTLE: std::time::Duration = std::time::Duration::from_secs(30);
 

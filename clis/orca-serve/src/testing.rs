@@ -164,6 +164,7 @@ pub struct PhoneClient {
     entropy: SystemEntropy,
     next_id: u64,
     stashed: std::collections::VecDeque<Value>,
+    binaries: std::collections::VecDeque<Vec<u8>>,
 }
 
 impl PhoneClient {
@@ -173,7 +174,7 @@ impl PhoneClient {
         let request = format!("ws://{addr}/").into_client_request().unwrap();
         let (ws, _) = tungstenite::client(request, stream).expect("a WebSocket upgrade");
         let keys = KeyPair::generate(&SystemEntropy);
-        PhoneClient { ws, keys: None, secret: keys.secret, public: keys.public, host_public, entropy: SystemEntropy, next_id: 0, stashed: Default::default() }
+        PhoneClient { ws, keys: None, secret: keys.secret, public: keys.public, host_public, entropy: SystemEntropy, next_id: 0, stashed: Default::default(), binaries: Default::default() }
     }
 
     pub fn send_raw(&mut self, text: &str) {
@@ -242,18 +243,59 @@ impl PhoneClient {
         self.send_raw(&text);
     }
 
+    /// The next sealed text frame; binary frames before it are kept for `next_binary`.
     pub fn recv_sealed(&mut self) -> Result<Value, Closed> {
-        let Message::Text(text) = self.recv_message()? else { panic!("expected a sealed text frame") };
+        loop {
+            match self.recv_message()? {
+                Message::Text(text) => return Ok(self.open_text(text.as_str())),
+                Message::Binary(bytes) => {
+                    let plain = self.open_binary(&bytes);
+                    self.binaries.push_back(plain);
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    fn open_text(&mut self, text: &str) -> Value {
         let plain = match self.keys.as_mut().expect("a hello came first") {
             Keys::V2 { from_host, session, inn, .. } => {
-                let frame = b64::decode_canonical(text.as_str()).expect("canonical base64");
+                let frame = b64::decode_canonical(text).expect("canonical base64");
                 let plain = v2_frame::open(from_host, session, Direction::DesktopToMobile, Kind::Text, *inn, &frame).expect("a frame this phone can open");
                 *inn += 1;
                 String::from_utf8(plain).expect("UTF-8")
             }
-            Keys::Legacy(c) => c.open_text(text.as_str()).expect("a frame this phone can open"),
+            Keys::Legacy(c) => c.open_text(text).expect("a frame this phone can open"),
         };
-        Ok(serde_json::from_str(&plain).expect("sealed JSON"))
+        serde_json::from_str(&plain).expect("sealed JSON")
+    }
+
+    fn open_binary(&mut self, bytes: &[u8]) -> Vec<u8> {
+        match self.keys.as_mut().expect("a hello came first") {
+            Keys::V2 { from_host, session, inn, .. } => {
+                let plain = v2_frame::open(from_host, session, Direction::DesktopToMobile, Kind::Binary, *inn, bytes).expect("a frame this phone can open");
+                *inn += 1;
+                plain
+            }
+            Keys::Legacy(c) => c.open_bytes(bytes).expect("a frame this phone can open"),
+        }
+    }
+
+    /// The next binary frame, opened: one kept from an earlier read, or the next to arrive. Text frames read on the way are kept for `next_stream_frame`.
+    pub fn next_binary(&mut self) -> Result<Vec<u8>, Closed> {
+        loop {
+            if let Some(plain) = self.binaries.pop_front() {
+                return Ok(plain);
+            }
+            match self.recv_message()? {
+                Message::Text(text) => {
+                    let frame = self.open_text(text.as_str());
+                    self.stashed.push_back(frame);
+                }
+                Message::Binary(bytes) => return Ok(self.open_binary(&bytes)),
+                _ => unreachable!(),
+            }
+        }
     }
 
     /// Seals `plaintext` as a binary frame in the connection's framing and sends it.
@@ -271,15 +313,11 @@ impl PhoneClient {
 
     /// The next frame, which must be a sealed binary one, opened.
     pub fn recv_sealed_binary(&mut self) -> Result<Vec<u8>, Closed> {
+        if let Some(plain) = self.binaries.pop_front() {
+            return Ok(plain);
+        }
         let Message::Binary(bytes) = self.recv_message()? else { panic!("expected a sealed binary frame") };
-        Ok(match self.keys.as_mut().expect("a hello came first") {
-            Keys::V2 { from_host, session, inn, .. } => {
-                let plain = v2_frame::open(from_host, session, Direction::DesktopToMobile, Kind::Binary, *inn, &bytes).expect("a frame this phone can open");
-                *inn += 1;
-                plain
-            }
-            Keys::Legacy(c) => c.open_bytes(&bytes).expect("a frame this phone can open"),
-        })
+        Ok(self.open_binary(&bytes))
     }
 
     /// Sends `e2ee_auth` with the token (in the shape the framing needs) and returns the host's sealed answer.

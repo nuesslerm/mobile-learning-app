@@ -3,6 +3,7 @@
 //! from the service's own stream: the typed command is computed, so its output is not what was typed.
 use crate::rig::*;
 use agent_api_terminal::{b64, ATTACH};
+use orca_map_terminal::binary::op;
 use serde_json::{json, Value};
 use std::time::{Duration, Instant};
 
@@ -176,5 +177,74 @@ fn a_phone_creates_lists_activates_and_closes_terminal_tabs_and_each_call_reache
         assert!(ran(case, "pty_close"), "{}", chain.evidence());
         assert_eq!(closed["result"]["closed"], json!(true));
         assert_eq!(direct.call("terminal", "terminal.list", json!({"workspace": WS})).unwrap()["terminals"].as_array().unwrap().len(), 1);
+    });
+}
+
+#[test]
+fn a_phone_streams_a_real_shell_over_the_binary_stream_types_into_it_and_resumes_with_only_what_it_missed_and_the_stream_ends_when_it_asks() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a shell on the executor that has printed a computed answer, and a paired phone
+        let chain = Chain::start(None);
+        let mut direct = chain.direct();
+        direct.call("terminal", "terminal.open", json!({"workspace": WS, "terminal": "t1"})).expect("the service opens the shell");
+        let mut phone = Phone::connect(case, &chain);
+        let handle = format!("{WS}:t1");
+        let client = json!({"id": "chain-phone", "type": "mobile"});
+        phone.call(case, &chain, &["rpc:terminal.send"], "terminal.send", json!({"terminal": handle, "text": "echo before-$((40+2))", "enter": true}));
+        screen_until(&mut direct, "before-42");
+        // When the phone opens an input session, fits the terminal to its viewport and subscribes to the stream
+        let session = phone.call(case, &chain, &["rpc:terminal.openInputSession"], "terminal.openInputSession", json!({"terminal": handle, "client": client}));
+        assert_eq!(session["result"]["inputSessionId"], Value::Null);
+        phone.call(case, &chain, &["rpc:terminal.updateViewport"], "terminal.updateViewport", json!({"terminal": handle, "client": client, "viewport": {"cols": 64, "rows": 20}}));
+        answered(case, "terminal.resize", true);
+        let first = phone.subscribe_terminal(case, &chain, &handle, None);
+        // Then rca was read and attached, and the snapshot replays what the shell printed
+        answered(case, "terminal.read", true);
+        answered(case, "terminal.attach", true);
+        assert_eq!((first.opened["result"]["outputAck"].clone(), first.opened["result"]["cols"].clone(), first.opened["result"]["rows"].clone()), (json!(true), json!(64), json!(20)));
+        let snapshot = phone.snapshot(&first);
+        assert!(snapshot.contains("before-42"), "{snapshot:?}");
+        // When it types a command as an Input frame
+        phone.send_terminal_frame(&first, op::INPUT, b"echo live-$((50+5))\r");
+        // Then the shell's own bytes of its computed output arrive as Output frames
+        let live = phone.output_until(&first, "live-55");
+        assert!(live.units > 0);
+        // When it acknowledges what it heard
+        let credited = phone.call(case, &chain, &["rpc:terminal.ackOutput"], "terminal.ackOutput", json!({"streamToken": first.token, "units": live.units}));
+        // Then the credit is taken for the live token
+        assert_eq!(credited["result"]["credited"], json!(true));
+        // When it drops the stream with an Unsubscribe frame
+        phone.send_terminal_frame(&first, op::UNSUBSCRIBE, b"");
+        // Then the stream ends, and its token no longer takes credit
+        assert_eq!(phone.next_frame(&first.request)["result"], json!({"type": "end"}));
+        let spent = phone.call(case, &chain, &["rpc:terminal.ackOutput"], "terminal.ackOutput", json!({"streamToken": first.token, "units": 1}));
+        assert_eq!(spent["result"]["credited"], json!(false));
+        // When the shell prints more while nobody watches, and the phone subscribes again with its token and the units it heard
+        phone.call(case, &chain, &["rpc:terminal.send"], "terminal.send", json!({"terminal": handle, "text": "echo away-$((60+6))", "enter": true}));
+        screen_until(&mut direct, "away-66");
+        let second = phone.subscribe_terminal(case, &chain, &handle, Some((&first.token, live.units)));
+        // Then the stream is a resumed one that carries the missed output and not what the phone already had
+        assert_eq!(second.opened["result"]["resumed"], json!(true), "{}", second.opened);
+        assert_ne!(second.token, first.token);
+        let missed = phone.output_until(&second, "away-66");
+        assert!(!missed.text.contains("before-42") && !missed.text.contains("live-55"), "{:?}", missed.text);
+        // When it resizes the stream with a Resize frame
+        phone.send_terminal_frame(&second, op::RESIZE, br#"{"cols": 72, "rows": 22}"#);
+        // Then the stream announces the new size and the executor's pty has it
+        let announced = phone.resized(&second);
+        assert_eq!((announced["cols"].clone(), announced["rows"].clone()), (json!(72), json!(22)));
+        let listed = direct.call("terminal", "terminal.list", json!({"workspace": WS})).unwrap();
+        let size = (listed["terminals"][0]["cols"].clone(), listed["terminals"][0]["rows"].clone());
+        assert_eq!(size, (json!(72), json!(22)));
+        // When it names the stream to terminal.unsubscribe
+        let ended = phone.call(case, &chain, &["rpc:terminal.unsubscribe"], "terminal.unsubscribe", json!({"subscriptionId": handle, "requestId": second.request}));
+        // Then it is acknowledged and the stream ends
+        assert_eq!(ended["result"], json!({"unsubscribed": true}));
+        assert_eq!(phone.next_frame(&second.request)["result"], json!({"type": "end"}));
+        // When it closes the terminal and subscribes again
+        phone.call(case, &chain, &["rpc:terminal.close"], "terminal.close", json!({"terminal": handle}));
+        let stale = phone.refused(case, &chain, &["rpc:terminal.subscribe"], "terminal.subscribe", phone_client_params(&handle, None));
+        // Then the handle is refused as stale
+        assert_eq!(stale["error"]["code"], json!("terminal_handle_stale"));
     });
 }
