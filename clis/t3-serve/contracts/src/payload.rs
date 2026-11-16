@@ -3,7 +3,7 @@
 use serde_json::{Map, Value};
 
 /// Fields in the order the contract's struct declares them: `name:kind`, kind `s` string, `n` number, `b` boolean, `a` array, `o` object, `sn` string or null, `p(day|http|npm)` a string matching a contract pattern, `l(x|y)` one of
-/// the literals, a trailing `?` for an optional key, a trailing `~` for an optional key that also takes null (its defect names `| null`). What a field holds beyond its kind (a string's trim and length, an array's items) is the handler's.
+/// the literals, `ln(x|y)` one of the numeric literals, `pi` an integer above 0, `pp` a port (above 0 and below 65536), `vp` a preview viewport setting, `ns` a navigation status, a trailing `?` for an optional key, a trailing `~` for an optional key that also takes null (its defect names `| null`). What a field holds beyond its kind (a string's trim and length, an array's items) is the handler's.
 const SCHEMAS: &[(&str, &str)] = &[
     ("provider.install.start", "instanceId:s"),
     ("provider.install.cancel", "instanceId:s operationId:s"),
@@ -83,7 +83,12 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("shell.openInEditor", "cwd:s editor:l(cursor|trae|kiro|vscode|vscode-insiders|vscodium|zed|antigravity|idea|aqua|clion|datagrip|dataspell|goland|phpstorm|pycharm|rider|rubymine|rustrover|webstorm|file-manager) reveal:b?"),
     ("peerLinks.unlink", "environmentId:s"),
     ("preview.clearProfile", "profileId:s"),
-    ("preview.stopLocalServer", "pid:n port:n"),
+    ("preview.stopLocalServer", "pid:pi port:pp"),
+    ("preview.reportProfiles", "profiles:a(browserProfile) defaultProfileId:s recordingFrameRate:ln(30|60)~"),
+    ("preview.open", "threadId:s url:s~ viewport:vp~ profileId:s~ runtime:l(desktop|server)~ reveal:b~"),
+    ("preview.reportStatus", "threadId:s tabId:s navStatus:ns canGoBack:b canGoForward:b"),
+    ("preview.resize", "threadId:s tabId:s viewport:vp"),
+    ("preview.adjust", "threadId:s tabId:s colorScheme:l(system|light|dark)~ zoomFactor:ln(0.25|0.33|0.5|0.67|0.75|0.8|0.9|1|1.1|1.25|1.5|1.75|2|2.5|3|4|5)~ hardReload:b~ clear:l(cookies|cache)~"),
     ("scheduledTasks.listWebhookDeliveries", "id:s acceptAnyOutcome:b?"),
     ("scheduledTasks.getWebhookDelivery", "id:s deliveryId:s acceptAnyOutcome:b?"),
     ("attachments.delete", "attachmentId:s"),
@@ -116,6 +121,7 @@ const NESTED: &[(&str, &str)] = &[
     ("keybindingRule", "key:s command:kc when:s?"),
     ("textGenerator", "kind:l(openaiCompatible|anthropic) label:s? baseUrl:p(url) enabled:b?"),
     ("settingsPatch", "setModelFavorites:a(favoriteItem)? setModelsHidden:a(hiddenItem)? setProviderModelOrder:o(modelOrder)?"),
+    ("browserProfile", "id:s name:s kind:l(persistent|incognito)"),
     ("settledCursor", "settledAt:s threadId:s?"),
     ("favoriteItem", "provider:s model:s favorite:b"),
     ("hiddenItem", "provider:s model:s hidden:b"),
@@ -192,9 +198,23 @@ fn pattern(name: &str) -> (&'static str, fn(&str) -> bool) {
     }
 }
 
+const VIEWPORT_TAGS: [&str; 3] = ["fill", "freeform", "preset"];
+const NAV_TAGS: [&str; 4] = ["Idle", "Loading", "Success", "LoadFailed"];
+
+fn tagged_union(tags: &[&str], key: &str) -> String {
+    tags.iter().map(|t| format!("{{ readonly \"{key}\": \"{t}\", ... }}")).collect::<Vec<_>>().join(" | ")
+}
+
+fn tag_in(value: &Value, tags: &[&str]) -> bool {
+    value.get("_tag").and_then(Value::as_str).is_some_and(|t| tags.contains(&t))
+}
+
 fn expected(kind: &str) -> String {
     match kind {
-        "n" => "number".into(),
+        "n" | "pi" | "pp" => "number".into(),
+        "vp" => tagged_union(&VIEWPORT_TAGS, "_tag"),
+        "ns" => tagged_union(&NAV_TAGS, "_tag"),
+        k if k.starts_with("ln(") => k[3..k.len() - 1].split('|').collect::<Vec<_>>().join(" | "),
         "b" => "boolean".into(),
         "a" => "array".into(),
         "o" => "object".into(),
@@ -215,7 +235,10 @@ fn expected(kind: &str) -> String {
 
 fn is(kind: &str, value: &Value) -> bool {
     match kind {
-        "n" => value.is_number(),
+        "n" | "pi" | "pp" => value.is_number(),
+        "vp" => tag_in(value, &VIEWPORT_TAGS),
+        "ns" => tag_in(value, &NAV_TAGS),
+        k if k.starts_with("ln(") => value.as_f64().is_some_and(|n| k[3..k.len() - 1].split('|').any(|l| l.parse::<f64>().is_ok_and(|l| l == n))),
         "b" => value.is_boolean(),
         "a" => value.is_array(),
         "o" => value.is_object(),
@@ -243,7 +266,10 @@ fn minimal_of(schema: &str) -> Value {
     let fields = schema.split(' ').filter_map(|f| f.split_once(':')).filter(|(_, kind)| !kind.ends_with(['?', '~'])).map(|(name, kind)| {
         let value = match kind {
             k if k.ends_with('|') => Value::Null,
-            "n" => Value::from(1),
+            "n" | "pi" | "pp" => Value::from(1),
+            "vp" => serde_json::json!({"_tag": "fill"}),
+            "ns" => serde_json::json!({"_tag": "Idle"}),
+            k if k.starts_with("ln(") => k[3..k.len() - 1].split('|').next().and_then(|l| l.parse::<f64>().ok()).map_or(Value::Null, Value::from),
             "b" => Value::Bool(true),
             "a" => Value::Array(Vec::new()),
             "o" => Value::Object(Default::default()),
@@ -339,6 +365,12 @@ fn decode_in(schema: &str, body: &Map<String, Value>, prefix: &[String]) -> Opti
                     return Some(keybinding_command_defect(&at(&key)));
                 }
             }
+            Some(v) if kind == "pi" || kind == "pp" => match v.as_f64() {
+                None => return Some(format!("Expected number\n  at {}", at(&key))),
+                Some(n) if n.fract() == 0.0 && n <= 0.0 => return Some(format!("Expected a value greater than 0\n  at {}", at(&key))),
+                Some(n) if kind == "pp" && n.fract() == 0.0 && n >= 65536.0 => return Some(format!("Expected a value less than 65536\n  at {}", at(&key))),
+                Some(_) => {}
+            },
             Some(v) if kind.starts_with("r(") => {
                 let (low, high) = bounds(kind);
                 match v.as_f64() {
@@ -506,6 +538,28 @@ mod tests {
         assert_eq!(defect("provider.uploadFeedback", &json!({})).unwrap(), "Missing key\n  at [\"threadId\"]");
         assert_eq!(defect("provider.auth.removeMethod", &json!({"instanceId": 7, "methodId": "a"})).unwrap(), "Expected string\n  at [\"instanceId\"]");
         assert_eq!(command("provider.switch", json!({"commandId": "a", "threadId": "a", "modelSelection": {"model": "a"}})).unwrap(), "Expected string\n  at [\"modelSelection\"][\"instanceId\"]");
+    }
+
+    #[test]
+    fn a_preview_payload_names_the_first_field_that_does_not_decode() {
+        // Given the preview schemas with a port, a viewport union, a nav-status union and numeric literals
+        let stop = |port: Value| defect("preview.stopLocalServer", &json!({"pid": 1, "port": port}));
+        // Then a port of 0 or above 65535 and a non-number are refused as the pinned server does, a port in range decodes
+        assert_eq!(stop(json!(0)).unwrap(), "Expected a value greater than 0\n  at [\"port\"]");
+        assert_eq!(stop(json!(65536)).unwrap(), "Expected a value less than 65536\n  at [\"port\"]");
+        assert_eq!((stop(json!("a")).unwrap(), stop(json!(8080))), ("Expected number\n  at [\"port\"]".to_string(), None));
+        // And a viewport that is no tagged member, a nav status likewise, and a zoom outside the steps are the union's defects
+        let viewport = "Expected { readonly \"_tag\": \"fill\", ... } | { readonly \"_tag\": \"freeform\", ... } | { readonly \"_tag\": \"preset\", ... }";
+        assert_eq!(defect("preview.resize", &json!({"threadId": "a", "tabId": "a", "viewport": "a"})).unwrap(), format!("{viewport}\n  at [\"viewport\"]"));
+        assert_eq!(defect("preview.open", &json!({"threadId": "a", "viewport": "a"})).unwrap(), format!("{viewport} | null\n  at [\"viewport\"]"));
+        assert!(defect("preview.reportStatus", &json!({"threadId": "a", "tabId": "a", "navStatus": "a", "canGoBack": true, "canGoForward": true})).unwrap().starts_with("Expected { readonly \"_tag\": \"Idle\", ... } | "));
+        assert_eq!(defect("preview.adjust", &json!({"threadId": "a", "tabId": "a", "zoomFactor": "a"})).unwrap(), "Expected 0.25 | 0.33 | 0.5 | 0.67 | 0.75 | 0.8 | 0.9 | 1 | 1.1 | 1.25 | 1.5 | 1.75 | 2 | 2.5 | 3 | 4 | 5 | null\n  at [\"zoomFactor\"]");
+        assert_eq!(defect("preview.adjust", &json!({"threadId": "a", "tabId": "a", "zoomFactor": 2.0, "clear": null})), None);
+        // And the profiles array is checked before the default id, its rate is 30 or 60
+        assert_eq!(defect("preview.reportProfiles", &json!({"defaultProfileId": "a"})).unwrap(), "Missing key\n  at [\"profiles\"]");
+        assert_eq!(defect("preview.reportProfiles", &json!({"profiles": "wrong"})).unwrap(), "Expected array\n  at [\"profiles\"]");
+        assert_eq!(defect("preview.reportProfiles", &json!({"profiles": [], "defaultProfileId": "a", "recordingFrameRate": "x"})).unwrap(), "Expected 30 | 60 | null\n  at [\"recordingFrameRate\"]");
+        assert_eq!(defect("preview.reportProfiles", &json!({"profiles": [{"id": "a", "name": "a", "kind": "persistent"}], "defaultProfileId": "a", "recordingFrameRate": 60})), None);
     }
 
     #[test]
