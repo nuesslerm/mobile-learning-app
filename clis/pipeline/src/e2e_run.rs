@@ -102,7 +102,9 @@ fn run_unit(unit: &Unit, sha: &str, root: &Path, serial: Option<&str>, flags: &[
     let log = std::fs::read_to_string(dir.join("run.log")).unwrap_or_default();
     let timing = wf_harness::run_report::timing_summary(&std::fs::read_to_string(dir.join("timing.jsonl")).unwrap_or_default(), wall_ms);
     let report = device_run::report_in(&log).or_else(|| Some(dir.join("rec/report.html")).filter(|p| p.exists()).map(|p| p.display().to_string()));
-    let tail: Vec<&str> = log.lines().rev().take(15).collect::<Vec<_>>().into_iter().rev().collect();
+    // a unit that did not pass keeps more of its log: what the script printed before it failed (`log(...)`) is the only trace when no bundle can be read
+    let keep = if verdict == "pass" { 15 } else { 80 };
+    let tail: Vec<&str> = log.lines().rev().take(keep).collect::<Vec<_>>().into_iter().rev().collect();
     let bundle = log.lines().find_map(|l| l.strip_prefix("bundle: ")).map(str::to_string);
     let mut result = json!({
         "test": unit.test, "args": unit.args, "sha": sha, "script": unit.script, "platform": unit.platform, "verdict": verdict,
