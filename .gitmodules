@@ -3,7 +3,9 @@
 	path = references/orca
 	url = https://github.com/stablyai/orca.git
 	shallow = true
+	sparse = src/cli src/shared src/main mobile
 [submodule "references/t3code"]
 	path = references/t3code
 	url = https://github.com/pingdotgg/t3code.git
 	shallow = true
+	sparse = apps/mobile/src apps/mobile/deps apps/mobile/modules/t3-agent-notifications apps/mobile/modules/t3-composer-editor apps/mobile/modules/t3-highlights apps/mobile/modules/t3-native-controls apps/mobile/modules/t3-review-diff apps/mobile/modules/t3-source-text apps/mobile/modules/t3-subscription-widget apps/mobile/modules/t3-voice-transcription apps/mobile/modules/t3-web-socket apps/mobile/modules/t3-widget-expiry apps/mobile/modules/t3-terminal/ios apps/mobile/modules/t3-terminal/android apps/server packages
