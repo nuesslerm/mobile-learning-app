@@ -260,15 +260,27 @@ fn a_branchs_review_and_a_pull_requests_comments_are_read_through_gh_and_a_gitla
         let chain = Chain::start_hosted();
         let mut phone = Phone::connect(case, &chain);
         let list = json!([gh_pr(12, "Add retry to uploader", "OPEN", false, "feat/retry", "main")]).to_string();
-        let threads = json!({"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": [{"id": "PRRT_1", "isResolved": true, "isOutdated": false, "path": "src/retry.rs", "line": 14, "comments": {"nodes": [{"databaseId": 6001, "author": {"login": "hubot"}, "body": "Use a constant", "createdAt": "2026-10-02T10:15:00Z", "url": "https://github.com/octo/hello/pull/12#discussion_r6001"}]}}]}}}}}).to_string();
-        let conversation = json!({"comments": [{"id": "IC_kwDOAbc", "author": {"login": "octocat"}, "body": "Looks good", "createdAt": "2026-10-02T10:16:40Z", "url": "https://github.com/octo/hello/pull/12#issuecomment-5001"}]}).to_string();
+        let page = json!({"nodes": [], "pageInfo": {"hasNextPage": false, "endCursor": null}});
+        let user = |login: &str, kind: &str| json!({"__typename": kind, "login": login, "avatarUrl": format!("https://avatars.githubusercontent.com/{login}?s=48")});
+        let thumbs = json!([{"content": "THUMBS_UP", "viewerHasReacted": true, "reactors": {"totalCount": 2}}, {"content": "HEART", "viewerHasReacted": false, "reactors": {"totalCount": 0}}]);
+        let mut conversation = page.clone();
+        conversation["nodes"] = json!([{"id": "IC_kwDOAbc", "databaseId": 5001, "author": user("ci-bot", "Bot"), "body": "Looks good", "createdAt": "2026-10-02T10:16:40Z", "url": "https://github.com/octo/hello/pull/12#issuecomment-5001", "viewerDidAuthor": false, "reactionGroups": thumbs}]);
+        let mut reviews = page.clone();
+        reviews["nodes"] = json!([
+            {"id": "PRR_kwDOabc", "databaseId": 7001, "author": user("hubot", "User"), "body": "Please add a test", "createdAt": "2026-10-02T10:10:00Z", "submittedAt": "2026-10-02T10:10:00Z", "state": "CHANGES_REQUESTED", "url": "https://github.com/octo/hello/pull/12#pullrequestreview-7001", "viewerDidAuthor": false, "reactionGroups": []},
+            {"id": "PRR_kwDOdef", "databaseId": 7002, "author": user("octocat", "User"), "body": "<!-- no summary -->", "createdAt": "2026-10-02T10:11:00Z", "submittedAt": "2026-10-02T10:11:00Z", "state": "COMMENTED", "url": "https://github.com/octo/hello/pull/12#pullrequestreview-7002", "viewerDidAuthor": false, "reactionGroups": []}
+        ]);
+        let mut threads = page;
+        threads["nodes"] = json!([{"id": "PRRT_1", "isResolved": true, "isOutdated": false, "path": "src/retry.rs", "line": 14, "startLine": 12, "originalLine": 14, "originalStartLine": 12, "diffSide": "RIGHT",
+            "rootHunk": {"nodes": [{"diffHunk": "@@ -10,3 +10,5 @@ fn upload()\n let a = 1;\n+const RETRIES: u32 = 3;\n+let b = RETRIES;"}]},
+            "comments": {"nodes": [{"id": "PRRC_kwDOxyz", "databaseId": 6001, "author": user("hubot", "User"), "body": "Use a constant", "createdAt": "2026-10-02T10:15:00Z", "url": "https://github.com/octo/hello/pull/12#discussion_r6001", "viewerDidAuthor": true, "reactionGroups": []}], "pageInfo": {"hasNextPage": false, "endCursor": null}}}]);
+        let graphql = json!({"data": {"repository": {"pullRequest": {"comments": conversation, "reviews": reviews, "reviewThreads": threads}}}}).to_string();
         chain.clis().rules(
             &[
                 rule("gh", &["pr", "list"], &list),
-                rule("gh", &["pr", "view", "12", "--json=comments"], &conversation),
                 rule("gh", &["pr", "view", "12"], &gh_pr(12, "Add retry to uploader", "OPEN", false, "feat/retry", "main").to_string()),
                 Rule { exit_code: 0, ..rule("gh", &["pr", "checks", "12"], &checks_json()) },
-                rule("gh", &["api", "graphql"], &threads),
+                rule("gh", &["api", "graphql"], &graphql),
             ],
             &[],
         );
@@ -279,11 +291,24 @@ fn a_branchs_review_and_a_pull_requests_comments_are_read_through_gh_and_a_gitla
         let info = &review["review"];
         assert_eq!((info["provider"].clone(), info["number"].clone(), info["state"].clone(), info["status"].clone(), info["reviewDecision"].clone()), (json!("github"), json!(12), json!("open"), json!("failure"), json!("APPROVED")), "{review}");
         // When the phone reads the pull request's comments
-        let comments = served(case, &mut phone, &chain, "github.prComments", json!({"prNumber": 12}), &["pr.comments", "pr.threads"], &["hosted_pr_comments", "hosted_pr_threads"]);
-        // Then the review thread comment and the conversation comment come back in time order, the first with its path, thread and resolution
-        let shown: Vec<(Value, Value, Value, Value)> = comments.as_array().unwrap().iter().map(|c| (c["id"].clone(), c["author"].clone(), c["threadId"].clone(), c["isResolved"].clone())).collect();
-        assert_eq!(shown, vec![(json!(6001), json!("hubot"), json!("PRRT_1"), json!(true)), (json!(5001), json!("octocat"), Value::Null, Value::Null)], "{comments}");
-        assert_eq!((comments[0]["path"].clone(), comments[0]["line"].clone(), comments[1]["body"].clone()), (json!("src/retry.rs"), json!(14), json!("Looks good")));
+        let comments = served(case, &mut phone, &chain, "github.prComments", json!({"prNumber": 12}), &["pr.comments", "pr.reviews", "pr.threads"], &["hosted_pr_comments", "hosted_pr_reviews", "hosted_pr_threads"]);
+        // Then the review summary, the review thread comment and the conversation comment come back in time order as the host shapes them: numeric ids, avatars,
+        // the bot mark (a review summary has no address yet: rca-exec's review row carries none), the reaction group the viewer joined, the thread's path, lines and diff hunk, and the summary with no visible text left out
+        let avatar = |login: &str| format!("https://avatars.githubusercontent.com/{login}?s=48");
+        assert_eq!(
+            comments,
+            json!([
+                {"id": 7001, "author": "hubot", "authorAvatarUrl": avatar("hubot"), "body": "Please add a test", "createdAt": "2026-10-02T10:10:00.000Z", "url": "", "isBot": false, "reactionSubjectId": "PRR_kwDOabc"},
+                {"id": 6001, "author": "hubot", "authorAvatarUrl": avatar("hubot"), "body": "Use a constant", "createdAt": "2026-10-02T10:15:00.000Z", "url": "https://github.com/octo/hello/pull/12#discussion_r6001", "isBot": false, "viewerDidAuthor": true,
+                 "reactionSubjectId": "PRRC_kwDOxyz", "diffHunk": " let a = 1;\n+const RETRIES: u32 = 3;\n+let b = RETRIES;", "path": "src/retry.rs", "threadId": "PRRT_1", "isResolved": true, "isOutdated": false, "line": 14, "startLine": 12},
+                {"id": 5001, "author": "ci-bot", "authorAvatarUrl": avatar("ci-bot"), "body": "Looks good", "createdAt": "2026-10-02T10:16:40.000Z", "url": "https://github.com/octo/hello/pull/12#issuecomment-5001", "isBot": true,
+                 "reactionSubjectId": "IC_kwDOAbc", "reactions": [{"content": "+1", "count": 2, "viewerHasReacted": true}]},
+            ]),
+            "{comments}"
+        );
+        // And each of the three reads was one GraphQL call of gh, never a `pr view`
+        assert_eq!(starts(&chain, "gh", &["api", "graphql"]).len(), 3);
+        assert!(starts(&chain, "gh", &["pr", "view", "12", "--json=comments"]).is_empty());
         // When the phone reads the review with a GitLab link, Then it is refused and neither gh nor glab was started for it
         let (gh_before, glab_before) = (chain.clis().starts("gh").len(), chain.clis().starts("glab").len());
         let refused = phone.refused(case, &chain, &["rpc:hostedReview.forBranch"], "hostedReview.forBranch", with_repo(json!({"branch": "feat/retry", "linkedGitLabMR": 5})));
