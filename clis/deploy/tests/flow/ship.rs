@@ -680,27 +680,25 @@ const NPX_EXPORTS_AND_UPLOADS: &str = "#!/bin/sh\necho \"$* | lab=$EXPO_PUBLIC_D
     eas-cli) sleep 0.2; echo '[{\"id\":\"u1\",\"group\":\"g-all\",\"platform\":\"ios\"},{\"id\":\"u2\",\"group\":\"g-all\",\"platform\":\"android\"}]';;\nesac";
 
 struct Eas {
-    /// A bucket that takes the source maps and the summaries.
-    bucket: crate::support::MockServer,
+    /// The run's pointer dir: where the source maps and the summaries are written.
+    dir: tempfile::TempDir,
     /// u.expo.dev: the group's manifest is not served at first, then it is.
     updates: crate::support::MockServer,
 }
 
 impl Eas {
     fn new() -> Self {
-        let bucket = crate::support::MockServer::start(None);
-        bucket.queue(vec![crate::support::MockReply::json(200, json!({}))], true);
+        let dir = tempfile::Builder::new().prefix("wf-flow-eas-pointer-").tempdir().unwrap();
         let updates = crate::support::MockServer::start(None);
         updates.queue(vec![crate::support::MockReply::json(404, json!({ "error": "no update" })), crate::support::MockReply::json(200, json!({}))], true);
-        Eas { bucket, updates }
+        Eas { dir, updates }
     }
 
     fn run(&self, bin: &Path, cwd: &Path, args: &[&str], token: Option<&str>, env: &[(&str, &str)]) -> (RunResult, Vec<String>) {
         let mut full = vec!["ship", "eas"];
         full.extend_from_slice(args);
         let mut opts = RunOpts::default().bin_dir(bin).cwd(cwd).clean_env().env("SECRETS_BACKEND", "macos").env("SECRETS_LOG_BETTERSTACK", "false")
-            .env("VERIFICATION_ARTIFACTS_PAR_URL", &format!("http://127.0.0.1:{}/p/", self.bucket.port))
-            .env("VERIFICATION_ARTIFACTS_READ_URL", "http://bucket.test/o")
+            .env("WF_EAS_POINTER_DIR", &self.dir.path().display().to_string())
             .env("WF_EAS_UPDATES_URL", &format!("http://127.0.0.1:{}", self.updates.port));
         if let Some(token) = token {
             opts = opts.env("EXPO_TOKEN", token);
@@ -714,12 +712,30 @@ impl Eas {
         (r, calls)
     }
 
-    fn put(&self, path: &str) -> Option<Value> {
-        self.bucket.requests().iter().find(|q| q.method == "PUT" && q.url == path).map(|q| serde_json::from_str(&q.body).unwrap_or(Value::Null))
+    fn stored(&self, rel: &str) -> Option<Value> {
+        std::fs::read_to_string(self.dir.path().join(rel)).ok().map(|t| serde_json::from_str(&t).unwrap_or(Value::Null))
     }
 
-    fn puts(&self) -> Vec<String> {
-        self.bucket.requests().iter().filter(|q| q.method == "PUT").map(|q| q.url.clone()).collect()
+    fn files(&self) -> Vec<String> {
+        fn walk(root: &Path, dir: &Path, out: &mut Vec<String>) {
+            for e in std::fs::read_dir(dir).into_iter().flatten().flatten() {
+                if e.path().is_dir() {
+                    walk(root, &e.path(), out);
+                } else {
+                    out.push(e.path().strip_prefix(root).unwrap().to_string_lossy().into_owned());
+                }
+            }
+        }
+        let mut out = Vec::new();
+        walk(self.dir.path(), self.dir.path(), &mut out);
+        out.sort();
+        out
+    }
+
+    fn clear(&self) {
+        for e in std::fs::read_dir(self.dir.path()).unwrap().flatten() {
+            let _ = if e.path().is_dir() { std::fs::remove_dir_all(e.path()) } else { std::fs::remove_file(e.path()) };
+        }
     }
 }
 
@@ -764,24 +780,26 @@ fn ship_eas_publishes_the_app_as_an_eas_update_through_its_publish_script() {
             assert_eq!((h("expo-platform"), h("expo-protocol-version"), h("accept")), ("android".into(), "1".into(), "multipart/mixed,application/expo+json,application/json".into()));
             assert!(config.contains(&format!("runtimeVersion: '{}'", h("expo-runtime-version"))), "the runtime version comes from app.config.js: {:?}", h("expo-runtime-version"));
         }
-        // and its source map is in the bucket under the update group, so a device stack maps back to file:line
-        assert_eq!(summary["maps"]["uploaded"], 1, "{summary}");
-        assert!(eas.put("/p/verification/eas-updates/g-123/_expo/static/js/ios/entry-abc.hbc.map").is_some(), "{:?}", eas.puts());
+        // and its source map is in the pointer dir under the update group, so a device stack maps back to file:line
+        assert_eq!(summary["maps"]["stored"], 1, "{summary}");
+        assert!(eas.dir.path().join("g-123/_expo/static/js/ios/entry-abc.hbc.map").is_file(), "{:?}", eas.files());
         // and with --pointer the summary is stored twice: under the group, and as the branch's latest update, which the e2e tests read
         for key in ["g-123/summary.json", "latest-feature-x.json"] {
-            let stored = eas.put(&format!("/p/verification/eas-updates/{key}")).unwrap_or_else(|| panic!("no PUT of {key}"));
+            let stored = eas.stored(key).unwrap_or_else(|| panic!("{key} is not written: {:?}", eas.files()));
             assert_eq!((stored["group"].clone(), stored["platforms"].clone(), stored["timing"]["servedS"].as_f64()), (json!("g-123"), json!(["ios", "android"]), Some(served)), "{key}");
+            assert_eq!(stored["pointers"], Value::Null, "the file is the line before its own pointers were added: {key}");
         }
-        assert_eq!(summary["pointers"]["latest"], "http://bucket.test/o/verification/eas-updates/latest-feature-x.json", "{summary}");
+        let latest = eas.dir.path().join("latest-feature-x.json").display().to_string();
+        assert_eq!(summary["pointers"]["latest"], json!(latest), "{summary}");
 
         // Given no options, Then the route is the root, the branch and message have defaults, the script picks the platform,
         // and no branch pointer is written
-        eas.bucket.clear();
+        eas.clear();
         let (r, calls) = eas.run(&ctx.bin_dir, &ctx.cwd, &[], Some("tok"), &[]);
         assert_eq!(r.exit_code, 0);
         assert_eq!(calls.len(), 1);
         assert!(calls[0].starts_with("--filter mla-tamagui run publish:eas -- --initial-route / --branch ") && calls[0].contains(" --message ") && !calls[0].contains("--platform"), "{}", calls[0]);
-        assert!(!eas.puts().iter().any(|u| u.contains("/latest-")) && last_json(&r)["pointers"]["latest"].is_null(), "{:?}", eas.puts());
+        assert!(!eas.files().iter().any(|u| u.contains("latest-")) && last_json(&r)["pointers"]["latest"].is_null(), "{:?}", eas.files());
 
         // Given --frontend, Then that package is published
         let (_, calls) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--frontend", "other-app", "--branch", "b", "--message", "m"], Some("tok"), &[]);
@@ -824,9 +842,8 @@ fn a_default_publish_is_asked_for_as_its_own_platform_and_leaves_the_branch_poin
         let platforms: BTreeSet<String> = eas.updates.requests().iter().map(|q| q.headers.get("expo-platform").cloned().unwrap_or_default()).collect();
         assert_eq!(platforms, BTreeSet::from(["ios".to_string()]));
         // And only the group's summary is stored: latest-dev.json, which the Android job loads, still names CI's last publish
-        assert!(eas.put("/p/verification/eas-updates/g-ios/summary.json").is_some(), "{:?}", eas.puts());
-        assert!(eas.put("/p/verification/eas-updates/latest-dev.json").is_none(), "{:?}", eas.puts());
-        assert_eq!(summary["pointers"], json!({ "summary": "http://bucket.test/o/verification/eas-updates/g-ios/summary.json" }), "{summary}");
+        assert!(eas.stored("g-ios/summary.json").is_some() && eas.stored("latest-dev.json").is_none(), "{:?}", eas.files());
+        assert_eq!(summary["pointers"], json!({ "summary": eas.dir.path().join("g-ios/summary.json").display().to_string() }), "{summary}");
     });
 }
 
@@ -861,29 +878,37 @@ fn latest_prints_the_update_the_branch_pointer_names_and_publishes_nothing() {
 }
 
 #[test]
-fn with_pointer_a_branch_pointer_that_was_not_stored_fails_the_publish() {
+fn with_pointer_a_branch_pointer_that_was_not_written_fails_the_publish() {
     let eas = Eas::new();
-    // Given a bucket that takes the source map but answers 500 to the summaries
-    eas.bucket.queue(vec![], false);
-    eas.bucket.routes(&[
-        ("PUT /p/verification/eas-updates/g-123/_expo/static/js/ios/entry-abc.hbc.map", crate::support::MockReply::json(200, json!({}))),
-        ("PUT /p/verification/eas-updates/g-123/summary.json", crate::support::MockReply::json(500, json!({ "code": "InternalError" }))),
-    ]);
     with_stubs(&[("pnpm", PNPM_PUBLISHES)], |ctx| {
         with_app_config(&ctx.cwd, "mla-tamagui");
+        // Given a pointer dir that cannot take files (its path is a file)
+        let blocked = ctx.cwd.join("not-a-dir");
+        std::fs::write(&blocked, "x").unwrap();
+        let blocked = blocked.display().to_string();
         // When CI publishes with --pointer
-        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all", "--pointer"], Some("tok"), &[]);
-        // Then the update is reported, but the run fails naming the stale pointer, so the Android job is not handed an older update
+        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all", "--pointer"], Some("tok"), &[("WF_EAS_POINTER_DIR", &blocked)]);
+        // Then the update is reported, but the run fails naming the pointer, so the Android job is not handed an older update
         assert_eq!(r.exit_code, 1, "{}{}", r.stdout, r.stderr);
         let summary = last_json(&r);
-        assert!(summary["group"] == "g-123" && summary["pointers"]["error"].as_str().is_some_and(|e| e.contains("500")), "{summary}");
-        assert!(r.stderr.contains("verification/eas-updates/latest-dev.json still names an earlier one") && r.stderr.contains("500"), "{}", r.stderr);
-        assert!(eas.put("/p/verification/eas-updates/latest-dev.json").is_none(), "{:?}", eas.puts());
+        assert!(summary["group"] == "g-123" && summary["pointers"]["error"].is_string(), "{summary}");
+        assert!(r.stderr.contains("latest-dev.json was not written"), "{}", r.stderr);
 
         // When the same publish runs without --pointer, Then the failed summary is reported but the publish counts as done
-        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all"], Some("tok"), &[]);
+        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all"], Some("tok"), &[("WF_EAS_POINTER_DIR", &blocked)]);
         assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
         assert!(last_json(&r)["pointers"]["error"].is_string(), "{}", r.stdout);
+
+        // Given no pointer dir at all, Then --pointer is a usage error that publishes nothing, and a publish without it stores nothing
+        let (r, calls) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--pointer"], Some("tok"), &[("WF_EAS_POINTER_DIR", "")]);
+        assert!(r.exit_code == 2 && r.stderr.contains("--pointer needs --pointer-dir") && calls.is_empty(), "{}{}", r.stdout, r.stderr);
+        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all"], Some("tok"), &[("WF_EAS_POINTER_DIR", "")]);
+        assert!(r.exit_code == 0 && last_json(&r)["pointers"] == json!({}) && eas.files().is_empty(), "{}{}", r.stdout, r.stderr);
+
+        // Given --pointer-dir, Then it wins over the environment
+        let other = ctx.cwd.join("other-dir");
+        let (r, _) = eas.run(&ctx.bin_dir, &ctx.cwd, &["--branch", "dev", "--message", "m", "--platform", "all", "--pointer", "--pointer-dir", &other.display().to_string()], Some("tok"), &[]);
+        assert!(r.exit_code == 0 && other.join("latest-dev.json").is_file() && eas.files().is_empty(), "{}{}", r.stdout, r.stderr);
     });
 }
 
@@ -905,7 +930,7 @@ fn an_update_eas_never_serves_is_reported_as_not_served_and_still_stored() {
         assert!(error.contains("not served within 2 s") && error.contains("HTTP 404"), "{summary}");
         // And the summaries are stored with that error, so the pointer's reader sees it too
         for key in ["g-123/summary.json", "latest-dev.json"] {
-            let stored = eas.put(&format!("/p/verification/eas-updates/{key}")).unwrap_or_else(|| panic!("no PUT of {key}"));
+            let stored = eas.stored(key).unwrap_or_else(|| panic!("{key} is not written"));
             assert_eq!(stored["served"]["error"].as_str(), Some(error), "{key}");
         }
     });
@@ -941,7 +966,7 @@ fn the_publish_script_exports_ios_and_android_for_all_with_the_env_baked_in_and_
         }
         assert_eq!(summary["hosts"], json!(["leetcode-backend-prod"]), "{summary}");
         // And no value is published: the token is in neither the line nor the stored pointer
-        let stored = eas.put("/p/verification/eas-updates/latest-dev.json").expect("the dev pointer is stored");
+        let stored = eas.stored("latest-dev.json").expect("the dev pointer is written");
         assert!(!r.stdout.contains("flow-token-value") && !stored.to_string().contains("flow-token-value"), "{}", r.stdout);
     });
 }

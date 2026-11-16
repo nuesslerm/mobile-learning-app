@@ -11,11 +11,15 @@ Options:
   --message <message>        Update message (default: the last commit subject)
   --platform <platform>      all | ios | android: one update group for those
                              platforms (default: the script's own, ios)
-  --pointer                  Also store the summary as the branch's latest
-                             update, which the e2e tests load (CI's publish
-                             only: they refuse an update without the lab flag,
-                             backend hosts and token CI bakes in, or whose baked
-                             tailnet names have moved)
+  --pointer-dir <dir>        Write the summary as <dir>/<group>/summary.json
+                             beside the group's source maps (default:
+                             WF_EAS_POINTER_DIR; none: nothing is stored)
+  --pointer                  Also write <dir>/latest-<branch>.json, the branch's
+                             latest update, which the same run's e2e job loads
+                             (CI's publish only: they refuse an update without
+                             the lab flag, backend hosts and token CI bakes in,
+                             or whose baked tailnet names have moved); needs
+                             --pointer-dir
   --latest                   Publish nothing: print the update the branch pointer
                              names (CI's last publish; --branch defaults to dev)
                              as {branch, commit, group, platforms, link}; exit 1
@@ -25,7 +29,7 @@ Options:
 
 Output: one JSON line on stdout {published, branch, initialRoute, commit, group,
 platform, platforms[], env[], hosts[], memory {peakRssMb, vm}, timing {exportS,
-uploadS, servedS}, link, maps {uploaded, base, files[] | error}, served
+uploadS, servedS}, link, maps {stored, base, files[] | error}, served
 {platform, runtimeVersion, url, status, s | error}, pointers {summary, latest |
 error}}. env holds the names (never the values) of the EXPO_PUBLIC_* variables
 the bundle baked in, hosts the hosts their URLs name. peakRssMb is the largest
@@ -33,9 +37,8 @@ process the publish ran; vm is the VM's load and MemAvailable sampled during it
 when WF_VM_SAMPLE_SECS is set. servedS is the seconds after the upload until
 u.expo.dev serves the group's manifest to a device of that platform (android
 when the group has it; WF_EAS_UPDATES_URL overrides the host, and
-WF_EAS_SERVED_TIMEOUT_S the 120 s it waits). The line is stored in the
-verification bucket as verification/eas-updates/<group>/summary.json and, with
---pointer, as verification/eas-updates/latest-<branch>.json.
+WF_EAS_SERVED_TIMEOUT_S the 120 s it waits). With a pointer dir the line is
+written as <dir>/<group>/summary.json and, with --pointer, as
+<dir>/latest-<branch>.json.
 Exit 1 when the publish fails (the tail of its output on stderr) or, with
---pointer, when latest-<branch>.json was not stored (it still names an earlier
-update); 2 on a bad option.
+--pointer, when latest-<branch>.json was not written; 2 on a bad option.

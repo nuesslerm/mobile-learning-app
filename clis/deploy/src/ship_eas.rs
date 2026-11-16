@@ -1,7 +1,7 @@
 //! `wf ship eas`: publish the app as an EAS Update through its `publish:eas` script. The tier-3 gate of `wf check`
 //! publishes through the same function.
 use wf_kit::args::parse;
-use pipeline::eas::{children_peak_rss_mb, latest_key, latest_pointer, served, MAPS_PREFIX};
+use pipeline::eas::{children_peak_rss_mb, latest_pointer, pointer_dir, served};
 use std::path::Path;
 use std::time::Duration;
 
@@ -48,9 +48,9 @@ fn read_json(path: &Path) -> serde_json::Value {
 
 
 
-/// The published update as one JSON line, also stored in the verification bucket beside its source maps (so a stack from the
-/// device maps back to file:line) as the group's summary and, with `pointer`, as the branch's latest update the e2e tests load.
-fn summarize(dist: &Path, branch: &str, route: &str, platform: Option<&str>, pointer: bool, memory: serde_json::Value) -> serde_json::Value {
+/// The published update as one JSON line, also written under `store` beside its source maps (so a stack from the device maps
+/// back to file:line) as the group's summary and, with `pointer`, as the branch's latest update the e2e tests load.
+fn summarize(dist: &Path, branch: &str, route: &str, platform: Option<&str>, store: Option<&Path>, pointer: bool, memory: serde_json::Value) -> serde_json::Value {
     let commit = std::process::Command::new("git").args(["rev-parse", "HEAD"]).current_dir(dist).output().ok().map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_default();
     let updates = read_json(&dist.join("eas-update.json"));
     let group = updates.as_array().and_then(|a| a.iter().find_map(|u| u["group"].as_str())).map(str::to_string);
@@ -76,30 +76,26 @@ fn summarize(dist: &Path, branch: &str, route: &str, platform: Option<&str>, poi
     summary["timing"]["servedS"] = summary["served"]["s"].clone();
     let mut maps = Vec::new();
     collect_maps(dist, dist, &mut maps);
-    let uploaded = wf_bucket::artifacts::par_url().and_then(|par| {
-        for rel in &maps {
-            let body = std::fs::read(dist.join(rel)).map_err(|e| format!("{rel}: {e}"))?;
-            wf_bucket::artifacts::put_par(&format!("{par}{MAPS_PREFIX}/{group}/{rel}"), &body, "application/json")?;
-        }
-        Ok(maps.len())
-    });
-    let base = format!("{}/{MAPS_PREFIX}/{group}", wf_bucket::artifacts::public_base());
-    summary["maps"] = match uploaded {
-        Ok(n) => serde_json::json!({ "uploaded": n, "base": base, "files": maps }),
+    let Some(store) = store else {
+        summary["maps"] = serde_json::json!({ "found": maps.len() });
+        summary["pointers"] = serde_json::json!({});
+        return summary;
+    };
+    let group_dir = store.join(&group);
+    summary["maps"] = match copy_maps(dist, &group_dir, &maps) {
+        Ok(()) => serde_json::json!({ "stored": maps.len(), "base": group_dir.display().to_string(), "files": maps }),
         Err(e) => serde_json::json!({ "error": e, "found": maps.len() }),
     };
-    let mut keys = vec![format!("{MAPS_PREFIX}/{group}/summary.json")];
+    let mut targets = vec![group_dir.join("summary.json")];
     if pointer {
-        keys.push(latest_key(branch));
+        targets.push(store.join(latest_file(branch)));
     }
     let body = summary.to_string();
-    let stored = wf_bucket::artifacts::par_url().and_then(|par| keys.iter().try_for_each(|k| wf_bucket::artifacts::put_par(&format!("{par}{k}"), body.as_bytes(), "application/json")));
-    let public = wf_bucket::artifacts::public_base();
-    summary["pointers"] = match stored {
+    summary["pointers"] = match targets.iter().try_for_each(|t| write_file(t, body.as_bytes())) {
         Ok(()) => {
-            let mut stored = serde_json::json!({ "summary": format!("{public}/{}", keys[0]) });
-            if let Some(latest) = keys.get(1) {
-                stored["latest"] = serde_json::json!(format!("{public}/{latest}"));
+            let mut stored = serde_json::json!({ "summary": targets[0].display().to_string() });
+            if let Some(latest) = targets.get(1) {
+                stored["latest"] = serde_json::json!(latest.display().to_string());
             }
             stored
         }
@@ -109,6 +105,25 @@ fn summarize(dist: &Path, branch: &str, route: &str, platform: Option<&str>, poi
 }
 
 
+
+fn latest_file(branch: &str) -> String {
+    format!("latest-{}.json", branch.replace('/', "-"))
+}
+
+fn write_file(path: &Path, body: &[u8]) -> Result<(), String> {
+    let dir = path.parent().ok_or_else(|| format!("{} has no parent", path.display()))?;
+    std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    let tmp = path.with_extension("tmp");
+    std::fs::write(&tmp, body).and_then(|()| std::fs::rename(&tmp, path)).map_err(|e| format!("{}: {e}", path.display()))
+}
+
+fn copy_maps(dist: &Path, group_dir: &Path, maps: &[String]) -> Result<(), String> {
+    for rel in maps {
+        let body = std::fs::read(dist.join(rel)).map_err(|e| format!("{rel}: {e}"))?;
+        write_file(&group_dir.join(rel), &body)?;
+    }
+    Ok(())
+}
 
 fn collect_maps(root: &Path, dir: &Path, out: &mut Vec<String>) {
     let Ok(entries) = std::fs::read_dir(dir) else { return };
@@ -137,7 +152,7 @@ fn latest(branch: &str) -> i32 {
             0
         }
         Err(error) => {
-            let next = format!("no update of {branch} is stored yet: push an app change to dev (CI's eas-update job stores {}), or publish one by hand with `wf ship eas --initial-route <route>`", latest_key(branch));
+            let next = format!("no update of {branch} is stored yet: push an app change to dev (CI's eas-update job writes {}), or publish one by hand with `wf ship eas --initial-route <route>`", latest_file(branch));
             println!("{}", serde_json::json!({ "ok": false, "error": error, "next": next }));
             1
         }
@@ -145,12 +160,12 @@ fn latest(branch: &str) -> i32 {
 }
 
 pub(crate) fn run(args: &[String]) -> Option<i32> {
-    let p = parse(args, &["branch", "initial-route", "message", "frontend", "platform"], &["pointer", "latest"])?;
+    let p = parse(args, &["branch", "initial-route", "message", "frontend", "platform", "pointer-dir"], &["pointer", "latest"])?;
     if !p.positional.is_empty() {
         return None;
     }
     if p.flags.iter().any(|f| f == "latest") {
-        if p.flags.iter().any(|f| f == "pointer") || ["initial-route", "message", "frontend", "platform"].iter().any(|k| p.opts.contains_key(*k)) {
+        if p.flags.iter().any(|f| f == "pointer") || ["initial-route", "message", "frontend", "platform", "pointer-dir"].iter().any(|k| p.opts.contains_key(*k)) {
             wf_kit::wf_err!("wf: --latest only reads the pointer: it takes --branch and nothing else");
             return Some(2);
         }
@@ -162,6 +177,11 @@ pub(crate) fn run(args: &[String]) -> Option<i32> {
         return Some(2);
     }
     let pointer = p.flags.iter().any(|f| f == "pointer");
+    let store = p.opts.get("pointer-dir").cloned().or_else(pointer_dir).map(std::path::PathBuf::from);
+    if pointer && store.is_none() {
+        wf_kit::wf_err!("wf: --pointer needs --pointer-dir <dir> (or WF_EAS_POINTER_DIR): the pointer is a file the same run's e2e job downloads");
+        return Some(2);
+    }
     let root = wf_kit::root::repo_root();
     let frontend = p.opts.get("frontend").map_or(DEFAULT_FRONTEND, String::as_str);
     let branch = p.opts.get("branch").cloned().unwrap_or_else(wf_kit::proc::current_branch);
@@ -178,11 +198,11 @@ pub(crate) fn run(args: &[String]) -> Option<i32> {
     let vm = sampler.map(|s| s.finish());
     if done.code == 0 {
         let memory = serde_json::json!({ "peakRssMb": children_peak_rss_mb(), "vm": vm });
-        let summary = summarize(&root.join("frontend").join(frontend).join("dist"), &branch, route, platform, pointer, memory);
+        let summary = summarize(&root.join("frontend").join(frontend).join("dist"), &branch, route, platform, store.as_deref(), pointer, memory);
         println!("{summary}");
         if pointer && summary["pointers"]["latest"].is_null() {
             let why = summary["pointers"]["error"].as_str().or_else(|| summary["maps"]["error"].as_str()).unwrap_or("not stored");
-            wf_kit::wf_err!("wf: the update is published, but {} still names an earlier one: {why}", latest_key(&branch));
+            wf_kit::wf_err!("wf: the update is published, but {} was not written: {why}", latest_file(&branch));
             return Some(1);
         }
         return Some(0);
