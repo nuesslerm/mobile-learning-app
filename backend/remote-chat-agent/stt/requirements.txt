@@ -3,3 +3,6 @@ faster-whisper==1.1.1
 # longer pulls in (seen 2026-09-15: ModuleNotFoundError at image build).
 huggingface-hub<1.0
 requests>=2.32
+# faster-whisper 1.1.1 calls av.open(metadata_errors=...), which av 15+ rejects (seen 2026-11-16 in the browser e2e: every
+# transcribe answered 500 `open() got an unexpected keyword argument 'metadata_errors'`).
+av>=11,<14
