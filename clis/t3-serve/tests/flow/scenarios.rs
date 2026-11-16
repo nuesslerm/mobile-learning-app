@@ -53,3 +53,39 @@ fn two_messages_in_turn_are_two_runs_each_with_its_answer_and_the_agent_api_is_a
     assert_eq!(h.agent.turns.lock().unwrap().iter().map(|t| t.prompt.clone()).collect::<Vec<_>>(), ["list it", "again"]);
 }
 
+#[test]
+fn a_file_written_is_listed_and_read_back_by_the_next_calls_and_a_second_write_replaces_it() {
+    // Given an agent API that keeps what it is told to write under the project's root, and one file already there
+    let (h, mut rpc) = started();
+    h.agent.files.lock().unwrap().insert("/workspace/demo/README.md".into(), "# demo".into());
+    let files = h.agent.clone();
+    *h.agent.responder.lock().unwrap() = Some(Box::new(move |op| match op {
+        Op::FileWrite { root, path, content } => {
+            files.files.lock().unwrap().insert(format!("{root}/{path}"), content.clone());
+            Some(Ok(json!({"path": path, "bytes": content.len()})))
+        }
+        Op::FileStat { path, .. } => Some(files.files.lock().unwrap().get(path).map_or_else(|| Err(t3_core::ports::AgentError::Failed("missing".into())), |c| Ok(json!({"kind": "file", "size": c.len(), "modified_ms": 0})))),
+        _ => None,
+    }));
+    let list = |rpc: &mut Rpc, path: &str| -> Vec<String> {
+        success(&rpc.call("projects.listEntries", json!({"projectId": "p1", "relativePath": path})))["entries"].as_array().unwrap().iter().map(|e| e["path"].as_str().unwrap().to_string()).collect()
+    };
+    let read = |rpc: &mut Rpc, path: &str| rpc.call("projects.readFile", json!({"projectId": "p1", "relativePath": path}));
+    // When the phone lists the root, writes a file below a new directory, lists, reads it back, writes it again and reads and measures it
+    let before = list(&mut rpc, "");
+    let wrote = rpc.call("projects.writeFile", json!({"cwd": "/workspace/demo", "relativePath": "src/new.txt", "contents": "one\n"}));
+    let (root, src) = (list(&mut rpc, ""), list(&mut rpc, "src"));
+    let once = read(&mut rpc, "src/new.txt");
+    success(&rpc.call("projects.writeFile", json!({"cwd": "/workspace/demo", "relativePath": "src/new.txt", "contents": "two lines\n"})));
+    let twice = read(&mut rpc, "src/new.txt");
+    let measured = rpc.call("filesystem.getMetadata", json!({"paths": ["/workspace/demo/src/new.txt", "/workspace/demo/gone"]}));
+    // Then the write is acknowledged by its path, the directory appears in the root listing and the file in its own, and each read is what was last written
+    assert_eq!(before, ["README.md"]);
+    assert_eq!(success(&wrote), &json!({"relativePath": "src/new.txt"}));
+    assert_eq!((root, src), (vec!["README.md".to_string(), "src".to_string()], vec!["src/new.txt".to_string()]));
+    assert_eq!((success(&once)["contents"].as_str(), success(&twice)["contents"].as_str()), (Some("one\n"), Some("two lines\n")));
+    // And the measure is the byte length of the second write, and null for the path that is not there
+    assert_eq!(success(&measured)["entries"][0]["byteLength"], 10);
+    assert_eq!(success(&measured)["entries"][1], Value::Null);
+}
+
