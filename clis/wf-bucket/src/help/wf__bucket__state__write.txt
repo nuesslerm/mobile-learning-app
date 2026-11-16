@@ -1,0 +1,14 @@
+Usage: wf bucket state write [options] <path>
+
+Commit a file to refs/wf/state and push it, creating the ref (an orphan
+history) the first time. The body is read from --file, else stdin. The push is
+fast-forward only: when another job moved the ref first, the tip is fetched and
+the commit redone on it, up to 5 times, so no writer's files are lost.
+
+Output: one JSON line, {ok, path, commit, ref}. A failure prints {ok: false,
+error} and exits 1.
+
+Options:
+  --file <file>               read the body from this file instead of stdin
+  --message <text>            the commit message (default: state: <path>)
+  -h, --help                  display help for command

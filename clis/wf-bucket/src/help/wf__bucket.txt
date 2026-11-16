@@ -9,4 +9,6 @@ Options:
 Commands:
   serve [options]             Serve GET, HEAD and PUT under /o/<key> from a
                               directory
+  state [options] [command]   Read and write small cross-run files kept in
+                              the repository (refs/wf/state)
   help [command]              display help for command

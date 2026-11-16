@@ -1,0 +1,12 @@
+Usage: wf bucket state read [options] <path>
+
+Fetch refs/wf/state from origin and print the file at <path>.
+
+Output: one JSON line, {ok, found, path, content}. A ref that does not exist
+yet, or a path that is not in it, is {ok: true, found: false}: nothing was
+stored, which is not an error. Any other failure (no network, no checkout)
+prints {ok: false, error} and exits 1, so a caller never replaces a file it
+could not read.
+
+Options:
+  -h, --help                  display help for command

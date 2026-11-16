@@ -887,6 +887,11 @@ jobs:
     if: ${{ !cancelled() && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && (needs.clis.result == 'success' || !inputs.ship || !inputs.deploy) && needs.plan.outputs.eas_update == 'true' }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 25
+    # contents: write for the push of refs/wf/state (wf bucket state write); a job's permissions replace the workflow's, so the others stay listed
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
     concurrency:
       group: ${{ format('hosted-eas-update-{0}', github.run_id) }}
       cancel-in-progress: false

@@ -1044,6 +1044,8 @@ Options:
 Commands:
   serve [options]             Serve GET, HEAD and PUT under /o/<key> from a
                               directory
+  state [options] [command]   Read and write small cross-run files kept in
+                              the repository (refs/wf/state)
   help [command]              display help for command
 ```
 
@@ -1100,6 +1102,86 @@ Options:
   --read-token-file <file>    file holding the read token
   --write-token-file <file>   file holding the write token
   --max-object-mb <n>         largest object accepted, in MB (default 1024)
+  -h, --help                  display help for command
+```
+
+</details>
+
+#### `wf bucket state`
+
+Read and write small cross-run files kept in the repository (refs/wf/state)
+
+Usage: `wf bucket state [options] [command]`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket state [options] [command]
+
+The state ref: small cross-run files (the EAS pointer, the run index) kept in
+the repository as an orphan history under refs/wf/state of origin. A ref that
+is neither a branch nor a tag starts no workflow when pushed. Run it inside a
+checkout of the repository; the push needs the job's token to hold contents:
+write (the eas-update job does).
+
+Options:
+  -h, --help                  display help for command
+
+Commands:
+  read <path>                 Print a file of the state ref
+  write [options] <path>      Commit a file to the state ref and push it
+  help [command]              display help for command
+```
+
+</details>
+
+#### `wf bucket state read`
+
+Print a file of the state ref
+
+Usage: `wf bucket state read [options] <path>`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket state read [options] <path>
+
+Fetch refs/wf/state from origin and print the file at <path>.
+
+Output: one JSON line, {ok, found, path, content}. A ref that does not exist
+yet, or a path that is not in it, is {ok: true, found: false}: nothing was
+stored, which is not an error. Any other failure (no network, no checkout)
+prints {ok: false, error} and exits 1, so a caller never replaces a file it
+could not read.
+
+Options:
+  -h, --help                  display help for command
+```
+
+</details>
+
+#### `wf bucket state write`
+
+Commit a file to the state ref and push it
+
+Usage: `wf bucket state write [options] <path>`
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf bucket state write [options] <path>
+
+Commit a file to refs/wf/state and push it, creating the ref (an orphan
+history) the first time. The body is read from --file, else stdin. The push is
+fast-forward only: when another job moved the ref first, the tip is fetched and
+the commit redone on it, up to 5 times, so no writer's files are lost.
+
+Output: one JSON line, {ok, path, commit, ref}. A failure prints {ok: false,
+error} and exits 1.
+
+Options:
+  --file <file>               read the body from this file instead of stdin
+  --message <text>            the commit message (default: state: <path>)
   -h, --help                  display help for command
 ```
 
