@@ -11,5 +11,5 @@ pub mod testing;
 
 pub use area::{Area, Ctx, Kind, Method, NotOffered, Subscription, Subscriptions};
 pub use connection::{Connection, Host};
-pub use ports::{AgentApi, AgentError, HostInfo, Principals, ServiceStatus};
+pub use ports::{AgentApi, AgentError, EventStream, HostInfo, Principals, ServiceStatus, StreamEvent};
 pub use wire::Failure;

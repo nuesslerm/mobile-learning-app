@@ -4,6 +4,8 @@
 mod binary;
 #[path = "flow/devices.rs"]
 mod devices;
+#[path = "flow/follow.rs"]
+mod follow;
 #[path = "flow/status.rs"]
 mod status;
 #[path = "flow/support.rs"]

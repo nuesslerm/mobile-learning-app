@@ -2,10 +2,11 @@
 use orca_core::testing::{RevocablePrincipals, ScriptedAgent};
 use orca_core::wire::{self, Failure};
 use orca_core::area::Out;
-use orca_core::{Area, Ctx, Host, HostInfo, Kind, Method, NotOffered, ServiceStatus, Subscription};
+use orca_core::{AgentApi, AgentError, Area, Ctx, Host, HostInfo, Kind, Method, NotOffered, ServiceStatus, StreamEvent, Subscription};
 use serde_json::{json, Value};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 
 static ENDED: AtomicUsize = AtomicUsize::new(0);
 
@@ -195,4 +196,24 @@ fn given_a_stream_that_emits_json_then_binary_when_opened_then_both_arrive_in_or
     conn.on_binary(&header(n + 100));
     // Then only the first reaches the stream
     assert_eq!(got.lock().unwrap().clone(), vec![header(n)]);
+}
+
+#[test]
+fn given_a_scripted_stream_when_followed_then_the_answer_and_queued_events_come_back_in_order_and_the_follow_is_recorded() {
+    // Given an agent that answers a follow of terminal.attach and holds two events for it
+    let agent = ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] });
+    let params = json!({"workspace": "w", "terminal": "t", "after_offset": 0});
+    let feed = agent.script_stream("terminal.attach", &params, Ok(json!({"offset": 0})), vec![StreamEvent { seq: 5, kind: "terminal.output".into(), data: json!({"data": "aGk="}) }]);
+    // When it is followed, one more event is fed and the stream is read until it is quiet
+    let (answer, mut stream) = agent.follow("terminal.attach", "terminal/w/t", params.clone(), "after_offset").unwrap();
+    feed.push(9, "terminal.exited", json!({}));
+    let mut seqs = vec![];
+    while let Some(event) = stream.next(Duration::ZERO).unwrap() {
+        seqs.push((event.seq, event.kind));
+    }
+    // Then the answer and the events arrive in order, the follow is recorded, and params no script names are refused
+    assert_eq!(answer, json!({"offset": 0}));
+    assert_eq!(seqs, [(5, "terminal.output".to_string()), (9, "terminal.exited".to_string())]);
+    assert_eq!(agent.follows(), [("terminal.attach".to_string(), params)]);
+    assert!(matches!(agent.follow("terminal.attach", "terminal/w/t", json!({}), "after_offset"), Err(AgentError::Refused { .. })));
 }

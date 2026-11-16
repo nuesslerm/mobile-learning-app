@@ -418,7 +418,7 @@ mod tests {
         let out = output_event("w", "t", 10, &bytes);
         let snap = snapshot_event(&info(), 4, &bytes, true);
         // Then seq is the offset after the last byte, in both, and the data decodes to the bytes
-        assert_eq!((out.seq, out.thread.clone(), out.topic()), (14, None, None));
+        assert_eq!((out.seq, out.thread.clone(), out.topic()), (14, None, Some("terminal/w/t".to_string())));
         assert_eq!(b64::decode(out.data["data"].as_str().unwrap()), Some(bytes.to_vec()));
         assert_eq!((snap.seq, snap.data["start_offset"].clone(), snap.data["offset"].clone(), snap.data["reset"].clone(), snap.data["status"].clone()), (8, json!(4), json!(8), json!(true), json!("running")));
         assert_eq!(out.to_value()["event"]["type"], json!("terminal.output"));

@@ -1,8 +1,9 @@
 //! Doubles of the core's ports.
-use crate::ports::{AgentApi, AgentError, Principals, ServiceStatus};
+use crate::ports::{AgentApi, AgentError, EventStream, Principals, ServiceStatus, StreamEvent};
 use serde_json::Value;
-use std::collections::HashMap;
-use std::sync::Mutex;
+use std::collections::{HashMap, VecDeque};
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 /// An agent API that answers what it was given and remembers what it was asked: the flow tests' stand-in for rca.
 pub struct ScriptedAgent {
@@ -11,6 +12,36 @@ pub struct ScriptedAgent {
     calls: Mutex<Vec<String>>,
     replies: Mutex<HashMap<String, Reply>>,
     requests: Mutex<Vec<(String, Value)>>,
+    streams: Mutex<HashMap<String, Scripted>>,
+    follows: Mutex<Vec<(String, Value)>>,
+}
+
+/// A scripted follow: what the call answers and the events its stream still holds, which the test may add to while the stream is open.
+struct Scripted {
+    answer: Result<Value, AgentError>,
+    events: Arc<Mutex<VecDeque<Result<StreamEvent, AgentError>>>>,
+}
+
+/// The test's hand on a scripted stream: events pushed here come out of the stream's `next`.
+#[derive(Clone)]
+pub struct StreamFeed(Arc<Mutex<VecDeque<Result<StreamEvent, AgentError>>>>);
+
+impl StreamFeed {
+    pub fn push(&self, seq: u64, kind: &str, data: Value) {
+        self.0.lock().unwrap().push_back(Ok(StreamEvent { seq, kind: kind.into(), data }));
+    }
+
+    pub fn fail(&self, error: AgentError) {
+        self.0.lock().unwrap().push_back(Err(error));
+    }
+}
+
+struct ScriptedStream(Arc<Mutex<VecDeque<Result<StreamEvent, AgentError>>>>);
+
+impl EventStream for ScriptedStream {
+    fn next(&mut self, _wait: Duration) -> Result<Option<StreamEvent>, AgentError> {
+        self.0.lock().unwrap().pop_front().transpose()
+    }
 }
 
 /// What a scripted method answers: a fixed result, or a function of the params it was sent.
@@ -18,7 +49,7 @@ pub type Reply = Box<dyn Fn(&Value) -> Result<Value, AgentError> + Send + Sync>;
 
 impl ScriptedAgent {
     pub fn serving(status: ServiceStatus) -> Self {
-        Self { status: Mutex::new(Ok(status)), state: Mutex::default(), calls: Mutex::default(), replies: Mutex::default(), requests: Mutex::default() }
+        Self { status: Mutex::new(Ok(status)), state: Mutex::default(), calls: Mutex::default(), replies: Mutex::default(), requests: Mutex::default(), streams: Mutex::default(), follows: Mutex::default() }
     }
 
     pub fn set_status(&self, status: Result<ServiceStatus, AgentError>) {
@@ -32,6 +63,19 @@ impl ScriptedAgent {
     /// Makes `method` answer `reply`; a method with no reply is refused with `UNKNOWN_METHOD`, as the service refuses one it does not serve.
     pub fn reply(&self, method: &str, reply: impl Fn(&Value) -> Result<Value, AgentError> + Send + Sync + 'static) {
         self.replies.lock().unwrap().insert(method.to_string(), Box::new(reply));
+    }
+
+    /// Makes `follow(method, params)` answer `answer` and open a stream that holds `events`; the feed adds more later. A follow with params
+    /// no script names is refused with `UNKNOWN_METHOD`. Following again replaces the earlier script of the same params.
+    pub fn script_stream(&self, method: &str, params: &Value, answer: Result<Value, AgentError>, events: Vec<StreamEvent>) -> StreamFeed {
+        let events = Arc::new(Mutex::new(events.into_iter().map(Ok).collect::<VecDeque<_>>()));
+        self.streams.lock().unwrap().insert(stream_key(method, params), Scripted { answer, events: events.clone() });
+        StreamFeed(events)
+    }
+
+    /// Every `follow` opened so far with the params it was sent, in order.
+    pub fn follows(&self) -> Vec<(String, Value)> {
+        self.follows.lock().unwrap().clone()
     }
 
     /// Every `request` sent so far with its params, in order.
@@ -62,6 +106,20 @@ impl AgentApi for ScriptedAgent {
         self.requests.lock().unwrap().push((method.to_string(), params));
         answer
     }
+
+    fn follow(&self, method: &'static str, _topic: &str, params: Value, _seq_param: &'static str) -> Result<(Value, Box<dyn EventStream>), AgentError> {
+        self.calls.lock().unwrap().push(method.to_string());
+        let key = stream_key(method, &params);
+        self.follows.lock().unwrap().push((method.to_string(), params));
+        match self.streams.lock().unwrap().get(&key) {
+            Some(Scripted { answer, events }) => Ok((answer.clone()?, Box::new(ScriptedStream(events.clone())))),
+            None => Err(AgentError::Refused { code: "UNKNOWN_METHOD".into(), message: format!("{method} is not a method of this service") }),
+        }
+    }
+}
+
+fn stream_key(method: &str, params: &Value) -> String {
+    format!("{method} {params}")
 }
 
 impl ScriptedAgent {
