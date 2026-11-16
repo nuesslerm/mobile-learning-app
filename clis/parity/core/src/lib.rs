@@ -8,6 +8,7 @@ pub mod lex;
 pub mod mapper;
 pub mod methods;
 pub mod orca;
+pub mod oracle;
 pub mod ports;
 pub mod resolve;
 pub mod scan;
@@ -61,6 +62,27 @@ impl App {
         format!("{COVERAGE_DIR}/{}{suffix}", self.name())
     }
 
+    pub fn table_file(self) -> String {
+        self.path(".json")
+    }
+
+    pub fn oracle_file(self) -> String {
+        self.path("-oracle.md")
+    }
+
+    pub fn decisions_file(self) -> String {
+        self.path("-decisions.json")
+    }
+
+    /// The recorded sets and the chain tests live beside the app's server.
+    pub fn cassette_dir(self) -> String {
+        format!("clis/{}-serve/cassettes", self.name())
+    }
+
+    pub fn chain_dir(self) -> String {
+        format!("clis/{}-serve/tests/integration", self.name())
+    }
+
     /// The agent API methods and executor tools the app's chain tests prove its rows served by.
     pub fn evidence_file(self) -> String {
         self.path("-evidence.json")
@@ -93,7 +115,7 @@ pub struct Outcome {
     pub writes: Vec<(String, String)>,
 }
 
-fn refusal(app: App, error: String, next: String) -> Outcome {
+pub(crate) fn refusal(app: App, error: String, next: String) -> Outcome {
     Outcome { ok: false, report: json!({"ok": false, "app": app.name(), "error": error, "next": next}), writes: vec![] }
 }
 

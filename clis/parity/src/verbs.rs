@@ -7,7 +7,7 @@ use wf_kit::args::{parse_spec, Positional, Spec};
 
 const TRACK: Spec = Spec { values: &["app", "root", "message", "file", "plan", "inputs", "out", "run", "sha"], flags: &[], positional: Positional::Any, ..Spec::NONE };
 
-const COVERAGE: Spec = Spec { values: &["app", "root", "base", "traces", "rows"], flags: &["check"], positional: Positional::None, ..Spec::NONE };
+const COVERAGE: Spec = Spec { values: &["app", "root", "base", "traces", "rows"], flags: &["check", "by-oracle"], positional: Positional::None, ..Spec::NONE };
 
 pub fn run(args: &[String]) -> Option<i32> {
     match args.split_first()? {
@@ -24,8 +24,17 @@ fn coverage(args: &[String]) -> Option<i32> {
         return Some(2);
     };
     let root = p.val("root").map(PathBuf::from).unwrap_or_else(wf_kit::root::repo_root);
+    let by_oracle = p.flag("by-oracle");
+    if by_oracle && (p.val("traces").is_some() || p.val("rows").is_some() || p.val("base").is_some()) {
+        println!("{}", json!({"ok": false, "app": app.name(), "error": "--by-oracle takes only --app, --check and --root", "next": format!("wf parity coverage --app {} --by-oracle [--check]", app.name())}));
+        return Some(2);
+    }
     let req = Request { app, mode: if p.flag("check") { Mode::Check } else { Mode::Write }, base: p.val("base").map(String::from), traces: p.val("traces").map(|t| relative_to(&root, t)), rows: p.val("rows").map(|r| r.split(',').filter(|s| !s.is_empty()).map(String::from).collect()).unwrap_or_default() };
-    let outcome = parity_core::run(&req, &FsTree::new(&root), &GitHistory::new(&root), &RunTraces, &MimicEvidence);
+    let outcome = if by_oracle {
+        parity_core::oracle::run(app, req.mode, &FsTree::new(&root))
+    } else {
+        parity_core::run(&req, &FsTree::new(&root), &GitHistory::new(&root), &RunTraces, &MimicEvidence)
+    };
     for (path, text) in &outcome.writes {
         let target = root.join(path);
         let written = target.parent().map_or(Ok(()), std::fs::create_dir_all).and_then(|_| std::fs::write(&target, text));

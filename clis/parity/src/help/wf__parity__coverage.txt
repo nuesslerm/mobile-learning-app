@@ -1,4 +1,4 @@
-Usage: wf parity coverage --app t3|orca [--check] [--traces <dir|bundle>] [--rows <prefix,...>] [--root <dir>] [--base <rev>]
+Usage: wf parity coverage --app t3|orca [--check] [--by-oracle] [--traces <dir|bundle>] [--rows <prefix,...>] [--root <dir>] [--base <rev>]
 
 Scan the pinned phone app and build its coverage table. The reference is
 references/t3code (pinned by tooling/t3-conformance/t3-pin.json) or
@@ -33,6 +33,25 @@ traces were read only as a URL or a path inside the repository (--traces paths
 under the root are made relative); an absolute or scratch path is left out, and
 a checked-in file that has one fails the check.
 
+--by-oracle prints, in place of the table, which test serves each served row and
+whether a recording could. It reads the checked-in <app>.json, the decisions, the
+row labels of the interactions of every set under clis/<app>-serve/cassettes whose
+provenance kind is `recorded` and the set's known-gaps.json (no server runs), and
+writes docs/plans/rca-parity/coverage/<app>-oracle.md. Each served row has a class:
+a = recorded, with no gap listed or only drift gaps; b = recorded, with a gap listed
+as breaking; c = no interaction in any recorded set; d = no recording can show it
+(the row's decision has an `unrecordable` reason, or its test is on the
+`unrecordableTests` list of <app>-decisions.json, which starts empty). The md also
+lists, per chain test file in clis/<app>-serve/tests/integration, the host state
+its source sets up that the mimic driver cannot: a scripted agent turn
+(Script::of, .script(, Turn::), the gh double (start_hosted, HostedClis), a restart
+(restart_serve) and a clock; comments are skipped. With --check nothing is written
+and a differing md fails (rule stale; chain-source-missing when evidence names a
+test file that is gone). It takes only --app, --check and --root. Output: {ok, app,
+mode, by: "oracle", served, counts: {a, b, c, d}, chainCounts (the same for the
+rows a chain test serves), recordedSets, chainTests: [{file, rows, tests,
+hostState}], problems, wrote}.
+
 Without the reference checked out, the table is rebuilt from the checked-in
 method list. A reference checked out at another commit than its pin is refused
 for a write.
@@ -49,6 +68,9 @@ Options:
                               served without evidence, the evidence names a row
                               the table does not serve, a trace names a row the
                               phone does not reach, or pending rose
+  --by-oracle                 Classify each served row by what a recording shows
+                              and scan the chain tests' host state
+                              (<app>-oracle.md)
   --traces <dir|bundle>       The method-hit traces of a chain run: a test output
                               dir, a trace.json, or a bundle.json (path or URL)
   --rows <prefix,...>         With --traces: refresh only the rows whose id starts

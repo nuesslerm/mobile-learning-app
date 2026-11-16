@@ -22,6 +22,8 @@ pub struct Decisions {
     pub reverify: BTreeMap<String, String>,
     /// Row id, or a prefix ending in `*`, to why a trace may name it though the phone does not reach it: the crawl drives the whole host surface.
     pub trace_noise: Vec<(String, String)>,
+    /// Chain test (`file::test`, or `file::*`) to why no recording can show what it proves.
+    pub unrecordable_tests: Vec<(String, String)>,
 }
 
 impl Decisions {
@@ -36,12 +38,19 @@ impl Decisions {
             rows: v["decisions"].as_object().map(|o| o.iter().filter_map(|(k, v)| Some((k.clone(), v.as_object()?.clone()))).collect()).unwrap_or_default(),
             reverify: strings("reverify").into_iter().collect(),
             trace_noise: strings("traceNoise"),
+            unrecordable_tests: strings("unrecordableTests"),
         })
     }
 
     /// Whether the row's decision names the mimic oracle (`"oracle": "mimic"`): only a replay the oracle labelled clean can serve it.
     pub fn mimic(&self, id: &str) -> bool {
         self.rows.get(id).and_then(|d| d.get("oracle")).and_then(Value::as_str) == Some("mimic")
+    }
+
+    /// Why no recording can show this row: its own decision says `unrecordable`, or the test that serves it is on the `unrecordableTests` list.
+    pub fn unrecordable(&self, id: &str, test: &str) -> Option<String> {
+        let own = self.rows.get(id).and_then(|d| s(d, "unrecordable"));
+        own.or_else(|| self.unrecordable_tests.iter().find(|(p, _)| p == test || p.strip_suffix('*').is_some_and(|prefix| test.starts_with(prefix))).map(|(_, why)| why.clone()))
     }
 
     /// Whether a trace naming this row is explained by a `traceNoise` entry rather than a mistyped row.

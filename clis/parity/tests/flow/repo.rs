@@ -20,3 +20,17 @@ fn the_repos_own_coverage_tables_pass_the_check_for_both_apps() {
         assert_eq!(count("rows"), count("served") + count("pending") + count("notOffered") + count("excluded") + count("flagged"), "{app}");
     }
 }
+
+#[test]
+fn the_repos_own_oracle_tables_are_current_and_every_served_row_has_a_class() {
+    // Given the repository root
+    let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..").canonicalize().unwrap();
+    for app in ["t3", "orca"] {
+        // When the by-oracle table is checked
+        let run = coverage(&root, &["--app", app, "--by-oracle", "--check"]);
+        // Then it is what the generator builds and its classes add up to the served rows
+        assert_eq!(run.code, 0, "{app}: {}", run.stdout);
+        let sum: u64 = ["a", "b", "c", "d"].iter().map(|c| run.json["counts"][c].as_u64().unwrap()).sum();
+        assert_eq!(Some(sum), run.json["served"].as_u64(), "{app}");
+    }
+}

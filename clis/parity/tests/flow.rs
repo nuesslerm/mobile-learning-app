@@ -5,6 +5,8 @@ mod support;
 
 #[path = "flow/orca.rs"]
 mod orca;
+#[path = "flow/oracle.rs"]
+mod oracle;
 #[path = "flow/recorded.rs"]
 mod recorded;
 #[path = "flow/repo.rs"]
