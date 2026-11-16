@@ -166,6 +166,7 @@ const COMMANDS: &[(&str, &str)] = &[
     ("thread.fork", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x title:s? sideChat:b? createdAt:dt?"),
     ("queued-run.edit", "context:x? commandId:s threadId:s runId:s text:s"),
     ("thread.merge_back", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x createdAt:dt?"),
+    ("delegated_task.request", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s parentThreadId:s parentRunId:s parentNodeId:s task:s title:s? modelSelection:ms runtimeMode:l(approval-required|auto-accept-edits|auto|full-access) interactionMode:l(default|plan) workspaceStrategy:x? completionWake:l(always|settled_only)? createdAt:dt?"),
 ];
 
 const KEYBINDING_COMMANDS: &str = include_str!("../data/keybinding-commands.txt");
@@ -695,6 +696,9 @@ mod tests {
         // Given the fork command with only its ids, and the link command with a url and no key
         // When each is decoded, then the first declared field it lacks is the defect
         assert_eq!(command("thread.fork", json!({"commandId": "a", "threadId": "a"})).unwrap(), "Missing key\n  at [\"createdBy\"]");
+        // And a delegated task fails on its first field, then on a model selection without an instance
+        assert_eq!(command("delegated_task.request", json!({})).unwrap(), "Missing key\n  at [\"createdBy\"]");
+        assert_eq!(command("delegated_task.request", json!({"createdBy": "user", "creationSource": "web", "commandId": "a", "parentThreadId": "a", "parentRunId": "a", "parentNodeId": "a", "task": "a", "modelSelection": {"model": "a"}})).unwrap(), "Expected string\n  at [\"modelSelection\"][\"instanceId\"]");
         assert_eq!(command("thread.pull-request.link", json!({"commandId": "a", "threadId": "a", "url": "a", "source": "manual"})).unwrap(), "Missing key\n  at [\"host\"]");
         assert_eq!(command("thread.pull-request.watch", json!({"commandId": "a", "threadId": "a", "host": "a", "repository": "a", "number": 1})).unwrap(), "Missing key\n  at [\"watching\"]");
     }
