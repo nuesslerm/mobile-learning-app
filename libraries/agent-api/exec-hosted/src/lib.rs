@@ -120,9 +120,9 @@ pub const ACTIONS: &[Action] = &[
     action!(PR_VIEW, "One pull or merge request with its description, mergeability, reviewers and size.", [NUMBER], ["number"]),
     action!(PR_DIFF, "The unified diff of a pull or merge request, cut at the output cap.", [NUMBER], ["number"]),
     action!(PR_CHECKS, "The checks (GitHub) or pipeline jobs (GitLab) of a pull or merge request.", [NUMBER], ["number"]),
-    action!(PR_COMMENTS, "The conversation comments of a pull or merge request.", [NUMBER], ["number"]),
-    action!(PR_REVIEWS, "The reviews (GitHub) or approvals (GitLab) of a pull or merge request.", [NUMBER], ["number"]),
-    action!(PR_THREADS, "The review threads of a pull or merge request, each with its comments and whether it is resolved.", [NUMBER], ["number"]),
+    action!(PR_COMMENTS, "The conversation comments of a pull or merge request. On GitHub each comment keeps `id` as the node id and also answers database_id, avatar_url, is_bot, viewer_did_author, reaction_subject_id and reactions ([{content, count, viewer_has_reacted}]).", [NUMBER], ["number"]),
+    action!(PR_REVIEWS, "The reviews (GitHub) or approvals (GitLab) of a pull or merge request. On GitHub each review keeps `id` as the node id and also answers database_id, avatar_url, is_bot, viewer_did_author, reaction_subject_id, reactions and submitted_at_ms.", [NUMBER], ["number"]),
+    action!(PR_THREADS, "The review threads of a pull or merge request, each with its comments and whether it is resolved. On GitHub each thread also answers start_line, original_line, original_start_line, diff_side and root_diff_hunk, and each thread comment keeps `id` as the node id and also answers database_id, avatar_url, is_bot, viewer_did_author, reaction_subject_id and reactions.", [NUMBER], ["number"]),
     action!(PR_FILES, "The files a pull or merge request changes, with their line counts.", [NUMBER], ["number"]),
     action!(
         PR_CREATE,
