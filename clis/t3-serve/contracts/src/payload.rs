@@ -87,6 +87,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("peerLinks.link", "url:s alternateUrls:a? pairingCode:s access:l(read-only|approval-required|auto-accept-edits|auto|full-access) expectedEnvironmentId:s? expectedLabel:s?"),
     ("peerLinks.answerRequest", "threadId:s turnItemId:s answer:x"),
     ("preview.clearProfile", "profileId:s"),
+    ("subscribeDiscoveredLocalServers", "configuredUrls:a~"),
     ("preview.stopLocalServer", "pid:pi port:pp"),
     ("preview.reportProfiles", "profiles:a(browserProfile) defaultProfileId:s recordingFrameRate:ln(30|60)~"),
     ("preview.open", "threadId:s url:s~ viewport:vp~ profileId:s~ runtime:l(desktop|server)~ reveal:b~"),
@@ -639,6 +640,9 @@ mod tests {
         assert_eq!(defect("preview.reportProfiles", &json!({"profiles": "wrong"})).unwrap(), "Expected array\n  at [\"profiles\"]");
         assert_eq!(defect("preview.reportProfiles", &json!({"profiles": [], "defaultProfileId": "a", "recordingFrameRate": "x"})).unwrap(), "Expected 30 | 60 | null\n  at [\"recordingFrameRate\"]");
         assert_eq!(defect("preview.reportProfiles", &json!({"profiles": [{"id": "a", "name": "a", "kind": "persistent"}], "defaultProfileId": "a", "recordingFrameRate": 60})), None);
+        // And the discovered-servers subscription takes its configured urls as an array or null
+        assert_eq!(defect("subscribeDiscoveredLocalServers", &json!({"configuredUrls": "wrong"})).unwrap(), "Expected array | null\n  at [\"configuredUrls\"]");
+        assert_eq!((defect("subscribeDiscoveredLocalServers", &json!({})), defect("subscribeDiscoveredLocalServers", &json!({"configuredUrls": ["a"]}))), (None, None));
     }
 
     #[test]
