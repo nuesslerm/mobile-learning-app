@@ -1,0 +1,300 @@
+//! The backends the e2e tests run against, started on the runner so no test reaches a deployed service: `wf test backends up` builds
+//! (or takes a prebuilt) `rca-service` and `leetcode-backend-rs`, starts each detached on a loopback port, waits for its `/health`, and prints
+//! one JSON with their urls, pids and the environment a test points at them with; `down` stops what the state file names.
+use serde_json::{json, Value};
+use std::io::{Read, Write};
+use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::os::unix::process::CommandExt;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
+use std::time::{Duration, Instant};
+use wf_kit::args::{parse_spec, Positional, Spec};
+
+const SPEC: Spec = Spec { values: &["only", "dir", "wait", "rca-port", "leetcode-port"], flags: &["no-build"], positional: Positional::Exactly(1), ..Spec::NONE };
+const STATE: &str = "backends.json";
+const DEFAULT_WAIT_S: u64 = 60;
+const STOP_WAIT: Duration = Duration::from_secs(5);
+
+/// A backend: where its crate is, which binary it makes, the variable that names a prebuilt one, and how it is asked if it is up.
+struct Def {
+    name: &'static str,
+    manifest: &'static str,
+    package: &'static str,
+    bin_env: &'static str,
+    port_flag: &'static str,
+}
+
+const DEFS: [Def; 2] = [
+    Def { name: "rca-service", manifest: "backend/remote-chat-agent/Cargo.toml", package: "rca-service", bin_env: "RCA_SERVICE_BIN", port_flag: "rca-port" },
+    Def { name: "leetcode-backend", manifest: "backend/leetcode-backend/Cargo.toml", package: "leetcode-backend-rs", bin_env: "LEETCODE_BACKEND_BIN", port_flag: "leetcode-port" },
+];
+
+fn fail(error: impl Into<String>, next: &str) -> i32 {
+    println!("{}", json!({ "ok": false, "error": error.into(), "next": next }));
+    1
+}
+
+/// `wf test backends up|down`: the words after `backends`.
+pub fn run(args: &[String]) -> i32 {
+    let Some(p) = parse_spec(args, &SPEC) else { return 2 };
+    let dir = p.val("dir").map(PathBuf::from).unwrap_or_else(|| wf_kit::root::repo_root().join(".agents/tmp/e2e-backends"));
+    match p.positional[0].as_str() {
+        "up" => up(&p, &dir),
+        "down" => down(&dir),
+        other => fail(format!("unknown action '{other}'"), "wf test backends up|down"),
+    }
+}
+
+fn up(p: &wf_kit::args::Parsed, dir: &Path) -> i32 {
+    let wanted: Vec<&str> = p.val("only").map(|v| v.split(',').map(str::trim).filter(|s| !s.is_empty()).collect()).unwrap_or_else(|| DEFS.iter().map(|d| d.name).collect());
+    if let Some(bad) = wanted.iter().find(|w| !DEFS.iter().any(|d| d.name == **w)) {
+        return fail(format!("unknown backend '{bad}'"), "wf test backends up [--only rca-service,leetcode-backend]");
+    }
+    if let Some(state) = read_state(dir) {
+        let alive: Vec<String> = recorded(&state).into_iter().filter(|r| is_ours(r)).map(|r| format!("{} (pid {})", r.name, r.pid)).collect();
+        if !alive.is_empty() {
+            return fail(format!("backends are already up: {}", alive.join(", ")), "wf test backends down");
+        }
+    }
+    let wait = Duration::from_secs(p.val("wait").and_then(|w| w.parse().ok()).unwrap_or(DEFAULT_WAIT_S));
+    if let Err(e) = std::fs::create_dir_all(dir) {
+        return fail(format!("{}: {e}", dir.display()), "pass --dir <writable dir>");
+    }
+    let mut started: Vec<Value> = Vec::new();
+    for def in DEFS.iter().filter(|d| wanted.contains(&d.name)) {
+        match start_one(def, p, dir, wait) {
+            Ok(entry) => started.push(entry),
+            Err(error) => {
+                stop_all(&started.iter().filter_map(as_recorded).collect::<Vec<_>>());
+                return fail(error, "wf test backends up --no-build (with RCA_SERVICE_BIN / LEETCODE_BACKEND_BIN naming a built binary) or check the log named above");
+            }
+        }
+    }
+    let out = json!({ "ok": true, "dir": dir.display().to_string(), "backends": started });
+    if let Err(e) = write_state(dir, &out) {
+        stop_all(&started.iter().filter_map(as_recorded).collect::<Vec<_>>());
+        return fail(format!("{}: {e}", dir.join(STATE).display()), "pass --dir <writable dir>");
+    }
+    println!("{out}");
+    0
+}
+
+fn start_one(def: &Def, p: &wf_kit::args::Parsed, dir: &Path, wait: Duration) -> Result<Value, String> {
+    let bin = binary(def, p.flag("no-build"))?;
+    let port = match p.val(def.port_flag) {
+        Some(v) => v.parse::<u16>().map_err(|_| format!("--{} wants a port number, got '{v}'", def.port_flag))?,
+        None => free_port()?,
+    };
+    let home = dir.join(format!("{}-home", def.name));
+    std::fs::create_dir_all(&home).map_err(|e| format!("{}: {e}", home.display()))?;
+    let (server_env, consumer_env) = environment(def, port, &home);
+    let log = dir.join(format!("{}.log", def.name));
+    let log_file = std::fs::File::create(&log).map_err(|e| format!("{}: {e}", log.display()))?;
+    let mut command = Command::new(&bin);
+    command.env_clear().env("PATH", std::env::var_os("PATH").unwrap_or_default()).env("HOME", &home).current_dir(&home).envs(server_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
+    // its own process group, so `down` stops it with whatever it started and it outlives this command
+    command.process_group(0).stdin(Stdio::null()).stdout(log_file.try_clone().map_err(|e| e.to_string())?).stderr(log_file);
+    let mut child = command.spawn().map_err(|e| format!("cannot start {}: {e}", bin.display()))?;
+    let pid = child.id();
+    let addr = SocketAddr::from(([127, 0, 0, 1], port));
+    let deadline = Instant::now() + wait;
+    loop {
+        if let Ok(Some(status)) = child.try_wait() {
+            return Err(format!("{} ended with {status} before /health answered; log {}:\n{}", def.name, log.display(), tail(&log)));
+        }
+        if health(addr) {
+            break;
+        }
+        if Instant::now() >= deadline {
+            kill_group(pid, true);
+            let _ = child.wait();
+            return Err(format!("{} did not answer /health within {}s; log {}:\n{}", def.name, wait.as_secs(), log.display(), tail(&log)));
+        }
+        std::thread::sleep(Duration::from_millis(100));
+    }
+    let url = format!("http://127.0.0.1:{port}");
+    Ok(json!({
+        "name": def.name, "url": url, "host": "127.0.0.1", "port": port, "pid": pid, "health": format!("{url}/health"),
+        "bin": bin.display().to_string(), "log": log.display().to_string(),
+        "env": consumer_env.into_iter().map(|(k, v)| (k, Value::String(v))).collect::<serde_json::Map<String, Value>>(),
+    }))
+}
+
+/// The server's own environment and the one a test (or an app export) points at it with. Secrets are made for this run alone.
+fn environment(def: &Def, port: u16, home: &Path) -> (Vec<(String, String)>, Vec<(String, String)>) {
+    let s = |k: &str, v: String| (k.to_string(), v);
+    let url = format!("http://127.0.0.1:{port}");
+    match def.name {
+        "rca-service" => {
+            let secret = random_hex();
+            let mut server = vec![
+                s("PORT", port.to_string()),
+                s("CHAT_AGENT_API_SECRET", secret.clone()),
+                s("RCA_EXEC_ROOT", home.display().to_string()),
+                s("RCA_PROVIDERS_ROOT", home.join("providers").display().to_string()),
+                s("RCA_ASK_ROOT", home.join("asks").display().to_string()),
+                s("RCA_LEDGER_FILE", home.join("ledger.json").display().to_string()),
+            ];
+            // the opencode server the service talks to is the caller's to start (`OpencodeServer`, or `opencode serve`)
+            for key in ["OPENCODE_SERVER_URL", "OPENCODE_SERVER_PASSWORD"] {
+                if let Some(v) = std::env::var(key).ok().filter(|v| !v.is_empty()) {
+                    server.push(s(key, v));
+                }
+            }
+            let consumer = vec![
+                s("RCA_HOST", "127.0.0.1".into()),
+                s("RCA_PORT", port.to_string()),
+                s("CHAT_AGENT_API_SECRET", secret),
+                s("WF_TAILNET_SOCKS", String::new()),
+                s("SECRETS_BACKEND", "env".into()),
+                s("EXPO_PUBLIC_AGENT_BASE_URL", url),
+            ];
+            (server, consumer)
+        }
+        _ => {
+            let bearer = random_hex();
+            let server = vec![
+                s("PORT", port.to_string()),
+                s("GIT_COMMIT", std::env::var("GITHUB_SHA").unwrap_or_else(|_| "e2e".into())),
+                s("LEETCODE_BACKEND_SESSION_FILE", home.join("session.json").display().to_string()),
+                // nothing listens there: the capture tool is not part of the e2e
+                s("LEETCODE_CAPTURE_TOOL_BASE_URL", "http://127.0.0.1:9".into()),
+                s("LEETCODE_CAPTURE_TRIGGER_SECRET", random_hex()),
+                s("LEETCODE_BACKEND_ADMIN_SECRET", random_hex()),
+                s("VM_GATEWAY_AUTH_SEED", bearer.clone()),
+            ];
+            let consumer = vec![s("EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL", url), s("EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN", bearer)];
+            (server, consumer)
+        }
+    }
+}
+
+/// The program of a backend: the prebuilt one its variable names, or the one `cargo build` makes (a build directory of its own, which
+/// `exec_testkit::RcaService` shares for `rca-service`, so the same build serves both).
+fn binary(def: &Def, no_build: bool) -> Result<PathBuf, String> {
+    if let Some(named) = std::env::var_os(def.bin_env).filter(|v| !v.is_empty()) {
+        let path = PathBuf::from(named);
+        return if path.is_file() { Ok(path) } else { Err(format!("{}={} is no file", def.bin_env, path.display())) };
+    }
+    let repo = wf_kit::root::repo_root();
+    let target = std::env::var_os("CARGO_TARGET_DIR").map(PathBuf::from).unwrap_or_else(|| repo.join("target")).join(format!("{}-build", def.name));
+    let built = target.join("debug").join(def.package);
+    if no_build {
+        return if built.is_file() { Ok(built) } else { Err(format!("--no-build: {} is not built (name a binary in {})", built.display(), def.bin_env)) };
+    }
+    let cargo = std::env::var_os("CARGO").unwrap_or_else(|| "cargo".into());
+    let status = Command::new(cargo)
+        .args(["build", "--locked", "--quiet", "-p", def.package, "--bin", def.package, "--manifest-path"])
+        .arg(repo.join(def.manifest))
+        .arg("--target-dir")
+        .arg(&target)
+        .stdout(Stdio::null())
+        .status()
+        .map_err(|e| format!("cargo does not start: {e}"))?;
+    if status.success() {
+        Ok(built)
+    } else {
+        Err(format!("building {} failed ({status})", def.package))
+    }
+}
+
+fn free_port() -> Result<u16, String> {
+    TcpListener::bind("127.0.0.1:0").and_then(|l| l.local_addr()).map(|a| a.port()).map_err(|e| format!("no free loopback port: {e}"))
+}
+
+fn random_hex() -> String {
+    let mut bytes = [0u8; 16];
+    std::fs::File::open("/dev/urandom").and_then(|mut f| f.read_exact(&mut bytes)).expect("/dev/urandom");
+    hex::encode(bytes)
+}
+
+/// `GET /health` answered 200.
+fn health(addr: SocketAddr) -> bool {
+    let Ok(mut stream) = TcpStream::connect_timeout(&addr, Duration::from_secs(2)) else { return false };
+    let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
+    if stream.write_all(format!("GET /health HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n").as_bytes()).is_err() {
+        return false;
+    }
+    let mut head = String::new();
+    let _ = stream.take(64).read_to_string(&mut head);
+    head.split(' ').nth(1) == Some("200")
+}
+
+fn tail(log: &Path) -> String {
+    let text = std::fs::read_to_string(log).unwrap_or_default();
+    let lines: Vec<&str> = text.lines().collect();
+    lines[lines.len().saturating_sub(20)..].join("\n")
+}
+
+/// What the state file records of one backend.
+struct Recorded {
+    name: String,
+    pid: u32,
+    bin: String,
+}
+
+fn as_recorded(entry: &Value) -> Option<Recorded> {
+    Some(Recorded { name: entry["name"].as_str()?.to_string(), pid: u32::try_from(entry["pid"].as_u64()?).ok()?, bin: entry["bin"].as_str()?.to_string() })
+}
+
+fn recorded(state: &Value) -> Vec<Recorded> {
+    state["backends"].as_array().map(|a| a.iter().filter_map(as_recorded).collect()).unwrap_or_default()
+}
+
+fn read_state(dir: &Path) -> Option<Value> {
+    serde_json::from_str(&std::fs::read_to_string(dir.join(STATE)).ok()?).ok()
+}
+
+fn write_state(dir: &Path, state: &Value) -> std::io::Result<()> {
+    use std::os::unix::fs::OpenOptionsExt;
+    // it holds this run's secrets
+    let mut file = std::fs::OpenOptions::new().write(true).create(true).truncate(true).mode(0o600).open(dir.join(STATE))?;
+    file.write_all(format!("{state}\n").as_bytes())
+}
+
+/// Alive, and still the program that was started (a recycled pid is not ours to stop).
+fn is_ours(r: &Recorded) -> bool {
+    let Ok(stat) = std::fs::read_to_string(format!("/proc/{}/stat", r.pid)) else { return false };
+    let state = stat.rsplit_once(')').and_then(|(_, rest)| rest.trim().chars().next());
+    if state == Some('Z') {
+        return false;
+    }
+    std::fs::read(format!("/proc/{}/cmdline", r.pid)).is_ok_and(|c| String::from_utf8_lossy(&c).contains(&r.bin))
+}
+
+fn kill_group(pid: u32, hard: bool) {
+    use nix::sys::signal::{killpg, Signal};
+    let _ = killpg(nix::unistd::Pid::from_raw(pid as i32), if hard { Signal::SIGKILL } else { Signal::SIGTERM });
+}
+
+/// Stops each one still ours: SIGTERM to its group, SIGKILL when it is still there after the grace. Says how each ended.
+fn stop_all(all: &[Recorded]) -> Vec<Value> {
+    all.iter()
+        .map(|r| {
+            let how = if !is_ours(r) {
+                "gone"
+            } else {
+                kill_group(r.pid, false);
+                let deadline = Instant::now() + STOP_WAIT;
+                while is_ours(r) && Instant::now() < deadline {
+                    std::thread::sleep(Duration::from_millis(50));
+                }
+                if is_ours(r) {
+                    kill_group(r.pid, true);
+                    "kill"
+                } else {
+                    "term"
+                }
+            };
+            json!({ "name": r.name, "pid": r.pid, "how": how })
+        })
+        .collect()
+}
+
+fn down(dir: &Path) -> i32 {
+    let state = read_state(dir).unwrap_or(Value::Null);
+    let stopped = stop_all(&recorded(&state));
+    let _ = std::fs::remove_file(dir.join(STATE));
+    println!("{}", json!({ "ok": true, "dir": dir.display().to_string(), "stopped": stopped }));
+    0
+}

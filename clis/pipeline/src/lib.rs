@@ -24,6 +24,7 @@ pub mod recorders;
 pub mod pushed;
 pub mod dead_refs;
 pub mod device_run;
+pub mod e2e_backends;
 pub mod e2e_run;
 pub mod export_site;
 pub mod test_results;
@@ -66,6 +67,7 @@ pub fn run_test(rest: &[String]) -> Option<i32> {
     match rest.first().map(String::as_str)? {
         "publish" => publish_verb(rest),
         "drift" => nx_drift::run(&rest[1..]),
+        "backends" => Some(e2e_backends::run(&rest[1..])),
         "run" if rest.iter().any(|a| a == "--stage") => Some(e2e_tests::run_stage(&rest[1..])),
         "plan" => Some(e2e_tests::plan(&parse_spec(rest, &PLAN)?)),
         _ => None,

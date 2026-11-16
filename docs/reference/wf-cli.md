@@ -5738,7 +5738,7 @@ Options:
 
 The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`). A runbook is something else: plain text an agent drives. There is no queue: CI's plan job writes the plan once and each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deployment-verification-tests, browser-e2e-tests, android-e2e-tests) runs its part with `wf test run --stage`.
 
-Usage: `wf test [options] <plan|run|export|publish|results|goldens> [args]`
+Usage: `wf test [options] <plan|run|prepare|backends|publish|results|goldens> [args]`
 
 Examples:
 
@@ -5749,12 +5749,13 @@ wf test run --all
 wf test run editor-typing --platform browser
 wf test run editor-typing -- --update-goldens
 wf test publish .agents/tmp/runs/<run-dir>
+wf test backends up
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf test [options] <plan|run|export|drift|publish|results|goldens> [args]
+Usage: wf test [options] <plan|run|prepare|backends|drift|publish|results|goldens> [args]
 
 The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`).
 A runbook is something else: plain text an agent drives. There is no queue: CI's plan job writes the plan once and
@@ -5832,6 +5833,20 @@ Actions:
                          plain URLs and flags as they are and anything else as set:<8 hex of its hash>, memory is the build's largest
                          process and, with WF_VM_SAMPLE_SECS, the VM's low MemAvailable; or {ok: false, error, next}. `wf test run` refuses
                          an export whose inputs differ from the tree's; a run's result names the baked keys and a digest, never the values.
+  backends up [--only rca-service,leetcode-backend] [--no-build] [--wait <s>] [--dir <dir>] [--rca-port <n>] [--leetcode-port <n>]
+  backends down [--dir <dir>]
+                         the services the e2e tests need, on this machine, so no test reaches a deployed one. up builds rca-service
+                         and leetcode-backend-rs (`cargo build --locked` into <CARGO_TARGET_DIR or target>/<name>-build; RCA_SERVICE_BIN or
+                         LEETCODE_BACKEND_BIN names a prebuilt one, --no-build refuses to build), starts each detached in its own process group
+                         on a free loopback port (or --rca-port / --leetcode-port) with secrets made for this run, waits up to --wait (default 60) s for
+                         its GET /health, and prints {ok, dir, backends:[{name, url, host, port, pid, health, bin, log, env}]} (rca-service first); env is
+                         what a test or an app export is pointed at it with (RCA_HOST, RCA_PORT, CHAT_AGENT_API_SECRET, WF_TAILNET_SOCKS, SECRETS_BACKEND,
+                         EXPO_PUBLIC_AGENT_BASE_URL; EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL and _TOKEN). rca-service reaches an opencode server only
+                         through OPENCODE_SERVER_URL (and _PASSWORD) of the caller's environment: starting one is not part of up. The same
+                         JSON is the state file <dir>/backends.json (default .agents/tmp/e2e-backends, mode 0600: it holds the secrets) with each log
+                         beside it. A backend that ends or does not answer stops the ones already started and prints {ok: false, error, next}, exit 1; a second
+                         up while they run is refused. down stops each recorded process that is still the program that was started (SIGTERM to its group,
+                         SIGKILL after 5 s) and prints {ok, dir, stopped:[{name, pid, how: term|kill|gone}]}; with nothing running it is ok and stops none
   drift [--save <file> | --against <file> | --pins] [--targets t,t] [--projects p,p]
                          the Nx task hashes of this checkout, which decide whether a sandbox pass replays on CI; runs nothing.
                          Bare: {ok, tasks, runtime, hashes}. --save writes this side's table ({runtime, tasks: {<project>:<target>:

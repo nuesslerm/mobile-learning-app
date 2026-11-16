@@ -17,6 +17,8 @@ mod cargo_inputs;
 mod check;
 #[path = "flow/ci_comment.rs"]
 mod ci_comment;
+#[path = "flow/e2e_backends.rs"]
+mod e2e_backends;
 #[path = "flow/expected_revisions.rs"]
 mod expected_revisions;
 #[path = "flow/layout.rs"]
