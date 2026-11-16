@@ -1,5 +1,5 @@
 //! `Host` is the process-wide part (runtime id, the areas, the table, the ports); a `Connection` is one authenticated socket's dispatcher.
-use crate::area::{Area, Ctx, Kind, Subscriptions};
+use crate::area::{Area, Ctx, Kind, Out, Subscriptions};
 use crate::ports::{AgentApi, HostInfo, Principals};
 use crate::table::{Entry, Table};
 use crate::wire::{self, Failure};
@@ -59,18 +59,27 @@ impl Connection {
 
     /// Answers one request frame with the frames to send, in order (the answer, then what streams queued meanwhile).
     pub fn on_message(&mut self, text: &str) -> Vec<String> {
+        Self::text_only(self.on_message_out(text))
+    }
+
+    fn text_only(frames: Vec<Out>) -> Vec<String> {
+        frames.into_iter().filter_map(|f| if let Out::Text(t) = f { Some(t) } else { None }).collect()
+    }
+
+    /// `on_message` with binary frames kept, in emission order.
+    pub fn on_message_out(&mut self, text: &str) -> Vec<Out> {
         let host = self.host.clone();
         let runtime_id = host.runtime_id.as_str();
-        let mut frames = Vec::new();
+        let mut frames: Vec<Out> = Vec::new();
         let request = match wire::parse(text) {
             Ok(r) => r,
-            Err(unparsed) => return vec![wire::failure(&unparsed.0, runtime_id, &unparsed.1).to_string()],
+            Err(unparsed) => return vec![Out::Text(wire::failure(&unparsed.0, runtime_id, &unparsed.1).to_string())],
         };
         if request.device_token.as_deref().is_some_and(|t| t != self.device_token) {
-            return vec![wire::failure(&request.id, runtime_id, &Failure::new(wire::UNAUTHORIZED, "Device token mismatch")).to_string()];
+            return vec![Out::Text(wire::failure(&request.id, runtime_id, &Failure::new(wire::UNAUTHORIZED, "Device token mismatch")).to_string())];
         }
         if !host.principals.still_paired(&self.device_id, &self.device_token) {
-            return vec![wire::failure(&request.id, runtime_id, &Failure::new(wire::UNAUTHORIZED, "Invalid device token")).to_string()];
+            return vec![Out::Text(wire::failure(&request.id, runtime_id, &Failure::new(wire::UNAUTHORIZED, "Invalid device token")).to_string())];
         }
         let reply = match host.table.get(&request.method) {
             None => Err(Failure::new(wire::METHOD_NOT_FOUND, format!("Unknown method: {}", request.method))),
@@ -104,18 +113,48 @@ impl Connection {
             }
         };
         match reply {
-            Ok(Some(result)) => frames.push(wire::success(&request.id, runtime_id, result).to_string()),
+            Ok(Some(result)) => frames.push(Out::Text(wire::success(&request.id, runtime_id, result).to_string())),
             Ok(None) => {}
-            Err(f) => frames.push(wire::failure(&request.id, runtime_id, &f).to_string()),
+            Err(f) => frames.push(Out::Text(wire::failure(&request.id, runtime_id, &f).to_string())),
         }
-        frames.extend(self.poll());
+        frames.extend(self.poll_out());
         frames
     }
 
     /// What the open streams have queued, as frames; the socket loop calls it between reads.
     pub fn poll(&mut self) -> Vec<String> {
-        let runtime_id = self.host.runtime_id.clone();
-        self.subscriptions.flush().into_iter().map(|(id, event)| wire::streaming(&id, &runtime_id, event).to_string()).collect()
+        Self::text_only(self.poll_out())
+    }
+
+    /// `poll` with binary frames kept, in emission order.
+    pub fn poll_out(&mut self) -> Vec<Out> {
+        let flushed = self.subscriptions.flush();
+        self.envelope(flushed)
+    }
+
+    /// An inbound binary frame: its u32 LE stream id (header offset 4) picks the stream; a frame for no stream is dropped.
+    pub fn on_binary(&mut self, frame: &[u8]) -> Vec<Out> {
+        let Some(number) = frame.get(4..8).and_then(|b| b.try_into().ok()).map(u32::from_le_bytes) else {
+            return Vec::new();
+        };
+        let routed = self.subscriptions.route_binary(number, frame);
+        let mut out = self.envelope(routed);
+        out.extend(self.poll_out());
+        out
+    }
+
+    fn envelope(&self, frames: Vec<(String, Out)>) -> Vec<Out> {
+        let runtime_id = self.host.runtime_id.as_str();
+        frames
+            .into_iter()
+            .map(|(id, frame)| match frame {
+                Out::Text(json) => {
+                    let event = serde_json::from_str(&json).unwrap_or(Value::String(json));
+                    Out::Text(wire::streaming(&id, runtime_id, event).to_string())
+                }
+                binary => binary,
+            })
+            .collect()
     }
 
     /// The socket closed: every stream ends, with nobody left to hear it.

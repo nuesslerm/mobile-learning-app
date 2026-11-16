@@ -26,11 +26,37 @@ pub struct NotOffered {
     pub decided_by: &'static str,
 }
 
+/// One outbound frame of a stream: the event JSON to wrap in a streaming envelope, or a binary frame sent as is.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Out {
+    Text(String),
+    Binary(Vec<u8>),
+}
+
+fn texts(events: Vec<Value>) -> Vec<Out> {
+    events.into_iter().map(|e| Out::Text(e.to_string())).collect()
+}
+
 /// An open stream. `poll` returns the events since the last call (the first call includes the opening ones); `end` the closing ones.
 pub trait Subscription: Send {
     fn id(&self) -> &str;
     fn poll(&mut self) -> Vec<Value>;
     fn end(&mut self) -> Vec<Value>;
+    /// `poll` with binary frames allowed, in emission order.
+    fn poll_out(&mut self) -> Vec<Out> {
+        texts(self.poll())
+    }
+    fn end_out(&mut self) -> Vec<Out> {
+        texts(self.end())
+    }
+    /// The numeric stream id the phone puts in binary frame headers, when this stream has one.
+    fn number(&self) -> Option<u32> {
+        None
+    }
+    /// An inbound binary frame addressed to this stream.
+    fn on_binary(&mut self, _frame: &[u8]) -> Vec<Out> {
+        Vec::new()
+    }
 }
 
 struct Active {
@@ -72,15 +98,23 @@ impl Subscriptions {
         n
     }
 
-    /// Every stream's pending events as `(request id, event)`, and the ended streams' closing events, which drop them.
-    pub(crate) fn flush(&mut self) -> Vec<(String, Value)> {
+    /// Every stream's pending frames as `(request id, frame)`, and the ended streams' closing frames, which drop them.
+    pub(crate) fn flush(&mut self) -> Vec<(String, Out)> {
         let mut out = Vec::new();
         for a in &mut self.active {
-            let events = if a.ending { a.sub.end() } else { a.sub.poll() };
+            let events = if a.ending { a.sub.end_out() } else { a.sub.poll_out() };
             out.extend(events.into_iter().map(|e| (a.request_id.clone(), e)));
         }
         self.active.retain(|a| !a.ending);
         out
+    }
+
+    /// Hands an inbound binary frame to the stream numbered `stream_number`; nothing when this connection has none.
+    pub fn route_binary(&mut self, stream_number: u32, frame: &[u8]) -> Vec<(String, Out)> {
+        match self.active.iter_mut().find(|a| !a.ending && a.sub.number() == Some(stream_number)) {
+            Some(a) => a.sub.on_binary(frame).into_iter().map(|o| (a.request_id.clone(), o)).collect(),
+            None => Vec::new(),
+        }
     }
 
     pub(crate) fn end_all(&mut self) {
@@ -121,6 +155,13 @@ impl Ctx<'_> {
     /// `<prefix><connection id>-<n>`: ids are counted across connections, so one never repeats within a process.
     pub fn subscription_id(&self, prefix: &str) -> String {
         format!("{prefix}{}-{}", self.connection_id, self.seq.fetch_add(1, Ordering::SeqCst) + 1)
+    }
+}
+
+impl Ctx<'_> {
+    /// A numeric stream id for binary frame headers, unique within the process (same counter as `subscription_id`).
+    pub fn stream_number(&self) -> u32 {
+        (self.seq.fetch_add(1, Ordering::SeqCst) + 1) as u32
     }
 }
 
