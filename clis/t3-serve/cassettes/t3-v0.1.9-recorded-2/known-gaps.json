@@ -2,32 +2,6 @@
   "schema": "mimic-known-gaps/2",
   "groups": [
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
-      ],
-      "ids": [
-        "t3-command-message.dispatch",
-        "t3-command-runtime-request.respond",
-        "t3-rpc-provider.consumeResetCredit",
-        "t3-rpc-pullRequests.filterOptions",
-        "t3-rpc-subscribeWorktreeSetup"
-      ]
-    },
-    {
-      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
-      ],
-      "ids": [
-        "t3-rpc-attachments.createUploadUrl"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
       "severity": "breaking",
       "diffs": [
@@ -84,6 +58,19 @@
       "ids": [
         "t3-mutation-project.update",
         "t3-rpc-device.list"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ],
+      "ids": [
+        "t3-command-message.dispatch",
+        "t3-command-runtime-request.respond"
       ]
     },
     {

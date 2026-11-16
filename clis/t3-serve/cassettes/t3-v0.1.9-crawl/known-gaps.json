@@ -674,19 +674,22 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error",
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
       "severity": "breaking",
       "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect extra drift"
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.instanceId missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
       ],
       "ids": [
-        "t3-command-thread.created.record-invalid-wrong-type-commandId",
-        "t3-command-thread.created.record-valid-min",
         "t3-rpc-provider.auth.removeMethod-valid-min",
-        "t3-rpc-server.reclaimDatabaseSpace-invalid-no-payload",
-        "t3-rpc-server.reclaimDatabaseSpace-valid-min"
+        "t3-rpc-provider.install.cancel-valid-min",
+        "t3-rpc-provider.install.remove-valid-min",
+        "t3-rpc-provider.install.start-valid-min",
+        "t3-rpc-provider.install.subscribe-valid-min"
       ]
     },
     {
@@ -769,6 +772,21 @@
       ]
     },
     {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect extra drift"
+      ],
+      "ids": [
+        "t3-command-thread.created.record-invalid-wrong-type-commandId",
+        "t3-command-thread.created.record-valid-min",
+        "t3-rpc-server.reclaimDatabaseSpace-invalid-no-payload",
+        "t3-rpc-server.reclaimDatabaseSpace-valid-min"
+      ]
+    },
+    {
       "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
       "severity": "drift",
       "diffs": [
@@ -779,24 +797,6 @@
         "t3-rpc-sourceControl.star-invalid-drop-provider",
         "t3-rpc-sourceControl.star-invalid-no-payload",
         "t3-rpc-sourceControl.star-invalid-wrong-type-provider"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.instanceId missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
-      ],
-      "ids": [
-        "t3-rpc-provider.install.cancel-valid-min",
-        "t3-rpc-provider.install.remove-valid-min",
-        "t3-rpc-provider.install.start-valid-min",
-        "t3-rpc-provider.install.subscribe-valid-min"
       ]
     },
     {

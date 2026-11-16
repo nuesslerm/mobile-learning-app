@@ -2,34 +2,6 @@
   "schema": "mimic-known-gaps/2",
   "groups": [
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
-      ],
-      "ids": [
-        "t3-command-checkpoint.rollback",
-        "t3-command-provider-session.detach",
-        "t3-command-queued-run.cancel",
-        "t3-command-run.interrupt",
-        "t3-command-thread.guest-message.dismiss",
-        "t3-command-thread.runtime-mode.set"
-      ]
-    },
-    {
-      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
-      ],
-      "ids": [
-        "t3-rpc-provider.auth.removeMethod",
-        "t3-rpc-terminal.open"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
       "severity": "breaking",
       "diffs": [
@@ -44,6 +16,23 @@
         "t3-command-thread.visit",
         "t3-rpc-projects.listEntries",
         "t3-rpc-pullRequests.list"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ],
+      "ids": [
+        "t3-command-checkpoint.rollback",
+        "t3-command-provider-session.detach",
+        "t3-command-queued-run.cancel",
+        "t3-command-run.interrupt",
+        "t3-command-thread.guest-message.dismiss",
+        "t3-command-thread.runtime-mode.set"
       ]
     },
     {
