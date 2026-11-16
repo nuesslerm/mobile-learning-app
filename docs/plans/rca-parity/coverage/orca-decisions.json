@@ -640,122 +640,122 @@
     },
     "rpc:gitlab.listWorkItems": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:gitlab.workItemDetails": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:gitlab.workItemByPath": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:gitlab.createIssue": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:gitlab.updateIssue": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:gitlab.addIssueComment": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:gitlab.todos": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: a GitLab to-do is a notification of the provider's own, and rca's hosted group reads none.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: a GitLab to-do is a notification of the provider's own, and rca's hosted group reads none. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.status": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca has no Linear client and holds no Linear key or sign-in, so there is no Linear connection, issue, team or workspace to offer; an always-not-connected answer would be an empty answer built without the provider.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca has no Linear client and holds no Linear key or sign-in, so there is no Linear connection, issue, team or workspace to offer; an always-not-connected answer would be an empty answer built without the provider. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.connect": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.selectWorkspace": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.listTeams": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.teamStates": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.listIssues": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.searchIssues": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.getIssue": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.issueComments": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.createIssue": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.updateIssue": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:linear.addIssueComment": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Linear reason as linear.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:jira.status": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca has no Jira client and holds no Atlassian sign-in or token, so there is no Jira site or issue to offer; a constant not-connected answer would be an empty answer built without the provider.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca has no Jira client and holds no Atlassian sign-in or token, so there is no Jira site or issue to offer; a constant not-connected answer would be an empty answer built without the provider. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:jira.getIssue": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:jira.issueComments": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:jira.listIssues": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:jira.searchIssues": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same Jira reason as jira.status. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
       "decidedBy": "M12"
     },
     "rpc:terminal.ackOutput": {
