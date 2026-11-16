@@ -152,6 +152,10 @@ impl Connection {
                 }
             }
         }
+        if let Some(message) = t3_contracts::payload::defect(tag, payload) {
+            self.svc.log("rpc.payload.undecodable", &[("tag", tag.to_string())]);
+            return vec![rpc::exit_defect(&id, &message)];
+        }
         let after = payload.get("afterSequence").and_then(Value::as_u64);
         let marker = payload.get("requestCompletionMarker").and_then(Value::as_bool).unwrap_or(false);
         let synchronized = |mut frames: Vec<Value>| {

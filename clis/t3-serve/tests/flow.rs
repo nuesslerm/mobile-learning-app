@@ -7,6 +7,8 @@ mod support;
 mod agent_threads;
 #[path = "flow/binary.rs"]
 mod binary;
+#[path = "flow/crawl_decode.rs"]
+mod crawl_decode;
 #[path = "flow/client_activity.rs"]
 mod client_activity;
 #[path = "flow/history.rs"]

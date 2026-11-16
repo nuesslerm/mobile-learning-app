@@ -2,6 +2,7 @@
 //! the plan are our reading of the source until the phase-0 goldens settle them; they live here and nowhere else.
 pub mod environment;
 pub mod history;
+pub mod payload;
 pub mod rows;
 pub mod rpc;
 pub mod scopes;
