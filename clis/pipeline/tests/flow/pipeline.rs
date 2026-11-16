@@ -375,6 +375,55 @@ fn no_workflow_or_action_sets_the_nx_cache_environment_wf_gives_nx() {
     assert!(named.is_empty(), "{named:#?}");
 }
 
+fn pipeline_job(text: &str, job: &str) -> String {
+    let head = format!("\n  {job}:\n");
+    let start = text.find(&head).unwrap_or_else(|| panic!("no job {job}")) + 1;
+    let rest = &text[start + head.len() - 1..];
+    let end = rest.lines().skip(1).scan(0, |at, l| { *at += l.len() + 1; Some((*at, l)) }).find(|(_, l)| l.starts_with("  ") && !l.starts_with("   ") && l.trim_end().ends_with(':') && !l.trim_start().starts_with('#')).map(|(at, l)| at - l.len() - 1);
+    rest[..end.unwrap_or(rest.len())].to_string()
+}
+
+fn pipeline_line(block: &str, key: &str) -> String {
+    block.lines().find(|l| l.starts_with(&format!("    {key}:"))).unwrap_or_else(|| panic!("no {key}")).to_string()
+}
+
+#[test]
+fn a_red_test_stage_does_not_hide_the_e2e_jobs_but_still_blocks_the_deploy_and_the_production_update() {
+    // Given the pipeline workflow
+    let text = std::fs::read_to_string(crate::support::repo_root().join(".github/workflows/pipeline.yml")).unwrap();
+    let tests = ["flow-tests", "typecheck-lint-unit-tests", "integration-tests", "cli-e2e-tests"];
+    // When the jobs that ship are read
+    for job in ["deploy", "clis"] {
+        let block = pipeline_job(&text, job);
+        let cond = pipeline_line(&block, "if");
+        let needs = pipeline_line(&block, "needs");
+        // Then they still wait on, and are skipped by, a red test, and neither parity job is a condition of shipping
+        for t in tests {
+            assert!(cond.contains(&format!("needs.{t}.result != 'failure'")), "{job} if: {cond}");
+            assert!(needs.contains(t), "{job} needs: {needs}");
+        }
+        assert!(!cond.contains("parity") && !needs.contains("parity"), "{job}");
+    }
+    // When the jobs that report e2e evidence are read
+    for job in ["eas-update", "browser-e2e-tests", "android-e2e-tests", "deployment-verification-tests"] {
+        let cond = pipeline_line(&pipeline_job(&text, job), "if");
+        // Then a red test stage no longer skips them
+        for t in tests {
+            assert!(!cond.contains(&format!("needs.{t}.result")), "{job} if: {cond}");
+        }
+    }
+    // And the production EAS Update step, the one phones open, keeps all four
+    let eas = pipeline_job(&text, "eas-update");
+    let step = &eas[eas.find("- name: Publish the EAS Update\n").expect("production step")..];
+    let step_if = step.lines().find(|l| l.trim_start().starts_with("if:")).unwrap();
+    for t in tests {
+        assert!(step_if.contains(&format!("needs.{t}.result != 'failure'")), "{step_if}");
+    }
+    // And the one job that dials a deployed service still needs a successful deploy unless no leg was planned
+    let dvt = pipeline_line(&pipeline_job(&text, "deployment-verification-tests"), "if");
+    assert!(dvt.contains("needs.deploy.result == 'success' || needs.plan.outputs.legs == '[]'"), "{dvt}");
+}
+
 #[test]
 fn a_crate_s_flow_test_alone_is_planned_when_a_flow_input_outside_its_dir_or_a_crate_it_runs_changes() {
     // Given a crate whose flow tests read tables outside its workspace and run the binary of a crate it does not depend on
