@@ -606,3 +606,57 @@ fn given_an_ended_stream_when_its_output_is_acknowledged_then_nothing_is_credite
     rig.sent(op::UNSUBSCRIBE, id, b"");
     assert_eq!(rig.ack(&tok, 1), json!({"credited": false}));
 }
+
+fn unsub(rig: &mut Rig, params: Value) -> Vec<Value> {
+    rig.frames("terminal.unsubscribe", params)
+}
+
+#[test]
+fn given_a_stream_when_unsubscribed_by_its_terminal_and_client_then_it_sends_end_and_nothing_stays_open() {
+    let mut rig = Rig::new();
+    rig.subscribe(desktop());
+    assert_eq!(rig.conn.open_streams(), 1);
+    // When the phone unsubscribes by the terminal handle and its client id
+    let got = unsub(&mut rig, json!({"subscriptionId": "main:t1", "client": {"id": "d1"}}));
+    // Then it is answered and the stream ends
+    let results: Vec<Value> = got.iter().map(|f| f["result"].clone()).collect();
+    assert!(results.contains(&json!({"unsubscribed": true})), "{results:?}");
+    assert!(results.contains(&json!({"type": "end"})), "{results:?}");
+    assert_eq!(rig.conn.open_streams(), 0);
+}
+
+#[test]
+fn given_an_id_nothing_holds_when_unsubscribed_then_it_still_answers_unsubscribed_and_the_stream_goes_on() {
+    let mut rig = Rig::new();
+    rig.subscribe(desktop());
+    let got = unsub(&mut rig, json!({"subscriptionId": "main:nope", "client": {"id": "d1"}}));
+    assert_eq!(got.last().unwrap()["result"], json!({"unsubscribed": true}));
+    assert_eq!(rig.conn.open_streams(), 1);
+}
+
+#[test]
+fn given_a_replaced_stream_when_the_old_request_is_unsubscribed_then_the_replacement_stays_open_and_the_new_request_ends_it() {
+    let mut rig = Rig::new();
+    rig.subscribe(desktop());
+    rig.subscribe(desktop());
+    assert_eq!(rig.conn.open_streams(), 1);
+    // When a stale unsubscribe names the first request
+    let got = unsub(&mut rig, json!({"subscriptionId": "main:t1", "requestId": "r1"}));
+    // Then it answers unsubscribed and the replacement keeps streaming
+    assert_eq!(got.last().unwrap()["result"], json!({"unsubscribed": true}));
+    assert_eq!(rig.conn.open_streams(), 1);
+    rig.terminals.push_output("main", "t1", b"z");
+    assert_eq!(rig.events(), [json!({"type": "data", "chunk": "z"})]);
+    // When the live request is named, Then the stream ends
+    unsub(&mut rig, json!({"subscriptionId": "main:t1", "requestId": "r2"}));
+    assert_eq!(rig.conn.open_streams(), 0);
+}
+
+#[test]
+fn given_an_unsubscribe_without_a_usable_id_when_sent_then_it_is_refused_as_before() {
+    let mut rig = Rig::new();
+    for params in [json!({}), json!({"subscriptionId": 7})] {
+        let got = unsub(&mut rig, params);
+        assert_eq!((got[0]["ok"].clone(), got[0]["error"]["message"].clone()), (json!(false), json!("Missing subscription ID")));
+    }
+}

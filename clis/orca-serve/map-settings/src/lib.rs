@@ -32,7 +32,6 @@ const METHODS: &[Method] = &[
     Method { name: CLIENT_EVENTS_UNSUBSCRIBE, kind: Kind::Unary },
     Method { name: streams::ACCOUNTS_UNSUBSCRIBE, kind: Kind::Unary },
     Method { name: streams::NOTIFICATIONS_UNSUBSCRIBE, kind: Kind::Unary },
-    Method { name: streams::TERMINAL_UNSUBSCRIBE, kind: Kind::Unary },
     Method { name: "linear.status", kind: Kind::Unary },
     Method { name: "linear.selectWorkspace", kind: Kind::Unary },
     Method { name: "linear.listTeams", kind: Kind::Unary },

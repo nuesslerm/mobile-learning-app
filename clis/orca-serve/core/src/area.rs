@@ -87,6 +87,17 @@ impl Subscriptions {
         }
     }
 
+    /// Marks the stream opened by request `request_id` to end; false when it already ended or was replaced.
+    pub fn cancel_request(&mut self, request_id: &str) -> bool {
+        match self.active.iter_mut().find(|a| !a.ending && a.request_id == request_id) {
+            Some(a) => {
+                a.ending = true;
+                true
+            }
+            None => false,
+        }
+    }
+
     /// Marks every stream whose id is `prefix` or `prefix:<more>` to end; how many there were.
     pub fn cancel_prefix(&mut self, prefix: &str) -> usize {
         let child = format!("{prefix}:");

@@ -27,6 +27,7 @@ pub const TERMINAL_ACK_OUTPUT: &str = "terminal.ackOutput";
 pub const TERMINAL_FOCUS: &str = "terminal.focus";
 pub const TERMINAL_READ: &str = "terminal.read";
 pub const TERMINAL_SUBSCRIBE: &str = "terminal.subscribe";
+pub const TERMINAL_UNSUBSCRIBE: &str = "terminal.unsubscribe";
 pub const TERMINAL_OPEN_INPUT_SESSION: &str = "terminal.openInputSession";
 pub use tabs::{SESSION_TABS_ACTIVATE, SESSION_TABS_CLOSE, SESSION_TABS_CREATE_TERMINAL, SESSION_TABS_LIST, SESSION_TABS_SUBSCRIBE, SESSION_TABS_UNSUBSCRIBE};
 
@@ -46,6 +47,7 @@ const METHODS: &[Method] = &[
     Method { name: TERMINAL_READ, kind: Kind::Unary },
     Method { name: TERMINAL_OPEN_INPUT_SESSION, kind: Kind::Unary },
     Method { name: TERMINAL_SUBSCRIBE, kind: Kind::Streaming },
+    Method { name: TERMINAL_UNSUBSCRIBE, kind: Kind::Unary },
     Method { name: SESSION_TABS_LIST, kind: Kind::Unary },
     Method { name: SESSION_TABS_ACTIVATE, kind: Kind::Unary },
     Method { name: SESSION_TABS_CLOSE, kind: Kind::Unary },
@@ -93,6 +95,7 @@ impl Area for TerminalArea {
             TERMINAL_ACK_OUTPUT => ack_output(ctx.device_id, params),
             TERMINAL_FOCUS => focus(agent, params),
             TERMINAL_READ => read(agent, params),
+            TERMINAL_UNSUBSCRIBE => subscribe::unsubscribe(ctx, params),
             TERMINAL_OPEN_INPUT_SESSION => open_input_session(params),
             other => Err(Failure::new(orca_core::wire::METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }

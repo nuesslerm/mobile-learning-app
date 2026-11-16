@@ -169,6 +169,22 @@ impl Subscription for Stream {
     }
 }
 
+/// Ends the stream the phone names: by the request that opened it, else by the id the real host builds (`<id>`, or `<id>:<client id>`).
+pub(crate) fn unsubscribe(ctx: &mut Ctx, params: &Value) -> Result<Value, Failure> {
+    let id = params.get("subscriptionId").and_then(Value::as_str).filter(|s| !s.is_empty()).ok_or_else(|| Failure::invalid("Missing subscription ID"))?;
+    if let Some(request) = params.get("requestId").and_then(Value::as_str).filter(|r| !r.is_empty()) {
+        ctx.subscriptions.cancel_request(request);
+        return Ok(json!({"unsubscribed": true}));
+    }
+    let client = params.get("client").and_then(|c| c["id"].as_str()).filter(|c| !c.is_empty());
+    let full = match client {
+        Some(client) => format!("terminal:{}:{id}:{client}", ctx.connection_id),
+        None => format!("terminal:{}:{id}", ctx.connection_id),
+    };
+    ctx.subscriptions.cancel(&full);
+    Ok(json!({"unsubscribed": true}))
+}
+
 pub(crate) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription>, Failure> {
     let p = Params::read(params)?;
     if p.mobile && !p.binary {
