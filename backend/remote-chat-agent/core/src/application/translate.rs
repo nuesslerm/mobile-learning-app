@@ -2,10 +2,10 @@
 //! keeps what it has seen (message roles, how much of each part was already handed out, which tools are known) so a snapshot that
 //! arrives after its increments adds nothing, and the user's own prompt echoed back is never taken for an answer.
 
-use super::ingest::{Item, Kind, Phase, Runtime};
-use super::accumulator::Accumulator;
-use super::agent::AgentEvent;
-use crate::domain::ids::{Clock, IdSource};
+use super::ports::{Clock, IdSource};
+use crate::domain::accumulator::Accumulator;
+use crate::domain::agent::AgentEvent;
+use crate::domain::ingest::{Item, Kind, Phase, Runtime};
 use serde_json::{json, Value};
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;

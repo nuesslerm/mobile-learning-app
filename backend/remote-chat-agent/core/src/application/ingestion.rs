@@ -6,8 +6,8 @@ use super::engine::Engine;
 use super::ports::{Backend, EventStream};
 use crate::domain::decider::has_open_blocking_request;
 use crate::domain::ingest::ingest;
-use crate::domain::translate::Translator;
-use crate::domain::types::*;
+use super::translate::Translator;
+use crate::domain::types::{Body, Command, Session};
 use futures_util::StreamExt;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -202,6 +202,7 @@ async fn run(ingestions: &Arc<Ingestions>, wiring: &Arc<Wiring>, entry: &Arc<Act
 
 #[cfg(test)]
 mod tests {
+    use crate::domain::types::ModelSelection;
     use super::*;
     use crate::application::ports::SendTurn;
     use crate::application::reactor::Orchestrator;

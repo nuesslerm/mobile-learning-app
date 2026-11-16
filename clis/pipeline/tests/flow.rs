@@ -7,6 +7,8 @@ mod support;
 
 #[path = "flow/workspace_deps.rs"]
 mod workspace_deps;
+#[path = "flow/ast_rules.rs"]
+mod ast_rules;
 #[path = "flow/caller_drift.rs"]
 mod caller_drift;
 #[path = "flow/cargo_inputs.rs"]

@@ -1,12 +1,23 @@
 id: domain-depends-on-nothing-outer
 language: rust
 severity: error
-message: A domain module may not use the application, infrastructure or api layer.
+message: A domain module may not use the application, infrastructure, api or adapters layer.
 note: Dependencies point inward only (api -> application -> domain; infrastructure -> application). See docs/plans/rust-services/standard-crates.md.
 files:
-  - "**/domain/**/*.rs"
+  # BEGIN generated:ast-grep-files
+  - "**/clis/rca-exec/src/domain.rs"
+  - "**/clis/t3-serve/core/src/domain/**/*.rs"
+  - "**/leetcode-auth-cookie-capture/core/src/domain/**/*.rs"
+  - "**/remote-chat-agent/cli-driver/src/domain/**/*.rs"
+  - "**/remote-chat-agent/core/src/domain/**/*.rs"
+  - "**/remote-chat-agent/service-core/src/domain/**/*.rs"
+  - "**/reporting-service/core/src/domain/**/*.rs"
+  - "**/vm-ops-api/core/src/domain/**/*.rs"
+  - "**/watchdog/core/src/domain/**/*.rs"
+  # END generated:ast-grep-files
 rule:
   any:
     - matches: names-application
     - matches: names-infrastructure
     - matches: names-api
+    - matches: names-adapters

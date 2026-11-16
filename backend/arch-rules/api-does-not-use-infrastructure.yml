@@ -3,6 +3,12 @@ language: rust
 severity: error
 message: An api module may not use the infrastructure layer directly; main.rs wires the adapters in and api talks to application ports.
 files:
-  - "**/api/**/*.rs"
+  # BEGIN generated:ast-grep-files
+  - "**/leetcode-auth-cookie-capture/rs/src/api/**/*.rs"
+  - "**/leetcode-backend/rs/src/api/**/*.rs"
+  - "**/remote-chat-agent/rs/src/api/**/*.rs"
+  - "**/reporting-service/rs/src/api/**/*.rs"
+  - "**/vm-ops-api/rs/src/api/**/*.rs"
+  # END generated:ast-grep-files
 rule:
   matches: names-infrastructure

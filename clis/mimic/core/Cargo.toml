@@ -31,3 +31,6 @@ mimic-core = { path = ".", features = ["testing"] }
 
 [package.metadata.flow]
 inputs = ["../../../tooling/t3-conformance/goldens/**"]
+
+[package.metadata.arch]
+type = "rust-flat-core"

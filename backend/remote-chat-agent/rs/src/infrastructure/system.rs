@@ -2,7 +2,7 @@
 
 use super::ambient::{random_hex, uuid_v4};
 use rca_service_core::domain::util::now_ms;
-use remote_chat_agent_core::domain::ids::{Clock, IdSource};
+use remote_chat_agent_core::application::ports::{Clock, IdSource};
 
 pub struct SystemClock;
 

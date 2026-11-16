@@ -1,4 +1,4 @@
-id: rca-core-crate-does-no-io
+id: core-crate-does-no-io
 valid:
   - use std::sync::{Arc, Mutex};
   - use tokio::sync::{mpsc, watch};

@@ -4,7 +4,7 @@
 use super::environment::Environment;
 use remote_chat_agent_core::application::ports::{DataStream, Opencode, Reply};
 use serde_json::Value;
-use remote_chat_agent_core::domain::ids::Clock;
+use remote_chat_agent_core::application::ports::Clock;
 use std::sync::Arc;
 use std::time::Duration;
 

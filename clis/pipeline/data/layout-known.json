@@ -100,18 +100,6 @@
     },
     {
       "pass": "membership",
-      "package": "backend/remote-chat-agent/agent-core",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "backend/remote-chat-agent/exec-channel",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
       "package": "backend/remote-chat-agent/host",
       "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
       "reason": "not yet typed: opts in with its section H item"
@@ -214,18 +202,6 @@
     },
     {
       "pass": "membership",
-      "package": "clis/mimic/core",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "clis/mimic/script/core",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
       "package": "clis/mimic/script/host",
       "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
       "reason": "not yet typed: opts in with its section H item"
@@ -251,12 +227,6 @@
     {
       "pass": "membership",
       "package": "clis/offload",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "clis/orca-serve/core",
       "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
       "reason": "not yet typed: opts in with its section H item"
     },
@@ -334,12 +304,6 @@
     },
     {
       "pass": "membership",
-      "package": "clis/parity/core",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
       "package": "clis/parity",
       "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
       "reason": "not yet typed: opts in with its section H item"
@@ -353,18 +317,6 @@
     {
       "pass": "membership",
       "package": "clis/secrets",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "clis/t3-serve/contracts",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "clis/t3-serve/core",
       "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
       "reason": "not yet typed: opts in with its section H item"
     },
@@ -532,54 +484,6 @@
     },
     {
       "pass": "membership",
-      "package": "libraries/agent-api/agent-api-client",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "libraries/agent-api/exec-fs",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "libraries/agent-api/exec-git",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "libraries/agent-api/exec-hosted",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "libraries/agent-api/exec-preview",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "libraries/agent-api/exec-proc",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "libraries/agent-api/exec-proto",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "libraries/agent-api/exec-pty",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
       "package": "libraries/browser-client",
       "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
       "reason": "not yet typed: opts in with its section H item"
@@ -593,12 +497,6 @@
     {
       "pass": "membership",
       "package": "libraries/rca-core/plugins/ladder",
-      "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
-      "reason": "not yet typed: opts in with its section H item"
-    },
-    {
-      "pass": "membership",
-      "package": "libraries/rca-core",
       "message": "declares no type (add [package.metadata.arch] type, or an arch key)",
       "reason": "not yet typed: opts in with its section H item"
     },

@@ -157,6 +157,7 @@ fn placement(root: &Path, p: &Package, ty: &str, spec: &Json, out: &mut Vec<Find
     allowed.extend(spec["rings"].as_object().into_iter().flat_map(|r| r.keys().flat_map(|k| [k.clone(), format!("{k}.rs")])));
     allowed.extend(strings(&p.options["widgets"]));
     allowed.extend(strings(&p.options["subFeatures"]));
+    allowed.extend(strings(&p.options["dirs"]));
     let forbidden: Vec<String> = strings(&spec["forbiddenFiles"]).into_iter().chain(strings(&spec["forbiddenDirs"])).collect();
     let mut names: Vec<String> = std::fs::read_dir(&at).into_iter().flatten().flatten().map(|e| e.file_name().to_string_lossy().to_string()).collect();
     names.sort();
@@ -189,7 +190,8 @@ fn edges(packages: &[Package], types: &Json, out: &mut Vec<Finding>) {
             if *kind == Kind::Dev {
                 allowed.extend(strings(&from_ty.1["mayDevDependOn"]));
             }
-            if !allowed.iter().any(|a| a == to_ty) {
+            let counts_as = types[to_ty]["edgeAs"].as_str().unwrap_or(to_ty);
+            if !allowed.iter().any(|a| a == to_ty || a == counts_as) {
                 add(format!("{} {} ({to_ty}); type {} may depend on [{}]", how, to.name, from_ty.0, allowed.join(", ")));
             }
         }
@@ -198,7 +200,7 @@ fn edges(packages: &[Package], types: &Json, out: &mut Vec<Finding>) {
 
 fn purity(packages: &[Package], types: &Json, out: &mut Vec<Finding>) {
     for p in packages {
-        let pure = p.ty.as_deref().and_then(|t| types.get(t)).is_some_and(|s| s["pure"].as_bool() == Some(true));
+        let pure = crate::ast_globs::is_pure(p.ty.as_deref(), &p.options, types);
         for (dep, _) in p.deps.iter().filter(|(d, k)| pure && *k != Kind::Dev && crate::core_purity::IO_CRATES.contains(&d.as_str())) {
             out.push(Finding { pass: "edges", dir: p.dir.clone(), message: format!("a pure type depends on the I/O crate {dep}") });
         }
@@ -242,11 +244,57 @@ fn ls_lint(root: &Path, types: &Json, packages: &[Package]) -> String {
     out
 }
 
+fn js_key(name: &str) -> String {
+    if name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') { name.to_string() } else { format!("'{name}'") }
+}
+
+fn js_list(items: &[String]) -> String {
+    format!("[{}]", items.iter().map(|i| format!("'{i}'")).collect::<Vec<_>>().join(", "))
+}
+
+/// The in-app features (a `project.json` with an `arch` key and no `package.json`) and the feature packages under `scope`, as the
+/// `FEATURES` and `PACKAGES` constants the app's dependency-cruiser config and lint script read.
+fn feature_map(root: &Path, scope: &str, types: &Json, packages: &[Package]) -> String {
+    let mut sorted: Vec<&Package> = packages.iter().filter(|p| p.dir.strip_prefix(scope).is_some_and(|r| r.starts_with('/') && !r[1..].contains('/'))).collect();
+    sorted.sort_by(|a, b| a.dir.cmp(&b.dir));
+    let (mut features, mut standalone) = (String::new(), Vec::new());
+    for p in sorted {
+        let Some(ty) = p.ty.as_deref().filter(|t| types.get(*t).is_some_and(|s| s["ecosystem"] == "ts")) else { continue };
+        let name = p.dir[scope.len() + 1..].to_string();
+        if root.join(&p.dir).join("package.json").exists() {
+            standalone.push(name);
+            continue;
+        }
+        let mut fields = vec![format!("type: '{ty}'")];
+        for option in ["widgets", "subFeatures"] {
+            let list = strings(&p.options[option]);
+            if !list.is_empty() {
+                fields.push(format!("{option}: {}", js_list(&list)));
+            }
+        }
+        features.push_str(&format!("  {}: {{ {} }},\n", js_key(&name), fields.join(", ")));
+    }
+    format!("const FEATURES = {{\n{features}}};\nconst PACKAGES = {};\n", js_list(&standalone))
+}
+
+/// The ring names of every TypeScript feature type and the rings each may import (`testing` is a ring the presets handle apart).
+fn ring_map(types: &Json) -> String {
+    let mut out = String::from("const RINGS = {\n");
+    for (name, spec) in types.as_object().into_iter().flatten().filter(|(_, s)| s["ecosystem"] == "ts") {
+        let rings: Vec<String> = spec["rings"].as_object().into_iter().flatten().filter(|(k, _)| *k != "testing").map(|(k, v)| format!("{k}: {}", js_list(&strings(v)))).collect();
+        out.push_str(&format!("  '{name}': {{ {} }},\n", rings.join(", ")));
+    }
+    out + "};\n"
+}
+
 /// What a generated region of the given name holds, one line per entry.
-fn render(root: &Path, region: &str, types: &Json, packages: &[Package]) -> Option<String> {
-    match region {
+fn render(root: &Path, entry: &Json, types: &Json, packages: &[Package]) -> Option<String> {
+    match entry["region"].as_str()? {
         "types" => Some(types.as_object()?.keys().map(|k| format!("- {k}\n")).collect()),
         "ls-lint" => Some(ls_lint(root, types, packages)),
+        "feature-map" => Some(feature_map(root, entry["scope"].as_str()?, types, packages)),
+        "rings" => Some(ring_map(types)),
+        "ast-grep-files" => Some(crate::ast_globs::render(root, entry, types, &packages.iter().map(|p| crate::ast_globs::Typed { dir: &p.dir, ty: p.ty.as_deref(), options: &p.options }).collect::<Vec<_>>())),
         _ => None,
     }
 }
@@ -262,7 +310,7 @@ fn drift(root: &Path, manifest: &Json, packages: &[Package], write: bool, out: &
     for entry in &regions {
         let (file, region) = (entry["file"].as_str().unwrap_or(""), entry["region"].as_str().unwrap_or(""));
         let mut add = |message: String| out.push(Finding { pass: "drift", dir: file.to_string(), message });
-        let Some(want) = render(root, region, &manifest["types"], packages) else { add(format!("region {region} has no generator")); continue };
+        let Some(want) = render(root, entry, &manifest["types"], packages) else { add(format!("region {region} has no generator")); continue };
         let Ok(text) = std::fs::read_to_string(root.join(file)) else { add("the file cannot be read".into()); continue };
         let lines: Vec<&str> = text.lines().collect();
         let Some((b, e)) = region_span(&lines, region) else { add(format!("region {region} has no BEGIN/END generated:{region} marker pair")); continue };

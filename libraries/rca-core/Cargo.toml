@@ -10,3 +10,6 @@ include = ["src/**", "data/**", "Cargo.toml"]
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
 sha2 = "0.10"
+
+[package.metadata.arch]
+type = "rust-flat-core"

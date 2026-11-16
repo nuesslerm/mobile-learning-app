@@ -10,5 +10,4 @@ pub mod lifecycle;
 pub mod mcp;
 pub mod projector;
 pub mod queries;
-pub mod translate;
 pub mod types;

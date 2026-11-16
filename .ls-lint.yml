@@ -40,6 +40,12 @@ ls:
   backend/leetcode-backend/rs/src/*/*:
     .dir: snake_case
     .rs: snake_case
+  backend/remote-chat-agent/agent-core/src:
+    .dir: snake_case
+    .rs: snake_case
+  backend/remote-chat-agent/agent-core/src/*:
+    .dir: snake_case
+    .rs: snake_case
   backend/remote-chat-agent/cli-driver/src:
     .dir: regex:(src|domain|application|testing)
     .rs: regex:(lib|testing)
@@ -50,6 +56,12 @@ ls:
     .dir: regex:(src|domain|application|testing)
     .rs: regex:(lib|testing)
   backend/remote-chat-agent/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/remote-chat-agent/exec-channel/src:
+    .dir: snake_case
+    .rs: snake_case
+  backend/remote-chat-agent/exec-channel/src/*:
     .dir: snake_case
     .rs: snake_case
   backend/remote-chat-agent/group-accounts/src:
@@ -145,6 +157,30 @@ ls:
   backend/watchdog/rs/src/*/*:
     .dir: snake_case
     .rs: snake_case
+  clis/mimic/core/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/script/core/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/script/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/orca-serve/core/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/orca-serve/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/parity/core/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/parity/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
   clis/rca-exec/src:
     .dir: regex:(src|domain|adapters|bin)
     .rs: snake_case
@@ -154,6 +190,18 @@ ls:
   clis/rca-exec/src/bin:
     .dir: kebab-case
     .rs: kebab-case
+  clis/t3-serve/contracts/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  clis/t3-serve/contracts/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/t3-serve/core/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/t3-serve/core/src/*:
+    .dir: snake_case
+    .rs: snake_case
   clis/wf-testkit/src:
     .dir: regex:(src|bin)
     .rs: snake_case
@@ -183,6 +231,9 @@ ls:
     .rs: snake_case
   libraries/agent-api/agent-api-catalog/src/*:
     .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/agent-api-client/src:
+    .dir: regex:src
     .rs: snake_case
   libraries/agent-api/agent-api-git/src:
     .dir: regex:(src|testing)
@@ -238,6 +289,48 @@ ls:
   libraries/agent-api/agent-api-workspace/src/*:
     .dir: snake_case
     .rs: snake_case
+  libraries/agent-api/exec-fs/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-fs/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-git/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-git/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-hosted/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-hosted/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-preview/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-preview/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-proc/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-proc/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-proto/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-proto/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/agent-api/exec-pty/src:
+    .dir: regex:(src|testing)
+    .rs: snake_case
+  libraries/agent-api/exec-pty/src/*:
+    .dir: snake_case
+    .rs: snake_case
   libraries/agent-api/exec-testkit/src:
     .dir: regex:(src|bin)
     .rs: snake_case
@@ -247,6 +340,12 @@ ls:
   libraries/agent-api/exec-testkit/src/bin:
     .dir: kebab-case
     .rs: kebab-case
+  libraries/rca-core/src:
+    .dir: snake_case
+    .rs: snake_case
+  libraries/rca-core/src/*:
+    .dir: snake_case
+    .rs: snake_case
   # END generated:ls-lint
   backend/*/exec-channel/src:
     .dir: regex:src

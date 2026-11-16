@@ -1,7 +1,20 @@
 {
   "version": 1,
-  "note": "The shape of each package type (docs/solutions/architecture/hexagonal-architecture-by-package-type.md), read by `wf check --layout`. A package opts in with `[package.metadata.arch] type = \"...\"` in Cargo.toml, an `arch` key in package.json, or an `arch` key in the project.json of an in-app feature. Paths are relative to the ring root: the first of `ringRoots` that exists. `allowedRoot` lists what may sit at the ring root besides the rings (`*` is a wildcard; a ring may be a directory or `<ring>.rs`). `a|b` in a required list means either. `mayDependOn` names the types a package of this type may depend on; `mayDevDependOn` adds to it for dev-dependencies; `devOnly` means a package of this type is reachable only through dev-dependencies. A dependency on a package with no type is not checked. `lsLint` lists the ls-lint keys of a type as paths under the package directory; `.rs@modules` replaces `.rs` when the package lists `modules` in its arch table, and `{modules}` becomes `|a|b`. The `ls-lint` region of `.ls-lint.yml` is rendered from them; `wf check --layout --write` rewrites it.",
-  "generated": [{ "file": ".ls-lint.yml", "region": "ls-lint" }],
+  "note": "The shape of each package type (docs/solutions/architecture/hexagonal-architecture-by-package-type.md), read by `wf check --layout`. The `ast-grep-files` region (with `types`, `pureOverride`, `rings`, `ringFiles`) holds the `files:` globs of an ast-grep rule: the packages of those types, or of any type when they declare `pure = true`, and the ring directories of their type (`src/<ring>/**/*.rs`, plus `src/<ring>.rs` with `ringFiles`; `\"rings\": \"*\"` is every ring). `edgeAs` makes a dependency on a package of this type count as one on the named type for the allowed edges of the dependent. `dirs` in a package's arch table lists extra directories its type allows at the ring root. A package opts in with `[package.metadata.arch] type = \"...\"` in Cargo.toml, an `arch` key in package.json, or an `arch` key in the project.json of an in-app feature. Paths are relative to the ring root: the first of `ringRoots` that exists. `allowedRoot` lists what may sit at the ring root besides the rings (`*` is a wildcard; a ring may be a directory or `<ring>.rs`). `a|b` in a required list means either. `mayDependOn` names the types a package of this type may depend on; `mayDevDependOn` adds to it for dev-dependencies; `devOnly` means a package of this type is reachable only through dev-dependencies. A dependency on a package with no type is not checked. `lsLint` lists the ls-lint keys of a type as paths under the package directory; `.rs@modules` replaces `.rs` when the package lists `modules` in its arch table, and `{modules}` becomes `|a|b`. The `ls-lint` region of `.ls-lint.yml` is rendered from them; `wf check --layout --write` rewrites it. The `feature-map` region (with its `scope` directory) lists the in-app features and the feature packages for the app's dependency-cruiser config and lint script, and the `rings` region holds the ring names and edges of the TypeScript types for the dependency-cruiser presets.",
+  "generated": [
+    { "file": ".ls-lint.yml", "region": "ls-lint" },
+    { "file": "backend/arch-rules/domain-depends-on-nothing-outer.yml", "region": "ast-grep-files", "rings": ["domain"], "ringFiles": true },
+    { "file": "backend/arch-rules/application-does-not-reach-outward.yml", "region": "ast-grep-files", "rings": ["application"] },
+    { "file": "backend/arch-rules/api-does-not-use-infrastructure.yml", "region": "ast-grep-files", "rings": ["api"] },
+    { "file": "backend/arch-rules/api-does-no-io.yml", "region": "ast-grep-files", "rings": ["api"] },
+    { "file": "backend/arch-rules/infrastructure-does-not-use-api.yml", "region": "ast-grep-files", "rings": ["infrastructure"] },
+    { "file": "backend/arch-rules/inner-rings-do-no-io.yml", "region": "ast-grep-files", "rings": ["domain", "application"], "ringFiles": true },
+    { "file": "backend/arch-rules/no-trait-in-layer.yml", "region": "ast-grep-files", "rings": ["domain", "api"], "types": ["rust-core", "rust-rs"] },
+    { "file": "backend/arch-rules/layer-imports-are-explicit.yml", "region": "ast-grep-files", "rings": "*" },
+    { "file": "backend/arch-rules/contract-crate-does-no-io.yml", "region": "ast-grep-files", "types": ["rust-contract"] },
+    { "file": "backend/arch-rules/core-crate-does-no-io.yml", "region": "ast-grep-files", "types": ["rust-core"], "pureOverride": true },
+    { "file": "clis/arch-rules/core-does-no-io.yml", "region": "ast-grep-files", "types": ["rust-flat-core"] }
+  ],
   "types": {
     "rust-core": {
       "ecosystem": "rust",
@@ -17,6 +30,21 @@
       "mayDevDependOn": ["rust-testkit"],
     "lsLint": [
       {"path": "src", "rules": {".dir": "regex:(src|domain|application|testing)", ".rs": "regex:(lib|testing)"}},
+      {"path": "src/*", "rules": {".dir": "snake_case", ".rs": "snake_case"}}
+    ]
+    },
+    "rust-flat-core": {
+      "ecosystem": "rust",
+      "pure": true,
+      "edgeAs": "rust-core",
+      "ringRoots": ["src"],
+      "rings": { "domain": [] },
+      "requiredFiles": ["lib.rs"],
+      "allowedRoot": ["*.rs", "testing"],
+      "mayDependOn": ["rust-core", "rust-flat-core", "rust-contract"],
+      "mayDevDependOn": ["rust-testkit"],
+    "lsLint": [
+      {"path": "src", "rules": {".dir": "snake_case", ".rs": "snake_case"}},
       {"path": "src/*", "rules": {".dir": "snake_case", ".rs": "snake_case"}}
     ]
     },
@@ -118,7 +146,7 @@
       "ecosystem": "ts",
       "pure": false,
       "ringRoots": ["src", "."],
-      "rings": { "state": [], "ui": ["state"], "routes": ["ui", "state"] },
+      "rings": { "state": [], "ui": ["state"], "routes": ["ui"] },
       "requiredFiles": ["index.ts|index.tsx"],
       "requiredAnyOf": [["ui"], ["routes"]],
       "allowedRoot": ["index.ts", "index.tsx", "__tests__", "__mocks__", "project.json"],

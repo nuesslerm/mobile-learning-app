@@ -412,3 +412,87 @@ fn a_known_missing_required_file_is_recorded_and_a_planted_one_fails() {
     assert!(messages(&found, "placement").iter().any(|m| m.starts_with("backend/svc/core:") && m.contains("requires src/lib.rs")), "{found}");
     assert!(!messages(&found, "placement").iter().any(|m| m.starts_with("backend/svc/rs:")), "{found}");
 }
+
+const MAP_FILE: &str = "frontend/app/features/feature-map.cjs";
+const MAP_REGION: &str = "// BEGIN generated:feature-map\n// END generated:feature-map\n";
+
+fn map_repo() -> tempfile::TempDir {
+    let dir = repo();
+    let root = dir.path();
+    let entries = serde_json::json!([
+        { "file": MAP_FILE, "region": "feature-map", "scope": "frontend/app/features" },
+        { "file": "frontend/kit/presets.cjs", "region": "rings" },
+    ]);
+    put(root, "clis/pipeline/data/package-types.json", &manifest_with(entries));
+    put(root, MAP_FILE, MAP_REGION);
+    put(root, "frontend/kit/presets.cjs", "// BEGIN generated:rings\n// END generated:rings\n");
+    dir
+}
+
+fn in_app_feature(root: &Path, name: &str, arch: &str) {
+    let base = format!("frontend/app/features/{name}");
+    put(root, &format!("{base}/project.json"), &format!("{{\"name\":\"feature-{name}\",\"arch\":{arch}}}"));
+    put(root, &format!("{base}/index.ts"), "");
+    for ring in RINGS {
+        put(root, &format!("{base}/{ring}/index.ts"), "");
+    }
+}
+
+fn read(root: &Path, rel: &str) -> String {
+    std::fs::read_to_string(root.join(rel)).unwrap()
+}
+
+#[test]
+fn the_feature_map_lists_in_app_features_and_the_packages_that_lint_themselves() {
+    // Given an in-app feature with a widget and a sub-feature, one with a hyphenated name, and a feature package
+    let dir = map_repo();
+    let root = dir.path();
+    in_app_feature(root, "alpha", "{\"type\":\"hexagonal-feature\",\"widgets\":[\"editor\"],\"subFeatures\":[\"plan\"]}");
+    in_app_feature(root, "beta-two", "{\"type\":\"hexagonal-feature\"}");
+    feature(root, "frontend/app/features/gamma", "@feature/gamma", "", &RINGS);
+    // When the layout check writes the generated regions
+    run(root, &["--write"]);
+    // Then the in-app features carry their options, the package is only listed for the lint ignores
+    let map = read(root, MAP_FILE);
+    assert!(map.contains("  alpha: { type: 'hexagonal-feature', widgets: ['editor'], subFeatures: ['plan'] },\n"), "{map}");
+    assert!(map.contains("  'beta-two': { type: 'hexagonal-feature' },\n"), "{map}");
+    assert!(map.contains("const PACKAGES = ['gamma'];\n"), "{map}");
+    assert!(!map.contains("gamma: {"), "{map}");
+    assert_eq!(messages(&report(&run(root, &[])), "drift"), Vec::<String>::new());
+}
+
+#[test]
+fn a_new_feature_directory_is_drift_until_the_map_is_regenerated() {
+    // Given a feature map that was generated for one feature
+    let dir = map_repo();
+    let root = dir.path();
+    in_app_feature(root, "alpha", "{\"type\":\"hexagonal-feature\"}");
+    run(root, &["--write"]);
+    // When a second in-app feature directory appears
+    in_app_feature(root, "delta", "{\"type\":\"hexagonal-feature\"}");
+    let stale = report(&run(root, &["--strict"]));
+    // Then the check names the stale map, and regenerating adds the feature to the cruised list
+    assert!(messages(&stale, "drift").iter().any(|m| m.starts_with(&format!("{MAP_FILE}: region feature-map is stale"))), "{stale}");
+    run(root, &["--write"]);
+    assert!(read(root, MAP_FILE).contains("  delta: { type: 'hexagonal-feature' },\n"));
+    assert_eq!(run(root, &["--strict"]).exit_code, 0);
+}
+
+#[test]
+fn a_hand_edited_ring_edge_is_overwritten_from_the_manifest() {
+    // Given a presets file whose ring region was edited by hand to let routes import domain
+    let dir = map_repo();
+    let root = dir.path();
+    run(root, &["--write"]);
+    let edited = read(root, "frontend/kit/presets.cjs").replace("routes: ['di', 'ui']", "routes: ['di', 'ui', 'domain']");
+    put(root, "frontend/kit/presets.cjs", &edited);
+    // When the check runs, and then writes
+    let drift = report(&run(root, &[]));
+    run(root, &["--write"]);
+    // Then the edit is drift and the written region has the manifest's edges and no testing ring
+    assert!(messages(&drift, "drift").iter().any(|m| m.starts_with("frontend/kit/presets.cjs: region rings is stale")), "{drift}");
+    let rings = read(root, "frontend/kit/presets.cjs");
+    assert!(rings.contains("'hexagonal-feature': { domain: [], data: ['domain'], state: ['domain'], ui: ['domain', 'state'], di: ['domain', 'data', 'state'], routes: ['di', 'ui'] },"), "{rings}");
+    assert!(rings.contains("'presentation-feature': { state: [], ui: ['state'], routes: ['ui'] },"), "{rings}");
+    assert!(!rings.contains("testing"), "{rings}");
+}

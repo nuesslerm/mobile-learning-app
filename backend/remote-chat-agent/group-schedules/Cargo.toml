@@ -25,3 +25,4 @@ rca-agent-core = { path = "../agent-core" }
 
 [package.metadata.arch]
 type = "rust-flat-adapter"
+pure = true

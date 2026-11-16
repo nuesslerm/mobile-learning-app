@@ -4,7 +4,7 @@
 
 use super::{empty, respond, Call};
 use crate::api::app::App;
-use remote_chat_agent_core::domain::types::*;
+use remote_chat_agent_core::domain::types::{Body, Command, Thread};
 use rca_service_core::domain::util::js_string;
 use axum::extract::Path;
 use axum::response::Response;

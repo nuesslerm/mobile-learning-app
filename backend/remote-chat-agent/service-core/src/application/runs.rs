@@ -6,7 +6,7 @@
 use super::opencode_client::Client;
 use crate::application::one_shot;
 use remote_chat_agent_core::application::ports::Commands;
-use remote_chat_agent_core::domain::ids::IdSource;
+use remote_chat_agent_core::application::ports::IdSource;
 use super::settings::Settings;
 use rca_core::run_log::{parse_run_log, RunLogEntry};
 use rca_ladder::store::CooldownStore;

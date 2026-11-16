@@ -3,7 +3,7 @@
 //! (`routes/plan.ts`).
 
 use super::telegram::send_telegram;
-use super::{respond, text, Call, ResponseExt};
+use super::{respond, text, with_header, Call};
 use rca_service_core::application::environment::Environment;
 use rca_service_core::domain::util::{encode_url, escape_html, js_string};
 use axum::extract::Path;
@@ -31,7 +31,7 @@ pub async fn get(Path(id): Path<String>, Call { app, req, .. }: Call) -> Respons
     let chat = req.query_param("chatId").unwrap_or_default();
     let thread = req.query_param("threadId").unwrap_or_default();
     let location = encode_url(&format!("/api/file/.bot-state/plans/{id}.md?chatId={chat}&threadId={thread}"));
-    text(302, "text/plain; charset=utf-8", format!("Found. Redirecting to {location}")).with_header("Location", &location)
+    with_header(text(302, "text/plain; charset=utf-8", format!("Found. Redirecting to {location}")), "Location", &location)
 }
 
 pub async fn annotate(Path(id): Path<String>, Call { app, body, .. }: Call) -> Response {

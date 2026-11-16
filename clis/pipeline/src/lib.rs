@@ -12,6 +12,7 @@ mod ci_preflight;
 mod ci_tidy;
 mod ci_insights;
 pub mod arch_rules;
+pub mod ast_globs;
 pub mod workspace_deps;
 pub mod cargo_deps;
 pub mod cargo_inputs;

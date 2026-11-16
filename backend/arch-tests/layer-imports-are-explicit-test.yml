@@ -1,0 +1,13 @@
+id: layer-imports-are-explicit
+valid:
+  - "use crate::domain::ids::Clock;"
+  - "use super::schema::{parse, Schema};"
+  - "#[cfg(test)] mod tests { use super::*; }"
+  - "#[derive(Debug)] struct S;"
+invalid:
+  - "use crate::domain::*;"
+  - "use super::*;"
+  - "use std::{collections::*, fmt};"
+  - "use self::schema::parse;"
+  - "use self::{schema, ids};"
+  - '#[path = "elsewhere.rs"] mod inner;'

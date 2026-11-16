@@ -3,7 +3,13 @@ language: rust
 severity: error
 message: The api layer does no file, socket, process or environment access beyond serving HTTP; it calls application ports.
 files:
-  - "**/src/api/**/*.rs"
+  # BEGIN generated:ast-grep-files
+  - "**/leetcode-auth-cookie-capture/rs/src/api/**/*.rs"
+  - "**/leetcode-backend/rs/src/api/**/*.rs"
+  - "**/remote-chat-agent/rs/src/api/**/*.rs"
+  - "**/reporting-service/rs/src/api/**/*.rs"
+  - "**/vm-ops-api/rs/src/api/**/*.rs"
+  # END generated:ast-grep-files
 ignores:
   # The listener is bound where the server starts.
   - "**/vm-ops-api/rs/src/api/serve.rs"

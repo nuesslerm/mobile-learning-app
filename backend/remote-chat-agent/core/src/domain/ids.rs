@@ -1,27 +1,8 @@
-//! Identifiers and timestamps in the shapes the thread view's wire format uses. The core does not read the clock or draw random
-//! numbers: it asks the two ports below, which the service crate implements over the system and tests implement with fixed values.
+//! Timestamps in the shapes the thread view's wire format uses. The core does not read the clock or draw random numbers: it asks the
+//! `Clock` and `IdSource` ports of `application::ports`, which the service crate implements over the system and tests implement with fixed values.
 
 use time::macros::format_description;
 use time::OffsetDateTime;
-
-/// The wall clock, in milliseconds since the Unix epoch.
-pub trait Clock: Send + Sync {
-    fn now_ms(&self) -> u64;
-
-    /// ISO-8601 with milliseconds and a Z, as `Date#toISOString`.
-    fn now_iso(&self) -> String {
-        iso_from_ms(self.now_ms())
-    }
-}
-
-/// Fresh identifiers.
-pub trait IdSource: Send + Sync {
-    /// A random (version 4) UUID, as `crypto.randomUUID`.
-    fn uuid(&self) -> String;
-
-    /// `n` random bytes (at most 16) as lowercase hex.
-    fn hex(&self, n: usize) -> String;
-}
 
 pub fn iso_from_ms(ms: u64) -> String {
     let at = OffsetDateTime::from_unix_timestamp_nanos(i128::from(ms) * 1_000_000).unwrap_or(OffsetDateTime::UNIX_EPOCH);

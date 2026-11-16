@@ -13,3 +13,6 @@ testing = []
 
 [dependencies]
 serde_json = { version = "1", features = ["preserve_order"] }
+
+[package.metadata.arch]
+type = "rust-flat-core"

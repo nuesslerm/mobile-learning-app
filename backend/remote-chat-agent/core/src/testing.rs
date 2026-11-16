@@ -5,7 +5,7 @@ mod files;
 pub use doubles::*;
 pub use files::MemoryFiles;
 
-use crate::domain::ids::{Clock, IdSource};
+use crate::application::ports::{Clock, IdSource};
 use std::sync::atomic::{AtomicU64, Ordering};
 
 /// A clock stopped at one instant.

@@ -26,3 +26,4 @@ testing = []
 
 [package.metadata.arch]
 type = "rust-flat-adapter"
+pure = true

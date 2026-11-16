@@ -17,3 +17,6 @@ serde_json = { version = "1", features = ["preserve_order"] }
 
 [dev-dependencies]
 orca-core = { path = ".", features = ["testing"] }
+
+[package.metadata.arch]
+type = "rust-flat-core"

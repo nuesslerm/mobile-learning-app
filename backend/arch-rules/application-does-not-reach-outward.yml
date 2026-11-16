@@ -3,7 +3,16 @@ language: rust
 severity: error
 message: An application module may not use the infrastructure or api layer; reach it through a port defined in application.
 files:
-  - "**/application/**/*.rs"
+  # BEGIN generated:ast-grep-files
+  - "**/leetcode-auth-cookie-capture/core/src/application/**/*.rs"
+  - "**/leetcode-backend/core/src/application/**/*.rs"
+  - "**/remote-chat-agent/cli-driver/src/application/**/*.rs"
+  - "**/remote-chat-agent/core/src/application/**/*.rs"
+  - "**/remote-chat-agent/service-core/src/application/**/*.rs"
+  - "**/reporting-service/core/src/application/**/*.rs"
+  - "**/vm-ops-api/core/src/application/**/*.rs"
+  - "**/watchdog/core/src/application/**/*.rs"
+  # END generated:ast-grep-files
 rule:
   any:
     - matches: names-infrastructure

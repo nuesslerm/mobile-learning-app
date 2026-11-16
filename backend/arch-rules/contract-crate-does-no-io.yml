@@ -1,16 +1,34 @@
 id: contract-crate-does-no-io
 language: rust
 severity: error
-message: "A wire-contract crate (libraries/agent-api) is pure; it parses and encodes, and does no file, socket, process or environment access. Its loader of recorded exchanges lives in src/testing.rs."
-note: "`wf check --budget` reads the globs below to check these crates' manifests too (core_purity, `backend-core-io-violations`), so keep one glob per line."
+message: "A wire-contract crate (a package of type rust-contract) is pure; it parses and encodes, and does no file, socket, process or environment access. Its loader of recorded exchanges lives in src/testing.rs."
+note: "The globs are generated from package-types.json (`wf check --layout --write`). `wf check --budget` reads them to check these crates' manifests too (core_purity, `backend-core-io-violations`), so keep one glob per line."
 files:
-  - "**/libraries/agent-api/*/src/**/*.rs"
+  # BEGIN generated:ast-grep-files
+  - "**/clis/t3-serve/contracts/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-accounts/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-agent/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-attachments/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-catalog/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-git/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-hosted/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-preview/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-proto/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-schedules/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-service/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-state/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-terminal/src/**/*.rs"
+  - "**/libraries/agent-api/agent-api-workspace/src/**/*.rs"
+  - "**/libraries/agent-api/exec-fs/src/**/*.rs"
+  - "**/libraries/agent-api/exec-git/src/**/*.rs"
+  - "**/libraries/agent-api/exec-hosted/src/**/*.rs"
+  - "**/libraries/agent-api/exec-preview/src/**/*.rs"
+  - "**/libraries/agent-api/exec-proc/src/**/*.rs"
+  - "**/libraries/agent-api/exec-proto/src/**/*.rs"
+  - "**/libraries/agent-api/exec-pty/src/**/*.rs"
+  # END generated:ast-grep-files
 ignores:
   - "**/libraries/agent-api/*/src/testing.rs"
   - "**/libraries/agent-api/*/src/testing/**"
-  # Two crates of the directory are no wire contract: the client is the adapter library for the socket, and the kit starts the processes
-  # and writes the files its tests need. A crate whose whole `src` is ignored here is not in the purity registry either (core_purity).
-  - "**/libraries/agent-api/agent-api-client/src/**"
-  - "**/libraries/agent-api/exec-testkit/src/**"
 rule:
   matches: does-io

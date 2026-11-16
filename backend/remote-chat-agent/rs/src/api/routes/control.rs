@@ -4,7 +4,7 @@
 
 use super::{respond, truthy, Call};
 use crate::api::app::App;
-use remote_chat_agent_core::domain::types::*;
+use remote_chat_agent_core::domain::types::{Body, Command, Receipt};
 use rca_service_core::domain::util::js_string;
 use axum::response::Response;
 use serde_json::{json, Value};

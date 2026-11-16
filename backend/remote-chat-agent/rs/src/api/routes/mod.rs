@@ -61,17 +61,11 @@ pub fn empty(status: u16) -> Response {
     response
 }
 
-pub trait ResponseExt {
-    fn with_header(self, name: &'static str, value: &str) -> Self;
-}
-
-impl ResponseExt for Response {
-    fn with_header(mut self, name: &'static str, value: &str) -> Self {
-        if let (Ok(name), Ok(value)) = (HeaderName::from_bytes(name.as_bytes()), HeaderValue::from_str(value)) {
-            self.headers_mut().append(name, value);
-        }
-        self
+pub fn with_header(mut response: Response, name: &'static str, value: &str) -> Response {
+    if let (Ok(name), Ok(value)) = (HeaderName::from_bytes(name.as_bytes()), HeaderValue::from_str(value)) {
+        response.headers_mut().append(name, value);
     }
+    response
 }
 
 /// What a handler reads of the request besides its body: the method and path, the raw query and the headers.
