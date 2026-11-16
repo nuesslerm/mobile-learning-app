@@ -167,20 +167,6 @@
         "t3-rpc-mcpApps.toolInfo-invalid-no-payload",
         "t3-rpc-mcpApps.updateModelContext-invalid-drop-threadId",
         "t3-rpc-mcpApps.updateModelContext-invalid-no-payload",
-        "t3-rpc-orchestration.getThreadProjection-invalid-drop-threadId",
-        "t3-rpc-orchestration.getThreadProjection-invalid-no-payload",
-        "t3-rpc-orchestration.getWorktreeThreadIds-invalid-drop-worktreePath",
-        "t3-rpc-orchestration.getWorktreeThreadIds-invalid-no-payload",
-        "t3-rpc-orchestration.getWorktreeThreadIds-invalid-wrong-type-worktreePath",
-        "t3-rpc-orchestration.launchThread-boundary-full",
-        "t3-rpc-orchestration.launchThread-invalid-wrong-type-commandId",
-        "t3-rpc-orchestration.launchThread-valid-min",
-        "t3-rpc-orchestration.searchThread-invalid-drop-threadId",
-        "t3-rpc-orchestration.searchThread-invalid-no-payload",
-        "t3-rpc-orchestration.searchThreadStream-invalid-drop-threadId",
-        "t3-rpc-orchestration.searchThreadStream-invalid-no-payload",
-        "t3-rpc-orchestration.subscribeThread-invalid-drop-threadId",
-        "t3-rpc-orchestration.subscribeThread-invalid-no-payload",
         "t3-rpc-preview.adjust-boundary-full",
         "t3-rpc-preview.reportProfiles-boundary-full",
         "t3-rpc-preview.reportProfiles-invalid-drop-profiles",
@@ -372,13 +358,6 @@
         "t3-rpc-filesystem.getMetadata-invalid-drop-paths",
         "t3-rpc-filesystem.getMetadata-invalid-no-payload",
         "t3-rpc-filesystem.getMetadata-invalid-wrong-type-paths",
-        "t3-rpc-orchestration.dispatchCommand-invalid-wrong-type",
-        "t3-rpc-orchestration.getOlderSettledThreads-invalid-wrong-type-before",
-        "t3-rpc-orchestration.getThreadLinkMetadata-invalid-wrong-type-threadIds",
-        "t3-rpc-orchestration.getThreadTitles-invalid-wrong-type-threadIds",
-        "t3-rpc-orchestration.getTurnDiff-invalid-drop-fromTurnCount",
-        "t3-rpc-orchestration.getTurnDiff-invalid-no-payload",
-        "t3-rpc-orchestration.getTurnDiff-invalid-wrong-type-fromTurnCount",
         "t3-rpc-peerLinks.answerRequest-invalid-drop-threadId",
         "t3-rpc-peerLinks.answerRequest-invalid-no-payload",
         "t3-rpc-peerLinks.link-invalid-drop-url",
@@ -977,20 +956,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit missing breaking",
-        "steps.ws:s2c:1.[0].payload.values extra drift"
-      ],
-      "ids": [
-        "t3-rpc-orchestration.subscribeShell-invalid-wrong-type-afterSequence",
-        "t3-rpc-provider.auth.subscribe-valid-min",
-        "t3-rpc-subscribeServerConfig-invalid-wrong-type-environmentThemes"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
       "severity": "breaking",
       "diffs": [
@@ -1317,6 +1282,19 @@
       "ids": [
         "t3-http-auth.revokeOtherClients-empty-empty-object",
         "t3-http-auth.revokeOtherClients-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit missing breaking",
+        "steps.ws:s2c:1.[0].payload.values extra drift"
+      ],
+      "ids": [
+        "t3-rpc-provider.auth.subscribe-valid-min",
+        "t3-rpc-subscribeServerConfig-invalid-wrong-type-environmentThemes"
       ]
     },
     {

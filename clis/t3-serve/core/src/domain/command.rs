@@ -53,7 +53,9 @@ fn required(kind: &str) -> &'static [&'static str] {
 impl Command {
     /// `Err` is the defect text of an undecodable payload.
     pub fn parse(value: &Value, family: Family) -> Result<Command, String> {
-        let body = value.as_object().ok_or("Expected an object")?.clone();
+        let Some(body) = value.as_object().cloned() else {
+            return Err(if family == Family::Thread { command_union_defect().to_string() } else { "Expected an object".to_string() });
+        };
         let kind = body.get("type").and_then(Value::as_str).unwrap_or("");
         let known = match family {
             Family::Thread => command_types().contains(&kind),

@@ -19,8 +19,7 @@
         "t3-rpc-device.action",
         "t3-rpc-device.detail",
         "t3-rpc-device.shutdown",
-        "t3-rpc-mcpApps.readResource",
-        "t3-rpc-orchestration.getThreadProjection"
+        "t3-rpc-mcpApps.readResource"
       ]
     },
     {

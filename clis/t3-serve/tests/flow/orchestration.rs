@@ -174,6 +174,9 @@ fn undecodable_commands_are_defects_and_commands_the_server_does_not_build_are_t
     // Then the first two are decoder defects, the others dispatch errors that say what is unsupported or missing
     assert_eq!(missing["cause"][0]["defect"], "Missing key\n  at [\"commandId\"]");
     assert!(unknown["cause"][0]["defect"].as_str().unwrap().starts_with("Expected { readonly \"type\": \"thread.stop\""));
+    // And a command that is no object at all is the same union defect
+    let wrong = dispatch(&mut rpc, json!("wrong"));
+    assert_eq!(wrong["cause"][0]["defect"], unknown["cause"][0]["defect"]);
     assert!(failure(&settle)["message"].as_str().unwrap().contains("thread.pull-request.sync is not supported"));
     assert!(failure(&queued)["message"].as_str().unwrap().contains("queue_after_active"));
     assert!(failure(&empty)["message"].as_str().unwrap().contains("text"));

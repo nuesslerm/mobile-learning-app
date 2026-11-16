@@ -16,6 +16,17 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("server.prepareTriage", "client:o"),
     ("server.listTextGeneratorModels", "id:s config:o(textGenerator)? refresh:b? test:b? model:s?"),
     ("server.updateSettings", "patch:o(settingsPatch) providerInstanceMutation:o?"),
+    ("orchestration.getWorktreeThreadIds", "worktreePath:s"),
+    ("orchestration.getThreadProjection", "threadId:s"),
+    ("orchestration.getThreadTitles", "threadIds:a"),
+    ("orchestration.getThreadLinkMetadata", "threadIds:a"),
+    ("orchestration.getOlderSettledThreads", "before:o(settledCursor) projectIds:a? limit:r(0,50)"),
+    ("orchestration.getTurnDiff", "fromTurnCount:n toTurnCount:n threadId:s ignoreWhitespace:b?"),
+    ("orchestration.searchThread", "threadId:s skills:a? query:s"),
+    ("orchestration.searchThreadStream", "threadId:s skills:a? query:s"),
+    ("orchestration.subscribeShell", "afterSequence:n?"),
+    ("orchestration.subscribeThread", "threadId:s afterSequence:n? requestCompletionMarker:b? acceptBoundedSnapshot:b? acceptDeferredWork:b? acceptCompactTurnItems:b? acceptDedupedBodies:b? acceptCompactIds:b?"),
+    ("orchestration.launchThread", "commandId:s creationSource:l(web|mobile|mcp|provider|server)? threadId:s? reuseExistingThread:b? projectId:s title:s generateTitle:b? modelSelection:ms runtimeMode:l(approval-required|auto-accept-edits|auto|full-access) interactionMode:l(default|plan) workspaceStrategy:x initialMessage:x?"),
     ("server.prepareAcpRegistryAgent", "agentId:s"),
     ("server.uninstallAcpRegistryManagedBinary", "agentId:s"),
     ("server.acceptAcpRegistryUrlAuth", "instanceId:s elicitationId:s"),
@@ -94,6 +105,7 @@ const NESTED: &[(&str, &str)] = &[
     ("keybindingRule", "key:s command:kc when:s?"),
     ("textGenerator", "kind:l(openaiCompatible|anthropic) label:s? baseUrl:p(url) enabled:b?"),
     ("settingsPatch", "setModelFavorites:a(favoriteItem)? setModelsHidden:a(hiddenItem)? setProviderModelOrder:o(modelOrder)?"),
+    ("settledCursor", "settledAt:s threadId:s?"),
     ("favoriteItem", "provider:s model:s favorite:b"),
     ("hiddenItem", "provider:s model:s hidden:b"),
     ("modelOrder", "provider:s modelOrder:a"),
@@ -201,6 +213,10 @@ fn is(kind: &str, value: &Value) -> bool {
 /// The smallest payload that decodes as the schema of `tag`: every required field with a value of its kind.
 pub fn minimal(tag: &str) -> Option<Value> {
     let (_, schema) = SCHEMAS.iter().find(|(t, _)| *t == tag)?;
+    Some(minimal_of(schema))
+}
+
+fn minimal_of(schema: &str) -> Value {
     let fields = schema.split(' ').filter_map(|f| f.split_once(':')).filter(|(_, kind)| !kind.ends_with('?')).map(|(name, kind)| {
         let value = match kind {
             "n" => Value::from(1),
@@ -210,7 +226,8 @@ pub fn minimal(tag: &str) -> Option<Value> {
             "sn" => Value::Null,
             "dt" => Value::from("2026-01-01T00:00:00Z"),
             "kc" => Value::from("chat.new"),
-            k if k.starts_with("o(") => Value::Object(Default::default()),
+            "ms" => serde_json::json!({"instanceId": "a", "model": "a"}),
+            k if k.starts_with("o(") => NESTED.iter().find(|(n, _)| *n == &k[2..k.len() - 1]).map_or_else(|| Value::Object(Default::default()), |(_, nested)| minimal_of(nested)),
             k if k.starts_with("a(") => Value::Array(Vec::new()),
             k if k.starts_with("r(") => Value::from(bounds(k).0),
             "p(url)" => Value::from("http://a"),
@@ -222,7 +239,7 @@ pub fn minimal(tag: &str) -> Option<Value> {
         };
         (name.to_string(), value)
     });
-    Some(Value::Object(fields.collect()))
+    Value::Object(fields.collect())
 }
 
 /// The defect text when `payload` does not decode as the schema of `tag`; `None` when it does or the tag has no schema here.
@@ -487,6 +504,30 @@ mod tests {
         for bad in ["a", "ftp://a", "http://u@a", "http://a?q=1", "http://a#f"] {
             assert_eq!(list(bad).unwrap(), "Expected <filter>\n  at [\"config\"][\"baseUrl\"]", "{bad}");
         }
+    }
+
+    #[test]
+    fn the_orchestration_reads_decode_in_the_order_their_structs_declare_with_the_turn_range_before_the_thread() {
+        let d = |tag: &str, p: Value| defect(tag, &p).unwrap();
+        // Given a turn diff without its range, then the range comes first; given the range alone, then the thread is missing
+        assert_eq!(d("orchestration.getTurnDiff", json!({})), "Missing key\n  at [\"fromTurnCount\"]");
+        assert_eq!(d("orchestration.getTurnDiff", json!({"fromTurnCount": 0, "toTurnCount": 0})), "Missing key\n  at [\"threadId\"]");
+        // And a settled cursor that is no object, a limit outside 0 to 50 and a missing thread id name their paths
+        assert_eq!(d("orchestration.getOlderSettledThreads", json!({"before": "x", "limit": 0})), "Expected object\n  at [\"before\"]");
+        assert_eq!(d("orchestration.getOlderSettledThreads", json!({"before": {}, "limit": 0})), "Missing key\n  at [\"before\"][\"settledAt\"]");
+        assert_eq!(d("orchestration.getOlderSettledThreads", json!({"before": {"settledAt": "a"}, "limit": 51})), "Expected a value between 0 and 50\n  at [\"limit\"]");
+        assert_eq!(d("orchestration.searchThread", json!({"query": "a"})), "Missing key\n  at [\"threadId\"]");
+        assert_eq!(defect("orchestration.getOlderSettledThreads", &json!({"before": {"settledAt": "a"}, "limit": 50})), None);
+    }
+
+    #[test]
+    fn a_launch_without_an_instance_in_its_model_selection_is_the_instance_defect_after_the_ids_and_title() {
+        let launch = |model: Value| json!({"commandId": "a", "projectId": "a", "title": "a", "modelSelection": model, "runtimeMode": "auto", "interactionMode": "plan", "workspaceStrategy": {"type": "root"}});
+        // Given a model selection with a model only, then the instance is the defect; given an instance too, then it decodes
+        assert_eq!(defect("orchestration.launchThread", &launch(json!({"model": "a"}))).unwrap(), "Expected string\n  at [\"modelSelection\"][\"instanceId\"]");
+        assert_eq!(defect("orchestration.launchThread", &launch(json!({"model": "a", "instanceId": "a", "options": "a"}))).unwrap(), "Expected array | object\n  at [\"modelSelection\"][\"options\"]");
+        assert_eq!(defect("orchestration.launchThread", &launch(json!({"model": "a", "instanceId": "a"}))), None);
+        assert_eq!(minimal("orchestration.launchThread").and_then(|m| defect("orchestration.launchThread", &m)), None);
     }
 
     #[test]

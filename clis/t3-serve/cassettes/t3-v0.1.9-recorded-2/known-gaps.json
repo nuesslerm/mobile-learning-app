@@ -28,7 +28,6 @@
       ],
       "ids": [
         "t3-rpc-attachments.createUploadUrl",
-        "t3-rpc-orchestration.getTurnDiff",
         "t3-rpc-peerLinks.answerRequest",
         "t3-rpc-projects.mutate"
       ]
