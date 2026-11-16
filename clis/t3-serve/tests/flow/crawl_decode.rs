@@ -17,7 +17,16 @@ const GROUPS: [&str; 38] = ["t3-rpc-provider.install.", "AcpRegistry", "t3-rpc-v
 /// Tags the router does not know yet (`scopes.rs` lacks them), so their requests never reach a decoder.
 const NOT_ROUTED: [&str; 2] = ["t3-rpc-sourceControl.star-", "t3-rpc-provider.auth.removeMethod-"];
 
+/// The ids replayed on four threads, each against routers of its own.
 fn found(set: &mimic_core::ports::CassetteSet, allow: &mimic_core::allowlist::Allowlist, ids: &[String]) -> Vec<gaps::Found> {
+    let chunk = ids.len().div_ceil(4).max(1);
+    std::thread::scope(|scope| {
+        let workers: Vec<_> = ids.chunks(chunk).map(|part| scope.spawn(move || found_in_turn(set, allow, part))).collect();
+        workers.into_iter().flat_map(|w| w.join().expect("a replay thread")).collect()
+    })
+}
+
+fn found_in_turn(set: &mimic_core::ports::CassetteSet, allow: &mimic_core::allowlist::Allowlist, ids: &[String]) -> Vec<gaps::Found> {
     let mut out = Vec::new();
     for id in ids {
         let h = std::rc::Rc::new(Harness::start());
@@ -46,17 +55,25 @@ fn ids_of(set: &mimic_core::ports::CassetteSet, prefixes: &[String]) -> Vec<Stri
     set.cassette.interactions.iter().filter(|i| decoded_to_a_defect(i)).map(|i| i.id.clone()).filter(|id| prefixes.iter().any(|p| id.contains(p.as_str())) && !NOT_ROUTED.iter().any(|n| id.contains(n))).collect()
 }
 
+fn listed_for(ids: &[String]) -> std::collections::BTreeMap<String, Vec<String>> {
+    let path = format!("{DIR}/known-gaps.json");
+    let mut listed = gaps::listed(&serde_json::from_str(&std::fs::read_to_string(path).unwrap()).unwrap()).unwrap();
+    listed.retain(|id, _| ids.contains(id));
+    listed
+}
+
 #[test]
-fn the_payloads_the_decoder_refuses_in_the_decoded_groups_are_the_defects_the_real_server_answered() {
+fn the_payloads_the_decoder_refuses_in_the_decoded_groups_are_the_defects_the_real_server_answered_but_for_the_listed_gaps() {
     // Given the crawl set of the pinned server and the groups decoded here
     let (set, allow) = (load_set(DIR), load_allowlist(DIR));
     let prefixes: Vec<String> = GROUPS.iter().map(|g| g.to_string()).collect();
     let ids = ids_of(&set, &prefixes);
-    assert!(ids.len() >= 3, "{ids:?}");
+    assert!(ids.len() > 200, "{}", ids.len());
     // When each of those cases is replayed against the router
     let differences = found(&set, &allow, &ids);
-    // Then none differs from what the real server answered
-    assert!(differences.is_empty(), "{differences:#?}");
+    // Then what differs from the real server's answer is exactly what known-gaps.json lists for them (the nested profiles the chatgpt RPCs decode)
+    let (new, stale) = gaps::compare(&differences, &listed_for(&ids));
+    assert!((new.is_empty(), stale.is_empty()) == (true, true), "not listed: {new:#?}\nlisted and no longer so: {stale:#?}");
 }
 
 /// A developer's slice: what differs for the decoder-defect cases of `CRAWL_PREFIX` against `known-gaps.json` (any other case answers from the
@@ -68,9 +85,7 @@ fn a_slice_named_by_crawl_prefix_is_compared_with_the_known_gaps() {
     let ids = ids_of(&set, &prefix.split(',').map(String::from).collect::<Vec<_>>());
     let differences = found(&set, &allow, &ids);
     let path = format!("{DIR}/known-gaps.json");
-    let mut listed = gaps::listed(&serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap()).unwrap();
-    listed.retain(|id, _| ids.contains(id));
-    let (new, stale) = gaps::compare(&differences, &listed);
+    let (new, stale) = gaps::compare(&differences, &listed_for(&ids));
     eprintln!("found:\n{differences:#?}");
     eprintln!("slice of {} ids: {} differ\nnot listed:\n{}\nlisted and no longer differing as listed:\n{stale:?}", ids.len(), differences.len(), new.join("\n"));
     if std::env::var("CRAWL_WRITE_GAPS").is_ok() {
