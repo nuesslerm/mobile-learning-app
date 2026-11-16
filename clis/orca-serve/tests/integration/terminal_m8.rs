@@ -216,7 +216,7 @@ fn a_phone_streams_a_real_shell_over_the_binary_stream_types_into_it_and_resumes
         // When it drops the stream with an Unsubscribe frame
         phone.send_terminal_frame(&first, op::UNSUBSCRIBE, b"");
         // Then the stream ends, and its token no longer takes credit
-        assert_eq!(phone.next_frame(&first.request)["result"], json!({"type": "end"}));
+        assert_eq!(phone.end_of(&first)["result"], json!({"type": "end"}));
         let spent = phone.call(case, &chain, &["rpc:terminal.ackOutput"], "terminal.ackOutput", json!({"streamToken": first.token, "units": 1}));
         assert_eq!(spent["result"]["credited"], json!(false));
         // When the shell prints more while nobody watches, and the phone subscribes again with its token and the units it heard
@@ -240,7 +240,7 @@ fn a_phone_streams_a_real_shell_over_the_binary_stream_types_into_it_and_resumes
         let ended = phone.call(case, &chain, &["rpc:terminal.unsubscribe"], "terminal.unsubscribe", json!({"subscriptionId": handle, "requestId": second.request}));
         // Then it is acknowledged and the stream ends
         assert_eq!(ended["result"], json!({"unsubscribed": true}));
-        assert_eq!(phone.next_frame(&second.request)["result"], json!({"type": "end"}));
+        assert_eq!(phone.end_of(&second)["result"], json!({"type": "end"}));
         // When it closes the terminal and subscribes again
         phone.call(case, &chain, &["rpc:terminal.close"], "terminal.close", json!({"terminal": handle}));
         let stale = phone.refused(case, &chain, &["rpc:terminal.subscribe"], "terminal.subscribe", phone_client_params(&handle, None));

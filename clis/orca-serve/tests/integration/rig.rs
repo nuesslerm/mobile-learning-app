@@ -144,6 +144,8 @@ fn spawn_serve(state: &Path, errlog: &Path, tap_url: &str, bearer: &str, web: Op
 /// A paired phone past the v2 handshake. Its calls are windows on the chain's tap.
 pub struct Phone {
     client: PhoneClient,
+    /// Streams the phone has seen end: binary frames they sent before their end can still be queued behind it.
+    ended: Vec<u32>,
 }
 
 impl Phone {
@@ -157,7 +159,7 @@ impl Phone {
             let authenticated = ready.is_ok().then(|| client.authenticate(&offer.device_token));
             (authenticated.as_ref().is_some_and(|a| a.as_ref().is_ok_and(|a| a["type"] == "e2ee_authenticated")), authenticated)
         });
-        Phone { client }
+        Phone { client, ended: Vec::new() }
     }
 
     /// A request as one call of the trace: served when the host answered `ok`.
@@ -205,6 +207,13 @@ impl Phone {
         self.client.next_stream_frame(id)
     }
 
+    /// The closing frame of a stream, after which the phone drops what the stream sent before it that is still queued.
+    pub fn end_of(&mut self, stream: &TerminalStream) -> Value {
+        let end = self.client.next_stream_frame(&stream.request);
+        self.ended.push(stream.number);
+        end
+    }
+
     pub fn raw(&mut self) -> &mut PhoneClient {
         &mut self.client
     }
@@ -249,10 +258,15 @@ impl Phone {
 
     /// The next binary frame of the stream, decoded with the mapper's own codec.
     fn terminal_frame(&mut self, stream: &TerminalStream) -> (u8, u64, Vec<u8>) {
-        let bytes = self.client.next_binary().expect("the socket stays open");
-        let frame = orca_map_terminal::binary::decode(&bytes).expect("a terminal frame");
-        assert_eq!(frame.stream, stream.number, "a frame of another stream");
-        (frame.opcode, frame.seq, frame.payload.to_vec())
+        loop {
+            let bytes = self.client.next_binary().expect("the socket stays open");
+            let frame = orca_map_terminal::binary::decode(&bytes).expect("a terminal frame");
+            if self.ended.contains(&frame.stream) {
+                continue;
+            }
+            assert_eq!(frame.stream, stream.number, "a frame of another stream");
+            return (frame.opcode, frame.seq, frame.payload.to_vec());
+        }
     }
 
     /// The snapshot the stream opens with, from its start frame to its end frame.
