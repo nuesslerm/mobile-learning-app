@@ -70,41 +70,41 @@ fn same_commit(a: &str, b: &str) -> bool {
 
 /// The update units of commit `sha` load, given how this push's eas-update job ended (`result`, empty on a dispatch): its own publish,
 /// else the pointer's, which must carry this commit's app by `crate::legs::app_changed_since`, the rule that decides to publish.
-fn resolve_update(sha: &str, result: &str, pointer: Result<Value, String>, app: &Path, changed: impl Fn(&str) -> Result<Vec<String>, String>) -> Result<UpdateTarget, UpdateProblem> {
+fn resolve_update(branch: &str, sha: &str, result: &str, pointer: Result<Value, String>, app: &Path, changed: impl Fn(&str) -> Result<Vec<String>, String>) -> Result<UpdateTarget, UpdateProblem> {
     let problem = |error: String, next: &str| UpdateProblem { error, next: next.to_string() };
     let ran = if result.is_empty() { "no eas-update job ran".to_string() } else { format!("eas-update: {result}") };
     let word = |p: &Value, key: &str| p[key].as_str().unwrap_or_default().to_string();
     if matches!(result, "failure" | "cancelled") {
         let last = pointer.as_ref().map_or(String::new(), |p| format!(" (group {} from commit {})", word(p, "group"), word(p, "commit")));
-        return Err(problem(format!("this push's EAS publish ended {result}, so latest-dev.json still names the last one{last}: the update tests have no update of this commit to load"), PUBLISH_NEXT));
+        return Err(problem(format!("this push's EAS publish ended {result}, so latest-{branch}.json still names the last one{last}: the update tests have no update of this commit to load"), PUBLISH_NEXT));
     }
     let pointer = pointer.map_err(|e| problem(format!("cannot read the latest update ({ran}): {e}"), PUBLISH_NEXT))?;
     let (group, commit) = (word(&pointer, "group"), word(&pointer, "commit"));
     let named = format!("group {group} from commit {commit}");
     if group.is_empty() || commit.is_empty() || !group.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
-        return Err(problem(format!("latest-dev.json names no usable update ({ran}): {}", pointer.to_string().chars().take(200).collect::<String>()), PUBLISH_NEXT));
+        return Err(problem(format!("latest-{branch}.json names no usable update ({ran}): {}", pointer.to_string().chars().take(200).collect::<String>()), PUBLISH_NEXT));
     }
     if result == "success" {
         if !same_commit(&commit, sha) {
-            return Err(problem(format!("latest-dev.json names commit {commit}, but this push published {sha}: the pointer write failed or another publish moved it"), PUBLISH_NEXT));
+            return Err(problem(format!("latest-{branch}.json names commit {commit}, but this push published {sha}: the pointer write failed or another publish moved it"), PUBLISH_NEXT));
         }
     } else if !same_commit(&commit, sha) {
         match changed(&commit) {
             Ok(why) if why.is_empty() => {}
             Ok(why) => {
                 let shown: Vec<String> = why.into_iter().take(3).collect();
-                return Err(problem(format!("latest-dev.json names {named}, and the app changed since: {}. That update is not this commit's app, and this push published none ({ran})", shown.join("; ")), PUBLISH_NEXT));
+                return Err(problem(format!("latest-{branch}.json names {named}, and the app changed since: {}. That update is not this commit's app, and this push published none ({ran})", shown.join("; ")), PUBLISH_NEXT));
             }
             Err(e) => return Err(problem(format!("cannot tell whether the update from commit {commit} carries this commit's app ({ran}): {e}"), "fetch the history of both commits (`git fetch --unshallow origin dev`), run `pnpm install --frozen-lockfile` and rerun")),
         }
     }
     let platforms: Vec<&str> = pointer["platforms"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
     if !platforms.contains(&"android") {
-        return Err(problem(format!("latest-dev.json names an update without Android: {named}, platforms [{}]", platforms.join(", ")), PUBLISH_NEXT));
+        return Err(problem(format!("latest-{branch}.json names an update without Android: {named}, platforms [{}]", platforms.join(", ")), PUBLISH_NEXT));
     }
     let route = pointer["initialRoute"].as_str().unwrap_or_default();
     if route != "/" {
-        return Err(problem(format!("latest-dev.json names an update that opens on {route:?}, not on /: {named}"), PUBLISH_NEXT));
+        return Err(problem(format!("latest-{branch}.json names an update that opens on {route:?}, not on /: {named}"), PUBLISH_NEXT));
     }
     let baked: Vec<&str> = pointer["env"].as_array().into_iter().flatten().filter_map(Value::as_str).collect();
     if let Some(missing) = UPDATE_ENV.iter().find(|n| !baked.contains(n)) {
@@ -132,14 +132,16 @@ static UPDATE: std::sync::Mutex<Option<(String, Result<UpdateTarget, UpdateProbl
 
 pub fn update_target(sha: &str) -> Result<UpdateTarget, UpdateProblem> {
     let result = std::env::var("WF_EAS_UPDATE_RESULT").unwrap_or_default().trim().to_string();
-    let key = format!("{sha} {result}");
+    // the e2e job loads the variant its eas-update job baked for the runner's own backends (branch `e2e`), not the one users get
+    let branch = std::env::var("WF_EAS_UPDATE_BRANCH").ok().map(|b| b.trim().to_string()).filter(|b| !b.is_empty()).unwrap_or_else(|| "dev".to_string());
+    let key = format!("{sha} {result} {branch}");
     if let Some((k, answer)) = UPDATE.lock().ok().and_then(|g| g.clone()) {
         if k == key {
             return answer;
         }
     }
     let root = crate::e2e_tests::repo();
-    let answer = resolve_update(sha, &result, crate::eas::latest_pointer("dev"), &root, |commit| crate::legs::app_changed_since(commit, Some(&root)));
+    let answer = resolve_update(&branch, sha, &result, crate::eas::latest_pointer(&branch), &root, |commit| crate::legs::app_changed_since(commit, Some(&root)));
     if let Ok(mut g) = UPDATE.lock() {
         *g = Some((key, answer.clone()));
     }

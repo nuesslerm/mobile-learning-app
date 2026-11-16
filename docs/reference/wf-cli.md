@@ -5841,7 +5841,7 @@ Actions:
                          on a free loopback port (or --rca-port / --leetcode-port) with secrets made for this run, waits up to --wait (default 60) s for
                          its GET /health, and prints {ok, dir, backends:[{name, url, host, port, pid, health, bin, log, env}]} (start order: stt, opencode-server, rca-service, leetcode-backend); env is
                          what a test or an app export is pointed at it with (RCA_HOST, RCA_PORT, CHAT_AGENT_API_SECRET, WF_TAILNET_SOCKS, SECRETS_BACKEND,
-                         EXPO_PUBLIC_AGENT_BASE_URL; EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL and _TOKEN). rca-service reaches an opencode server only
+                         EXPO_PUBLIC_AGENT_BASE_URL; EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL and _TOKEN; E2E_LEETCODE_BEARER names the token instead of a random one, for an update baked before the backend started). rca-service reaches an opencode server only
                          through OPENCODE_SERVER_URL (and _PASSWORD): a bare up takes them from the caller's environment and starts neither of the two below; --only
                          names them. opencode-server is `opencode serve` of the PATH (OPENCODE_BIN) with the config of backend/remote-chat-agent/opencode-server and
                          OPENCODE_GO_API_KEY of the caller's environment as its only key (given to the child alone, never printed or written; a missing one fails

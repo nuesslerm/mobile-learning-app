@@ -554,6 +554,31 @@ fn runner_args(unit: &Value) -> String {
 }
 
 #[test]
+fn android_units_load_the_branch_variant_the_job_names_and_read_no_other_pointer() {
+    // Given a bucket that serves group g-e2e only as branch e2e's pointer, and nothing as dev's
+    let (w, bucket) = update_workspace("wf-flow-update-branch-");
+    w.commit_eas_project();
+    bucket.routes(&[("GET /o/verification/eas-updates/latest-e2e.json", MockReply::json(200, pointer("g-e2e", &w.git(&["rev-parse", "HEAD"]))))]);
+    let read = format!("http://127.0.0.1:{}/o", bucket.port);
+    let out = w.path("out");
+    let run = |branch: Option<&str>| {
+        let mut env = vec![("VERIFICATION_ARTIFACTS_READ_URL", read.clone()), ("WF_EAS_UPDATE_RESULT", "success".to_string())];
+        env.extend(branch.map(|b| ("WF_EAS_UPDATE_BRANCH", b.to_string())));
+        w.wf(&["test", "run", "upd", "--platform", "android", "--out", &out], &env)
+    };
+    // When the Android entry runs with WF_EAS_UPDATE_BRANCH=e2e
+    let r = run(Some("e2e"));
+    // Then its units load the e2e group
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let groups: Vec<String> = Workspace::summary(&r)["units"].as_array().unwrap().iter().map(|u| u["updateGroup"].as_str().unwrap().to_string()).collect();
+    assert_eq!(groups, ["g-e2e", "g-e2e"]);
+    // And without it they read the dev pointer, which the bucket does not hold
+    let dev = run(None);
+    assert_eq!(dev.exit_code, 1, "{}{}", dev.stdout, dev.stderr);
+    assert!(Workspace::summary(&dev)["units"][0]["note"].as_str().unwrap().contains("cannot read the latest update"), "{}", dev.stdout);
+}
+
+#[test]
 fn android_units_load_the_update_ci_published() {
     // Given an update test and the bucket naming group g-1 published from this commit by this push's own publish
     let (w, bucket) = update_workspace("wf-flow-update-");

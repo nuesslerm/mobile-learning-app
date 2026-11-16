@@ -951,6 +951,26 @@ jobs:
             echo "Source maps: $(jq -r '.maps.uploaded // .maps.error' <<<"$summary") under $(jq -r '.maps.base // "-"' <<<"$summary"); latest-dev pointer: $(jq -r '.pointers.latest // .pointers.error // "-"' <<<"$summary")"
             echo "BetterStack forwarder: $forwarder"
           } >> "$GITHUB_STEP_SUMMARY"
+      # The update above is the one users and the phone open, dialing the deployed backends. The Android e2e tests run the backends on their own
+      # runner, which the emulator reaches as 10.0.2.2, so they load this variant of the same commit from branch e2e (its pointer is theirs,
+      # WF_EAS_UPDATE_BRANCH in e2e-tests.yml). The bearer is the one that job's leetcode backend starts with (E2E_LEETCODE_BEARER there).
+      - name: Publish the EAS Update the Android e2e tests load
+        if: ${{ inputs.ship && inputs.e2e }}
+        timeout-minutes: 20
+        env:
+          EXPO_PUBLIC_DEVICE_LAB: "1"
+          EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL: http://10.0.2.2:8789
+          EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN: e2e-loopback-bearer
+          EXPO_PUBLIC_AGENT_BASE_URL: http://10.0.2.2:8787
+          EXPO_PUBLIC_VM_OPS_API_BASE_URL: http://127.0.0.1:1
+        run: |
+          set -o pipefail
+          wf ship eas --platform android --branch e2e --pointer --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas-e2e.log"
+          summary=$(tail -1 "$RUNNER_TEMP/eas-e2e.log")
+          {
+            echo "### EAS Update for the Android e2e tests"
+            echo "Branch e2e, group \`$(jq -r '.group' <<<"$summary")\`, commit \`${GITHUB_SHA::9}\`: dials the runner's backends at 10.0.2.2, not the deployed ones. Not for a phone."
+          } >> "$GITHUB_STEP_SUMMARY"
       - name: Export the EAS bundle (not published)
         if: ${{ !inputs.ship }}
         timeout-minutes: 20

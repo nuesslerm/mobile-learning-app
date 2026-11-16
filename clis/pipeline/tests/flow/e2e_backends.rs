@@ -30,11 +30,18 @@ impl Sandbox {
     }
 
     fn wf(&self, args: &[&str], rca: &Path, leetcode: &Path) -> (i32, Value) {
+        self.wf_env(args, rca, leetcode, &[])
+    }
+
+    fn wf_env(&self, args: &[&str], rca: &Path, leetcode: &Path, env: &[(&str, &str)]) -> (i32, Value) {
         let state = self.state().display().to_string();
         let mut all = vec!["test", "backends"];
         all.extend_from_slice(args);
         all.extend_from_slice(&["--dir", &state]);
-        let opts = RunOpts::default().env("RCA_SERVICE_BIN", &rca.display().to_string()).env("LEETCODE_BACKEND_BIN", &leetcode.display().to_string());
+        let mut opts = RunOpts::default().env("RCA_SERVICE_BIN", &rca.display().to_string()).env("LEETCODE_BACKEND_BIN", &leetcode.display().to_string());
+        for (k, v) in env {
+            opts = opts.env(k, v);
+        }
         let r = run_wf(&all, &opts);
         (r.exit_code, last_json(&r))
     }
@@ -220,4 +227,20 @@ fn given_the_voice_stack_when_up_runs_then_rca_service_is_started_pointing_at_th
     assert!(!stdout.contains("sk-secret-key-123"));
     assert!(!std::fs::read_to_string(sb.state().join("backends.json")).unwrap().contains("sk-secret-key-123"));
     run(&["down"], None);
+}
+
+#[test]
+fn given_a_named_bearer_and_ports_when_up_runs_then_the_leetcode_backend_takes_both_so_a_baked_update_can_reach_it() {
+    // Given an EAS Update baked with a fixed bearer and the ports the emulator dials on 10.0.2.2
+    let sb = Sandbox::new();
+    let (rca, leetcode) = (sb.stub("rca", SERVER), sb.stub("leetcode", SERVER));
+    let port = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port().to_string();
+    // When up runs with that bearer and port
+    let (code, out) = sb.wf_env(&["up", "--only", "leetcode-backend", "--leetcode-port", &port], &rca, &leetcode, &[("E2E_LEETCODE_BEARER", "e2e-fixed")]);
+    // Then the printed env carries the fixed bearer and the url names that port
+    assert_eq!(code, 0, "{out}");
+    let env = &out["backends"][0]["env"];
+    assert_eq!(env["EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN"], json!("e2e-fixed"));
+    assert_eq!(env["EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL"], json!(format!("http://127.0.0.1:{port}")));
+    sb.wf(&["down"], &rca, &leetcode);
 }

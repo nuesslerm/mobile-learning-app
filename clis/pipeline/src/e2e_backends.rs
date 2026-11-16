@@ -205,7 +205,8 @@ fn environment(def: &Def, port: u16, home: &Path, peers: &[Value]) -> Result<(Ve
             (server, consumer)
         }
         _ => {
-            let bearer = random_hex();
+            // a fixed bearer when the caller names one: an EAS Update baked it in before this backend started
+            let bearer = std::env::var("E2E_LEETCODE_BEARER").ok().filter(|v| !v.is_empty()).unwrap_or_else(random_hex);
             let server = vec![
                 s("PORT", port.to_string()),
                 s("GIT_COMMIT", std::env::var("GITHUB_SHA").unwrap_or_else(|_| "e2e".into())),
