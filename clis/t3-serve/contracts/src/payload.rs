@@ -64,6 +64,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("projects.writeFile", "cwd:s relativePath:s contents:s"),
     ("projects.createNew", "name:s"),
     ("projects.readFile", "cwd:s relativePath:s allowMissing:b?"),
+    ("agentSessions.import", "projectId:s expectedWorkspaceRoot:s?"),
     ("pullRequests.routingIdentity", "host:s"),
     ("terminal.open", "threadId:s terminalId:s? cwd:s? worktreePath:sn? cols:pi? rows:pi? env:x? providerInstanceId:s? stopOnSettle:b?"),
     ("pullRequests.filterOptions", "kind:l(labels|authors|references) projectId:s? projectIds:a? host:s? query:s? sigil:l(#|!)?"),
@@ -862,6 +863,7 @@ mod tests {
         assert_eq!(d("filesystem.browse", json!({"partialPath": 7})).unwrap(), "Expected string\n  at [\"partialPath\"]");
         assert_eq!(minimal("filesystem.browse").and_then(|m| defect("filesystem.browse", &m)), None);
         assert_eq!(d("projects.readFile", json!({})).unwrap(), "Missing key\n  at [\"cwd\"]");
+        assert_eq!(d("agentSessions.import", json!({})).unwrap(), "Missing key\n  at [\"projectId\"]");
         assert_eq!(d("projects.readFile", json!({"cwd": 7})).unwrap(), "Expected string\n  at [\"cwd\"]");
         // And a worktree setup subscription needs its thread
         assert_eq!(d("subscribeWorktreeSetup", json!({})).unwrap(), "Missing key\n  at [\"threadId\"]");
