@@ -89,3 +89,28 @@ fn a_file_written_is_listed_and_read_back_by_the_next_calls_and_a_second_write_r
     assert_eq!(success(&measured)["entries"][1], Value::Null);
 }
 
+#[test]
+fn the_diff_of_a_thread_can_be_taken_only_at_its_finished_turns_so_a_running_turn_moves_it_when_it_is_interrupted() {
+    // Given a thread with one finished turn and an agent API that diffs the thread's directory
+    let (h, mut rpc) = started();
+    h.agent.replies.lock().unwrap().insert("turn.diff", Ok(json!({"diff": "diff --git a/f b/f\n"})));
+    message(&mut rpc, "1", "go");
+    settled(&mut rpc, "t1");
+    let turn_diff = |rpc: &mut Rpc, to: u64| rpc.call("orchestration.getTurnDiff", json!({"threadId": "t1", "fromTurnCount": 0, "toTurnCount": to}));
+    // When the diff of turns 0 to 1 is asked, a second turn is started and held, 0 to 1 and 0 to 2 are asked, and the turn is interrupted
+    let one = turn_diff(&mut rpc, 1);
+    h.agent.hold.store(true, Ordering::SeqCst);
+    message(&mut rpc, "2", "wait");
+    let while_running = (turn_diff(&mut rpc, 1), turn_diff(&mut rpc, 2));
+    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "run.interrupt", "commandId": "c-int", "threadId": "t1"})));
+    let after = settled(&mut rpc, "t1");
+    let (stale, now) = (turn_diff(&mut rpc, 1), turn_diff(&mut rpc, 2));
+    // Then the first diff is the agent API's text, and while the second turn ran the diff of turns 0 to 1 still was and 0 to 2 was refused as unfinished
+    assert_eq!(success(&one)["diff"], "diff --git a/f b/f\n");
+    assert_eq!(success(&while_running.0)["toTurnCount"], 1);
+    assert!(failure(&while_running.1)["message"].as_str().unwrap().contains("0 to 1"));
+    // And once the run ended interrupted it counts as finished: 0 to 2 is given and 0 to 1 is refused naming 0 to 2
+    assert_eq!(after["runs"][1]["status"], "interrupted");
+    assert_eq!(success(&now)["toTurnCount"], 2);
+    assert!(failure(&stale)["message"].as_str().unwrap().contains("0 to 2"));
+}
