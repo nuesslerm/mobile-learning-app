@@ -68,6 +68,14 @@ fn items<'a>(v: &'a Value, key: &str) -> &'a [Value] {
     v.get(key).and_then(Value::as_array).map_or(&[], Vec::as_slice)
 }
 
+/// A connection of a pull request: a `gh pr view --json` list, or the nodes of the GraphQL read.
+fn pr_nodes<'a>(v: &'a Value, key: &str) -> &'a [Value] {
+    match v.get(key).and_then(Value::as_array) {
+        Some(rows) => rows,
+        None => items(&v["data"]["repository"]["pullRequest"][key], "nodes"),
+    }
+}
+
 fn names(v: &Value, key: &str, field: &str) -> Value {
     json!(items(v, key).iter().filter_map(|i| i.get(field).and_then(Value::as_str)).collect::<Vec<_>>())
 }
@@ -345,7 +353,7 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
         HostedCall::PrComments { .. } => {
             let v = body(&last)?;
             let comments: Vec<Value> = if github {
-                items(&v, "comments").iter().map(|c| extend(json!({"id": id_string(c, "id"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")}), gh_extras(c))).collect()
+                pr_nodes(&v, "comments").iter().map(|c| extend(json!({"id": id_string(c, "id"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")}), gh_extras(c))).collect()
             } else {
                 v.as_array().map_or(&[][..], Vec::as_slice).iter().filter(|n| n.get("system").and_then(Value::as_bool) != Some(true)).map(|n| json!({"id": id_string(n, "id"), "author": login_of(n, "author", "username"), "body": n.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(n, "created_at"), "url": Value::Null})).collect()
             };
@@ -354,7 +362,7 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
         HostedCall::PrReviews { .. } => {
             let v = body(&last)?;
             let reviews: Vec<Value> = if github {
-                items(&v, "reviews").iter().map(|r| extend(json!({"id": id_string(r, "id"), "author": login_of(r, "author", "login"), "state": lower(r, "state"), "body": r.get("body").and_then(Value::as_str).unwrap_or(""), "submitted_at_ms": ms(r, "submittedAt")}), gh_extras(r))).collect()
+                pr_nodes(&v, "reviews").iter().map(|r| extend(json!({"id": id_string(r, "id"), "author": login_of(r, "author", "login"), "state": lower(r, "state"), "body": r.get("body").and_then(Value::as_str).unwrap_or(""), "submitted_at_ms": ms(r, "submittedAt")}), gh_extras(r))).collect()
             } else {
                 items(&v, "approved_by").iter().map(|a| json!({"id": id_string(&a["user"], "id"), "author": login_of(a, "user", "username"), "state": "approved", "body": "", "submitted_at_ms": Value::Null})).collect()
             };

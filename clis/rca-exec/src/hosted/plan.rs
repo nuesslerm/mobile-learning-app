@@ -51,7 +51,21 @@ pub const PR_FIELDS: &str = "number,title,body,state,isDraft,author,headRefName,
 pub const PR_LIST_FIELDS: &str = "number,title,state,isDraft,author,headRefName,baseRefName,labels,createdAt,updatedAt,url,reviewDecision,reviewRequests";
 pub const RUN_FIELDS: &str = "databaseId,displayTitle,name,workflowName,status,conclusion,headBranch,headSha,event,createdAt,updatedAt,url";
 pub const REPO_FIELDS: &str = "name,nameWithOwner,description,url,sshUrl,isPrivate,defaultBranchRef,viewerPermission,isFork";
-pub const THREADS_QUERY: &str = "query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){reviewThreads(first:100){nodes{id isResolved isOutdated path line comments(first:50){nodes{databaseId author{login} body createdAt url}}}}}}}";
+const COMMENT_FIELDS: &str = "id databaseId author{__typename login avatarUrl(size:48)} body createdAt url viewerDidAuthor reactionGroups{content viewerHasReacted reactors{totalCount}}";
+const QUERY_HEAD: &str = "query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){";
+const QUERY_TAIL: &str = "}}}";
+
+pub fn comments_query() -> String {
+    format!("{QUERY_HEAD}comments(first:100){{nodes{{{COMMENT_FIELDS}}}}}{QUERY_TAIL}")
+}
+
+pub fn reviews_query() -> String {
+    format!("{QUERY_HEAD}reviews(first:100){{nodes{{{COMMENT_FIELDS} state submittedAt}}}}{QUERY_TAIL}")
+}
+
+pub fn threads_query() -> String {
+    format!("{QUERY_HEAD}reviewThreads(first:100){{nodes{{id isResolved isOutdated path line startLine originalLine originalStartLine diffSide rootHunk:comments(first:1){{nodes{{diffHunk}}}} comments(first:100){{nodes{{{COMMENT_FIELDS}}}}}}}}}{QUERY_TAIL}")
+}
 pub const REPLY_MUTATION: &str = "mutation($thread:ID!,$body:String!){addPullRequestReviewThreadReply(input:{pullRequestReviewThreadId:$thread,body:$body}){comment{id url}}}";
 pub const RESOLVE_MUTATION: &str = "mutation($thread:ID!){resolveReviewThread(input:{threadId:$thread}){thread{id isResolved}}}";
 pub const UNRESOLVE_MUTATION: &str = "mutation($thread:ID!){unresolveReviewThread(input:{threadId:$thread}){thread{id isResolved}}}";
@@ -199,6 +213,12 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
         Some((owner, name)) => args.extend([format!("-f=owner={owner}"), format!("-f=name={name}")]),
         None => args.extend(strs(&["-F=owner={owner}", "-F=name={repo}"])),
     };
+    let graphql_read = |number: u64, query: String| {
+        let mut args = strs(&["api", "graphql"]);
+        owner_name(&mut args);
+        args.extend([format!("-F=number={number}"), format!("-f=query={query}")]);
+        gh(args)
+    };
     let rest_repo = || match &op.repo {
         Some(r) => format!("repos/{r}"),
         None => "repos/{owner}/{repo}".to_string(),
@@ -251,15 +271,10 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             s.ok_exits = vec![0, 1, 8];
             one(s)
         }
-        HostedCall::PrComments { number } => one(view(*number, "comments")),
-        HostedCall::PrReviews { number } => one(view(*number, "reviews")),
+        HostedCall::PrComments { number } => one(graphql_read(*number, comments_query())),
+        HostedCall::PrReviews { number } => one(graphql_read(*number, reviews_query())),
         HostedCall::PrFiles { number } => one(view(*number, "files")),
-        HostedCall::PrThreads { number } => {
-            let mut args = strs(&["api", "graphql"]);
-            owner_name(&mut args);
-            args.extend([format!("-F=number={number}"), format!("-f=query={THREADS_QUERY}")]);
-            one(gh(args))
-        }
+        HostedCall::PrThreads { number } => one(graphql_read(*number, threads_query())),
         HostedCall::PrCreate { title, body, head, base, draft, labels, reviewers } => {
             let mut args = strs(&["pr", "create"]);
             repo_flag(&mut args);

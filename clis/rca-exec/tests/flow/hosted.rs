@@ -455,8 +455,9 @@ fn given_a_gitlab_publish_when_the_repository_is_created_then_the_branch_is_push
     assert_eq!(git(remote.path(), &["rev-parse", "main"]), repo.head());
 }
 
-fn gh_view_rule(stdout: Value) -> Rule {
-    Rule { prefix: true, stdout: stdout.to_string(), ..rule("gh", &["pr", "view", "12"]) }
+fn graphql_rule(connection: &str, nodes: Value) -> Rule {
+    let stdout = json!({"data": {"repository": {"pullRequest": {connection: {"nodes": nodes}}}}});
+    Rule { prefix: true, stdout: stdout.to_string(), ..rule("gh", &["api", "graphql"]) }
 }
 
 fn read(b: &Bench, tool: &str, rule: Rule) -> Value {
@@ -468,14 +469,14 @@ fn read(b: &Bench, tool: &str, rule: Rule) -> Value {
 fn given_graphql_comment_nodes_when_the_comments_are_read_then_avatar_bot_mark_database_id_and_reactions_are_answered_in_the_hosts_order() {
     let b = bench();
     // Given a human with reactions out of order, a bot, a deleted account and a null database id
-    let nodes = json!({"comments": [
+    let nodes = json!([
         {"id": "IC_1", "databaseId": 77, "author": {"__typename": "User", "login": "ada", "avatarUrl": "https://a/ada.png"}, "body": "hi", "createdAt": "2026-01-02T03:04:05Z", "url": "https://x/1", "viewerDidAuthor": true,
          "reactionGroups": [{"content": "EYES", "viewerHasReacted": false, "reactors": {"totalCount": 2}}, {"content": "ROCKET", "viewerHasReacted": true, "reactors": {"totalCount": 0}}, {"content": "THUMBS_UP", "viewerHasReacted": true, "reactors": {"totalCount": 3}}]},
         {"id": "IC_2", "databaseId": null, "author": {"__typename": "Bot", "login": "ci-bot", "avatarUrl": "https://a/bot.png"}, "body": "built", "createdAt": "2026-01-02T03:04:06Z", "url": "https://x/2", "reactionGroups": []},
         {"id": "IC_3", "databaseId": 79, "viewerDidAuthor": false, "author": null, "body": "gone", "createdAt": "2026-01-02T03:04:07Z", "url": "https://x/3"}
-    ]});
+    ]);
     // When read
-    let out = read(&b, PR_COMMENTS, gh_view_rule(nodes));
+    let out = read(&b, PR_COMMENTS, graphql_rule("comments", nodes));
     let c = out["comments"].as_array().unwrap();
     // Then the node id stays the id, and the extra fields are the CLI's
     assert_eq!((c[0]["id"].clone(), c[0]["database_id"].clone(), c[0]["avatar_url"].clone(), c[0]["is_bot"].clone(), c[0]["viewer_did_author"].clone(), c[0]["reaction_subject_id"].clone()), (json!("IC_1"), json!(77), json!("https://a/ada.png"), json!(false), json!(true), json!("IC_1")));
@@ -489,16 +490,16 @@ fn given_graphql_comment_nodes_when_the_comments_are_read_then_avatar_bot_mark_d
 fn given_the_old_gh_json_row_when_the_comments_and_reviews_are_read_then_the_new_fields_are_absent_and_the_old_ones_unchanged() {
     let b = bench();
     // Given a row with only author.login
-    let old = json!({"comments": [{"id": "IC_9", "author": {"login": "ada"}, "body": "old", "createdAt": "2026-01-02T03:04:05Z", "url": "https://x/9"}]});
+    let old = json!([{"id": "IC_9", "author": {"login": "ada"}, "body": "old", "createdAt": "2026-01-02T03:04:05Z", "url": "https://x/9"}]);
     // When read
-    let out = read(&b, PR_COMMENTS, gh_view_rule(old));
+    let out = read(&b, PR_COMMENTS, graphql_rule("comments", old));
     // Then
     let c = &out["comments"][0];
     assert_eq!((c["id"].clone(), c["author"].clone(), c["body"].clone()), (json!("IC_9"), json!("ada"), json!("old")));
     assert!(["database_id", "avatar_url", "is_bot", "viewer_did_author", "reaction_subject_id", "reactions"].iter().all(|k| c.get(k).is_none()), "{c}");
     // And a review reads the same way and keeps its submission time
-    let reviews = json!({"reviews": [{"id": "PRR_1", "databaseId": 5, "author": {"__typename": "Bot", "login": "rev", "avatarUrl": "https://a/r.png"}, "state": "APPROVED", "body": "", "submittedAt": "2026-01-02T03:04:05Z"}]});
-    let out = read(&b, PR_REVIEWS, gh_view_rule(reviews));
+    let reviews = json!([{"id": "PRR_1", "databaseId": 5, "author": {"__typename": "Bot", "login": "rev", "avatarUrl": "https://a/r.png"}, "state": "APPROVED", "body": "", "submittedAt": "2026-01-02T03:04:05Z"}]);
+    let out = read(&b, PR_REVIEWS, graphql_rule("reviews", reviews));
     let r = &out["reviews"][0];
     assert_eq!((r["id"].clone(), r["database_id"].clone(), r["is_bot"].clone(), r["state"].clone()), (json!("PRR_1"), json!(5), json!(true), json!("approved")));
     assert!(r["submitted_at_ms"].is_number());
