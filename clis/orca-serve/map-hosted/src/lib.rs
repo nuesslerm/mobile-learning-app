@@ -3,7 +3,7 @@
 //! by `git.fetch` into a ref of its own). A row's `repo` selector names an rca workspace, and a request names no repository, so the executor uses the one
 //! the workspace's remote names (a `prRepo` or `projectRef` of the phone names another). A row the CLIs cannot do, or whose answer needs what rca does
 //! not hold (issues and work items, projects, inline comments, closing, auto-merge, rate limits, accounts), is not mapped and stays pending.
-use agent_api_git::FETCH;
+use agent_api_git::{BLOB, FETCH};
 use agent_api_hosted::pr;
 use agent_api_proto::Method as AgentMethod;
 use orca_core::wire::{Failure, METHOD_NOT_FOUND, RUNTIME_ERROR};
@@ -14,13 +14,14 @@ mod base;
 mod checks;
 mod github;
 mod gitlab;
+mod review;
 mod time;
 
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
 /// The agent methods this crate sends: the `pr.*` and `mr.*` ones it reaches, and the fetch of a request's head.
-pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, FETCH];
+pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::COMMENTS, pr::THREADS, FETCH, BLOB];
 
 const METHODS: &[Method] = &[
     Method { name: "github.prForBranch", kind: Kind::Unary },
@@ -33,6 +34,9 @@ const METHODS: &[Method] = &[
     Method { name: "github.markPRDraft", kind: Kind::Unary },
     Method { name: "github.requestPRReviewers", kind: Kind::Unary },
     Method { name: "github.removePRReviewers", kind: Kind::Unary },
+    Method { name: "github.prComments", kind: Kind::Unary },
+    Method { name: "github.prFileContents", kind: Kind::Unary },
+    Method { name: "hostedReview.forBranch", kind: Kind::Unary },
     Method { name: "gitlab.mergeMR", kind: Kind::Unary },
     Method { name: "gitlab.updateMR", kind: Kind::Unary },
     Method { name: "worktree.resolvePrBase", kind: Kind::Unary },
@@ -63,6 +67,9 @@ impl Area for HostedArea {
             "github.markPRDraft" => github::ready(&target, params, true),
             "github.requestPRReviewers" => github::reviewers(&target, params, "add"),
             "github.removePRReviewers" => github::reviewers(&target, params, "remove"),
+            "github.prComments" => review::pr_comments(&target, params),
+            "github.prFileContents" => review::file_contents(&target, params),
+            "hostedReview.forBranch" => review::for_branch(&target, params),
             "gitlab.mergeMR" => gitlab::merge(&target, params),
             "gitlab.updateMR" => gitlab::update(&target, params),
             "worktree.resolvePrBase" => base::resolve(&target, params, false),

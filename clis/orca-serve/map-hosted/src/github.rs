@@ -34,13 +34,16 @@ pub fn list_labels(t: &Target, params: &Value) -> Result<Value, Failure> {
     }
 }
 
-/// `github.prForBranch`: the open pull request of the branch (else the latest one that is not), as the host's summary of it, or null with none.
-pub fn pr_for_branch(t: &Target, params: &Value) -> Result<Value, Failure> {
-    let branch = text(params, "branch").ok_or_else(|| Failure::invalid("Missing branch"))?;
+/// The number of the branch's open pull request, else the latest one that is not.
+pub(crate) fn find_for_branch(t: &Target, branch: &str) -> Result<Option<u64>, Failure> {
     let listed = t.ask(pr::LIST, json!({"head": branch, "state": "all", "limit": 20}))?;
     let all = listed["prs"].as_array().ok_or_else(|| Failure::new(RUNTIME_ERROR, "rca's pr.list answered no prs list"))?;
-    let Some(found) = all.iter().find(|p| p["state"] == "open").or_else(|| all.first()) else { return Ok(Value::Null) };
-    let n = required(found, "number", "pr.list")?.clone();
+    let Some(found) = all.iter().find(|p| p["state"] == "open").or_else(|| all.first()) else { return Ok(None) };
+    Ok(required(found, "number", "pr.list")?.as_u64())
+}
+
+/// The host's summary of pull request `n`: its state, rolled-up checks, mergeability, review decision and head.
+pub(crate) fn summary(t: &Target, n: u64) -> Result<Value, Failure> {
     let view = t.ask(pr::VIEW, json!({"number": n}))?;
     let p = required(&view, "pr", "pr.view")?;
     let details = checks::details(&t.ask(pr::CHECKS, json!({"number": n}))?)?;
@@ -64,6 +67,15 @@ pub fn pr_for_branch(t: &Target, params: &Value) -> Result<Value, Failure> {
         info["reviewDecision"] = json!(decision.to_ascii_uppercase());
     }
     Ok(info)
+}
+
+/// `github.prForBranch`: the open pull request of the branch (else the latest one that is not), as the host's summary of it, or null with none.
+pub fn pr_for_branch(t: &Target, params: &Value) -> Result<Value, Failure> {
+    let branch = text(params, "branch").ok_or_else(|| Failure::invalid("Missing branch"))?;
+    match find_for_branch(t, branch)? {
+        Some(n) => summary(t, n),
+        None => Ok(Value::Null),
+    }
 }
 
 /// `github.mergePR`: the host's `{ok}` of the merge, `squash` unless the phone names a method.

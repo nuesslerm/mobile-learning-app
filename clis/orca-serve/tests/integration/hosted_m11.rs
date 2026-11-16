@@ -252,3 +252,79 @@ fn a_repositorys_labels_are_listed_through_gh_label_list_and_a_gh_that_refuses_i
         assert_eq!(refused["result"], json!([]), "{refused}");
     });
 }
+
+#[test]
+fn a_branchs_review_and_a_pull_requests_comments_are_read_through_gh_and_a_gitlab_link_is_refused_before_the_executor_is_asked() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a gh that knows an open pull request for the branch, its conversation comment and a resolved review thread with one comment
+        let chain = Chain::start_hosted();
+        let mut phone = Phone::connect(case, &chain);
+        let list = json!([gh_pr(12, "Add retry to uploader", "OPEN", false, "feat/retry", "main")]).to_string();
+        let threads = json!({"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": [{"id": "PRRT_1", "isResolved": true, "isOutdated": false, "path": "src/retry.rs", "line": 14, "comments": {"nodes": [{"databaseId": 6001, "author": {"login": "hubot"}, "body": "Use a constant", "createdAt": "2026-10-02T10:15:00Z", "url": "https://github.com/octo/hello/pull/12#discussion_r6001"}]}}]}}}}}).to_string();
+        let conversation = json!({"comments": [{"id": "IC_kwDOAbc", "author": {"login": "octocat"}, "body": "Looks good", "createdAt": "2026-10-02T10:16:40Z", "url": "https://github.com/octo/hello/pull/12#issuecomment-5001"}]}).to_string();
+        chain.clis().rules(
+            &[
+                rule("gh", &["pr", "list"], &list),
+                rule("gh", &["pr", "view", "12", "--json=comments"], &conversation),
+                rule("gh", &["pr", "view", "12"], &gh_pr(12, "Add retry to uploader", "OPEN", false, "feat/retry", "main").to_string()),
+                Rule { exit_code: 0, ..rule("gh", &["pr", "checks", "12"], &checks_json()) },
+                rule("gh", &["api", "graphql"], &threads),
+            ],
+            &[],
+        );
+        // When the phone reads the review of the branch
+        let review = served(case, &mut phone, &chain, "hostedReview.forBranch", json!({"branch": "feat/retry", "reportReadOutcome": true}), &["pr.list", "pr.view", "pr.checks"], &["hosted_pr_list", "hosted_pr_view", "hosted_pr_checks"]);
+        // Then it is the open pull request in the neutral shape, with its failing check rolled up, as a read of the provider
+        assert_eq!(review["readOutcome"], json!("provider"), "{review}");
+        let info = &review["review"];
+        assert_eq!((info["provider"].clone(), info["number"].clone(), info["state"].clone(), info["status"].clone(), info["reviewDecision"].clone()), (json!("github"), json!(12), json!("open"), json!("failure"), json!("APPROVED")), "{review}");
+        // When the phone reads the pull request's comments
+        let comments = served(case, &mut phone, &chain, "github.prComments", json!({"prNumber": 12}), &["pr.comments", "pr.threads"], &["hosted_pr_comments", "hosted_pr_threads"]);
+        // Then the review thread comment and the conversation comment come back in time order, the first with its path, thread and resolution
+        let shown: Vec<(Value, Value, Value, Value)> = comments.as_array().unwrap().iter().map(|c| (c["id"].clone(), c["author"].clone(), c["threadId"].clone(), c["isResolved"].clone())).collect();
+        assert_eq!(shown, vec![(json!(6001), json!("hubot"), json!("PRRT_1"), json!(true)), (json!(5001), json!("octocat"), Value::Null, Value::Null)], "{comments}");
+        assert_eq!((comments[0]["path"].clone(), comments[0]["line"].clone(), comments[1]["body"].clone()), (json!("src/retry.rs"), json!(14), json!("Looks good")));
+        // When the phone reads the review with a GitLab link, Then it is refused and neither gh nor glab was started for it
+        let (gh_before, glab_before) = (chain.clis().starts("gh").len(), chain.clis().starts("glab").len());
+        let refused = phone.refused(case, &chain, &["rpc:hostedReview.forBranch"], "hostedReview.forBranch", with_repo(json!({"branch": "feat/retry", "linkedGitLabMR": 5})));
+        assert_eq!(refused["error"]["message"], json!("GitLab reviews are not offered by this host"), "{refused}");
+        assert_eq!((chain.clis().starts("gh").len(), chain.clis().starts("glab").len()), (gh_before, glab_before));
+    });
+}
+
+#[test]
+fn a_pull_requests_changed_file_is_read_at_the_base_and_head_commits_once_its_head_is_fetched() {
+    exec_testkit::case!(SUITE, |case| {
+        // Given a repository whose remote holds main and a pull request's head ref that changes one file and adds another, and a gh that reads the pull request
+        let chain = Chain::start_hosted();
+        let mut phone = Phone::connect(case, &chain);
+        let repo = &chain.repo;
+        let env = repo.git_env();
+        let bare = tempfile::Builder::new().prefix("orca-chain-remote-").tempdir().unwrap();
+        git_in(bare.path(), &env, &["init", "--quiet", "--bare", "--initial-branch=main"]);
+        repo.git(&["remote", "add", "origin", bare.path().to_str().unwrap()]);
+        repo.git(&["push", "--quiet", "origin", "main"]);
+        let base = repo.git(&["rev-parse", "main"]);
+        let original = std::fs::read_to_string(repo.path().join("README.md")).unwrap();
+        let other = tempfile::Builder::new().prefix("orca-chain-other-").tempdir().unwrap();
+        let work = other.path().join("work");
+        git_in(other.path(), &env, &["clone", "--quiet", bare.path().to_str().unwrap(), "work"]);
+        std::fs::write(work.join("README.md"), "changed by the pull request\n").unwrap();
+        std::fs::write(work.join("retry.txt"), "the pull request's file\n").unwrap();
+        git_in(&work, &env, &["add", "--all"]);
+        git_in(&work, &env, &["commit", "--quiet", "--message", "retry"]);
+        let head = git_in(&work, &env, &["rev-parse", "HEAD"]);
+        git_in(&work, &env, &["push", "--quiet", "origin", "HEAD:refs/pull/12/head"]);
+        chain.clis().rules(&[rule("gh", &["pr", "view", "12"], &gh_pr(12, "Add retry", "OPEN", false, "feat/retry", "main").to_string())], &[]);
+        // When the phone reads the changed file and the added one
+        let side = |path: &str, status: &str| json!({"prNumber": 12, "path": path, "status": status, "headSha": head, "baseSha": base});
+        let changed = served(case, &mut phone, &chain, "github.prFileContents", side("README.md", "modified"), &["pr.view", "git.fetch", "git.blob"], &["hosted_pr_view", "git_fetch", "git_blob"]);
+        let added = served(case, &mut phone, &chain, "github.prFileContents", side("retry.txt", "added"), &["pr.view", "git.fetch", "git.blob"], &["hosted_pr_view", "git_fetch", "git_blob"]);
+        // Then the changed file is what the base and the head commit hold of it, and the added one has no original
+        assert_eq!(changed, json!({"original": original, "modified": "changed by the pull request\n", "originalIsBinary": false, "modifiedIsBinary": false}), "{}", chain.evidence());
+        assert_eq!(added, json!({"original": "", "modified": "the pull request's file\n", "originalIsBinary": false, "modifiedIsBinary": false}));
+        // And the head sits under a ref of its own while no checkout of the repository moved
+        assert_eq!(repo.git(&["rev-parse", "refs/rca/pr/12/head"]), head);
+        assert!(!repo.path().join("retry.txt").exists());
+    });
+}

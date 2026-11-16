@@ -37,6 +37,9 @@ struct State {
     fetch_error: Option<String>,
     labels: Option<Vec<(String, String)>>,
     view_error: Option<String>,
+    comments: Vec<(u64, Value)>,
+    threads: Vec<(u64, Value)>,
+    blobs: Vec<(String, String, Vec<u8>)>,
 }
 
 #[derive(Clone, Default)]
@@ -164,7 +167,45 @@ impl Hosting {
         self
     }
 
+    /// A conversation comment of pull request `number`, whose id is a node id as `gh pr view` prints it.
+    pub fn conversation_comment(&self, number: u64, node_id: &str, author: &str, body: &str, created_ms: u64, url: &str) -> &Self {
+        self.0.lock().unwrap().comments.push((number, json!({"id": node_id, "author": author, "body": body, "created_at_ms": created_ms, "url": url})));
+        self
+    }
+
+    /// A review thread of pull request `number` with its comments as (database id, author, body, time).
+    pub fn review_thread(&self, number: u64, id: &str, path: &str, line: Option<u64>, (resolved, outdated): (bool, bool), comments: &[(u64, &str, &str, u64)]) -> &Self {
+        let rows: Vec<Value> = comments.iter().map(|(c, a, b, at)| json!({"id": c.to_string(), "author": a, "body": b, "created_at_ms": at, "url": format!("https://example.test/pull/{number}#discussion_r{c}")})).collect();
+        self.0.lock().unwrap().threads.push((number, json!({"id": id, "resolved": resolved, "outdated": outdated, "path": path, "line": line, "comments": rows})));
+        self
+    }
+
+    /// The file `path` as commit `rev` holds it.
+    pub fn blob(&self, rev: &str, path: &str, bytes: &[u8]) -> &Self {
+        self.0.lock().unwrap().blobs.push((rev.into(), path.into(), bytes.to_vec()));
+        self
+    }
+
     pub fn install(&self, agent: &ScriptedAgent) {
+        let me = self.clone();
+        agent.reply("pr.comments", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            Ok(json!({"comments": s.comments.iter().filter(|(x, _)| *x == n).map(|(_, c)| c.clone()).collect::<Vec<_>>()}))
+        });
+        let me = self.clone();
+        agent.reply("pr.threads", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            Ok(json!({"threads": s.threads.iter().filter(|(x, _)| *x == n).map(|(_, t)| t.clone()).collect::<Vec<_>>()}))
+        });
+        let me = self.clone();
+        agent.reply("git.blob", move |p| {
+            use base64::Engine;
+            let (s, rev, path) = (me.0.lock().unwrap(), p["rev"].as_str().unwrap_or(""), p["path"].as_str().unwrap_or(""));
+            let max = p["max_bytes"].as_u64().ok_or_else(|| refused("INVALID_ARGS", "`max_bytes` is required here"))? as usize;
+            let (_, _, bytes) = s.blobs.iter().find(|(r, f, _)| r == rev && f == path).ok_or_else(|| refused("GIT_FAILED", "path does not exist in that revision"))?;
+            let taken = &bytes[..bytes.len().min(max)];
+            Ok(json!({"rev": rev, "path": path, "size": bytes.len(), "data": base64::engine::general_purpose::STANDARD.encode(taken), "truncated": taken.len() < bytes.len()}))
+        });
         let me = self.clone();
         agent.reply("pr.labelCandidates", move |p| {
             let s = me.0.lock().unwrap();

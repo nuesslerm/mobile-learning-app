@@ -2019,15 +2019,15 @@
       "kind": "rpc",
       "name": "github.prComments",
       "state": "pending",
-      "milestone": "M11"
+      "milestone": "M11",
+      "reverify": "reverify when rca reports what the host's comment carries beyond text (M11): an author's avatar, reactions, the bot mark, a thread root's diff hunk and the review summaries, which pr.reviews gives by node id and no address, so no database id; the mapper answers the conversation and thread comments with numeric ids from their addresses and none of the rest"
     },
     {
       "id": "rpc:github.prFileContents",
       "kind": "rpc",
       "name": "github.prFileContents",
       "state": "pending",
-      "milestone": "M11",
-      "reverify": "reverify when mapped over git.blob (M11): the two sides of a changed file are read at the pull request's head and merge base after the fetch that worktree.resolvePrBase makes, with the host's binary and size answers; not mapped in this milestone"
+      "milestone": "M11"
     },
     {
       "id": "rpc:github.prForBranch",
@@ -2508,8 +2508,7 @@
       "kind": "rpc",
       "name": "hostedReview.forBranch",
       "state": "pending",
-      "milestone": "M11",
-      "reverify": "reverify when the provider-neutral review summary is built (M11): github.prForBranch is the GitHub form of it and is served, but this row answers for either provider with the host's review shape; not mapped in this milestone"
+      "milestone": "M11"
     },
     {
       "id": "rpc:hostedReview.getCreationEligibility",

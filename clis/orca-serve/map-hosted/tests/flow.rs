@@ -325,3 +325,132 @@ fn given_a_repository_with_labels_when_they_are_listed_then_the_names_come_back_
     assert_eq!(rig.err("github.listLabels", json!({"ownerRepo": null})).0, "invalid_argument");
     assert_eq!(rig.err("github.listLabels", json!({"repo": "nowhere"})).0, "selector_not_found");
 }
+
+#[test]
+fn given_a_branch_with_an_open_and_an_older_pull_request_when_its_review_is_read_then_it_is_the_open_one_in_the_neutral_shape_with_the_outcome_when_asked() {
+    // Given an open pull request that passed its checks and was approved, and an older merged one of the same branch
+    let mut rig = Rig::new();
+    rig.hosting.pull_request(7, "Older attempt", "feat/retry", "main").state("github", 7, "merged");
+    rig.hosting.pull_request(12, "Add retry", "feat/retry", "main").checks("github", 12, &[("build", "pass")]).approved("github", 12);
+    // When the phone reads the branch's review
+    let review = rig.ok("hostedReview.forBranch", json!({"branch": "refs/heads/feat/retry"}));
+    // Then it is the open one, as the provider-neutral summary
+    let head = rig.hosting.view("github", 12)["head_sha"].clone();
+    assert_eq!(
+        review,
+        json!({"provider": "github", "number": 12, "title": "Add retry", "state": "open", "url": "https://example.test/github/12", "status": "success", "updatedAt": "2026-10-02T10:15:30.012Z", "mergeable": "MERGEABLE", "headSha": head, "baseRefName": "main", "reviewDecision": "APPROVED"})
+    );
+    // And with the outcome asked for it is wrapped as a read of the provider, and a branch with no review is null in the same wrapper
+    let wrapped = rig.ok("hostedReview.forBranch", json!({"branch": "feat/retry", "reportReadOutcome": true}));
+    assert_eq!((wrapped["review"]["number"].clone(), wrapped["readOutcome"].clone()), (json!(12), json!("provider")));
+    assert_eq!(rig.ok("hostedReview.forBranch", json!({"branch": "other"})), Value::Null);
+    assert_eq!(rig.ok("hostedReview.forBranch", json!({"branch": "other", "reportReadOutcome": true})), json!({"review": null, "readOutcome": "provider"}));
+}
+
+#[test]
+fn given_a_linked_number_when_the_review_is_read_then_that_pull_request_is_read_without_listing_and_a_gitlab_link_is_refused() {
+    // Given two pull requests and a phone that links the second to the branch
+    let mut rig = Rig::new();
+    rig.hosting.pull_request(3, "Linked", "somewhere/else", "main").draft("github", 3);
+    rig.hosting.pull_request(4, "By branch", "feat/x", "main");
+    // When it reads the branch's review with the link, and with a fallback that does not exist
+    let linked = rig.ok("hostedReview.forBranch", json!({"branch": "feat/x", "linkedGitHubPR": 3}));
+    let fallback = rig.ok("hostedReview.forBranch", json!({"branch": "feat/x", "fallbackGitHubPR": 99}));
+    // Then the link is read as it is (a draft), without a listing, and a fallback that cannot be read gives way to the branch's own pull request
+    assert_eq!((linked["number"].clone(), linked["state"].clone(), fallback["number"].clone()), (json!(3), json!("draft"), json!(4)));
+    assert_eq!(rig.asked_hosted().iter().filter(|m| *m == "pr.list").count(), 1);
+    // And a link to a GitLab merge request is refused, not answered from a provider no account serves
+    let (code, message) = rig.err("hostedReview.forBranch", json!({"branch": "feat/x", "linkedGitLabMR": 5}));
+    assert_eq!((code.as_str(), message.as_str()), ("runtime_error", "GitLab reviews are not offered by this host"));
+}
+
+#[test]
+fn given_conversation_and_review_thread_comments_when_the_comments_are_read_then_each_is_a_comment_of_the_phone_oldest_first_with_its_thread() {
+    // Given a conversation comment, and a resolved thread on a line with a reply, and an outdated thread with no line
+    let mut rig = Rig::new();
+    rig.hosting.pull_request(12, "Add retry", "feat/retry", "main");
+    rig.hosting
+        .conversation_comment(12, "IC_kwDOAbc", "octocat", "Looks good", 1_790_936_200_000, "https://example.test/pull/12#issuecomment-5001")
+        .review_thread(12, "PRRT_1", "src/retry.rs", Some(14), (true, false), &[(6001, "hubot", "Use a constant", 1_790_936_100_000), (6002, "octocat", "Done", 1_790_936_300_000)])
+        .review_thread(12, "PRRT_2", "src/old.rs", None, (false, true), &[(6003, "hubot", "Stale", 1_790_936_150_000)]);
+    rig.hosting.pull_request(13, "Other", "feat/other", "main").conversation_comment(13, "IC_x", "someone", "Not this one", 1, "https://example.test/pull/13#issuecomment-9");
+    // When the phone reads the comments of the pull request
+    let comments = rig.ok("github.prComments", json!({"prNumber": 12}));
+    // Then they are the comments of that pull request in time order, the thread ones with their path, thread and state
+    assert_eq!(
+        comments,
+        json!([
+            {"id": 6001, "author": "hubot", "authorAvatarUrl": "", "body": "Use a constant", "createdAt": "2026-10-02T10:15:00.000Z", "url": "https://example.test/pull/12#discussion_r6001", "path": "src/retry.rs", "threadId": "PRRT_1", "isResolved": true, "isOutdated": false, "line": 14},
+            {"id": 6003, "author": "hubot", "authorAvatarUrl": "", "body": "Stale", "createdAt": "2026-10-02T10:15:50.000Z", "url": "https://example.test/pull/12#discussion_r6003", "path": "src/old.rs", "threadId": "PRRT_2", "isResolved": false, "isOutdated": true},
+            {"id": 5001, "author": "octocat", "authorAvatarUrl": "", "body": "Looks good", "createdAt": "2026-10-02T10:16:40.000Z", "url": "https://example.test/pull/12#issuecomment-5001"},
+            {"id": 6002, "author": "octocat", "authorAvatarUrl": "", "body": "Done", "createdAt": "2026-10-02T10:18:20.000Z", "url": "https://example.test/pull/12#discussion_r6002", "path": "src/retry.rs", "threadId": "PRRT_1", "isResolved": true, "isOutdated": false, "line": 14},
+        ])
+    );
+    // And a pull request with no comments reads as an empty list
+    rig.hosting.pull_request(14, "Quiet", "feat/quiet", "main");
+    assert_eq!(rig.ok("github.prComments", json!({"prNumber": 14})), json!([]));
+}
+
+#[test]
+fn given_a_modified_added_removed_binary_and_huge_file_when_the_contents_are_read_then_each_side_is_what_the_base_and_head_commit_hold() {
+    // Given a pull request whose head and base commits hold a text file, a new file, a binary and a huge file
+    let mut rig = Rig::new();
+    rig.hosting.pull_request(12, "Add retry", "feat/retry", "main").remote_branch("main", &"b".repeat(40));
+    let (base, head) = ("a".repeat(40), "c".repeat(40));
+    rig.hosting
+        .blob(&base, "src/a.rs", b"old\n")
+        .blob(&head, "src/a.rs", b"new\n")
+        .blob(&head, "src/new.rs", b"fresh\n")
+        .blob(&base, "src/gone.rs", b"bye\n")
+        .blob(&base, "img.png", &[0x89, b'P', 0, 1])
+        .blob(&head, "img.png", &[0x89, b'P', 0, 2])
+        .blob(&head, "big.bin", &vec![b'x'; (8 << 20) + 1])
+        .blob(&base, "src/before.rs", b"renamed from\n")
+        .blob(&head, "src/after.rs", b"renamed to\n");
+    let read = |rig: &mut Rig, path: &str, status: &str, old: Option<&str>| {
+        let mut params = json!({"prNumber": 12, "path": path, "status": status, "headSha": head, "baseSha": base});
+        if let Some(old) = old {
+            params["oldPath"] = json!(old);
+        }
+        rig.ok("github.prFileContents", params)
+    };
+    // When the phone reads each of them
+    let modified = read(&mut rig, "src/a.rs", "modified", None);
+    let added = read(&mut rig, "src/new.rs", "added", None);
+    let removed = read(&mut rig, "src/gone.rs", "removed", None);
+    let binary = read(&mut rig, "img.png", "modified", None);
+    let huge = read(&mut rig, "big.bin", "added", None);
+    let renamed = read(&mut rig, "src/after.rs", "renamed", Some("src/before.rs"));
+    // Then the sides are the file at the base and at the head, an added file has no original and a removed one no modified side
+    assert_eq!(modified, json!({"original": "old\n", "modified": "new\n", "originalIsBinary": false, "modifiedIsBinary": false}));
+    assert_eq!(added, json!({"original": "", "modified": "fresh\n", "originalIsBinary": false, "modifiedIsBinary": false}));
+    assert_eq!(removed, json!({"original": "bye\n", "modified": "", "originalIsBinary": false, "modifiedIsBinary": false}));
+    // And a binary is withheld as binary on both sides, a file over the limit is withheld as too large, and a rename reads the original from its old path
+    assert_eq!(binary, json!({"original": "", "modified": "", "originalIsBinary": true, "modifiedIsBinary": true}));
+    assert_eq!(huge, json!({"original": "", "modified": "", "originalIsBinary": false, "modifiedIsBinary": false, "modifiedTooLarge": true}));
+    assert_eq!(renamed, json!({"original": "renamed from\n", "modified": "renamed to\n", "originalIsBinary": false, "modifiedIsBinary": false}));
+    // And the pull request's head was fetched into a ref of its own before any blob was read
+    assert_eq!(rig.hosting.local_ref("refs/rca/pr/12/head"), Some(rig.hosting.view("github", 12)["head_sha"].as_str().unwrap().to_string()));
+}
+
+#[test]
+fn given_a_pull_request_that_cannot_be_fetched_or_a_path_the_commit_lacks_when_the_contents_are_read_then_the_sides_are_empty_and_a_malformed_call_is_refused() {
+    // Given a pull request whose target branch the remote lost
+    let mut rig = Rig::new();
+    rig.hosting.pull_request(12, "Add retry", "feat/retry", "gone");
+    let params = |path: &str| json!({"prNumber": 12, "path": path, "status": "modified", "headSha": "c".repeat(40), "baseSha": "a".repeat(40)});
+    let nothing = json!({"original": "", "modified": "", "originalIsBinary": false, "modifiedIsBinary": false});
+    // When the contents are read, Then the failed fetch is empty sides as the host answers a read it could not make
+    assert_eq!(rig.ok("github.prFileContents", params("src/a.rs")), nothing);
+    // And a path no commit holds, once the fetch works, is empty as well
+    rig.hosting.remote_branch("gone", &"b".repeat(40));
+    assert_eq!(rig.ok("github.prFileContents", params("src/missing.rs")), nothing);
+    // And a call that lacks a field or names an unknown status is refused before rca is asked
+    let before = rig.asked_hosted().len();
+    for (bad, message) in [(json!({"prNumber": 12, "status": "modified", "headSha": "c", "baseSha": "a"}), "Missing file path"), (json!({"prNumber": 12, "path": "p", "status": "modified", "baseSha": "a"}), "Missing head SHA"), (json!({"prNumber": 12, "path": "p", "status": "modified", "headSha": "c"}), "Missing base SHA")] {
+        let (code, said) = rig.err("github.prFileContents", bad);
+        assert_eq!((code.as_str(), said.as_str()), ("invalid_argument", message));
+    }
+    let (code, _) = rig.err("github.prFileContents", json!({"prNumber": 12, "path": "p", "status": "weird", "headSha": "c", "baseSha": "a"}));
+    assert_eq!((code.as_str(), rig.asked_hosted().len()), ("invalid_argument", before));
+}
