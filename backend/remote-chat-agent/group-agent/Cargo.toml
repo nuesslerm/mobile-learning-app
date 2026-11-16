@@ -34,3 +34,6 @@ exec-git = { path = "../../../libraries/agent-api/exec-git" }
 rca-cli-driver = { path = "../cli-driver", features = ["testing"] }
 rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
 agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent", features = ["testing"] }
+
+[package.metadata.arch]
+type = "rust-flat-adapter"

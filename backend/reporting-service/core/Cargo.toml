@@ -17,3 +17,6 @@ futures-util.workspace = true
 time.workspace = true
 tracing.workspace = true
 tokio = { workspace = true, features = ["rt", "time", "sync", "macros"] }
+
+[package.metadata.arch]
+type = "rust-core"

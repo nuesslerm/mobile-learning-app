@@ -47,3 +47,6 @@ exec-preview = { path = "../../libraries/agent-api/exec-preview", features = ["t
 exec-pty = { path = "../../libraries/agent-api/exec-pty", features = ["testing"] }
 tempfile = "3"
 exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }
+
+[package.metadata.arch]
+type = "rust-single-hexagon"

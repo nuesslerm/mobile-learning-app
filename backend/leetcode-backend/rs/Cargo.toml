@@ -34,3 +34,6 @@ http-body-util.workspace = true
 leetcode-backend-core = { path = "../core", features = ["testing"] }
 tokio-stream.workspace = true
 tower = { workspace = true, features = ["util"] }
+
+[package.metadata.arch]
+type = "rust-rs"

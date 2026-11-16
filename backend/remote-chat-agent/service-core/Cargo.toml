@@ -71,3 +71,6 @@ rca-group-agent = { path = "../group-agent", features = ["testing"] }
 rca-group-state = { path = "../group-state", features = ["testing"] }
 remote-chat-agent-core = { path = "../core", features = ["testing"] }
 tokio.workspace = true
+
+[package.metadata.arch]
+type = "rust-core"

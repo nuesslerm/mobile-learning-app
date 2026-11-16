@@ -26,3 +26,6 @@ sha2 = "0.10"
 getrandom = "0.4"
 rcgen = { version = "0.14.10", default-features = false, features = ["ring", "pem"], optional = true }
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"], optional = true }
+
+[package.metadata.arch]
+type = "rust-testkit"

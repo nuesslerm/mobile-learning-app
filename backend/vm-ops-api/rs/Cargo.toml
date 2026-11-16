@@ -43,3 +43,6 @@ tempfile.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
 tower = { workspace = true, features = ["util"] }
 vm-ops-api-core = { path = "../core", features = ["testing"] }
+
+[package.metadata.arch]
+type = "rust-rs"
