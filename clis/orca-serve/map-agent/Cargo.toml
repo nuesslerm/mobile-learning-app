@@ -27,3 +27,6 @@ sha2 = "0.10"
 orca-core = { path = "../core", features = ["testing"] }
 orca-map-workspace = { path = "../map-workspace", features = ["testing"] }
 orca-map-agent = { path = ".", features = ["testing"] }
+
+[package.metadata.arch]
+type = "cli-crate"

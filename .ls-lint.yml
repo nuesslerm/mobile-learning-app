@@ -97,6 +97,12 @@ ls:
   backend/remote-chat-agent/group-workspace/src:
     .dir: regex:src
     .rs: regex:(lib|edit|files|relay|setup|tests|workspaces|worktrees)
+  backend/remote-chat-agent/host/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/remote-chat-agent/opencode/src:
+    .dir: regex:src
+    .rs: snake_case
   backend/remote-chat-agent/rs/src:
     .dir: regex:(src|api|infrastructure)
     .rs: regex:(lib|main|compose|ports)
@@ -112,6 +118,9 @@ ls:
   backend/remote-chat-agent/service-core/src/*:
     .dir: snake_case
     .rs: snake_case
+  backend/remote-chat-agent/speech/src:
+    .dir: regex:src
+    .rs: snake_case
   backend/reporting-service/core/src:
     .dir: regex:(src|domain|application|testing)
     .rs: regex:(lib|testing)
@@ -125,6 +134,12 @@ ls:
     .dir: regex:(api|infrastructure)
     .rs: snake_case
   backend/reporting-service/rs/src/*/*:
+    .dir: snake_case
+    .rs: snake_case
+  backend/service-kit/src:
+    .dir: regex:src
+    .rs: snake_case
+  backend/service-kit/src/*:
     .dir: snake_case
     .rs: snake_case
   backend/vm-ops-api/core/src:
@@ -155,6 +170,18 @@ ls:
     .dir: regex:(api|infrastructure)
     .rs: snake_case
   backend/watchdog/rs/src/*/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/cdp/src:
+    .dir: regex:src
+    .rs: snake_case
+  clis/cdp/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/http/src:
+    .dir: regex:src
+    .rs: snake_case
+  clis/http/src/*:
     .dir: snake_case
     .rs: snake_case
   clis/mimic/core/src:
@@ -202,6 +229,21 @@ ls:
   clis/t3-serve/core/src/*:
     .dir: snake_case
     .rs: snake_case
+  clis/telemetry/src:
+    .dir: regex:src
+    .rs: snake_case
+  clis/telemetry/src/*:
+    .dir: snake_case
+    .rs: snake_case
+  clis/telemetry/src/bin:
+    .dir: kebab-case
+    .rs: kebab-case
+  clis/wf-kit/src:
+    .dir: regex:src
+    .rs: snake_case
+  clis/wf-kit/src/*:
+    .dir: snake_case
+    .rs: snake_case
   clis/wf-testkit/src:
     .dir: regex:(src|bin)
     .rs: snake_case
@@ -234,6 +276,9 @@ ls:
     .rs: snake_case
   libraries/agent-api/agent-api-client/src:
     .dir: regex:src
+    .rs: snake_case
+  libraries/agent-api/agent-api-client/src/*:
+    .dir: snake_case
     .rs: snake_case
   libraries/agent-api/agent-api-git/src:
     .dir: regex:(src|testing)

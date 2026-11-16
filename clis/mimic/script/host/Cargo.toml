@@ -30,3 +30,6 @@ sha2 = "0.10"
 mimic-script-host = { path = ".", features = ["testing"] }
 mimic-script-core = { version = "0.1.6", registry = "mla", features = ["testing"] }
 tempfile = "3"
+
+[package.metadata.arch]
+type = "cli-crate"

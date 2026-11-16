@@ -42,3 +42,6 @@ tempfile = "3"
 # The tests double vm-ops-api with the fake wf-vmops ships.
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 # ship.rs reads the desktop listener's manifests to compare its cargo closure with the leg and the Dockerfile.
+
+[package.metadata.arch]
+type = "cli-crate"

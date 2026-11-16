@@ -23,3 +23,6 @@ base64 = "0.22"
 [dev-dependencies]
 orca-core = { path = "../core", features = ["testing"] }
 orca-map-workspace = { path = ".", features = ["testing"] }
+
+[package.metadata.arch]
+type = "cli-crate"

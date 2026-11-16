@@ -141,10 +141,6 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
     for found in &library_paths {
         wf_kit::wf_err!("wf: path dependency on a versioned library ({found}): use `version = \"<x.y>\", registry = \"<alias>\"` as libraries.json says; to edit a library against a service, use cargo `--config patch.mla.<name>.path` (wf lib --help)");
     }
-    let cargo_deps = crate::cargo_deps::violations(root);
-    for found in &cargo_deps {
-        wf_kit::wf_err!("wf: crate dependency rule broken ({found}): see docs/plans/rca-parity/plan.md section 3, Rules");
-    }
     let unused_workspace_deps = crate::workspace_deps::check(root);
     for found in &unused_workspace_deps {
         wf_kit::wf_err!("wf: workspace dependency rule broken ({found})");
@@ -190,9 +186,6 @@ fn measure(root: &Path) -> Option<Vec<Budget>> {
         Budget { name: "backend-core-io-violations", value: crate::core_purity::count(root), limit: 0, gated: true },
         // `service-core` asks the system for time, random ids and file existence directly in this many places; each moves behind a port, so the limit only goes down.
         Budget { name: "core-ambient-calls", value: crate::core_purity::ambient_calls(root), limit: 0, gated: true },
-        // The plan's dependency rules between crates: exec-testkit is a dev-dependency of its few users only (`TESTKIT_USERS` in `cargo_deps`), and an adapter library
-        // depends on nothing that consumes it (Cargo allows that cycle through a dev-dependency).
-        Budget { name: "cargo-dep-violations", value: cargo_deps.len(), limit: 0, gated: true },
         // No crate declares a workspace crate its sources never name (`workspace_deps`).
         Budget { name: "unused-workspace-dep-violations", value: unused_workspace_deps.len(), limit: 0, gated: true },
         // A path dependency across a Cargo workspace boundary is on the checked-in list, and the list only shrinks (`workspace_crossings`).

@@ -107,7 +107,7 @@ fn a_core_that_depends_on_the_rs_crate_breaks_the_edge_rule() {
     // Then the edge is reported against the core, with the types it may depend on
     let edges = messages(&found, "edges");
     assert_eq!(edges.len(), 1, "{edges:?}");
-    assert!(edges[0].contains("backend/svc/core: depends on svc-rs (rust-rs)") && edges[0].contains("may depend on [rust-core, rust-contract]"), "{edges:?}");
+    assert!(edges[0].contains("backend/svc/core: depends on svc-rs (rust-rs)") && edges[0].contains("may depend on [rust-core, rust-contract, rust-group]"), "{edges:?}");
 }
 
 #[test]
@@ -495,4 +495,112 @@ fn a_hand_edited_ring_edge_is_overwritten_from_the_manifest() {
     assert!(rings.contains("'hexagonal-feature': { domain: [], data: ['domain'], state: ['domain'], ui: ['domain', 'state'], di: ['domain', 'data', 'state'], routes: ['di', 'ui'] },"), "{rings}");
     assert!(rings.contains("'presentation-feature': { state: [], ui: ['state'], routes: ['ui'] },"), "{rings}");
     assert!(!rings.contains("testing"), "{rings}");
+}
+
+fn dep(path: &str, name: &str) -> String {
+    format!("{name} = {{ path = \"{path}\" }}\n")
+}
+
+#[test]
+fn a_group_depends_on_contracts_and_cores_never_on_another_group_an_adapter_or_the_rs_crate() {
+    // Given a contract, a core, a flat adapter and an rs crate, and three groups: one on the contract and the core, one on another group, one on all the rest
+    let dir = repo();
+    let root = dir.path();
+    crate_at(root, "libraries/proto", "proto", Some("rust-contract"), "", &["lib.rs"]);
+    crate_at(root, "backend/rca/core", "rca-core-x", Some("rust-core"), "", &["lib.rs", "domain/mod.rs"]);
+    crate_at(root, "backend/rca/adapter", "rca-adapter", Some("rust-flat-adapter"), "", &["lib.rs"]);
+    crate_at(root, "backend/rca/rs", "rca-rs", Some("rust-rs"), "", &["lib.rs", "main.rs", "api/mod.rs", "infrastructure/mod.rs"]);
+    crate_at(root, "backend/rca/group-ok", "group-ok", Some("rust-group"), &format!("[dependencies]\n{}{}", dep("../../../libraries/proto", "proto"), dep("../core", "rca-core-x")), &["lib.rs"]);
+    crate_at(root, "backend/rca/group-twin", "group-twin", Some("rust-group"), &format!("[dependencies]\n{}", dep("../group-ok", "group-ok")), &["lib.rs"]);
+    crate_at(root, "backend/rca/group-bad", "group-bad", Some("rust-group"), &format!("[dependencies]\n{}{}", dep("../adapter", "rca-adapter"), dep("../rs", "rca-rs")), &["lib.rs"]);
+    // When the check runs
+    let edges = messages(&report(&run(root, &[])), "edges");
+    // Then the group on another group, on an adapter and on the rs crate are named, and the first group is not
+    assert_eq!(edges.len(), 3, "{edges:?}");
+    assert!(edges.iter().any(|e| e.starts_with("backend/rca/group-twin: depends on group-ok (rust-group)")), "{edges:?}");
+    assert!(edges.iter().any(|e| e.starts_with("backend/rca/group-bad: depends on rca-adapter (rust-flat-adapter)")), "{edges:?}");
+    assert!(edges.iter().any(|e| e.starts_with("backend/rca/group-bad: depends on rca-rs (rust-rs)")), "{edges:?}");
+}
+
+#[test]
+fn a_core_and_an_rs_crate_may_name_a_group_and_a_flat_adapter_may_not_name_an_adapter() {
+    // Given a group, a core and an rs crate that depend on it, and a flat adapter that depends on a second flat adapter
+    let dir = repo();
+    let root = dir.path();
+    crate_at(root, "backend/rca/group-a", "group-a", Some("rust-group"), "", &["lib.rs"]);
+    crate_at(root, "backend/rca/core", "rca-core-x", Some("rust-core"), &format!("[dependencies]\n{}", dep("../group-a", "group-a")), &["lib.rs", "domain/mod.rs"]);
+    crate_at(root, "backend/rca/rs", "rca-rs", Some("rust-rs"), &format!("[dependencies]\n{}", dep("../group-a", "group-a")), &["lib.rs", "main.rs", "api/mod.rs", "infrastructure/mod.rs"]);
+    crate_at(root, "backend/rca/host", "rca-host", Some("rust-flat-adapter"), &format!("[dependencies]\n{}", dep("../speech", "rca-speech")), &["lib.rs"]);
+    crate_at(root, "backend/rca/speech", "rca-speech", Some("rust-flat-adapter"), "", &["lib.rs"]);
+    // When the check runs
+    let edges = messages(&report(&run(root, &[])), "edges");
+    // Then only the adapter on the adapter is named
+    assert_eq!(edges.len(), 1, "{edges:?}");
+    assert!(edges[0].starts_with("backend/rca/host: depends on rca-speech (rust-flat-adapter)"), "{edges:?}");
+}
+
+#[test]
+fn a_contract_names_only_contracts_and_a_single_hexagon_names_no_crate_beside_contracts_and_libraries() {
+    // Given a contract on a core, a contract on a contract, a single hexagon on a core and one on a contract
+    let dir = repo();
+    let root = dir.path();
+    crate_at(root, "libraries/a", "a", Some("rust-contract"), "", &["lib.rs"]);
+    crate_at(root, "libraries/b", "b", Some("rust-contract"), &format!("[dependencies]\n{}", dep("../a", "a")), &["lib.rs"]);
+    crate_at(root, "backend/c/core", "c-core", Some("rust-core"), "", &["lib.rs", "domain/mod.rs"]);
+    crate_at(root, "libraries/d", "d", Some("rust-contract"), &format!("[dependencies]\n{}", dep("../../backend/c/core", "c-core")), &["lib.rs"]);
+    crate_at(root, "clis/e", "e", Some("rust-single-hexagon"), &format!("[dependencies]\n{}", dep("../../backend/c/core", "c-core")), &["lib.rs", "domain.rs", "adapters/mod.rs", "bin/mod.rs"]);
+    crate_at(root, "clis/f", "f", Some("rust-single-hexagon"), &format!("[dependencies]\n{}", dep("../../libraries/a", "a")), &["lib.rs", "domain.rs", "adapters/mod.rs", "bin/mod.rs"]);
+    // When the check runs
+    let edges = messages(&report(&run(root, &[])), "edges");
+    // Then the contract on the core and the hexagon on the core are the two findings
+    assert_eq!(edges.len(), 2, "{edges:?}");
+    assert!(edges.iter().any(|e| e.starts_with("libraries/d: depends on c-core (rust-core)")), "{edges:?}");
+    assert!(edges.iter().any(|e| e.starts_with("clis/e: depends on c-core (rust-core)")), "{edges:?}");
+}
+
+#[test]
+fn a_pure_package_naming_a_library_is_reported_and_a_cli_crate_naming_one_is_not() {
+    // Given an adapter library, a pure core and a pure group that depend on it, and a cli crate and an rs crate that do
+    let dir = repo();
+    let root = dir.path();
+    crate_at(root, "libraries/kit", "kit", Some("library"), "", &["lib.rs"]);
+    crate_at(root, "backend/s/core", "s-core", Some("rust-core"), &format!("[dependencies]\n{}", dep("../../../libraries/kit", "kit")), &["lib.rs", "domain/mod.rs"]);
+    crate_at(root, "backend/s/group-a", "group-a", Some("rust-group"), &format!("[dependencies]\n{}", dep("../../../libraries/kit", "kit")), &["lib.rs"]);
+    crate_at(root, "clis/tool", "tool", Some("cli-crate"), &format!("[dependencies]\n{}", dep("../../libraries/kit", "kit")), &["main.rs"]);
+    crate_at(root, "backend/s/rs", "s-rs", Some("rust-rs"), &format!("[dependencies]\n{}", dep("../../../libraries/kit", "kit")), &["lib.rs", "main.rs", "api/mod.rs", "infrastructure/mod.rs"]);
+    // When the check runs
+    let edges = messages(&report(&run(root, &[])), "edges");
+    // Then only the core and the group are named, as pure packages that do I/O through the library
+    assert_eq!(edges.len(), 2, "{edges:?}");
+    assert!(edges.iter().all(|e| e.contains("a pure package depends on kit (library), which does I/O")), "{edges:?}");
+}
+
+#[test]
+fn a_library_dev_depending_on_its_consumer_is_reported_and_a_contract_below_it_is_not() {
+    // Given a library, a contract below it, a cli crate that consumes it, and the library's dev-dependencies on the consumer and on the contract
+    let dir = repo();
+    let root = dir.path();
+    crate_at(root, "libraries/proto", "proto", Some("rust-contract"), "", &["lib.rs"]);
+    crate_at(root, "libraries/kit", "kit", Some("library"), &format!("[dependencies]\n{}[dev-dependencies]\n{}{}", dep("../proto", "proto"), dep("../../clis/tool", "tool"), dep("../proto", "proto")), &["lib.rs"]);
+    crate_at(root, "clis/tool", "tool", Some("cli-crate"), &format!("[dependencies]\n{}", dep("../../libraries/kit", "kit")), &["main.rs"]);
+    // When the check runs
+    let edges = messages(&report(&run(root, &[])), "edges");
+    // Then the consumer is the one finding, and the contract below the library passes
+    assert!(edges.iter().any(|e| e == "libraries/kit: depends on tool, which consumes it"), "{edges:?}");
+    assert!(edges.iter().all(|e| !e.contains("proto")), "{edges:?}");
+}
+
+#[test]
+fn a_testkit_named_as_a_normal_dependency_by_a_cli_crate_is_reported_and_as_a_dev_dependency_is_not() {
+    // Given a testkit, a cli crate that dev-depends on it and another that names it outright
+    let dir = repo();
+    let root = dir.path();
+    crate_at(root, "clis/kit", "kit", Some("rust-testkit"), "", &["lib.rs"]);
+    crate_at(root, "clis/a", "a", Some("cli-crate"), &format!("[dev-dependencies]\n{}", dep("../kit", "kit")), &["main.rs"]);
+    crate_at(root, "clis/b", "b", Some("cli-crate"), &format!("[dependencies]\n{}", dep("../kit", "kit")), &["main.rs"]);
+    // When the check runs
+    let edges = messages(&report(&run(root, &[])), "edges");
+    // Then only the outright dependency is reported
+    assert_eq!(edges.len(), 1, "{edges:?}");
+    assert!(edges[0].starts_with("clis/b: depends on kit (rust-testkit), which is reachable only through dev-dependencies"), "{edges:?}");
 }

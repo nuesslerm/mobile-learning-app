@@ -47,3 +47,6 @@ wf-testkit = { path = "../wf-testkit" }
 # The tests of `wf test run --stage` double vm-ops-api with the fake this crate ships.
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 tempfile = "3"
+
+[package.metadata.arch]
+type = "cli-crate"

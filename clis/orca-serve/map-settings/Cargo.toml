@@ -11,3 +11,6 @@ doctest = false
 [dependencies]
 orca-core = { path = "../core" }
 serde_json = { version = "1", features = ["preserve_order"] }
+
+[package.metadata.arch]
+type = "cli-crate"

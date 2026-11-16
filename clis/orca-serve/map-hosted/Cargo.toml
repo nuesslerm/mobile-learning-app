@@ -23,3 +23,6 @@ serde_json = { version = "1", features = ["preserve_order"] }
 orca-core = { path = "../core", features = ["testing"] }
 orca-map-workspace = { path = "../map-workspace", features = ["testing"] }
 orca-map-hosted = { path = ".", features = ["testing"] }
+
+[package.metadata.arch]
+type = "cli-crate"

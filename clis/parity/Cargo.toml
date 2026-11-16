@@ -39,3 +39,6 @@ serde_json = { version = "1", features = ["preserve_order"] }
 parity-core = { path = "core", features = ["testing"] }
 tempfile = "3"
 tiny_http = "0.12"
+
+[package.metadata.arch]
+type = "cli-crate"

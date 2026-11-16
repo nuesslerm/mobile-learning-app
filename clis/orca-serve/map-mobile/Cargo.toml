@@ -29,3 +29,6 @@ tempfile = { version = "3", optional = true }
 [dev-dependencies]
 orca-map-mobile = { path = ".", features = ["testing"] }
 orca-core = { path = "../core", features = ["testing"] }
+
+[package.metadata.arch]
+type = "cli-crate"

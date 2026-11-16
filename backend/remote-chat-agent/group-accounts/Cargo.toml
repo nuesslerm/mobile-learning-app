@@ -34,5 +34,4 @@ rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
 testing = ["agent-api-git/testing", "agent-api-accounts/testing"]
 
 [package.metadata.arch]
-type = "rust-flat-adapter"
-pure = true
+type = "rust-group"

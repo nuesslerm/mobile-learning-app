@@ -41,3 +41,6 @@ wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 tempfile = "3"
 ureq = { version = "3", default-features = false }
+
+[package.metadata.arch]
+type = "cli-crate"

@@ -20,3 +20,6 @@ serde_json = { version = "1", features = ["preserve_order"] }
 [dev-dependencies]
 orca-core = { path = "../core", features = ["testing"] }
 orca-map-accounts = { path = ".", features = ["testing"] }
+
+[package.metadata.arch]
+type = "cli-crate"

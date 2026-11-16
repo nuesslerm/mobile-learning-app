@@ -17,3 +17,6 @@ serde_json = { version = "1", features = ["preserve_order"] }
 [dev-dependencies]
 orca-core = { path = "../core", features = ["testing"] }
 sha2 = "0.10"
+
+[package.metadata.arch]
+type = "cli-crate"

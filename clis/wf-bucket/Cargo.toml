@@ -37,3 +37,6 @@ wf-testkit = { path = "../wf-testkit" }
 # The relay test doubles vm-ops-api with the fake wf-vmops ships.
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 tempfile = "3"
+
+[package.metadata.arch]
+type = "cli-crate"

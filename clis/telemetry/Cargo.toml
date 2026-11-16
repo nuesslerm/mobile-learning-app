@@ -48,3 +48,6 @@ tracing-subscriber = { version = "0.3", optional = true, features = ["env-filter
 # The flow test needs the one-shot records and the call-site check, which a plain `cargo test -p telemetry --test flow` would not enable.
 [dev-dependencies]
 telemetry = { path = ".", features = ["oneshot", "callsite", "metrics", "testing"] }
+
+[package.metadata.arch]
+type = "library"

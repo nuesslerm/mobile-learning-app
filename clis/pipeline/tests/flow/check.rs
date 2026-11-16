@@ -537,8 +537,8 @@ fn the_simplicity_budget_measures_the_repo_and_fails_only_on_gated_limits_unless
     let r = budget(&[]);
     assert_eq!((r.exit_code, r.stderr.as_str()), (0, ""));
     let out: Vec<&str> = r.stdout.trim().split('\n').collect();
-    assert_eq!(out.len(), 20);
-    let expected = [("pre-commit-jobs", 2, 5, true), ("root-claude-md-bytes", 7_300, 9_216, true), ("known-gaps-lines", 53, 200, true), ("concepts-dangling-links", 0, 0, true), ("backend-core-io-violations", 0, 0, true), ("core-ambient-calls", 0, 0, true), ("cargo-dep-violations", 0, 0, true), ("unused-workspace-dep-violations", 0, 0, true), ("workspace-crossing-violations", 0, 0, true), ("ts-package-violations", 0, 0, true), ("ci-scope-violations", 0, 0, true), ("unpinned-third-party-actions", 0, 0, true), ("env-file-in-artifacts", 0, 0, true), ("secrets-inherit", 0, 0, true), ("handrolled-recorder-violations", 0, 0, true), ("cargo-task-npm-inputs", 0, 0, true), ("versioned-library-path-deps", 0, 0, true), ("wf-kit-lines", 0, 1200, true), ("root-scripts", 2, 15, false), ("agent-hooks", 1, 4, false)];
+    assert_eq!(out.len(), 19);
+    let expected = [("pre-commit-jobs", 2, 5, true), ("root-claude-md-bytes", 7_300, 9_216, true), ("known-gaps-lines", 53, 200, true), ("concepts-dangling-links", 0, 0, true), ("backend-core-io-violations", 0, 0, true), ("core-ambient-calls", 0, 0, true), ("unused-workspace-dep-violations", 0, 0, true), ("workspace-crossing-violations", 0, 0, true), ("ts-package-violations", 0, 0, true), ("ci-scope-violations", 0, 0, true), ("unpinned-third-party-actions", 0, 0, true), ("env-file-in-artifacts", 0, 0, true), ("secrets-inherit", 0, 0, true), ("handrolled-recorder-violations", 0, 0, true), ("cargo-task-npm-inputs", 0, 0, true), ("versioned-library-path-deps", 0, 0, true), ("wf-kit-lines", 0, 1200, true), ("root-scripts", 2, 15, false), ("agent-hooks", 1, 4, false)];
     for (line, (name, value, limit, gated)) in out.iter().zip(expected) {
         assert!(measured("info", name, value, limit, gated).is_match(line), "{line}");
     }
@@ -549,7 +549,7 @@ fn the_simplicity_budget_measures_the_repo_and_fails_only_on_gated_limits_unless
     assert_eq!(r.exit_code, 1);
     assert!(on(&r, r#"level=warn source=verify\.budget msg="root-claude-md-bytes over budget" value=9217 limit=9216 gated=true"#), "{}", r.stderr);
     assert!(r.stderr.contains("wf: simplicity budget exceeded: root-claude-md-bytes 9217>9216"));
-    assert_eq!(r.stdout.trim().split('\n').count(), 19);
+    assert_eq!(r.stdout.trim().split('\n').count(), 18);
     put(root, "CLAUDE.md", &"x".repeat(9_216));
     let r = budget(&[]);
     assert!(r.exit_code == 0 && on(&r, r#"msg="root-claude-md-bytes" value=9216 "#), "{}", r.stdout);
@@ -649,41 +649,6 @@ fn the_simplicity_budget_measures_the_repo_and_fails_only_on_gated_limits_unless
     // Then the one finding is counted once, not once for the member and once for the rule
     let r = budget(&[]);
     assert!(r.exit_code == 1 && on(&r, r#"msg="backend-core-io-violations over budget" value=1 limit=0 gated=true"#), "{}", r.stderr);
-    std::fs::remove_dir_all(root.join("backend")).unwrap();
-
-    // Given a pure crate (named by a does-io rule) on an adapter library, and the same library used by a crate no rule names
-    put(root, "backend/arch-rules/svc-core-crate-does-no-io.yml", &rule("svc-core-crate-does-no-io", "**/svc/core/src/**/*.rs", "does-io"));
-    put(root, "backend/svc/core/Cargo.toml", "[package]\nname = \"svc-core\"\n[dependencies]\nservice-kit = { path = \"../../service-kit\" }\n");
-    put(root, "backend/svc/rs/Cargo.toml", "[package]\nname = \"svc\"\n[dependencies]\nservice-kit = { path = \"../../service-kit\" }\n");
-    put(root, "backend/service-kit/Cargo.toml", "[package]\nname = \"service-kit\"\n");
-    // Then only the pure crate is a finding, and it is named
-    let r = budget(&[]);
-    assert!(r.exit_code == 1 && on(&r, r#"msg="cargo-dep-violations over budget" value=1 limit=0 gated=true"#), "{}", r.stderr);
-    assert!(r.stderr.contains("the pure crate svc-core depends on the adapter library service-kit"), "{}", r.stderr);
-    std::fs::remove_dir_all(root.join("backend")).unwrap();
-
-    // Given the exec testkit as a dev-dependency of rca-exec and rca-service, and an adapter library with only a contract crate below it
-    put(root, "clis/exec-testkit/Cargo.toml", "[package]\nname = \"exec-testkit\"\n");
-    put(root, "clis/rca-exec/Cargo.toml", "[package]\nname = \"rca-exec\"\n[dev-dependencies]\nexec-testkit = { path = \"../exec-testkit\" }\n");
-    put(root, "backend/remote-chat-agent/rs/Cargo.toml", "[package]\nname = \"rca-service\"\n[dev-dependencies]\nexec-testkit = { path = \"../../../clis/exec-testkit\" }\n");
-    put(root, "libraries/agent-api/agent-api-proto/Cargo.toml", "[package]\nname = \"agent-api-proto\"\n");
-    put(root, "libraries/agent-api/agent-api-client/Cargo.toml", "[package]\nname = \"agent-api-client\"\n[dependencies]\nagent-api-proto = { path = \"../agent-api-proto\" }\n");
-    put(root, "clis/t3-serve/core/Cargo.toml", "[package]\nname = \"t3-core\"\n[dependencies]\nagent-api-client = { path = \"../../../libraries/agent-api/agent-api-client\" }\n");
-    put(root, "clis/t3-serve/vcs/Cargo.toml", "[package]\nname = \"t3-vcs\"\n[dependencies]\nt3-core = { path = \"../core\" }\n");
-    // Then nothing is counted
-    assert!(on(&budget(&[]), r#"msg="cargo-dep-violations" value=0 "#));
-    // And the testkit as a normal dependency of a mapper, and the client library dev-depending on the area crate that consumes it through the core, are one finding each
-    put(root, "clis/t3-serve/core/Cargo.toml", "[package]\nname = \"t3-core\"\n[dependencies]\nagent-api-client = { path = \"../../../libraries/agent-api/agent-api-client\" }\nexec-testkit = { path = \"../../exec-testkit\" }\n");
-    put(root, "libraries/agent-api/agent-api-client/Cargo.toml", "[package]\nname = \"agent-api-client\"\n[dependencies]\nagent-api-proto = { path = \"../agent-api-proto\" }\n[dev-dependencies]\nt3-vcs = { path = \"../../../clis/t3-serve/vcs\" }\n");
-    let r = budget(&[]);
-    assert!(r.exit_code == 1 && on(&r, r#"msg="cargo-dep-violations over budget" value=2 limit=0 gated=true"#), "{}", r.stderr);
-    assert!(r.stderr.contains("t3-core depends on exec-testkit outside dev-dependencies") && r.stderr.contains("the adapter library agent-api-client depends on t3-vcs, which consumes it"), "{}", r.stderr);
-    // And a manifest that cannot be read is a finding too, so a broken one cannot hide a rule
-    put(root, "clis/t3-serve/core/Cargo.toml", "[package\nname = ");
-    let r = budget(&[]);
-    assert!(on(&r, r#"msg="cargo-dep-violations over budget" value=1 limit=0 gated=true"#) && r.stderr.contains("clis/t3-serve/core/Cargo.toml cannot be read"), "{}", r.stderr);
-    std::fs::remove_dir_all(root.join("clis")).unwrap();
-    std::fs::remove_dir_all(root.join("libraries")).unwrap();
     std::fs::remove_dir_all(root.join("backend")).unwrap();
 
     // Given libraries.json naming service-kit, a service that depends on it by path and a library manifest that does so beside a version and registry

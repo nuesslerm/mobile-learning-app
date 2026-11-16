@@ -24,3 +24,6 @@ orca-core = { path = "../core", features = ["testing"] }
 orca-map-workspace = { path = "../map-workspace", features = ["testing"] }
 orca-map-terminal = { path = ".", features = ["testing"] }
 agent-api-terminal = { path = "../../../libraries/agent-api/agent-api-terminal", features = ["testing"] }
+
+[package.metadata.arch]
+type = "cli-crate"

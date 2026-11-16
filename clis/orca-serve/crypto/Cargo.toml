@@ -34,3 +34,6 @@ mimic-core = { version = "0.1.1", registry = "mla" }
 inputs = ["vectors/orca-crypto/**"]
 # The replay test links mimic-core as a dev-dependency: an edit to it reruns the flow task.
 uses = ["mimic-core"]
+
+[package.metadata.arch]
+type = "cli-crate"

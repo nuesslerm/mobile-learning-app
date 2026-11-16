@@ -27,3 +27,6 @@ signal-hook = "0.4"
 wf-testkit = { path = "../wf-testkit", optional = true }
 tempfile = { version = "3", optional = true }
 ureq = { version = "3", default-features = false, optional = true }
+
+[package.metadata.arch]
+type = "cli-crate"

@@ -190,10 +190,43 @@ fn edges(packages: &[Package], types: &Json, out: &mut Vec<Finding>) {
             if *kind == Kind::Dev {
                 allowed.extend(strings(&from_ty.1["mayDevDependOn"]));
             }
+            if *kind != Kind::Dev && types[to_ty]["io"].as_bool() == Some(true) && crate::ast_globs::is_pure(from.ty.as_deref(), &from.options, types) {
+                add(format!("a pure package depends on {} ({to_ty}), which does I/O", to.name));
+                continue;
+            }
             let counts_as = types[to_ty]["edgeAs"].as_str().unwrap_or(to_ty);
             if !allowed.iter().any(|a| a == to_ty || a == counts_as) {
                 add(format!("{} {} ({to_ty}); type {} may depend on [{}]", how, to.name, from_ty.0, allowed.join(", ")));
             }
+        }
+    }
+}
+
+/// The packages each package reaches through normal and build dependencies: what a production build of it contains.
+fn reach<'a>(by_name: &BTreeMap<&'a str, &'a Package>) -> BTreeMap<&'a str, BTreeSet<&'a str>> {
+    let direct = |name: &str| -> Vec<&'a str> { by_name[name].deps.iter().filter(|(_, k)| *k != Kind::Dev).filter_map(|(d, _)| by_name.get_key_value(d.as_str()).map(|(k, _)| *k)).collect() };
+    let mut all = BTreeMap::new();
+    for start in by_name.keys() {
+        let (mut seen, mut stack) = (BTreeSet::new(), direct(start));
+        while let Some(next) = stack.pop() {
+            if seen.insert(next) {
+                stack.extend(direct(next));
+            }
+        }
+        all.insert(*start, seen);
+    }
+    all
+}
+
+/// A type with `noConsumerDeps` (an adapter library) names nothing that consumes it, not even as a dev-dependency: Cargo allows that cycle,
+/// and it would make the consumer's types part of the library's own tests and its crate graph part of the library's Nx inputs.
+fn consumers(packages: &[Package], types: &Json, out: &mut Vec<Finding>) {
+    let by_name: BTreeMap<&str, &Package> = packages.iter().map(|p| (p.name.as_str(), p)).collect();
+    let reached = reach(&by_name);
+    for lib in packages.iter().filter(|p| p.ty.as_deref().and_then(|t| types.get(t)).is_some_and(|s| s["noConsumerDeps"].as_bool() == Some(true))) {
+        let named: BTreeSet<&str> = lib.deps.iter().map(|(d, _)| d.as_str()).filter(|d| *d != lib.name && reached.get(d).is_some_and(|through| through.contains(lib.name.as_str()))).collect();
+        for consumer in named {
+            out.push(Finding { pass: "edges", dir: lib.dir.clone(), message: format!("depends on {consumer}, which consumes it") });
         }
     }
 }
@@ -419,6 +452,7 @@ pub fn check_with(root: &Path, write: bool, write_known: bool) -> Report {
         }
     }
     edges(&packages, types, &mut found);
+    consumers(&packages, types, &mut found);
     purity(&packages, types, &mut found);
     let regions = drift(root, &manifest, &packages, write, &mut found);
     let typed: Vec<&Package> = packages.iter().filter(|p| p.ty.as_deref().is_some_and(|t| types.get(t).is_some())).collect();

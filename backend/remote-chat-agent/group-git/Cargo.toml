@@ -25,5 +25,4 @@ exec-git = { path = "../../../libraries/agent-api/exec-git" }
 rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
 
 [package.metadata.arch]
-type = "rust-flat-adapter"
-pure = true
+type = "rust-group"

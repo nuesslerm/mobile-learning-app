@@ -39,3 +39,6 @@ wf-testkit = { path = "../wf-testkit" }
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 wf-harness = { path = "../wf-harness", features = ["testing"] }
 tempfile = "3"
+
+[package.metadata.arch]
+type = "cli-crate"

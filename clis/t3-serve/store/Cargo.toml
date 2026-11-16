@@ -13,3 +13,6 @@ doctest = false
 t3-core = { path = "../core" }
 serde_json = { version = "1", features = ["preserve_order"] }
 rusqlite = { version = "0.37", features = ["bundled"] }
+
+[package.metadata.arch]
+type = "cli-crate"

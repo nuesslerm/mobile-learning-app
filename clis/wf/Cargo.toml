@@ -42,3 +42,6 @@ wf-harness = { path = "../wf-harness", features = ["testing"] }
 base64 = "0.22"
 tempfile = "3"
 
+
+[package.metadata.arch]
+type = "cli-crate"

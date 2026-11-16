@@ -24,5 +24,4 @@ agent-api-schedules = { path = "../../../libraries/agent-api/agent-api-schedules
 rca-agent-core = { path = "../agent-core" }
 
 [package.metadata.arch]
-type = "rust-flat-adapter"
-pure = true
+type = "rust-group"

@@ -23,3 +23,6 @@ base64 = "0.22"
 orca-core = { path = "../core", features = ["testing"] }
 orca-map-workspace = { path = "../map-workspace", features = ["testing"] }
 orca-map-git = { path = ".", features = ["testing"] }
+
+[package.metadata.arch]
+type = "cli-crate"

@@ -1,5 +1,5 @@
 //! The test kit for what runs the agent CLIs and acts in a workspace (`docs/plans/rca-parity/plan.md`, section 3). It is a dev-dependency of
-//! `rca-service`, `rca-exec`, `rca-cli-driver` and the `t3-serve` integration chain, and of nothing that ships (`cargo_deps` checks it).
+//! `rca-service`, `rca-exec`, `rca-cli-driver` and the `t3-serve` integration chain, and of nothing that ships (`wf check --layout` checks it: a testkit is reachable through dev-dependencies only).
 //!
 //! - `ScriptedCli`: one program (`scripted-cli`) installed as `claude`, `codex` and `opencode`. It prints the lines a script gives it (a
 //!   recording's stream-json, and the lines of a tool call it makes through the MCP server it was started with), logs its argv, its working

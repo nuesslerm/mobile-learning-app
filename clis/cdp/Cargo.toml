@@ -14,3 +14,6 @@ tungstenite = { version = "0.30", default-features = false, features = ["handsha
 
 [dev-dependencies]
 tiny_http = "0.12"
+
+[package.metadata.arch]
+type = "library"

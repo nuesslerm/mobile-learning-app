@@ -64,3 +64,6 @@ mimic-core = { version = "0.1.1", registry = "mla" }
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 tempfile = "3"
 base64 = "0.22"
+
+[package.metadata.arch]
+type = "cli-crate"

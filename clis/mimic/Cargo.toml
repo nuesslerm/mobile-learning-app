@@ -54,3 +54,6 @@ mimic-core = { version = "0.1.1", registry = "mla", features = ["testing"] }
 tempfile = "3"
 tiny_http = "0.12"
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
+
+[package.metadata.arch]
+type = "cli-crate"

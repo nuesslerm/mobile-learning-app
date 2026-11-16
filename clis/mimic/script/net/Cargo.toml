@@ -20,3 +20,6 @@ serde_json = { version = "1", features = ["float_roundtrip"] }
 mimic-core = { version = "0.1.1", registry = "mla" }
 mimic-script-core = { version = "0.1.6", registry = "mla", features = ["testing"] }
 flate2 = "1"
+
+[package.metadata.arch]
+type = "cli-crate"

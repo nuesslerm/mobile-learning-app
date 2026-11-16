@@ -23,4 +23,4 @@ agent-api-agent = { path = "../agent-api-agent", features = ["testing"] }
 agent-api-proto = { path = "../agent-api-proto", features = ["testing"] }
 
 [package.metadata.arch]
-type = "rust-flat-adapter"
+type = "library"

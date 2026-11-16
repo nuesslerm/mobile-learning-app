@@ -31,3 +31,6 @@ blackbox = ["dep:reqwest", "dep:tempfile"]
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
+
+[package.metadata.arch]
+type = "library"

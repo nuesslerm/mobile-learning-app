@@ -12,7 +12,7 @@
     { "file": "backend/arch-rules/no-trait-in-layer.yml", "region": "ast-grep-files", "rings": ["domain", "api"], "types": ["rust-core", "rust-rs"] },
     { "file": "backend/arch-rules/layer-imports-are-explicit.yml", "region": "ast-grep-files", "rings": "*" },
     { "file": "backend/arch-rules/contract-crate-does-no-io.yml", "region": "ast-grep-files", "types": ["rust-contract"] },
-    { "file": "backend/arch-rules/core-crate-does-no-io.yml", "region": "ast-grep-files", "types": ["rust-core"], "pureOverride": true },
+    { "file": "backend/arch-rules/core-crate-does-no-io.yml", "region": "ast-grep-files", "types": ["rust-core", "rust-group"], "pureOverride": true },
     { "file": "clis/arch-rules/core-does-no-io.yml", "region": "ast-grep-files", "types": ["rust-flat-core"] }
   ],
   "types": {
@@ -26,7 +26,7 @@
       "allowedRoot": ["lib.rs", "testing.rs"],
       "forbiddenFiles": ["main.rs"],
       "forbiddenDirs": ["api", "infrastructure"],
-      "mayDependOn": ["rust-core", "rust-contract"],
+      "mayDependOn": ["rust-core", "rust-contract", "rust-group"],
       "mayDevDependOn": ["rust-testkit"],
     "lsLint": [
       {"path": "src", "rules": {".dir": "regex:(src|domain|application|testing)", ".rs": "regex:(lib|testing)"}},
@@ -56,7 +56,7 @@
       "requiredFiles": ["lib.rs", "main.rs"],
       "allowedRoot": ["lib.rs", "main.rs", "compose.rs", "ports.rs"],
       "forbiddenDirs": ["domain", "application"],
-      "mayDependOn": ["rust-core", "rust-contract", "rust-flat-adapter", "rust-single-hexagon"],
+      "mayDependOn": ["rust-core", "rust-contract", "rust-group", "rust-flat-adapter", "rust-single-hexagon", "library"],
       "mayDevDependOn": ["rust-testkit"],
     "lsLint": [
       {"path": "src", "rules": {".dir": "regex:(src|api|infrastructure)", ".rs": "regex:(lib|main|compose|ports)"}},
@@ -85,11 +85,51 @@
       "rings": {},
       "requiredFiles": ["lib.rs"],
       "allowedRoot": ["*.rs"],
-      "mayDependOn": ["rust-contract", "rust-core", "rust-flat-adapter"],
+      "mayDependOn": ["rust-contract", "rust-core"],
       "mayDevDependOn": ["rust-testkit"],
     "lsLint": [
       {"path": "src", "rules": {".dir": "regex:src", ".rs": "snake_case", ".rs@modules": "regex:(lib{modules})"}}
     ]
+    },
+    "rust-group": {
+      "ecosystem": "rust",
+      "pure": true,
+      "ringRoots": ["src"],
+      "rings": {},
+      "requiredFiles": ["lib.rs"],
+      "allowedRoot": ["*.rs"],
+      "mayDependOn": ["rust-contract", "rust-core"],
+      "mayDevDependOn": ["rust-testkit"],
+    "lsLint": [
+      {"path": "src", "rules": {".dir": "regex:src", ".rs": "snake_case", ".rs@modules": "regex:(lib{modules})"}}
+    ]
+    },
+    "library": {
+      "ecosystem": "rust",
+      "pure": false,
+      "io": true,
+      "noConsumerDeps": true,
+      "ringRoots": ["src"],
+      "rings": {},
+      "requiredFiles": ["lib.rs"],
+      "allowedRoot": ["*"],
+      "mayDependOn": ["rust-contract", "library"],
+      "mayDevDependOn": ["rust-testkit"],
+    "lsLint": [
+      {"path": "src", "rules": {".dir": "regex:src", ".rs": "snake_case"}},
+      {"path": "src/*", "rules": {".dir": "snake_case", ".rs": "snake_case"}},
+      {"path": "src/bin", "rules": {".dir": "kebab-case", ".rs": "kebab-case"}}
+    ]
+    },
+    "cli-crate": {
+      "ecosystem": "rust",
+      "pure": false,
+      "ringRoots": ["src"],
+      "rings": {},
+      "requiredFiles": ["lib.rs|main.rs"],
+      "allowedRoot": ["*"],
+      "mayDependOn": ["cli-crate", "library", "rust-contract", "rust-core", "rust-group", "rust-flat-adapter", "rust-single-hexagon"],
+      "mayDevDependOn": ["rust-testkit"]
     },
     "rust-single-hexagon": {
       "ecosystem": "rust",
@@ -99,7 +139,7 @@
       "requiredFiles": ["lib.rs"],
       "requiredAnyOf": [["domain", "domain.rs"], ["adapters"], ["bin"]],
       "allowedRoot": ["lib.rs"],
-      "mayDependOn": ["rust-contract"],
+      "mayDependOn": ["rust-contract", "library"],
       "mayDevDependOn": ["rust-testkit"],
     "lsLint": [
       {"path": "src", "rules": {".dir": "regex:(src|domain|adapters|bin)", ".rs": "snake_case"}},

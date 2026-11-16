@@ -31,3 +31,6 @@ tempfile = "3"
 
 [dev-dependencies]
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
+
+[package.metadata.arch]
+type = "cli-crate"

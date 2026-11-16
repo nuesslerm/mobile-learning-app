@@ -45,3 +45,6 @@ groups = ["ask", "parity", "parity_features", "parity_capabilities"]
 # `parity.rs` holds the helpers every group imports; the opencode Dockerfile pins the opencode version the options are compared with
 shared = ["tests/e2e/parity.rs", "tests/flow/support/**", "../../.opencode/agents/read-only.md", "../../backend/remote-chat-agent/opencode-server/Dockerfile"]
 src = ["src/lib.rs", "src/bin/**", "src/dispatch.rs", "src/dispatch_run.rs", "src/rca_client.rs", "src/run_format.rs", "src/help_table.rs", "src/help/**"]
+
+[package.metadata.arch]
+type = "cli-crate"

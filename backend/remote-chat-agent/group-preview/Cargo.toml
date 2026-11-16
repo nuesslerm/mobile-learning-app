@@ -31,5 +31,4 @@ agent-api-preview = { path = "../../../libraries/agent-api/agent-api-preview", f
 rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
 
 [package.metadata.arch]
-type = "rust-flat-adapter"
-pure = true
+type = "rust-group"

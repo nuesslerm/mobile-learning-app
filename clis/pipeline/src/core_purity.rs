@@ -137,7 +137,7 @@ fn expand(root: &Path, segments: &[String]) -> Vec<std::path::PathBuf> {
 }
 
 /// The registry of pure crates: the directories the purity rules' globs name, sorted and without repeats. The one list every check of a pure crate
-/// reads (the ast-grep rules, this module's manifest rule, the crate-against-crate rules of `cargo_deps`), so a crate is added in one place.
+/// reads (the ast-grep rules, this module's manifest rule), so a crate is added in one place.
 pub(crate) fn registry_dirs(root: &Path) -> Vec<std::path::PathBuf> {
     let bases = [root.to_path_buf(), root.join("backend"), root.join("clis")];
     let named = |segments: &Vec<String>| bases.iter().flat_map(|base| expand(base, segments)).collect::<Vec<_>>();

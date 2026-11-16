@@ -32,5 +32,4 @@ rca-exec-channel = { path = "../exec-channel", features = ["testing"] }
 rca-group-catalog = { path = ".", features = ["testing"] }
 
 [package.metadata.arch]
-type = "rust-flat-adapter"
-pure = true
+type = "rust-group"
