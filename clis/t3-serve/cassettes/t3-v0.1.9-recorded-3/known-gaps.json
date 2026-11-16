@@ -24,10 +24,7 @@
         "t3-rpc-mcpApps.callTool",
         "t3-rpc-mcpApps.updateModelContext",
         "t3-rpc-projects.readFile",
-        "t3-rpc-provider.chatgpt.import-profile",
-        "t3-rpc-provider.uploadFeedback",
-        "t3-rpc-pullRequests.generateReviewGuide",
-        "t3-rpc-pullRequests.update"
+        "t3-rpc-provider.uploadFeedback"
       ]
     },
     {
@@ -39,11 +36,8 @@
       "ids": [
         "t3-command-thread.fork",
         "t3-rpc-assets.createUrl",
-        "t3-rpc-attachments.delete",
         "t3-rpc-filesystem.getMetadata",
         "t3-rpc-peerLinks.link",
-        "t3-rpc-pullRequests.linkedThreads",
-        "t3-rpc-pullRequests.setThreadResolution",
         "t3-rpc-server.reportClientActivity"
       ]
     },

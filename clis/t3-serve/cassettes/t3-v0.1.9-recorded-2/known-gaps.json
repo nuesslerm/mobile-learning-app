@@ -33,10 +33,7 @@
         "t3-rpc-attachments.createUploadUrl",
         "t3-rpc-orchestration.getTurnDiff",
         "t3-rpc-peerLinks.answerRequest",
-        "t3-rpc-projects.mutate",
-        "t3-rpc-pullRequests.runAction",
-        "t3-rpc-pullRequests.setReaction",
-        "t3-rpc-pullRequests.submitReview"
+        "t3-rpc-projects.mutate"
       ]
     },
     {

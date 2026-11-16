@@ -35,9 +35,6 @@
         "t3-rpc-assets.persistChatAttachments",
         "t3-rpc-orchestration.dispatchCommand",
         "t3-rpc-provider.auth.removeMethod",
-        "t3-rpc-pullRequests.comment",
-        "t3-rpc-pullRequests.replyToThread",
-        "t3-rpc-pullRequests.updateComment",
         "t3-rpc-terminal.open"
       ]
     },
