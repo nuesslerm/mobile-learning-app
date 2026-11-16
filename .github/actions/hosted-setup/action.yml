@@ -3,12 +3,15 @@ description: >-
   What a test job of the GitHub-hosted flavor of the CI (pipeline.yml, called by ci-hosted.yml) needs before its own steps: the tailnet (the private cargo registry), node
   and pnpm, the Rust toolchain, bws, and the `wf` the job `wf` built, put on PATH. The caller has checked the repository out.
 inputs:
+  tailnet:
+    description: Join the tailnet (false for a job whose tests reach nothing deployed; it then needs no ts-client-id or ts-secret)
+    default: "true"
   ts-client-id:
-    description: The hosted-join Tailscale OAuth client id
-    required: true
+    description: The hosted-join Tailscale OAuth client id (unused when tailnet is false)
+    default: ""
   ts-secret:
     description: Its secret
-    required: true
+    default: ""
   job:
     description: The job's name (the runner sampler's file name)
     required: true
@@ -36,6 +39,7 @@ runs:
         (sudo rm -rf /usr/share/dotnet $([ "$KEEP_ANDROID" = true ] || echo /usr/local/lib/android) /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost /usr/share/swift >/dev/null 2>&1 &)
         df -h / | tail -1
     - name: Join the tailnet as tag:ci-gh-hosted
+      if: ${{ inputs.tailnet == 'true' }}
       uses: tailscale/github-action@99a8333667fff04fdd6cffb46dfd409f8329a7bf # v4.3.0
       with:
         oauth-client-id: ${{ inputs.ts-client-id }}

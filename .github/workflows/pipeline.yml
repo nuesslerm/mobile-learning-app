@@ -783,8 +783,7 @@ jobs:
         with:
           wf-source: artifact
           job: cli-e2e-tests-${{ matrix.shard }}
-          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
-          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+          tailnet: 'false'
       - uses: ./.github/actions/install-test-deps
         with:
           playwright: "true"
