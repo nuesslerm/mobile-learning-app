@@ -145,22 +145,23 @@ fn an_attach_after_an_offset_gets_only_what_follows_and_one_past_the_kept_tail_i
 
 #[test]
 fn a_cancel_ends_an_attach_but_not_the_pty_and_a_new_attach_continues_at_its_offset() {
-    // Given an attach that has read a marker
+    // Given an attach that has read a computed marker (the typed text alone would read 5+6, and the tty echoes it before the shell prints)
     let dir = tempfile::tempdir().unwrap();
     let ex = Arc::new(executor(dir.path()));
     ex.pty_open(&open("c")).unwrap();
     let a = attach(&ex, "att", "c", None);
-    write(&ex, "c", "echo before\n");
-    wait_output(&a.frames, "before");
-    // When it is cancelled by its id (twice: the second finds nothing)
-    let (hit, miss) = (ex.cancel("att"), { std::thread::sleep(Duration::from_millis(200)); ex.cancel("att") });
+    write(&ex, "c", "echo before-$((5+6))\n");
+    wait_output(&a.frames, "before-11\r\n");
+    // When it is cancelled by its id (twice: once it has ended, the second finds nothing)
+    let hit = ex.cancel("att");
     let result = a.done.join().unwrap();
+    let miss = ex.cancel("att");
     // Then the attach says it was detached with the pty still running, and the pty still takes input
     assert_eq!((hit, miss, result.detached, result.exited), (true, false, true, false));
     let b = attach(&ex, "att2", "c", Some(result.offset));
-    write(&ex, "c", "echo after\n");
-    wait_output(&b.frames, "after");
-    assert!(!contains(&bytes(&b.frames), b"before"));
+    write(&ex, "c", "echo after-$((1+1))\n");
+    wait_output(&b.frames, "after-2\r\n");
+    assert!(!contains(&bytes(&b.frames), b"before-11"));
     ex.pty_close(&PtyClose { pty: "c".into() }).unwrap();
     assert!(b.done.join().unwrap().exited);
 }
