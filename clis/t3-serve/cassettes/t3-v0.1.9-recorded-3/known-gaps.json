@@ -19,8 +19,6 @@
         "t3-command-thread.pin.reorder",
         "t3-command-thread.snooze",
         "t3-command-thread.user-input.dismiss",
-        "t3-rpc-mcpApps.callTool",
-        "t3-rpc-mcpApps.updateModelContext",
         "t3-rpc-projects.readFile",
         "t3-rpc-provider.uploadFeedback"
       ]

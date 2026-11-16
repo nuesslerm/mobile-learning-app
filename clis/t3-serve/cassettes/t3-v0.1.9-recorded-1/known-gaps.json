@@ -15,8 +15,7 @@
         "t3-command-queued-run.cancel",
         "t3-command-run.interrupt",
         "t3-command-thread.guest-message.dismiss",
-        "t3-command-thread.runtime-mode.set",
-        "t3-rpc-mcpApps.readResource"
+        "t3-command-thread.runtime-mode.set"
       ]
     },
     {

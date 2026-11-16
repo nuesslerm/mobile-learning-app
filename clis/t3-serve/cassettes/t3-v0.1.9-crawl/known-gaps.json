@@ -340,44 +340,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
-      ],
-      "ids": [
-        "t3-command-delegated-task.request-boundary-full",
-        "t3-command-delegated-task.request-invalid-wrong-type-commandId",
-        "t3-command-delegated-task.request-valid-min",
-        "t3-command-message.dispatch-boundary-full",
-        "t3-command-queued-run.edit-boundary-full",
-        "t3-rpc-agentSessions.import-invalid-drop-projectId",
-        "t3-rpc-agentSessions.import-invalid-no-payload",
-        "t3-rpc-guestShare.create-invalid-drop-threadId",
-        "t3-rpc-guestShare.create-invalid-no-payload",
-        "t3-rpc-mcpApps.callTool-invalid-drop-threadId",
-        "t3-rpc-mcpApps.callTool-invalid-no-payload",
-        "t3-rpc-mcpApps.readResource-invalid-drop-threadId",
-        "t3-rpc-mcpApps.readResource-invalid-no-payload",
-        "t3-rpc-mcpApps.toolInfo-invalid-drop-threadId",
-        "t3-rpc-mcpApps.toolInfo-invalid-no-payload",
-        "t3-rpc-mcpApps.updateModelContext-invalid-drop-threadId",
-        "t3-rpc-mcpApps.updateModelContext-invalid-no-payload",
-        "t3-rpc-projects.readFile-invalid-drop-cwd",
-        "t3-rpc-projects.readFile-invalid-no-payload",
-        "t3-rpc-projects.readFile-invalid-wrong-type-cwd",
-        "t3-rpc-pullRequests.filterOptions-invalid-drop-kind",
-        "t3-rpc-pullRequests.filterOptions-invalid-no-payload",
-        "t3-rpc-pullRequests.filterOptions-invalid-wrong-type-kind",
-        "t3-rpc-scheduledTasks.upsert-boundary-full",
-        "t3-rpc-subscribeDiscoveredLocalServers-invalid-wrong-type-configuredUrls",
-        "t3-rpc-subscribeWorktreeSetup-invalid-drop-threadId",
-        "t3-rpc-subscribeWorktreeSetup-invalid-no-payload"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
       "severity": "breaking",
       "diffs": [
@@ -412,6 +374,36 @@
         "t3-rpc-server.refreshProviders-invalid-wrong-type-instanceId",
         "t3-rpc-vcs.createRef-valid-min",
         "t3-rpc-vcs.switchRef-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ],
+      "ids": [
+        "t3-command-delegated-task.request-boundary-full",
+        "t3-command-delegated-task.request-invalid-wrong-type-commandId",
+        "t3-command-delegated-task.request-valid-min",
+        "t3-command-message.dispatch-boundary-full",
+        "t3-command-queued-run.edit-boundary-full",
+        "t3-rpc-agentSessions.import-invalid-drop-projectId",
+        "t3-rpc-agentSessions.import-invalid-no-payload",
+        "t3-rpc-guestShare.create-invalid-drop-threadId",
+        "t3-rpc-guestShare.create-invalid-no-payload",
+        "t3-rpc-projects.readFile-invalid-drop-cwd",
+        "t3-rpc-projects.readFile-invalid-no-payload",
+        "t3-rpc-projects.readFile-invalid-wrong-type-cwd",
+        "t3-rpc-pullRequests.filterOptions-invalid-drop-kind",
+        "t3-rpc-pullRequests.filterOptions-invalid-no-payload",
+        "t3-rpc-pullRequests.filterOptions-invalid-wrong-type-kind",
+        "t3-rpc-scheduledTasks.upsert-boundary-full",
+        "t3-rpc-subscribeDiscoveredLocalServers-invalid-wrong-type-configuredUrls",
+        "t3-rpc-subscribeWorktreeSetup-invalid-drop-threadId",
+        "t3-rpc-subscribeWorktreeSetup-invalid-no-payload"
       ]
     },
     {

@@ -276,8 +276,8 @@ fn an_rpc_the_server_does_not_build_answers_a_declared_failure_and_the_socket_li
     let mut rpc = connect(&h);
 
     // When it calls an RPC of the mcp apps family, a stream RPC, unknown tags (one under a known family's prefix) and an unsupported command type
-    let terminal = rpc.call("mcpApps.callTool", json!({}));
-    let stream = rpc.call("mcpApps.readResource", json!({}));
+    let terminal = rpc.call("mcpApps.callTool", json!({"threadId": "t1", "itemId": "i1", "name": "n", "arguments": {}}));
+    let stream = rpc.call("mcpApps.readResource", json!({"threadId": "t1", "itemId": "i1", "uri": "u"}));
     let nonsense = rpc.call("nonsense.method", json!({}));
     assert_eq!(nonsense["cause"][0]["defect"], "Unknown request tag: nonsense.method");
     let pull_request = rpc.call("pullRequests.noSuchMethod", json!({}));

@@ -92,6 +92,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("scheduledTasks.listWebhookDeliveries", "id:s acceptAnyOutcome:b?"),
     ("scheduledTasks.getWebhookDelivery", "id:s deliveryId:s acceptAnyOutcome:b?"),
     ("attachments.delete", "attachmentId:s"),
+    ("mcpApps.callTool", "threadId:s itemId:s name:s arguments:o"),
+    ("mcpApps.toolInfo", "threadId:s itemId:s name:s"),
+    ("mcpApps.readResource", "threadId:s itemId:s uri:s"),
+    ("mcpApps.updateModelContext", "threadId:s itemId:s conversationThreadId:s content:a? structuredContent:o?"),
     ("vcs.init", "cwd:s kind:l(git|jj|unknown)?"),
     ("vcs.listRefs", "cwd:s query:s? cursor:n? includeMatchingRemoteRefs:b? refKind:l(all|local|remote)? refresh:b? limit:n?"),
     ("vcs.createRef", "cwd:s refName:s switchRef:b?"),
@@ -538,6 +542,16 @@ mod tests {
         assert_eq!(defect("provider.uploadFeedback", &json!({})).unwrap(), "Missing key\n  at [\"threadId\"]");
         assert_eq!(defect("provider.auth.removeMethod", &json!({"instanceId": 7, "methodId": "a"})).unwrap(), "Expected string\n  at [\"instanceId\"]");
         assert_eq!(command("provider.switch", json!({"commandId": "a", "threadId": "a", "modelSelection": {"model": "a"}})).unwrap(), "Expected string\n  at [\"modelSelection\"][\"instanceId\"]");
+    }
+
+    #[test]
+    fn an_mcp_app_payload_names_the_first_field_that_does_not_decode() {
+        // Given the mcpApps schemas in the order the contract declares them
+        // Then a missing threadId is the first defect, then the item, and a complete payload decodes
+        assert_eq!(defect("mcpApps.callTool", &json!({})).unwrap(), "Missing key\n  at [\"threadId\"]");
+        assert_eq!(defect("mcpApps.toolInfo", &json!({"threadId": "a"})).unwrap(), "Missing key\n  at [\"itemId\"]");
+        assert_eq!(defect("mcpApps.updateModelContext", &json!({"threadId": "a", "itemId": "a"})).unwrap(), "Missing key\n  at [\"conversationThreadId\"]");
+        assert_eq!(defect("mcpApps.readResource", &json!({"threadId": "a", "itemId": "a", "uri": "a"})), None);
     }
 
     #[test]
