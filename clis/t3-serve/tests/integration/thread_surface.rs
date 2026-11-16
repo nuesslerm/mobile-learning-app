@@ -98,11 +98,11 @@ fn settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_
         success(&phone.command(case, &chain, cmd("thread.unarchive", "t1", json!({}))));
         assert!(answered(case, "thread.archive") && shelf(&mut rca, "archived").is_empty());
         // When the thread is forked, the fork is merged back, and the next message runs: rca carries the fork's context into it
-        success(&phone.command(case, &chain, json!({"type": "thread.fork", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}})));
+        success(&phone.command(case, &chain, json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}})));
         assert!(answered(case, "thread.fork"), "{:?}", asked(case));
         let family = rca.call("agent.lifecycle", "thread.family", json!({"thread": "f1"})).expect("rca knows the family");
         assert_eq!(family["threads"].as_array().unwrap().iter().map(|t| t["thread"]["id"].as_str().unwrap()).collect::<Vec<_>>(), ["t1", "f1"]);
-        success(&phone.command(case, &chain, json!({"type": "thread.merge_back", "commandId": "c-merge", "sourceThreadId": "f1", "targetThreadId": "t1", "sourcePoint": {}})));
+        success(&phone.command(case, &chain, json!({"type": "thread.merge_back", "createdBy": "user", "creationSource": "mobile", "commandId": "c-merge", "sourceThreadId": "f1", "targetThreadId": "t1", "sourcePoint": {}})));
         assert!(answered(case, "thread.mergeBack"), "{:?}", asked(case));
         let projection = phone.command_settled(case, &chain, json!({"type": "message.dispatch", "commandId": "c-m2", "threadId": "t1", "message": {"messageId": "m2", "text": "again"}}), "t1", completed(2));
         // Then the turn ran Claude Code resuming the conversation it announced, and the executor wrote the note again
@@ -504,7 +504,7 @@ fn a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_wh
         assert_eq!((matches[0]["threadId"].as_str(), matches[0]["projectId"].as_str(), matches[0]["source"].as_str()), (Some("t1"), Some("p1"), Some("user")));
         assert!(matches[0]["snippet"].as_str().is_some_and(|s| s.contains("whales")), "{matches:?}");
         // When the thread is forked, the family of the fork is asked for, and the fork is archived and the archived snapshot read
-        success(&phone.command(case, &chain, json!({"type": "thread.fork", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}})));
+        success(&phone.command(case, &chain, json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}})));
         let family = phone.call(case, &chain, &["rpc:orchestration.getThreadFamily"], "orchestration.getThreadFamily", json!({"threadId": "f1"}));
         assert!(answered(case, "thread.family"), "{:?}", asked(case));
         assert_eq!(success(&family)["threads"].as_array().unwrap().iter().map(|t| t["id"].as_str().unwrap()).collect::<Vec<_>>(), ["t1", "f1"]);
@@ -548,7 +548,7 @@ fn older_settled_threads_are_paged_from_rcas_shelf_until_the_limit_of_the_asked_
             })
             .collect();
         for (id, project, at) in &threads {
-            let create = json!({"type": "thread.create", "commandId": format!("c-{id}"), "threadId": id, "projectId": project, "title": id, "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}});
+            let create = json!({"type": "thread.create", "commandId": format!("c-{id}"), "threadId": id, "projectId": project, "title": id, "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}, "createdBy": "user", "creationSource": "mobile", "runtimeMode": "full-access", "interactionMode": "default", "branch": null, "worktreePath": null});
             success(&phone.calls.call("orchestration.dispatchCommand", create));
             success(&phone.calls.call("orchestration.dispatchCommand", json!({"type": "thread.settle", "commandId": format!("c-settle-{id}"), "threadId": id, "settledAt": at})));
         }

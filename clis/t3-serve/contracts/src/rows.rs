@@ -52,9 +52,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn the_command_union_lists_the_55_types_the_decoder_knows() {
+    fn the_command_union_lists_the_56_types_the_decoder_knows() {
         let types = command_types();
-        assert_eq!(types.len(), 55);
+        assert_eq!(types.len(), 56);
         assert!(types.contains(&"thread.create") && types.contains(&"message.dispatch"));
     }
 

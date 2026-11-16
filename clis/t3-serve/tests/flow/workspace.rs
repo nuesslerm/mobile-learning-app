@@ -27,7 +27,7 @@ fn started(wt_path: &str) -> (Harness, Rpc) {
     let h = Harness::start();
     let mut rpc = connect_with(&h, all_scopes());
     seed(&mut rpc);
-    let in_worktree = json!({"type": "thread.create", "commandId": "c-t2", "threadId": "t2", "projectId": "p1", "title": "In a worktree", "worktreePath": wt_path, "branch": "feature/setup"});
+    let in_worktree = json!({"type": "thread.create", "commandId": "c-t2", "threadId": "t2", "projectId": "p1", "title": "In a worktree", "worktreePath": wt_path, "branch": "feature/setup", "createdBy": "user", "creationSource": "mobile", "runtimeMode": "full-access", "interactionMode": "default", "modelSelection": {"instanceId": "codex", "model": "gpt-5"}});
     success(&rpc.call("orchestration.dispatchCommand", in_worktree));
     forget_seeding(&h);
     (h, rpc)

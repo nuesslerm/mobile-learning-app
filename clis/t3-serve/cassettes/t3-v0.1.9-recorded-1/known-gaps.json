@@ -15,8 +15,6 @@
         "t3-command-queued-run.cancel",
         "t3-command-run.interrupt",
         "t3-command-thread.guest-message.dismiss",
-        "t3-command-thread.model-selection.set",
-        "t3-command-thread.pull-request.link",
         "t3-command-thread.runtime-mode.set",
         "t3-rpc-device.action",
         "t3-rpc-device.detail",
@@ -33,7 +31,6 @@
       ],
       "ids": [
         "t3-rpc-assets.persistChatAttachments",
-        "t3-rpc-orchestration.dispatchCommand",
         "t3-rpc-provider.auth.removeMethod",
         "t3-rpc-terminal.open"
       ]

@@ -51,7 +51,7 @@ fn removing_an_allowlist_entry_makes_the_replay_fail_naming_it() {
             section(&mut without).retain(|e| e.path != entry.path);
             let found = differences(&replayed(&set, &without));
             // Then the replay fails with a difference at that path
-            assert!(found.iter().any(|d| d.contains(&entry.path)), "{name} entry {} is not needed: {found:?}", entry.path);
+            assert!(found.iter().any(|d| mimic_core::allowlist::plain(d).contains(&entry.path)), "{name} entry {} is not needed: {found:?}", entry.path);
         }
     }
 }

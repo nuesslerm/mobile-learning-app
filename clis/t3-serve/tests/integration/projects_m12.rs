@@ -107,7 +107,7 @@ fn a_thread_the_phone_creates_exists_in_rca_with_its_driver_and_model_before_its
         let mut rca = chain.direct();
         assert_eq!(rca.call("agent.threads", "thread.get", json!({"thread": "t9"})).unwrap_err().code, "THREAD_NOT_FOUND");
         // When the phone creates a thread that is to run Claude Code
-        let create = json!({"type": "thread.create", "commandId": "c-t9", "threadId": "t9", "projectId": "p1", "title": "Notes", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}});
+        let create = json!({"type": "thread.create", "commandId": "c-t9", "threadId": "t9", "projectId": "p1", "title": "Notes", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}, "createdBy": "user", "creationSource": "mobile", "runtimeMode": "full-access", "interactionMode": "default", "branch": null, "worktreePath": null});
         success(&phone.call(case, &chain, &["rpc:orchestration.dispatchCommand", "command:thread.create"], "orchestration.dispatchCommand", create));
         // Then rca was asked for the thread in that call, and has it, idle, with the driver and model, though no turn has run
         answered(case, "thread.create");

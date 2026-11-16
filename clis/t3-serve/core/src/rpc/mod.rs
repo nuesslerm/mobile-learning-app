@@ -211,6 +211,11 @@ impl Connection {
             }
             "orchestration.dispatchCommand" | "projects.mutate" => {
                 let project = tag == "projects.mutate";
+                let kind = command.get("type").and_then(Value::as_str).unwrap_or("");
+                if let Some(Err(message)) = command.as_object().filter(|_| !project).and_then(|body| t3_contracts::payload::command_decoded(kind, body)) {
+                    self.svc.log("rpc.command.undecodable", &[("tag", tag.to_string())]);
+                    return vec![rpc::exit_defect(&id, &message)];
+                }
                 match self.svc.dispatch(if project { Family::Project } else { Family::Thread }, command) {
                     Ok(done) => vec![rpc::exit_success(&id, Some(done.row.unwrap_or_else(|| json!({"sequence": done.sequence}))))],
                     Err(Failure::Defect(message)) => {

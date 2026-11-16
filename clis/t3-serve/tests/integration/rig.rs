@@ -335,7 +335,7 @@ impl Phone {
         let root = chain.repo.path().display().to_string();
         let project = json!({"type": "project.create", "commandId": "c-p1", "projectId": "p1", "title": "Chain", "workspaceRoot": root});
         success(&self.call(case, chain, &["rpc:projects.mutate", "mutation:project.create"], "projects.mutate", project));
-        let thread = json!({"type": "thread.create", "commandId": "c-t1", "threadId": "t1", "projectId": "p1", "title": "Notes", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}});
+        let thread = json!({"type": "thread.create", "commandId": "c-t1", "threadId": "t1", "projectId": "p1", "title": "Notes", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}, "createdBy": "user", "creationSource": "mobile", "runtimeMode": "full-access", "interactionMode": "default", "branch": null, "worktreePath": null});
         success(&self.call(case, chain, &["rpc:orchestration.dispatchCommand", "command:thread.create"], "orchestration.dispatchCommand", thread));
     }
 }

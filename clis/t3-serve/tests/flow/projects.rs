@@ -139,7 +139,7 @@ fn a_thread_the_phone_creates_exists_in_the_agent_api_at_once_with_its_instance_
     success(&rpc.call("projects.mutate", project("p1", "/workspace/demo")));
     h.agent.ops.lock().unwrap().clear();
     // When the phone creates a thread that is to run Claude Code on a model
-    let create = json!({"type": "thread.create", "commandId": "c-t1", "threadId": "t1", "projectId": "p1", "title": "Notes", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}});
+    let create = json!({"type": "thread.create", "commandId": "c-t1", "threadId": "t1", "projectId": "p1", "title": "Notes", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}, "createdBy": "user", "creationSource": "mobile", "runtimeMode": "full-access", "interactionMode": "default", "branch": null, "worktreePath": null});
     success(&rpc.call("orchestration.dispatchCommand", create.clone()));
     // Then the agent API was asked for the thread, before any turn, with the instance and the model
     let made = h.agent.created.lock().unwrap().clone();

@@ -17,7 +17,6 @@
         "t3-command-thread.auto-settle.set",
         "t3-command-thread.interaction-mode.set",
         "t3-command-thread.pin.reorder",
-        "t3-command-thread.pull-request.watch",
         "t3-command-thread.snooze",
         "t3-command-thread.user-input.dismiss",
         "t3-rpc-device.open",
@@ -34,7 +33,6 @@
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
       ],
       "ids": [
-        "t3-command-thread.fork",
         "t3-rpc-assets.createUrl",
         "t3-rpc-filesystem.getMetadata",
         "t3-rpc-peerLinks.link",

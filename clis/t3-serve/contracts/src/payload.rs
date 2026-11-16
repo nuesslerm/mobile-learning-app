@@ -1,6 +1,6 @@
 //! The request payloads of the RPCs below, decoded before any handler runs the way the pinned server's Effect schema
 //! as the pinned server's Effect schema refuses them: the first field in declaration order that is missing or of the wrong type is a defect, never a typed error.
-use serde_json::Value;
+use serde_json::{Map, Value};
 
 /// Fields in the order the contract's struct declares them: `name:kind`, kind `s` string, `n` number, `b` boolean, `a` array, `o` object, `sn` string or null, `p(day|http|npm)` a string matching a contract pattern, `l(x|y)` one of
 /// the literals, a trailing `?` for an optional key. What a field holds beyond its kind (a string's trim and length, an array's items) is the handler's.
@@ -83,6 +83,22 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("review.getDiffPreview", "cwd:s baseRef:s? commitSha:s? ignoreWhitespace:b? sourceKind:l(working-tree|branch-range)? trackedOnly:b? metadataOnly:b? file:o?"),
 ];
 
+/// The commands of `orchestration.dispatchCommand` whose union member is decoded here, fields in the order the member declares them (the creation fields and
+/// `ThreadPullRequestKey` spread in place). Beyond the kinds above: `dt` a UTC date-time string, `ms` a model selection, `x` any value that is present.
+const COMMANDS: &[(&str, &str)] = &[
+    ("thread.create", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s threadId:s projectId:s title:s modelSelection:ms runtimeMode:l(approval-required|auto-accept-edits|auto|full-access) interactionMode:l(default|plan) branch:sn worktreePath:sn linkOrigin:o? delegatedFrom:o? importedNativeThread:o?"),
+    ("thread.settle", "commandId:s threadId:s expectedLatestRunId:s? settledAt:dt?"),
+    ("thread.auto-settle", "commandId:s threadId:s snapshotAt:dt settledAt:dt?"),
+    ("thread.tag.set", "commandId:s threadId:s tag:s tagged:b"),
+    ("thread.pull-request.link", "commandId:s threadId:s host:s repository:s number:n url:s source:l(manual|created|agent|stack|stack-dismissed) repositoryWebUrl:s?"),
+    ("thread.pull-request.unlink", "commandId:s threadId:s host:s repository:s number:n"),
+    ("thread.pull-request-link.sync", "commandId:s threadId:s host:s repository:s number:n snapshot:o stack:x"),
+    ("thread.pull-request.watch", "commandId:s threadId:s host:s repository:s number:n watching:b link:o?"),
+    ("thread.model-selection.set", "commandId:s threadId:s modelSelection:ms"),
+    ("thread.fork", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x title:s? sideChat:b? createdAt:dt?"),
+    ("thread.merge_back", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x createdAt:dt?"),
+];
+
 /// The patterns the contracts check strings against: the text the decoder names, and the match.
 fn pattern(name: &str) -> (&'static str, fn(&str) -> bool) {
     match name {
@@ -149,19 +165,116 @@ pub fn minimal(tag: &str) -> Option<Value> {
 /// The defect text when `payload` does not decode as the schema of `tag`; `None` when it does or the tag has no schema here.
 pub fn defect(tag: &str, payload: &Value) -> Option<String> {
     let (_, schema) = SCHEMAS.iter().find(|(t, _)| *t == tag)?;
-    let body = payload.as_object()?;
+    decode(schema, payload.as_object()?)
+}
+
+/// How a command of `kind` decodes: `None` when its member is not decoded here, else `Err` with the defect text of the first field that fails.
+pub fn command_decoded(kind: &str, body: &Map<String, Value>) -> Option<Result<(), String>> {
+    let (_, schema) = COMMANDS.iter().find(|(t, _)| *t == kind)?;
+    Some(decode(schema, body).map_or(Ok(()), Err))
+}
+
+fn at(path: &[&str]) -> String {
+    path.iter().map(|p| format!("[\"{p}\"]")).collect()
+}
+
+fn decode(schema: &str, body: &Map<String, Value>) -> Option<String> {
     for field in schema.split(' ') {
         let (name, kind) = field.split_once(':')?;
         let (kind, optional) = kind.strip_suffix('?').map_or((kind, false), |k| (k, true));
+        let key = [name];
         match body.get(name) {
             None if optional => {}
-            None => return Some(format!("Missing key\n  at [\"{name}\"]")),
-            Some(v) if !is(kind, v) => return Some(format!("Expected {}\n  at [\"{name}\"]", if kind.starts_with("p(") { "string".into() } else { expected(kind) })),
-            Some(v) if kind.starts_with("p(") && !v.as_str().is_some_and(pattern(&kind[2..kind.len() - 1]).1) => return Some(format!("Expected {}\n  at [\"{name}\"]", expected(kind))),
+            None => return Some(format!("Missing key\n  at {}", at(&key))),
+            Some(v) if kind == "ms" => {
+                if let Some(d) = model_selection(v, name) {
+                    return Some(d);
+                }
+            }
+            Some(v) if kind == "dt" => match v.as_str() {
+                None => return Some(format!("Expected string\n  at {}", at(&key))),
+                Some(s) if !utc_date_time(s) => return Some(format!("Expected a valid UTC DateTime string\n  at {}", at(&key))),
+                Some(_) => {}
+            },
+            Some(_) if kind == "x" => {}
+            Some(v) if !is(kind, v) => return Some(format!("Expected {}\n  at {}", if kind.starts_with("p(") { "string".into() } else { expected(kind) }, at(&key))),
+            Some(v) if kind.starts_with("p(") && !v.as_str().is_some_and(pattern(&kind[2..kind.len() - 1]).1) => return Some(format!("Expected {}\n  at {}", expected(kind), at(&key))),
             Some(_) => {}
         }
     }
     None
+}
+
+/// `ModelSelection` of the pin: the source struct needs `model`, the instance is `instanceId` or else a string `provider`, then the wire struct
+/// wants the instance and the model as strings and `options` as an array or an object.
+fn model_selection(value: &Value, name: &str) -> Option<String> {
+    let Some(raw) = value.as_object() else { return Some(format!("Expected object\n  at {}", at(&[name]))) };
+    if !raw.contains_key("model") {
+        return Some(format!("Missing key\n  at {}", at(&[name, "model"])));
+    }
+    let instance = raw.get("instanceId").or_else(|| raw.get("provider").filter(|p| p.is_string()));
+    if !instance.is_some_and(Value::is_string) {
+        return Some(format!("Expected string\n  at {}", at(&[name, "instanceId"])));
+    }
+    if !raw["model"].is_string() {
+        return Some(format!("Expected string\n  at {}", at(&[name, "model"])));
+    }
+    match raw.get("options") {
+        Some(o) if !o.is_array() && !o.is_object() => Some(format!("Expected array | object\n  at {}", at(&[name, "options"]))),
+        _ => None,
+    }
+}
+
+/// An ISO 8601 date, optionally with a time and an offset (`Z` or `+hh:mm`); the looser spellings `Date` also parses are not reproduced.
+fn utc_date_time(v: &str) -> bool {
+    let b = v.as_bytes();
+    let num = |from: usize, len: usize| -> Option<u32> { b.get(from..from + len).filter(|d| d.iter().all(u8::is_ascii_digit)).map(|d| d.iter().fold(0, |n, c| n * 10 + u32::from(c - b'0'))) };
+    let (Some(year), Some(month), Some(day)) = (num(0, 4), num(5, 2), num(8, 2)) else { return false };
+    let leap = year % 4 == 0 && (year % 100 != 0 || year % 400 == 0);
+    let days = match month {
+        2 if leap => 29,
+        2 => 28,
+        4 | 6 | 9 | 11 => 30,
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        _ => return false,
+    };
+    if b[4] != b'-' || b[7] != b'-' || day == 0 || day > days {
+        return false;
+    }
+    let mut pos = 10;
+    if pos < b.len() {
+        if b[pos] != b'T' && b[pos] != b' ' {
+            return false;
+        }
+        let (Some(hour), Some(minute)) = (num(11, 2), num(14, 2)) else { return false };
+        if b[13] != b':' || hour > 23 || minute > 59 {
+            return false;
+        }
+        pos = 16;
+        if b.get(pos) == Some(&b':') {
+            if num(pos + 1, 2).is_none_or(|s| s > 59) {
+                return false;
+            }
+            pos += 3;
+            if b.get(pos) == Some(&b'.') {
+                let digits = b[pos + 1..].iter().take_while(|c| c.is_ascii_digit()).count();
+                if digits == 0 {
+                    return false;
+                }
+                pos += 1 + digits;
+            }
+        }
+        match &b[pos.min(b.len())..] {
+            [] | [b'Z'] => {}
+            [sign, ..] if (*sign == b'+' || *sign == b'-') && v.len() == pos + 6 => {
+                if b[pos + 3] != b':' || num(pos + 1, 2).is_none_or(|h| h > 23) || num(pos + 4, 2).is_none_or(|m| m > 59) {
+                    return false;
+                }
+            }
+            _ => return false,
+        }
+    }
+    true
 }
 
 #[cfg(test)]
@@ -203,5 +316,48 @@ mod tests {
     #[test]
     fn a_tag_without_a_schema_here_is_left_to_its_handler() {
         assert_eq!(defect("server.probe", &json!({})), None);
+    }
+
+    fn command(kind: &str, body: Value) -> Option<String> {
+        command_decoded(kind, body.as_object().unwrap()).unwrap().err()
+    }
+
+    #[test]
+    fn a_thread_command_declares_its_creation_fields_first_and_a_pull_request_key_after_the_thread() {
+        // Given the fork command with only its ids, and the link command with a url and no key
+        // When each is decoded, then the first declared field it lacks is the defect
+        assert_eq!(command("thread.fork", json!({"commandId": "a", "threadId": "a"})).unwrap(), "Missing key\n  at [\"createdBy\"]");
+        assert_eq!(command("thread.pull-request.link", json!({"commandId": "a", "threadId": "a", "url": "a", "source": "manual"})).unwrap(), "Missing key\n  at [\"host\"]");
+        assert_eq!(command("thread.pull-request.watch", json!({"commandId": "a", "threadId": "a", "host": "a", "repository": "a", "number": 1})).unwrap(), "Missing key\n  at [\"watching\"]");
+    }
+
+    #[test]
+    fn a_model_selection_without_an_instance_or_with_options_of_the_wrong_kind_names_the_nested_field() {
+        let set = |selection: Value| command("thread.model-selection.set", json!({"commandId": "a", "threadId": "a", "modelSelection": selection}));
+        // Given a selection with a model only, then the instance is the defect; a string provider stands in for it
+        assert_eq!(set(json!({"model": "a"})).unwrap(), "Expected string\n  at [\"modelSelection\"][\"instanceId\"]");
+        assert_eq!(set(json!({"model": "a", "provider": "codex"})), None);
+        // And options that are neither an array nor an object, and a selection without a model
+        assert_eq!(set(json!({"model": "a", "instanceId": "a", "options": "a"})).unwrap(), "Expected array | object\n  at [\"modelSelection\"][\"options\"]");
+        assert_eq!(set(json!({"instanceId": "a"})).unwrap(), "Missing key\n  at [\"modelSelection\"][\"model\"]");
+    }
+
+    #[test]
+    fn a_date_time_field_takes_iso_dates_and_refuses_other_text_as_the_utc_date_time_defect() {
+        let settle = |at: Value| command("thread.settle", json!({"commandId": "a", "threadId": "a", "settledAt": at}));
+        // Given settledAt as an ISO date-time, with an offset, as a date only, and as leap day
+        for ok in ["2026-01-01T00:00:00Z", "2026-01-01T10:20:30.123+02:00", "2026-01-01", "2024-02-29T23:59Z"] {
+            assert_eq!(settle(json!(ok)), None, "{ok}");
+        }
+        // When it is text that is no date, an impossible day or a number, then the field is the defect
+        for bad in ["a", "2026-02-30", "2026-01-01T24:00:00Z", "2026-01-01T10:00:00+2"] {
+            assert_eq!(settle(json!(bad)).unwrap(), "Expected a valid UTC DateTime string\n  at [\"settledAt\"]", "{bad}");
+        }
+        assert_eq!(settle(json!(7)).unwrap(), "Expected string\n  at [\"settledAt\"]");
+    }
+
+    #[test]
+    fn a_command_without_a_member_here_is_left_to_its_handler() {
+        assert!(command_decoded("message.dispatch", &Map::new()).is_none());
     }
 }

@@ -142,7 +142,7 @@ pub fn failure(exit: &Value) -> &Value {
 }
 
 pub fn thread_create(command_id: &str, thread: &str, project: &str) -> Value {
-    json!({"type": "thread.create", "commandId": command_id, "threadId": thread, "projectId": project, "title": format!("Thread {thread}")})
+    json!({"type": "thread.create", "commandId": command_id, "threadId": thread, "projectId": project, "title": format!("Thread {thread}"), "createdBy": "user", "creationSource": "mobile", "modelSelection": {"instanceId": "opencode", "model": "gpt-5"}, "runtimeMode": "full-access", "interactionMode": "default", "branch": null, "worktreePath": null})
 }
 
 pub fn project_create(command_id: &str, project: &str) -> Value {

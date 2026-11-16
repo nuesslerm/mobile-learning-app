@@ -17,7 +17,7 @@ fn every_scope() -> Vec<String> {
 
 /// A thread of project p1 that works in `worktree`, as a client makes one after it has made the worktree.
 fn thread_in(phone: &mut Phone, case: &mut exec_testkit::Case, chain: &Chain, thread: &str, worktree: &str, branch: &str) {
-    let command = json!({"type": "thread.create", "commandId": format!("c-{thread}"), "threadId": thread, "projectId": "p1", "title": thread, "worktreePath": worktree, "branch": branch, "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}});
+    let command = json!({"type": "thread.create", "commandId": format!("c-{thread}"), "threadId": thread, "projectId": "p1", "title": thread, "worktreePath": worktree, "branch": branch, "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}, "createdBy": "user", "creationSource": "mobile", "runtimeMode": "full-access", "interactionMode": "default"});
     success(&phone.call(case, chain, &["rpc:orchestration.dispatchCommand", "command:thread.create"], "orchestration.dispatchCommand", command));
 }
 
