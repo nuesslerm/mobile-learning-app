@@ -3,7 +3,7 @@
 use crate::replay::{strip_queries, trim_to_budget, units, Utf8Carry};
 use crate::resume::{self, Token};
 use crate::{addressed, ask, viewport_param};
-use agent_api_terminal::{b64, kind, RESIZE, WRITE};
+use agent_api_terminal::{b64, kind, READ, RESIZE, WRITE};
 use orca_core::area::Out;
 use orca_core::{AgentApi, EventStream, StreamEvent, Subscription};
 use serde_json::{json, Value};
@@ -16,6 +16,7 @@ pub const HEADER: usize = 16;
 pub const CHUNK_BYTES: usize = 16 * 1024;
 const POLL_WAIT: Duration = Duration::from_millis(1);
 const MAX_EVENTS: usize = 256;
+const MAX_DISCARD: usize = 4096;
 
 pub mod op {
     pub const OUTPUT: u8 = 1;
@@ -121,6 +122,11 @@ pub(crate) struct Binary {
     pub size: (Option<u64>, Option<u64>),
     pub finished: bool,
     pub units: u64,
+    /// The rca byte offset fed to `carry`: events at or before it are already sent.
+    pub cursor: u64,
+    /// The credit window is full: the attach is discarded and `terminal.read` refills from `cursor` once the phone acknowledges.
+    pub paused: bool,
+    pub exited: bool,
 }
 
 impl Binary {
@@ -140,21 +146,82 @@ impl Binary {
         out.push(end_event());
     }
 
+    /// Sends `bytes`, which end at rca offset `end`, as one Output frame and counts its units against the window.
+    fn feed(&mut self, bytes: &[u8], end: u64, out: &mut Vec<Out>) {
+        let text = self.carry.push(bytes).text;
+        self.cursor = end;
+        if text.is_empty() {
+            return;
+        }
+        let offset = end - self.carry.held() as u64;
+        let sent = units(&text) as u64;
+        self.units += sent;
+        if let Some(token) = &self.token {
+            token.credit.sent(sent);
+        }
+        self.record(offset);
+        out.push(Out::Binary(encode(op::OUTPUT, self.number, offset, text.as_bytes())));
+    }
+
+    fn open_window(&self) -> bool {
+        self.token.as_ref().is_none_or(|t| t.credit.can_send())
+    }
+
+    /// Reads what the stream has not sent from `cursor`: bytes while the window has room, or a recovery snapshot when rca's tail moved past it.
+    /// True when the terminal is over.
+    pub(crate) fn catch_up(&mut self, out: &mut Vec<Out>) -> bool {
+        let mut request = addressed(&self.target.0, &self.target.1);
+        request["after_offset"] = json!(self.cursor);
+        let Ok(read) = ask(self.agent.as_ref(), READ, request) else { return true };
+        let bytes = read["data"].as_str().and_then(b64::decode).unwrap_or_default();
+        let (start, end) = (read["start_offset"].as_u64().unwrap_or(0), read["offset"].as_u64().unwrap_or(0));
+        if read["reset"] == true {
+            self.carry = Utf8Carry::default();
+            self.cursor = end;
+            out.extend(replay_frames(self.number, &mut self.carry, &bytes, start, end, self.budget, self.size));
+            self.record(end - self.carry.held() as u64);
+        } else {
+            let mut at = 0;
+            while at < bytes.len() && self.open_window() {
+                let cut = (at + CHUNK_BYTES).min(bytes.len());
+                self.feed(&bytes[at..cut], start + cut as u64, out);
+                at = cut;
+            }
+        }
+        self.paused = self.cursor < end;
+        if read["status"] != "running" && !self.paused {
+            self.exited = true;
+        }
+        self.exited && !self.paused
+    }
+
+    /// While paused: drops what the attach queued (the read gets it again) and refills once the phone has acknowledged.
+    fn refill(&mut self, out: &mut Vec<Out>) -> bool {
+        for _ in 0..MAX_DISCARD {
+            match self.events.next(POLL_WAIT) {
+                Ok(Some(event)) => self.exited |= matches!(event.kind.as_str(), kind::EXITED | kind::CLOSED),
+                Ok(None) => break,
+                Err(_) => {
+                    self.exited = true;
+                    break;
+                }
+            }
+        }
+        if self.open_window() {
+            return self.catch_up(out);
+        }
+        false
+    }
+
     /// Turns one attach event into frames; true when the terminal is over.
     fn apply(&mut self, event: StreamEvent, out: &mut Vec<Out>) -> bool {
         match event.kind.as_str() {
             kind::OUTPUT => {
                 let bytes = event.data["data"].as_str().and_then(b64::decode).unwrap_or_default();
-                let text = self.carry.push(&bytes).text;
-                if !text.is_empty() {
-                    let offset = event.seq - self.carry.held() as u64;
-                    let sent = units(&text) as u64;
-                    self.units += sent;
-                    if let Some(token) = &self.token {
-                        token.credit.sent(sent);
-                    }
-                    self.record(offset);
-                    out.push(Out::Binary(encode(op::OUTPUT, self.number, offset, text.as_bytes())));
+                let start = event.seq.saturating_sub(bytes.len() as u64);
+                if event.seq > self.cursor {
+                    let skip = (self.cursor.saturating_sub(start) as usize).min(bytes.len());
+                    self.feed(&bytes[skip..], event.seq, out);
                 }
                 false
             }
@@ -162,12 +229,14 @@ impl Binary {
                 let bytes = event.data["data"].as_str().and_then(b64::decode).unwrap_or_default();
                 let start = event.data["start_offset"].as_u64().unwrap_or(0);
                 self.carry = Utf8Carry::default();
+                self.cursor = event.seq;
                 out.extend(replay_frames(self.number, &mut self.carry, &bytes, start, event.seq, self.budget, self.size));
                 self.record(event.seq - self.carry.held() as u64);
                 false
             }
             kind::CLEARED => {
                 self.carry = Utf8Carry::default();
+                self.cursor = event.seq;
                 out.extend(snapshot_frames(self.number, Shape { cols: self.size.0, rows: self.size.1, seq: event.seq, truncated: false, by_budget: false }, ""));
                 self.record(event.seq);
                 false
@@ -207,7 +276,17 @@ impl Subscription for Binary {
             return out;
         }
         let mut over = false;
+        if self.paused {
+            over = self.refill(&mut out);
+        }
         for _ in 0..MAX_EVENTS {
+            if over || self.paused {
+                break;
+            }
+            if !self.open_window() {
+                self.paused = true;
+                break;
+            }
             match self.events.next(POLL_WAIT) {
                 Ok(Some(event)) => {
                     if self.apply(event, &mut out) {

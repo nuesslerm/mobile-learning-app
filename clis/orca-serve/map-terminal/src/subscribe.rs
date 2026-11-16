@@ -9,7 +9,7 @@ use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::area::Out;
 use orca_core::{Ctx, EventStream, StreamEvent, Subscription};
 use serde_json::{json, Value};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 const POLL_WAIT: Duration = Duration::from_millis(1);
 const MAX_EVENTS: usize = 256;
@@ -23,6 +23,7 @@ struct Params {
     output_ack: bool,
     write_unavailable: bool,
     budget: Option<usize>,
+    resume: Option<(String, u64)>,
 }
 
 fn literal_one(caps: &Value, key: &str) -> Result<bool, Failure> {
@@ -66,11 +67,12 @@ impl Params {
         let (binary, lease_only) = (literal_one(&caps, "terminalBinaryStream")?, literal_one(&caps, "mobileInputLeaseOnly")?);
         literal_one(&caps, "desktopViewportClaims")?;
         let (write_unavailable, output_ack) = (literal_one(&caps, "writeUnavailable")?, literal_one(&caps, "outputAck")?);
-        if let Some(resume) = params.get("resume") {
-            if resume.get("streamToken").and_then(Value::as_str).is_none_or(str::is_empty) {
+        let mut resume = None;
+        if let Some(r) = params.get("resume") {
+            let Some(token) = r.get("streamToken").and_then(Value::as_str).filter(|t| !t.is_empty()) else {
                 return Err(Failure::invalid("Missing stream token"));
-            }
-            whole(resume.get("units").unwrap_or(&Value::Null), 0, "Too small: expected number to be >=0")?;
+            };
+            resume = Some((token.to_string(), whole(r.get("units").unwrap_or(&Value::Null), 0, "Too small: expected number to be >=0")?));
         }
         let budget = params.get("snapshotByteBudget").map(|b| whole(b, 1, "Too small: expected number to be >0")).transpose()?;
         Ok(Params {
@@ -82,6 +84,7 @@ impl Params {
             output_ack,
             write_unavailable,
             budget: budget.map(|b| b as usize),
+            resume,
         })
     }
 }
@@ -177,6 +180,9 @@ pub(crate) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription
     let bytes = read["data"].as_str().and_then(b64::decode).unwrap_or_default();
     let (start, end) = (read["start_offset"].as_u64().unwrap_or(0), read["offset"].as_u64().unwrap_or(0));
     let handle = handle_of(&workspace, &terminal);
+    let claimed = p.resume.as_ref().filter(|_| p.binary).and_then(|(token, units)| {
+        resume::registry().lock().unwrap_or_else(|e| e.into_inner()).claim(token, ctx.device_id, &workspace, &terminal, *units, Instant::now())
+    });
     let id = match &p.client_id {
         Some(client) => format!("terminal:{}:{handle}:{client}", ctx.connection_id),
         None => format!("terminal:{}:{handle}", ctx.connection_id),
@@ -195,21 +201,40 @@ pub(crate) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription
         return Ok(lease);
     }
     if p.binary {
+        let missed = claimed.and_then(|from| {
+            let mut request = addressed(&workspace, &terminal);
+            request["after_offset"] = json!(from);
+            ask(agent.as_ref(), READ, request).ok().filter(|r| r["reset"] != true).map(|r| (from, r))
+        });
+        let (follow_from, read) = match &missed {
+            Some((_, r)) => (r["offset"].as_u64().unwrap_or(0), r),
+            None => (end, &read),
+        };
         let (cols, rows) = (read["cols"].as_u64().or(p.viewport.map(|v| v.0)), read["rows"].as_u64().or(p.viewport.map(|v| v.1)));
-        let attach = json!({"workspace": workspace, "terminal": terminal, "after_offset": end});
+        let attach = json!({"workspace": workspace, "terminal": terminal, "after_offset": follow_from});
         let (_, events) = agent.follow(ATTACH.name(), &format!("terminal/{workspace}/{terminal}"), attach, "after_offset").map_err(refusal)?;
         let number = ctx.stream_number();
         let token = p.output_ack.then(|| resume::registry().lock().unwrap_or_else(|e| e.into_inner()).register(ctx.connection_id, ctx.device_id, &workspace, &terminal));
         let mut opened = json!({"type": "subscribed", "streamId": number, "lines": [], "truncated": false, "cols": cols, "rows": rows, "displayMode": "auto"});
+        if missed.is_some() {
+            opened["resumed"] = json!(true);
+        }
+        let cursor = missed.as_ref().map_or(end, |(from, _)| *from);
         if let Some(t) = &token {
             opened["outputAck"] = json!(true);
             opened["streamToken"] = json!(t.id);
-            resume::registry().lock().unwrap_or_else(|e| e.into_inner()).record(&t.id, 0, end);
+            resume::registry().lock().unwrap_or_else(|e| e.into_inner()).record(&t.id, 0, cursor);
         }
         let mut carry = Utf8Carry::default();
         let mut first = vec![Out::Text(opened.to_string())];
-        first.extend(replay_frames(number, &mut carry, &bytes, start, end, p.budget, (cols, rows)));
-        let binary = Binary { id: id.clone(), number, agent: agent.clone(), target: (workspace, terminal), first, events, carry, token, write_unavailable: p.write_unavailable, budget: p.budget, size: (cols, rows), finished: false, units: 0 };
+        if missed.is_none() {
+            first.extend(replay_frames(number, &mut carry, &bytes, start, end, p.budget, (cols, rows)));
+        }
+        let mut binary = Binary { id: id.clone(), number, agent: agent.clone(), target: (workspace, terminal), first: Vec::new(), events, carry, token, write_unavailable: p.write_unavailable, budget: p.budget, size: (cols, rows), finished: false, units: 0, cursor, paused: false, exited: false };
+        if missed.is_some() {
+            binary.catch_up(&mut first);
+        }
+        binary.first = first;
         ctx.subscriptions.cancel(&id);
         return Ok(Box::new(binary));
     }

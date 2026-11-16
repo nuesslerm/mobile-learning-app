@@ -9,12 +9,15 @@ use orca_map_terminal::TerminalArea;
 use orca_map_workspace::testing::Workspaces;
 use serde_json::{json, Value};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 struct Rig {
     agent: Arc<ScriptedAgent>,
     terminals: Terminals,
     conn: Connection,
     n: u32,
+    /// Frames that rode along with a request's answer.
+    stash: Vec<Got>,
 }
 
 impl Rig {
@@ -27,7 +30,7 @@ impl Rig {
         terminals.terminal("main", "t1", true).terminal("main", "gone", false);
         terminals.install(&agent);
         let host = Host::new("rt".into(), vec![Box::new(TerminalArea)], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
-        Rig { agent, terminals, conn: host.connection("dev", "tok", vec![]), n: 0 }
+        Rig { agent, terminals, conn: host.connection("dev", "tok", vec![]), n: 0, stash: Vec::new() }
     }
 
     fn frames(&mut self, method: &str, params: Value) -> Vec<Value> {
@@ -385,4 +388,221 @@ fn given_a_binary_stream_when_the_buffer_is_cleared_then_an_empty_snapshot_follo
     assert_eq!(rig.sent(op::UNSUBSCRIBE, id, b""), [Got::Json(json!({"type": "end"}))]);
     rig.terminals.push_output("main", "t1", b"more");
     assert_eq!(rig.polled(), []);
+}
+
+fn token(opened: &[Got]) -> String {
+    match &opened[0] {
+        Got::Json(v) => v["streamToken"].as_str().unwrap().to_string(),
+        other => panic!("{other:?}"),
+    }
+}
+
+fn output_of(got: &[Got]) -> Vec<u8> {
+    got.iter().filter_map(|g| match g { Got::Bin(op::OUTPUT, _, _, p) => Some(p.clone()), _ => None }).flatten().collect()
+}
+
+fn count(got: &[Got], opcode: u8) -> usize {
+    got.iter().filter(|g| matches!(g, Got::Bin(o, ..) if *o == opcode)).count()
+}
+
+fn units_of(bytes: &[u8]) -> u64 {
+    std::str::from_utf8(bytes).unwrap().encode_utf16().count() as u64
+}
+
+impl Rig {
+    fn ack(&mut self, token: &str, units: u64) -> Value {
+        self.n += 1;
+        let frame = json!({"id": format!("r{}", self.n), "method": "terminal.ackOutput", "params": {"streamToken": token, "units": units}}).to_string();
+        let mut got = read(self.conn.on_message_out(&frame));
+        let answer = got.remove(0);
+        self.stash.extend(got);
+        match answer {
+            Got::Json(v) => v,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    /// Prints `total` bytes of numbered lines, 1000 bytes a push, and returns everything printed.
+    fn flood(&mut self, total: usize) -> Vec<u8> {
+        let mut all = Vec::new();
+        for i in 0..total / 1000 {
+            let line = format!("{:0>999}\n", i);
+            self.terminals.push_output("main", "t1", line.as_bytes());
+            all.extend_from_slice(line.as_bytes());
+        }
+        all
+    }
+
+    fn drained(&mut self) -> Vec<Got> {
+        let mut all = std::mem::take(&mut self.stash);
+        loop {
+            let got = self.polled();
+            if got.is_empty() {
+                return all;
+            }
+            all.extend(got);
+        }
+    }
+}
+
+#[test]
+fn given_600k_units_pushed_and_never_acknowledged_when_polled_then_about_the_window_is_sent_and_the_rest_follows_the_ack_without_gap_or_duplicate() {
+    let mut rig = Rig::new();
+    let opened = rig.open_binary(phone());
+    let tok = token(&opened);
+    let pushed = rig.flood(600_000);
+    // When the stream is read with no acknowledgement
+    let first = rig.drained();
+    // Then it stops once the 512K-unit window is full, and more polling sends nothing
+    let sent = output_of(&first);
+    assert!((524_288..=526_000).contains(&sent.len()), "{}", sent.len());
+    assert_eq!(rig.drained(), []);
+    // When the phone acknowledges what it applied
+    assert_eq!(rig.ack(&tok, units_of(&sent)), json!({"credited": true}));
+    // Then the rest follows and all of it joined equals what was pushed
+    let rest = rig.drained();
+    let mut all = sent;
+    all.extend(output_of(&rest));
+    assert_eq!(all.len(), pushed.len());
+    assert!(all == pushed, "content differs");
+    assert_eq!(count(&rest, op::SNAPSHOT_START), 0);
+}
+
+#[test]
+fn given_a_paused_stream_whose_tail_moved_past_the_cursor_when_acknowledged_then_one_recovery_snapshot_is_sent_and_output_goes_on_after_it() {
+    let mut rig = Rig::new();
+    rig.terminals.with_retain(50_000);
+    let opened = rig.open_binary(phone());
+    let (tok, id) = (token(&opened), number(&opened));
+    rig.flood(600_000);
+    let first = rig.drained();
+    let sent = output_of(&first);
+    // When the phone acknowledges after rca dropped the bytes between
+    rig.ack(&tok, units_of(&sent));
+    let recovery = rig.drained();
+    // Then exactly one snapshot arrives, ending at the newest offset, and no Output frame precedes it
+    assert_eq!(count(&recovery, op::SNAPSHOT_START), 1);
+    assert_eq!(count(&recovery, op::SNAPSHOT_END), 1);
+    assert!(matches!(&recovery[0], Got::Bin(op::SNAPSHOT_START, s, 600_000, _) if *s == id), "{:?}", recovery.len());
+    assert_eq!(output_of(&recovery), Vec::<u8>::new());
+    // When more is printed, Then it arrives as Output after the snapshot
+    rig.terminals.push_output("main", "t1", b"fresh\n");
+    assert_eq!(rig.polled(), [Got::Bin(op::OUTPUT, id, 600_006, b"fresh\n".to_vec())]);
+}
+
+fn resumable(rig: &mut Rig) -> (String, u64) {
+    let opened = rig.open_binary(phone());
+    let (tok, id) = (token(&opened), number(&opened));
+    rig.terminals.push_output("main", "t1", b"abc");
+    rig.terminals.push_output("main", "t1", "dé😀".as_bytes());
+    let got = rig.polled();
+    let units = units_of(&output_of(&got));
+    assert_eq!(rig.sent(op::UNSUBSCRIBE, id, b""), [Got::Json(json!({"type": "end"}))]);
+    (tok, units)
+}
+
+#[test]
+fn given_an_ended_stream_when_resumed_with_its_token_and_exact_units_then_only_the_missed_bytes_come_and_no_snapshot() {
+    let mut rig = Rig::new();
+    let (tok, units) = resumable(&mut rig);
+    rig.terminals.push_output("main", "t1", b"missed\n");
+    // When the phone resumes
+    let mut params = phone();
+    params["resume"] = json!({"streamToken": tok, "units": units});
+    let got = rig.open_binary(params);
+    // Then it is answered resumed with a new token, and carries just the bytes pushed in between
+    let Got::Json(first) = &got[0] else { panic!("{got:?}") };
+    assert_eq!((first["resumed"].clone(), first["outputAck"].clone()), (json!(true), json!(true)));
+    assert_ne!(first["streamToken"].as_str().unwrap(), tok);
+    assert_eq!(got.len(), 2, "{got:?}");
+    assert_eq!(got[1], Got::Bin(op::OUTPUT, number(&got), 3 + 7 + 7, b"missed\n".to_vec()));
+    // When more is printed, Then it follows live
+    rig.terminals.push_output("main", "t1", b"live");
+    assert_eq!(output_of(&rig.polled()), b"live");
+}
+
+#[test]
+fn given_a_token_that_cannot_resume_when_subscribed_with_it_then_each_gets_a_snapshot_and_the_token_is_spent() {
+    // Given a resume that works once
+    let mut rig = Rig::new();
+    let (tok, units) = resumable(&mut rig);
+    let with = |tok: &str, units: u64| {
+        let mut params = phone();
+        params["resume"] = json!({"streamToken": tok, "units": units});
+        params
+    };
+    let resumed = rig.open_binary(with(&tok, units));
+    let Got::Json(first) = &resumed[0] else { panic!() };
+    assert_eq!(first["resumed"], true);
+    // When the same token is used again, Then it is a snapshot
+    let again = rig.open_binary(with(&tok, units));
+    assert_eq!(count(&again, op::SNAPSHOT_START), 1);
+    let Got::Json(first) = &again[0] else { panic!() };
+    assert!(first.get("resumed").is_none());
+    // When the units differ, Then it is a snapshot
+    let mut rig = Rig::new();
+    let (tok, units) = resumable(&mut rig);
+    assert_eq!(count(&rig.open_binary(with(&tok, units + 1)), op::SNAPSHOT_START), 1);
+    // When the token is unknown, Then it is a snapshot
+    assert_eq!(count(&rig.open_binary(with("ts-none-1", 0)), op::SNAPSHOT_START), 1);
+    // And the spent token does not come back with the right units
+    assert_eq!(count(&rig.open_binary(with(&tok, units)), op::SNAPSHOT_START), 1);
+}
+
+#[test]
+fn given_another_devices_token_when_resumed_then_it_gets_a_snapshot() {
+    let mut rig = Rig::new();
+    let (tok, units) = resumable(&mut rig);
+    // When a different device's connection resumes with it
+    let agent = rig.agent.clone();
+    let host = Host::new("rt".into(), vec![Box::new(TerminalArea)], agent, Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
+    let mut other = host.connection("tablet", "tok", vec![]);
+    let mut params = phone();
+    params["resume"] = json!({"streamToken": tok, "units": units});
+    let frame = json!({"id": "x1", "method": "terminal.subscribe", "params": params}).to_string();
+    let got = read(other.on_message_out(&frame));
+    // Then it is a fresh stream with a snapshot
+    assert_eq!(count(&got, op::SNAPSHOT_START), 1);
+}
+
+#[test]
+fn given_a_token_retained_longer_than_two_minutes_when_resumed_then_it_gets_a_snapshot() {
+    let mut rig = Rig::new();
+    // Given a stream token whose stream ended three minutes ago, by the registry's clock
+    let t = {
+        let mut r = orca_map_terminal::resume::registry().lock().unwrap();
+        let t = r.register("conn-old", "dev", "main", "t1");
+        r.record(&t.id, 0, 0);
+        r.release(&t.id, Instant::now() - Duration::from_secs(180));
+        t
+    };
+    // When the phone resumes with it
+    let mut params = phone();
+    params["resume"] = json!({"streamToken": t.id, "units": 0});
+    let got = rig.open_binary(params);
+    // Then it gets a snapshot
+    assert_eq!(count(&got, op::SNAPSHOT_START), 1);
+}
+
+#[test]
+fn given_a_resume_after_the_tail_dropped_the_missed_bytes_when_subscribed_then_it_gets_a_snapshot() {
+    let mut rig = Rig::new();
+    rig.terminals.with_retain(10);
+    let (tok, units) = resumable(&mut rig);
+    rig.terminals.push_output("main", "t1", &[b'z'; 40]);
+    let mut params = phone();
+    params["resume"] = json!({"streamToken": tok, "units": units});
+    assert_eq!(count(&rig.open_binary(params), op::SNAPSHOT_START), 1);
+}
+
+#[test]
+fn given_an_ended_stream_when_its_output_is_acknowledged_then_nothing_is_credited() {
+    let mut rig = Rig::new();
+    let opened = rig.open_binary(phone());
+    let (tok, id) = (token(&opened), number(&opened));
+    // When the stream is live, Then its token is credited
+    assert_eq!(rig.ack(&tok, 1), json!({"credited": true}));
+    // When the stream ends, Then the token is no longer credited
+    rig.sent(op::UNSUBSCRIBE, id, b"");
+    assert_eq!(rig.ack(&tok, 1), json!({"credited": false}));
 }
