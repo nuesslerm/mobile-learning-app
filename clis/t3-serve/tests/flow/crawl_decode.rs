@@ -34,7 +34,7 @@ fn found_in_turn(set: &mimic_core::ports::CassetteSet, allow: &mimic_core::allow
         let (scopes, paired) = (granted_scopes(set), h.clone());
         let pair = std::rc::Rc::new(move || paired.pair(PairingRequest { scopes: scopes.clone(), ..PairingRequest::default() }).code);
         let mut candidate = driver(h.addr, "/conformance/workspace".to_string(), pair, prelude_of(set), true);
-        let verdict = replay(set, &mut candidate, allow, &t3_diff_options(), Some(&[id.clone()])).expect("the replay runs");
+        let verdict = replay(set, &mut candidate, allow, &t3_diff_options(), Some(std::slice::from_ref(id))).expect("the replay runs");
         for r in verdict.results {
             let mut lines: Vec<String> = r.diffs.iter().filter(|d| d.severity != Severity::None).map(|d| format!("{} {} {}", d.path, format!("{:?}", d.kind).to_lowercase(), format!("{:?}", d.severity).to_lowercase())).collect();
             lines.extend(r.error.map(|e| format!("error {e}")));
