@@ -670,7 +670,8 @@ fn nx_reruns_an_e2e_group_exactly_when_its_test_file_or_what_every_group_reads_c
     let cases: Vec<(&str, &str, BTreeSet<String>)> = vec![
         ("the test file of one group", "clis/offload/tests/e2e/parity_features.rs", groups(&["parity_features"])),
         ("the test file of another group", "clis/offload/tests/e2e/ask.rs", groups(&["ask"])),
-        ("the helpers every group imports", "clis/offload/tests/e2e/parity.rs", every.clone()),
+        ("the parity group's own test file", "clis/offload/tests/e2e/parity.rs", groups(&["parity"])),
+        ("the helpers every group imports", "clis/offload/tests/e2e/parity_support.rs", every.clone()),
         ("the module list of the suite", "clis/offload/tests/e2e.rs", every.clone()),
         ("the support the suite shares with the flow tests", "clis/offload/tests/flow/support/mod.rs", every.clone()),
         ("the source the asks go through", "clis/offload/src/dispatch_run.rs", every.clone()),

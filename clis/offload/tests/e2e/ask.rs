@@ -21,7 +21,7 @@ fn ask(dir: &Path, args: &[&str]) -> RunResult {
         Command::new(crate::support::wf_binary())
             .args(["offload", "ask"])
             .args(args)
-            .args(["--timeout-ms", "600000", "--caller", &crate::parity::caller_of(dir)])
+            .args(["--timeout-ms", "600000", "--caller", &crate::parity_support::caller_of(dir)])
             .current_dir(dir)
             .env("WF_USAGE", "off"),
         Model::Scripted,
@@ -42,7 +42,7 @@ impl Checkout {
 
 impl Drop for Checkout {
     fn drop(&mut self) {
-        crate::parity::purge(&crate::parity::caller_of(self.0.path()), Model::Scripted);
+        crate::parity_support::purge(&crate::parity_support::caller_of(self.0.path()), Model::Scripted);
     }
 }
 
@@ -58,7 +58,7 @@ fn said(r: &RunResult) -> String {
 
 #[test]
 fn a_session_continues_with_c_and_the_json_format_reports_it() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a first turn that sets a word, with a title
         let dir = checkout();
         let first = ask(dir.path(), &["Remember the secret word PELICAN. Reply with only OK.", "--title", "wf e2e", "--format", "json"]);
@@ -79,7 +79,7 @@ fn a_session_continues_with_c_and_the_json_format_reports_it() {
 
 #[test]
 fn a_run_edits_the_file_without_auto_and_a_read_only_agent_keeps_it_unchanged() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a file in the checkout, and the read-only agent defined there
         let dir = checkout();
         std::fs::write(dir.path().join("a.txt"), "original").unwrap();
@@ -101,7 +101,7 @@ fn a_run_edits_the_file_without_auto_and_a_read_only_agent_keeps_it_unchanged() 
 
 #[test]
 fn an_agent_defined_in_the_repository_answers_as_defined() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given an agent file in the checkout
         let dir = checkout();
         std::fs::create_dir_all(dir.path().join(".opencode/agents")).unwrap();

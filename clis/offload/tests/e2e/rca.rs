@@ -1,6 +1,6 @@
 //! The services the e2e tests ask: a real `rca-service` and a real `opencode serve` started on loopback for the run of the test binary,
 //! so no test reaches a deployed backend. `Model::Scripted` puts the `fake-model` behind opencode (no network, no key); `Model::Live` puts
-//! the provider behind it (the key of `parity::key()`), for the tests that compare a real model's wording. Each is started on first use.
+//! the provider behind it (the key of `parity_support::key()`), for the tests that compare a real model's wording. Each is started on first use.
 use exec_testkit::{FakeModel, OpencodeServer, RcaService};
 use std::collections::HashMap;
 use std::ffi::OsString;
@@ -60,7 +60,7 @@ fn start(model: Model) -> Vec<(&'static str, String)> {
             let opencode = OpencodeServer::start_scripted(&fake.base_url(), &config);
             (Some(fake), opencode)
         }
-        Model::Live => (None, OpencodeServer::start(crate::parity::key(), &config)),
+        Model::Live => (None, OpencodeServer::start(crate::parity_support::key(), &config)),
     };
     let ask_root = tempfile::Builder::new().prefix("wf-e2e-rca-").tempdir().expect("a directory for the asks").keep();
     let (asks, ledger) = (ask_root.join("asks"), ask_root.join("ledger.json"));

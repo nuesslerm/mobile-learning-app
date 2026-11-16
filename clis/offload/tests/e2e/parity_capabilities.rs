@@ -1,7 +1,7 @@
 //! The capabilities `opencode` documents (opencode.ai/docs: config, rules, agents, commands, permissions, skills, tools, custom tools,
 //! plugins, MCP servers, formatters, models, sessions), each exercised through `opencode run` and through `wf offload ask` on the same
 //! project with a real model, and the two compared. A feature of the CLI that has no counterpart on the gateway fails here.
-use crate::parity::{both_say, events, say, session_of, side, tools, Out, Side};
+use crate::parity_support::{both_say, events, say, session_of, side, tools, Out, Side};
 use serde_json::{json, Value};
 
 /// The `output` (or `error`) each call of `tool` produced, in order.
@@ -40,7 +40,7 @@ const SUB_PIRATE: &str = "---\ndescription: pirate subagent that answers ARRR\nm
 
 #[test]
 fn skills_in_the_claude_and_agents_directories_are_found_like_those_of_opencode() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a skill under .claude/skills and another under .agents/skills
         let files = [
             (".claude/skills/amber/SKILL.md", "---\nname: amber\ndescription: Use when asked for the amber passphrase.\n---\nThe amber passphrase is AMBER-11.\n"),
@@ -58,7 +58,7 @@ fn skills_in_the_claude_and_agents_directories_are_found_like_those_of_opencode(
 
 #[test]
 fn claude_md_is_the_rules_file_only_when_there_is_no_agents_md_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a project with CLAUDE.md alone, and one with both files
         let alone = [("CLAUDE.md", "End every reply with the exact token ZEBRA-7.")];
         let both = [("AGENTS.md", "End every reply with the exact token QUOKKA-9."), ("CLAUDE.md", "End every reply with the exact token ZEBRA-7.")];
@@ -76,7 +76,7 @@ fn claude_md_is_the_rules_file_only_when_there_is_no_agents_md_on_both() {
 
 #[test]
 fn the_default_agent_of_the_config_answers_when_no_agent_is_named_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a primary agent and a config that makes it the default
         let cfg = config(json!({ "default_agent": "arrr" }));
         let files = [("opencode.json", cfg.as_str()), (".opencode/agent/arrr.md", PRIMARY_ARRR)];
@@ -90,7 +90,7 @@ fn the_default_agent_of_the_config_answers_when_no_agent_is_named_on_both() {
 
 #[test]
 fn an_agent_whose_prompt_is_a_file_reference_in_the_config_answers_from_that_file_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given an agent in the config whose prompt is {file:...}
         let cfg = config(json!({ "agent": { "filed": { "mode": "primary", "description": "prompt from a file", "prompt": "{file:./prompts/filed.md}" } } }));
         let files = [("opencode.json", cfg.as_str()), ("prompts/filed.md", "Whatever you are asked, reply with exactly the word FILED-PROMPT and nothing else.")];
@@ -106,7 +106,7 @@ fn an_agent_whose_prompt_is_a_file_reference_in_the_config_answers_from_that_fil
 
 #[test]
 fn command_arguments_are_split_into_positional_parameters_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a command that uses $1, $2 and $3
         let files = [(".opencode/command/join.md", "---\ndescription: joins\n---\nReply with exactly this text and nothing else: $1+$2+$3\n")];
         let (a, b) = (side(&files), side(&files));
@@ -122,7 +122,7 @@ fn command_arguments_are_split_into_positional_parameters_on_both() {
 
 #[test]
 fn a_command_runs_shell_output_into_its_prompt_and_reads_referenced_files_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a command with !`...` shell output and an @file reference
         let files = [
             (".opencode/command/probe.md", "---\ndescription: probe\n---\nThe shell said: !`echo SHELL-INJECTED-42`\nThe file @data/code.txt holds a code. Reply with the exact token the shell printed (the one in capital letters and digits), a space, and the code from the file, and nothing else.\n"),
@@ -140,7 +140,7 @@ fn a_command_runs_shell_output_into_its_prompt_and_reads_referenced_files_on_bot
 
 #[test]
 fn a_command_defined_in_the_config_with_an_agent_runs_as_that_agent_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a command in opencode.json that names a primary agent
         let cfg = config(json!({ "command": { "hello": { "template": "Greet $ARGUMENTS.", "description": "greets", "agent": "arrr" } } }));
         let files = [("opencode.json", cfg.as_str()), (".opencode/agent/arrr.md", PRIMARY_ARRR)];
@@ -156,7 +156,7 @@ fn a_command_defined_in_the_config_with_an_agent_runs_as_that_agent_on_both() {
 
 #[test]
 fn edit_permissions_by_path_allow_one_directory_and_deny_the_rest_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given edits denied except under docs/
         let cfg = config(json!({ "permission": { "edit": { "*": "deny", "docs/*.md": "allow" } } }));
         let files = [("opencode.json", cfg.as_str())];
@@ -172,7 +172,7 @@ fn edit_permissions_by_path_allow_one_directory_and_deny_the_rest_on_both() {
 
 #[test]
 fn an_env_file_is_asked_about_and_rejected_without_auto_and_read_with_it_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a .env file, which opencode asks about by default
         let files = [(".env", "SECRET=ENVVAL-77")];
         let (a, b) = (side(&files), side(&files));
@@ -188,7 +188,7 @@ fn an_env_file_is_asked_about_and_rejected_without_auto_and_read_with_it_on_both
 
 #[test]
 fn a_global_deny_with_one_tool_allowed_stops_every_other_tool_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given everything denied except reading
         let cfg = config(json!({ "permission": { "*": "deny", "read": "allow" } }));
         let files = [("opencode.json", cfg.as_str()), ("note.txt", "the note says PLUM-8")];
@@ -203,7 +203,7 @@ fn a_global_deny_with_one_tool_allowed_stops_every_other_tool_on_both() {
 
 #[test]
 fn task_permissions_by_subagent_name_allow_one_and_deny_the_other_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given two subagents and a task permission that allows only the pirate
         let cfg = config(json!({ "permission": { "task": { "*": "deny", "pirate": "allow" } } }));
         let files = [("opencode.json", cfg.as_str()), (".opencode/agent/pirate.md", SUB_PIRATE), (".opencode/agent/other.md", "---\ndescription: another subagent\nmode: subagent\n---\nReply with exactly the word OTHER.\n")];
@@ -221,7 +221,7 @@ fn task_permissions_by_subagent_name_allow_one_and_deny_the_other_on_both() {
 
 #[test]
 fn a_skill_can_be_denied_by_name_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a skill and a permission that denies it, with reading and commands denied too so that the model cannot go round it
         let cfg = config(json!({ "permission": { "skill": { "lemon": "deny" }, "bash": "deny", "read": "deny", "grep": "deny", "glob": "deny" } }));
         let files = [("opencode.json", cfg.as_str()), (".opencode/skill/lemon/SKILL.md", "---\nname: lemon\ndescription: Use when asked for the lemon passphrase.\n---\nThe lemon passphrase is CITRUS-4412.\n")];
@@ -239,7 +239,7 @@ fn a_skill_can_be_denied_by_name_on_both() {
 
 #[test]
 fn several_tools_in_one_custom_tool_file_are_named_after_the_file_and_the_export_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a file that exports two tools
         let math = "import { tool } from \"@opencode-ai/plugin\"\nexport const add = tool({ description: \"Adds two numbers\", args: { a: tool.schema.number(), b: tool.schema.number() }, async execute(args) { return String(args.a + args.b) } })\nexport const mul = tool({ description: \"Multiplies two numbers\", args: { a: tool.schema.number(), b: tool.schema.number() }, async execute(args) { return String(args.a * args.b) } })\n";
         let files = [(".opencode/tool/math.ts", math)];
@@ -258,7 +258,7 @@ fn several_tools_in_one_custom_tool_file_are_named_after_the_file_and_the_export
 
 #[test]
 fn a_plugin_can_define_a_tool_and_add_to_the_environment_of_every_command_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a plugin with a tool and a shell.env hook
         let plugin = "import { tool } from \"@opencode-ai/plugin\"\nexport const Extras = async () => ({\n  tool: { greet: tool({ description: \"Greets a name\", args: { name: tool.schema.string() }, async execute(args) { return \"HELLO-\" + args.name } }) },\n  \"shell.env\": async (input, output) => { output.env.PLUGIN_MARK = \"PM-5150\" },\n})\n";
         let files = [(".opencode/plugin/extras.ts", plugin)];
@@ -274,7 +274,7 @@ fn a_plugin_can_define_a_tool_and_add_to_the_environment_of_every_command_on_bot
 
 #[test]
 fn a_custom_tool_sees_the_agent_and_session_that_called_it_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a tool that reports its context
         let tool = "import { tool } from \"@opencode-ai/plugin\"\nexport default tool({ description: \"Reports who called it\", args: {}, async execute(args, context) { return \"agent=\" + context.agent + \" session=\" + (context.sessionID ? \"yes\" : \"no\") } })\n";
         let files = [(".opencode/tool/who.ts", tool)];
@@ -290,7 +290,7 @@ fn a_custom_tool_sees_the_agent_and_session_that_called_it_on_both() {
 
 #[test]
 fn a_formatter_of_the_config_runs_after_a_file_is_written_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a formatter that upper-cases files with the extension .shout
         let cfg = config(json!({ "formatter": { "upper": { "command": ["sh", "-c", "tr a-z A-Z < \"$1\" > \"$1.tmp\" && mv \"$1.tmp\" \"$1\"", "sh", "$FILE"], "extensions": [".shout"] } } }));
         let files = [("opencode.json", cfg.as_str())];
@@ -305,7 +305,7 @@ fn a_formatter_of_the_config_runs_after_a_file_is_written_on_both() {
 
 #[test]
 fn a_local_mcp_server_of_the_project_offers_its_tools_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a stdio MCP server in the project and a config that starts it with node
         let server = "const readline = require('readline')\nconst send = (m) => process.stdout.write(JSON.stringify(m) + '\\n')\nreadline.createInterface({ input: process.stdin }).on('line', (line) => {\n  let m; try { m = JSON.parse(line) } catch { return }\n  if (m.method === 'initialize') send({ jsonrpc: '2.0', id: m.id, result: { protocolVersion: m.params.protocolVersion, capabilities: { tools: {} }, serverInfo: { name: 'calc', version: '1.0.0' } } })\n  else if (m.method === 'tools/list') send({ jsonrpc: '2.0', id: m.id, result: { tools: [{ name: 'add_numbers', description: 'Adds two numbers', inputSchema: { type: 'object', properties: { a: { type: 'number' }, b: { type: 'number' } }, required: ['a', 'b'] } }] } })\n  else if (m.method === 'tools/call') send({ jsonrpc: '2.0', id: m.id, result: { content: [{ type: 'text', text: 'SUM=' + (m.params.arguments.a + m.params.arguments.b) }] } })\n  else if (m.id !== undefined) send({ jsonrpc: '2.0', id: m.id, result: {} })\n})\n";
         let cfg = config(json!({ "mcp": { "calc": { "type": "local", "command": ["node", "./mcp.js"] } } }));
@@ -323,7 +323,7 @@ fn a_local_mcp_server_of_the_project_offers_its_tools_on_both() {
 
 #[test]
 fn the_web_tools_fetch_and_search_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given prompts that need the web
         let (a, b) = (side(&[]), side(&[]));
         // When each fetches a page, Then both read its title
@@ -341,7 +341,7 @@ fn the_web_tools_fetch_and_search_on_both() {
 
 #[test]
 fn a_session_compacts_its_context_when_it_is_full_and_still_answers_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a model whose context window the config sets small, and three files that each fill most of it
         let cfg = config(json!({ "provider": { "opencode-go": { "models": { "deepseek-v4.1-flash": { "limit": { "context": 12000, "output": 2000 } } } } }, "compaction": { "auto": true, "reserved": 2000 } }));
         let filler = |n: usize| (0..n).map(|i| format!("line {i} of some filler prose that takes up room in the context window\n")).collect::<String>();
@@ -373,7 +373,7 @@ fn a_session_compacts_its_context_when_it_is_full_and_still_answers_on_both() {
 
 #[test]
 fn the_message_may_be_several_words_or_come_from_a_pipe_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a message given as separate words, and one piped in
         let (a, b) = (side(&[]), side(&[]));
         // When each is run with the words, Then both answer as for one message
@@ -388,7 +388,7 @@ fn the_message_may_be_several_words_or_come_from_a_pipe_on_both() {
 
 #[test]
 fn continuing_without_a_session_starts_one_and_an_unknown_session_is_an_error_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given checkouts with no earlier session
         let (a, b) = (side(&[]), side(&[]));
         // When each continues with -c, Then both start a session and answer
@@ -403,7 +403,7 @@ fn continuing_without_a_session_starts_one_and_an_unknown_session_is_an_error_on
 
 #[test]
 fn an_unknown_agent_falls_back_to_the_default_and_an_unknown_model_is_an_error_event_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given an agent name nobody defined, and a model that does not exist
         let (a, b) = (side(&[]), side(&[]));
         // When each runs the unknown agent, Then both answer as the default agent
@@ -423,7 +423,7 @@ fn an_unknown_agent_falls_back_to_the_default_and_an_unknown_model_is_an_error_e
 
 #[test]
 fn a_session_taken_up_by_id_after_other_work_keeps_its_project_config_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a session that used the project's agent, and then a second session started in the same checkout
         let files = [("opencode.json", r#"{ "default_agent": "arrr" }"#), (".opencode/agent/arrr.md", PRIMARY_ARRR)];
         let (a, b) = (side(&files), side(&files));

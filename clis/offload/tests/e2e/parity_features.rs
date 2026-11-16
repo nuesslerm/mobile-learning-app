@@ -3,7 +3,7 @@
 //! reports. Each case builds the same project in two checkouts, runs `opencode run` in one and `ask` in the other with a real model, and
 //! compares what the two left: the tools called and their results, the files, the answers, the events. `ask` sends the project's config
 //! and `.opencode` files along by itself; a file a tool reads or changes is named with `--files`, since the service has no checkout.
-use crate::parity::{both_say, events, say, session_of, side, tools, Out, Side, PONG};
+use crate::parity_support::{both_say, events, say, session_of, side, tools, Out, Side, PONG};
 use serde_json::{json, Value};
 
 /// The `output` (or `error`) each call of `tool` produced, in order.
@@ -47,7 +47,7 @@ const PIRATE: &str = "---\ndescription: pirate subagent that answers ARRR\nmode:
 
 #[test]
 fn permission_rules_in_the_project_config_allow_and_deny_the_same_bash_commands() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a config where the last matching rule wins: everything denied, `echo *` allowed, `rm *` denied, and a file to protect
         let (name, content) = config(json!({ "bash": { "*": "deny", "echo *": "allow", "rm *": "deny" } }));
         let files = [(name, content.as_str()), ("x.txt", "keep me")];
@@ -68,7 +68,7 @@ fn permission_rules_in_the_project_config_allow_and_deny_the_same_bash_commands(
 
 #[test]
 fn a_command_that_asks_is_rejected_without_auto_and_run_with_it_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a config where bash asks
         let (name, content) = config(json!({ "bash": "ask" }));
         let files = [(name, content.as_str())];
@@ -89,7 +89,7 @@ fn a_command_that_asks_is_rejected_without_auto_and_run_with_it_on_both() {
 
 #[test]
 fn bash_keeps_its_exit_code_streams_and_working_directory_between_calls_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a prompt that exits 3 with output on both streams, then writes a file and reads it back in another call
         let (a, b) = (side(&[]), side(&[]));
         let prompt = "With your bash tool run exactly `sh -c 'echo out-line; echo err-line >&2; sleep 1; exit 3'`. Then run `echo kept > state.txt`. Then run `cat state.txt`. Then reply with the exit code of the first command as a digit.";
@@ -110,7 +110,7 @@ fn bash_keeps_its_exit_code_streams_and_working_directory_between_calls_on_both(
 
 #[test]
 fn a_project_skill_is_listed_loaded_and_used_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a skill in the project and a session
         let files = [(".opencode/skill/lemon/SKILL.md", LEMON)];
         let (a, b) = (side(&files), side(&files));
@@ -127,7 +127,7 @@ fn a_project_skill_is_listed_loaded_and_used_on_both() {
 
 #[test]
 fn the_instructions_of_the_project_reach_the_model_on_both_even_in_a_continued_session() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given AGENTS.md, an instruction file named by the config's `instructions` glob, and a skill
         let files = [
             ("AGENTS.md", "Project rule: end every reply with the exact token ZEBRA-7."),
@@ -151,7 +151,7 @@ fn the_instructions_of_the_project_reach_the_model_on_both_even_in_a_continued_s
 
 #[test]
 fn a_project_command_runs_with_the_message_as_its_arguments_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a command that greets whatever it is given
         let files = [(".opencode/command/greet.md", "---\ndescription: greet\n---\nReply with the word HELLO-$ARGUMENTS and nothing else.\n")];
         let (a, b) = (side(&files), side(&files));
@@ -164,7 +164,7 @@ fn a_project_command_runs_with_the_message_as_its_arguments_on_both() {
 
 #[test]
 fn a_subagent_is_called_through_the_task_tool_with_its_own_session_and_its_own_rules_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a subagent that answers ARRR, and one that may not edit but is asked to
         let files = [
             (".opencode/agent/pirate.md", PIRATE),
@@ -196,7 +196,7 @@ fn a_subagent_is_called_through_the_task_tool_with_its_own_session_and_its_own_r
 
 #[test]
 fn plugin_hooks_block_a_call_rewrite_its_result_and_see_the_session_go_idle_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a plugin that blocks `rm`, appends a marker to every bash result and writes a file when the session goes idle
         let files = [(".opencode/plugin/hooks.ts", GUARD), ("x.txt", "keep me")];
         let (a, b) = (side(&files), side(&files));
@@ -216,7 +216,7 @@ fn plugin_hooks_block_a_call_rewrite_its_result_and_see_the_session_go_idle_on_b
 
 #[test]
 fn a_custom_tool_of_the_project_is_offered_and_called_with_its_arguments_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a tool defined in the project
         let files = [(".opencode/tool/shout.ts", SHOUT)];
         let (a, b) = (side(&files), side(&files));
@@ -233,7 +233,7 @@ fn a_custom_tool_of_the_project_is_offered_and_called_with_its_arguments_on_both
 
 #[test]
 fn an_agent_with_a_tool_switched_off_is_held_to_it_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given an agent with bash off
         let files = [(".opencode/agent/nobash.md", "---\ndescription: no bash\nmode: primary\ntools:\n  bash: false\n---\nYou answer briefly.\n")];
         let (a, b) = (side(&files), side(&files));
@@ -245,7 +245,7 @@ fn an_agent_with_a_tool_switched_off_is_held_to_it_on_both() {
 
 #[test]
 fn edit_and_todo_tools_work_the_same_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a file with two lines
         let files = [("list.txt", "alpha\nbeta\n")];
         let (a, b) = (side(&files), side(&files));
@@ -264,7 +264,7 @@ fn edit_and_todo_tools_work_the_same_on_both() {
 
 #[test]
 fn a_long_session_keeps_every_turn_in_context_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given five turns that each give a fact, on each side, continued with -c
         let (a, b) = (side(&[]), side(&[]));
         let facts = ["The lock code is 7421.", "The ferry leaves from pier NINE.", "The cat is called Tobermory.", "The password is MARIGOLD.", "The meeting is on a Thursday."];
@@ -286,7 +286,7 @@ fn a_long_session_keeps_every_turn_in_context_on_both() {
 
 #[test]
 fn a_large_attached_file_is_read_to_its_last_line_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a 150 KB file whose last line holds a code
         let body: String = (0..3000).map(|i| format!("line {i}: filler text to make the file long\n")).collect::<String>() + "FINAL LINE: the vault code is 90210-ZULU\n";
         let files = [("big.txt", body.as_str())];
@@ -301,7 +301,7 @@ fn a_large_attached_file_is_read_to_its_last_line_on_both() {
 
 #[test]
 fn the_usage_each_step_reports_has_the_same_fields_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a plain prompt with --format json
         let (a, b) = (side(&[]), side(&[]));
         let (opencode, ask) = both_json(&a, &b, PONG, &[], &[]);
@@ -335,7 +335,7 @@ fn durations(out: &Out, tool: &str) -> Vec<u64> {
 
 #[test]
 fn a_command_that_is_silent_for_over_a_minute_finishes_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a command that makes no output for 70 seconds, longer than the service waits for an event before it gives up
         let (a, b) = (side(&[]), side(&[]));
         let prompt = "With your bash tool run exactly `sleep 70 && echo LONG-DONE > long.txt`, with its timeout parameter set to 120000. Then reply with DONE.";
@@ -352,7 +352,7 @@ fn a_command_that_is_silent_for_over_a_minute_finishes_on_both() {
 
 #[test]
 fn the_timeout_of_a_bash_call_stops_a_long_command_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a command that would take 30 seconds and a timeout of two
         let (a, b) = (side(&[]), side(&[]));
         let prompt = "Run `sleep 30` with your bash tool and its timeout parameter set to 2000 (milliseconds). Then reply with what the tool reported.";
@@ -369,7 +369,7 @@ fn the_timeout_of_a_bash_call_stops_a_long_command_on_both() {
 
 #[test]
 fn a_background_job_that_outlives_the_run_is_there_for_the_next_turn_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a first turn that starts a job that finishes 12 seconds later and ends at once
         let (a, b) = (side(&[]), side(&[]));
         let start = "With your bash tool run exactly `nohup sh -c 'sleep 12; echo late > late.txt' > /dev/null 2>&1 &` and then reply with STARTED.";
@@ -387,7 +387,7 @@ fn a_background_job_that_outlives_the_run_is_there_for_the_next_turn_on_both() {
 
 #[test]
 fn a_job_scheduled_inside_the_run_fires_while_the_run_goes_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a delayed job started in the background and a wait longer than its delay
         let (a, b) = (side(&[]), side(&[]));
         let prompt = "With your bash tool run, as three separate calls in this order: `(sleep 5; echo fired > sched.txt) > /dev/null 2>&1 &`, then `sleep 9`, then `cat sched.txt`. Reply with the content of the last one only.";
@@ -401,7 +401,7 @@ fn a_job_scheduled_inside_the_run_fires_while_the_run_goes_on_both() {
 
 #[test]
 fn a_timer_in_a_plugin_fires_while_the_run_goes_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a plugin that schedules a write four seconds after it loads
         let plugin = "export const Timer = async ({ directory }) => {\n  setTimeout(async () => { await Bun.write(directory + \"/tick.txt\", \"tock\") }, 4000)\n  return {}\n}\n";
         let files = [(".opencode/plugin/timer.ts", plugin)];
@@ -416,7 +416,7 @@ fn a_timer_in_a_plugin_fires_while_the_run_goes_on_both() {
 
 #[test]
 fn subagent_tasks_started_together_both_run_and_report_on_both() {
-    crate::parity::retrying(|| {
+    crate::parity_support::retrying(|| {
         // Given a subagent and a prompt that starts it twice in one message
         let files = [(".opencode/agent/pirate.md", PIRATE)];
         let (a, b) = (side(&files), side(&files));

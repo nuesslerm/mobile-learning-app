@@ -11,6 +11,9 @@ mod rca;
 #[path = "e2e/ask.rs"]
 mod ask;
 
+#[path = "e2e/parity_support.rs"]
+mod parity_support;
+
 #[path = "e2e/parity.rs"]
 mod parity;
 
