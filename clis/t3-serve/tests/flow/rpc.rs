@@ -219,7 +219,7 @@ fn a_project_can_be_created_updated_and_archived_and_a_thread_needs_a_live_proje
     rpc.chunk(&shell);
     rpc.call("projects.mutate", json!({"type": "project.update", "commandId": "c-2", "projectId": "p1", "title": "Renamed"}));
     let renamed = rpc.chunk(&shell);
-    rpc.call("projects.mutate", json!({"type": "project.archive", "commandId": "c-3", "projectId": "p1"}));
+    rpc.call("projects.mutate", json!({"type": "project.update", "commandId": "c-3", "projectId": "p1", "archived": true}));
     let archived = rpc.chunk(&shell);
 
     // Then the shell sees the rename as a project update and the archive as a removal

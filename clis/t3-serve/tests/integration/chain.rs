@@ -91,7 +91,7 @@ fn what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_ex
         // When the phone lists the notes directory and reads the file the model wrote
         let listed = phone.call(case, &chain, &["rpc:projects.listEntries"], "projects.listEntries", json!({"projectId": "p1", "relativePath": "notes"}));
         let (listing_agent, listing_executor) = last_window(case);
-        let read = phone.call(case, &chain, &["rpc:projects.readFile"], "projects.readFile", json!({"projectId": "p1", "relativePath": "notes/a.txt"}));
+        let read = phone.call(case, &chain, &["rpc:projects.readFile"], "projects.readFile", json!({"cwd": chain.repo.path().display().to_string(), "relativePath": "notes/a.txt"}));
         let (read_agent, read_executor) = last_window(case);
         // Then the entries and the contents are the repository's, and each call went agent API, then executor
         assert_eq!(success(&listed)["entries"][0]["path"], "notes/a.txt");

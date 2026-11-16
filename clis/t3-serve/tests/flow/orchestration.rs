@@ -192,8 +192,8 @@ fn the_file_rpcs_list_and_read_through_the_agent_api_under_the_project_and_a_fil
     // When a client lists the root and src, and reads a file and one that is not there
     let root = rpc.call("projects.listEntries", json!({"projectId": "p1"}));
     let src = rpc.call("projects.listEntries", json!({"projectId": "p1", "relativePath": "src"}));
-    let read = rpc.call("projects.readFile", json!({"projectId": "p1", "relativePath": "README.md"}));
-    let missing = rpc.call("projects.readFile", json!({"projectId": "p1", "relativePath": "nope"}));
+    let read = rpc.call("projects.readFile", json!({"cwd": "/workspace/demo", "relativePath": "README.md"}));
+    let missing = rpc.call("projects.readFile", json!({"cwd": "/workspace/demo", "relativePath": "nope"}));
     // Then the entries are paths with kinds, the read returns the contents, and a miss is a typed error
     let paths: Vec<(&str, &str)> = success(&root)["entries"].as_array().unwrap().iter().map(|e| (e["path"].as_str().unwrap(), e["kind"].as_str().unwrap())).collect();
     assert_eq!(paths, [("README.md", "file"), ("src", "directory")]);

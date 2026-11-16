@@ -26,8 +26,7 @@
       ],
       "ids": [
         "t3-rpc-attachments.createUploadUrl",
-        "t3-rpc-peerLinks.answerRequest",
-        "t3-rpc-projects.mutate"
+        "t3-rpc-peerLinks.answerRequest"
       ]
     },
     {

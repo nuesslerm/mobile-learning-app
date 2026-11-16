@@ -70,7 +70,7 @@ fn a_file_written_is_listed_and_read_back_by_the_next_calls_and_a_second_write_r
     let list = |rpc: &mut Rpc, path: &str| -> Vec<String> {
         success(&rpc.call("projects.listEntries", json!({"projectId": "p1", "relativePath": path})))["entries"].as_array().unwrap().iter().map(|e| e["path"].as_str().unwrap().to_string()).collect()
     };
-    let read = |rpc: &mut Rpc, path: &str| rpc.call("projects.readFile", json!({"projectId": "p1", "relativePath": path}));
+    let read = |rpc: &mut Rpc, path: &str| rpc.call("projects.readFile", json!({"cwd": "/workspace/demo", "relativePath": path}));
     // When the phone lists the root, writes a file below a new directory, lists, reads it back, writes it again and reads and measures it
     let before = list(&mut rpc, "");
     let wrote = rpc.call("projects.writeFile", json!({"cwd": "/workspace/demo", "relativePath": "src/new.txt", "contents": "one\n"}));

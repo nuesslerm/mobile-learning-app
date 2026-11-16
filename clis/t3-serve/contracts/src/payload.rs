@@ -63,6 +63,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("projects.listIgnoredFiles", "cwd:s"),
     ("projects.writeFile", "cwd:s relativePath:s contents:s"),
     ("projects.createNew", "name:s"),
+    ("projects.readFile", "cwd:s relativePath:s allowMissing:b?"),
     ("pullRequests.routingIdentity", "host:s"),
     ("pullRequests.linkedThreads", "projectId:s host:s? expectedAccountId:s? allowStale:b? repository:s number:n"),
     ("pullRequests.generateReviewGuide", "projectId:s host:s? expectedAccountId:s? allowStale:b? repository:s number:n"),
@@ -270,6 +271,9 @@ pub fn minimal(tag: &str) -> Option<Value> {
     if tag == "device.action" {
         return Some(serde_json::json!({"deviceId": "a", "type": "shake"}));
     }
+    if tag == "projects.mutate" {
+        return Some(serde_json::json!({"type": "project.delete", "commandId": "a", "projectId": "a"}));
+    }
     let (_, schema) = SCHEMAS.iter().find(|(t, _)| *t == tag)?;
     Some(minimal_of(schema))
 }
@@ -311,6 +315,9 @@ pub fn defect(tag: &str, payload: &Value) -> Option<String> {
     if tag == "device.action" {
         return device_action_defect(payload);
     }
+    if tag == "projects.mutate" {
+        return project_mutation_defect(payload);
+    }
     if tag == "provider.consumeResetCredit" {
         return consume_reset_credit_defect(payload);
     }
@@ -333,6 +340,14 @@ fn device_action_defect(payload: &Value) -> Option<String> {
     let named = payload.get("type").and_then(Value::as_str).is_some_and(|t| DEVICE_ACTIONS.contains(&t));
     let members: Vec<String> = DEVICE_ACTIONS.iter().map(|t| format!("{{ readonly \"type\": \"{t}\", ... }}")).collect();
     (!named).then(|| format!("Expected {}", members.join(" | ")))
+}
+
+const PROJECT_MUTATIONS: [&str; 3] = ["project.create", "project.update", "project.delete"];
+
+/// A mutation that names none of the union's members fails the whole union; a named member's own fields are the handler's.
+fn project_mutation_defect(payload: &Value) -> Option<String> {
+    let named = payload.get("type").and_then(Value::as_str).is_some_and(|t| PROJECT_MUTATIONS.contains(&t));
+    (!named).then(|| format!("Expected {}", tagged_union(&PROJECT_MUTATIONS, "type")))
 }
 
 /// How a command of `kind` decodes: `None` when its member is not decoded here, else `Err` with the defect text of the first field that fails.
@@ -728,6 +743,14 @@ mod tests {
         assert!(d("device.action", json!({})).is_some());
         assert_eq!(d("device.action", json!({"deviceId": "a", "type": "shake"})), None);
         assert_eq!(minimal("device.action").and_then(|m| defect("device.action", &m)), None);
+        // And a project mutation naming no member fails the union, a file read names its first missing key
+        let union = "Expected { readonly \"type\": \"project.create\", ... } | { readonly \"type\": \"project.update\", ... } | { readonly \"type\": \"project.delete\", ... }";
+        assert_eq!(d("projects.mutate", json!({})).unwrap(), union);
+        assert_eq!(d("projects.mutate", json!("wrong")).unwrap(), union);
+        assert_eq!(d("projects.mutate", json!({"type": "project.delete"})), None);
+        assert_eq!(minimal("projects.mutate").and_then(|m| defect("projects.mutate", &m)), None);
+        assert_eq!(d("projects.readFile", json!({})).unwrap(), "Missing key\n  at [\"cwd\"]");
+        assert_eq!(d("projects.readFile", json!({"cwd": 7})).unwrap(), "Expected string\n  at [\"cwd\"]");
         assert_eq!(minimal("device.testHost").and_then(|m| defect("device.testHost", &m)), None);
     }
 

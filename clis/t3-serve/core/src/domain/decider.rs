@@ -421,6 +421,7 @@ pub fn decide_project(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decisio
             one(draft("project.created", None, Some(id), now, Value::Object(project)))
         }
         _ if !state.project_exists(id) => Err(format!("project {id} does not exist")),
+        "update" if cmd.body.get("archived") == Some(&json!(true)) => one(draft("project.archived", None, Some(id), now, json!({"projectId": id, "archivedAt": at}))),
         "update" => {
             let patch = cmd.rest(&["projectId", "id", "createdAt", "updatedAt", "archivedAt"]);
             if patch.is_empty() {
