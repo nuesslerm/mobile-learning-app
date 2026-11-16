@@ -26,7 +26,7 @@ pub(crate) fn key() -> &'static str {
             return key;
         }
         let out = Command::new(std::env::var("WF_BIN").unwrap_or_else(|_| "wf".into())).args(["secret", "get", "OPENCODE_GO_API_KEY", "--backend", "bitwarden"]).output().expect("the wf binary starts");
-        assert!(out.status.success() && !out.stdout.is_empty(), "OPENCODE_GO_API_KEY is not in the vault for this machine: {}", String::from_utf8_lossy(&out.stderr));
+        assert!(out.status.success() && !out.stdout.is_empty(), "OPENCODE_GO_API_KEY is neither in the environment nor in the vault for this machine; the e2e starts its own rca-service and opencode and needs only this model key: {}", String::from_utf8_lossy(&out.stderr));
         String::from_utf8_lossy(&out.stdout).trim().to_string()
     })
 }
