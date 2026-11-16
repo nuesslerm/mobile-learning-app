@@ -336,31 +336,6 @@
       ]
     },
     {
-      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
-      ],
-      "ids": [
-        "t3-command-delegated-task.request-invalid-no-payload",
-        "t3-command-message.dispatch-invalid-no-payload",
-        "t3-rpc-attachments.createUploadUrl-boundary-full",
-        "t3-rpc-attachments.createUploadUrl-invalid-no-payload",
-        "t3-rpc-attachments.createUploadUrl-invalid-wrong-type",
-        "t3-rpc-attachments.createUploadUrl-valid-min",
-        "t3-rpc-filesystem.browse-invalid-wrong-type-partialPath",
-        "t3-rpc-filesystem.getMetadata-invalid-drop-paths",
-        "t3-rpc-filesystem.getMetadata-invalid-no-payload",
-        "t3-rpc-filesystem.getMetadata-invalid-wrong-type-paths",
-        "t3-rpc-sourceControl.star-invalid-drop-provider",
-        "t3-rpc-sourceControl.star-invalid-no-payload",
-        "t3-rpc-sourceControl.star-invalid-wrong-type-provider",
-        "t3-rpc-terminal.open-invalid-drop-cwd",
-        "t3-rpc-terminal.open-invalid-no-payload",
-        "t3-rpc-terminal.open-invalid-wrong-type-cwd"
-      ]
-    },
-    {
       "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error._tag",
       "severity": "drift",
       "diffs": [
@@ -408,6 +383,27 @@
         "t3-rpc-subscribeDiscoveredLocalServers-valid-min",
         "t3-rpc-subscribeResourceTelemetry-invalid-no-payload",
         "t3-rpc-subscribeResourceTelemetry-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ],
+      "ids": [
+        "t3-command-delegated-task.request-invalid-no-payload",
+        "t3-command-message.dispatch-invalid-no-payload",
+        "t3-rpc-filesystem.browse-invalid-wrong-type-partialPath",
+        "t3-rpc-filesystem.getMetadata-invalid-drop-paths",
+        "t3-rpc-filesystem.getMetadata-invalid-no-payload",
+        "t3-rpc-filesystem.getMetadata-invalid-wrong-type-paths",
+        "t3-rpc-sourceControl.star-invalid-drop-provider",
+        "t3-rpc-sourceControl.star-invalid-no-payload",
+        "t3-rpc-sourceControl.star-invalid-wrong-type-provider",
+        "t3-rpc-terminal.open-invalid-drop-cwd",
+        "t3-rpc-terminal.open-invalid-no-payload",
+        "t3-rpc-terminal.open-invalid-wrong-type-cwd"
       ]
     },
     {

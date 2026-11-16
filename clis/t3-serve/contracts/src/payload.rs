@@ -99,6 +99,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("scheduledTasks.listWebhookDeliveries", "id:s acceptAnyOutcome:b?"),
     ("scheduledTasks.getWebhookDelivery", "id:s deliveryId:s acceptAnyOutcome:b?"),
     ("attachments.delete", "attachmentId:s"),
+    ("attachments.createUploadUrl", "name:s mimeType:l(image/gif|image/jpeg|image/png|image/webp) sizeBytes:n"),
     ("assets.createUrl", "resource:ar"),
     ("assets.persistChatAttachments", "threadId:s messageId:s attachments:a(uploadImage)"),
     ("mcpApps.callTool", "threadId:s itemId:s name:s arguments:o"),
@@ -330,6 +331,9 @@ pub fn defect(tag: &str, payload: &Value) -> Option<String> {
     if tag == "provider.consumeResetCredit" {
         return consume_reset_credit_defect(payload);
     }
+    if tag == "attachments.createUploadUrl" {
+        return attachment_upload_defect(payload);
+    }
     let (_, schema) = SCHEMAS.iter().find(|(t, _)| *t == tag)?;
     if tag == "scheduledTasks.upsert" && payload.pointer("/schedule/type").and_then(Value::as_str) != Some("interval") {
         // The schedule is a union keyed by `type`; only the interval member is decoded here
@@ -344,6 +348,18 @@ fn consume_reset_credit_defect(payload: &Value) -> Option<String> {
     let instance = decode("instanceId:s creditId:s?", body)?;
     let source = decode("sourceId:s accountId:s creditId:s", body)?;
     Some(format!("{instance}\n{source}"))
+}
+
+const UPLOAD_UNION: &str = "Expected { readonly \"type\"?: \"image\", ... } | { readonly \"type\": \"file\", ... }";
+
+/// The input is a union of an image member (`type` optional) and a file member; the `type` picks the member whose first defect is reported.
+fn attachment_upload_defect(payload: &Value) -> Option<String> {
+    let Some(body) = payload.as_object() else { return Some(UPLOAD_UNION.into()) };
+    match body.get("type").map(Value::as_str) {
+        None | Some(Some("image")) => decode("name:s mimeType:l(image/gif|image/jpeg|image/png|image/webp) sizeBytes:n", body),
+        Some(Some("file")) => decode("name:s mimeType:s sizeBytes:n", body),
+        _ => Some(UPLOAD_UNION.into()),
+    }
 }
 
 const DEVICE_ACTIONS: [&str; 14] = ["setAppearance", "setTextSize", "setToggle", "setLiquidGlass", "setColorFilter", "setOrientation", "setLocation", "clearLocation", "setPermission", "openUrl", "launchApp", "terminateApp", "shake", "sendPush"];
@@ -808,6 +824,14 @@ mod tests {
         assert_eq!(d("scheduledTasks.upsert", task(json!({"type": "interval", "everyMs": 0}))).unwrap(), "Expected a value greater than 0\n  at [\"schedule\"][\"everyMs\"]");
         assert_eq!(d("scheduledTasks.upsert", task(json!({"type": "interval", "everyMs": 60000}))), None);
         assert_eq!(minimal("scheduledTasks.upsert").and_then(|m| defect("scheduledTasks.upsert", &m)), None);
+        // And an upload url asks the image member unless the type is "file", and names the union for any other type
+        let upload = |p: Value| defect("attachments.createUploadUrl", &p);
+        assert_eq!(upload(json!({})).unwrap(), "Missing key\n  at [\"name\"]");
+        assert_eq!(upload(json!({"type": "image", "name": "a", "mimeType": "x", "sizeBytes": 0})).unwrap(), "Expected \"image/gif\" | \"image/jpeg\" | \"image/png\" | \"image/webp\"\n  at [\"mimeType\"]");
+        assert_eq!(upload(json!({"type": "file", "name": "a"})).unwrap(), "Missing key\n  at [\"mimeType\"]");
+        assert_eq!(upload(json!({"type": "other"})).unwrap(), UPLOAD_UNION);
+        assert_eq!(upload(json!("wrong")).unwrap(), UPLOAD_UNION);
+        assert_eq!(minimal("attachments.createUploadUrl").and_then(|m| defect("attachments.createUploadUrl", &m)), None);
         assert_eq!(d("projects.readFile", json!({})).unwrap(), "Missing key\n  at [\"cwd\"]");
         assert_eq!(d("projects.readFile", json!({"cwd": 7})).unwrap(), "Expected string\n  at [\"cwd\"]");
         // And a worktree setup subscription needs its thread
