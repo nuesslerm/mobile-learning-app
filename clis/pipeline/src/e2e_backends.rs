@@ -304,10 +304,18 @@ struct Recorded {
     name: String,
     pid: u32,
     bin: String,
+    log: Option<PathBuf>,
+    secrets: Vec<String>,
 }
 
 fn as_recorded(entry: &Value) -> Option<Recorded> {
-    Some(Recorded { name: entry["name"].as_str()?.to_string(), pid: u32::try_from(entry["pid"].as_u64()?).ok()?, bin: entry["bin"].as_str()?.to_string() })
+    Some(Recorded { name: entry["name"].as_str()?.to_string(), pid: u32::try_from(entry["pid"].as_u64()?).ok()?, bin: entry["bin"].as_str()?.to_string(), log: entry["log"].as_str().map(PathBuf::from), secrets: secrets_of(entry) })
+}
+
+/// The values a log must never show: the recorded env of the backend and the named bearer.
+fn secrets_of(entry: &Value) -> Vec<String> {
+    let env = entry["env"].as_object().into_iter().flat_map(|m| m.values()).filter_map(|v| v.as_str().map(str::to_string));
+    env.chain(std::env::var("E2E_LEETCODE_BEARER").ok()).filter(|v| v.len() >= 8).collect()
 }
 
 fn recorded(state: &Value) -> Vec<Recorded> {
@@ -364,9 +372,27 @@ fn stop_all(all: &[Recorded]) -> Vec<Value> {
         .collect()
 }
 
+const LOG_TAIL_LINES: usize = 80;
+
+/// The last lines of each backend's log in a `::group::` block, secrets masked, before the backends stop and the run's files go.
+fn print_log_tails(all: &[Recorded]) {
+    for r in all {
+        let Some(log) = &r.log else { continue };
+        let text = String::from_utf8_lossy(&std::fs::read(log).unwrap_or_default()).into_owned();
+        let lines: Vec<&str> = text.lines().collect();
+        println!("::group::{} log (last {LOG_TAIL_LINES} lines)", r.name);
+        for line in &lines[lines.len().saturating_sub(LOG_TAIL_LINES)..] {
+            println!("{}", r.secrets.iter().fold(crate::ci_comment::redact(line, ""), |l, secret| l.replace(secret.as_str(), "[REDACTED]")));
+        }
+        println!("::endgroup::");
+    }
+}
+
 fn down(dir: &Path) -> i32 {
     let state = read_state(dir).unwrap_or(Value::Null);
-    let stopped = stop_all(&recorded(&state));
+    let all = recorded(&state);
+    print_log_tails(&all);
+    let stopped = stop_all(&all);
     let _ = std::fs::remove_file(dir.join(STATE));
     println!("{}", json!({ "ok": true, "dir": dir.display().to_string(), "stopped": stopped }));
     0

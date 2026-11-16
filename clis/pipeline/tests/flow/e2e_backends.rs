@@ -244,3 +244,24 @@ fn given_a_named_bearer_and_ports_when_up_runs_then_the_leetcode_backend_takes_b
     assert_eq!(env["EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL"], json!(format!("http://127.0.0.1:{port}")));
     sb.wf(&["down"], &rca, &leetcode);
 }
+
+#[test]
+fn given_a_backend_that_logs_when_down_runs_then_the_last_80_lines_print_in_a_group_with_the_token_masked() {
+    // Given a leetcode stand-in that writes 100 lines, one with its own token, then serves /health
+    let sb = Sandbox::new();
+    let logging = format!("#!/usr/bin/env python3\nimport os\nfor i in range(100):\n    print('line %d' % i, flush=True)\nprint('auth ' + os.environ['VM_GATEWAY_AUTH_SEED'], flush=True)\n{}", SERVER.trim_start_matches("#!/usr/bin/env python3\n"));
+    let (rca, leetcode) = (sb.stub("rca", SERVER), sb.stub("leetcode", &logging));
+    let secret = "s3cretbearervalue0123456789abcdef";
+    let env = [("E2E_LEETCODE_BEARER", secret)];
+    let (code, up) = sb.wf_env(&["up"], &rca, &leetcode, &env);
+    assert_eq!(code, 0, "{up}");
+    // When down runs
+    let state = sb.state().display().to_string();
+    let r = run_wf(&["test", "backends", "down", "--dir", &state], &RunOpts::default());
+    // Then the tail is in a group named after the backend, holds the last lines only and never the token
+    let out = r.stdout.clone();
+    assert!(out.contains("::group::leetcode-backend"), "{out}");
+    assert!(out.contains("line 99") && !out.contains("line 10\n") && out.contains("auth [REDACTED]"), "{out}");
+    assert!(!out.contains(secret), "{out}");
+    assert!(out.contains("::endgroup::"));
+}
