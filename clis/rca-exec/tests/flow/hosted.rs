@@ -528,3 +528,52 @@ fn given_graphql_thread_nodes_when_the_threads_are_read_then_lines_side_hunk_and
     assert_eq!(o["id"], "42");
     assert!(["database_id", "reaction_subject_id", "avatar_url", "reactions"].iter().all(|k| o.get(k).is_none()), "{o}");
 }
+
+fn page_rule(cursor: Option<&str>, connection: &str, nodes: Value, more: Option<&str>) -> Rule {
+    let mut args = vec!["api", "graphql", "-f=owner=octo", "-f=name=hello", "-F=number=12"];
+    let flag = cursor.map(|c| format!("-f=cursor={c}"));
+    args.extend(flag.as_deref());
+    let stdout = json!({"data": {"repository": {"pullRequest": {connection: {"nodes": nodes, "pageInfo": {"hasNextPage": more.is_some(), "endCursor": more}}}}}});
+    Rule { prefix: true, stdout: stdout.to_string(), ..rule("gh", &args) }
+}
+
+fn comment(id: &str, body: &str) -> Value {
+    json!({"id": id, "databaseId": 1, "author": {"__typename": "User", "login": "ada", "avatarUrl": "https://a/ada.png"}, "body": body, "createdAt": "2026-01-02T03:04:05Z", "url": "https://x/1", "viewerDidAuthor": false, "reactionGroups": []})
+}
+
+#[test]
+fn given_a_page_that_ends_where_the_request_began_when_the_comments_are_read_then_the_read_is_refused_after_two_requests() {
+    let b = bench();
+    // Given a first page that points at C1, and a page after C1 that claims more and ends at C1 again
+    b.clis.rules(&[page_rule(Some("C1"), "comments", json!([comment("IC_2", "b")]), Some("C1")), page_rule(None, "comments", json!([comment("IC_1", "a")]), Some("C1"))], &[]);
+    // When read
+    let err = call(&b.ex, "r", PR_COMMENTS, json!({"provider": "github", "repo": "octo/hello", "number": 12})).unwrap_err();
+    // Then the conversation is refused, not answered cut or looped over
+    assert!(err.message.contains("cursor did not advance"), "{}", err.message);
+    assert_eq!(b.clis.argvs().len(), 2);
+}
+
+#[test]
+fn given_a_node_shown_on_two_pages_when_the_comments_are_read_then_it_is_answered_once_in_its_first_place() {
+    let b = bench();
+    // Given a node that the second page shows again, with its newer text
+    b.clis.rules(&[page_rule(Some("C1"), "comments", json!([comment("IC_1", "edited"), comment("IC_2", "b")]), None), page_rule(None, "comments", json!([comment("IC_1", "a")]), Some("C1"))], &[]);
+    // When read
+    let out = call(&b.ex, "r", PR_COMMENTS, json!({"provider": "github", "repo": "octo/hello", "number": 12})).unwrap();
+    // Then
+    let bodies: Vec<&str> = out["comments"].as_array().unwrap().iter().map(|c| c["body"].as_str().unwrap()).collect();
+    assert_eq!(bodies, ["edited", "b"]);
+}
+
+#[test]
+fn given_a_thread_with_more_comments_whose_further_page_does_not_advance_when_the_threads_are_read_then_the_read_is_refused() {
+    let b = bench();
+    // Given a thread that says more comments follow CC1, and a further page that ends at CC1 again
+    let thread = json!([{"id": "PRRT_1", "isResolved": false, "isOutdated": false, "path": "a.rs", "line": 1, "comments": {"nodes": [comment("PRRC_1", "a")], "pageInfo": {"hasNextPage": true, "endCursor": "CC1"}}}]);
+    let more = json!({"data": {"node": {"id": "PRRT_1", "comments": {"nodes": [comment("PRRC_2", "b")], "pageInfo": {"hasNextPage": true, "endCursor": "CC1"}}}}});
+    b.clis.rules(&[Rule { prefix: true, stdout: more.to_string(), ..rule("gh", &["api", "graphql", "-f=thread=PRRT_1", "-f=cursor=CC1"]) }, page_rule(None, "reviewThreads", thread, None)], &[]);
+    // When read
+    let err = call(&b.ex, "r", PR_THREADS, json!({"provider": "github", "repo": "octo/hello", "number": 12})).unwrap_err();
+    // Then
+    assert!(err.message.contains("cursor did not advance"), "{}", err.message);
+}

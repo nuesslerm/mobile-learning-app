@@ -76,6 +76,45 @@ fn pr_nodes<'a>(v: &'a Value, key: &str) -> &'a [Value] {
     }
 }
 
+/// Adds `rows` to `into`; a row whose node id is already there replaces it in place, so a node shown on two pages counts once.
+fn merge_by_id(into: &mut Vec<Value>, rows: impl IntoIterator<Item = Value>) {
+    for row in rows {
+        let at = row.get("id").and_then(Value::as_str).and_then(|id| into.iter().position(|r| r.get("id").and_then(Value::as_str) == Some(id)));
+        match at {
+            Some(i) => into[i] = row,
+            None => into.push(row),
+        }
+    }
+}
+
+/// The nodes of a connection of the pull request across all the pages that were read.
+fn paged_nodes(program: &str, outputs: &[Output], key: &str) -> ExecResult<Vec<Value>> {
+    let mut all = Vec::new();
+    for out in outputs {
+        merge_by_id(&mut all, pr_nodes(&json_of(program, out)?, key).to_vec());
+    }
+    Ok(all)
+}
+
+/// The review threads of every page, each with the comments of its own further pages (the answers about one thread, `data.node`).
+fn paged_threads(program: &str, outputs: &[Output]) -> ExecResult<Vec<Value>> {
+    let mut threads: Vec<Value> = Vec::new();
+    for out in outputs {
+        let v = json_of(program, out)?;
+        let node = &v["data"]["node"];
+        if !node.is_object() {
+            merge_by_id(&mut threads, pr_nodes(&v, "reviewThreads").to_vec());
+            continue;
+        }
+        let more = items(&node["comments"], "nodes").to_vec();
+        let Some(thread) = threads.iter_mut().find(|t| t.get("id") == node.get("id")) else { continue };
+        let mut merged = items(&thread["comments"], "nodes").to_vec();
+        merge_by_id(&mut merged, more);
+        thread["comments"]["nodes"] = json!(merged);
+    }
+    Ok(threads)
+}
+
 fn names(v: &Value, key: &str, field: &str) -> Value {
     json!(items(v, key).iter().filter_map(|i| i.get(field).and_then(Value::as_str)).collect::<Vec<_>>())
 }
@@ -351,28 +390,25 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
             Ok(json!({"pass": count("pass"), "fail": count("fail"), "pending": count("pending"), "checks": checks}))
         }
         HostedCall::PrComments { .. } => {
-            let v = body(&last)?;
             let comments: Vec<Value> = if github {
-                pr_nodes(&v, "comments").iter().map(|c| extend(json!({"id": id_string(c, "id"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")}), gh_extras(c))).collect()
+                paged_nodes(program, outputs, "comments")?.iter().map(|c| extend(json!({"id": id_string(c, "id"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")}), gh_extras(c))).collect()
             } else {
-                v.as_array().map_or(&[][..], Vec::as_slice).iter().filter(|n| n.get("system").and_then(Value::as_bool) != Some(true)).map(|n| json!({"id": id_string(n, "id"), "author": login_of(n, "author", "username"), "body": n.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(n, "created_at"), "url": Value::Null})).collect()
+                body(&last)?.as_array().map_or(&[][..], Vec::as_slice).iter().filter(|n| n.get("system").and_then(Value::as_bool) != Some(true)).map(|n| json!({"id": id_string(n, "id"), "author": login_of(n, "author", "username"), "body": n.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(n, "created_at"), "url": Value::Null})).collect()
             };
             Ok(json!({"comments": comments}))
         }
         HostedCall::PrReviews { .. } => {
-            let v = body(&last)?;
             let reviews: Vec<Value> = if github {
-                pr_nodes(&v, "reviews").iter().map(|r| extend(json!({"id": id_string(r, "id"), "author": login_of(r, "author", "login"), "state": lower(r, "state"), "body": r.get("body").and_then(Value::as_str).unwrap_or(""), "submitted_at_ms": ms(r, "submittedAt")}), gh_extras(r))).collect()
+                paged_nodes(program, outputs, "reviews")?.iter().map(|r| extend(json!({"id": id_string(r, "id"), "author": login_of(r, "author", "login"), "state": lower(r, "state"), "body": r.get("body").and_then(Value::as_str).unwrap_or(""), "submitted_at_ms": ms(r, "submittedAt")}), gh_extras(r))).collect()
             } else {
+                let v = body(&last)?;
                 items(&v, "approved_by").iter().map(|a| json!({"id": id_string(&a["user"], "id"), "author": login_of(a, "user", "username"), "state": "approved", "body": "", "submitted_at_ms": Value::Null})).collect()
             };
             Ok(json!({"reviews": reviews}))
         }
         HostedCall::PrThreads { .. } => {
-            let v = body(&last)?;
             let threads: Vec<Value> = if github {
-                let nodes = v["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"].as_array().map_or(&[][..], Vec::as_slice);
-                nodes
+                paged_threads(program, outputs)?
                     .iter()
                     .map(|t| {
                         let comments: Vec<Value> = items(&t["comments"], "nodes").iter().map(|c| extend(json!({"id": if c.get("id").is_some_and(Value::is_string) { id_string(c, "id") } else { id_string(c, "databaseId") }, "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")}), gh_extras(c))).collect();
@@ -380,7 +416,8 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
                     })
                     .collect()
             } else {
-                v.as_array()
+                body(&last)?
+                    .as_array()
                     .map_or(&[][..], Vec::as_slice)
                     .iter()
                     .filter(|d| items(d, "notes").first().and_then(|n| n.get("resolvable")).and_then(Value::as_bool) == Some(true))

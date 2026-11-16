@@ -52,19 +52,25 @@ pub const PR_LIST_FIELDS: &str = "number,title,state,isDraft,author,headRefName,
 pub const RUN_FIELDS: &str = "databaseId,displayTitle,name,workflowName,status,conclusion,headBranch,headSha,event,createdAt,updatedAt,url";
 pub const REPO_FIELDS: &str = "name,nameWithOwner,description,url,sshUrl,isPrivate,defaultBranchRef,viewerPermission,isFork";
 const COMMENT_FIELDS: &str = "id databaseId author{__typename login avatarUrl(size:48)} body createdAt url viewerDidAuthor reactionGroups{content viewerHasReacted reactors{totalCount}}";
-const QUERY_HEAD: &str = "query($owner:String!,$name:String!,$number:Int!){repository(owner:$owner,name:$name){pullRequest(number:$number){";
+const QUERY_HEAD: &str = "query($owner:String!,$name:String!,$number:Int!,$cursor:String){repository(owner:$owner,name:$name){pullRequest(number:$number){";
 const QUERY_TAIL: &str = "}}}";
+const PAGE_INFO: &str = "pageInfo{hasNextPage endCursor}";
 
 pub fn comments_query() -> String {
-    format!("{QUERY_HEAD}comments(first:100){{nodes{{{COMMENT_FIELDS}}}}}{QUERY_TAIL}")
+    format!("{QUERY_HEAD}comments(first:100,after:$cursor){{nodes{{{COMMENT_FIELDS}}}{PAGE_INFO}}}{QUERY_TAIL}")
 }
 
 pub fn reviews_query() -> String {
-    format!("{QUERY_HEAD}reviews(first:100){{nodes{{{COMMENT_FIELDS} state submittedAt}}}}{QUERY_TAIL}")
+    format!("{QUERY_HEAD}reviews(first:100,after:$cursor){{nodes{{{COMMENT_FIELDS} state submittedAt}}{PAGE_INFO}}}{QUERY_TAIL}")
 }
 
 pub fn threads_query() -> String {
-    format!("{QUERY_HEAD}reviewThreads(first:100){{nodes{{id isResolved isOutdated path line startLine originalLine originalStartLine diffSide rootHunk:comments(first:1){{nodes{{diffHunk}}}} comments(first:100){{nodes{{{COMMENT_FIELDS}}}}}}}}}{QUERY_TAIL}")
+    format!("{QUERY_HEAD}reviewThreads(first:100,after:$cursor){{nodes{{id isResolved isOutdated path line startLine originalLine originalStartLine diffSide rootHunk:comments(first:1){{nodes{{diffHunk}}}} comments(first:100){{nodes{{{COMMENT_FIELDS}}}{PAGE_INFO}}}}}{PAGE_INFO}}}{QUERY_TAIL}")
+}
+
+/// The comments of one thread past the first hundred the threads query returned for it.
+pub fn thread_replies_query() -> String {
+    format!("query($thread:ID!,$cursor:String){{node(id:$thread){{... on PullRequestReviewThread{{id comments(first:100,after:$cursor){{nodes{{{COMMENT_FIELDS}}}{PAGE_INFO}}}}}}}}}")
 }
 pub const REPLY_MUTATION: &str = "mutation($thread:ID!,$body:String!){addPullRequestReviewThreadReply(input:{pullRequestReviewThreadId:$thread,body:$body}){comment{id url}}}";
 pub const RESOLVE_MUTATION: &str = "mutation($thread:ID!){resolveReviewThread(input:{threadId:$thread}){thread{id isResolved}}}";
@@ -74,6 +80,38 @@ pub const EDIT_REVIEW_COMMENT_MUTATION: &str = "mutation($id:ID!,$body:String!){
 
 fn step(program: Program, args: Vec<String>) -> Step {
     Step { program, args, stdin: None, ok_exits: vec![0], cwd: Cwd::Root }
+}
+
+fn repo_graphql(op: &HostedOp, number: u64, cursor: Option<&str>, query: String) -> Step {
+    let mut args = strs(&["api", "graphql"]);
+    match op.repo.as_deref().and_then(|r| r.split_once('/')) {
+        Some((owner, name)) => args.extend([format!("-f=owner={owner}"), format!("-f=name={name}")]),
+        None => args.extend(strs(&["-F=owner={owner}", "-F=name={repo}"])),
+    }
+    args.push(format!("-F=number={number}"));
+    args.extend(cursor.map(|c| format!("-f=cursor={c}")));
+    args.push(format!("-f=query={query}"));
+    step(Program::Gh, args)
+}
+
+fn thread_replies(thread: &str, cursor: &str) -> Step {
+    step(Program::Gh, vec!["api".into(), "graphql".into(), format!("-f=thread={thread}"), format!("-f=cursor={cursor}"), format!("-f=query={}", thread_replies_query())])
+}
+
+/// Whether a connection has another page and where it ends.
+fn page_of(connection: &Value) -> (bool, Option<String>) {
+    let info = &connection["pageInfo"];
+    (info["hasNextPage"].as_bool().unwrap_or(false), info["endCursor"].as_str().map(str::to_string))
+}
+
+/// The cursor of the next page of a connection read with `sent` (none for the first page), none when it was the last. A page that ends where the
+/// request began would be read forever, so it is refused.
+fn advance(connection: &Value, sent: Option<&str>, what: &str) -> Result<Option<String>, String> {
+    match page_of(connection) {
+        (false, _) => Ok(None),
+        (true, Some(end)) if Some(end.as_str()) != sent => Ok(Some(end)),
+        (true, _) => Err(format!("gh answered a page of the {what} whose cursor did not advance, so the read stops rather than answer a partial or endless conversation")),
+    }
 }
 
 fn strs(items: &[&str]) -> Vec<String> {
@@ -154,6 +192,9 @@ pub fn follow(op: &HostedOp, outputs: &[Output]) -> Result<Option<Step>, String>
             let repo = op.repo.as_ref().map_or("repos/{owner}/{repo}".to_string(), |r| format!("repos/{r}"));
             Ok(Some(step(Program::Gh, vec!["api".into(), format!("{repo}/stacks/{number}")])))
         }
+        (HostedCall::PrComments { number }, Provider::Github, n) if n >= 1 => next_page(op, *number, outputs, "comments", comments_query),
+        (HostedCall::PrReviews { number }, Provider::Github, n) if n >= 1 => next_page(op, *number, outputs, "reviews", reviews_query),
+        (HostedCall::PrThreads { number }, Provider::Github, n) if n >= 1 => next_thread_step(op, *number, outputs),
         (HostedCall::PrReact { number, target, comment_id, content, undo: true }, provider, 1 | 2) => {
             let collection = reaction_collection(op, *number, *target, *comment_id)?;
             let (login_key, program) = if provider == Provider::Github { ("login", Program::Gh) } else { ("username", Program::Glab) };
@@ -174,6 +215,59 @@ pub fn follow(op: &HostedOp, outputs: &[Output]) -> Result<Option<Step>, String>
         }
         _ => Ok(None),
     }
+}
+
+fn page_json(op: &HostedOp, out: &Output) -> Result<Value, String> {
+    serde_json::from_str::<Value>(&out.stdout).map_err(|e| format!("{} printed no JSON ({e})", op.provider.program()))
+}
+
+fn next_page(op: &HostedOp, number: u64, outputs: &[Output], key: &str, query: fn() -> String) -> Result<Option<Step>, String> {
+    let connection = |out: &Output| page_json(op, out).map(|v| v["data"]["repository"]["pullRequest"][key].clone());
+    let sent = match outputs.len() {
+        1 => None,
+        n => page_of(&connection(&outputs[n - 2])?).1,
+    };
+    let next = advance(&connection(&outputs[outputs.len() - 1])?, sent.as_deref(), key)?;
+    Ok(next.map(|c| repo_graphql(op, number, Some(&c), query())))
+}
+
+/// The threads pages first, then the comments past the first hundred of each thread that has more, one thread after the other.
+fn next_thread_step(op: &HostedOp, number: u64, outputs: &[Output]) -> Result<Option<Step>, String> {
+    let mut sent: Option<String> = None;
+    let mut pages = Vec::new();
+    let mut done = false;
+    for out in outputs {
+        let connection = page_json(op, out)?["data"]["repository"]["pullRequest"]["reviewThreads"].clone();
+        let next = advance(&connection, sent.as_deref(), "threads")?;
+        pages.push(connection);
+        match next {
+            Some(cursor) => sent = Some(cursor),
+            None => {
+                done = true;
+                break;
+            }
+        }
+    }
+    if !done {
+        return Ok(sent.map(|c| repo_graphql(op, number, Some(&c), threads_query())));
+    }
+    let mut at = pages.len();
+    for page in &pages {
+        for thread in page["nodes"].as_array().map_or(&[][..], Vec::as_slice) {
+            let (more, first) = page_of(&thread["comments"]);
+            let (Some(id), true) = (thread["id"].as_str(), more) else { continue };
+            let mut cursor = first.ok_or("gh answered a thread with more comments and no cursor")?;
+            loop {
+                let Some(out) = outputs.get(at) else { return Ok(Some(thread_replies(id, &cursor))) };
+                at += 1;
+                match advance(&page_json(op, out)?["data"]["node"]["comments"], Some(&cursor), "comments of a thread")? {
+                    Some(next) => cursor = next,
+                    None => break,
+                }
+            }
+        }
+    }
+    Ok(None)
 }
 
 /// The variables a step adds to the CLI's environment: the instance it talks to.
@@ -209,16 +303,7 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
         args
     };
     let view = |number: u64, fields: &str| gh(pr(&["view"], number, vec![format!("--json={fields}")]));
-    let owner_name = |args: &mut Vec<String>| match op.repo.as_deref().and_then(|r| r.split_once('/')) {
-        Some((owner, name)) => args.extend([format!("-f=owner={owner}"), format!("-f=name={name}")]),
-        None => args.extend(strs(&["-F=owner={owner}", "-F=name={repo}"])),
-    };
-    let graphql_read = |number: u64, query: String| {
-        let mut args = strs(&["api", "graphql"]);
-        owner_name(&mut args);
-        args.extend([format!("-F=number={number}"), format!("-f=query={query}")]);
-        gh(args)
-    };
+    let graphql_read = |number: u64, query: String| repo_graphql(op, number, None, query);
     let rest_repo = || match &op.repo {
         Some(r) => format!("repos/{r}"),
         None => "repos/{owner}/{repo}".to_string(),
