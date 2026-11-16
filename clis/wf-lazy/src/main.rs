@@ -33,7 +33,7 @@ fn router_only(verb: &str, rest: &[String]) -> bool {
 /// `--dead-refs` is served alone or with `--staged` only, exactly as the router reads it.
 fn check_is_thin(rest: &[String]) -> bool {
     const ROUTER_ONLY: &[&str] = &["--health", "--visual", "--drift", "--deployed", "--arch", "--dry-run"];
-    const GATES: &[&str] = &["--staged", "--pushed", "--budget", "--unused-workspace-deps", "--unused-deps", "--workspace-crossings", "--ts-packages", "--cargo-inputs"];
+    const GATES: &[&str] = &["--staged", "--pushed", "--budget", "--unused-workspace-deps", "--unused-deps", "--workspace-crossings", "--ts-packages", "--cargo-inputs", "--layout"];
     if rest.iter().any(|a| ROUTER_ONLY.contains(&a.as_str())) {
         return false;
     }

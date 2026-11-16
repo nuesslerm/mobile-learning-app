@@ -18,6 +18,7 @@ pub mod cargo_inputs;
 pub mod copy_closure;
 pub mod core_purity;
 pub mod docker_ignore;
+pub mod layout;
 pub mod library_paths;
 pub mod recorders;
 pub mod pushed;
@@ -87,8 +88,10 @@ fn check(rest: &[String]) -> Option<i32> {
             return Some(dead_refs::run(&wf_kit::root::repo_root(), !left.is_empty()));
         }
     }
-    let modes = wf_kit::args::probe(rest, &[&verify::STAGED, &verify::BUDGET, &pushed::PUSHED])?;
-    if modes.flag("pushed") {
+    let modes = wf_kit::args::probe(rest, &[&verify::STAGED, &verify::BUDGET, &pushed::PUSHED, &layout::LAYOUT])?;
+    if modes.flag("layout") {
+        layout::run(rest)
+    } else if modes.flag("pushed") {
         pushed::run(rest)
     } else if modes.flag("staged") {
         verify::staged(rest, |root| dead_refs::gate(root).or_else(|| arch_rules::gate(root)))

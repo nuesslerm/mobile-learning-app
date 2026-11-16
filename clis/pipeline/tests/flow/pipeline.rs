@@ -5,7 +5,6 @@ use crate::support::otlp::gauges;
 use crate::support::{create_stub, last_json, MockReply, MockServer, RunResult, SlotSandbox};
 use serde_json::{json, Value};
 use std::path::PathBuf;
-use std::process::Command;
 
 /// A temp tree with a small pnpm workspace in a git repo of two commits, focused e2e tests and a fake harness.
 struct Workspace {
@@ -88,7 +87,7 @@ impl Workspace {
     }
 
     fn git(&self, args: &[&str]) -> String {
-        let out = Command::new("git").args(args).current_dir(self.root.join("repo")).env("GIT_AUTHOR_NAME", "t").env("GIT_AUTHOR_EMAIL", "t@t").env("GIT_COMMITTER_NAME", "t").env("GIT_COMMITTER_EMAIL", "t@t").output().unwrap();
+        let out = crate::support::git_command().args(args).current_dir(self.root.join("repo")).env("GIT_AUTHOR_NAME", "t").env("GIT_AUTHOR_EMAIL", "t@t").env("GIT_COMMITTER_NAME", "t").env("GIT_COMMITTER_EMAIL", "t@t").output().unwrap();
         String::from_utf8_lossy(&out.stdout).trim().to_string()
     }
 
@@ -102,6 +101,8 @@ impl Workspace {
         let mut envs = vec![
             ("WF_TEST_E2E_DIR", self.path("e2e")),
             ("WF_TEST_REPO", self.path("repo")),
+            // a commit with explicit paths runs the hook with the real repository's temporary index in the environment
+            ("GIT_INDEX_FILE", self.path("repo/.git/index")),
             ("WF_NX_BIN", self.s.bin_dir.join("nx").display().to_string()),
         ];
         envs.extend(extra.iter().cloned());

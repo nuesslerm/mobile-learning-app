@@ -46,7 +46,7 @@ impl Workspace {
     fn copy() -> Workspace {
         let repo = repo_root();
         let dir = tempfile::Builder::new().prefix("wf-flow-nx-").tempdir().unwrap();
-        let listed = Command::new("git").args(["ls-files", "-z", "--cached", "--others", "--exclude-standard"]).current_dir(&repo).output().unwrap();
+        let listed = crate::support::git_command().args(["ls-files", "-z", "--cached", "--others", "--exclude-standard"]).current_dir(&repo).output().unwrap();
         for file in String::from_utf8_lossy(&listed.stdout).split('\0').filter(|f| !f.is_empty() && !f.starts_with("references/")) {
             let (from, to) = (repo.join(file), dir.path().join(file));
             if from.is_file() {
@@ -160,7 +160,7 @@ echo "{\"ok\":true,\"sha\":\"seeded\",\"units\":[{\"test\":\"$test\",\"verdict\"
 
     /// Commits nothing with `message` at the copy's head (the first call makes the copy a git repository) and returns the sha.
     fn commit(&self, message: &str) -> String {
-        let git = |args: &[&str]| Command::new("git").args(args).current_dir(self.dir.path()).output().unwrap();
+        let git = |args: &[&str]| crate::support::git_command().args(args).current_dir(self.dir.path()).output().unwrap();
         if !self.path(".git").exists() {
             git(&["init", "-q"]);
         }
@@ -349,7 +349,7 @@ fn integration_scripts_are_planned_in_the_integration_stage_run_through_nx_and_r
 
     w.with_edit(&source, || {
         // When a file of that package changes in a commit
-        assert!(Command::new("git").args(["add", &source]).current_dir(w.dir.path()).status().unwrap().success());
+        assert!(crate::support::git_command().args(["add", &source]).current_dir(w.dir.path()).status().unwrap().success());
         let sha = w.commit("Change the service");
         let r = w.wf(&["test", "plan", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
         assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
@@ -386,11 +386,11 @@ fn a_crate_with_an_e2e_binary_is_planned_in_the_cli_e2e_stage_and_its_flow_binar
     // Given the copy's files tracked (crates are found through the manifests git lists) and a commit that changes a crate holding
     // both tests/flow.rs and tests/e2e.rs
     w.commit("The copy");
-    assert!(Command::new("git").args(["add", "-A"]).current_dir(w.dir.path()).status().unwrap().success());
+    assert!(crate::support::git_command().args(["add", "-A"]).current_dir(w.dir.path()).status().unwrap().success());
     let base = w.commit("The copy, tracked");
     let source = "clis/wf-bench/src/bench.rs";
     w.with_edit(source, || {
-        assert!(Command::new("git").args(["add", source]).current_dir(w.dir.path()).status().unwrap().success());
+        assert!(crate::support::git_command().args(["add", source]).current_dir(w.dir.path()).status().unwrap().success());
         let sha = w.commit("Change the bench");
         // When the changed tests are planned
         let r = w.wf(&["test", "plan", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
@@ -548,7 +548,7 @@ fn flow_runners_of(on: &str) -> BTreeSet<String> {
 fn a_change_in_a_wf_crate_plans_the_flow_tests_of_exactly_the_crates_that_build_it() {
     // Given this repository's files as a git checkout
     let w = Workspace::copy();
-    let git = |args: &[&str]| Command::new("git").args(["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]).args(args).current_dir(w.dir.path()).output().unwrap();
+    let git = |args: &[&str]| crate::support::git_command().args(["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]).args(args).current_dir(w.dir.path()).output().unwrap();
     git(&["init", "-q"]);
     git(&["add", "-A"]);
     assert!(git(&["commit", "-q", "-m", "The copy"]).status.success());
@@ -625,7 +625,7 @@ const OFFLOAD_GROUPS: [&str; 4] = ["ask", "parity", "parity_features", "parity_c
 fn a_crate_with_e2e_groups_plans_one_entry_per_group_for_a_change_of_its_own_and_none_for_one_of_a_dependency() {
     // Given this repository's files as a git checkout
     let w = Workspace::copy();
-    let git = |args: &[&str]| Command::new("git").args(["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]).args(args).current_dir(w.dir.path()).output().unwrap();
+    let git = |args: &[&str]| crate::support::git_command().args(["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]).args(args).current_dir(w.dir.path()).output().unwrap();
     git(&["init", "-q"]);
     git(&["add", "-A"]);
     assert!(git(&["commit", "-q", "-m", "The copy"]).status.success());
@@ -1051,7 +1051,7 @@ fn a_change_two_crates_down_reruns_the_dependant_and_leaves_an_unrelated_crate_r
     }
     put_file(ws, ".gitignore", "node_modules\n.nx\n");
     write_script(&site.bin.join("cargo"), "while [ $# -gt 0 ]; do [ \"$1\" = -p ] && echo \"cargo $2\" >> \"$RAN_LOG\"; shift; done\n");
-    let git = |args: &[&str]| Command::new("git").args(["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]).args(args).current_dir(ws).output().unwrap();
+    let git = |args: &[&str]| crate::support::git_command().args(["-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]).args(args).current_dir(ws).output().unwrap();
     git(&["init", "-q"]);
     let commit = |message: &str| {
         git(&["add", "-A"]);

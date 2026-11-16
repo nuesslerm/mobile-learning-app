@@ -7,7 +7,7 @@ use std::path::Path;
 use toml::Value;
 
 /// Crates a core must not depend on: an HTTP server or client, a socket protocol, an OS directory lookup.
-const IO_CRATES: &[&str] = &["reqwest", "axum", "hyper", "hyper-util", "tokio-tungstenite", "tower", "tower-http", "clap", "dirs"];
+pub(crate) const IO_CRATES: &[&str] = &["reqwest", "axum", "hyper", "hyper-util", "tokio-tungstenite", "tower", "tower-http", "clap", "dirs"];
 
 /// tokio features that reach a file, a socket, a child process or a signal.
 const IO_FEATURES: &[&str] = &["fs", "io-util", "net", "process", "signal", "full"];

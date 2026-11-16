@@ -87,8 +87,10 @@ fn check(rest: &[String]) -> Option<i32> {
     }
     let args = without(rest, "--deployed").unwrap_or_else(|| rest.to_vec());
     // The mode is the one whose option is on the line, wherever it stands.
-    let modes = probe(&args, &[&verify::STAGED, &pipeline::pushed::PUSHED, &deploy::verify_tier3::DRY_RUN, &verify::BUDGET, &deploy::verify_tier3::SPEC])?;
-    if modes.flag("pushed") {
+    let modes = probe(&args, &[&verify::STAGED, &pipeline::pushed::PUSHED, &deploy::verify_tier3::DRY_RUN, &verify::BUDGET, &deploy::verify_tier3::SPEC, &pipeline::layout::LAYOUT])?;
+    if modes.flag("layout") {
+        pipeline::layout::run(&args)
+    } else if modes.flag("pushed") {
         pipeline::pushed::run(&args)
     } else if modes.flag("staged") {
         verify::staged(&args, |root| dead_refs::gate(root).or_else(|| arch_rules::gate(root)))

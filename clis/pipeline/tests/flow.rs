@@ -17,6 +17,8 @@ mod check;
 mod ci_comment;
 #[path = "flow/expected_revisions.rs"]
 mod expected_revisions;
+#[path = "flow/layout.rs"]
+mod layout;
 #[path = "flow/pipeline.rs"]
 mod pipeline;
 #[path = "flow/publish.rs"]

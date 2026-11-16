@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "note": "The shape of each package type (docs/solutions/architecture/hexagonal-architecture-by-package-type.md), read by `wf check --layout`. A package opts in with `[package.metadata.arch] type = \"...\"` in Cargo.toml, an `arch` key in package.json, or an `arch` key in the project.json of an in-app feature. Paths are relative to the ring root: the first of `ringRoots` that exists. `allowedRoot` lists what may sit at the ring root besides the rings (`*` is a wildcard; a ring may be a directory or `<ring>.rs`). `a|b` in a required list means either. `mayDependOn` names the types a package of this type may depend on; `mayDevDependOn` adds to it for dev-dependencies; `devOnly` means a package of this type is reachable only through dev-dependencies. A dependency on a package with no type is not checked.",
+  "generated": [],
+  "types": {
+    "rust-core": {
+      "ecosystem": "rust",
+      "pure": true,
+      "ringRoots": ["src"],
+      "rings": { "domain": [], "application": ["domain"], "testing": ["domain", "application"] },
+      "requiredFiles": ["lib.rs"],
+      "requiredAnyOf": [["domain", "application"]],
+      "allowedRoot": ["lib.rs", "testing.rs"],
+      "forbiddenFiles": ["main.rs"],
+      "forbiddenDirs": ["api", "infrastructure"],
+      "mayDependOn": ["rust-core", "rust-contract"],
+      "mayDevDependOn": ["rust-testkit"]
+    },
+    "rust-rs": {
+      "ecosystem": "rust",
+      "pure": false,
+      "ringRoots": ["src"],
+      "rings": { "api": [], "infrastructure": [] },
+      "requiredFiles": ["lib.rs", "main.rs"],
+      "allowedRoot": ["lib.rs", "main.rs", "compose.rs", "ports.rs"],
+      "forbiddenDirs": ["domain", "application"],
+      "mayDependOn": ["rust-core", "rust-contract", "rust-flat-adapter", "rust-single-hexagon"],
+      "mayDevDependOn": ["rust-testkit"]
+    },
+    "rust-contract": {
+      "ecosystem": "rust",
+      "pure": true,
+      "ringRoots": ["src"],
+      "rings": {},
+      "requiredFiles": ["lib.rs"],
+      "allowedRoot": ["*.rs", "testing"],
+      "mayDependOn": ["rust-contract"],
+      "mayDevDependOn": ["rust-testkit"]
+    },
+    "rust-flat-adapter": {
+      "ecosystem": "rust",
+      "pure": false,
+      "ringRoots": ["src"],
+      "rings": {},
+      "requiredFiles": ["lib.rs"],
+      "allowedRoot": ["*.rs"],
+      "mayDependOn": ["rust-contract", "rust-core", "rust-flat-adapter"],
+      "mayDevDependOn": ["rust-testkit"]
+    },
+    "rust-single-hexagon": {
+      "ecosystem": "rust",
+      "pure": false,
+      "ringRoots": ["src"],
+      "rings": { "domain": [], "adapters": ["domain"], "bin": ["domain", "adapters"] },
+      "requiredFiles": ["lib.rs"],
+      "requiredAnyOf": [["domain", "domain.rs"], ["adapters"], ["bin"]],
+      "allowedRoot": ["lib.rs"],
+      "mayDependOn": ["rust-contract"],
+      "mayDevDependOn": ["rust-testkit"]
+    },
+    "rust-testkit": {
+      "ecosystem": "rust",
+      "pure": false,
+      "devOnly": true,
+      "ringRoots": ["src"],
+      "rings": {},
+      "requiredFiles": ["lib.rs"],
+      "allowedRoot": ["*.rs", "bin"],
+      "mayDependOn": ["rust-contract", "rust-testkit"],
+      "mayDevDependOn": []
+    },
+    "hexagonal-feature": {
+      "ecosystem": "ts",
+      "pure": false,
+      "ringRoots": ["src", "."],
+      "rings": {
+        "domain": [],
+        "data": ["domain"],
+        "state": ["domain"],
+        "ui": ["domain", "state"],
+        "di": ["domain", "data", "state"],
+        "routes": ["di", "ui"],
+        "testing": ["domain", "data", "state", "ui", "di", "routes"]
+      },
+      "requiredFiles": ["index.ts|index.tsx"],
+      "requiredAnyOf": [["domain"], ["state"], ["ui"], ["di"], ["routes"]],
+      "allowedRoot": ["index.ts", "index.tsx", "__tests__", "__mocks__", "project.json"],
+      "mayDependOn": [],
+      "mayDevDependOn": []
+    },
+    "presentation-feature": {
+      "ecosystem": "ts",
+      "pure": false,
+      "ringRoots": ["src", "."],
+      "rings": { "state": [], "ui": ["state"], "routes": ["ui", "state"] },
+      "requiredFiles": ["index.ts|index.tsx"],
+      "requiredAnyOf": [["ui"], ["routes"]],
+      "allowedRoot": ["index.ts", "index.tsx", "__tests__", "__mocks__", "project.json"],
+      "forbiddenDirs": ["domain", "data", "di"],
+      "mayDependOn": [],
+      "mayDevDependOn": []
+    }
+  }
+}

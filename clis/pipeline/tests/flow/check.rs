@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn git(dir: &Path, args: &[&str]) -> String {
-    let out = Command::new("git").args(["-c", "user.email=t@example.com", "-c", "user.name=t", "-c", "commit.gpgsign=false"]).args(args).current_dir(dir).output().unwrap();
+    let out = crate::support::git_command().args(["-c", "user.email=t@example.com", "-c", "user.name=t", "-c", "commit.gpgsign=false"]).args(args).current_dir(dir).output().unwrap();
     assert!(out.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&out.stderr));
     String::from_utf8_lossy(&out.stdout).trim().to_string()
 }
@@ -480,7 +480,7 @@ fn no_ci_step_writes_a_file_into_the_checkout_that_git_does_not_ignore() {
                 continue;
             }
             for target in write.captures_iter(script).map(|c| c[1].to_string()) {
-                let ignored = Command::new("git").args(["check-ignore", "-q", &target]).current_dir(&root).status().unwrap().success();
+                let ignored = crate::support::git_command().args(["check-ignore", "-q", &target]).current_dir(&root).status().unwrap().success();
                 if !ignored {
                     offenders.push(format!("{}:{}: {target}", file.strip_prefix(&root).unwrap().display(), n + 1));
                 }
@@ -907,7 +907,7 @@ fn the_pushed_gate_refuses_a_push_to_dev_that_lacks_a_main_commit_and_proceeds_o
         (r, std::fs::read_to_string(&log).unwrap_or_default())
     };
 
-    let rev = |name: &str| String::from_utf8(std::process::Command::new("git").args(["rev-parse", name]).current_dir(root).output().unwrap().stdout).unwrap().trim().to_string();
+    let rev = |name: &str| String::from_utf8(crate::support::git_command().args(["rev-parse", name]).current_dir(root).output().unwrap().stdout).unwrap().trim().to_string();
     let (dev_sha, main_sha) = (rev("dev"), rev("main"));
 
     // When the gate runs for a push to dev
