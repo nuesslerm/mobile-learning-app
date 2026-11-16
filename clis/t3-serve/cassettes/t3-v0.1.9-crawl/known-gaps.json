@@ -204,21 +204,6 @@
         "t3-rpc-pullRequests.filterOptions-invalid-no-payload",
         "t3-rpc-pullRequests.filterOptions-invalid-wrong-type-kind",
         "t3-rpc-scheduledTasks.upsert-boundary-full",
-        "t3-rpc-server.prepareTriage-invalid-drop-client",
-        "t3-rpc-server.prepareTriage-invalid-no-payload",
-        "t3-rpc-server.prepareTriage-invalid-wrong-type-client",
-        "t3-rpc-server.removeKeybinding-boundary-full",
-        "t3-rpc-server.removeKeybinding-invalid-drop-key",
-        "t3-rpc-server.removeKeybinding-invalid-no-payload",
-        "t3-rpc-server.removeKeybinding-invalid-wrong-type-key",
-        "t3-rpc-server.removeKeybinding-valid-min",
-        "t3-rpc-server.searchAcpRegistry-boundary-full",
-        "t3-rpc-server.updateSettings-boundary-full",
-        "t3-rpc-server.upsertKeybinding-boundary-full",
-        "t3-rpc-server.upsertKeybinding-invalid-drop-key",
-        "t3-rpc-server.upsertKeybinding-invalid-no-payload",
-        "t3-rpc-server.upsertKeybinding-invalid-wrong-type-key",
-        "t3-rpc-server.upsertKeybinding-valid-min",
         "t3-rpc-subscribeDiscoveredLocalServers-invalid-wrong-type-configuredUrls",
         "t3-rpc-subscribeWorktreeSetup-invalid-drop-threadId",
         "t3-rpc-subscribeWorktreeSetup-invalid-no-payload"
@@ -411,16 +396,6 @@
         "t3-rpc-provider.auth.removeMethod-invalid-wrong-type-instanceId",
         "t3-rpc-scheduledTasks.upsert-invalid-wrong-type-title",
         "t3-rpc-scheduledTasks.upsert-valid-min",
-        "t3-rpc-server.listTextGeneratorModels-boundary-full",
-        "t3-rpc-server.listTextGeneratorModels-invalid-drop-id",
-        "t3-rpc-server.listTextGeneratorModels-invalid-no-payload",
-        "t3-rpc-server.listTextGeneratorModels-invalid-wrong-type-id",
-        "t3-rpc-server.reportClientActivity-boundary-full",
-        "t3-rpc-server.reportClientActivity-invalid-drop-clientId",
-        "t3-rpc-server.reportClientActivity-invalid-no-payload",
-        "t3-rpc-server.reportClientActivity-invalid-wrong-type-clientId",
-        "t3-rpc-server.reportClientActivity-valid-min",
-        "t3-rpc-server.updateSettings-invalid-wrong-type-patch",
         "t3-rpc-sourceControl.star-invalid-drop-provider",
         "t3-rpc-sourceControl.star-invalid-no-payload",
         "t3-rpc-sourceControl.star-invalid-wrong-type-provider",
@@ -688,23 +663,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect extra drift"
-      ],
-      "ids": [
-        "t3-command-thread.created.record-invalid-wrong-type-commandId",
-        "t3-command-thread.created.record-valid-min",
-        "t3-rpc-provider.auth.removeMethod-valid-min",
-        "t3-rpc-server.listTextGeneratorModels-valid-min",
-        "t3-rpc-server.reclaimDatabaseSpace-invalid-no-payload",
-        "t3-rpc-server.reclaimDatabaseSpace-valid-min"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
       "severity": "breaking",
       "diffs": [
@@ -859,6 +817,22 @@
         "t3-rpc-pullRequests.reportState-invalid-no-payload",
         "t3-rpc-pullRequests.reportState-invalid-wrong-type-reference",
         "t3-rpc-pullRequests.reportState-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect extra drift"
+      ],
+      "ids": [
+        "t3-command-thread.created.record-invalid-wrong-type-commandId",
+        "t3-command-thread.created.record-valid-min",
+        "t3-rpc-provider.auth.removeMethod-valid-min",
+        "t3-rpc-server.reclaimDatabaseSpace-invalid-no-payload",
+        "t3-rpc-server.reclaimDatabaseSpace-valid-min"
       ]
     },
     {
@@ -2403,6 +2377,19 @@
       ],
       "ids": [
         "t3-rpc-server.prepareAcpRegistryAgent-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.method extra drift"
+      ],
+      "ids": [
+        "t3-rpc-server.listTextGeneratorModels-valid-min"
       ]
     },
     {

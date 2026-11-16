@@ -124,7 +124,7 @@ const TABLE: &[(&[&str], &[&str])] = &[
         SOURCE_WRITE,
     ),
     (&["server.discoverSourceControl"], READ),
-    (&["server.updateSettings", "server.upsertKeybinding", "server.removeKeybinding"], SETTINGS),
+    (&["server.updateSettings", "server.upsertKeybinding", "server.removeKeybinding", "server.listTextGeneratorModels"], SETTINGS),
     (
         &[
             "server.refreshProviders",

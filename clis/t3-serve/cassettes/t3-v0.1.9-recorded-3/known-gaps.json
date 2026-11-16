@@ -35,8 +35,7 @@
       "ids": [
         "t3-rpc-assets.createUrl",
         "t3-rpc-filesystem.getMetadata",
-        "t3-rpc-peerLinks.link",
-        "t3-rpc-server.reportClientActivity"
+        "t3-rpc-peerLinks.link"
       ]
     },
     {

@@ -9,7 +9,13 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("provider.install.cancel", "instanceId:s operationId:s"),
     ("provider.install.subscribe", "instanceId:s"),
     ("provider.install.remove", "instanceId:s"),
-    ("server.searchAcpRegistry", "query:s limit:n?"),
+    ("server.searchAcpRegistry", "query:s limit:r(1,512)?"),
+    ("server.removeKeybinding", "key:s command:kc when:s?"),
+    ("server.upsertKeybinding", "key:s command:kc when:s? replace:o(keybindingRule)?"),
+    ("server.reportClientActivity", "environmentId:s? clientId:s clientKind:l(web|desktop-renderer|mobile|unknown) visible:b focused:b recentlyInteracted:b appState:l(active|inactive|background|unknown)? lowPowerMode:l(true|false|unknown)? scopes:a ttlMs:n? observedAt:dt"),
+    ("server.prepareTriage", "client:o"),
+    ("server.listTextGeneratorModels", "id:s config:o(textGenerator)? refresh:b? test:b? model:s?"),
+    ("server.updateSettings", "patch:o(settingsPatch) providerInstanceMutation:o?"),
     ("server.prepareAcpRegistryAgent", "agentId:s"),
     ("server.uninstallAcpRegistryManagedBinary", "agentId:s"),
     ("server.acceptAcpRegistryUrlAuth", "instanceId:s elicitationId:s"),
@@ -83,6 +89,16 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("review.getDiffPreview", "cwd:s baseRef:s? commitSha:s? ignoreWhitespace:b? sourceKind:l(working-tree|branch-range)? trackedOnly:b? metadataOnly:b? file:o?"),
 ];
 
+/// Structs a field of kind `o(name)` or `a(name)` holds, declared like `SCHEMAS`; only the fields the pinned contracts declare first are decoded for the settings patch.
+const NESTED: &[(&str, &str)] = &[
+    ("keybindingRule", "key:s command:kc when:s?"),
+    ("textGenerator", "kind:l(openaiCompatible|anthropic) label:s? baseUrl:p(url) enabled:b?"),
+    ("settingsPatch", "setModelFavorites:a(favoriteItem)? setModelsHidden:a(hiddenItem)? setProviderModelOrder:o(modelOrder)?"),
+    ("favoriteItem", "provider:s model:s favorite:b"),
+    ("hiddenItem", "provider:s model:s hidden:b"),
+    ("modelOrder", "provider:s modelOrder:a"),
+];
+
 /// The commands of `orchestration.dispatchCommand` whose union member is decoded here, fields in the order the member declares them (the creation fields and
 /// `ThreadPullRequestKey` spread in place). Beyond the kinds above: `dt` a UTC date-time string, `ms` a model selection, `x` any value that is present.
 const COMMANDS: &[(&str, &str)] = &[
@@ -99,10 +115,39 @@ const COMMANDS: &[(&str, &str)] = &[
     ("thread.merge_back", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x createdAt:dt?"),
 ];
 
+const KEYBINDING_COMMANDS: &str = include_str!("../data/keybinding-commands.txt");
+
+/// A keybinding command is one of the static names or `script.<id>.run`; the union fails with both members' messages.
+fn keybinding_command(v: &Value) -> bool {
+    v.as_str().is_some_and(|c| {
+        KEYBINDING_COMMANDS.lines().any(|n| n == c)
+            || c.strip_prefix("script.").and_then(|r| r.strip_suffix(".run")).is_some_and(|id| {
+                id.bytes().next().is_some_and(|b| b.is_ascii_lowercase() || b.is_ascii_digit()) && id.bytes().all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+            })
+    })
+}
+
+fn keybinding_command_defect(path: &str) -> String {
+    let names = KEYBINDING_COMMANDS.lines().map(|n| format!("\"{n}\"")).collect::<Vec<_>>().join(" | ");
+    format!("Expected {names}\n  at {path}\nExpected a string matching template literal parts\n  at {path}")
+}
+
+/// The bounds of a kind `r(low,high)`, an integer in that range.
+fn bounds(kind: &str) -> (i64, i64) {
+    let (low, high) = kind[2..kind.len() - 1].split_once(',').unwrap_or(("0", "0"));
+    (low.parse().unwrap_or(0), high.parse().unwrap_or(0))
+}
+
 /// The patterns the contracts check strings against: the text the decoder names, and the match.
 fn pattern(name: &str) -> (&'static str, fn(&str) -> bool) {
     match name {
         "day" => (r"^\d{4}-\d{2}-\d{2}$", |v| v.len() == 10 && v.bytes().enumerate().all(|(i, b)| if i == 4 || i == 7 { b == b'-' } else { b.is_ascii_digit() })),
+        "url" => ("<filter>", |v| {
+            let v = v.trim();
+            let Some((scheme, rest)) = v.split_once("://") else { return v.is_empty() || v.len() > 2048 };
+            let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+            v.len() > 2048 || (matches!(scheme.to_ascii_lowercase().as_str(), "http" | "https") && !authority.contains('@') && !authority.is_empty() && !v.contains(['?', '#']))
+        }),
         "http" => (r"^https?:\/\/.", |v| {
             let v = v.to_ascii_lowercase();
             v.strip_prefix("https://").or_else(|| v.strip_prefix("http://")).is_some_and(|rest| !rest.is_empty())
@@ -121,7 +166,15 @@ fn expected(kind: &str) -> String {
         "b" => "boolean".into(),
         "a" => "array".into(),
         "o" => "object".into(),
+        k if k.starts_with("o(") => "object".into(),
+        k if k.starts_with("a(") => "array".into(),
+        k if k.starts_with("r(") => "number".into(),
         "sn" => "string | null".into(),
+        k if k.starts_with("r(") => {
+            let (low, high) = bounds(k);
+            format!("a value between {low} and {high}")
+        }
+        k if k.starts_with("p(url") => "<filter>".into(),
         k if k.starts_with("p(") => format!("a string matching the RegExp {}", pattern(&k[2..k.len() - 1]).0),
         k if k.starts_with("l(") => k[2..k.len() - 1].split('|').map(|v| format!("\"{v}\"")).collect::<Vec<_>>().join(" | "),
         _ => "string".into(),
@@ -134,6 +187,10 @@ fn is(kind: &str, value: &Value) -> bool {
         "b" => value.is_boolean(),
         "a" => value.is_array(),
         "o" => value.is_object(),
+        k if k.starts_with("o(") => value.is_object(),
+        k if k.starts_with("a(") => value.is_array(),
+        k if k.starts_with("r(") => value.is_number(),
+        "kc" => keybinding_command(value),
         "sn" => value.is_string() || value.is_null(),
         k if k.starts_with("p(") => value.is_string(),
         k if k.starts_with("l(") => value.as_str().is_some_and(|v| k[2..k.len() - 1].split('|').any(|l| l == v)),
@@ -151,6 +208,12 @@ pub fn minimal(tag: &str) -> Option<Value> {
             "a" => Value::Array(Vec::new()),
             "o" => Value::Object(Default::default()),
             "sn" => Value::Null,
+            "dt" => Value::from("2026-01-01T00:00:00Z"),
+            "kc" => Value::from("chat.new"),
+            k if k.starts_with("o(") => Value::Object(Default::default()),
+            k if k.starts_with("a(") => Value::Array(Vec::new()),
+            k if k.starts_with("r(") => Value::from(bounds(k).0),
+            "p(url)" => Value::from("http://a"),
             "p(day)" => Value::from("2026-01-01"),
             "p(http)" => Value::from("http://a"),
             "p(npm)" => Value::from("latest"),
@@ -174,15 +237,19 @@ pub fn command_decoded(kind: &str, body: &Map<String, Value>) -> Option<Result<(
     Some(decode(schema, body).map_or(Ok(()), Err))
 }
 
-fn at(path: &[&str]) -> String {
-    path.iter().map(|p| format!("[\"{p}\"]")).collect()
+fn at<S: AsRef<str>>(path: &[S]) -> String {
+    path.iter().map(|p| p.as_ref()).map(|p| if p.bytes().all(|b| b.is_ascii_digit()) { format!("[{p}]") } else { format!("[\"{p}\"]") }).collect()
 }
 
 fn decode(schema: &str, body: &Map<String, Value>) -> Option<String> {
+    decode_in(schema, body, &[])
+}
+
+fn decode_in(schema: &str, body: &Map<String, Value>, prefix: &[String]) -> Option<String> {
     for field in schema.split(' ') {
         let (name, kind) = field.split_once(':')?;
         let (kind, optional) = kind.strip_suffix('?').map_or((kind, false), |k| (k, true));
-        let key = [name];
+        let key: Vec<String> = prefix.iter().cloned().chain([name.to_string()]).collect();
         match body.get(name) {
             None if optional => {}
             None => return Some(format!("Missing key\n  at {}", at(&key))),
@@ -197,6 +264,38 @@ fn decode(schema: &str, body: &Map<String, Value>) -> Option<String> {
                 Some(_) => {}
             },
             Some(_) if kind == "x" => {}
+            Some(v) if kind == "kc" => {
+                if !keybinding_command(v) {
+                    return Some(keybinding_command_defect(&at(&key)));
+                }
+            }
+            Some(v) if kind.starts_with("r(") => {
+                let (low, high) = bounds(kind);
+                match v.as_f64() {
+                    None => return Some(format!("Expected number\n  at {}", at(&key))),
+                    Some(n) if n.fract() == 0.0 && (n < low as f64 || n > high as f64) => return Some(format!("Expected a value between {low} and {high}\n  at {}", at(&key))),
+                    Some(_) => {}
+                }
+            }
+            Some(v) if kind.starts_with("o(") || kind.starts_with("a(") => {
+                if !is(kind, v) {
+                    return Some(format!("Expected {}\n  at {}", expected(kind), at(&key)));
+                }
+                let nested = NESTED.iter().find(|(n, _)| *n == &kind[2..kind.len() - 1]).map_or("", |(_, s)| *s);
+                if kind.starts_with("o(") {
+                    if let Some(d) = decode_in(nested, v.as_object()?, &key) {
+                        return Some(d);
+                    }
+                } else {
+                    for (i, item) in v.as_array()?.iter().enumerate() {
+                        let at_item: Vec<String> = key.iter().cloned().chain([i.to_string()]).collect();
+                        let Some(item) = item.as_object() else { return Some(format!("Expected object\n  at {}", at(&at_item))) };
+                        if let Some(d) = decode_in(nested, item, &at_item) {
+                            return Some(d);
+                        }
+                    }
+                }
+            }
             Some(v) if !is(kind, v) => return Some(format!("Expected {}\n  at {}", if kind.starts_with("p(") { "string".into() } else { expected(kind) }, at(&key))),
             Some(v) if kind.starts_with("p(") && !v.as_str().is_some_and(pattern(&kind[2..kind.len() - 1]).1) => return Some(format!("Expected {}\n  at {}", expected(kind), at(&key))),
             Some(_) => {}
@@ -354,6 +453,40 @@ mod tests {
             assert_eq!(settle(json!(bad)).unwrap(), "Expected a valid UTC DateTime string\n  at [\"settledAt\"]", "{bad}");
         }
         assert_eq!(settle(json!(7)).unwrap(), "Expected string\n  at [\"settledAt\"]");
+    }
+
+    #[test]
+    fn a_keybinding_command_outside_the_union_fails_with_both_members_and_the_key_is_decoded_first() {
+        let remove = |p: Value| defect("server.removeKeybinding", &p);
+        // Given a key and a command that is no static name, then both union members name the command
+        let d = remove(json!({"key": "a", "command": "nope"})).unwrap();
+        assert!(d.starts_with("Expected \"workspace.focusNext\" | ") && d.ends_with("Expected a string matching template literal parts\n  at [\"command\"]"), "{d}");
+        // And a static name and a script run command decode, a missing key comes before the command
+        assert_eq!((remove(json!({"key": "a", "command": "chat.new"})), remove(json!({"key": "a", "command": "script.build-1.run"}))), (None, None));
+        assert_eq!(remove(json!({"command": "nope"})).unwrap(), "Missing key\n  at [\"key\"]");
+        // And the replace target of an upsert is decoded with the same union, its path nested
+        assert!(defect("server.upsertKeybinding", &json!({"key": "a", "command": "chat.new", "replace": {"key": "a", "command": "x"}})).unwrap().ends_with("at [\"replace\"][\"command\"]"));
+    }
+
+    #[test]
+    fn a_settings_patch_decodes_its_model_favorites_by_index_and_a_registry_limit_by_range() {
+        // Given a favorite without a provider, then the defect names the item by index
+        assert_eq!(defect("server.updateSettings", &json!({"patch": {"setModelFavorites": [{"favorite": true}]}})).unwrap(), "Missing key\n  at [\"patch\"][\"setModelFavorites\"][0][\"provider\"]");
+        assert_eq!(defect("server.updateSettings", &json!({"patch": "wrong"})).unwrap(), "Expected object\n  at [\"patch\"]");
+        assert_eq!(defect("server.updateSettings", &json!({"patch": {}})), None);
+        // And a limit of zero is out of its range and a limit of 512 is not
+        assert_eq!(defect("server.searchAcpRegistry", &json!({"query": "a", "limit": 0})).unwrap(), "Expected a value between 1 and 512\n  at [\"limit\"]");
+        assert_eq!(defect("server.searchAcpRegistry", &json!({"query": "a", "limit": 512})), None);
+    }
+
+    #[test]
+    fn a_text_generator_base_url_that_is_no_plain_http_url_is_the_filter_defect() {
+        let list = |url: &str| defect("server.listTextGeneratorModels", &json!({"id": "a", "config": {"kind": "anthropic", "baseUrl": url}}));
+        // Given urls that parse as plain http(s), then they decode; given text, a scheme, credentials, a query or a fragment, then the filter fails
+        assert_eq!((list("https://api.example.com/v1"), list("http://a")), (None, None));
+        for bad in ["a", "ftp://a", "http://u@a", "http://a?q=1", "http://a#f"] {
+            assert_eq!(list(bad).unwrap(), "Expected <filter>\n  at [\"config\"][\"baseUrl\"]", "{bad}");
+        }
     }
 
     #[test]
