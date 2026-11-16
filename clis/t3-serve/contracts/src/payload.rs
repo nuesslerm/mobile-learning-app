@@ -9,6 +9,17 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("provider.install.cancel", "instanceId:s operationId:s"),
     ("provider.install.subscribe", "instanceId:s"),
     ("provider.install.remove", "instanceId:s"),
+    ("server.searchAcpRegistry", "query:s limit:n?"),
+    ("server.prepareAcpRegistryAgent", "agentId:s"),
+    ("server.uninstallAcpRegistryManagedBinary", "agentId:s"),
+    ("server.acceptAcpRegistryUrlAuth", "instanceId:s elicitationId:s"),
+    ("server.listAcpRegistrySessions", "instanceId:s projectId:s cursor:s?"),
+    ("server.importAcpRegistrySession", "instanceId:s projectId:s sessionId:s"),
+    ("server.deleteAcpRegistrySession", "instanceId:s projectId:s sessionId:s"),
+    ("server.listAcpRegistryProviders", "instanceId:s projectId:s"),
+    ("server.setAcpRegistryProvider", "instanceId:s projectId:s providerId:s apiType:s baseUrl:s"),
+    ("server.disableAcpRegistryProvider", "instanceId:s projectId:s providerId:s"),
+    ("server.logoutAcpRegistry", "instanceId:s"),
 ];
 
 fn expected(kind: &str) -> &'static str {

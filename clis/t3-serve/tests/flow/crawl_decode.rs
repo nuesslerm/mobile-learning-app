@@ -1,7 +1,7 @@
 //! The decode defects of the pinned server (the crawl set's `-invalid-` cases of each RPC group below) replayed against the router: the
 //! payload that does not decode is a `Die` with the decoder's text, as recorded. The slice of one group at flow tier, in place of the 415 s
 //! chain replay; the chain replay (`recorded_r1`) holds the same ids to `known-gaps.json`.
-//! `CRAWL_PREFIX=<id prefix>[,..]` replays that slice and prints what differs; with `CRAWL_WRITE_GAPS=1` it rewrites those ids in the gaps file.
+//! `CRAWL_PREFIX=<id substring>[,..]` replays that slice and prints what differs; with `CRAWL_WRITE_GAPS=1` it rewrites those ids in the gaps file.
 use super::support::mimic_t3::*;
 use super::support::*;
 use mimic_core::differ::Severity;
@@ -12,7 +12,7 @@ use mimic_core::usecase::replay;
 const DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/cassettes/t3-v0.1.9-crawl");
 
 /// The groups whose invalid cases the router decodes as the real server does.
-const GROUPS: [&str; 1] = ["t3-rpc-provider.install."];
+const GROUPS: [&str; 2] = ["t3-rpc-provider.install.", "AcpRegistry"];
 
 fn found(set: &mimic_core::ports::CassetteSet, allow: &mimic_core::allowlist::Allowlist, ids: &[String]) -> Vec<gaps::Found> {
     let mut out = Vec::new();
@@ -35,7 +35,7 @@ fn found(set: &mimic_core::ports::CassetteSet, allow: &mimic_core::allowlist::Al
 }
 
 fn ids_of(set: &mimic_core::ports::CassetteSet, prefixes: &[String], invalid_only: bool) -> Vec<String> {
-    set.cassette.interactions.iter().map(|i| i.id.clone()).filter(|id| prefixes.iter().any(|p| id.starts_with(p.as_str())) && (!invalid_only || id.contains("-invalid-"))).collect()
+    set.cassette.interactions.iter().map(|i| i.id.clone()).filter(|id| prefixes.iter().any(|p| id.contains(p.as_str())) && (!invalid_only || id.contains("-invalid-"))).collect()
 }
 
 #[test]
