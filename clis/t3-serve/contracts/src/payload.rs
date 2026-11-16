@@ -95,6 +95,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("preview.reportStatus", "threadId:s tabId:s navStatus:ns canGoBack:b canGoForward:b"),
     ("preview.resize", "threadId:s tabId:s viewport:vp"),
     ("preview.adjust", "threadId:s tabId:s colorScheme:l(system|light|dark)~ zoomFactor:ln(0.25|0.33|0.5|0.67|0.75|0.8|0.9|1|1.1|1.25|1.5|1.75|2|2.5|3|4|5)~ hardReload:b~ clear:l(cookies|cache)~"),
+    ("scheduledTasks.upsert", "id:s? requireExisting:b? commandId:s? title:s prompt:s enabled:b schedule:o(upsertInterval) projectId:s threadId:s~ threadMode:l(new_thread|continue|fresh_session)? workspaceStrategy:x modelSelection:ms runtimeMode:l(approval-required|auto-accept-edits|auto|full-access) interactionMode:l(default|plan) createdBy:l(user|agent|system)? creationSource:l(web|mobile|mcp|provider|server)?"),
     ("scheduledTasks.listWebhookDeliveries", "id:s acceptAnyOutcome:b?"),
     ("scheduledTasks.getWebhookDelivery", "id:s deliveryId:s acceptAnyOutcome:b?"),
     ("attachments.delete", "attachmentId:s"),
@@ -131,6 +132,7 @@ const SCHEMAS: &[(&str, &str)] = &[
 
 /// Structs a field of kind `o(name)` or `a(name)` holds, declared like `SCHEMAS`; only the fields the pinned contracts declare first are decoded for the settings patch.
 const NESTED: &[(&str, &str)] = &[
+    ("upsertInterval", "type:l(interval) everyMs:pi"),
     ("keybindingRule", "key:s command:kc when:s?"),
     ("textGenerator", "kind:l(openaiCompatible|anthropic) label:s? baseUrl:p(url) enabled:b?"),
     ("settingsPatch", "setModelFavorites:a(favoriteItem)? setModelsHidden:a(hiddenItem)? setProviderModelOrder:o(modelOrder)?"),
@@ -329,6 +331,10 @@ pub fn defect(tag: &str, payload: &Value) -> Option<String> {
         return consume_reset_credit_defect(payload);
     }
     let (_, schema) = SCHEMAS.iter().find(|(t, _)| *t == tag)?;
+    if tag == "scheduledTasks.upsert" && payload.pointer("/schedule/type").and_then(Value::as_str) != Some("interval") {
+        // The schedule is a union keyed by `type`; only the interval member is decoded here
+        return decode(&schema.replace("schedule:o(upsertInterval)", "schedule:x"), payload.as_object()?);
+    }
     decode(schema, payload.as_object()?)
 }
 
@@ -796,6 +802,12 @@ mod tests {
         assert_eq!(d("pullRequests.filterOptions", json!({})).unwrap(), "Missing key\n  at [\"kind\"]");
         assert_eq!(d("pullRequests.filterOptions", json!({"kind": 7})).unwrap(), "Expected \"labels\" | \"authors\" | \"references\"\n  at [\"kind\"]");
         assert_eq!(d("pullRequests.filterOptions", json!({"kind": "labels"})), None);
+        // And a scheduled task fails on the first of its fields, an interval of zero on the schedule
+        let task = |schedule: Value| json!({"title": "a", "prompt": "a", "enabled": true, "schedule": schedule, "projectId": "a", "workspaceStrategy": {"type": "root"}, "modelSelection": {"model": "a", "instanceId": "a"}, "runtimeMode": "auto", "interactionMode": "default"});
+        assert_eq!(d("scheduledTasks.upsert", json!({})).unwrap(), "Missing key\n  at [\"title\"]");
+        assert_eq!(d("scheduledTasks.upsert", task(json!({"type": "interval", "everyMs": 0}))).unwrap(), "Expected a value greater than 0\n  at [\"schedule\"][\"everyMs\"]");
+        assert_eq!(d("scheduledTasks.upsert", task(json!({"type": "interval", "everyMs": 60000}))), None);
+        assert_eq!(minimal("scheduledTasks.upsert").and_then(|m| defect("scheduledTasks.upsert", &m)), None);
         assert_eq!(d("projects.readFile", json!({})).unwrap(), "Missing key\n  at [\"cwd\"]");
         assert_eq!(d("projects.readFile", json!({"cwd": 7})).unwrap(), "Expected string\n  at [\"cwd\"]");
         // And a worktree setup subscription needs its thread

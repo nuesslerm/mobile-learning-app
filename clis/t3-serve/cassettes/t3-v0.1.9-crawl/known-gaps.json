@@ -352,8 +352,6 @@
         "t3-rpc-filesystem.getMetadata-invalid-drop-paths",
         "t3-rpc-filesystem.getMetadata-invalid-no-payload",
         "t3-rpc-filesystem.getMetadata-invalid-wrong-type-paths",
-        "t3-rpc-scheduledTasks.upsert-invalid-wrong-type-title",
-        "t3-rpc-scheduledTasks.upsert-valid-min",
         "t3-rpc-sourceControl.star-invalid-drop-provider",
         "t3-rpc-sourceControl.star-invalid-no-payload",
         "t3-rpc-sourceControl.star-invalid-wrong-type-provider",
@@ -618,24 +616,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
-      ],
-      "ids": [
-        "t3-command-delegated-task.request-boundary-full",
-        "t3-command-delegated-task.request-invalid-wrong-type-commandId",
-        "t3-command-delegated-task.request-valid-min",
-        "t3-command-message.dispatch-boundary-full",
-        "t3-rpc-agentSessions.import-invalid-drop-projectId",
-        "t3-rpc-agentSessions.import-invalid-no-payload",
-        "t3-rpc-scheduledTasks.upsert-boundary-full"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
       "severity": "breaking",
       "diffs": [
@@ -716,6 +696,23 @@
         "t3-rpc-pullRequests.reportState-invalid-no-payload",
         "t3-rpc-pullRequests.reportState-invalid-wrong-type-reference",
         "t3-rpc-pullRequests.reportState-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ],
+      "ids": [
+        "t3-command-delegated-task.request-boundary-full",
+        "t3-command-delegated-task.request-invalid-wrong-type-commandId",
+        "t3-command-delegated-task.request-valid-min",
+        "t3-command-message.dispatch-boundary-full",
+        "t3-rpc-agentSessions.import-invalid-drop-projectId",
+        "t3-rpc-agentSessions.import-invalid-no-payload"
       ]
     },
     {
