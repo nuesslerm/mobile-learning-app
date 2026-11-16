@@ -22,3 +22,11 @@ One entry per night, appended by the nightly audit session (the "Nightly audit c
 - Earlier fixes checked: none listed in the last 7 days.
 - Tracker: t3 now pinned 0.1.9, latest 0.1.9 (current). Newest track-contracts run 43651197829 (2026-11-14 23:02 UTC) failed in the drift report step; the run before it, 43647841263, passed. Orca not checked (no `GITHUB_TOKEN`).
 - Inbox issue `#79` not updated: `gh issue view` is blocked in this session (GraphQL); the cache findings need a traced cause first.
+
+## 2026-11-16
+
+- Verdict: run 43700244708 (scheduled 2026-11-15 09:38 UTC, about 19 h old), `ok: false`, 281 findings, 67 hard (all `should-have-hit`), 214 `replayed-nothing`. Better than 2026-11-15 (490 findings, 132 hard): `rejected-write` (59) and `seeded-lost` (9) are gone. Largest waste: `crate-pipeline:cargo-contract` (478 s), `crate-deploy:cargo-flow` (258 s, 239 s).
+- Fixes landed: none. The cause of the remaining `should-have-hit` misses on the cargo stages is not yet traced; `wf ci audit` cannot run here (no `bws`, no ledger credentials). The audit run 43708903254 (2026-11-15 11:26 UTC) failed.
+- Earlier fixes checked: none listed in the last 7 days.
+- Tracker: t3 pinned 0.1.9, latest 0.1.9 (current). The last two track-contracts runs failed: 43699839667 (2026-11-15 09:33 UTC, step "Check the pins") and 43651197829. Orca not checked (no `GITHUB_TOKEN`). Nothing landed.
+- Inbox issue `#79` not updated: `gh issue` is blocked in this session (GraphQL).
