@@ -309,7 +309,11 @@ exports.createNodes = [
     const extra = (c, declared, tests) => {
       const usesOf = (key, list) => list.map(named(`${c.name}: [package.metadata.${key}] uses`));
       const used = tests
-        ? [...usesOf('flow', c.flow.uses), ...(tests === 'integration' ? usesOf('integration', c.integration.uses) : [])]
+        ? [
+            ...usesOf('flow', c.flow.uses),
+            ...(tests === 'integration' ? usesOf('integration', c.integration.uses) : []),
+            ...(tests === 'e2e' ? usesOf('e2e', c.e2e?.uses ?? []) : []),
+          ]
         : [];
       const slices = new Map([[c.manifest, [c.name]]]);
       for (const u of used) slices.set(u.manifest, [...(slices.get(u.manifest) ?? []), u.name]);
@@ -368,10 +372,11 @@ exports.createNodes = [
       // the built binaries as a black box with every dependency a fake, one test at a time on a port of its own, after the services are deployed
       const integration = testTarget('integration.rs', `cargo test --locked -p ${c.name} --test integration --manifest-path ${c.manifest} -- --test-threads=1`, [...OWN, ...tier, ...extra(c, [], 'integration')]);
       // a real Chromium or other real dependency the flow tests double: one test at a time, after the services are deployed
-      const e2e = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1`, checks);
+      const e2eChecks = [...OWN, ...tier, ...extra(c, [], 'e2e')];
+      const e2e = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1`, e2eChecks);
       // the same suite without the parity tests (a test whose path names `parity` compares a live model with another): minutes of model
       // time that only a change to the crate itself, or a full plan, is worth
-      const e2eSmoke = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1 --skip parity`, checks);
+      const e2eSmoke = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1 --skip parity`, e2eChecks);
       // the deployed service asked over its real interface: its result is a fact about the VM, so no cache replays it
       const verifyDeployed = testTarget('deployed_verification.rs', `cargo test --locked -p ${c.name} --test deployed_verification --manifest-path ${c.manifest} -- --ignored --test-threads=1`, checks);
       if (verifyDeployed) verifyDeployed.cache = false;
@@ -399,7 +404,7 @@ exports.createNodes = [
               '^rustProduction',
               { externalDependencies: [] },
               ...tier,
-              ...extra(c, ['Cargo.toml', 'tests/e2e.rs', `tests/e2e/${g}.rs`, ...(c.e2e.shared ?? []), ...(c.e2e.src ?? []), ...(c.e2e.extra ?? [])].map(own), false),
+              ...extra(c, ['Cargo.toml', 'tests/e2e.rs', `tests/e2e/${g}.rs`, ...(c.e2e.shared ?? []), ...(c.e2e.src ?? []), ...(c.e2e.extra ?? [])].map(own), 'e2e'),
             ],
             options: { cwd: '{workspaceRoot}', command: `${e2e.options.command} ${g}::` },
           },

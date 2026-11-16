@@ -1,8 +1,11 @@
-//! The e2e tests of `wf offload ask`: the CLI against the deployed rca service with a real model behind it, which the flow tests
-//! (`flow.rs`) double. They check that the options `ask` takes from `opencode run` do what opencode's do.
+//! The e2e tests of `wf offload ask`: the CLI against a real `rca-service` and `opencode serve` started on loopback by the run (`rca.rs`),
+//! with a real model behind them, which the flow tests (`flow.rs`) double. They check that the options `ask` takes from `opencode run` do what opencode's do.
 #[allow(dead_code)]
 #[path = "flow/support/mod.rs"]
 mod support;
+
+#[path = "e2e/rca.rs"]
+mod rca;
 
 #[path = "e2e/ask.rs"]
 mod ask;

@@ -66,7 +66,7 @@ pub struct RcaService {
 }
 
 /// One HTTP exchange with `Connection: close`: the status and the JSON body (null when there is none).
-fn http(addr: SocketAddr, method: &str, path: &str, headers: &[(&str, &str)], body: &str) -> std::io::Result<(u16, Value)> {
+pub(crate) fn http(addr: SocketAddr, method: &str, path: &str, headers: &[(&str, &str)], body: &str) -> std::io::Result<(u16, Value)> {
     let mut stream = TcpStream::connect_timeout(&addr, Duration::from_secs(2))?;
     stream.set_read_timeout(Some(Duration::from_secs(10)))?;
     let mut request = format!("{method} {path} HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\nContent-Length: {}\r\n", body.len());

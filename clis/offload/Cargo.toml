@@ -37,13 +37,17 @@ signal-hook = "0.4"
 wf-testkit = { path = "../wf-testkit" }
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 tempfile = "3"
+exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }
+libc = "0.2"
 
 # The live-model e2e suite is one Nx task per group (`cargo-e2e-<group>`, tooling/nx/cargo-crates.js), each keyed by its own test file,
 # the files below and the crates it builds on: a change to the batch, runbook, pricing or worker code reruns none of them.
 [package.metadata.e2e]
 groups = ["ask", "parity", "parity_features", "parity_capabilities"]
+# the suite starts the rca-service binary and exec-testkit's opencode server on the runner (tests/e2e/rca.rs), so Nx keys the tasks on both
+uses = ["rca-service", "exec-testkit"]
 # `parity.rs` holds the helpers every group imports; the opencode Dockerfile pins the opencode version the options are compared with
-shared = ["tests/e2e/parity.rs", "tests/flow/support/**", "../../.opencode/agents/read-only.md", "../../backend/remote-chat-agent/opencode-server/Dockerfile"]
+shared = ["tests/e2e/parity.rs", "tests/e2e/rca.rs", "tests/flow/support/**", "../../backend/remote-chat-agent/opencode-server/server-config.json", "../../.opencode/agents/read-only.md", "../../backend/remote-chat-agent/opencode-server/Dockerfile"]
 src = ["src/lib.rs", "src/bin/**", "src/dispatch.rs", "src/dispatch_run.rs", "src/rca_client.rs", "src/run_format.rs", "src/help_table.rs", "src/help/**"]
 
 [package.metadata.arch]

@@ -84,6 +84,7 @@
     "backend/remote-chat-agent/service-core -> libraries/agent-api/agent-api-workspace",
     "backend/remote-chat-agent/service-core -> libraries/agent-api/exec-git",
     "backend/service-kit -> clis/telemetry",
+    "clis/offload -> libraries/agent-api/exec-testkit",
     "clis/orca-serve -> libraries/agent-api/agent-api-client",
     "clis/orca-serve -> libraries/agent-api/agent-api-proto",
     "clis/orca-serve -> libraries/agent-api/agent-api-service",

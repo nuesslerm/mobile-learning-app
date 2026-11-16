@@ -15,6 +15,8 @@
 //! - `recordings`: the stream-json each CLI prints, with where every recording came from (the cassette set `cassettes/exec-recordings`).
 //! - `RcaService`: the real `rca-service` binary (built from `backend/remote-chat-agent` once per process, or the one `RCA_SERVICE_BIN` names),
 //!   on a free port with a secret and a `PATH` that finds the scripted CLIs.
+//! - `OpencodeServer`: the real `opencode serve` of the `PATH` on a free loopback port, with the provider key in its environment only, for the
+//!   service's `POST /runs` (what `wf offload ask` drives).
 //! - `Tap`: a recording WebSocket proxy between a mapper or an executor and the service, which keeps the agent API calls and executor tools
 //!   that went through it; `trace` turns windows on it into the method-hit trace of a chain run and the run record `wf test publish` takes.
 pub mod cassette;
@@ -22,6 +24,7 @@ pub mod cli;
 pub mod devserver;
 pub mod executor;
 pub mod hosted;
+pub mod opencode;
 pub mod recordings;
 pub mod repo;
 pub mod script;
@@ -33,6 +36,7 @@ pub use cassette::{Cassette, Interaction};
 pub use cli::ScriptedCli;
 pub use executor::RcaExec;
 pub use hosted::{HostedClis, Rule, Start};
+pub use opencode::OpencodeServer;
 pub use recordings::Recording;
 pub use repo::{git_env, TempRepo};
 pub use script::{Invocation, Script, Step, Turn};

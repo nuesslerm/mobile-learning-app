@@ -1,4 +1,4 @@
-//! `wf offload ask` against the deployed service (the tailnet and the vault as the CI runner has them): a session continues with `-c`, a
+//! `wf offload ask` against the `rca-service` and `opencode serve` this run starts on loopback (`rca.rs`): a session continues with `-c`, a
 //! run is read-only without `--auto` and edits with it, an agent defined in the repository answers as defined, and `--format json`
 //! reports the session and the tokens.
 use serde_json::Value;
@@ -12,16 +12,18 @@ struct RunResult {
     stderr: String,
 }
 
-/// The CLI with the environment of the machine running the tests, not `run_wf`'s isolated one: the deployed service is reached over the
-/// tailnet with the secret from the vault, as a user's `wf` does. A client timeout keeps a stuck service from stalling the stage.
+/// The CLI with the environment of the machine running the tests, not `run_wf`'s isolated one, pointed at this run's service. A client
+/// timeout keeps a stuck service from stalling the stage.
 fn ask(dir: &Path, args: &[&str]) -> RunResult {
-    let out = Command::new(crate::support::wf_binary())
-        .args(["offload", "ask"])
-        .args(args)
-        .args(["--timeout-ms", "600000", "--caller", &crate::parity::caller_of(dir)])
-        .current_dir(dir)
-        .env("WF_USAGE", "off")
-        .output()
+    let out = crate::rca::point(
+        Command::new(crate::support::wf_binary())
+            .args(["offload", "ask"])
+            .args(args)
+            .args(["--timeout-ms", "600000", "--caller", &crate::parity::caller_of(dir)])
+            .current_dir(dir)
+            .env("WF_USAGE", "off"),
+    )
+    .output()
         .expect("the wf binary starts");
     RunResult { exit_code: out.status.code().unwrap_or(-1), stdout: String::from_utf8_lossy(&out.stdout).into_owned(), stderr: String::from_utf8_lossy(&out.stderr).into_owned() }
 }
@@ -168,4 +170,20 @@ fn the_recorded_commands_are_the_ones_opencode_lists_now() {
     listed.sort();
     recorded.sort();
     assert_eq!(listed, recorded, "opencode lists other commands than tests/flow/fixtures/opencode-commands.json records: add each new one with its status and why");
+}
+
+#[test]
+fn given_no_rca_host_in_the_environment_when_asks_are_pointed_then_they_go_to_the_loopback_service_of_the_run_and_not_the_deployed_one() {
+    use std::io::{Read, Write};
+    // Given the parent has no RCA_HOST of its own
+    let env: std::collections::HashMap<_, _> = crate::rca::rca_env().iter().cloned().collect();
+    // When the run's variables are read, Then the host is loopback with no tailnet in the way
+    assert_eq!(env["RCA_HOST"], "127.0.0.1");
+    assert_eq!(env["WF_TAILNET_SOCKS"], "");
+    // And the service answers there
+    let mut stream = std::net::TcpStream::connect(format!("127.0.0.1:{}", env["RCA_PORT"])).expect("the service listens on loopback");
+    stream.write_all(b"GET /health HTTP/1.1\r\nHost: x\r\nConnection: close\r\n\r\n").unwrap();
+    let mut answer = String::new();
+    stream.read_to_string(&mut answer).unwrap();
+    assert!(answer.starts_with("HTTP/1.1 200"), "{answer}");
 }
