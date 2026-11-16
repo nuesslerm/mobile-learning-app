@@ -958,7 +958,7 @@ jobs:
             unset EXPO_PUBLIC_BETTERSTACK_TOKEN EXPO_PUBLIC_BETTERSTACK_HOST
             forwarder="off (the vault gave no${missing})"
           fi
-          wf ship eas --platform all --branch dev ${{ inputs.e2e && '--pointer' || '' }} --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas.log"
+          wf ship eas --platform all --branch dev --pointer --message "$(git log -1 --format=%s "$GITHUB_SHA")" | tee "$RUNNER_TEMP/eas.log"
           summary=$(tail -1 "$RUNNER_TEMP/eas.log")
           {
             echo "### EAS Update"
@@ -998,6 +998,13 @@ jobs:
           path: ${{ runner.temp }}/eas-pointer
           retention-days: 2
           if-no-files-found: error
+      # the branch pointers outlive the run: the planner of the next push and `wf ship eas --latest` read them from the state ref
+      - name: Push the EAS pointers to the state ref
+        if: ${{ inputs.ship && success() }}
+        run: |
+          for pointer in "$RUNNER_TEMP"/eas-pointer/latest-*.json; do
+            wf bucket state write "eas/$(basename "$pointer")" --file "$pointer" --message "eas: $(basename "$pointer") at $GITHUB_SHA"
+          done
       - name: Export the EAS bundle (not published)
         if: ${{ !inputs.ship }}
         timeout-minutes: 20

@@ -1,7 +1,7 @@
 //! `wf ship eas`: publish the app as an EAS Update through its `publish:eas` script. The tier-3 gate of `wf check`
 //! publishes through the same function.
 use wf_kit::args::parse;
-use pipeline::eas::{children_peak_rss_mb, latest_pointer, pointer_dir, served};
+use pipeline::eas::{children_peak_rss_mb, latest_file, latest_pointer, pointer_dir, served};
 use std::path::Path;
 use std::time::Duration;
 
@@ -105,10 +105,6 @@ fn summarize(dist: &Path, branch: &str, route: &str, platform: Option<&str>, sto
 }
 
 
-
-fn latest_file(branch: &str) -> String {
-    format!("latest-{}.json", branch.replace('/', "-"))
-}
 
 fn write_file(path: &Path, body: &[u8]) -> Result<(), String> {
     let dir = path.parent().ok_or_else(|| format!("{} has no parent", path.display()))?;

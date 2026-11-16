@@ -44,7 +44,7 @@ Actions:
                          in this process; [--platform android|browser] [--sha S] [--out DIR] [--serial S] [-- <test flags>]. A test whose header has
                          `units: k=v; k=v k2=v2` runs once per unit, its pairs handed to the script as --env (keeps each run
                          short). An Android run takes the device lease and loads the EAS Update CI published on branch dev (`against: update`;
-                         latest-dev.json in the verification bucket; base exp://u.expo.dev/<projectId>/group/<group>/--, which a cold
+                         latest-dev.json from the run's eas-pointer dir, else eas/latest-dev.json in refs/wf/state; base exp://u.expo.dev/<projectId>/group/<group>/--, which a cold
                          start opens bare). A test whose `against:` is not its harness's target is refused before anything runs,
                          naming the header line that fixes it. An Android run is an error, never a fall back to a dev server, when
                          WF_EAS_UPDATE_RESULT

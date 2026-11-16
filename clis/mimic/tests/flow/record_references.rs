@@ -1,8 +1,9 @@
 //! The record-references trigger of `wf mimic`: the commit marker that asks the VM runner for a capture job (`trigger`), how a set's reference is
 //! installed from data (`provision`), the chunked job itself (`job`, over a double of the checkpointed `record`) and the transport of a
-//! recorded set to another checkout (`publish`, `fetch`, over a stub of the artifacts bucket).
+//! recorded set to another checkout (`publish`, `fetch`, over a bare repository standing in for origin).
 use crate::support::*;
 use std::path::{Path, PathBuf};
+use std::process::Stdio;
 
 fn reporoot() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -491,70 +492,58 @@ fn a_replay_job_tabulates_every_candidate_and_is_red_only_when_one_differs() {
     assert_eq!((clean.code, clean.json["ok"].clone()), (0, json!(true)), "{}", clean.json);
 }
 
-/// A stand-in for the artifacts bucket: PUT stores a body under its path, GET serves it, 404 otherwise; `corrupt` flips what GET answers for
-/// one path to prove the hash check.
-struct Bucket {
-    base: String,
-    puts: std::sync::Arc<std::sync::Mutex<std::collections::BTreeMap<String, Vec<u8>>>>,
+/// A bare repository standing in for GitHub's `origin`, and clones of it that run `wf mimic` the way two runners and an agent's checkout do.
+struct Remote {
+    dir: tempfile::TempDir,
 }
 
-fn bucket(corrupt: Option<&'static str>) -> Bucket {
-    let server = tiny_http::Server::http("127.0.0.1:0").unwrap();
-    let base = format!("http://127.0.0.1:{}", server.server_addr().to_ip().unwrap().port());
-    let puts: std::sync::Arc<std::sync::Mutex<std::collections::BTreeMap<String, Vec<u8>>>> = Default::default();
-    let store = puts.clone();
-    std::thread::spawn(move || {
-        for mut req in server.incoming_requests() {
-            let path = req.url().to_string();
-            if req.method() == &tiny_http::Method::Put {
-                let mut body = Vec::new();
-                std::io::Read::read_to_end(req.as_reader(), &mut body).unwrap();
-                store.lock().unwrap().insert(path, body);
-                let _ = req.respond(tiny_http::Response::empty(200));
-            } else {
-                let found = store.lock().unwrap().get(&path).cloned();
-                let _ = match found {
-                    Some(mut body) => {
-                        if corrupt.is_some_and(|c| path.ends_with(c)) {
-                            body.extend_from_slice(b" ");
-                        }
-                        req.respond(tiny_http::Response::from_data(body))
-                    }
-                    None => req.respond(tiny_http::Response::empty(404)),
-                };
-            }
-        }
-    });
-    Bucket { base, puts }
+fn git(dir: &Path, args: &[&str]) -> String {
+    let out = std::process::Command::new("git").args(args).current_dir(dir).output().expect("git runs");
+    assert!(out.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&out.stderr));
+    String::from_utf8_lossy(&out.stdout).trim().to_string()
 }
 
-fn bucket_env(b: &Bucket) -> (String, String) {
-    (format!("{}/par/", b.base), format!("{}/par", b.base))
+impl Remote {
+    fn new() -> Remote {
+        let dir = tempfile::tempdir().unwrap();
+        git(dir.path(), &["init", "--bare", "--quiet", "origin.git"]);
+        Remote { dir }
+    }
+
+    fn bare(&self) -> PathBuf {
+        self.dir.path().join("origin.git")
+    }
+
+    fn clone_named(&self, name: &str) -> PathBuf {
+        let job = self.dir.path().join(name);
+        std::fs::create_dir(&job).unwrap();
+        git(&job, &["init", "--quiet"]);
+        git(&job, &["remote", "add", "origin", self.bare().to_str().unwrap()]);
+        job
+    }
 }
 
 #[test]
 fn a_recorded_set_published_from_one_checkout_is_fetched_whole_into_another_without_its_raw_capture() {
-    // Given a recorded toy set with a raw capture beside it, and a stub bucket
+    // Given a recorded toy set with a raw capture beside it, and a runner and an agent checkout sharing one origin
     let w = World::new();
     w.record();
     std::fs::create_dir_all(w.path("raw")).unwrap();
     w.write("raw/capture.jsonl", "{\"secret\":\"unmasked\"}\n");
-    let b = bucket(None);
-    let (par, read) = bucket_env(&b);
-    let env = [("VERIFICATION_ARTIFACTS_PAR_URL", Path::new(&par)), ("VERIFICATION_ARTIFACTS_READ_URL", Path::new(&read)), ("NO_PROXY", Path::new("127.0.0.1")), ("no_proxy", Path::new("127.0.0.1"))];
+    let remote = Remote::new();
+    let (runner, agent) = (remote.clone_named("runner"), remote.clone_named("agent"));
     // When the set is published as run 42
-    let p = mimic(&["publish", &w.arg(), "--run", "42", "--root", &w.dir.path().display().to_string()], &env);
-    // Then every kept file is in the bucket and raw/ is not, and the output never shows the write link
+    let p = mimic_in(Some(&runner), &["publish", &w.arg(), "--run", "42", "--root", &w.dir.path().display().to_string()], &[]);
+    // Then every kept file is on the state ref of origin and raw/ is not
     assert_eq!((p.code, p.json["ok"].clone()), (0, json!(true)), "{}\n{}", p.json, p.stderr);
-    let keys: Vec<String> = b.puts.lock().unwrap().keys().cloned().collect();
-    assert!(keys.iter().any(|k| k.ends_with("/42/toy-set/cassette.json")) && keys.iter().any(|k| k.ends_with("/42/manifest.json")) && keys.iter().any(|k| k.ends_with("/latest/toy-set.json")), "{keys:?}");
-    assert!(!keys.iter().any(|k| k.contains("raw")), "{keys:?}");
-    assert!(!p.json.to_string().contains(&par) && !p.stderr.contains(&par));
+    let files = git(&remote.bare(), &["ls-tree", "-r", "--name-only", "refs/wf/state"]);
+    assert!(files.contains("records/sets/toy-set/cassette.json") && files.contains("records/runs/42.json") && files.contains("records/latest/toy-set.json"), "{files}");
+    assert!(!files.contains("raw"), "{files}");
     // When another checkout fetches the run, by id and as latest
     let other = tempfile::tempdir().unwrap();
-    let f = mimic(&["fetch", "42", "--root", &other.path().display().to_string()], &env);
-    let latest = mimic(&["fetch", "latest", "--set", "toy-set", "--root", &other.path().display().to_string()], &env);
-    // Then the set is there byte for byte, without raw/, and it verifies
+    let f = mimic_in(Some(&agent), &["fetch", "42", "--root", &other.path().display().to_string()], &[]);
+    let latest = mimic_in(Some(&agent), &["fetch", "latest", "--set", "toy-set", "--root", &other.path().display().to_string()], &[]);
+    // Then the set is there byte for byte, without raw/
     assert_eq!((f.code, f.json["ok"].clone(), latest.code), (0, json!(true), 0), "{}\n{}", f.json, f.stderr);
     for file in ["cassette.json", "interactions.jsonl", "rules.json", "corpus.json", "mimic.toml"] {
         assert_eq!(std::fs::read(other.path().join("toy-set").join(file)).unwrap(), std::fs::read(w.path(file)).unwrap(), "{file}");
@@ -564,26 +553,64 @@ fn a_recorded_set_published_from_one_checkout_is_fetched_whole_into_another_with
 
 #[test]
 fn a_fetched_file_that_does_not_match_its_manifest_hash_is_refused_and_an_unknown_run_says_so() {
-    // Given a published run whose interactions file is altered in transit
+    // Given a published run whose interactions file was altered on the ref after the manifest was written
     let w = World::new();
     w.record();
-    let b = bucket(Some("interactions.jsonl"));
-    let (par, read) = bucket_env(&b);
-    let env = [("VERIFICATION_ARTIFACTS_PAR_URL", Path::new(&par)), ("VERIFICATION_ARTIFACTS_READ_URL", Path::new(&read)), ("NO_PROXY", Path::new("127.0.0.1")), ("no_proxy", Path::new("127.0.0.1"))];
-    let p = mimic(&["publish", &w.arg(), "--run", "7", "--root", &w.dir.path().display().to_string()], &env);
+    let remote = Remote::new();
+    let (runner, agent) = (remote.clone_named("runner"), remote.clone_named("agent"));
+    let p = mimic_in(Some(&runner), &["publish", &w.arg(), "--run", "7", "--root", &w.dir.path().display().to_string()], &[]);
     assert_eq!(p.code, 0, "{}", p.json);
+    git(&runner, &["fetch", "--quiet", "origin", "refs/wf/state:refs/wf/state"]);
+    let tip = git(&runner, &["rev-parse", "refs/wf/state"]);
+    let index = runner.join(".git/tamper-index");
+    let tamper = |args: &[&str]| {
+        let out = std::process::Command::new("git").args(args).env("GIT_INDEX_FILE", &index).env("GIT_AUTHOR_NAME", "t").env("GIT_AUTHOR_EMAIL", "t@t").env("GIT_COMMITTER_NAME", "t").env("GIT_COMMITTER_EMAIL", "t@t").current_dir(&runner).output().unwrap();
+        assert!(out.status.success(), "{args:?}: {}", String::from_utf8_lossy(&out.stderr));
+        String::from_utf8_lossy(&out.stdout).trim().to_string()
+    };
+    tamper(&["read-tree", &tip]);
+    let blob = {
+        let mut child = std::process::Command::new("git").args(["hash-object", "-w", "--stdin"]).stdin(Stdio::piped()).stdout(Stdio::piped()).current_dir(&runner).spawn().unwrap();
+        std::io::Write::write_all(child.stdin.as_mut().unwrap(), b"altered\n").unwrap();
+        String::from_utf8_lossy(&child.wait_with_output().unwrap().stdout).trim().to_string()
+    };
+    tamper(&["update-index", "--cacheinfo", &format!("100644,{blob},records/sets/toy-set/interactions.jsonl")]);
+    let tree = tamper(&["write-tree"]);
+    let commit = tamper(&["commit-tree", &tree, "-p", &tip, "-m", "altered"]);
+    git(&runner, &["push", "--quiet", "origin", &format!("{commit}:refs/wf/state")]);
     // When it is fetched
     let other = tempfile::tempdir().unwrap();
-    let f = mimic(&["fetch", "7", "--root", &other.path().display().to_string()], &env);
+    let f = mimic_in(Some(&agent), &["fetch", "7", "--root", &other.path().display().to_string()], &[]);
     // Then the hash mismatch stops it, and the altered file is not written
     assert_eq!(f.code, 2, "{}", f.json);
     assert!(f.json["error"].as_str().unwrap().contains("does not match the hash"), "{}", f.json["error"]);
     assert!(!other.path().join("toy-set/interactions.jsonl").exists());
     // When a run that was never published is fetched
-    let none = mimic(&["fetch", "404", "--root", &other.path().display().to_string()], &env);
+    let none = mimic_in(Some(&agent), &["fetch", "404", "--root", &other.path().display().to_string()], &[]);
     // Then it says the run does not exist
     assert_eq!(none.code, 2);
     assert!(none.json["error"].as_str().unwrap().contains("does not exist"), "{}", none.json["error"]);
+}
+
+#[test]
+fn a_run_a_newer_one_replaced_keeps_no_files_and_the_fetch_names_the_newest() {
+    // Given two runs of the same set published one after the other
+    let w = World::new();
+    w.record();
+    let remote = Remote::new();
+    let (runner, agent) = (remote.clone_named("runner"), remote.clone_named("agent"));
+    for run in ["1", "2"] {
+        let p = mimic_in(Some(&runner), &["publish", &w.arg(), "--run", run, "--root", &w.dir.path().display().to_string()], &[]);
+        assert_eq!(p.code, 0, "{}", p.json);
+    }
+    // When the older run is fetched
+    let other = tempfile::tempdir().unwrap();
+    let old = mimic_in(Some(&agent), &["fetch", "1", "--root", &other.path().display().to_string()], &[]);
+    // Then it is refused and points at the newest run, which fetches
+    assert_eq!(old.code, 2, "{}", old.json);
+    assert!(old.json["error"].as_str().unwrap().contains("no longer the newest"), "{}", old.json["error"]);
+    let newest = mimic_in(Some(&agent), &["fetch", "latest", "--set", "toy-set", "--root", &other.path().display().to_string()], &[]);
+    assert_eq!((newest.code, newest.json["run"].clone()), (0, json!("2")), "{}", newest.json);
 }
 
 fn workflow() -> String {

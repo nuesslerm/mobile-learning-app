@@ -236,31 +236,31 @@ fn an_android_script_reads_the_screen_drives_the_device_and_calls_an_agent() {
 }
 
 #[test]
-fn a_browser_run_told_to_publish_leaves_its_bundle_in_the_bucket_through_the_publisher_wf_sets() {
-    // Given a browser session on a mock daemon, a bucket whose index lists no run, and a table that takes a row
+fn a_browser_run_told_to_publish_leaves_its_bundle_in_the_runs_folder_through_the_publisher_wf_sets() {
+    // Given a browser session on a mock daemon, an empty runs folder, and a table that takes a row
     let s = sandbox("wf-flow-harness-publish-");
     let daemon = MockDaemon::start();
     s.seed(&json!({ "main/mla-tamagui/default": { "createdAt": "2026-01-01T00:00:00Z", "browserMcp": { "url": daemon.url, "startedAt": "2026-01-01T00:00:00Z" } } }));
-    let bucket = MockServer::start(None);
-    bucket.queue(vec![MockReply::json(200, json!({ "schema": 1, "runs": [] }))], true);
     let ords = MockServer::start(None);
     ords.queue(vec![MockReply::json(201, json!({}))], false);
-    let par = format!("http://127.0.0.1:{}/p/", bucket.port);
-    let read = format!("http://127.0.0.1:{}/o", bucket.port);
+    let runs = tempfile::tempdir().unwrap();
+    let runs_dir = runs.path().display().to_string();
     let table = format!("http://127.0.0.1:{}/ords/health_rpt/test_runs/", ords.port);
-    let env = [("VERIFICATION_ARTIFACTS_PAR_URL", par.as_str()), ("VERIFICATION_ARTIFACTS_READ_URL", read.as_str()), ("TEST_RUNS_ORDS_BASE_URL", table.as_str()), ("HEALTH_REPORTS_ORDS_PASSWORD", "pw"), ("WF_SITE", "sandbox")];
+    let env = [("WF_TEST_RUNS_DIR", runs_dir.as_str()), ("TEST_RUNS_ORDS_BASE_URL", table.as_str()), ("HEALTH_REPORTS_ORDS_PASSWORD", "pw"), ("WF_SITE", "sandbox")];
 
     // When a script runs with --publish
     let r = script(&s, "browser", "log('ran')", &["--test-output-dir", "pub-rec", "--no-record", "--publish"], &env);
-    // Then the run passes, says where its bundle is, and the bundle and the index are in the bucket with the run's report
+    // Then the run passes, says where its bundle is, and the bundle and the index are in the folder with the run's report
     assert_eq!(r.exit_code, 0, "{}", out(&r));
     let said = r.stdout.lines().find_map(|l| l.strip_prefix("bundle: ")).unwrap_or_else(|| panic!("no bundle line: {}", out(&r))).to_string();
-    let puts: Vec<String> = bucket.requests().iter().filter(|q| q.method == "PUT").map(|q| q.url.clone()).collect();
-    assert!(said.starts_with(&format!("{read}/verification/test-runs/run-")) && said.ends_with("/bundle.json"), "{said}");
-    assert!(puts.iter().any(|u| u.ends_with("/report.json")) && puts.iter().any(|u| u.ends_with("/bundle.json")) && puts.last().is_some_and(|u| u.ends_with("/test-runs/index.json")), "{puts:?}");
+    assert!(said.starts_with(&format!("{runs_dir}/run-")) && said.ends_with("/bundle.json"), "{said}");
+    let folder = std::path::Path::new(&said).parent().unwrap();
+    assert!(folder.join("report.json").is_file() && std::path::Path::new(&said).is_file(), "{:?}", std::fs::read_dir(folder).map(|d| d.flatten().map(|e| e.file_name()).collect::<Vec<_>>()));
+    let index: Value = serde_json::from_str(&std::fs::read_to_string(runs.path().join("index.json")).unwrap()).unwrap();
+    assert_eq!(index["runs"].as_array().map(Vec::len), Some(1), "{index}");
     // and the row was posted to the table, and a run not told to publish touches neither
     assert_eq!(ords.requests().len(), 1);
-    let before = bucket.requests().len();
     let quiet = script(&s, "browser", "log('ran')", &["--test-output-dir", "quiet-rec", "--no-record"], &env);
-    assert_eq!((quiet.exit_code, bucket.requests().len()), (0, before), "{}", out(&quiet));
+    let after: Value = serde_json::from_str(&std::fs::read_to_string(runs.path().join("index.json")).unwrap()).unwrap();
+    assert_eq!((quiet.exit_code, ords.requests().len(), after), (0, 1, index), "{}", out(&quiet));
 }

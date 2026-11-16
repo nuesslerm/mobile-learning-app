@@ -7,6 +7,7 @@ pub mod otlp;
 pub mod pki;
 mod run;
 mod slot_sandbox;
+mod state;
 mod stubs;
 #[cfg(feature = "tls")]
 mod mock_https;
@@ -18,6 +19,7 @@ pub use mock_server::{MockReply, MockRequest, MockServer};
 pub use mock_tailnet::{MockTailnet, Upstream};
 pub use run::{node_path, node_script, run_wf, spawn_bin, spawn_wf, wait_until, wf_binary, RunOpts, RunResult, Spawned};
 pub use slot_sandbox::SlotSandbox;
+pub use state::state_put;
 pub use stubs::{create_sh_stub, create_stub, with_stubs};
 
 use std::path::PathBuf;

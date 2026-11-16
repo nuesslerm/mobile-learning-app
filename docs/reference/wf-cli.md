@@ -4136,14 +4136,15 @@ Usage: `wf mimic publish [options] <set>...`
 ```text
 Usage: wf mimic publish [options] <set>...
 
-Upload recorded sets to the verification-artifacts bucket as one run, so another
-checkout can fetch them over plain HTTPS (an agent session cannot reach the
-GitHub Actions API, and an Actions artifact needs a login to download). Uploads
-the json, jsonl, toml, txt and md files of each set, never raw/ or a dot file,
-each under verification/record-references/<run>/<set>/, then the manifest (every
-file's size and sha256), then latest/<set>.json. A set without a cassette.json is
-refused. The write link is VERIFICATION_ARTIFACTS_PAR_URL (the vault, or the
-environment); it is never printed. Caps: 60 MB a file, 200 MB a run.
+Commit recorded sets to the state ref (refs/wf/state of origin) as one run, so
+another checkout can fetch them with git alone (an agent session cannot reach the
+GitHub Actions API, and an Actions artifact needs a login to download). Writes
+the json, jsonl, toml, txt and md files of each set, never raw/ or a dot file, to
+records/sets/<set>/, the manifest (every file's size and sha256) to
+records/runs/<run>.json and the run to records/latest/<set>.json, all in one
+commit. Only the newest run of a set keeps its files. A set without a
+cassette.json is refused. The push needs a token that may write refs (contents:
+write in a workflow). Caps: 60 MB a file, 200 MB a run.
 
 Options:
   --run <id>                  the run id (default $GITHUB_RUN_ID, else local)
@@ -4170,9 +4171,9 @@ Usage: `wf mimic fetch [options] <run-id|latest>`
 Usage: wf mimic fetch [options] <run-id|latest>
 
 Download a published run (wf mimic publish) into this checkout: every file of
-every set is read from the bucket's public URL, its sha256 is checked against the
-manifest, and it is written to the set's directory (paths from the checkout root,
-never outside it). A file that does not match writes nothing more. `latest` takes
+every set is read from the state ref (git fetch of refs/wf/state), its sha256 is
+checked against the manifest, and it is written to the set's directory (paths from
+the checkout root, never outside it). A run that a newer one replaced is refused. A file that does not match writes nothing more. `latest` takes
 the newest run of --set. Then verify the set and commit it.
 
 Options:
@@ -5377,7 +5378,7 @@ Usage: `wf ship [options] [service...]`
 | `--smoke` | With --redeploy-only: first run the pushed tag as a throwaway container and probe it (nothing is swapped on a failure); CI's deploy legs use it after `wf ship build`. vm-ops-api always proves its own image first |
 | `--wipe-state` | Also wipe the tailscale-state volume |
 | `--recreate-all` | Recreate every container of the service, sidecars included |
-| `--changed` | Print which services a push must deploy, each with why, and whether it publishes an EAS Update: {"legs":[{"app","why":[...]}],"easUpdate":{"publish","why":[...]}}. A service is planned when the hash of its images and compose project differs between the commit it runs and HEAD (or that commit is unknown or not in the checkout). The update is published when the app's package graph (and the lockfile entries it reaches) changed since the commit of the branch's latest-dev.json pointer, when a tailnet name that update baked in has moved, or when that commit cannot be read or the changed packages cannot be listed; a rotated backend token is not seen, publish it with --force (--force: all legs and the update; --also <a,b>: those services too, changed or not; --since <sha>: compare with that commit instead of what each service runs and the pointer names, asking vm-ops-api and the bucket nothing, so no tailnet name is checked either; --github-output: append legs= and eas_update= to $GITHUB_OUTPUT) |
+| `--changed` | Print which services a push must deploy, each with why, and whether it publishes an EAS Update: {"legs":[{"app","why":[...]}],"easUpdate":{"publish","why":[...]}}. A service is planned when the hash of its images and compose project differs between the commit it runs and HEAD (or that commit is unknown or not in the checkout). The update is published when the app's package graph (and the lockfile entries it reaches) changed since the commit of the branch's latest-dev.json pointer (eas/ in refs/wf/state), when a tailnet name that update baked in has moved, or when that commit cannot be read or the changed packages cannot be listed; a rotated backend token is not seen, publish it with --force (--force: all legs and the update; --also <a,b>: those services too, changed or not; --since <sha>: compare with that commit instead of what each service runs and the pointer names, asking vm-ops-api and the state ref nothing, so no tailnet name is checked either; --github-output: append legs= and eas_update= to $GITHUB_OUTPUT) |
 | `--status` | Deployer state: vm-ops-api /health and the container status of each service |
 
 Examples:
@@ -5422,7 +5423,7 @@ Options:
                    images and compose project differs between the commit it runs and HEAD
                    (or that commit is unknown or not in the checkout). The update is published when the
                    app's package graph (and the lockfile entries it reaches) changed since
-                   the commit of the branch's latest-dev.json pointer, when a tailnet name
+                   the commit of the branch's latest-dev.json pointer (eas/ in refs/wf/state), when a tailnet name
                    that update baked in has moved, or when that commit cannot be read or
                    the changed packages cannot be listed; a rotated backend token is not
                    seen, publish it with --force (--force: all legs and the update;
@@ -5883,7 +5884,7 @@ Actions:
                          in this process; [--platform android|browser] [--sha S] [--out DIR] [--serial S] [-- <test flags>]. A test whose header has
                          `units: k=v; k=v k2=v2` runs once per unit, its pairs handed to the script as --env (keeps each run
                          short). An Android run takes the device lease and loads the EAS Update CI published on branch dev (`against: update`;
-                         latest-dev.json in the verification bucket; base exp://u.expo.dev/<projectId>/group/<group>/--, which a cold
+                         latest-dev.json from the run's eas-pointer dir, else eas/latest-dev.json in refs/wf/state; base exp://u.expo.dev/<projectId>/group/<group>/--, which a cold
                          start opens bare). A test whose `against:` is not its harness's target is refused before anything runs,
                          naming the header line that fixes it. An Android run is an error, never a fall back to a dev server, when
                          WF_EAS_UPDATE_RESULT

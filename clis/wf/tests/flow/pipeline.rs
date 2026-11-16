@@ -153,15 +153,14 @@ impl Workspace {
             ("WF_TEST_RUNNER", self.path("runner.sh")),
             ("WF_TEST_NO_ADB", "1".to_string()),
             ("WF_NX_BIN", self.s.bin_dir.join("nx").display().to_string()),
-            // a closed port unless the test serves a bucket: an Android unit that forgot one fails, never reads the real pointer
-            ("VERIFICATION_ARTIFACTS_READ_URL", "http://127.0.0.1:9/o".to_string()),
+            // the pointer dir the test fills: an Android unit that forgot to never reads the state ref of the real origin
+            ("WF_EAS_POINTER_DIR", self.path("eas-pointer")),
         ];
         if !extra.iter().any(|(k, _)| *k == "WF_ANDROID_LEASE_DIR") {
             envs.push(("WF_TEST_NO_LEASE", "1".to_string()));
         }
-        // the tailnet answers the backends' own names (no DNS in a test), and a pointer read that fails is tried again at once
+        // the tailnet answers the backends' own names (no DNS in a test)
         envs.push(("WF_TEST_TAILNET_NAMES", "leetcode-backend-prod,remote-chat-agent-prod".to_string()));
-        envs.push(("WF_EAS_POINTER_BACKOFF_MS", "10".to_string()));
         envs.extend(extra.iter().cloned());
         let refs: Vec<(&str, &str)> = envs.iter().map(|(k, v)| (*k, v.as_str())).collect();
         self.s.run(args, &refs)
@@ -175,9 +174,9 @@ impl Workspace {
 #[test]
 fn focused_e2e_tests_run_unit_by_unit_through_their_harness() {
     // Given focused tests on the app and on services, one unfocused, a commit that changed only the library the app uses, and the
-    // update this push's publish put in the bucket for the Android ones
+    // update this push's publish left in the pointer dir for the Android ones
     let w = Workspace::new("wf-flow-e2e-");
-    let (_bucket, update) = publish_update(&w);
+    let update = publish_update(&w);
     assert_eq!(w.export().exit_code, 0);
     let out = w.path("out");
     let run = |args: &[&str]| {
@@ -311,7 +310,7 @@ fn browser_units_run_against_the_export_wf_serves_and_that_export_must_be_curren
     // Given a workspace whose browser tests run against an export, a harness that opens the base it is given, and the update this
     // push published for its Android test
     let w = Workspace::new("wf-flow-export-");
-    let (bucket, update) = publish_update(&w);
+    let update = publish_update(&w);
     w.write("runner-export.sh", EXPORT_RUNNER);
     Command::new("chmod").args(["+x", &w.path("runner-export.sh")]).status().unwrap();
     let out = w.path("out");
@@ -487,8 +486,8 @@ fn browser_units_run_against_the_export_wf_serves_and_that_export_must_be_curren
     assert_eq!(planned["tests"].as_array().unwrap().iter().find(|b| b["name"] == "plain").map(|b| b["against"].clone()), Some(json!("update")), "{planned}");
     std::fs::remove_file(w.path("e2e/plain.lua")).unwrap();
 
-    // When an Android unit runs beside a browser unit in one run, the bucket naming this commit's update
-    serve(&bucket, pointer("g-1", &w.git(&["rev-parse", "HEAD"])));
+    // When an Android unit runs beside a browser unit in one run, the pointer naming this commit's update
+    serve(&w, pointer("g-1", &w.git(&["rev-parse", "HEAD"])));
     let mixed = run(&["svc", "typing", "--out", &out]);
     // Then Android loads the update and carries no export; the browser unit carries its own export and no update
     let (typing, svc) = (unit(&mixed, "typing"), unit(&mixed, "svc"));
@@ -523,29 +522,35 @@ fn pointer(group: &str, commit: &str) -> Value {
             "hosts": ["leetcode-backend-prod", "remote-chat-agent-prod"], "served": { "platform": "android", "status": 200, "s": 1.2 }, "timing": { "exportS": 60.1, "uploadS": 40.2, "servedS": 1.2 } })
 }
 
-const POINTER_ROUTE: &str = "GET /o/verification/eas-updates/latest-dev.json";
-
 /// A workspace whose app has an EAS project, `upd` (two units) an Android test against the update beside its browser twin against
-/// the export, and a bucket that serves what `serve` gives it as the branch's latest-update pointer.
-fn update_workspace(prefix: &str) -> (Workspace, MockServer) {
+/// the export; `serve` gives it the branch's latest-update pointer.
+fn update_workspace(prefix: &str) -> Workspace {
     let w = Workspace::new(prefix);
     w.write("e2e/upd.lua", "--[[---\nplatform: android, browser\nagainst: android=update, browser=export\ntimeout: 60\nunits: a=1; a=2\nfocus: true\n---]]\nlog(1)\n");
     w.commit_eas_project();
-    (w, MockServer::start(None))
+    w
 }
 
-/// The bucket naming group g-1, published from the workspace's head commit by this push's own publish, and the environment that
-/// makes an Android unit read it: what the Android tests of the other workspaces load.
-fn publish_update(w: &Workspace) -> (MockServer, Vec<(&'static str, String)>) {
+/// The pointer naming group g-1, published from the workspace's head commit by this push's own publish, and the environment that
+/// makes an Android unit trust it: what the Android tests of the other workspaces load.
+fn publish_update(w: &Workspace) -> Vec<(&'static str, String)> {
     w.commit_eas_project();
-    let bucket = MockServer::start(None);
-    serve(&bucket, pointer("g-1", &w.git(&["rev-parse", "HEAD"])));
-    let env = vec![("VERIFICATION_ARTIFACTS_READ_URL", format!("http://127.0.0.1:{}/o", bucket.port)), ("WF_EAS_UPDATE_RESULT", "success".to_string())];
-    (bucket, env)
+    serve(w, pointer("g-1", &w.git(&["rev-parse", "HEAD"])));
+    vec![("WF_EAS_UPDATE_RESULT", "success".to_string())]
 }
 
-fn serve(bucket: &MockServer, pointer: Value) {
-    bucket.routes(&[(POINTER_ROUTE, MockReply::json(200, pointer))]);
+/// The file the eas-update job leaves for `branch` in the pointer dir the tests read.
+fn serve_branch(w: &Workspace, branch: &str, pointer: Value) {
+    std::fs::create_dir_all(w.path("eas-pointer")).unwrap();
+    std::fs::write(w.path(&format!("eas-pointer/latest-{branch}.json")), pointer.to_string()).unwrap();
+}
+
+fn serve(w: &Workspace, pointer: Value) {
+    serve_branch(w, "dev", pointer);
+}
+
+fn unserve(w: &Workspace) {
+    let _ = std::fs::remove_dir_all(w.path("eas-pointer"));
 }
 
 /// The `args:` line a unit's (or warm-up's) harness run logged.
@@ -555,14 +560,13 @@ fn runner_args(unit: &Value) -> String {
 
 #[test]
 fn android_units_load_the_branch_variant_the_job_names_and_read_no_other_pointer() {
-    // Given a bucket that serves group g-e2e only as branch e2e's pointer, and nothing as dev's
-    let (w, bucket) = update_workspace("wf-flow-update-branch-");
+    // Given a pointer dir that holds group g-e2e only as branch e2e's pointer, and nothing as dev's
+    let w = update_workspace("wf-flow-update-branch-");
     w.commit_eas_project();
-    bucket.routes(&[("GET /o/verification/eas-updates/latest-e2e.json", MockReply::json(200, pointer("g-e2e", &w.git(&["rev-parse", "HEAD"]))))]);
-    let read = format!("http://127.0.0.1:{}/o", bucket.port);
+    serve_branch(&w, "e2e", pointer("g-e2e", &w.git(&["rev-parse", "HEAD"])));
     let out = w.path("out");
     let run = |branch: Option<&str>| {
-        let mut env = vec![("VERIFICATION_ARTIFACTS_READ_URL", read.clone()), ("WF_EAS_UPDATE_RESULT", "success".to_string())];
+        let mut env = vec![("WF_EAS_UPDATE_RESULT", "success".to_string())];
         env.extend(branch.map(|b| ("WF_EAS_UPDATE_BRANCH", b.to_string())));
         w.wf(&["test", "run", "upd", "--platform", "android", "--out", &out], &env)
     };
@@ -572,38 +576,33 @@ fn android_units_load_the_branch_variant_the_job_names_and_read_no_other_pointer
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     let groups: Vec<String> = Workspace::summary(&r)["units"].as_array().unwrap().iter().map(|u| u["updateGroup"].as_str().unwrap().to_string()).collect();
     assert_eq!(groups, ["g-e2e", "g-e2e"]);
-    // And without it they read the dev pointer, which the bucket does not hold
+    // And without it they read the dev pointer, which the dir does not hold
     let dev = run(None);
     assert_eq!(dev.exit_code, 1, "{}{}", dev.stdout, dev.stderr);
     assert!(Workspace::summary(&dev)["units"][0]["note"].as_str().unwrap().contains("cannot read the latest update"), "{}", dev.stdout);
 }
 
 #[test]
-fn android_units_load_the_pointer_the_same_run_left_in_the_pointer_dir_and_ask_no_bucket() {
-    // Given a dead bucket (every read answers 404) and a pointer dir holding branch e2e's pointer for this commit
-    let (w, bucket) = update_workspace("wf-flow-update-dir-");
+fn android_units_load_the_pointer_the_same_run_left_in_the_pointer_dir_and_refuse_one_for_another_commit() {
+    // Given a pointer dir holding branch e2e's pointer for this commit
+    let w = update_workspace("wf-flow-update-dir-");
     let (head, behind) = (w.git(&["rev-parse", "HEAD"]), w.git(&["rev-parse", "HEAD~1"]));
-    let read = format!("http://127.0.0.1:{}/o", bucket.port);
-    let dir = w.path("eas-pointer");
-    std::fs::create_dir_all(&dir).unwrap();
-    let put = |commit: &str| std::fs::write(std::path::Path::new(&dir).join("latest-e2e.json"), pointer("g-dir", commit).to_string()).unwrap();
-    put(&head);
     let out = w.path("out");
     let run = || {
-        let env = [("VERIFICATION_ARTIFACTS_READ_URL", read.clone()), ("WF_EAS_UPDATE_RESULT", "success".to_string()), ("WF_EAS_UPDATE_BRANCH", "e2e".to_string()), ("WF_EAS_POINTER_DIR", dir.clone())];
+        let env = [("WF_EAS_UPDATE_RESULT", "success".to_string()), ("WF_EAS_UPDATE_BRANCH", "e2e".to_string())];
         w.wf(&["test", "run", "upd", "--platform", "android", "--out", &out], &env)
     };
+    serve_branch(&w, "e2e", pointer("g-dir", &head));
 
     // When the Android entry runs
     let r = run();
-    // Then its units load the group from the file and no store was asked
+    // Then its units load the group from the file
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     let v = Workspace::summary(&r);
     assert_eq!(v["units"].as_array().unwrap().iter().map(|u| u["updateGroup"].as_str().unwrap()).collect::<Vec<_>>(), ["g-dir", "g-dir"], "{v}");
-    assert!(bucket.requests().is_empty(), "{:?}", bucket.requests().iter().map(|q| q.url.clone()).collect::<Vec<_>>());
 
     // Given the file names another commit than the one this push published
-    put(&behind);
+    serve_branch(&w, "e2e", pointer("g-dir", &behind));
     let stale = run();
     // Then the units are refused, naming the commit the file holds
     assert_eq!(stale.exit_code, 1, "{}{}", stale.stdout, stale.stderr);
@@ -612,15 +611,41 @@ fn android_units_load_the_pointer_the_same_run_left_in_the_pointer_dir_and_ask_n
 }
 
 #[test]
+fn android_units_of_a_dispatch_load_the_pointer_the_state_ref_holds_when_no_pointer_dir_is_set() {
+    // Given an origin whose state ref holds branch e2e's pointer for this commit, and no pointer dir (a dispatched run has no eas-update job)
+    let w = update_workspace("wf-flow-update-ref-");
+    let head = w.git(&["rev-parse", "HEAD"]);
+    let origin = tempfile::tempdir().unwrap();
+    let git = |dir: &std::path::Path, args: &[&str]| {
+        let o = Command::new("git").args(args).current_dir(dir).output().unwrap();
+        assert!(o.status.success(), "git {args:?}: {}", String::from_utf8_lossy(&o.stderr));
+    };
+    git(origin.path(), &["init", "--bare", "--quiet", "origin.git"]);
+    git(&w.s.repo, &["init", "--quiet"]);
+    git(&w.s.repo, &["remote", "add", "origin", origin.path().join("origin.git").to_str().unwrap()]);
+    let env = [("WF_EAS_POINTER_DIR", String::new()), ("WF_EAS_UPDATE_RESULT", "success".to_string()), ("WF_EAS_UPDATE_BRANCH", "e2e".to_string())];
+    let out = w.path("out");
+    let run = || w.wf(&["test", "run", "upd", "--platform", "android", "--out", &out], &env);
+
+    // When the Android entry runs before and after the pointer is pushed
+    let before = run();
+    crate::support::state_put(&w.s.repo, "eas/latest-e2e.json", &pointer("g-ref", &head).to_string());
+    let after = run();
+    // Then without it the units are refused as having no pointer, and with it they load its group
+    assert_eq!(before.exit_code, 1, "{}{}", before.stdout, before.stderr);
+    assert!(Workspace::summary(&before)["units"][0]["note"].as_str().unwrap().contains("is not in refs/wf/state yet"), "{}", before.stdout);
+    assert_eq!(after.exit_code, 0, "{}{}", after.stdout, after.stderr);
+    assert_eq!(Workspace::summary(&after)["units"].as_array().unwrap().iter().map(|u| u["updateGroup"].as_str().unwrap()).collect::<Vec<_>>(), ["g-ref", "g-ref"]);
+}
+
+#[test]
 fn android_units_load_the_update_ci_published() {
-    // Given an update test and the bucket naming group g-1 published from this commit by this push's own publish
-    let (w, bucket) = update_workspace("wf-flow-update-");
+    // Given an update test and the pointer naming group g-1 published from this commit by this push's own publish
+    let w = update_workspace("wf-flow-update-");
     let (head, behind) = (w.git(&["rev-parse", "HEAD"]), w.git(&["rev-parse", "HEAD~1"]));
-    serve(&bucket, pointer("g-1", &head));
-    let read = format!("http://127.0.0.1:{}/o", bucket.port);
+    serve(&w, pointer("g-1", &head));
     let env = |result: &str, extra: &[(&'static str, &str)]| -> Vec<(&'static str, String)> {
         let mut e = vec![
-            ("VERIFICATION_ARTIFACTS_READ_URL", read.clone()),
             ("WF_EAS_UPDATE_RESULT", result.to_string()),
         ];
         e.extend(extra.iter().map(|(k, v)| (*k, v.to_string())));
@@ -665,7 +690,7 @@ fn android_units_load_the_update_ci_published() {
 
     // Given the harness has not run since
     let started = std::fs::read_to_string(w.root.join("runner.log")).unwrap().lines().count();
-    // When an update the run cannot treat as this commit's is what the bucket names, or this push's publish did not succeed
+    // When an update the run cannot treat as this commit's is what the pointer names, or this push's publish did not succeed
     let old_update = pointer("g-1", &behind);
     let app_changed = r#"[{"name":"mla-tamagui"}]"#;
     let mut no_android = pointer("g-1", &head);
@@ -714,7 +739,7 @@ fn android_units_load_the_update_ci_published() {
         cases.push((format!("an update without {name}"), "success", without(name), vec![], format!("the update did not bake in {name}"), publish));
     }
     for (what, result, p, extra, says, (next_has, next_also)) in cases {
-        serve(&bucket, p);
+        serve(&w, p);
         let r = run(result, &extra);
         // Then every unit is an error naming why and the step that fixes it, the harness never starts, and nothing is started cold
         assert_eq!(r.exit_code, 1, "{what}: {}{}", r.stdout, r.stderr);
@@ -730,12 +755,12 @@ fn android_units_load_the_update_ci_published() {
     let config = "repo/frontend/mla-tamagui/app.config.js";
     let with_project = std::fs::read_to_string(w.path(config)).unwrap();
     w.write(config, "module.exports = { expo: { runtimeVersion: 'exposdk:57.0.0' } };\n");
-    serve(&bucket, pointer("g-1", &head));
+    serve(&w, pointer("g-1", &head));
     let no_project = run("success", &[]);
     assert!(Workspace::summary(&no_project)["units"][0]["note"].as_str().unwrap().contains("app.config.js names no projectId"), "{}", no_project.stdout);
     w.write(config, &with_project);
-    // and with no pointer in the bucket, or a bucket that is not there
-    bucket.routes(&[]);
+    // and with no pointer file
+    unserve(&w);
     let gone = run("success", &[]);
     assert_eq!(gone.exit_code, 1);
     assert!(Workspace::summary(&gone)["units"][0]["note"].as_str().unwrap().contains("cannot read the latest update (eas-update: success)"), "{}", gone.stdout);
@@ -746,7 +771,7 @@ fn android_units_load_the_update_ci_published() {
     assert!(Workspace::summary(&failed)["units"][0]["note"].as_str().unwrap().starts_with("this push's EAS publish ended failure, so latest-dev.json still names the last one:"), "{}", failed.stdout);
 
     // When the publish was skipped (nothing the app bundles changed) and the pointer names an older update, pnpm finding the app unchanged since it
-    serve(&bucket, old_update);
+    serve(&w, old_update);
     w.s.forget("pnpm");
     let skipped = run("skipped", &[]);
     let dispatched = run("", &[]);
@@ -758,44 +783,22 @@ fn android_units_load_the_update_ci_published() {
     let pnpm_log = std::fs::read_to_string(w.s.bin_dir.join("pnpm.log")).unwrap_or_default();
     assert!(pnpm_log.contains(&format!("--filter ...[{behind}] --changed-files-ignore-pattern=**/__tests__/** --changed-files-ignore-pattern=**/*.test.* --changed-files-ignore-pattern=**/*.md list --depth -1 --json")), "{pnpm_log}");
     // and an update published from this very commit is current without asking pnpm
-    serve(&bucket, pointer("g-1", &head));
+    serve(&w, pointer("g-1", &head));
     w.s.forget("pnpm");
     assert_eq!(run("skipped", &[]).exit_code, 0);
     assert!(!std::fs::read_to_string(w.s.bin_dir.join("pnpm.log")).unwrap_or_default().contains("list --depth"));
 
     // When a baked backend name has moved but the tailnet still answers it, and when the publish saw no 200 from EAS but EAS serves the group now
-    serve(&bucket, moved);
+    serve(&w, moved);
     let answered = run("success", &[("WF_TEST_TAILNET_NAMES", "leetcode-backend-prod-1,remote-chat-agent-prod")]);
     updates.routes(&[("GET /proj-1/group/g-1", MockReply::json(200, json!({})))]);
-    serve(&bucket, unserved);
+    serve(&w, unserved);
     let late = run("success", &[("WF_EAS_UPDATES_URL", updates_url.as_str()), ("WF_EAS_SERVED_TIMEOUT_S", "1")]);
     // Then the units run: only a name that proves drift, and a group EAS does not serve, refuse an update
     assert_eq!((answered.exit_code, late.exit_code), (0, 0), "{}{}{}{}", answered.stdout, answered.stderr, late.stdout, late.stderr);
 
-    // When the bucket answers 503 once before the pointer, then 503 three times, then 404
-    serve(&bucket, pointer("g-1", &head));
-    let seen_by_bucket = |before: usize| bucket.requests().len() - before;
-    let before = bucket.requests().len();
-    bucket.queue(vec![MockReply::json(503, json!({})), MockReply::json(200, pointer("g-1", &head))], false);
-    let flaky = run("success", &[]);
-    let tries = seen_by_bucket(before);
-    let before = bucket.requests().len();
-    bucket.queue(vec![MockReply::json(503, json!({})); 3], false);
-    let down = run("success", &[]);
-    let down_tries = seen_by_bucket(before);
-    bucket.queue(vec![], false);
-    bucket.routes(&[]);
-    let before = bucket.requests().len();
-    let absent = run("success", &[]);
-    let absent_tries = seen_by_bucket(before);
-    // Then a blip is tried again and the run goes on, an outage is an error naming the tries, and a 404 (no pointer yet) is asked once
-    assert_eq!((flaky.exit_code, tries), (0, 2), "{}{}", flaky.stdout, flaky.stderr);
-    assert_eq!((down.exit_code, down_tries), (1, 3), "{}", down.stdout);
-    assert!(Workspace::summary(&down)["units"][0]["note"].as_str().unwrap().contains("answered HTTP 503 (3 tries)"), "{}", down.stdout);
-    assert_eq!((absent.exit_code, absent_tries), (1, 1), "{}", absent.stdout);
-
     // When a logpoint is asked of an Android run, which has no debugger
-    serve(&bucket, pointer("g-1", &head));
+    serve(&w, pointer("g-1", &head));
     let harness_runs = || std::fs::read_to_string(w.root.join("runner.log")).unwrap().lines().count();
     let started = harness_runs();
     let logpoint = w.wf(&["test", "run", "upd", "--platform", "android", "--out", &out, "--", "--logpoint", "features/x.tsx:1"], &env("success", &[]));
@@ -826,14 +829,14 @@ fn android_units_load_the_update_ci_published() {
 #[test]
 fn the_cold_start_is_keyed_on_the_update_group_the_units_run_against() {
     // Given two update tests sharing one device state file, as the tests of one Android job do
-    let (w, bucket) = update_workspace("wf-flow-warm-key-");
-    serve(&bucket, pointer("g-1", &w.git(&["rev-parse", "HEAD"])));
-    let (state, out, read) = (w.path("warm.json"), w.path("out"), format!("http://127.0.0.1:{}/o", bucket.port));
+    let w = update_workspace("wf-flow-warm-key-");
+    serve(&w, pointer("g-1", &w.git(&["rev-parse", "HEAD"])));
+    let (state, out) = (w.path("warm.json"), w.path("out"));
     let run = |tests: &[&str], extra: &[(&str, &str)]| -> Value {
         let mut args = vec!["test", "run"];
         args.extend_from_slice(tests);
         args.extend(["--platform", "android", "--out", &out]);
-        let mut env = vec![("WF_E2E_STATE", state.as_str()), ("VERIFICATION_ARTIFACTS_READ_URL", read.as_str()), ("WF_EAS_UPDATE_RESULT", "success")];
+        let mut env = vec![("WF_E2E_STATE", state.as_str()), ("WF_EAS_UPDATE_RESULT", "success")];
         env.extend_from_slice(extra);
         let envs: Vec<(&str, String)> = env.iter().map(|(k, v)| (*k, v.to_string())).collect();
         Workspace::summary(&w.wf(&args, &envs))
@@ -852,7 +855,7 @@ fn the_cold_start_is_keyed_on_the_update_group_the_units_run_against() {
     assert_eq!(at(), json!("update:g-1"));
 
     // When CI publishes another update (group g-2) and a test runs, then the other
-    serve(&bucket, pointer("g-2", &w.git(&["rev-parse", "HEAD"])));
+    serve(&w, pointer("g-2", &w.git(&["rev-parse", "HEAD"])));
     let moved = run(&["upd"], &[]);
     let same = run(&["typing"], &[]);
     // Then the new group starts the app cold, and the other test against it reuses that app
@@ -860,7 +863,7 @@ fn the_cold_start_is_keyed_on_the_update_group_the_units_run_against() {
     assert_eq!((moved["warms"][0]["updateGroup"].as_str(), at()), (Some("g-2"), json!("update:g-2")));
 
     // When a third update's cold start fails, in one run of both tests
-    serve(&bucket, pointer("g-3", &w.git(&["rev-parse", "HEAD"])));
+    serve(&w, pointer("g-3", &w.git(&["rev-parse", "HEAD"])));
     let broken = run(&["upd", "typing"], &[("STUB_WARM_FAIL_ON", "update")]);
     // Then it is tried once, and every unit is an error that says the app did not start
     let verdicts: Vec<(String, String)> = broken["units"].as_array().unwrap().iter().map(|u| (u["test"].as_str().unwrap().to_string(), u["verdict"].as_str().unwrap().to_string())).collect();

@@ -20,9 +20,17 @@ fn binary() -> PathBuf {
 
 /// `args` run as `<binary> mimic <args>` with no stdin, so a verb that prompted would hang the test; `wf` finds wf-mimic on its PATH.
 pub fn mimic(args: &[&str], env: &[(&str, &Path)]) -> Run {
+    mimic_in(None, args, env)
+}
+
+/// `mimic` run inside `cwd`: the verbs that reach the state ref use that directory's git `origin`.
+pub fn mimic_in(cwd: Option<&Path>, args: &[&str], env: &[(&str, &Path)]) -> Run {
     let beside = Path::new(env!("CARGO_BIN_EXE_wf-mimic")).parent().expect("a directory").display().to_string();
     let path = format!("{beside}:{}", std::env::var("PATH").unwrap_or_default());
     let mut command = Command::new(binary());
+    if let Some(cwd) = cwd {
+        command.current_dir(cwd);
+    }
     command.arg("mimic").args(args).env("PATH", path).env_remove("WF_TEST_OUTPUT_DIR").stdin(Stdio::null());
     // hermetic: a vault of the machine running the tests must never be reached (a publish would write to the real bucket)
     for (k, _) in std::env::vars_os().filter(|(k, _)| k.to_str().is_some_and(|k| k.starts_with("BWS_") || k.starts_with("VERIFICATION_ARTIFACTS_") || k == "SECRETS_BACKEND")) {

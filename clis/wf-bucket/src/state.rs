@@ -58,11 +58,7 @@ fn fetch() -> Result<Option<String>, String> {
     Ok(Some(text(run(&["rev-parse", "--verify", &format!("{REF}^{{commit}}")], &[], None)?)))
 }
 
-/// A file of the state ref: no ref yet, or no such file, is `Ok(None)`; any other failure is an error, so a caller never
-/// replaces an index it could not read.
-pub fn read(path: &str) -> Result<Option<String>, String> {
-    checked(path)?;
-    let Some(tip) = fetch()? else { return Ok(None) };
+fn show(tip: &str, path: &str) -> Result<Option<String>, String> {
     let spec = format!("{tip}:{path}");
     let out = git(&["show", &spec], &[], None)?;
     if out.ok {
@@ -72,6 +68,23 @@ pub fn read(path: &str) -> Result<Option<String>, String> {
         return Ok(None);
     }
     Err(format!("git show {spec} failed: {}", out.stderr))
+}
+
+/// A file of the state ref: no ref yet, or no such file, is `Ok(None)`; any other failure is an error, so a caller never
+/// replaces an index it could not read.
+pub fn read(path: &str) -> Result<Option<String>, String> {
+    checked(path)?;
+    let Some(tip) = fetch()? else { return Ok(None) };
+    show(&tip, path)
+}
+
+/// Several files of one fetched tip, in the order asked: a missing one is `None`.
+pub fn read_many(paths: &[String]) -> Result<Vec<Option<String>>, String> {
+    for path in paths {
+        checked(path)?;
+    }
+    let Some(tip) = fetch()? else { return Ok(vec![None; paths.len()]) };
+    paths.iter().map(|p| show(&tip, p)).collect()
 }
 
 fn commit_files(parent: Option<&str>, files: &[(&str, &[u8])], message: &str) -> Result<String, String> {
