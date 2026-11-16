@@ -39,6 +39,11 @@
       "path": "localTracingEnabled",
       "reason": "this server does not trace locally",
       "phase": "1"
+    },
+    {
+      "path": "steps.ws:s2c:12.payload.exit.cause.defect",
+      "reason": "the union of a command of an unknown type lists the 55 types of v0.1.6; the pinned v0.1.9 lists 56 (thread.tag.set), and this server answers as the pin",
+      "phase": "C9"
     }
   ],
   "omitted": [
