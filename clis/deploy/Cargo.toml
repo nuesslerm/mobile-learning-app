@@ -27,7 +27,6 @@ secrets = { path = "../secrets" }
 wf-vmops = { path = "../wf-vmops" }
 wf-bucket = { path = "../wf-bucket" }
 blob-cache = { path = "../blob-cache" }
-sha2 = "0.10"
 hex = "0.4"
 pipeline = { path = "../pipeline" }
 rca-core = { version = "0.1", registry = "mla" }
@@ -43,4 +42,3 @@ tempfile = "3"
 # The tests double vm-ops-api with the fake wf-vmops ships.
 wf-vmops = { path = "../wf-vmops", features = ["testing"] }
 # ship.rs reads the desktop listener's manifests to compare its cargo closure with the leg and the Dockerfile.
-toml = { version = "0.8", default-features = false, features = ["parse"] }

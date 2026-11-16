@@ -309,7 +309,6 @@ dependencies = [
  "mimic-script-host",
  "mimic-script-net",
  "serde_json",
- "tempfile",
 ]
 
 [[package]]

@@ -32,10 +32,8 @@ wf-vmops = { path = "../wf-vmops" }
 serde_json = { version = "1", features = ["preserve_order"] }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 agent-config-sync = { path = "../agent-config-sync" }
-rca-core = { version = "0.1", registry = "mla" }
 cli-http = { path = "../http" }
 telemetry = { version = "0.1", registry = "mla", features = ["cli"] }
-nix = { version = "0.31", default-features = false, features = ["signal"] }
 
 [dev-dependencies]
 wf-testkit = { path = "../wf-testkit", features = ["tls"] }

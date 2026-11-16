@@ -13,7 +13,6 @@ harness-core = { path = "../harness-core" }
 wf-kit = { path = "../wf-kit" }
 wf-vmops = { path = "../wf-vmops" }
 cdp = { path = "../cdp" }
-rca-core = { version = "0.1", registry = "mla" }
 cli-http = { path = "../http" }
 serde_json = { version = "1", features = ["preserve_order"] }
 libc = "0.2"
