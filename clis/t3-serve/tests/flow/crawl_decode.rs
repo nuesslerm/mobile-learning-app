@@ -12,7 +12,7 @@ use mimic_core::usecase::replay;
 const DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/cassettes/t3-v0.1.9-crawl");
 
 /// The groups whose invalid cases the router decodes as the real server does.
-const GROUPS: [&str; 4] = ["t3-rpc-provider.install.", "AcpRegistry", "t3-rpc-vcs.", "t3-rpc-subscribeVcsBranch-"];
+const GROUPS: [&str; 6] = ["t3-rpc-provider.install.", "AcpRegistry", "t3-rpc-vcs.", "t3-rpc-subscribeVcsBranch-", "t3-rpc-git.", "t3-rpc-review."];
 
 fn found(set: &mimic_core::ports::CassetteSet, allow: &mimic_core::allowlist::Allowlist, ids: &[String]) -> Vec<gaps::Found> {
     let mut out = Vec::new();

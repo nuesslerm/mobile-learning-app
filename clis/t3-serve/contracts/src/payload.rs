@@ -2,7 +2,7 @@
 //! as the pinned server's Effect schema refuses them: the first field in declaration order that is missing or of the wrong type is a defect, never a typed error.
 use serde_json::Value;
 
-/// Fields in the order the contract's struct declares them: `name:kind`, kind `s` string, `n` number, `b` boolean, `a` array, `o` object, `l(x|y)` one of
+/// Fields in the order the contract's struct declares them: `name:kind`, kind `s` string, `n` number, `b` boolean, `a` array, `o` object, `sn` string or null, `l(x|y)` one of
 /// the literals, a trailing `?` for an optional key. What a field holds beyond its kind (a string's trim and length, an array's items) is the handler's.
 const SCHEMAS: &[(&str, &str)] = &[
     ("provider.install.start", "instanceId:s"),
@@ -28,6 +28,12 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("vcs.refreshBranch", "cwd:s"),
     ("subscribeVcsBranch", "cwd:s"),
     ("vcs.removeWorktree", "cwd:s path:s force:b?"),
+    ("git.resolvePullRequest", "cwd:s reference:s"),
+    ("git.preparePullRequestThread", "cwd:s reference:s mode:l(local|worktree) threadId:s?"),
+    ("git.runStackedAction", "actionId:s cwd:s action:l(commit|push|create_pr|commit_push|commit_push_pr) commitMessage:s? featureBranch:b? filePaths:a? threadId:s? projectId:s?"),
+    ("review.getDiffFileContents", "cwd:s sourceKind:l(working-tree|branch-range|commit) changeType:l(change|rename-pure|rename-changed|new|deleted) baseRef:sn headRef:sn oldPath:s newPath:s"),
+    ("review.getBranchCommits", "cwd:s baseRef:s?"),
+    ("review.getDiffPreview", "cwd:s baseRef:s? commitSha:s? ignoreWhitespace:b? sourceKind:l(working-tree|branch-range)? trackedOnly:b? metadataOnly:b? file:o?"),
 ];
 
 fn expected(kind: &str) -> String {
@@ -36,6 +42,7 @@ fn expected(kind: &str) -> String {
         "b" => "boolean".into(),
         "a" => "array".into(),
         "o" => "object".into(),
+        "sn" => "string | null".into(),
         k if k.starts_with("l(") => k[2..k.len() - 1].split('|').map(|v| format!("\"{v}\"")).collect::<Vec<_>>().join(" | "),
         _ => "string".into(),
     }
@@ -47,6 +54,7 @@ fn is(kind: &str, value: &Value) -> bool {
         "b" => value.is_boolean(),
         "a" => value.is_array(),
         "o" => value.is_object(),
+        "sn" => value.is_string() || value.is_null(),
         k if k.starts_with("l(") => value.as_str().is_some_and(|v| k[2..k.len() - 1].split('|').any(|l| l == v)),
         _ => value.is_string(),
     }
