@@ -39,7 +39,32 @@ struct State {
     view_error: Option<String>,
     comments: Vec<(u64, Value)>,
     threads: Vec<(u64, Value)>,
+    reviews: Vec<(u64, Value)>,
     blobs: Vec<(String, String, Vec<u8>)>,
+}
+
+/// What rca's richer answers add to a comment, a review or a thread comment; every part is optional and a default adds none.
+#[derive(Clone, Default)]
+pub struct Extras<'a> {
+    pub database_id: Option<u64>,
+    pub avatar_url: Option<&'a str>,
+    pub is_bot: bool,
+    pub viewer_did_author: bool,
+    pub reaction_subject_id: Option<&'a str>,
+    /// (content, count, viewer has reacted)
+    pub reactions: &'a [(&'a str, u64, bool)],
+}
+
+impl Extras<'_> {
+    fn merge(&self, row: &mut Value) {
+        let reactions: Vec<Value> = self.reactions.iter().map(|(c, n, v)| json!({"content": c, "count": n, "viewer_has_reacted": v})).collect();
+        row["database_id"] = json!(self.database_id);
+        row["avatar_url"] = json!(self.avatar_url);
+        row["is_bot"] = json!(self.is_bot);
+        row["viewer_did_author"] = json!(self.viewer_did_author);
+        row["reaction_subject_id"] = json!(self.reaction_subject_id);
+        row["reactions"] = json!(reactions);
+    }
 }
 
 #[derive(Clone, Default)]
@@ -180,6 +205,44 @@ impl Hosting {
         self
     }
 
+    /// Gives the conversation comment last added the richer fields of rca's answer.
+    pub fn conversation_comment_extras(&self, extras: &Extras) -> &Self {
+        if let Some((_, row)) = self.0.lock().unwrap().comments.last_mut() {
+            extras.merge(row);
+        }
+        self
+    }
+
+    /// Gives the comment `index` of the thread last added the richer fields of rca's answer.
+    pub fn thread_comment_extras(&self, index: usize, extras: &Extras) -> &Self {
+        if let Some(row) = self.0.lock().unwrap().threads.last_mut().and_then(|(_, t)| t["comments"].get_mut(index)) {
+            extras.merge(row);
+        }
+        self
+    }
+
+    /// Gives the thread last added its start line, original lines, side and the diff hunk of its first comment.
+    pub fn thread_hunk(&self, (start_line, original_line, original_start_line): (Option<u64>, Option<u64>, Option<u64>), diff_side: &str, hunk: &str) -> &Self {
+        if let Some((_, t)) = self.0.lock().unwrap().threads.last_mut() {
+            t["start_line"] = json!(start_line);
+            t["original_line"] = json!(original_line);
+            t["original_start_line"] = json!(original_start_line);
+            t["diff_side"] = json!(diff_side);
+            t["root_diff_hunk"] = json!(hunk);
+        }
+        self
+    }
+
+    /// A review of pull request `number` as (node id, author, state, body, submitted ms), with the richer fields when `extras` is given.
+    pub fn review(&self, number: u64, (node_id, author, state, body): (&str, &str, &str, &str), submitted_ms: Option<u64>, extras: Option<&Extras>) -> &Self {
+        let mut row = json!({"id": node_id, "author": author, "state": state, "body": body, "submitted_at_ms": submitted_ms});
+        if let Some(extras) = extras {
+            extras.merge(&mut row);
+        }
+        self.0.lock().unwrap().reviews.push((number, row));
+        self
+    }
+
     /// The file `path` as commit `rev` holds it.
     pub fn blob(&self, rev: &str, path: &str, bytes: &[u8]) -> &Self {
         self.0.lock().unwrap().blobs.push((rev.into(), path.into(), bytes.to_vec()));
@@ -196,6 +259,11 @@ impl Hosting {
         agent.reply("pr.threads", move |p| {
             let (s, n) = (me.0.lock().unwrap(), number(p)?);
             Ok(json!({"threads": s.threads.iter().filter(|(x, _)| *x == n).map(|(_, t)| t.clone()).collect::<Vec<_>>()}))
+        });
+        let me = self.clone();
+        agent.reply("pr.reviews", move |p| {
+            let (s, n) = (me.0.lock().unwrap(), number(p)?);
+            Ok(json!({"reviews": s.reviews.iter().filter(|(x, _)| *x == n).map(|(_, r)| r.clone()).collect::<Vec<_>>()}))
         });
         let me = self.clone();
         agent.reply("git.blob", move |p| {
