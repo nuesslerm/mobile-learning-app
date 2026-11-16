@@ -251,8 +251,7 @@
         "steps._:s2c:0.[0].payload.message changed drift"
       ],
       "ids": [
-        "orca-browser.screencast",
-        "orca-terminal.subscribe"
+        "orca-browser.screencast"
       ]
     },
     {
