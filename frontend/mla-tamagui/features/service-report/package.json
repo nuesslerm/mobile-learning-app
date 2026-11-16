@@ -1,5 +1,6 @@
 {
   "name": "@feature/service-report",
+  "arch": { "type": "hexagonal-feature" },
   "version": "0.0.0",
   "private": true,
   "main": "src/index.ts",
@@ -20,7 +21,6 @@
     "@lib/app-di": "workspace:*",
     "@lib/tamagui-design-system": "workspace:*",
     "@lib/logging": "workspace:*",
-    "lucide-react-native": "^1.17.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -58,9 +58,6 @@
       "optional": true
     },
     "vite-plugin-babel": {
-      "optional": true
-    },
-    "@storybook/react-native": {
       "optional": true
     },
     "@types/react": {

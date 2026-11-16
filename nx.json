@@ -33,7 +33,6 @@
       "{workspaceRoot}/tsconfig.json",
       "{workspaceRoot}/.oxlintrc.json",
       "{workspaceRoot}/frontend/.oxlintrc.json",
-      "{workspaceRoot}/frontend/feature-kit/depcruise.feature.cjs",
       "{workspaceRoot}/mise.toml",
       "toolchain"
     ],

@@ -4,6 +4,8 @@
   "generated": [
     { "file": ".ls-lint.yml", "region": "ls-lint" },
     { "file": "docs/solutions/architecture/package-shapes.md", "region": "shape-table" },
+    { "file": "frontend/mla-tamagui/features/feature-map.cjs", "region": "feature-map", "scope": "frontend/mla-tamagui/features" },
+    { "file": "frontend/feature-kit/depcruise.presets.cjs", "region": "rings" },
     { "file": "backend/arch-rules/domain-depends-on-nothing-outer.yml", "region": "ast-grep-files", "rings": ["domain"], "ringFiles": true },
     { "file": "backend/arch-rules/application-does-not-reach-outward.yml", "region": "ast-grep-files", "rings": ["application"] },
     { "file": "backend/arch-rules/api-does-not-use-infrastructure.yml", "region": "ast-grep-files", "rings": ["api"] },

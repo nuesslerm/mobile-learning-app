@@ -52,7 +52,7 @@ A patch that grows over years without an upstream issue is technical debt; a pat
 
 ## Examples
 
-- Current patches in the repo (`pnpm-workspace.yaml:62-65`): `@storybook/react-native-ui@10.4.4`, `react-native-css-interop@0.2.5`, `skills@1.5.13`. Each has a committed patch file under `patches/` and a pinned version in the manifest.
-- Patch file location: `patches/<escaped-pkg>@<ver>.patch` (e.g. `patches/@storybook__react-native-ui@10.4.4.patch`, with `__` replacing `/` and `@`).
+- Current patches in the repo (`pnpm-workspace.yaml:62-65`): `react-native-css-interop@0.2.5`, `skills@1.5.13`. Each has a committed patch file under `patches/` and a pinned version in the manifest.
+- Patch file location: `patches/<escaped-pkg>@<ver>.patch` (e.g. `patches/skills@1.5.13.patch`, with `__` replacing `/` and `@`).
 - Lockfile mirror: `pnpm-lock.yaml:65` — `patchedDependencies:` block, with the patch hash recorded per package. CI runs `pnpm install --frozen-lockfile` and fails if the patch sha drifts from the committed file.
 - Procedure reference: `pnpm patch <pkg>@<ver>` to extract, edit the extracted sources in the pnpm store, then `pnpm patch-commit <pkg>` to write the diff into `patches/<file>.patch`. Both commands are documented in pnpm's official docs; the `commit` form is the one that updates `patchedDependencies` for you.

@@ -1,5 +1,6 @@
 {
   "name": "@feature/settings",
+  "arch": { "type": "presentation-feature" },
   "version": "0.0.0",
   "private": true,
   "main": "src/index.ts",
@@ -33,7 +34,6 @@
     "prettier": "catalog:",
     "prettier-plugin-tailwindcss": "catalog:",
     "vite-plugin-babel": "catalog:",
-    "@storybook/react-native": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "react": "catalog:",
@@ -56,9 +56,6 @@
       "optional": true
     },
     "vite-plugin-babel": {
-      "optional": true
-    },
-    "@storybook/react-native": {
       "optional": true
     },
     "@types/react": {

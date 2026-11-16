@@ -10,6 +10,14 @@ const APP_DI = '(^|/)(frontend/libraries/)?app-di/';
 const NON_SOURCE_NPM = ['npm', 'npm-dev', 'npm-peer', 'npm-optional', 'npm-bundled'];
 const EXTERNAL = [...NON_SOURCE_NPM, 'npm-no-pkg', 'npm-unknown', 'unknown'];
 
+// The ring names and edges of each feature type; generated from clis/pipeline/data/package-types.json by `wf check --layout --write`.
+// BEGIN generated:rings
+const RINGS = {
+  'hexagonal-feature': { domain: [], data: ['domain'], state: ['domain'], ui: ['domain', 'state'], di: ['domain', 'data', 'state'], routes: ['di', 'ui'] },
+  'presentation-feature': { state: [], ui: ['state'], routes: ['ui'] },
+};
+// END generated:rings
+
 const options = () => ({
   doNotFollow: { path: 'node_modules' },
   tsPreCompilationDeps: true,
@@ -52,16 +60,9 @@ function hexagonalFeature({ root = 'src', appPrefix = '', widgets = [], subFeatu
   const extra = { widgets, subFeatures };
   const inApp = root.startsWith('features/');
   const own = inApp ? root.split('/')[1] : '';
-  const rings = {
-    domain: [],
-    data: ['domain'],
-    state: ['domain'],
-    ui: ['domain', 'state'],
-    di: ['domain', 'data', 'state'],
-    routes: ['di', 'ui'],
-  };
+  const rings = RINGS['hexagonal-feature'];
   const production = { pathNot: TESTS };
-  const notTesting = ['domain', 'data', 'state', 'ui', 'di', 'routes'];
+  const notTesting = Object.keys(rings);
   return {
     forbidden: [
       rule(
@@ -113,7 +114,7 @@ function presentationFeature({ root = 'src', appPrefix = '' } = {}) {
   const keep = new Set(['no-circular', 'feature-is-a-leaf', 'feature-does-not-import-the-shell', 'only-di-reads-app-di']);
   const extra = [
     rule('presentation-has-no-ring-beyond-ui', 'a presentation feature has ui/, routes/ and state/ only', { path: `^${root}/` }, { path: `^${root}/${dirs(['domain', 'data', 'di'])}/` }),
-    ...ringRules(root, { ui: ['state'], state: [], routes: ['ui'] }),
+    ...ringRules(root, RINGS['presentation-feature']),
   ];
   return { forbidden: [...base.forbidden.filter((r) => keep.has(r.name)), ...extra], options: options() };
 }

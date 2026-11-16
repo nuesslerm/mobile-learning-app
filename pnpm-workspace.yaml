@@ -42,7 +42,6 @@ catalog:
   # resolution is a fact rather than a side effect of pnpm's hoist heuristics.
   '@babel/traverse': ^7.26.0
   vite-plugin-babel: ^1.7.3
-  '@storybook/react-native': ^10.4.4
   '@types/react': ~19.2.0
   '@types/react-dom': ~19.2.0
   react: 19.2.3
@@ -102,7 +101,6 @@ overrides:
   '@react-types/switch': 3.5.17
 
 patchedDependencies:
-  '@storybook/react-native-ui@10.4.4': patches/@storybook__react-native-ui@10.4.4.patch
   react-native-css-interop@0.2.5: patches/react-native-css-interop@0.2.5.patch
   # lucide-react-native's exports map stops at `.` and `./icons`, both of which
   # are barrels. Metro does not tree-shake them, so importing one icon pulled all

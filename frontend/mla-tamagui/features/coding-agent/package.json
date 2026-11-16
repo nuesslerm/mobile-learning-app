@@ -1,5 +1,6 @@
 {
   "name": "@feature/coding-agent",
+  "arch": { "type": "hexagonal-feature" },
   "version": "0.0.0",
   "private": true,
   "main": "src/index.tsx",
@@ -32,7 +33,6 @@
     "@lib/lint-rules": "workspace:*",
     "@lib/flow-test-harness": "workspace:*",
     "@testing-library/react": "^16.3.3",
-    "@testing-library/react-native": "^13.3.3",
     "dependency-cruiser": "^17.4.3",
     "jsdom": "^30.0.1",
     "oxlint": "catalog:",
