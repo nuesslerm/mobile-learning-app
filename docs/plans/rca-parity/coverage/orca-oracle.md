@@ -17,18 +17,18 @@ A row is class (a) when it has a recorded interaction and every listed gap of it
 
 Found by scanning each test's source for the exec-testkit helpers (comments skipped).
 
-| Chain test | Tests | Rows served | Scripted agent turn | gh double | Restart | Clock |
-| --- | --- | --- | --- | --- | --- | --- |
-| `agent_catalog_m7b` | 2 | 11 | 2 | none | none | none |
-| `agent_m7` | 6 | 28 | 17 | none | none | none |
-| `git_m9` | 5 | 22 | none | none | none | none |
-| `hosted_m11` | 7 | 14 | none | 10 | none | none |
-| `schedules_m12` | 1 | 6 | 3 | none | none | none |
-| `settings_m10` | 4 | 11 | 6 | none | none | none |
-| `terminal_m8` | 4 | 5 | none | none | none | none |
-| `transport_m5` | 3 | 3 | none | none | none | none |
-| `web_m5` | 5 | 4 | none | none | none | none |
-| `workspace_m6` | 7 | 24 | none | none | none | none |
+| Chain test | Tests | Rows served | Scripted agent turn | gh double | Restart | Clock | Service env |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `agent_catalog_m7b` | 2 | 11 | 2 | none | none | none | none |
+| `agent_m7` | 6 | 28 | 17 | none | none | none | none |
+| `git_m9` | 5 | 22 | none | none | none | none | none |
+| `hosted_m11` | 7 | 14 | none | 10 | none | none | none |
+| `schedules_m12` | 1 | 6 | 3 | none | none | none | none |
+| `settings_m10` | 4 | 11 | 6 | none | none | none | 1 |
+| `terminal_m8` | 4 | 5 | none | none | none | none | none |
+| `transport_m5` | 3 | 3 | none | none | none | none | none |
+| `web_m5` | 5 | 4 | none | none | none | none | none |
+| `workspace_m6` | 7 | 24 | none | none | none | none | none |
 
 ## (a) recorded, clean or drift-only gaps: switch the row to `"oracle": "mimic"`
 

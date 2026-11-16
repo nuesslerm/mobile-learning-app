@@ -17,22 +17,22 @@ A row is class (a) when it has a recorded interaction and every listed gap of it
 
 Found by scanning each test's source for the exec-testkit helpers (comments skipped).
 
-| Chain test | Tests | Rows served | Scripted agent turn | gh double | Restart | Clock |
-| --- | --- | --- | --- | --- | --- | --- |
-| `attachments_m12` | 3 | 9 | 9 | none | none | none |
-| `chain` | 6 | 11 | 10 | none | none | none |
-| `hosted_m11` | 9 | 14 | none | 8 | none | none |
-| `local_m5` | 2 | 2 | none | none | none | none |
-| `preview_m12` | 2 | 2 | none | none | none | none |
-| `projects_m12` | 5 | 2 | 3 | none | none | none |
-| `prs_m12` | 7 | 8 | 3 | 7 | 1 | none |
-| `rollback_m12` | 3 | 1 | 5 | none | none | none |
-| `schedules_m12` | 2 | 1 | 4 | none | none | none |
-| `settings_m10` | 6 | 2 | 11 | none | none | none |
-| `terminal_m8` | 2 | 3 | none | none | none | none |
-| `thread_surface` | 10 | 32 | 19 | none | none | none |
-| `vcs_m9` | 3 | 3 | none | none | none | none |
-| `workspace_m6` | 4 | 4 | 4 | none | none | none |
+| Chain test | Tests | Rows served | Scripted agent turn | gh double | Restart | Clock | Service env |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `attachments_m12` | 3 | 9 | 9 | none | none | none | none |
+| `chain` | 6 | 11 | 10 | none | none | none | none |
+| `hosted_m11` | 9 | 14 | none | 8 | none | none | none |
+| `local_m5` | 2 | 2 | none | none | none | none | none |
+| `preview_m12` | 2 | 2 | none | none | none | none | none |
+| `projects_m12` | 5 | 2 | 3 | none | none | none | none |
+| `prs_m12` | 7 | 8 | 3 | 7 | 1 | none | none |
+| `rollback_m12` | 3 | 1 | 5 | none | none | none | none |
+| `schedules_m12` | 2 | 1 | 4 | none | none | none | none |
+| `settings_m10` | 6 | 2 | 11 | none | none | none | none |
+| `terminal_m8` | 2 | 3 | none | none | none | none | none |
+| `thread_surface` | 10 | 32 | 19 | none | none | none | none |
+| `vcs_m9` | 3 | 3 | none | none | none | none | none |
+| `workspace_m6` | 4 | 4 | 4 | none | none | none | none |
 
 ## (a) recorded, clean or drift-only gaps: switch the row to `"oracle": "mimic"`
 

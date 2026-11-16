@@ -52,7 +52,7 @@ fn tree() -> tempfile::TempDir {
     put(
         root,
         &format!("{CHAIN}/alpha.rs"),
-        "// Script::of(vec![]) in a comment is no turn\n#[test]\nfn reads_it() {\n    let chain = Chain::start_hosted();\n    chain.cli.script(\"claude\", &Script::of(vec![Turn::replaying(&lines)]));\n    chain.restart_serve();\n    assert_eq!(none[\"result\"][\"restart\"], true);\n}\n#[test]\nfn breaks_it() {}\n",
+        "// Script::of(vec![]) in a comment is no turn\n#[test]\nfn reads_it() {\n    let chain = Chain::start_hosted();\n    chain.cli.script(\"claude\", &Script::of(vec![Turn::replaying(&lines)]));\n    chain.restart_serve();\n    let other = Chain::start_with_env(None, &[(\"K\", \"v\")]);\n    assert_eq!(none[\"result\"][\"restart\"], true);\n}\n#[test]\nfn breaks_it() {}\n",
     );
     put(root, &format!("{CHAIN}/beta.rs"), "#[test]\nfn only_authored() {}\n#[test]\nfn pty() {}\n#[test]\nfn listed_test() {}\n");
     dir
@@ -108,12 +108,12 @@ fn a_chain_tests_host_state_is_read_from_its_source_and_comments_do_not_count() 
     // Then it lists that file's host state once per use, and a file that sets up none lists none
     let tests = run.json["chainTests"].as_array().unwrap();
     let find = |file: &str| tests.iter().find(|t| t["file"] == file).unwrap().clone();
-    assert_eq!(find("alpha")["hostState"], json!({"scripted agent turn": 3, "gh double": 1, "restart": 1}));
+    assert_eq!(find("alpha")["hostState"], json!({"scripted agent turn": 3, "gh double": 1, "restart": 1, "service env": 1}));
     assert_eq!(find("alpha")["tests"], 2);
     assert_eq!(find("alpha")["rows"], 2);
     assert_eq!(find("beta")["hostState"], json!({}));
     let md = std::fs::read_to_string(dir.path().join("docs/plans/rca-parity/coverage/t3-oracle.md")).unwrap();
-    assert!(md.contains("| `alpha` | 2 | 2 | 3 | 1 | 1 | none |"), "{md}");
+    assert!(md.contains("| `alpha` | 2 | 2 | 3 | 1 | 1 | none | 1 |"), "{md}");
 }
 
 #[test]

@@ -45,7 +45,8 @@ as breaking; c = no interaction in any recorded set; d = no recording can show i
 lists, per chain test file in clis/<app>-serve/tests/integration, the host state
 its source sets up that the mimic driver cannot: a scripted agent turn
 (Script::of, .script(, Turn::), the gh double (start_hosted, HostedClis), a restart
-(restart_serve) and a clock; comments are skipped. With --check nothing is written
+(restart_serve), a clock and a service started with its own environment
+(start_with_env, e.g. a model API double); comments are skipped. With --check nothing is written
 and a differing md fails (rule stale; chain-source-missing when evidence names a
 test file that is gone). It takes only --app, --check and --root. Output: {ok, app,
 mode, by: "oracle", served, counts: {a, b, c, d}, chainCounts (the same for the

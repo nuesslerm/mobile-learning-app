@@ -38,11 +38,12 @@ impl Class {
 }
 
 /// The host state a chain test sets up, with the source text that shows it. Each needle is looked for on the lines that are not comments.
-const HOST_STATE: [(&str, &[&str]); 4] = [
+const HOST_STATE: [(&str, &[&str]); 5] = [
     ("scripted agent turn", &["Script::of(", ".script(", "Turn::"]),
     ("gh double", &["start_hosted(", "HostedClis", "hosted::Start"]),
     ("restart", &["restart_serve(", ".restart("]),
     ("clock", &["Clock::", "advance_clock(", "set_clock("]),
+    ("service env", &["start_with_env("]),
 ];
 
 struct Hit {
@@ -176,11 +177,11 @@ fn markdown(app: App, sets: &[String], rows: &[Classified], files: &BTreeMap<Str
         md.push_str(&format!("| {} | {} | {} |\n", c.title(), count(c), rows.iter().filter(|r| r.class == c && r.row.chain_file().is_some()).count()));
     }
     md.push_str("\nA row is class (a) when it has a recorded interaction and every listed gap of its interactions is drift; (b) when one is listed as breaking; (c) when no recorded set has an interaction labelled with it; (d) when its decision says `unrecordable` or its test is on the `unrecordableTests` list of the decisions file (both name the reason).\n");
-    md.push_str("\n## Host state the chain tests set up that the mimic driver cannot\n\nFound by scanning each test's source for the exec-testkit helpers (comments skipped).\n\n| Chain test | Tests | Rows served | Scripted agent turn | gh double | Restart | Clock |\n| --- | --- | --- | --- | --- | --- | --- |\n");
+    md.push_str("\n## Host state the chain tests set up that the mimic driver cannot\n\nFound by scanning each test's source for the exec-testkit helpers (comments skipped).\n\n| Chain test | Tests | Rows served | Scripted agent turn | gh double | Restart | Clock | Service env |\n| --- | --- | --- | --- | --- | --- | --- | --- |\n");
     for (file, (scanned, served)) in files {
         let times = |what: &str| scanned.as_ref().and_then(|s| s.found.iter().find(|(n, _)| *n == what).map(|(_, n)| format!("{n}"))).unwrap_or_else(|| "none".into());
         let tests = scanned.as_ref().map_or("source missing".to_string(), |s| s.tests.to_string());
-        md.push_str(&format!("| `{file}` | {tests} | {served} | {} | {} | {} | {} |\n", times("scripted agent turn"), times("gh double"), times("restart"), times("clock")));
+        md.push_str(&format!("| `{file}` | {tests} | {served} | {} | {} | {} | {} | {} |\n", times("scripted agent turn"), times("gh double"), times("restart"), times("clock"), times("service env")));
     }
     for c in CLASSES {
         md.push_str(&format!("\n## {}\n\n", c.title()));
