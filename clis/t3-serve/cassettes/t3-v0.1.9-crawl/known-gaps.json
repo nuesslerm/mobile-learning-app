@@ -831,18 +831,6 @@
       ]
     },
     {
-      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
-      ],
-      "ids": [
-        "t3-rpc-sourceControl.star-invalid-drop-provider",
-        "t3-rpc-sourceControl.star-invalid-no-payload",
-        "t3-rpc-sourceControl.star-invalid-wrong-type-provider"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
       "severity": "breaking",
       "diffs": [

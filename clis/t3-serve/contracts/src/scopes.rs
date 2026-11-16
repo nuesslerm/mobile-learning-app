@@ -120,6 +120,7 @@ const TABLE: &[(&[&str], &[&str])] = &[
             "sourceControl.signInStart",
             "sourceControl.signInWait",
             "sourceControl.signInCancel",
+            "sourceControl.star",
         ],
         SOURCE_WRITE,
     ),

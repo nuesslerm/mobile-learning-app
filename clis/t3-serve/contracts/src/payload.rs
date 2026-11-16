@@ -129,6 +129,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("sourceControl.signInCancel", "provider:s host:s"),
     ("sourceControl.signInWait", "provider:s host:s"),
     ("sourceControl.appAccess", "provider:s host:s repository:s"),
+    ("sourceControl.star", "provider:s host:s repository:s"),
     ("sourceControl.starred", "provider:s host:s repository:s"),
     ("sourceControl.publishRepository", "cwd:s provider:s repository:s visibility:l(private|public) remoteName:s? protocol:l(auto|ssh|https)?"),
     ("review.getBranchCommits", "cwd:s baseRef:s?"),
@@ -588,6 +589,12 @@ mod tests {
         // And a number where a string belongs names that field, and a whole payload decodes
         assert_eq!(defect(tag, &json!({"instanceId": 7, "operationId": "a"})).unwrap(), "Expected string\n  at [\"instanceId\"]");
         assert_eq!(defect(tag, &json!({"instanceId": "a", "operationId": "a"})), None);
+    }
+
+    #[test]
+    fn a_source_control_star_without_its_provider_is_missing_the_provider() {
+        assert_eq!(defect("sourceControl.star", &json!({})).unwrap(), "Missing key\n  at [\"provider\"]");
+        assert_eq!(defect("sourceControl.star", &json!({"provider": "github", "host": "h", "repository": "r"})), None);
     }
 
     #[test]
