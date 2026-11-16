@@ -160,6 +160,15 @@ fn a_phone_creates_lists_activates_and_closes_terminal_tabs_and_each_call_reache
         assert_eq!(activated["result"]["activeTabId"], json!("t1"));
         let again = phone.call(case, &chain, &["rpc:session.tabs.list"], "session.tabs.list", selector.clone());
         assert_eq!(again["result"]["activeTabId"], json!("t1"));
+        // When it opens the tabs stream
+        let (stream, first) = phone.subscribe(case, &chain, &["rpc:session.tabs.subscribe"], "session.tabs.subscribe", selector.clone());
+        // Then rca listed the terminals and the first frame is the snapshot of both tabs
+        answered(case, "terminal.list", true);
+        assert_eq!(first["result"]["tabs"].as_array().unwrap().len(), 2, "{first}");
+        // When it unsubscribes by the worktree
+        let ended = phone.call(case, &chain, &["rpc:session.tabs.unsubscribe"], "session.tabs.unsubscribe", selector.clone());
+        // Then it is acknowledged and the stream carrying `stream` ends
+        assert_eq!(ended["result"], json!({"unsubscribed": true}), "{stream}");
         // When it closes the second tab
         let closed = phone.call(case, &chain, &["rpc:session.tabs.close"], "session.tabs.close", json!({"worktree": format!("id:{WS}::"), "tabId": "terminal-1"}));
         // Then the executor closed that pty and only the shell is left
