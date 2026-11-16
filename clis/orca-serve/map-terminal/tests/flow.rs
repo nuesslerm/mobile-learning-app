@@ -163,11 +163,11 @@ fn given_a_terminal_when_the_display_mode_is_set_then_auto_fits_the_pty_and_desk
 }
 
 #[test]
-fn given_a_stream_token_when_output_is_acknowledged_then_nothing_is_credited_and_a_bad_count_is_refused() {
+fn given_an_unknown_stream_token_when_output_is_acknowledged_then_nothing_is_credited_and_a_bad_count_is_refused() {
     let mut rig = Rig::new();
     // When the phone acknowledges output of a stream
     let acked = rig.ok("terminal.ackOutput", json!({"streamToken": "tok", "units": 4}));
-    // Then no credit is held, as this host issues no stream token
+    // Then no credit is held, as no live stream holds that token
     assert_eq!(acked, json!({"credited": false}));
     // And a missing token, zero units and fractional units are each refused
     assert_eq!(rig.err("terminal.ackOutput", json!({"units": 4})), "invalid_argument");

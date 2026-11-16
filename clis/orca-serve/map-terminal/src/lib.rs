@@ -9,6 +9,7 @@ use serde_json::{json, Value};
 
 #[allow(dead_code)] // the stream units that follow call these
 mod replay;
+pub mod resume;
 mod tabs;
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
@@ -84,7 +85,7 @@ impl Area for TerminalArea {
             TERMINAL_RENAME => rename(agent, params),
             TERMINAL_UPDATE_VIEWPORT => update_viewport(agent, params),
             TERMINAL_SET_DISPLAY_MODE => set_display_mode(agent, params),
-            TERMINAL_ACK_OUTPUT => ack_output(params),
+            TERMINAL_ACK_OUTPUT => ack_output(ctx.device_id, params),
             TERMINAL_FOCUS => focus(agent, params),
             TERMINAL_READ => read(agent, params),
             TERMINAL_OPEN_INPUT_SESSION => open_input_session(params),
@@ -296,20 +297,21 @@ fn set_display_mode(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failu
     Ok(json!({"mode": mode}))
 }
 
-/// Output credit is counted per stream token the host issued; this host issues none, so nothing is ever credited.
-fn ack_output(params: &Value) -> Result<Value, Failure> {
-    if params.get("streamToken").and_then(Value::as_str).is_none_or(str::is_empty) {
+/// Credit counts only for a live stream token of this device; an unknown or ended one answers false.
+fn ack_output(device: &str, params: &Value) -> Result<Value, Failure> {
+    let Some(token) = params.get("streamToken").and_then(Value::as_str).filter(|t| !t.is_empty()) else {
         return Err(Failure::invalid("Missing stream token"));
-    }
-    match params.get("units") {
+    };
+    let units = match params.get("units") {
         Some(Value::Number(n)) => match n.as_i64() {
-            Some(u) if u > 0 => {}
+            Some(u) if u > 0 => u as u64,
             Some(_) => return Err(Failure::invalid("Too small: expected number to be >0")),
             None => return Err(Failure::invalid("Invalid input: expected int, received number")),
         },
         _ => return Err(Failure::invalid("Invalid input: expected number, received undefined")),
-    }
-    Ok(json!({"credited": false}))
+    };
+    let credited = resume::registry().lock().unwrap_or_else(|e| e.into_inner()).ack(token, device, units);
+    Ok(json!({"credited": credited}))
 }
 
 /// There is no desktop pane to reveal, so the answer says nothing was navigated.
