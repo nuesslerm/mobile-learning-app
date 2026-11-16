@@ -70,3 +70,19 @@ fn node_modules_and_fixture_trees_are_not_packages_and_a_stale_entry_fails() {
     assert!(r.stderr.contains("`libraries/moved` has no package.json"), "{}", r.stderr);
     assert!(!r.stderr.contains("node_modules") && !r.stderr.contains("fixtures"), "{}", r.stderr);
 }
+
+#[test]
+fn another_checkout_under_claude_worktrees_is_not_part_of_this_tree() {
+    // Given a package in an agent worktree of the same repository and one listed outside frontend/
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path();
+    package(root, ".claude/worktrees/wf_1/backend/service-kit");
+    package(root, "libraries/hook-runtime");
+    allow(root, &["libraries/hook-runtime"]);
+    // When the check runs
+    let r = run(root);
+    // Then the worktree's packages are not counted
+    assert_eq!(r.exit_code, 0, "{}", r.stderr);
+    let found: Value = serde_json::from_str(r.stdout.lines().next().unwrap()).unwrap();
+    assert_eq!(found["packages"], json!(["libraries/hook-runtime"]));
+}
