@@ -92,6 +92,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("scheduledTasks.listWebhookDeliveries", "id:s acceptAnyOutcome:b?"),
     ("scheduledTasks.getWebhookDelivery", "id:s deliveryId:s acceptAnyOutcome:b?"),
     ("attachments.delete", "attachmentId:s"),
+    ("assets.createUrl", "resource:ar"),
+    ("assets.persistChatAttachments", "threadId:s messageId:s attachments:a(uploadImage)"),
     ("mcpApps.callTool", "threadId:s itemId:s name:s arguments:o"),
     ("mcpApps.toolInfo", "threadId:s itemId:s name:s"),
     ("mcpApps.readResource", "threadId:s itemId:s uri:s"),
@@ -126,6 +128,7 @@ const NESTED: &[(&str, &str)] = &[
     ("textGenerator", "kind:l(openaiCompatible|anthropic) label:s? baseUrl:p(url) enabled:b?"),
     ("settingsPatch", "setModelFavorites:a(favoriteItem)? setModelsHidden:a(hiddenItem)? setProviderModelOrder:o(modelOrder)?"),
     ("browserProfile", "id:s name:s kind:l(persistent|incognito)"),
+    ("uploadImage", "id:s? type:l(image) name:s mimeType:p(image) sizeBytes:n dataUrl:s source:x?"),
     ("settledCursor", "settledAt:s threadId:s?"),
     ("favoriteItem", "provider:s model:s favorite:b"),
     ("hiddenItem", "provider:s model:s hidden:b"),
@@ -178,6 +181,7 @@ fn bounds(kind: &str) -> (i64, i64) {
 /// The patterns the contracts check strings against: the text the decoder names, and the match.
 fn pattern(name: &str) -> (&'static str, fn(&str) -> bool) {
     match name {
+        "image" => (r"^image\/", |v| v.get(..6).is_some_and(|p| p.eq_ignore_ascii_case("image/"))),
         "day" => (r"^\d{4}-\d{2}-\d{2}$", |v| v.len() == 10 && v.bytes().enumerate().all(|(i, b)| if i == 4 || i == 7 { b == b'-' } else { b.is_ascii_digit() })),
         "url" => ("<filter>", |v| {
             let v = v.trim();
@@ -202,6 +206,8 @@ fn pattern(name: &str) -> (&'static str, fn(&str) -> bool) {
     }
 }
 
+const ASSET_TAGS: [&str; 8] = ["workspace-file", "media-file", "draft-workspace-file", "attachment", "tool-output-image", "project-favicon", "native-app-icon", "github-media"];
+const ASSET_RESOURCE: &str = "{ readonly \"_tag\": \"workspace-file\", ... } | { readonly \"_tag\": \"media-file\", readonly \"disposition\"?: \"attachment\", ... } | { readonly \"_tag\": \"draft-workspace-file\", ... } | { readonly \"_tag\": \"attachment\", readonly \"renderIntent\"?: \"mcp-app\", ... } | { readonly \"_tag\": \"tool-output-image\", ... } | { readonly \"_tag\": \"project-favicon\", ... } | { readonly \"_tag\": \"native-app-icon\", ... } | { readonly \"_tag\": \"github-media\", ... }";
 const VIEWPORT_TAGS: [&str; 3] = ["fill", "freeform", "preset"];
 const NAV_TAGS: [&str; 4] = ["Idle", "Loading", "Success", "LoadFailed"];
 
@@ -218,6 +224,7 @@ fn expected(kind: &str) -> String {
         "n" | "pi" | "pp" => "number".into(),
         "vp" => tagged_union(&VIEWPORT_TAGS, "_tag"),
         "ns" => tagged_union(&NAV_TAGS, "_tag"),
+        "ar" => ASSET_RESOURCE.into(),
         k if k.starts_with("ln(") => k[3..k.len() - 1].split('|').collect::<Vec<_>>().join(" | "),
         "b" => "boolean".into(),
         "a" => "array".into(),
@@ -242,6 +249,7 @@ fn is(kind: &str, value: &Value) -> bool {
         "n" | "pi" | "pp" => value.is_number(),
         "vp" => tag_in(value, &VIEWPORT_TAGS),
         "ns" => tag_in(value, &NAV_TAGS),
+        "ar" => tag_in(value, &ASSET_TAGS),
         k if k.starts_with("ln(") => value.as_f64().is_some_and(|n| k[3..k.len() - 1].split('|').any(|l| l.parse::<f64>().is_ok_and(|l| l == n))),
         "b" => value.is_boolean(),
         "a" => value.is_array(),
@@ -273,6 +281,7 @@ fn minimal_of(schema: &str) -> Value {
             "n" | "pi" | "pp" => Value::from(1),
             "vp" => serde_json::json!({"_tag": "fill"}),
             "ns" => serde_json::json!({"_tag": "Idle"}),
+            "ar" => serde_json::json!({"_tag": "project-favicon", "cwd": "a"}),
             k if k.starts_with("ln(") => k[3..k.len() - 1].split('|').next().and_then(|l| l.parse::<f64>().ok()).map_or(Value::Null, Value::from),
             "b" => Value::Bool(true),
             "a" => Value::Array(Vec::new()),
@@ -542,6 +551,20 @@ mod tests {
         assert_eq!(defect("provider.uploadFeedback", &json!({})).unwrap(), "Missing key\n  at [\"threadId\"]");
         assert_eq!(defect("provider.auth.removeMethod", &json!({"instanceId": 7, "methodId": "a"})).unwrap(), "Expected string\n  at [\"instanceId\"]");
         assert_eq!(command("provider.switch", json!({"commandId": "a", "threadId": "a", "modelSelection": {"model": "a"}})).unwrap(), "Expected string\n  at [\"modelSelection\"][\"instanceId\"]");
+    }
+
+    #[test]
+    fn an_asset_payload_names_the_first_field_or_resource_that_does_not_decode() {
+        // Given the assets schemas: a resource union of eight tagged members and an array of upload images whose mime type is an image pattern
+        let image = |mime: &str| json!({"threadId": "a", "messageId": "a", "attachments": [{"type": "image", "name": "a", "mimeType": mime}]});
+        // Then a missing resource is a missing key, a resource that names no member fails the whole union, and a named one is the handler's
+        assert_eq!(defect("assets.createUrl", &json!({})).unwrap(), "Missing key\n  at [\"resource\"]");
+        assert!(defect("assets.createUrl", &json!({"resource": "a"})).unwrap().ends_with("| { readonly \"_tag\": \"github-media\", ... }\n  at [\"resource\"]"));
+        assert_eq!(defect("assets.createUrl", &json!({"resource": {"_tag": "attachment"}})), None);
+        // And an attachment's mime type that is no image is the pattern defect before the size it omits, while the thread comes first
+        assert_eq!(defect("assets.persistChatAttachments", &json!({"messageId": "a", "attachments": []})).unwrap(), "Missing key\n  at [\"threadId\"]");
+        assert_eq!(defect("assets.persistChatAttachments", &image("a")).unwrap(), "Expected a string matching the RegExp ^image\\/\n  at [\"attachments\"][0][\"mimeType\"]");
+        assert_eq!(defect("assets.persistChatAttachments", &image("IMAGE/png")).unwrap(), "Missing key\n  at [\"attachments\"][0][\"sizeBytes\"]");
     }
 
     #[test]

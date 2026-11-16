@@ -259,47 +259,6 @@
       ]
     },
     {
-      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
-      ],
-      "ids": [
-        "t3-command-delegated-task.request-invalid-no-payload",
-        "t3-command-message.dispatch-invalid-no-payload",
-        "t3-rpc-assets.createUrl-invalid-drop-resource",
-        "t3-rpc-assets.createUrl-invalid-no-payload",
-        "t3-rpc-assets.createUrl-invalid-wrong-type-resource",
-        "t3-rpc-assets.createUrl-valid-min",
-        "t3-rpc-assets.persistChatAttachments-boundary-full",
-        "t3-rpc-assets.persistChatAttachments-invalid-drop-threadId",
-        "t3-rpc-assets.persistChatAttachments-invalid-no-payload",
-        "t3-rpc-attachments.createUploadUrl-boundary-full",
-        "t3-rpc-attachments.createUploadUrl-invalid-no-payload",
-        "t3-rpc-attachments.createUploadUrl-invalid-wrong-type",
-        "t3-rpc-attachments.createUploadUrl-valid-min",
-        "t3-rpc-filesystem.browse-invalid-wrong-type-partialPath",
-        "t3-rpc-filesystem.getMetadata-invalid-drop-paths",
-        "t3-rpc-filesystem.getMetadata-invalid-no-payload",
-        "t3-rpc-filesystem.getMetadata-invalid-wrong-type-paths",
-        "t3-rpc-peerLinks.answerRequest-invalid-drop-threadId",
-        "t3-rpc-peerLinks.answerRequest-invalid-no-payload",
-        "t3-rpc-peerLinks.link-invalid-drop-url",
-        "t3-rpc-peerLinks.link-invalid-no-payload",
-        "t3-rpc-peerLinks.link-invalid-wrong-type-url",
-        "t3-rpc-projects.mutate-invalid-no-payload",
-        "t3-rpc-projects.mutate-invalid-wrong-type",
-        "t3-rpc-scheduledTasks.upsert-invalid-wrong-type-title",
-        "t3-rpc-scheduledTasks.upsert-valid-min",
-        "t3-rpc-sourceControl.star-invalid-drop-provider",
-        "t3-rpc-sourceControl.star-invalid-no-payload",
-        "t3-rpc-sourceControl.star-invalid-wrong-type-provider",
-        "t3-rpc-terminal.open-invalid-drop-cwd",
-        "t3-rpc-terminal.open-invalid-no-payload",
-        "t3-rpc-terminal.open-invalid-wrong-type-cwd"
-      ]
-    },
-    {
       "class": "kind at steps.http:ret:_.[*].payload.body",
       "severity": "breaking",
       "diffs": [
@@ -374,6 +333,40 @@
         "t3-rpc-server.refreshProviders-invalid-wrong-type-instanceId",
         "t3-rpc-vcs.createRef-valid-min",
         "t3-rpc-vcs.switchRef-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ],
+      "ids": [
+        "t3-command-delegated-task.request-invalid-no-payload",
+        "t3-command-message.dispatch-invalid-no-payload",
+        "t3-rpc-attachments.createUploadUrl-boundary-full",
+        "t3-rpc-attachments.createUploadUrl-invalid-no-payload",
+        "t3-rpc-attachments.createUploadUrl-invalid-wrong-type",
+        "t3-rpc-attachments.createUploadUrl-valid-min",
+        "t3-rpc-filesystem.browse-invalid-wrong-type-partialPath",
+        "t3-rpc-filesystem.getMetadata-invalid-drop-paths",
+        "t3-rpc-filesystem.getMetadata-invalid-no-payload",
+        "t3-rpc-filesystem.getMetadata-invalid-wrong-type-paths",
+        "t3-rpc-peerLinks.answerRequest-invalid-drop-threadId",
+        "t3-rpc-peerLinks.answerRequest-invalid-no-payload",
+        "t3-rpc-peerLinks.link-invalid-drop-url",
+        "t3-rpc-peerLinks.link-invalid-no-payload",
+        "t3-rpc-peerLinks.link-invalid-wrong-type-url",
+        "t3-rpc-projects.mutate-invalid-no-payload",
+        "t3-rpc-projects.mutate-invalid-wrong-type",
+        "t3-rpc-scheduledTasks.upsert-invalid-wrong-type-title",
+        "t3-rpc-scheduledTasks.upsert-valid-min",
+        "t3-rpc-sourceControl.star-invalid-drop-provider",
+        "t3-rpc-sourceControl.star-invalid-no-payload",
+        "t3-rpc-sourceControl.star-invalid-wrong-type-provider",
+        "t3-rpc-terminal.open-invalid-drop-cwd",
+        "t3-rpc-terminal.open-invalid-no-payload",
+        "t3-rpc-terminal.open-invalid-wrong-type-cwd"
       ]
     },
     {

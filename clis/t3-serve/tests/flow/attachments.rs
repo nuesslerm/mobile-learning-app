@@ -261,13 +261,16 @@ fn chat_attachments_sent_as_data_urls_are_kept_under_ids_and_answered_as_the_mes
         vec![store["mine"].1.clone(), store[&made].1.clone()]
     };
     assert_eq!(held, vec![bytes.clone(), bytes.clone()]);
-    // When the size is not the data's, the data is no base64, or the type is no image, Then each is the pin's PersistChatAttachmentsError and nothing more is kept
+    // When the size is not the data's or the data is no base64, Then each is the pin's PersistChatAttachmentsError and nothing more is kept
     let before = asked(&h).len();
-    for (bad, says) in [(sent(None, &url, 8, "image/png"), "holds 7 bytes"), (sent(None, "data:image/png;base64,***", 3, "image/png"), "not base64"), (sent(None, "plain text", 3, "image/png"), "not a base64 data URL"), (sent(None, &url, 7, "text/plain"), "only images")] {
+    for (bad, says) in [(sent(None, &url, 8, "image/png"), "holds 7 bytes"), (sent(None, "data:image/png;base64,***", 3, "image/png"), "not base64"), (sent(None, "plain text", 3, "image/png"), "not a base64 data URL")] {
         let exit = rpc.call("assets.persistChatAttachments", bad);
         assert_eq!(failure(&exit)["_tag"], "PersistChatAttachmentsError", "{exit}");
         assert!(failure(&exit)["message"].as_str().unwrap().contains(says), "{exit}");
     }
+    // And a type that is no image is the decoder's defect, as the real server answered
+    let exit = rpc.call("assets.persistChatAttachments", sent(None, &url, 7, "text/plain"));
+    assert_eq!(exit["cause"][0]["defect"], "Expected a string matching the RegExp ^image\\/\n  at [\"attachments\"][0][\"mimeType\"]", "{exit}");
     assert_eq!(asked(&h).len(), before);
 }
 

@@ -25,7 +25,6 @@
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
       ],
       "ids": [
-        "t3-rpc-assets.persistChatAttachments",
         "t3-rpc-provider.auth.removeMethod",
         "t3-rpc-terminal.open"
       ]
