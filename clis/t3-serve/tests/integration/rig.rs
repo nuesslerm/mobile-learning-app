@@ -286,7 +286,7 @@ impl Phone {
     /// A message to `thread` as one call of the trace, which ends when the run it started has: served when the command was accepted and the
     /// run completed, so the call's window holds the whole turn (the agent API calls, the executor's tools).
     pub fn message(&mut self, case: &mut Case, chain: &Chain, thread: &str, command_id: &str, text: &str) -> Value {
-        let command = json!({"type": "message.dispatch", "commandId": command_id, "threadId": thread, "message": {"messageId": format!("m-{command_id}"), "text": text}});
+        let command = json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": command_id, "threadId": thread, "messageId": format!("m-{command_id}"), "text": text});
         case.call(&chain.tap, &rows(&["rpc:orchestration.dispatchCommand", "command:message.dispatch"]), || {
             let exit = self.calls.call("orchestration.dispatchCommand", command);
             let projection = self.settled(thread);

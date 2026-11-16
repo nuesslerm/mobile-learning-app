@@ -337,7 +337,7 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
     }
     let message = cmd.body.get("message").filter(|m| m.is_object());
     let text = message.and_then(|m| m["text"].as_str()).or_else(|| cmd.str("text")).or_else(|| cmd.str("content")).filter(|t| !t.is_empty()).ok_or("message.dispatch needs the message text")?;
-    let attachments = message_attachments(message)?;
+    let attachments = message_attachments(message.or(Some(&Value::Object(cmd.body.clone()))))?;
     let message_id = message.and_then(|m| m["messageId"].as_str()).or_else(|| cmd.str("messageId")).map(str::to_string).unwrap_or_else(|| (ctx.new_id)());
     let run_id = (ctx.new_id)();
     let at = iso(ctx.now);

@@ -161,7 +161,7 @@ fn the_diff_of_a_thread_is_the_agent_apis_diff_of_its_directory_and_only_the_thr
     // Given a thread on the project root and one in a worktree, each with one finished turn, and an agent API that diffs as recorded
     let (h, mut rpc) = started("/base/wt");
     for thread in ["t1", "t2"] {
-        success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": format!("c-m-{thread}"), "threadId": thread, "message": {"messageId": format!("m-{thread}"), "text": "go"}})));
+        success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": format!("c-m-{thread}"), "threadId": thread, "messageId": format!("m-{thread}"), "text": "go"})));
         settled(&mut rpc, thread);
     }
     let turn_diff = recorded("files-edit", "turn.diff", "shows the changes");

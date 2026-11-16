@@ -18,7 +18,7 @@ fn started() -> (Harness, Rpc) {
 }
 
 fn message(rpc: &mut Rpc, id: &str, text: &str) {
-    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": format!("c-{id}"), "threadId": "t1", "message": {"messageId": format!("m-{id}"), "text": text}})));
+    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": format!("c-{id}"), "threadId": "t1", "messageId": format!("m-{id}"), "text": text})));
 }
 
 fn texts(projection: &Value) -> Vec<(String, String)> {

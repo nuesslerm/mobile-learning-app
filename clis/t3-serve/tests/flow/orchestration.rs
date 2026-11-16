@@ -45,7 +45,7 @@ fn dispatch(rpc: &mut Rpc, command: Value) -> Value {
 }
 
 fn message(command_id: &str, text: &str) -> Value {
-    json!({"type": "message.dispatch", "commandId": command_id, "threadId": "t1", "message": {"messageId": format!("m-{command_id}"), "text": text}})
+    json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": command_id, "threadId": "t1", "messageId": format!("m-{command_id}"), "text": text})
 }
 
 fn started() -> (Harness, Rpc, Value) {
@@ -169,10 +169,10 @@ fn undecodable_commands_are_defects_and_commands_the_server_does_not_build_are_t
     let missing = dispatch(&mut rpc, json!({"type": "message.dispatch"}));
     let unknown = dispatch(&mut rpc, json!({"type": "conformance.noSuch", "commandId": "x"}));
     let settle = dispatch(&mut rpc, json!({"type": "thread.pull-request.sync", "commandId": "c-s", "threadId": "t1"}));
-    let queued = dispatch(&mut rpc, json!({"type": "message.dispatch", "commandId": "c-q", "threadId": "t1", "dispatchMode": "queue_after_active", "message": {"text": "x"}}));
-    let empty = dispatch(&mut rpc, json!({"type": "message.dispatch", "commandId": "c-e", "threadId": "t1", "message": {"text": ""}}));
+    let queued = dispatch(&mut rpc, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-q", "threadId": "t1", "dispatchMode": "queue_after_active", "messageId": "m-q", "text": "x"}));
+    let empty = dispatch(&mut rpc, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-e", "threadId": "t1", "messageId": "m-e", "text": ""}));
     // Then the first two are decoder defects, the others dispatch errors that say what is unsupported or missing
-    assert_eq!(missing["cause"][0]["defect"], "Missing key\n  at [\"commandId\"]");
+    assert_eq!(missing["cause"][0]["defect"], "Missing key\n  at [\"createdBy\"]");
     assert!(unknown["cause"][0]["defect"].as_str().unwrap().starts_with("Expected { readonly \"type\": \"thread.stop\""));
     // And a command that is no object at all is the same union defect
     let wrong = dispatch(&mut rpc, json!("wrong"));

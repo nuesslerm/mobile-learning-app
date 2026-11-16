@@ -69,7 +69,7 @@ fn answered(case: &exec_testkit::Case, method: &str) {
 }
 
 fn dispatch(id: &str, text: &str, attachments: Vec<Value>) -> Value {
-    json!({"type": "message.dispatch", "commandId": id, "threadId": "t1", "message": {"messageId": format!("m-{id}"), "text": text, "attachments": attachments}})
+    json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": id, "threadId": "t1", "messageId": format!("m-{id}"), "text": text, "attachments": attachments})
 }
 
 fn completed(projection: &Value) -> bool {

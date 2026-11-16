@@ -8,12 +8,12 @@ use t3_core::ports::{AgentApi, AgentEventKind, AgentThread, AgentTurn, EventStor
 use t3_serve::adapters::rca::agent_event;
 
 fn dispatch_message(rpc: &mut Rpc, command_id: &str, text: &str) {
-    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": command_id, "threadId": "t1", "message": {"messageId": format!("m-{command_id}"), "text": text}})));
+    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": command_id, "threadId": "t1", "messageId": format!("m-{command_id}"), "text": text})));
 }
 
 /// A run t3 recorded and no runner ever started: the state a crash right after a message leaves. The run's id.
 fn crashed_run(h: &Harness, text: &str) -> String {
-    let command = json!({"type": "message.dispatch", "commandId": "c-crash", "threadId": "t1", "message": {"messageId": "m-crash", "text": text}});
+    let command = json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-crash", "threadId": "t1", "messageId": "m-crash", "text": text});
     let dispatched = h.service.engine().dispatch(Family::Thread, &command).expect("a message on the seeded thread");
     match dispatched.effect {
         Some(Effect::Launch(launch)) => launch.run_id,

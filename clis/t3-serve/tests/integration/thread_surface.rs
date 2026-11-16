@@ -104,7 +104,7 @@ fn settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_
         assert_eq!(family["threads"].as_array().unwrap().iter().map(|t| t["thread"]["id"].as_str().unwrap()).collect::<Vec<_>>(), ["t1", "f1"]);
         success(&phone.command(case, &chain, json!({"type": "thread.merge_back", "createdBy": "user", "creationSource": "mobile", "commandId": "c-merge", "sourceThreadId": "f1", "targetThreadId": "t1", "sourcePoint": {}})));
         assert!(answered(case, "thread.mergeBack"), "{:?}", asked(case));
-        let projection = phone.command_settled(case, &chain, json!({"type": "message.dispatch", "commandId": "c-m2", "threadId": "t1", "message": {"messageId": "m2", "text": "again"}}), "t1", completed(2));
+        let projection = phone.command_settled(case, &chain, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m2", "threadId": "t1", "messageId": "m2", "text": "again"}), "t1", completed(2));
         // Then the turn ran Claude Code resuming the conversation it announced, and the executor wrote the note again
         let (agent, executor) = last_window(case);
         assert!(agent.contains(&("turn.start".to_string(), true)) && hit(&executor, "tool", "write_file").is_some_and(|h| h["ok"] == true), "{agent:?} {executor}");
@@ -116,7 +116,7 @@ fn settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_
         // When the phone detaches the provider session and sends another message
         success(&phone.command(case, &chain, cmd("provider-session.detach", "t1", json!({"providerSessionId": "sess-1"}))));
         assert!(answered(case, "thread.detach"), "{:?}", asked(case));
-        phone.command_settled(case, &chain, json!({"type": "message.dispatch", "commandId": "c-m3", "threadId": "t1", "message": {"messageId": "m3", "text": "fresh"}}), "t1", completed(3));
+        phone.command_settled(case, &chain, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m3", "threadId": "t1", "messageId": "m3", "text": "fresh"}), "t1", completed(3));
         // Then Claude Code started a new conversation: no --resume
         let starts = chain.cli.invocations("claude");
         assert_eq!(starts.len(), 3);
@@ -139,7 +139,7 @@ fn queued(rca: &mut Direct, thread: &str) -> Vec<(String, String)> {
 }
 
 fn message(id: &str, thread: &str, text: &str) -> Value {
-    json!({"type": "message.dispatch", "commandId": format!("c-{id}"), "threadId": thread, "message": {"messageId": id, "text": text}})
+    json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": format!("c-{id}"), "threadId": thread, "messageId": id, "text": text})
 }
 
 #[test]

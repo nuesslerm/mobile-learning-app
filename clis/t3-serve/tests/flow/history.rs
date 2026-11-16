@@ -30,7 +30,7 @@ fn with_history(tools: usize) -> (Harness, Rpc, String) {
         .collect();
     script.push(AgentEventKind::Text("done".into()));
     *h.agent.script.lock().unwrap() = script;
-    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "commandId": "c-m", "threadId": "t1", "message": {"messageId": "m1", "text": "go"}})));
+    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m", "threadId": "t1", "messageId": "m1", "text": "go"})));
     settled(&mut rpc, "t1");
     let bearer = bearer_of(h.addr, &h.pair(PairingRequest::default()).code);
     (h, rpc, bearer)

@@ -278,7 +278,7 @@ fn with_turn() -> (Harness, Rpc, Value) {
         AgentEventKind::ToolFinished { id: "k".into(), ok: true },
         AgentEventKind::Text("done".into()),
     ];
-    success(&dispatch(&mut rpc, json!({"type": "message.dispatch", "commandId": "c-m", "threadId": "t1", "message": {"messageId": "m1", "text": "go"}})));
+    success(&dispatch(&mut rpc, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m", "threadId": "t1", "messageId": "m1", "text": "go"})));
     let projection = settled(&mut rpc, "t1");
     (h, rpc, projection)
 }
@@ -310,7 +310,7 @@ fn a_force_stop_and_a_workflow_stop_name_the_turn_of_the_run_and_a_workflow_that
     let quiet = rpc.call("orchestration.stopWorkflow", json!({"threadId": "t1", "subagentId": "n1"}));
     assert_eq!(failure(&quiet)["reason"], "not-running");
     assert!(ops(&h).is_empty());
-    success(&dispatch(&mut rpc, json!({"type": "message.dispatch", "commandId": "c-m", "threadId": "t1", "message": {"messageId": "m1", "text": "go"}})));
+    success(&dispatch(&mut rpc, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m", "threadId": "t1", "messageId": "m1", "text": "go"})));
     let run = h.service.engine().active_run("t1").unwrap();
     // The turn the run is gets recorded once the agent has started it, so wait for that before naming it
     let recorded = std::time::Instant::now() + std::time::Duration::from_secs(5);

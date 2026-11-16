@@ -143,6 +143,7 @@ const NESTED: &[(&str, &str)] = &[
     ("browserProfile", "id:s name:s kind:l(persistent|incognito)"),
     ("uploadImage", "id:s? type:l(image) name:s mimeType:p(image) sizeBytes:n dataUrl:s source:x?"),
     ("settledCursor", "settledAt:s threadId:s?"),
+    ("notification", "source:x?"),
     ("favoriteItem", "provider:s model:s favorite:b"),
     ("hiddenItem", "provider:s model:s hidden:b"),
     ("modelOrder", "provider:s modelOrder:a"),
@@ -165,6 +166,7 @@ const COMMANDS: &[(&str, &str)] = &[
     ("thread.model-selection.set", "commandId:s threadId:s modelSelection:ms"),
     ("provider.switch", "commandId:s threadId:s modelSelection:ms"),
     ("thread.fork", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x title:s? sideChat:b? createdAt:dt?"),
+    ("message.dispatch", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s threadId:s messageId:s text:s attachments:a? dispatchMode:x? notification:o(notification)?"),
     ("queued-run.edit", "context:x? commandId:s threadId:s runId:s text:s"),
     ("thread.merge_back", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x createdAt:dt?"),
     ("delegated_task.request", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s parentThreadId:s parentRunId:s parentNodeId:s task:s title:s? modelSelection:ms runtimeMode:l(approval-required|auto-accept-edits|auto|full-access) interactionMode:l(default|plan) workspaceStrategy:x? completionWake:l(always|settled_only)? createdAt:dt?"),
@@ -387,7 +389,16 @@ fn project_mutation_defect(payload: &Value) -> Option<String> {
 pub fn command_decoded(kind: &str, body: &Map<String, Value>) -> Option<Result<(), String>> {
     let (_, schema) = COMMANDS.iter().find(|(t, _)| *t == kind)?;
     let attachments = (kind == "queued-run.edit").then(|| body.get("attachments").and_then(Value::as_array).and_then(|items| attachments_defect(items))).flatten();
-    Some(decode(schema, body).or(attachments).map_or(Ok(()), Err))
+    let source = (kind == "message.dispatch").then(|| notification_source_defect(body)).flatten();
+    Some(decode(schema, body).or(attachments).or(source).map_or(Ok(()), Err))
+}
+
+const SOURCE_KINDS: &str = "{ readonly \"kind\": \"delegated_task\", ... } | { readonly \"kind\": \"background_task\", readonly \"work\": \"subagent\", ... } | { readonly \"kind\": \"background_command\", ... } | { readonly \"kind\": \"subagent\", ... } | { readonly \"kind\": \"command\", ... } | { readonly \"kind\": \"monitor\", ... } | { readonly \"kind\": \"background_task\", ... } | { readonly \"kind\": \"system\", ... } | object";
+
+/// A notification's `source` is a union of tagged members and an open object, so a value that is no object fails every member.
+fn notification_source_defect(body: &Map<String, Value>) -> Option<String> {
+    let source = body.get("notification")?.as_object()?.get("source")?;
+    (!source.is_object()).then(|| format!("Expected {SOURCE_KINDS}\n  at {}", at(&["notification", "source"])))
 }
 
 const UNKNOWN_TYPE: &str = "Expected a string matching the RegExp ^(?!(?:image|file)$)";
@@ -863,6 +874,19 @@ mod tests {
 
     #[test]
     fn a_command_without_a_member_here_is_left_to_its_handler() {
-        assert!(command_decoded("message.dispatch", &Map::new()).is_none());
+        assert!(command_decoded("run.start", &Map::new()).is_none());
+    }
+
+    #[test]
+    fn a_message_dispatch_names_its_first_defect_as_the_real_server_did() {
+        let body = |v: Value| v.as_object().cloned().unwrap();
+        let decoded = |v: Value| command_decoded("message.dispatch", &body(v)).unwrap();
+        // Given a dispatch with no payload, Then the creation fields are the first missing key
+        assert_eq!(decoded(json!({})).unwrap_err(), "Missing key\n  at [\"createdBy\"]");
+        // And a dispatch whose notification source is no object fails every member of the union
+        let sent = json!({"createdBy": "user", "creationSource": "web", "commandId": "a", "threadId": "a", "messageId": "a", "text": "a", "notification": {"source": "a"}});
+        assert!(decoded(sent.clone()).unwrap_err().ends_with("| object\n  at [\"notification\"][\"source\"]"));
+        // And a minimal dispatch decodes
+        assert_eq!(decoded(json!({"createdBy": "user", "creationSource": "web", "commandId": "a", "threadId": "a", "messageId": "a", "text": "a", "attachments": [], "dispatchMode": {"type": "defer_start"}})), Ok(()));
     }
 }
