@@ -82,6 +82,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("server.getNpmRelease", "spec:p(npm)"),
     ("server.getUsageSummary", "sinceDay:p(day) untilDay:p(day) timeZone:s resolution:l(day|hour)? sinceTime:s? untilTime:s? awaitRefresh:b?"),
     ("shell.openInEditor", "cwd:s editor:l(cursor|trae|kiro|vscode|vscode-insiders|vscodium|zed|antigravity|idea|aqua|clion|datagrip|dataspell|goland|phpstorm|pycharm|rider|rubymine|rustrover|webstorm|file-manager) reveal:b?"),
+    ("guestShare.create", "threadId:s"),
     ("peerLinks.unlink", "environmentId:s"),
     ("peerLinks.link", "url:s alternateUrls:a? pairingCode:s access:l(read-only|approval-required|auto-accept-edits|auto|full-access) expectedEnvironmentId:s? expectedLabel:s?"),
     ("peerLinks.answerRequest", "threadId:s turnItemId:s answer:x"),
@@ -754,6 +755,9 @@ mod tests {
         assert_eq!(d("projects.readFile", json!({})).unwrap(), "Missing key\n  at [\"cwd\"]");
         assert_eq!(d("projects.readFile", json!({"cwd": 7})).unwrap(), "Expected string\n  at [\"cwd\"]");
         assert_eq!(minimal("device.testHost").and_then(|m| defect("device.testHost", &m)), None);
+        // And a guest link request without a thread id names the missing key, a string id is the handler's
+        assert_eq!(d("guestShare.create", json!({})).unwrap(), "Missing key\n  at [\"threadId\"]");
+        assert_eq!(d("guestShare.create", json!({"threadId": "wrong"})), None);
     }
 
     #[test]
