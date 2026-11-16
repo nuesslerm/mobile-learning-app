@@ -2,7 +2,7 @@
 //! real process with the argv, stdin, environment and directory the executor chooses, and prints what the real CLIs print (written from their
 //! documented JSON and text output). No account, token or network is involved.
 use exec_hosted::testing::{fixtures, Exchange, Fixture};
-use exec_hosted::{ACTIONS, AUTH_LOGIN_CANCEL, AUTH_LOGIN_START, AUTH_LOGIN_WAIT, OUTPUT_CAP, PR_COMMENT, PR_DIFF, PR_LABELS, PR_LIST, PR_VIEW, REPO_CLONE, REPO_PUBLISH};
+use exec_hosted::{ACTIONS, AUTH_LOGIN_CANCEL, AUTH_LOGIN_START, AUTH_LOGIN_WAIT, OUTPUT_CAP, PR_COMMENT, PR_DIFF, PR_COMMENTS, PR_LABELS, PR_LIST, PR_REVIEWS, PR_THREADS, PR_VIEW, REPO_CLONE, REPO_PUBLISH};
 use exec_proto::{Code, ExecResult, Stream};
 use exec_testkit::{HostedClis, Rule, TempRepo};
 use rca_exec::adapters::local_executor::LocalExecutor;
@@ -453,4 +453,77 @@ fn given_a_gitlab_publish_when_the_repository_is_created_then_the_branch_is_push
     assert_eq!(out["url"], "https://gitlab.com/grp/proj");
     assert_eq!(Path::new(&clis.starts("glab")[0].cwd), std::fs::canonicalize(repo.path()).unwrap());
     assert_eq!(git(remote.path(), &["rev-parse", "main"]), repo.head());
+}
+
+fn gh_view_rule(stdout: Value) -> Rule {
+    Rule { prefix: true, stdout: stdout.to_string(), ..rule("gh", &["pr", "view", "12"]) }
+}
+
+fn read(b: &Bench, tool: &str, rule: Rule) -> Value {
+    b.clis.rules(&[rule], &[]);
+    call(&b.ex, "r", tool, json!({"provider": "github", "repo": "octo/hello", "number": 12})).unwrap()
+}
+
+#[test]
+fn given_graphql_comment_nodes_when_the_comments_are_read_then_avatar_bot_mark_database_id_and_reactions_are_answered_in_the_hosts_order() {
+    let b = bench();
+    // Given a human with reactions out of order, a bot, a deleted account and a null database id
+    let nodes = json!({"comments": [
+        {"id": "IC_1", "databaseId": 77, "author": {"__typename": "User", "login": "ada", "avatarUrl": "https://a/ada.png"}, "body": "hi", "createdAt": "2026-01-02T03:04:05Z", "url": "https://x/1", "viewerDidAuthor": true,
+         "reactionGroups": [{"content": "EYES", "viewerHasReacted": false, "reactors": {"totalCount": 2}}, {"content": "ROCKET", "viewerHasReacted": true, "reactors": {"totalCount": 0}}, {"content": "THUMBS_UP", "viewerHasReacted": true, "reactors": {"totalCount": 3}}]},
+        {"id": "IC_2", "databaseId": null, "author": {"__typename": "Bot", "login": "ci-bot", "avatarUrl": "https://a/bot.png"}, "body": "built", "createdAt": "2026-01-02T03:04:06Z", "url": "https://x/2", "reactionGroups": []},
+        {"id": "IC_3", "databaseId": 79, "viewerDidAuthor": false, "author": null, "body": "gone", "createdAt": "2026-01-02T03:04:07Z", "url": "https://x/3"}
+    ]});
+    // When read
+    let out = read(&b, PR_COMMENTS, gh_view_rule(nodes));
+    let c = out["comments"].as_array().unwrap();
+    // Then the node id stays the id, and the extra fields are the CLI's
+    assert_eq!((c[0]["id"].clone(), c[0]["database_id"].clone(), c[0]["avatar_url"].clone(), c[0]["is_bot"].clone(), c[0]["viewer_did_author"].clone(), c[0]["reaction_subject_id"].clone()), (json!("IC_1"), json!(77), json!("https://a/ada.png"), json!(false), json!(true), json!("IC_1")));
+    assert_eq!(c[0]["reactions"], json!([{"content": "+1", "count": 3, "viewer_has_reacted": true}, {"content": "eyes", "count": 2, "viewer_has_reacted": false}]));
+    // And a bot is marked, a null database id stays null, a deleted author has no login or avatar and is no bot
+    assert_eq!((c[1]["is_bot"].clone(), c[1]["database_id"].clone(), c[1]["reactions"].clone()), (json!(true), Value::Null, json!([])));
+    assert_eq!((c[2]["author"].clone(), c[2]["avatar_url"].clone(), c[2]["is_bot"].clone(), c[2]["database_id"].clone()), (Value::Null, Value::Null, json!(false), json!(79)));
+}
+
+#[test]
+fn given_the_old_gh_json_row_when_the_comments_and_reviews_are_read_then_the_new_fields_are_absent_and_the_old_ones_unchanged() {
+    let b = bench();
+    // Given a row with only author.login
+    let old = json!({"comments": [{"id": "IC_9", "author": {"login": "ada"}, "body": "old", "createdAt": "2026-01-02T03:04:05Z", "url": "https://x/9"}]});
+    // When read
+    let out = read(&b, PR_COMMENTS, gh_view_rule(old));
+    // Then
+    let c = &out["comments"][0];
+    assert_eq!((c["id"].clone(), c["author"].clone(), c["body"].clone()), (json!("IC_9"), json!("ada"), json!("old")));
+    assert!(["database_id", "avatar_url", "is_bot", "viewer_did_author", "reaction_subject_id", "reactions"].iter().all(|k| c.get(k).is_none()), "{c}");
+    // And a review reads the same way and keeps its submission time
+    let reviews = json!({"reviews": [{"id": "PRR_1", "databaseId": 5, "author": {"__typename": "Bot", "login": "rev", "avatarUrl": "https://a/r.png"}, "state": "APPROVED", "body": "", "submittedAt": "2026-01-02T03:04:05Z"}]});
+    let out = read(&b, PR_REVIEWS, gh_view_rule(reviews));
+    let r = &out["reviews"][0];
+    assert_eq!((r["id"].clone(), r["database_id"].clone(), r["is_bot"].clone(), r["state"].clone()), (json!("PRR_1"), json!(5), json!(true), json!("approved")));
+    assert!(r["submitted_at_ms"].is_number());
+}
+
+#[test]
+fn given_graphql_thread_nodes_when_the_threads_are_read_then_lines_side_hunk_and_comment_extras_are_answered() {
+    let b = bench();
+    // Given a thread whose comments carry a node id and a database id, and one old thread comment with only a database id
+    let nodes = json!({"data": {"repository": {"pullRequest": {"reviewThreads": {"nodes": [{
+        "id": "PRRT_1", "isResolved": false, "isOutdated": true, "path": "a.rs", "line": 9, "startLine": 7, "originalLine": 8, "originalStartLine": 6, "diffSide": "RIGHT",
+        "rootHunk": {"nodes": [{"diffHunk": "@@ -1 +1 @@\n-a\n+b"}]},
+        "comments": {"nodes": [
+            {"id": "PRRC_1", "databaseId": 41, "author": {"__typename": "User", "login": "ada", "avatarUrl": "https://a/ada.png"}, "body": "x", "createdAt": "2026-01-02T03:04:05Z", "url": "https://x/c1", "viewerDidAuthor": true,
+             "reactionGroups": [{"content": "HEART", "viewerHasReacted": true, "reactors": {"totalCount": 1}}]},
+            {"databaseId": 42, "author": {"login": "bob"}, "body": "y", "createdAt": "2026-01-02T03:04:06Z", "url": "https://x/c2"}]}
+    }]}}}}});
+    // When read
+    let out = read(&b, PR_THREADS, Rule { prefix: true, stdout: nodes.to_string(), ..rule("gh", &["api", "graphql"]) });
+    // Then
+    let t = &out["threads"][0];
+    assert_eq!((t["start_line"].clone(), t["original_line"].clone(), t["original_start_line"].clone(), t["diff_side"].clone(), t["root_diff_hunk"].clone()), (json!(7), json!(8), json!(6), json!("RIGHT"), json!("@@ -1 +1 @@\n-a\n+b")));
+    let (a, o) = (&t["comments"][0], &t["comments"][1]);
+    assert_eq!((a["id"].clone(), a["database_id"].clone(), a["viewer_did_author"].clone(), a["reactions"].clone()), (json!("PRRC_1"), json!(41), json!(true), json!([{"content": "heart", "count": 1, "viewer_has_reacted": true}])));
+    // And the old row keeps its database id as the id and has no extras
+    assert_eq!(o["id"], "42");
+    assert!(["database_id", "reaction_subject_id", "avatar_url", "reactions"].iter().all(|k| o.get(k).is_none()), "{o}");
 }

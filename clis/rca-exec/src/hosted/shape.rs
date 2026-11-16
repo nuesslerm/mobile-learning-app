@@ -130,6 +130,52 @@ fn gl_mr(v: &Value) -> Value {
     })
 }
 
+const REACTION_ORDER: [(&str, &str); 8] = [("THUMBS_UP", "+1"), ("THUMBS_DOWN", "-1"), ("LAUGH", "laugh"), ("CONFUSED", "confused"), ("HEART", "heart"), ("HOORAY", "hooray"), ("ROCKET", "rocket"), ("EYES", "eyes")];
+
+fn reactions(v: &Value) -> Value {
+    let groups = items(v, "reactionGroups");
+    let rows: Vec<Value> = REACTION_ORDER
+        .iter()
+        .filter_map(|(content, name)| {
+            let g = groups.iter().find(|g| g.get("content").and_then(Value::as_str) == Some(content))?;
+            let count = ["reactors", "users", "reactions"].iter().find_map(|k| g.get(*k).and_then(|r| r.get("totalCount")).and_then(Value::as_u64)).or_else(|| g.get("count").and_then(Value::as_u64)).unwrap_or(0);
+            (count > 0).then(|| json!({"content": name, "count": count, "viewer_has_reacted": g.get("viewerHasReacted").and_then(Value::as_bool).unwrap_or(false)}))
+        })
+        .collect();
+    json!(rows)
+}
+
+/// The GraphQL-only fields of a GitHub comment, review or thread comment. `gh --json` rows (they also name viewerDidAuthor and reactionGroups) and the
+/// older thread query lack the author's avatar and type, and a deleted author in the new query is the null author beside viewerDidAuthor: only
+/// those rows get the fields, so what the old queries answered is unchanged.
+fn gh_extras(c: &Value) -> Value {
+    let author = c.get("author").filter(|a| a.is_object());
+    let marked = match author {
+        Some(a) => a.get("avatarUrl").is_some() || a.get("__typename").is_some(),
+        None => c.get("author").is_some() && c.get("viewerDidAuthor").is_some(),
+    };
+    if !marked {
+        return json!({});
+    }
+    json!({
+        "database_id": num(c, "databaseId"),
+        "avatar_url": author.map_or(Value::Null, |a| text(a, "avatarUrl")),
+        "is_bot": author.is_some_and(|a| a.get("__typename").and_then(Value::as_str) == Some("Bot")),
+        "viewer_did_author": c.get("viewerDidAuthor").and_then(Value::as_bool).unwrap_or(false),
+        "reaction_subject_id": text(c, "id"),
+        "reactions": reactions(c),
+    })
+}
+
+/// The fields only the GraphQL thread query reads; an older thread row has none.
+fn thread_extras(t: &Value) -> Value {
+    if !["startLine", "originalLine", "originalStartLine", "diffSide", "rootHunk"].iter().any(|k| t.get(*k).is_some()) {
+        return json!({});
+    }
+    let hunk = items(&t["rootHunk"], "nodes").first().map_or(Value::Null, |n| text(n, "diffHunk"));
+    json!({"start_line": num(t, "startLine"), "original_line": num(t, "originalLine"), "original_start_line": num(t, "originalStartLine"), "diff_side": text(t, "diffSide"), "root_diff_hunk": hunk})
+}
+
 fn extend(base: Value, more: Value) -> Value {
     let mut base = base;
     if let (Some(b), Some(m)) = (base.as_object_mut(), more.as_object()) {
@@ -299,7 +345,7 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
         HostedCall::PrComments { .. } => {
             let v = body(&last)?;
             let comments: Vec<Value> = if github {
-                items(&v, "comments").iter().map(|c| json!({"id": id_string(c, "id"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")})).collect()
+                items(&v, "comments").iter().map(|c| extend(json!({"id": id_string(c, "id"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")}), gh_extras(c))).collect()
             } else {
                 v.as_array().map_or(&[][..], Vec::as_slice).iter().filter(|n| n.get("system").and_then(Value::as_bool) != Some(true)).map(|n| json!({"id": id_string(n, "id"), "author": login_of(n, "author", "username"), "body": n.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(n, "created_at"), "url": Value::Null})).collect()
             };
@@ -308,7 +354,7 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
         HostedCall::PrReviews { .. } => {
             let v = body(&last)?;
             let reviews: Vec<Value> = if github {
-                items(&v, "reviews").iter().map(|r| json!({"id": id_string(r, "id"), "author": login_of(r, "author", "login"), "state": lower(r, "state"), "body": r.get("body").and_then(Value::as_str).unwrap_or(""), "submitted_at_ms": ms(r, "submittedAt")})).collect()
+                items(&v, "reviews").iter().map(|r| extend(json!({"id": id_string(r, "id"), "author": login_of(r, "author", "login"), "state": lower(r, "state"), "body": r.get("body").and_then(Value::as_str).unwrap_or(""), "submitted_at_ms": ms(r, "submittedAt")}), gh_extras(r))).collect()
             } else {
                 items(&v, "approved_by").iter().map(|a| json!({"id": id_string(&a["user"], "id"), "author": login_of(a, "user", "username"), "state": "approved", "body": "", "submitted_at_ms": Value::Null})).collect()
             };
@@ -321,8 +367,8 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
                 nodes
                     .iter()
                     .map(|t| {
-                        let comments: Vec<Value> = items(&t["comments"], "nodes").iter().map(|c| json!({"id": id_string(c, "databaseId"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")})).collect();
-                        json!({"id": text(t, "id"), "resolved": t.get("isResolved").and_then(Value::as_bool).unwrap_or(false), "outdated": t.get("isOutdated").and_then(Value::as_bool).unwrap_or(false), "path": text(t, "path"), "line": num(t, "line"), "comments": comments})
+                        let comments: Vec<Value> = items(&t["comments"], "nodes").iter().map(|c| extend(json!({"id": if c.get("id").is_some_and(Value::is_string) { id_string(c, "id") } else { id_string(c, "databaseId") }, "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")}), gh_extras(c))).collect();
+                        extend(json!({"id": text(t, "id"), "resolved": t.get("isResolved").and_then(Value::as_bool).unwrap_or(false), "outdated": t.get("isOutdated").and_then(Value::as_bool).unwrap_or(false), "path": text(t, "path"), "line": num(t, "line"), "comments": comments}), thread_extras(t))
                     })
                     .collect()
             } else {
