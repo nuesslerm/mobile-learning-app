@@ -327,7 +327,7 @@ fn a_provider_update_and_the_chatgpt_profile_rows_are_refused_with_their_reason_
     let (h, mut rpc) = started();
     // When the phone asks for a provider update, imports a ChatGPT profile, opens a handoff and asks to reconnect a profile
     let update = rpc.call("server.updateProvider", json!({"provider": "codex"}));
-    let import = rpc.call("provider.chatgpt.import-profile", json!({"instanceId": "codex", "profile": {}}));
+    let import = rpc.call("provider.chatgpt.import-profile", json!({"instanceId": "codex", "profile": {"registration": {"clientId": "oaiapp_a"}, "credentials": {"clientId": "a", "accessToken": "a", "refreshToken": null, "idToken": "a", "issuer": "a", "expiresAt": 0, "earliestRefreshAt": null, "scopes": [], "subject": "a", "email": null}}}));
     let handoff = rpc.call("provider.chatgpt.handoff.subscribe", json!({"instanceId": "codex", "environmentId": ENVIRONMENT_ID, "attemptId": "a", "returnUrl": "https://x.test", "profile": null}));
     let reconnect = rpc.call("provider.chatgpt.reconnect-profile", json!({"instanceId": "codex", "methodId": "chatgpt"}));
     // Then the update is the declared error with the reason, the import and the handoff are setup errors that say no token is taken, and a

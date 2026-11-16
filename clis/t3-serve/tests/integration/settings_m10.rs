@@ -309,7 +309,7 @@ fn the_rows_that_need_an_account_flow_or_an_image_are_refused_through_the_chain_
         assert_eq!(failure(&credit)["_tag"], json!("UsageLimitSourceError"));
         let update = case.call(tap, &rows(&["rpc:server.updateProvider"]), || (false, phone.calls.call("server.updateProvider", json!({"provider": "codex"}))));
         assert_eq!(failure(&update)["_tag"], json!("ServerProviderUpdateError"));
-        let import = case.call(tap, &rows(&["rpc:provider.chatgpt.import-profile"]), || (false, phone.calls.call("provider.chatgpt.import-profile", json!({"instanceId": "codex", "profile": {}}))));
+        let import = case.call(tap, &rows(&["rpc:provider.chatgpt.import-profile"]), || (false, phone.calls.call("provider.chatgpt.import-profile", json!({"instanceId": "codex", "profile": {"registration": {"clientId": "oaiapp_a"}, "credentials": {"clientId": "a", "accessToken": "a", "refreshToken": null, "idToken": "a", "issuer": "a", "expiresAt": 0, "earliestRefreshAt": null, "scopes": [], "subject": "a", "email": null}}}))));
         assert_eq!(failure(&import)["_tag"], json!("ProviderSetupError"));
         let handoff = case.call(tap, &rows(&["rpc:provider.chatgpt.handoff.subscribe"]), || (false, phone.calls.call("provider.chatgpt.handoff.subscribe", json!({"instanceId": "codex", "environmentId": "e", "attemptId": "a", "returnUrl": "https://x.test", "profile": null}))));
         assert_eq!(failure(&handoff)["_tag"], json!("ProviderSetupError"));

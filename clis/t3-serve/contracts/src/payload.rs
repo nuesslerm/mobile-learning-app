@@ -53,8 +53,10 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("provider.auth.logout", "instanceId:s"),
     ("provider.auth.subscribe", "instanceId:s"),
     ("provider.chatgpt.reconnect-profile", "instanceId:s methodId:s"),
-    ("provider.chatgpt.import-profile", "instanceId:s profile:o"),
-    ("provider.chatgpt.handoff.subscribe", "instanceId:s environmentId:s attemptId:s returnUrl:s"),
+    ("provider.chatgpt.import-profile", "instanceId:s profile:o(chatgptTransferred)"),
+    ("provider.chatgpt.handoff.subscribe", "instanceId:s environmentId:s attemptId:s returnUrl:s profile:o(chatgptProfile)|"),
+    ("provider.auth.removeMethod", "instanceId:s methodId:s"),
+    ("provider.uploadFeedback", "threadId:s reason:s?"),
     ("server.updateProvider", "provider:s targetVersion:s? instanceId:s?"),
     ("projects.searchEntries", "cwd:s query:s limit:n kind:l(file|directory)? imageOnly:b?"),
     ("projects.searchContents", "cwd:s query:s limit:n caseSensitive:b wholeWord:b useRegex:b"),
@@ -118,6 +120,9 @@ const NESTED: &[(&str, &str)] = &[
     ("favoriteItem", "provider:s model:s favorite:b"),
     ("hiddenItem", "provider:s model:s hidden:b"),
     ("modelOrder", "provider:s modelOrder:a"),
+    ("chatgptProfile", "clientId:p(oaiapp) subject:s? email:sn? redirectUri:p(callback)? connectionLabel:s? sharingEnabled:b? idTokenHint:s?"),
+    ("chatgptTransferred", "registration:o(chatgptProfile) credentials:o(chatgptCredentials)"),
+    ("chatgptCredentials", "clientId:s accessToken:s refreshToken:sn idToken:s issuer:s expiresAt:n earliestRefreshAt:n| scopes:a subject:s email:sn"),
 ];
 
 /// The commands of `orchestration.dispatchCommand` whose union member is decoded here, fields in the order the member declares them (the creation fields and
@@ -132,6 +137,7 @@ const COMMANDS: &[(&str, &str)] = &[
     ("thread.pull-request-link.sync", "commandId:s threadId:s host:s repository:s number:n snapshot:o stack:x"),
     ("thread.pull-request.watch", "commandId:s threadId:s host:s repository:s number:n watching:b link:o?"),
     ("thread.model-selection.set", "commandId:s threadId:s modelSelection:ms"),
+    ("provider.switch", "commandId:s threadId:s modelSelection:ms"),
     ("thread.fork", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x title:s? sideChat:b? createdAt:dt?"),
     ("thread.merge_back", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x createdAt:dt?"),
 ];
@@ -168,6 +174,11 @@ fn pattern(name: &str) -> (&'static str, fn(&str) -> bool) {
             let Some((scheme, rest)) = v.split_once("://") else { return v.is_empty() || v.len() > 2048 };
             let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
             v.len() > 2048 || (matches!(scheme.to_ascii_lowercase().as_str(), "http" | "https") && !authority.contains('@') && !authority.is_empty() && !v.contains(['?', '#']))
+        }),
+        "oaiapp" => (r"^oaiapp_[\w-]+$", |v| v.strip_prefix("oaiapp_").is_some_and(|r| !r.is_empty() && r.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-'))),
+        "callback" => (r"^http:\/\/(?:127\.0\.0\.1|localhost):[1-9]\d{0,4}\/auth\/callback$", |v| {
+            let port = v.strip_prefix("http://127.0.0.1:").or_else(|| v.strip_prefix("http://localhost:")).and_then(|r| r.strip_suffix("/auth/callback"));
+            port.is_some_and(|p| (1..=5).contains(&p.len()) && !p.starts_with('0') && p.bytes().all(|b| b.is_ascii_digit()))
         }),
         "http" => (r"^https?:\/\/.", |v| {
             let v = v.to_ascii_lowercase();
@@ -231,6 +242,7 @@ pub fn minimal(tag: &str) -> Option<Value> {
 fn minimal_of(schema: &str) -> Value {
     let fields = schema.split(' ').filter_map(|f| f.split_once(':')).filter(|(_, kind)| !kind.ends_with(['?', '~'])).map(|(name, kind)| {
         let value = match kind {
+            k if k.ends_with('|') => Value::Null,
             "n" => Value::from(1),
             "b" => Value::Bool(true),
             "a" => Value::Array(Vec::new()),
@@ -246,6 +258,7 @@ fn minimal_of(schema: &str) -> Value {
             "p(day)" => Value::from("2026-01-01"),
             "p(http)" => Value::from("http://a"),
             "p(npm)" => Value::from("latest"),
+            "p(oaiapp)" => Value::from("oaiapp_a"),
             k if k.starts_with("l(") => Value::from(k[2..k.len() - 1].split('|').next().unwrap_or("")),
             _ => Value::from("a"),
         };
@@ -259,8 +272,19 @@ pub fn defect(tag: &str, payload: &Value) -> Option<String> {
     if tag == "device.action" {
         return device_action_defect(payload);
     }
+    if tag == "provider.consumeResetCredit" {
+        return consume_reset_credit_defect(payload);
+    }
     let (_, schema) = SCHEMAS.iter().find(|(t, _)| *t == tag)?;
     decode(schema, payload.as_object()?)
+}
+
+/// The input is a union of an instance and a usage-limit source; a payload that fits neither fails with both members' first defects.
+fn consume_reset_credit_defect(payload: &Value) -> Option<String> {
+    let Some(body) = payload.as_object() else { return Some("Expected object".into()) };
+    let instance = decode("instanceId:s creditId:s?", body)?;
+    let source = decode("sourceId:s accountId:s creditId:s", body)?;
+    Some(format!("{instance}\n{source}"))
 }
 
 const DEVICE_ACTIONS: [&str; 14] = ["setAppearance", "setTextSize", "setToggle", "setLiquidGlass", "setColorFilter", "setOrientation", "setLocation", "clearLocation", "setPermission", "openUrl", "launchApp", "terminateApp", "shake", "sendPush"];
@@ -289,8 +313,10 @@ fn decode(schema: &str, body: &Map<String, Value>) -> Option<String> {
 fn decode_in(schema: &str, body: &Map<String, Value>, prefix: &[String]) -> Option<String> {
     for field in schema.split(' ') {
         let (name, kind) = field.split_once(':')?;
-        let (kind, nullable) = kind.strip_suffix('~').map_or((kind, false), |k| (k, true));
-        let (kind, optional) = kind.strip_suffix('?').map_or((kind, nullable), |k| (k, true));
+        let (kind, tilde) = kind.strip_suffix('~').map_or((kind, false), |k| (k, true));
+        let (kind, bar) = kind.strip_suffix('|').map_or((kind, false), |k| (k, true));
+        let nullable = tilde || bar;
+        let (kind, optional) = kind.strip_suffix('?').map_or((kind, tilde), |k| (k, true));
         let key: Vec<String> = prefix.iter().cloned().chain([name.to_string()]).collect();
         match body.get(name) {
             None if optional => {}
@@ -443,6 +469,43 @@ mod tests {
             let minimal = minimal(tag).unwrap();
             assert_eq!(defect(tag, &minimal), None, "{tag}: {minimal}");
         }
+    }
+
+    #[test]
+    fn a_chatgpt_profile_decodes_its_client_id_pattern_first_and_the_handoff_requires_the_key_even_as_null() {
+        // Given a handoff whose profile client id misses the oaiapp pattern, then one without the key, then a null profile
+        let handoff = |profile: Option<Value>| {
+            let mut body = json!({"instanceId": "a", "environmentId": "a", "attemptId": "a", "returnUrl": "a"});
+            profile.map(|p| body["profile"] = p);
+            defect("provider.chatgpt.handoff.subscribe", &body)
+        };
+        // Then the pattern, the missing key and the null are answered as the pinned server does
+        assert_eq!(handoff(Some(json!({"clientId": "a"}))).unwrap(), "Expected a string matching the RegExp ^oaiapp_[\\w-]+$\n  at [\"profile\"][\"clientId\"]");
+        assert_eq!(handoff(None).unwrap(), "Missing key\n  at [\"profile\"]");
+        assert_eq!(handoff(Some(json!(7))).unwrap(), "Expected object | null\n  at [\"profile\"]");
+        assert_eq!((handoff(Some(Value::Null)), handoff(Some(json!({"clientId": "oaiapp_a-1"})))), (None, None));
+    }
+
+    #[test]
+    fn an_imported_profile_names_the_registration_before_the_credentials() {
+        let import = |registration: Value| defect("provider.chatgpt.import-profile", &json!({"instanceId": "a", "profile": {"registration": registration, "credentials": {"clientId": "a", "accessToken": "a", "refreshToken": null, "idToken": "a", "issuer": "a", "expiresAt": 0, "earliestRefreshAt": null, "scopes": [], "subject": "a", "email": null}}}));
+        assert_eq!(import(json!({"clientId": "a"})).unwrap(), "Expected a string matching the RegExp ^oaiapp_[\\w-]+$\n  at [\"profile\"][\"registration\"][\"clientId\"]");
+        assert_eq!(import(json!({"clientId": "oaiapp_a", "redirectUri": "a"})).unwrap(), "Expected a string matching the RegExp ^http:\\/\\/(?:127\\.0\\.0\\.1|localhost):[1-9]\\d{0,4}\\/auth\\/callback$\n  at [\"profile\"][\"registration\"][\"redirectUri\"]");
+        assert_eq!(import(json!({"clientId": "oaiapp_a", "redirectUri": "http://localhost:4567/auth/callback"})), None);
+    }
+
+    #[test]
+    fn a_reset_credit_that_fits_neither_union_member_fails_with_both_and_a_non_object_is_expected_to_be_one() {
+        assert_eq!(defect("provider.consumeResetCredit", &json!({})).unwrap(), "Missing key\n  at [\"instanceId\"]\nMissing key\n  at [\"sourceId\"]");
+        assert_eq!(defect("provider.consumeResetCredit", &json!("wrong")).unwrap(), "Expected object");
+        assert_eq!((defect("provider.consumeResetCredit", &json!({"instanceId": "a"})), defect("provider.consumeResetCredit", &json!({"sourceId": "a", "accountId": "a", "creditId": "a"}))), (None, None));
+    }
+
+    #[test]
+    fn a_feedback_upload_and_a_removed_method_decode_their_first_missing_field() {
+        assert_eq!(defect("provider.uploadFeedback", &json!({})).unwrap(), "Missing key\n  at [\"threadId\"]");
+        assert_eq!(defect("provider.auth.removeMethod", &json!({"instanceId": 7, "methodId": "a"})).unwrap(), "Expected string\n  at [\"instanceId\"]");
+        assert_eq!(command("provider.switch", json!({"commandId": "a", "threadId": "a", "modelSelection": {"model": "a"}})).unwrap(), "Expected string\n  at [\"modelSelection\"][\"instanceId\"]");
     }
 
     #[test]

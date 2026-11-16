@@ -134,6 +134,7 @@ const TABLE: &[(&[&str], &[&str])] = &[
             "provider.auth.respond",
             "provider.auth.cancel",
             "provider.auth.logout",
+            "provider.auth.removeMethod",
             "provider.auth.subscribe",
             "provider.install.start",
             "provider.install.cancel",
