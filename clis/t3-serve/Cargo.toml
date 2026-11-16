@@ -83,3 +83,11 @@ tungstenite = { version = "0.30", default-features = false, features = ["handsha
 
 [package.metadata.arch]
 type = "cli-crate"
+
+# Each recorded set replays in an Nx task of its own (`cargo-integration-<group>`, tooling/nx/cargo-crates.js), keyed by its set's directory alone:
+# `filter` is the libtest filter of its test (tests/integration/recorded_r1.rs), and `cargo-integration` skips every filter.
+[package.metadata.integration.groups]
+crawl = { filter = "recorded_r1::crawl::", files = ["cassettes/t3-v0.1.9-crawl/**"] }
+recorded_1 = { filter = "recorded_r1::recorded_1::", files = ["cassettes/t3-v0.1.9-recorded-1/**"] }
+recorded_2 = { filter = "recorded_r1::recorded_2::", files = ["cassettes/t3-v0.1.9-recorded-2/**"] }
+recorded_3 = { filter = "recorded_r1::recorded_3::", files = ["cassettes/t3-v0.1.9-recorded-3/**"] }

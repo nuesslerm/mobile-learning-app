@@ -9,7 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
 /// The cached targets: the package scripts the stages run, the crates' flow and integration tests and the focused e2e tests.
-const TARGETS: &str = "lint,typecheck,test:unit,test:flow,test:integration,cargo-flow,cargo-integration,cargo-e2e,cargo-e2e-ask,cargo-e2e-parity,cargo-e2e-parity_features,cargo-e2e-parity_capabilities,cargo-e2e-smoke,cargo-unit,cargo-clippy,e2e-browser,e2e-android,export:web,export:eas,cargo-contract,cargo-verify-deployed,check:editor-bundle";
+const TARGETS: &str = "lint,typecheck,test:unit,test:flow,test:integration,cargo-flow,cargo-integration,cargo-integration-crawl,cargo-integration-recorded_1,cargo-integration-recorded_2,cargo-integration-recorded_3,cargo-e2e,cargo-e2e-ask,cargo-e2e-parity,cargo-e2e-parity_features,cargo-e2e-parity_capabilities,cargo-e2e-smoke,cargo-unit,cargo-clippy,e2e-browser,e2e-android,export:web,export:eas,cargo-contract,cargo-verify-deployed,check:editor-bundle";
 
 const SPEC: Spec = Spec { values: &["save", "against", "targets", "projects"], flags: &["pins", "blocking"], positional: Positional::None, ..Spec::NONE };
 

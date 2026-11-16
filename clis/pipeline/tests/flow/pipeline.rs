@@ -551,6 +551,44 @@ fn a_crate_with_flow_groups_is_planned_one_flow_entry_per_group_and_the_stage_ru
 }
 
 #[test]
+fn a_crate_with_integration_groups_is_planned_the_rest_and_a_group_entry_each_and_the_shards_deal_the_groups_out() {
+    // Given a cargo workspace whose crate names two parts of its integration suite as groups, and a commit that changes the crate
+    let w = Workspace::new("wf-integration-plan-groups-");
+    let manifest = "[package]\nname = \"app\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[package.metadata.integration.groups]\nnorth = { filter = \"sets::north::\", files = [\"tests/sets/north/**\"] }\nsouth = { filter = \"sets::south::\", files = [\"tests/sets/south/**\"] }\n";
+    w.write("repo/tools/Cargo.toml", "[workspace]\nmembers = [\"app\"]\nresolver = \"2\"\n");
+    w.write("repo/tools/app/Cargo.toml", manifest);
+    w.write("repo/tools/app/tests/integration.rs", "mod sets;\n");
+    w.write("repo/tools/app/src/main.rs", "fn main() {}\n");
+    w.commit("a grouped crate");
+    w.write("repo/tools/app/src/main.rs", "fn main() {\n}\n");
+    w.commit("change it");
+
+    // When the commit is planned
+    let (v, _) = w.plan("HEAD~1");
+    // Then the suite is one entry that skips both sets, and one entry per set, each its own Nx target, filtered to the set's tests
+    let planned: Vec<(String, String, String)> = v["stages"]["integration-tests"].as_array().unwrap().iter().map(|t| (t["group"].as_str().unwrap_or("-").to_string(), t["target"].as_str().unwrap_or("-").to_string(), t["command"].as_str().unwrap_or_default().to_string())).collect();
+    let command = "cargo test --locked -p app --test integration --manifest-path tools/Cargo.toml -- --test-threads=1";
+    let expected = [
+        ("-", "-", format!("{command} --skip sets::north:: --skip sets::south::")),
+        ("north", "cargo-integration-north", format!("{command} sets::north::")),
+        ("south", "cargo-integration-south", format!("{command} sets::south::")),
+    ];
+    assert_eq!(planned, expected.map(|(g, t, c)| (g.to_string(), t.to_string(), c)), "{v}");
+
+    // When the first and the second of two shards run the stage from that plan
+    let nx_of = |shard: &str| {
+        w.s.forget("nx");
+        let r = w.wf(&["test", "run", "--stage", "integration-tests", "--plan", &w.path("plan.json"), "--shard", shard], &[]);
+        assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+        w.s.calls("nx")
+    };
+    let (first, second) = (nx_of("1/2"), nx_of("2/2"));
+    // Then the suite and the south set run in the first, with the crate's whole-suite task, and the north set alone in the second, without it
+    assert_eq!(first, ["run-many -t test:integration,cargo-integration,cargo-integration-south -p crate-app --parallel=1 --outputStyle=stream"]);
+    assert_eq!(second, ["run-many -t cargo-integration-north -p crate-app --parallel=1 --outputStyle=stream"]);
+}
+
+#[test]
 fn drift_against_another_environment_reports_how_many_tasks_hash_differently() {
     // Given this environment's hash table (two tasks, from a node stub) and another's in which one of the two hashes differently
     let w = Workspace::new("wf-flow-drift-metrics-");

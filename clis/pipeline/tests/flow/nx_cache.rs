@@ -723,23 +723,26 @@ fn t3_serve_files_the_chain_reads(w: &Workspace) -> BTreeSet<String> {
 
 #[test]
 fn nx_reruns_the_t3_serve_chain_exactly_when_a_file_the_chain_builds_or_reads_changed() {
-    // Given this repository's files with the hash Nx computes for the chain's task
+    // Given this repository's files with the hashes Nx computes for the chain's tasks (the rest and one per recorded set)
     let w = Workspace::copy();
     let hash = || {
-        let r = w.wf(&["test", "drift", "--projects", "crate-t3-serve", "--targets", "cargo-integration"], &[]);
+        let targets = "cargo-integration,cargo-integration-crawl,cargo-integration-recorded_1,cargo-integration-recorded_2,cargo-integration-recorded_3";
+        let r = w.wf(&["test", "drift", "--projects", "crate-t3-serve", "--targets", targets], &[]);
         assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
-        last_line(&r)["hashes"]["crate-t3-serve:cargo-integration"].clone()
+        last_line(&r)["hashes"].clone()
     };
     let before = hash();
-    let moves = |file: &str| {
-        let mut moved = false;
+    // the tasks whose hash differs once the file is edited
+    let moved_tasks = |file: &str| {
+        let mut after = serde_json::Value::Null;
         if file.ends_with(".toml") {
-            w.with_replace(file, "edition = \"2021\"", "edition = \"2021\" ", || moved = hash() != before);
+            w.with_replace(file, "edition = \"2021\"", "edition = \"2021\" ", || after = hash());
         } else {
-            w.with_edit(file, || moved = hash() != before);
+            w.with_edit(file, || after = hash());
         }
-        moved
+        before.as_object().unwrap().iter().filter(|(task, h)| after.get(task.as_str()) != Some(h)).map(|(task, _)| task.clone()).collect::<Vec<_>>()
     };
+    let moves = |file: &str| !moved_tasks(file).is_empty();
 
     // When a file the binary is built from or the chain runs on changes, Then the task hashes differently
     let rerun = [
@@ -766,7 +769,8 @@ fn nx_reruns_the_t3_serve_chain_exactly_when_a_file_the_chain_builds_or_reads_ch
 
     // When a file only the flow tests, the image or the compose file use changes, Then it hashes the same
     for file in ["clis/t3-serve/tests/flow.rs", "clis/t3-serve/tests/flow/pairing.rs", "clis/t3-serve/Dockerfile", "clis/t3-serve/docker-compose.prod.yml", "clis/t3-serve/README.md"] {
-        assert!(!moves(file), "{file} must not rerun the chain");
+        let moved = moved_tasks(file);
+        assert!(moved.is_empty(), "{file} must not rerun the chain, but moves {moved:?}");
     }
 }
 

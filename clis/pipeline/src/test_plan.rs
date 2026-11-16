@@ -156,6 +156,8 @@ struct Crate {
     integration_files: Vec<String>,
     /// `[package.metadata.integration] uses`: the crates whose binaries the integration tests run, which the flow tests do not.
     integration_uses: Vec<String>,
+    /// `[package.metadata.integration.groups]`: the parts of the integration suite that are an Nx task each (`cargo-integration-<group>`), each with its libtest filter.
+    integration_groups: Vec<(String, String)>,
 }
 
 /// Every crate of the repo's cargo workspaces, with its path dependencies, read from the manifests: the plan job has no
@@ -200,9 +202,12 @@ fn rust_crates(root: &Path) -> Result<Vec<Crate>, String> {
             let flow_uses = list("uses").into_iter().chain(grouped.iter().filter(|e| names_crate(e)).cloned()).collect();
             let integration = m.get("package").and_then(|p| p.get("metadata")).and_then(|d| d.get("integration"));
             let integration_list = |key: &str| -> Vec<String> { integration.and_then(|f| f.get(key)).and_then(toml::Value::as_array).into_iter().flatten().filter_map(toml::Value::as_str).map(str::to_string).collect() };
-            let integration_files = integration_list("inputs").into_iter().map(|g| normalize(&dir.join(g)).to_string_lossy().to_string()).collect();
+            let groups_table = integration.and_then(|f| f.get("groups")).and_then(toml::Value::as_table);
+            let integration_groups: Vec<(String, String)> = groups_table.into_iter().flatten().map(|(g, spec)| (g.clone(), spec.get("filter").and_then(toml::Value::as_str).unwrap_or_default().to_string())).collect();
+            let grouped_files: Vec<String> = groups_table.into_iter().flat_map(|t| t.values()).filter_map(|spec| spec.get("files")).filter_map(toml::Value::as_array).flatten().filter_map(toml::Value::as_str).map(str::to_string).collect();
+            let integration_files = integration_list("inputs").into_iter().chain(grouped_files).map(|g| normalize(&dir.join(g)).to_string_lossy().to_string()).collect();
             let integration_uses = integration_list("uses");
-            out.push(Crate { name: name.to_string(), dir: normalize(&dir).to_string_lossy().to_string(), manifest: manifest.to_string(), deps, e2e_groups, flow_groups, flow_files, flow_uses, integration_files, integration_uses });
+            out.push(Crate { name: name.to_string(), dir: normalize(&dir).to_string_lossy().to_string(), manifest: manifest.to_string(), deps, e2e_groups, flow_groups, flow_files, flow_uses, integration_files, integration_uses, integration_groups });
         }
     }
     Ok(out)
@@ -309,8 +314,17 @@ fn flow_entries(root: &Path, c: &Crate, reason: &str) -> Vec<(String, Value)> {
     c.flow_groups.iter().map(|g| ("flow-tests".to_string(), json!({ "kind": "flow", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command} {g}::"), "group": g, "target": format!("cargo-flow-{g}"), "why": [reason] }))).collect()
 }
 
-fn integration_entry(root: &Path, c: &Crate, reason: &str) -> Option<(String, Value)> {
-    root.join(&c.dir).join("tests/integration.rs").is_file().then(|| ("integration-tests".to_string(), json!({ "kind": "integration", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("cargo test --locked -p {} --test integration --manifest-path {} -- --test-threads=1", c.name, c.manifest), "why": [reason] })))
+/// A crate's integration entries: the suite, and for a crate with integration groups the rest of it (its filters skipped) and one entry per group,
+/// each the Nx task `cargo-integration-<group>` replayed on its own inputs.
+fn integration_entry(root: &Path, c: &Crate, reason: &str) -> Vec<(String, Value)> {
+    if !root.join(&c.dir).join("tests/integration.rs").is_file() {
+        return vec![];
+    }
+    let command = format!("cargo test --locked -p {} --test integration --manifest-path {} -- --test-threads=1", c.name, c.manifest);
+    let skips: String = c.integration_groups.iter().map(|(_, filter)| format!(" --skip {filter}")).collect();
+    let rest = json!({ "kind": "integration", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command}{skips}"), "why": [reason] });
+    let groups = c.integration_groups.iter().map(|(g, filter)| json!({ "kind": "integration", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command} {filter}"), "group": g, "target": format!("cargo-integration-{g}"), "why": [reason] }));
+    std::iter::once(rest).chain(groups).map(|entry| ("integration-tests".to_string(), entry)).collect()
 }
 
 /// The deployed service asked over its real interface (`tests/deployed_verification.rs`, the deployment-verification-tests stage): a crate that
@@ -576,10 +590,17 @@ fn parse_shard(text: &str) -> Option<(usize, usize)> {
     (1 <= index && index <= count).then_some((index, count))
 }
 
-/// One shard's tests: a package (or crate) with all its kinds goes to one shard, so its tasks share the cache and the build; the packages, sorted by
+/// One shard's tests: a package (or crate) with all its kinds goes to one shard, so its tasks share the cache and the build, except the groups of a
+/// crate's integration or e2e suite, which are slow tasks of their own and each deal out as a unit; the units, sorted by
 /// name, are dealt out round-robin, so every machine of a stage computes the same split from the same plan.
 pub fn shard_of(tests: &[Value], index: usize, count: usize) -> Vec<Value> {
-    let key = |t: &Value| t["package"].as_str().map(str::to_string).or_else(|| t["crate"].as_str().map(|c| format!("crate-{c}"))).unwrap_or_default();
+    let key = |t: &Value| {
+        let unit = t["package"].as_str().map(str::to_string).or_else(|| t["crate"].as_str().map(|c| format!("crate-{c}"))).unwrap_or_default();
+        match (t["kind"].as_str(), t["group"].as_str()) {
+            (Some("integration" | "e2e"), Some(group)) => format!("{unit}/{group}"),
+            _ => unit,
+        }
+    };
     let mut keys: Vec<String> = tests.iter().map(key).collect();
     keys.sort();
     keys.dedup();
@@ -623,6 +644,14 @@ fn run_package_stage(nx: &Path, root: &Path, stage: &str, tests: &[Value], sha: 
         // the crates' tests run beside the packages' in one call: cargo serialises builds that share a target directory,
         // and the crates' (clis/) is not the packages' (18 Oct: one after the other overran the job)
         let target = if !crates.is_empty() && matches!(*kind, "flow" | "unit" | "integration" | "e2e" | "e2e-smoke" | "contract" | "deployment-verification") {
+            // a crate whose groups are all this shard holds of its suite (the groups of an integration or e2e suite deal out one by one) runs them
+            // in a call of its own: beside the others it would also run the task for the rest of the suite, which another shard's entry runs
+            if matches!(*kind, "integration" | "e2e") {
+                let whole = |c: &String| tests.iter().any(|t| t["kind"] == *kind && t["group"].is_null() && t["crate"].as_str().is_some_and(|n| format!("crate-{n}") == *c));
+                let (kept, only_groups): (Vec<String>, Vec<String>) = crates.into_iter().partition(whole);
+                crates = kept;
+                run(kind, &groups.join(","), only_groups, 1);
+            }
             projects.extend(crates);
             let cargo = if *kind == "deployment-verification" { "cargo-verify-deployed".to_string() } else { format!("cargo-{kind}") };
             [script.to_string(), cargo].into_iter().chain(groups.iter().map(|g| g.to_string())).collect::<Vec<_>>().join(",")
@@ -719,7 +748,7 @@ mod tests {
     use serde_json::json;
 
     fn crate_at(dir: &str) -> Crate {
-        Crate { name: "svc".into(), dir: dir.into(), manifest: format!("{dir}/Cargo.toml"), deps: vec![], e2e_groups: vec![], flow_groups: vec![], flow_files: vec![], flow_uses: vec![], integration_files: vec![], integration_uses: vec![] }
+        Crate { name: "svc".into(), dir: dir.into(), manifest: format!("{dir}/Cargo.toml"), deps: vec![], e2e_groups: vec![], flow_groups: vec![], flow_files: vec![], flow_uses: vec![], integration_files: vec![], integration_uses: vec![], integration_groups: vec![] }
     }
 
     #[test]

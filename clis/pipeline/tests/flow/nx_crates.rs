@@ -17,7 +17,9 @@ type Locked<'a> = (&'a str, Option<&'a str>, &'a [&'a str]);
 const SVC_FLOW: &str = "@fx/svc test:flow";
 const SVC_INTEGRATION: &str = "@fx/svc test:integration";
 const CHAIN_FLOW: &str = "test chain flow";
-const CHAIN_INTEGRATION: &str = "test chain integration";
+const CHAIN_INTEGRATION: &str = "test chain integration !sets::north:: !sets::south::";
+const CHAIN_NORTH: &str = "test chain integration sets::north::";
+const CHAIN_SOUTH: &str = "test chain integration sets::south::";
 const KIT_FLOW: &str = "test kit flow";
 const HELPER_FLOW: &str = "test helper flow";
 const ALPHA: &str = "test tool flow alpha::";
@@ -88,6 +90,8 @@ impl Fixture {
             r#"[ "$1" = metadata ] && { echo 'the Nx graph must not need cargo' >&2; exit 1; }
 sub="$1"; shift; p=""; t=""; f=""
 while [ $# -gt 0 ]; do case "$1" in -p) p="$2"; shift;; --test) t=" $2"; shift;; --lib|--bins) t=" unit";; --manifest-path) shift;; --) break;; -*) ;; *) f=" $1";; esac; shift; done
+# a test run's own arguments after `--`: its filters, and what it skips as `!<filter>`
+if [ "$sub" = test ] && [ "$1" = -- ]; then shift; while [ $# -gt 0 ]; do case "$1" in --skip) f="$f !$2"; shift;; -*) ;; *) f="$f $1";; esac; shift; done; fi
 echo "$sub $p$t$f" >> "$RAN_LOG"
 "#,
         );
@@ -116,10 +120,12 @@ echo "$sub $p$t$f" >> "$RAN_LOG"
         put_file(&ws, "clis/tool/alpha/src/lib.rs", "pub fn alpha() {}\n");
         // a chain: its integration tests run the service of another workspace and the helper of a third (as t3-serve's run rca-service and the scripted
         // CLI that exec-testkit builds from its own workspace) and name their rows in a table, its flow tests read none of them
-        put_file(&ws, "clis/chain/Cargo.toml", &manifest("chain", "", "\n[package.metadata.integration]\ninputs = [\"../rows/**\"]\nuses = [\"svc\", \"helper\"]\n"));
+        put_file(&ws, "clis/chain/Cargo.toml", &manifest("chain", "", "\n[package.metadata.integration]\ninputs = [\"../rows/**\"]\nuses = [\"svc\", \"helper\"]\n\n[package.metadata.integration.groups]\nnorth = { filter = \"sets::north::\", files = [\"tests/sets/north/**\"] }\nsouth = { filter = \"sets::south::\", files = [\"tests/sets/south/**\"] }\n"));
         put_file(&ws, "clis/chain/src/main.rs", "fn main() {}\n");
         put_file(&ws, "clis/chain/tests/flow.rs", "#[test]\nfn chains() {}\n");
         put_file(&ws, "clis/chain/tests/integration.rs", "#[test]\nfn runs_the_chain() {}\n");
+        put_file(&ws, "clis/chain/tests/sets/north/case.json", "{}\n");
+        put_file(&ws, "clis/chain/tests/sets/south/case.json", "{}\n");
         put_file(&ws, "clis/rows/table.json", "{}\n");
 
         put_file(&ws, "libraries/Cargo.toml", "[workspace]\nmembers = [\"helper\", \"helper/plugin\"]\nresolver = \"2\"\n");
@@ -173,9 +179,10 @@ echo "$sub $p$t$f" >> "$RAN_LOG"
         let f = Fixture { _dir: dir, ws, aside, platform: Cell::new("linux-x64") };
         let flow = |c: &str| json!({ "kind": "flow", "crate": c });
         let chain = json!({ "kind": "integration", "crate": "chain" });
+        let set = |g: &str| json!({ "kind": "integration", "crate": "chain", "group": g, "target": format!("cargo-integration-{g}") });
         let group = |g: &str| json!({ "kind": "flow", "crate": "tool", "group": g, "target": format!("cargo-flow-{g}") });
         f.plan("flow-tests", json!([{ "kind": "flow", "package": "@fx/svc" }, flow("kit"), flow("chain"), flow("helper"), group("alpha"), group("beta")]));
-        f.plan("integration-tests", json!([{ "kind": "integration", "package": "@fx/svc" }, chain]));
+        f.plan("integration-tests", json!([{ "kind": "integration", "package": "@fx/svc" }, chain, set("north"), set("south")]));
         let units = ["kit", "svc-core"].map(|c| json!({ "kind": "unit", "crate": c }));
         f.plan("typecheck-lint-unit-tests", Value::Array(units.into_iter().chain(CLIPPED.map(|c| json!({ "kind": "clippy", "crate": c }))).collect()));
         f
@@ -255,7 +262,11 @@ fn every_flow() -> Ran {
 }
 
 fn every_integration() -> Ran {
-    ran(&[SVC_INTEGRATION, CHAIN_INTEGRATION])
+    ran(&[SVC_INTEGRATION, CHAIN_INTEGRATION, CHAIN_NORTH, CHAIN_SOUTH])
+}
+
+fn chain_integration() -> Ran {
+    ran(&[CHAIN_INTEGRATION, CHAIN_NORTH, CHAIN_SOUTH])
 }
 
 fn every_check() -> Ran {
@@ -425,9 +436,11 @@ fn an_integration_chain_keys_on_the_binaries_it_runs_in_other_workspaces_and_the
     f.check_cases(
         "integration-tests",
         vec![
-            ("the chain's source", "clis/chain/src/main.rs", ran(&[CHAIN_INTEGRATION])),
-            ("the chain's integration test", "clis/chain/tests/integration.rs", ran(&[CHAIN_INTEGRATION])),
-            ("the table it names its rows from", "clis/rows/table.json", ran(&[CHAIN_INTEGRATION])),
+            ("the chain's source", "clis/chain/src/main.rs", chain_integration()),
+            ("the chain's integration test", "clis/chain/tests/integration.rs", chain_integration()),
+            ("the table it names its rows from", "clis/rows/table.json", chain_integration()),
+            ("the files of one of its sets", "clis/chain/tests/sets/north/case.json", ran(&[CHAIN_NORTH])),
+            ("the files of another set", "clis/chain/tests/sets/south/case.json", ran(&[CHAIN_SOUTH])),
             ("the service binary's source, in another workspace", "backend/svc/rs/src/main.rs", every_integration()),
             ("a crate the service builds", "backend/svc/core/src/lib.rs", every_integration()),
             ("the service workspace's manifest", "backend/svc/Cargo.toml", every_integration()),

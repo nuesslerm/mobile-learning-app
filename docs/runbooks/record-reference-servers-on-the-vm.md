@@ -241,16 +241,16 @@ that interaction, never a global mask. Every case that still differs must be lis
 ## 5. Replay and settle the gaps (local)
 
 ```sh
-cargo test -p t3-serve --test integration recorded_r1          # replays t3-v*-recorded-* against t3-serve, a fresh chain per interaction (about 4 minutes)
+cargo test -p t3-serve --test integration recorded_r1          # replays t3-v*-recorded-* against t3-serve, a fresh chain per interaction (about 4 minutes); `recorded_r1::recorded_2::` is one set (CI runs each as `cargo-integration-<set>`)
 cargo test -p orca-serve --test integration recorded_r1     # replays orca-v1.4.259-recorded against orca-serve (25 s)
 ```
 
 Each test fails on a difference that `known-gaps.json` of the set does not list, and on a listed gap that no longer differs as listed. After an adapter fix,
 delete its entry; after a re-record, start from `{"schema":"mimic-known-gaps/1","gaps":[]}` in each set, run once with `WF_TEST_OUTPUT_DIR=<dir>` to get
-`<suite>/recorded-diff.json` (every differing interaction with its paths) and re-derive each set's `known-gaps.json` from it (id, row, severity, class, `path kind severity` lines).
+`<dir>/wf-mimic-t3-recorded/<set>/recorded-diff.json` for t3 (one folder per set, beside its `trace.json`; Orca's is `<suite>/recorded-diff.json`; every differing interaction with its paths) and re-derive each set's `known-gaps.json` from it (id, row, severity, class, `path kind severity` lines).
 Then refresh the evidence from a COMPLETE run: the integration binary must list only tests that use `exec_testkit::case!` or the run is never complete, so
 `WF_TEST_OUTPUT_DIR=<dir> cargo test -p orca-serve --test integration -- --skip mimic_x --skip recorded_r1`, then `-- mimic_x2 recorded_r1` into the same dir, then
-`wf parity coverage --app <t3|orca> --traces <dir>` (for t3 the plain `cargo test -p t3-serve --test integration` run is complete) and commit the tables. A row is decided `oracle: mimic`
+`wf parity coverage --app <t3|orca> --traces <dir>` (for t3 the same two steps: `-- --skip recorded_r1`, then `-- recorded_r1`; the replays write their own traces and the reader merges every `trace.json` under the dir) and commit the tables. A row is decided `oracle: mimic`
 in `<app>-decisions.json` only when its replay is clean and the recorded answer was a success; remove the mark of a row the refresh leaves pending.
 
 ## 6. Record the whole crawl in short foreground calls (R2c)

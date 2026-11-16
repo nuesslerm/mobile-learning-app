@@ -69,6 +69,7 @@ function crates(root, manifest) {
         uses: integration.uses ?? [],
         // when set, the crate files the integration task is keyed by (from the crate dir) instead of every file of the crate
         sources: integration.sources ?? [],
+        groups: integration.groups ?? {},
       },
     };
   });
@@ -372,12 +373,37 @@ exports.createNodes = [
       const flowCommand = `cargo test --locked -p ${c.name} --test flow --manifest-path ${c.manifest}`;
       const flow = testTarget('flow.rs', flowCommand, [...OWN, ...tier, ...extra(c, [], 'flow')]);
       // the built binaries as a black box with every dependency a fake, one test at a time on a port of its own, after the services are deployed
+      const integrationCommand = `cargo test --locked -p ${c.name} --test integration --manifest-path ${c.manifest} -- --test-threads=1`;
+      // `[package.metadata.integration.groups]` (`{<group> = {filter, files}}`): a slow part of the suite (`filter`, a libtest filter) is one
+      // `cargo-integration-<group>` task keyed by its own `files` (from the crate dir); neither it nor `cargo-integration`, which skips
+      // every group's filter, is keyed by the files of the other groups.
+      // when `sources` is set (F36) the task is keyed by those crate files, not by every file of the crate
       const narrowed = c.integration.sources.length > 0;
+      // a `!{projectRoot}` set with no `{projectRoot}` set beside it makes Nx hash the whole project, so a narrowed task names its files by `{workspaceRoot}` alone
+      const integrationGroups = Object.keys(c.integration.groups);
+      const groupFiles = (g) => c.integration.groups[g].files.map(own);
+      // `rust` and the crate's declared inputs name its files as `{projectRoot}` and `{workspaceRoot}` sets, and a `!` set takes only its own kind
+      const withoutGroups = (except) =>
+        integrationGroups
+          .filter((g) => g !== except)
+          .flatMap((g) =>
+            c.integration.groups[g].files.flatMap((f) => [...(narrowed ? [] : [{ fileset: `!{projectRoot}/${f}` }]), { fileset: `!{workspaceRoot}/${own(f)}` }])
+          );
+      const baseInputs = narrowed ? ['nativeToolchain', '^rustProduction', OWN[2]] : OWN;
+      const sourceFiles = narrowed ? ['Cargo.toml', ...c.integration.sources].map(own) : [];
       const integration = testTarget(
         'integration.rs',
-        `cargo test --locked -p ${c.name} --test integration --manifest-path ${c.manifest} -- --test-threads=1`,
-        [...(narrowed ? ['nativeToolchain', '^rustProduction', OWN[2]] : OWN), ...tier, ...extra(c, narrowed ? ['Cargo.toml', ...c.integration.sources].map(own) : [], 'integration')]
+        [integrationCommand, ...integrationGroups.map((g) => `--skip ${c.integration.groups[g].filter}`)].join(' '),
+        [...baseInputs, ...tier, ...extra(c, sourceFiles, 'integration'), ...withoutGroups(null)]
       );
+      const integrationTargets = integration
+        ? Object.fromEntries(
+            integrationGroups.map((g) => [
+              `cargo-integration-${g}`,
+              rustTask([...baseInputs, ...tier, ...extra(c, [...sourceFiles, ...groupFiles(g)], 'integration'), ...withoutGroups(g)], `${integrationCommand} ${c.integration.groups[g].filter}`),
+            ])
+          )
+        : {};
       // a real Chromium or other real dependency the flow tests double: one test at a time, after the services are deployed
       const e2eChecks = [...OWN, ...tier, ...extra(c, [], 'e2e')];
       const e2e = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1`, e2eChecks);
@@ -446,6 +472,7 @@ exports.createNodes = [
         ...(flow && !flowGroups.length ? { 'cargo-flow': flow } : {}),
         ...flowTargets,
         ...(integration ? { 'cargo-integration': integration } : {}),
+        ...integrationTargets,
         ...(verifyDeployed ? { 'cargo-verify-deployed': verifyDeployed } : {}),
         ...(contract ? { 'cargo-contract': contract } : {}),
         ...(e2e && !groups.length ? { 'cargo-e2e': e2e } : {}),
