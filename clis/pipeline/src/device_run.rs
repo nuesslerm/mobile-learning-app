@@ -134,7 +134,7 @@ pub fn update_target(sha: &str) -> Result<UpdateTarget, UpdateProblem> {
     let result = std::env::var("WF_EAS_UPDATE_RESULT").unwrap_or_default().trim().to_string();
     // the e2e job loads the variant its eas-update job baked for the runner's own backends (branch `e2e`), not the one users get
     let branch = std::env::var("WF_EAS_UPDATE_BRANCH").ok().map(|b| b.trim().to_string()).filter(|b| !b.is_empty()).unwrap_or_else(|| "dev".to_string());
-    let key = format!("{sha} {result} {branch}");
+    let key = format!("{sha} {result} {branch} {}", crate::eas::pointer_dir().unwrap_or_default());
     if let Some((k, answer)) = UPDATE.lock().ok().and_then(|g| g.clone()) {
         if k == key {
             return answer;

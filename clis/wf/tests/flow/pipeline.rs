@@ -579,6 +579,39 @@ fn android_units_load_the_branch_variant_the_job_names_and_read_no_other_pointer
 }
 
 #[test]
+fn android_units_load_the_pointer_the_same_run_left_in_the_pointer_dir_and_ask_no_bucket() {
+    // Given a dead bucket (every read answers 404) and a pointer dir holding branch e2e's pointer for this commit
+    let (w, bucket) = update_workspace("wf-flow-update-dir-");
+    let (head, behind) = (w.git(&["rev-parse", "HEAD"]), w.git(&["rev-parse", "HEAD~1"]));
+    let read = format!("http://127.0.0.1:{}/o", bucket.port);
+    let dir = w.path("eas-pointer");
+    std::fs::create_dir_all(&dir).unwrap();
+    let put = |commit: &str| std::fs::write(std::path::Path::new(&dir).join("latest-e2e.json"), pointer("g-dir", commit).to_string()).unwrap();
+    put(&head);
+    let out = w.path("out");
+    let run = || {
+        let env = [("VERIFICATION_ARTIFACTS_READ_URL", read.clone()), ("WF_EAS_UPDATE_RESULT", "success".to_string()), ("WF_EAS_UPDATE_BRANCH", "e2e".to_string()), ("WF_EAS_POINTER_DIR", dir.clone())];
+        w.wf(&["test", "run", "upd", "--platform", "android", "--out", &out], &env)
+    };
+
+    // When the Android entry runs
+    let r = run();
+    // Then its units load the group from the file and no store was asked
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let v = Workspace::summary(&r);
+    assert_eq!(v["units"].as_array().unwrap().iter().map(|u| u["updateGroup"].as_str().unwrap()).collect::<Vec<_>>(), ["g-dir", "g-dir"], "{v}");
+    assert!(bucket.requests().is_empty(), "{:?}", bucket.requests().iter().map(|q| q.url.clone()).collect::<Vec<_>>());
+
+    // Given the file names another commit than the one this push published
+    put(&behind);
+    let stale = run();
+    // Then the units are refused, naming the commit the file holds
+    assert_eq!(stale.exit_code, 1, "{}{}", stale.stdout, stale.stderr);
+    let note = Workspace::summary(&stale)["units"][0]["note"].as_str().unwrap().to_string();
+    assert!(note.contains(&format!("names commit {behind}")) && note.contains("this push published"), "{note}");
+}
+
+#[test]
 fn android_units_load_the_update_ci_published() {
     // Given an update test and the bucket naming group g-1 published from this commit by this push's own publish
     let (w, bucket) = update_workspace("wf-flow-update-");

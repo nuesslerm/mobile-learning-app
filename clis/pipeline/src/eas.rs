@@ -42,9 +42,19 @@ fn pointer_backoff() -> Duration {
     std::env::var("WF_EAS_POINTER_BACKOFF_MS").ok().and_then(|s| s.trim().parse::<u64>().ok()).map_or(Duration::from_secs(3), Duration::from_millis)
 }
 
-/// The pointer `--pointer` stored for the branch (the bucket's public read link): the update the tests and the planner count as latest.
+pub fn pointer_dir() -> Option<String> {
+    std::env::var("WF_EAS_POINTER_DIR").ok().map(|d| d.trim().to_string()).filter(|d| !d.is_empty())
+}
+
+/// The pointer for the branch: the file the same run's eas-update job left in `WF_EAS_POINTER_DIR` when that is set, else the one
+/// `--pointer` stored (the bucket's public read link). The update the tests and the planner count as latest.
 /// A network error or a 5xx is tried again; any other answer (a 404 is "no pointer yet") stands.
 pub fn latest_pointer(branch: &str) -> Result<serde_json::Value, String> {
+    if let Some(dir) = pointer_dir() {
+        let path = Path::new(&dir).join(format!("latest-{}.json", branch.replace('/', "-")));
+        let body = std::fs::read(&path).map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+        return serde_json::from_slice(&body).map_err(|e| format!("{} is not JSON: {e}", path.display()));
+    }
     let url = format!("{}/{}", wf_bucket::artifacts::public_base(), latest_key(branch));
     let mut last = String::new();
     for attempt in 0..POINTER_TRIES {
