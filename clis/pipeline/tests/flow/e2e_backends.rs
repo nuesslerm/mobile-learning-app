@@ -144,3 +144,24 @@ fn given_a_named_binary_that_is_no_file_when_up_runs_then_it_fails_naming_the_va
     assert_eq!(code, 1, "{out}");
     assert!(out["error"].as_str().unwrap().contains("RCA_SERVICE_BIN="), "{out}");
 }
+
+#[test]
+fn given_the_leetcode_backend_up_when_its_env_is_read_then_every_name_is_one_the_web_export_bakes_and_the_app_reads() {
+    // Given the leetcode backend started on its own, as the browser e2e job does
+    let sb = Sandbox::new();
+    let (rca, leetcode) = (sb.stub("rca", SERVER), sb.stub("leetcode", SERVER));
+    let (code, out) = sb.wf(&["up", "--only", "leetcode-backend"], &rca, &leetcode);
+    assert_eq!(code, 0, "{out}");
+    // When the job reads its EXPO_PUBLIC_ env (what `wf test prepare --web` bakes into the export)
+    let env = out["backends"][0]["env"].as_object().unwrap();
+    let mut names: Vec<&str> = env.keys().map(String::as_str).collect();
+    names.sort();
+    // Then they are exactly the backend's base url and token, a loopback url and a token of this run
+    assert_eq!(names, ["EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL", "EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN"]);
+    assert!(env["EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL"].as_str().unwrap().starts_with("http://127.0.0.1:"));
+    assert_eq!(env["EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN"].as_str().unwrap().len(), 32);
+    // And the app reads each name
+    let config = std::fs::read_to_string(wf_kit::root::repo_root().join("frontend/libraries/app-config/src/appConfig.ts")).unwrap();
+    assert!(names.iter().all(|n| config.contains(n)), "appConfig.ts does not read every name in {names:?}");
+    sb.wf(&["down"], &rca, &leetcode);
+}

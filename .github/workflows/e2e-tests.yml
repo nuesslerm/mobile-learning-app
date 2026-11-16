@@ -93,8 +93,8 @@ jobs:
   e2e-tests:
     name: ${{ inputs.platform }}-e2e-tests
     runs-on: ${{ fromJSON(inputs.runner || '"ubuntu-24.04"') }}
-    # the browser job also builds the export (about 4 min)
-    timeout-minutes: ${{ inputs.platform == 'browser' && 40 || 30 }}
+    # the browser job also builds the export (about 4 min) and, cold, the leetcode backend
+    timeout-minutes: ${{ inputs.platform == 'browser' && 55 || 30 }}
     concurrency:
       group: e2e-tests-${{ inputs.platform }}
       cancel-in-progress: false
@@ -128,8 +128,10 @@ jobs:
           job: ${{ inputs.platform }}-e2e-tests
           keep-android: ${{ inputs.platform == 'android' }}
           apt-packages: ${{ inputs.platform == 'android' && 'ffmpeg libpulse0 libnss3 libxkbcommon0 libgl1' || 'ffmpeg' }}
-          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
-          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+          # the browser tests reach only backends this job starts on loopback; the android ones still reach the deployed ones
+          tailnet: ${{ inputs.platform == 'android' && 'true' || 'false' }}
+          ts-client-id: ${{ inputs.platform == 'android' && secrets.TS_HOSTED_OAUTH_CLIENT_ID || '' }}
+          ts-secret: ${{ inputs.platform == 'android' && secrets.TS_HOSTED_OAUTH_CLIENT_SECRET || '' }}
       - name: Chromium for the browser harness
         if: inputs.platform == 'browser'
         run: |
@@ -165,9 +167,22 @@ jobs:
       # 23 Oct: a created remote-chat-agent stack made every unit that calls it wait out its own timeout (21 minutes); a service the
       # tests call that is down now fails here in under a minute, naming it, before the export is built or the device boots.
       - name: The services the tests call answer
-        if: steps.pick.outputs.any == 'true'
+        if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
         timeout-minutes: 3
         run: wf vm ops probe --wait 45 remote-chat-agent leetcode-backend
+      # the browser tests call no deployed service: the leetcode backend is built here and started on loopback (its /health answered
+      # before the export bakes its url). The agent and vm-ops urls bake as a closed port, so a screen that needs them shows its offline state.
+      - uses: ./.github/actions/sccache-cache
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
+        with:
+          mode: restore
+          stage: browser-e2e-tests
+      - name: The leetcode backend on this runner
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
+        timeout-minutes: 15
+        run: |
+          wf test backends up --only leetcode-backend --wait 120 | tee "$RUNNER_TEMP/backends.json"
+          jq -e '.ok' "$RUNNER_TEMP/backends.json" >/dev/null
       - name: The emulator's host setup
         if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
         run: |
@@ -195,16 +210,13 @@ jobs:
           EXPO_PUBLIC_BETTERSTACK_HOST: ${{ vars.EXPO_PUBLIC_BETTERSTACK_HOST }}
         run: |
           set -o pipefail
-          hosts=$(wf vm net resolve leetcode-backend-prod remote-chat-agent-prod vm-ops-api-main)
-          host() { jq -er --arg n "$1" '.[$n]' <<<"$hosts" || { echo "::error::no tailnet name answers for $1" >&2; return 1; }; }
-          EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL="http://$(host leetcode-backend-prod):8789"
-          EXPO_PUBLIC_AGENT_BASE_URL="http://$(host remote-chat-agent-prod):8787"
-          EXPO_PUBLIC_VM_OPS_API_BASE_URL="http://$(host vm-ops-api-main):8080"
-          export EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL EXPO_PUBLIC_AGENT_BASE_URL EXPO_PUBLIC_VM_OPS_API_BASE_URL
-          # from the vault at step time (the runner's container env no longer holds it), never the step's env:, which the log header prints
-          EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN=$(wf secret get VM_GATEWAY_AUTH_SEED --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no VM_GATEWAY_AUTH_SEED to bake in as the backend token"; exit 1; }
-          echo "::add-mask::$EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN"
-          export EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN
+          # the urls and the token `wf test backends up` made for this run (the token is the backend's own bearer, never in a file the repo keeps)
+          while IFS=$'\t' read -r name value; do
+            case "$name" in *TOKEN) echo "::add-mask::$value" ;; esac
+            export "$name=$value"
+          done < <(jq -er '.backends[].env | to_entries[] | select(.key | startswith("EXPO_PUBLIC_")) | [.key, .value] | @tsv' "$RUNNER_TEMP/backends.json")
+          [ -n "${EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL:-}" ] && [ -n "${EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN:-}" ] || { echo "::error::the started backends gave no leetcode url and token to bake in"; exit 1; }
+          export EXPO_PUBLIC_AGENT_BASE_URL=http://127.0.0.1:1 EXPO_PUBLIC_VM_OPS_API_BASE_URL=http://127.0.0.1:1
           # the app's BetterStack forwarder, as the EAS Update bakes it: the browser runs log through the same Logger
           # path; half a pair bakes in neither
           [ -n "${EXPO_PUBLIC_BETTERSTACK_TOKEN:-}" ] || EXPO_PUBLIC_BETTERSTACK_TOKEN=$(wf secret get EXPO_PUBLIC_BETTERSTACK_TOKEN --backend bitwarden 2>/dev/null) || EXPO_PUBLIC_BETTERSTACK_TOKEN=""
@@ -254,6 +266,14 @@ jobs:
         run: |
           # shellcheck disable=SC2086
           wf test run $SELECT --sha "$SHA" --out "$RUNNER_TEMP/e2e-runs" -- $FLAGS | tee "$RUNNER_TEMP/e2e-tests.jsonl"
+      - name: Stop the leetcode backend
+        if: always() && inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
+        run: wf test backends down
+      - uses: ./.github/actions/sccache-cache
+        if: ${{ !cancelled() && inputs.platform == 'browser' && steps.pick.outputs.any == 'true' }}
+        with:
+          mode: save
+          stage: browser-e2e-tests
       - name: Take the device down
         if: always() && inputs.platform == 'android' && steps.pick.outputs.any == 'true'
         run: wf android stop-device --local

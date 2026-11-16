@@ -11,7 +11,7 @@ inputs:
     description: restore or save
     required: true
   stage:
-    description: Which consumer owns the entry (wf-build, flow-tests, integration-tests, cli-e2e-tests); a stage compiles the same dependencies in every shard
+    description: Which consumer owns the entry (wf-build, flow-tests, integration-tests, cli-e2e-tests, browser-e2e-tests); a stage compiles the same dependencies in every shard
     required: true
   save:
     description: Whether this job may save (one shard per stage does, the others only restore)
