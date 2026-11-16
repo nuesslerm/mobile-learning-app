@@ -31,6 +31,8 @@ mod projects;
 mod pull_requests;
 #[path = "flow/preview.rs"]
 mod preview;
+#[path = "flow/scenarios.rs"]
+mod scenarios;
 #[path = "flow/schedules.rs"]
 mod schedules;
 #[path = "flow/rca_agent.rs"]
