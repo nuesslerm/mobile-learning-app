@@ -49,7 +49,7 @@ pre-commit:
     - name: layout
       # Every package declares a package type, sits and depends the way the type says (`wf check --layout`); a finding not in the shrink-only
       # clis/pipeline/data/layout-known.json fails, and so does a known entry that no longer occurs.
-      glob: '{**/Cargo.toml,**/package.json,**/project.json,clis/pipeline/data/*.json,.ls-lint.yml,**/src/*}'
+      glob: '{**/Cargo.toml,**/package.json,**/project.json,clis/pipeline/data/*.json,.ls-lint.yml,**/src/*,docs/solutions/architecture/package-shapes.md,backend/arch-rules/*.yml,clis/arch-rules/*.yml,frontend/feature-kit/*.cjs,frontend/mla-tamagui/features/*.cjs}'
       run: cargo run -q --locked --manifest-path clis/Cargo.toml -p wf-lazy -- check --layout --strict
 
     - name: workflows

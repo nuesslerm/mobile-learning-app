@@ -153,3 +153,13 @@ fn arch_fails_a_rule_with_no_test_and_a_test_with_no_invalid_case() {
     assert_eq!(code, 1);
     assert_eq!(kinds(&v), vec!["untested:arch-rules/b.yml", "untested:arch-tests/c-test.yml"]);
 }
+
+#[test]
+fn the_layout_help_says_a_pass_proves_shape_and_edges_only() {
+    // Given the binary
+    // When a caller asks for the help of the check verb
+    let help = run_wf(&["check", "--help"], &RunOpts::default().clean_env());
+    // Then the layout flag states what a pass proves
+    let text = help.stdout.split_whitespace().collect::<Vec<_>>().join(" ");
+    assert!(text.contains("A pass proves shape and edges only"), "{text}");
+}

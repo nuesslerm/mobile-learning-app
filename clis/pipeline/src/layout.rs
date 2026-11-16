@@ -320,6 +320,34 @@ fn ring_map(types: &Json) -> String {
     out + "};\n"
 }
 
+fn cell(items: &[String]) -> String {
+    if items.is_empty() { "none".into() } else { items.iter().map(|i| format!("`{}`", i.replace('|', " or "))).collect::<Vec<_>>().join(", ") }
+}
+
+/// One table row per package type: the shape the manifest declares, so the doc cannot disagree with the check.
+fn shape_table(types: &Json) -> String {
+    let mut out = String::from("| Type | Ecosystem | Pure | Rings (may import) | Required | At the root | Forbidden | May depend on | May dev-depend on |\n| --- | --- | --- | --- | --- | --- | --- | --- | --- |\n");
+    for (name, spec) in types.as_object().into_iter().flatten() {
+        let rings: Vec<String> = spec["rings"].as_object().into_iter().flatten().map(|(k, v)| if strings(v).is_empty() { k.clone() } else { format!("{k} -> {}", strings(v).join(", ")) }).collect();
+        let mut required = strings(&spec["requiredFiles"]);
+        required.extend(spec["requiredAnyOf"].as_array().into_iter().flatten().map(|g| strings(g).join(" or ")));
+        let mut forbidden = strings(&spec["forbiddenDirs"]);
+        forbidden.extend(strings(&spec["forbiddenFiles"]));
+        let ring_cell = if rings.is_empty() { "none".into() } else { rings.join("; ") };
+        let pure = if spec["pure"].as_bool().unwrap_or(false) { "yes" } else { "no" };
+        out.push_str(&format!(
+            "| `{name}` | {} | {pure} | {ring_cell} | {} | {} | {} | {} | {} |\n",
+            spec["ecosystem"].as_str().unwrap_or(""),
+            cell(&required),
+            cell(&strings(&spec["allowedRoot"])),
+            cell(&forbidden),
+            cell(&strings(&spec["mayDependOn"])),
+            cell(&strings(&spec["mayDevDependOn"]))
+        ));
+    }
+    out
+}
+
 /// What a generated region of the given name holds, one line per entry.
 fn render(root: &Path, entry: &Json, types: &Json, packages: &[Package]) -> Option<String> {
     match entry["region"].as_str()? {
@@ -327,6 +355,7 @@ fn render(root: &Path, entry: &Json, types: &Json, packages: &[Package]) -> Opti
         "ls-lint" => Some(ls_lint(root, types, packages)),
         "feature-map" => Some(feature_map(root, entry["scope"].as_str()?, types, packages)),
         "rings" => Some(ring_map(types)),
+        "shape-table" => Some(shape_table(types)),
         "ast-grep-files" => Some(crate::ast_globs::render(root, entry, types, &packages.iter().map(|p| crate::ast_globs::Typed { dir: &p.dir, ty: p.ty.as_deref(), options: &p.options }).collect::<Vec<_>>())),
         _ => None,
     }
@@ -477,7 +506,7 @@ pub fn check_with(root: &Path, write: bool, write_known: bool) -> Report {
     Report { json, findings }
 }
 
-/// `check --layout [--strict]`.
+/// `check --layout [--strict]`. A pass proves each package's shape and edges, not that the code inside a ring is good.
 pub fn run(args: &[String]) -> Option<i32> {
     let p = wf_kit::args::parse_spec(args, &LAYOUT)?;
     let report = check_with(&wf_kit::root::repo_root(), p.flag("write"), p.flag("write-known"));

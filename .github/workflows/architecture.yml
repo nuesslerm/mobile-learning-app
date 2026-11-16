@@ -61,6 +61,10 @@ jobs:
       - name: Check simplicity budget
         run: wf check --budget
 
+      - name: Check package layout (type, placement, edges, generated regions)
+        # Proves shape and edges only; the same verb lefthook runs on a commit that touches a manifest or a package type.
+        run: wf check --layout --strict
+
       - name: Test ESLint plugin (vitest)
         run: pnpm --filter @lib/lint-rules run test
 

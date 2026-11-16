@@ -604,3 +604,31 @@ fn a_testkit_named_as_a_normal_dependency_by_a_cli_crate_is_reported_and_as_a_de
     assert_eq!(edges.len(), 1, "{edges:?}");
     assert!(edges[0].starts_with("clis/b: depends on kit (rust-testkit), which is reachable only through dev-dependencies"), "{edges:?}");
 }
+
+#[test]
+fn the_shape_table_lists_every_type_of_the_manifest_and_follows_an_edit_of_it() {
+    // Given a doc with an empty shape-table region and a manifest that declares it
+    let dir = repo();
+    let root = dir.path();
+    let doc = "docs/shapes.md";
+    let mut manifest: Value = serde_json::from_str(MANIFEST).unwrap();
+    manifest["generated"] = serde_json::json!([{ "file": doc, "region": "shape-table" }]);
+    put(root, "clis/pipeline/data/package-types.json", &manifest.to_string());
+    put(root, doc, "# shapes\n<!-- BEGIN generated:shape-table -->\n<!-- END generated:shape-table -->\n");
+    // When the check runs, it reports drift, and --write regenerates the table
+    assert_eq!(messages(&report(&run(root, &[])), "drift").len(), 1);
+    run(root, &["--write"]);
+    let table = read(root, doc);
+    // Then every type is a row, and a second run finds no drift
+    for ty in manifest["types"].as_object().unwrap().keys() {
+        assert!(table.contains(&format!("| `{ty}` |")), "{ty} missing: {table}");
+    }
+    assert!(table.contains("| `rust-core` | rust | yes | domain; application -> domain;"), "{table}");
+    assert!(messages(&report(&run(root, &[])), "drift").is_empty());
+    // And when a type's forbidden directory is added in the manifest, the doc is stale until regenerated
+    manifest["types"]["cli-crate"]["forbiddenDirs"] = serde_json::json!(["planted_dir"]);
+    put(root, "clis/pipeline/data/package-types.json", &manifest.to_string());
+    assert_eq!(messages(&report(&run(root, &[])), "drift").len(), 1);
+    run(root, &["--write"]);
+    assert!(read(root, doc).contains("`planted_dir`"));
+}
