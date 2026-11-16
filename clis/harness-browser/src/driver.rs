@@ -320,7 +320,13 @@ if(unknown||t0-w.at<={look_ms}+20)wake();else w.wake=wake;timer=setTimeout(()=>d
     }
 
     fn keyboard(&self) -> Result<Value, String> {
-        let framed = self.client.eval(false, KEYBOARD)?;
+        let mut framed = self.client.eval(false, KEYBOARD)?;
+        // the shell's state flips before the page draws the keyboard, so a read in between has no rectangle yet
+        let end = Instant::now() + Duration::from_secs(3);
+        while framed["visible"] == true && framed["bounds"].is_null() && Instant::now() < end {
+            std::thread::sleep(Duration::from_millis(50));
+            framed = self.client.eval(false, KEYBOARD)?;
+        }
         if framed.is_object() {
             return Ok(framed);
         }

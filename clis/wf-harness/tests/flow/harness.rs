@@ -74,7 +74,7 @@ fn defaults(d: &MockDaemon, s: &SlotSandbox) {
     d.rule("outerEval", "dpr: devicePixelRatio", vec![evaluated(json!({ "width": 393, "height": 852, "dpr": 3 }))]);
     d.rule("outerEval", "__mcpFakeMicState", vec![evaluated(json!({ "queued": [], "consumed": ["clip.wav"] }))]);
     d.rule("outerEval", "testids", vec![evaluated(json!({ "url": "http://x/", "title": "x", "testids": ["Go"], "text": "Go" }))]);
-    d.rule("shellEval", "getStatus", vec![evaluated(json!({ "visible": true, "bounds": null }))]);
+    d.rule("shellEval", "getStatus", vec![evaluated(json!({ "visible": true, "bounds": { "left": 0, "top": 582, "right": 393, "bottom": 852 } }))]);
     d.rule("waitObserve", "setTimeout(look,100)", vec![json!({ "result": json!({ "hit": go }).to_string() })]);
     d.rule("waitObserve", "", vec![json!({ "result": "{\"seen\":true,\"ms\":3}" })]);
     d.rule("screenshot", "", vec![json!({ "path": shot })]);
@@ -137,7 +137,7 @@ fn the_wait_verbs_return_on_the_event() {
             d.clear_rules();
             let flip = |before: Value, after: Value| vec![before.clone(), before.clone(), before, after];
             d.rule("screenshot", "", flip(json!({ "path": white }), json!({ "path": blue })));
-            d.rule("shellEval", "getStatus", flip(evaluated(json!({ "visible": true, "bounds": null })), evaluated(json!({ "visible": false, "bounds": null }))));
+            d.rule("shellEval", "getStatus", flip(evaluated(json!({ "visible": true, "bounds": { "left": 0, "top": 582, "right": 393, "bottom": 852 } })), evaluated(json!({ "visible": false, "bounds": null }))));
             d.rule("outerEval", "__mcpFakeMicState", flip(evaluated(json!({ "queued": ["c.wav"], "consumed": [] })), evaluated(json!({ "queued": [], "consumed": ["c.wav"] }))));
             defaults(&d, &s);
             d
@@ -166,6 +166,24 @@ fn the_wait_verbs_return_on_the_event() {
             let _ = std::fs::remove_file(s.bin_dir.join(format!("adb.{kind}")));
         }
     }
+}
+
+#[test]
+fn a_keyboard_the_shell_reports_up_but_has_not_drawn_yet_is_read_again_until_it_has_a_rectangle() {
+    // Given a device frame whose shell says the keyboard is up while the page has not drawn it yet, for the first three reads
+    let s = sandbox("wf-flow-harness-keyboard-drawn-");
+    let d = daemon(&s);
+    d.clear_rules();
+    let drawn = json!({ "visible": true, "bounds": { "left": 0, "top": 582, "right": 393, "bottom": 852 } });
+    let undrawn = json!({ "visible": true, "bounds": null });
+    d.rule("shellEval", "getStatus", vec![evaluated(undrawn.clone()), evaluated(undrawn.clone()), evaluated(undrawn), evaluated(drawn.clone())]);
+    defaults(&d, &s);
+    // When a script reads the keyboard once
+    let r = script(&s, "browser", "log(json.encode(device:get_device_state('keyboard')))", &[], &[]);
+    // Then it reads until the rectangle is there, and returns the drawn keyboard
+    assert_eq!(r.exit_code, 0, "{}", out(&r));
+    assert_eq!(logged(&r), drawn, "{}", out(&r));
+    assert_eq!(d.count("shellEval", "getStatus"), 4);
 }
 
 #[test]
