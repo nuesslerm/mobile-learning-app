@@ -616,7 +616,9 @@ mod tests {
         // Given a handoff whose profile client id misses the oaiapp pattern, then one without the key, then a null profile
         let handoff = |profile: Option<Value>| {
             let mut body = json!({"instanceId": "a", "environmentId": "a", "attemptId": "a", "returnUrl": "a"});
-            profile.map(|p| body["profile"] = p);
+            if let Some(p) = profile {
+                body["profile"] = p;
+            }
             defect("provider.chatgpt.handoff.subscribe", &body)
         };
         // Then the pattern, the missing key and the null are answered as the pinned server does
