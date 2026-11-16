@@ -17,6 +17,6 @@ pub use help_table::HELP;
 /// What the thin binary mounts.
 pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[("cache", cache::run), ("bucket", bucket_run)];
 
-fn bucket_run(args: &[String]) -> Option<i32> {
+pub fn bucket_run(args: &[String]) -> Option<i32> {
     serve::run(args).or_else(|| state_verb::run(args))
 }

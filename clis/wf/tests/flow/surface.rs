@@ -382,6 +382,11 @@ fn the_program_options_mean_the_same_wherever_the_caller_puts_them() {
     // and the shape the browser SDK sends reaches the browser command
     let sdk = wf_in(s, &["browser", "--json", "status"]);
     assert!(!sdk.stderr.contains("does not support these arguments") && !sdk.stderr.contains("unknown command"), "{}", sdk.stderr);
+    // and the state ref verbs the CI pipeline calls reach wf-bucket, not the unsupported-arguments answer
+    for args in [["bucket", "state", "read", "eas/latest-dev.json"], ["bucket", "state", "write", "eas/latest-dev.json"]] {
+        let state = wf_in(s, &args);
+        assert!(!state.stderr.contains("does not support these arguments") && !state.stderr.contains("unknown command"), "{args:?}: {}", state.stderr);
+    }
 
     // When --frontend is given in any position and either spelling, even with an app wf does not know
     for args in [
