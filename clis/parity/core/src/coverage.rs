@@ -141,7 +141,11 @@ pub fn build(list: &MethodsList, decisions: &Decisions, answered: &BTreeMap<Stri
         };
         // a pending row the evidence names is served, unless a reverify note holds it
         let held = decisions.reverify.get(&row.id);
+        // an oracle row also proves the agent method its target names answered in the replay's call window
+        let required = crate::evidence::required_method(decisions.targets.get(&row.id).map(String::as_str)).filter(|_| decisions.mimic(&row.id));
         let proof = evidence.get(&row.id).filter(|e| state == "pending" && held.is_none() && (!decisions.mimic(&row.id) || (e.oracle.as_deref() == Some("mimic") && oracle.admits(e.cassette.as_deref(), e.diff.as_deref()))));
+        let unreached_method = proof.and_then(|e| required.filter(|m| !e.agent.iter().any(|a| a == m)));
+        let proof = proof.filter(|_| unreached_method.is_none());
         if decision.and_then(|d| d.get("oracle")).is_some_and(|o| o.as_str() != Some("mimic")) {
             incomplete.push(row.id.clone());
         }
@@ -165,7 +169,9 @@ pub fn build(list: &MethodsList, decisions: &Decisions, answered: &BTreeMap<Stri
         if let Some(d) = &decided {
             o.insert("decidedBy".into(), d.clone().into());
         }
-        if let Some(source) = answered.get(&row.id).filter(|_| state == "pending") {
+        if let Some(m) = unreached_method {
+            o.insert("note".into(), format!("the oracle replay is clean but its trace shows no agent hit for {m}: the mapper may answer from memory").into());
+        } else if let Some(source) = answered.get(&row.id).filter(|_| state == "pending") {
             o.insert("note".into(), format!("answered by the mapper ({source}); no run-bundle evidence yet").into());
         }
         if let Some(entry) = proof {

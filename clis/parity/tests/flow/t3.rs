@@ -378,6 +378,43 @@ fn a_row_decided_oracle_mimic_is_served_only_by_a_clean_or_allowlisted_diff_of_a
 }
 
 #[test]
+fn an_oracle_row_whose_target_names_an_agent_method_is_served_only_when_the_replay_trace_shows_that_method_answered() {
+    // Given a probe row decided oracle: mimic whose target names the agent method it forwards to
+    let f = Fixture::at_pin("t3");
+    assert_eq!(f.run(&[]).code, 0);
+    let probe = f.methods().into_iter().find(|(id, r)| r["phone"] == true && id.starts_with("rpc:")).map(|(id, _)| id).unwrap();
+    let mut decisions = f.json(&f.table("-decisions.json"));
+    decisions["decisions"][probe.as_str()] = json!({"oracle": "mimic"});
+    decisions["targets"][probe.as_str()] = json!("agent:threads.probe");
+    f.write(&f.table("-decisions.json"), &serde_json::to_string_pretty(&decisions).unwrap());
+    let out = tempfile::tempdir().unwrap();
+    let replay = |agent: Value| {
+        let call = json!({"id": "i", "rows": [probe], "ok": true, "diff": "clean", "agent": agent, "executor": []});
+        let trace = json!({"schema": "method-trace/1", "app": "t3", "suite": "replay", "sha": null, "complete": true, "tests": [{"test": "set::i", "cassette": "recorded", "verdict": "pass", "ms": 1, "calls": [call]}]});
+        std::fs::write(out.path().join("trace.json"), trace.to_string()).unwrap();
+        f.run(&["--traces", out.path().to_str().unwrap()])
+    };
+    let row = |f: &Fixture| f.coverage_rows()[probe.as_str()].clone();
+    // When the clean replay's call window shows no agent hit, or a hit of another method, Then the row stays pending
+    for hits in [json!([]), json!([{"method": "threads.other", "ok": true}])] {
+        assert_eq!(replay(hits).code, 0);
+        assert_eq!(row(&f)["state"], "pending");
+    }
+    // When the window shows the method answered, Then the row is served and its evidence names the hit
+    assert_eq!(replay(json!([{"method": "threads.probe", "ok": true}])).code, 0);
+    let served = row(&f);
+    assert_eq!((served["state"].as_str(), served["evidence"]["agent"].clone()), (Some("served"), json!(["threads.probe"])));
+    // And a checked-in entry that lost the hit stops serving the row and says why
+    let mut evidence = f.json(&f.table("-evidence.json"));
+    evidence["rows"][probe.as_str()]["agent"] = json!([]);
+    f.write(&f.table("-evidence.json"), &serde_json::to_string_pretty(&evidence).unwrap());
+    f.run(&[]);
+    let stale = row(&f);
+    assert_eq!(stale["state"], "pending");
+    assert!(stale["note"].as_str().unwrap().contains("no agent hit for threads.probe"), "{stale}");
+}
+
+#[test]
 fn an_evidence_file_that_recorded_a_scratch_path_fails_the_check_until_a_refresh_replaces_it() {
     // Given a served probe row whose checked-in evidence says it was read from /tmp
     let text = trace(true, &[("chain::t", "pass", vec![(vec!["rpc:reached.probe"], true, vec![], vec![])])]);
