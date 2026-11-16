@@ -65,6 +65,7 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("projects.createNew", "name:s"),
     ("projects.readFile", "cwd:s relativePath:s allowMissing:b?"),
     ("pullRequests.routingIdentity", "host:s"),
+    ("terminal.open", "threadId:s terminalId:s? cwd:s? worktreePath:sn? cols:pi? rows:pi? env:x? providerInstanceId:s? stopOnSettle:b?"),
     ("pullRequests.filterOptions", "kind:l(labels|authors|references) projectId:s? projectIds:a? host:s? query:s? sigil:l(#|!)?"),
     ("pullRequests.linkedThreads", "projectId:s host:s? expectedAccountId:s? allowStale:b? repository:s number:n"),
     ("pullRequests.generateReviewGuide", "projectId:s host:s? expectedAccountId:s? allowStale:b? repository:s number:n"),
@@ -575,6 +576,12 @@ mod tests {
         // And a number where a string belongs names that field, and a whole payload decodes
         assert_eq!(defect(tag, &json!({"instanceId": 7, "operationId": "a"})).unwrap(), "Expected string\n  at [\"instanceId\"]");
         assert_eq!(defect(tag, &json!({"instanceId": "a", "operationId": "a"})), None);
+    }
+
+    #[test]
+    fn a_terminal_open_without_its_thread_is_missing_the_thread_before_any_other_field() {
+        assert_eq!(defect("terminal.open", &json!({"cwd": 7})).unwrap(), "Missing key\n  at [\"threadId\"]");
+        assert_eq!(defect("terminal.open", &json!({"threadId": "t1", "cwd": "a"})), None);
     }
 
     #[test]
