@@ -157,6 +157,7 @@ const COMMANDS: &[(&str, &str)] = &[
     ("thread.model-selection.set", "commandId:s threadId:s modelSelection:ms"),
     ("provider.switch", "commandId:s threadId:s modelSelection:ms"),
     ("thread.fork", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x title:s? sideChat:b? createdAt:dt?"),
+    ("queued-run.edit", "context:x? commandId:s threadId:s runId:s text:s"),
     ("thread.merge_back", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x createdAt:dt?"),
 ];
 
@@ -357,7 +358,29 @@ fn project_mutation_defect(payload: &Value) -> Option<String> {
 /// How a command of `kind` decodes: `None` when its member is not decoded here, else `Err` with the defect text of the first field that fails.
 pub fn command_decoded(kind: &str, body: &Map<String, Value>) -> Option<Result<(), String>> {
     let (_, schema) = COMMANDS.iter().find(|(t, _)| *t == kind)?;
-    Some(decode(schema, body).map_or(Ok(()), Err))
+    let attachments = (kind == "queued-run.edit").then(|| body.get("attachments").and_then(Value::as_array).and_then(|items| attachments_defect(items))).flatten();
+    Some(decode(schema, body).or(attachments).map_or(Ok(()), Err))
+}
+
+const UNKNOWN_TYPE: &str = "Expected a string matching the RegExp ^(?!(?:image|file)$)";
+
+/// An attachment is a union keyed by `type`: the image or file member it names and the open member for other types, each reporting its first defect.
+fn attachments_defect(items: &[Value]) -> Option<String> {
+    items.iter().enumerate().find_map(|(i, item)| {
+        let (item, index) = (item.as_object()?, i.to_string());
+        let at_item = |name: &str| format!("\n  at {}", at(&["attachments", &index, name]));
+        let (member, named) = match item.get("type").and_then(Value::as_str)? {
+            "image" => ("id:s name:s mimeType:p(image) sizeBytes:n", true),
+            "file" => ("id:s name:s mimeType:s sizeBytes:n", true),
+            _ => ("id:s name:s mimeType:s sizeBytes:n", false),
+        };
+        let own = decode_in(member, item, &["attachments".into(), index.clone()]);
+        match (named, own) {
+            (true, None) => None,
+            (true, Some(d)) => Some(format!("{d}\n{UNKNOWN_TYPE}{}", at_item("type"))),
+            (false, d) => d,
+        }
+    })
 }
 
 fn at<S: AsRef<str>>(path: &[S]) -> String {
@@ -645,6 +668,18 @@ mod tests {
         assert_eq!(command("thread.fork", json!({"commandId": "a", "threadId": "a"})).unwrap(), "Missing key\n  at [\"createdBy\"]");
         assert_eq!(command("thread.pull-request.link", json!({"commandId": "a", "threadId": "a", "url": "a", "source": "manual"})).unwrap(), "Missing key\n  at [\"host\"]");
         assert_eq!(command("thread.pull-request.watch", json!({"commandId": "a", "threadId": "a", "host": "a", "repository": "a", "number": 1})).unwrap(), "Missing key\n  at [\"watching\"]");
+    }
+
+    #[test]
+    fn an_edited_queued_run_names_the_members_of_the_attachment_union_that_an_attachment_fails() {
+        let edit = |attachment: Value| command("queued-run.edit", json!({"commandId": "a", "threadId": "a", "runId": "a", "text": "a", "attachments": [attachment]}));
+        // Given an image attachment whose mime type is no image type, then the image member's defect and the open member's refusal of the type are both reported
+        assert_eq!(edit(json!({"type": "image", "id": "a", "name": "a", "mimeType": "a", "sizeBytes": 1})).unwrap(), "Expected a string matching the RegExp ^image\\/\n  at [\"attachments\"][0][\"mimeType\"]\nExpected a string matching the RegExp ^(?!(?:image|file)$)\n  at [\"attachments\"][0][\"type\"]");
+        // And a well-formed image or an attachment of another type decodes
+        assert_eq!(edit(json!({"type": "image", "id": "a", "name": "a", "mimeType": "image/png", "sizeBytes": 1})), None);
+        assert_eq!(edit(json!({"type": "audio", "id": "a", "name": "a", "mimeType": "a", "sizeBytes": 1})), None);
+        // And the fields before the attachments come first
+        assert_eq!(command("queued-run.edit", json!({"commandId": "a", "threadId": "a", "runId": "a"})).unwrap(), "Missing key\n  at [\"text\"]");
     }
 
     #[test]
