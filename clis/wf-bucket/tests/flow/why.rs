@@ -1,56 +1,32 @@
-//! `wf cache nx --why`: every task Nx ran in the command is explained against the earlier runs of that task, kept in the
-//! verification-artifacts bucket (a stateful loopback double), and the run's own inputs are recorded for the next miss. Nx is a stub that
+//! `wf cache nx --why`: every task Nx ran in the command is explained against the earlier runs of that task, kept in a
+//! local history directory (`WF_NX_WHY_DIR`, which CI carries with the Actions cache), and the run's own inputs are recorded for the next miss. Nx is a stub that
 //! leaves a `run.json`; the hasher (`WF_NODE`) is a stub that prints the input table the test gives it; git is real, in a two-commit repo.
 use crate::support::{create_stub, run_wf, RunOpts, RunResult};
 use serde_json::{json, Value};
-use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::process::Command;
-use std::sync::{Arc, Mutex};
 
 const SECRET: &str = "https://agent.secret-value-xyz.example";
-const SHARD: &str = "verification/nx-inputs/lint.json";
+const SHARD: &str = "nx-inputs/lint.json";
 
-/// The bucket: `PUT <par>/<key>` stores, `GET <read>/<key>` reads, under one prefix each.
+/// The history directory the Actions cache carries between runs.
 struct Store {
-    par: String,
-    read: String,
-    objects: Arc<Mutex<BTreeMap<String, String>>>,
+    dir: PathBuf,
 }
 
 impl Store {
-    fn start() -> Store {
-        let server = tiny_http::Server::http("127.0.0.1:0").expect("a loopback port");
-        let port = server.server_addr().to_ip().expect("an ip address").port();
-        let store = Store { par: format!("http://127.0.0.1:{port}/par/"), read: format!("http://127.0.0.1:{port}/o"), objects: Arc::default() };
-        let held = store.objects.clone();
-        std::thread::spawn(move || {
-            for mut request in server.incoming_requests() {
-                let mut body = String::new();
-                let _ = request.as_reader().read_to_string(&mut body);
-                let url = request.url().to_string();
-                let key = url.strip_prefix("/par/").or_else(|| url.strip_prefix("/o/")).unwrap_or_default().to_string();
-                let found = held.lock().unwrap().get(&key).cloned();
-                let reply = match (request.method().as_str(), found) {
-                    ("PUT", _) => {
-                        held.lock().unwrap().insert(key, body);
-                        tiny_http::Response::from_data(Vec::new())
-                    }
-                    ("GET", Some(text)) => tiny_http::Response::from_data(text.into_bytes()),
-                    _ => tiny_http::Response::from_data(Vec::new()).with_status_code(404),
-                };
-                let _ = request.respond(reply);
-            }
-        });
-        store
+    fn at(dir: PathBuf) -> Store {
+        Store { dir }
     }
 
     fn seed(&self, shard: Value) {
-        self.objects.lock().unwrap().insert(SHARD.to_string(), shard.to_string());
+        let path = self.dir.join(SHARD);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, shard.to_string()).unwrap();
     }
 
     fn shard(&self) -> Value {
-        serde_json::from_str(self.objects.lock().unwrap().get(SHARD).expect("the run recorded its inputs")).unwrap()
+        serde_json::from_str(&std::fs::read_to_string(self.dir.join(SHARD)).expect("the run recorded its inputs")).unwrap()
     }
 }
 
@@ -81,7 +57,8 @@ impl Why {
         std::fs::create_dir_all(dir.path().join("bin")).unwrap();
         create_stub(&dir.path().join("bin/nx-run"), "mkdir -p \"$HOME/.nx/ws/cache\"\nprintf '%s' \"$RUN_JSON\" > \"$HOME/.nx/ws/cache/run.json\"\nexit \"${RUN_EXIT:-0}\"");
         create_stub(&dir.path().join("bin/hasher"), "cat \"$HASH_TABLE\"");
-        Why { dir, store: Store::start(), commits: (first, second) }
+        let store = Store::at(dir.path().join("history"));
+        Why { dir, store, commits: (first, second) }
     }
 
     fn repo(&self) -> PathBuf {
@@ -100,8 +77,7 @@ impl Why {
             .env("WF_NODE", &self.dir.path().join("bin/hasher").display().to_string())
             .env("HASH_TABLE", &table.display().to_string())
             .env("RUN_JSON", &run_json)
-            .env("VERIFICATION_ARTIFACTS_PAR_URL", &self.store.par)
-            .env("VERIFICATION_ARTIFACTS_READ_URL", &self.store.read)
+            .env("WF_NX_WHY_DIR", &self.store.dir.display().to_string())
             .env("EXPO_PUBLIC_AGENT_BASE_URL", SECRET)
             .env("GITHUB_RUN_ID", "")
             .env("GITHUB_SHA", "")
@@ -157,13 +133,13 @@ fn a_miss_with_a_changed_env_var_names_the_variable_and_never_its_value() {
 
 #[test]
 fn a_task_no_earlier_run_recorded_was_never_stored_and_this_run_records_it() {
-    // Given a bucket with no history of the task
+    // Given an empty history directory of the task
     let w = Why::new();
 
     // When the command runs
     let (_, why) = w.run("H1", json!({ FILES: "1001", ENV: "5" }), false);
 
-    // Then the miss is never-stored, and the bucket now holds this run's inputs for the next miss
+    // Then the miss is never-stored, and the directory now holds this run's inputs for the next miss
     assert_eq!(why["misses"][0]["verdict"], "never-stored", "{why}");
     assert_eq!(why["recorded"], true, "{why}");
     let kept = &w.store.shard()["tasks"]["app:lint"][0];

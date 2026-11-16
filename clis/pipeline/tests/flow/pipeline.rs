@@ -2,7 +2,7 @@
 //! stage through Nx, and `drift --pins` checks the pinned tools. `pnpm`, `nx` and `gh` are stubs (what Nx itself runs and replays is
 //! `nx_cache.rs`); the repository's own `e2e` scripts, workflows and `mise.toml` are read as they are.
 use crate::support::otlp::gauges;
-use crate::support::{create_stub, last_json, MockReply, MockServer, RunResult, SlotSandbox};
+use crate::support::{create_stub, last_json, MockServer, RunResult, SlotSandbox};
 use serde_json::{json, Value};
 use std::path::PathBuf;
 
@@ -612,7 +612,7 @@ fn drift_against_another_environment_reports_how_many_tasks_hash_differently() {
 
 #[test]
 fn a_probe_says_why_each_test_it_would_run_misses_against_the_earlier_runs_of_that_test() {
-    // Given the plan's android tests, a hasher stub that gives each its input digests, and a bucket whose history holds an earlier run of
+    // Given the plan's android tests, a hasher stub that gives each its input digests, and a history directory that holds an earlier run of
     // `typing` with another env digest and none of `shaky`
     let w = Workspace::new("wf-flow-probe-why-");
     w.plan("HEAD~1");
@@ -621,12 +621,13 @@ fn a_probe_says_why_each_test_it_would_run_misses_against_the_earlier_runs_of_th
     let table = json!({ "runtime": {}, "tasks": { "e2e-typing:e2e-android": { "hash": "H1", "inputs": inputs("2") }, "e2e-shaky:e2e-android": { "hash": "H2", "inputs": { "e2e-shaky:e2e/shaky.lua": "1" } } } });
     std::fs::write(w.path("table.json"), table.to_string()).unwrap();
     create_stub(&node, &format!("cat {}", w.path("table.json")));
-    let bucket = MockServer::start(None);
+    let history = w.path("nx-why");
     let earlier = json!({ "schema": 1, "groups": {}, "tasks": { "e2e-typing:e2e-android": [{ "run": "9", "sha": "", "ts": 1_700_000_000_000i64, "source": "ci", "hash": "H0", "outcome": "ran", "passed": true, "inputs": inputs("1"), "npm": null, "runtime": {} }] } });
-    bucket.routes(&[("GET /o/verification/nx-inputs/e2e-android.json", MockReply::json(200, earlier))]);
+    std::fs::create_dir_all(format!("{history}/nx-inputs")).unwrap();
+    std::fs::write(format!("{history}/nx-inputs/e2e-android.json"), earlier.to_string()).unwrap();
 
     // When the stage is probed
-    let probe = w.wf(&["test", "run", "--stage", "android-e2e-tests", "--plan", &w.path("plan.json"), "--probe"], &[("WF_NODE", node.display().to_string()), ("VERIFICATION_ARTIFACTS_READ_URL", format!("http://127.0.0.1:{}/o", bucket.port))]);
+    let probe = w.wf(&["test", "run", "--stage", "android-e2e-tests", "--plan", &w.path("plan.json"), "--probe"], &[("WF_NODE", node.display().to_string()), ("WF_NX_WHY_DIR", history.clone())]);
 
     // Then each test that would run says why: typing names the env var that changed, shaky was never stored, and nothing was written
     assert_eq!(probe.exit_code, 0, "{}{}", probe.stdout, probe.stderr);
@@ -634,5 +635,6 @@ fn a_probe_says_why_each_test_it_would_run_misses_against_the_earlier_runs_of_th
     let of = |task: &str| why.as_array().unwrap().iter().find(|m| m["task"] == task).unwrap_or_else(|| panic!("no verdict for {task}: {why}")).clone();
     assert_eq!((of("e2e-typing:e2e-android")["verdict"].clone(), of("e2e-typing:e2e-android")["changed"][0]["name"].clone()), (json!("input-changed"), json!("EXPO_PUBLIC_AGENT_BASE_URL")), "{why}");
     assert_eq!(of("e2e-shaky:e2e-android")["verdict"], "never-stored", "{why}");
-    assert!(bucket.requests().iter().all(|r| r.method == "GET"), "a probe records nothing: {:?}", bucket.requests());
+    let kept: Value = serde_json::from_str(&std::fs::read_to_string(format!("{history}/nx-inputs/e2e-android.json")).unwrap()).unwrap();
+    assert_eq!(kept["tasks"]["e2e-typing:e2e-android"].as_array().map(Vec::len), Some(1), "a probe records nothing: {kept}");
 }

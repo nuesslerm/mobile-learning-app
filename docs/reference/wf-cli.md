@@ -1340,12 +1340,12 @@ legacy BUILD_CACHE_*_PAR_URL; the environment, then the vault); without them the
 from a clean tree on origin/dev with pinned tools (see `wf cache --help`).
 
 With --why (first, before the command), every task Nx ran in the command is
-explained against the bucket's history of that task (verification/nx-inputs/):
+explained against the history of that task kept in WF_NX_WHY_DIR (default ~/.cache/wf-nx-why; CI carries it with the Actions cache):
 the nearest earlier run and the inputs that differ (a file, an env var by name and
 never by value, a runtime tool), `expired` (an earlier run stored this very hash),
 or `never-stored` (no earlier run, or the run that computed the hash failed and
 stored nothing); this run's own inputs are recorded for the next miss. A task that
-failed says it stored nothing. Writing needs VERIFICATION_ARTIFACTS_PAR_URL.
+failed says it stored nothing.
 
 Output: the command's own, then one stderr line `wf: build cache {...}` and, with
 --why, one `wf: nx why {schema, ok, run, source, misses: [{task, hash, verdict,
