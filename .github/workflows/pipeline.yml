@@ -326,6 +326,7 @@ jobs:
           java: "true"
           rust: "true"
           references: "true"
+          opencode: "true"
       - name: The test plan
         env:
           PLAN: ${{ needs.plan.outputs.plan }}

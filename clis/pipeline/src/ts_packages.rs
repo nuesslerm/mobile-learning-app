@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 pub const ALLOWLIST_FILE: &str = "clis/pipeline/data/ts-packages.json";
-const SKIP: [&str; 6] = ["node_modules", "target", "references", "dist", ".git", ".nx"];
+const SKIP: [&str; 7] = ["node_modules", "target", "references", "dist", ".git", ".nx", ".opencode"];
 
 pub struct Report {
     pub json: Json,
