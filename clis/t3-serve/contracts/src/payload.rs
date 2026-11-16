@@ -2,7 +2,7 @@
 //! as the pinned server's Effect schema refuses them: the first field in declaration order that is missing or of the wrong type is a defect, never a typed error.
 use serde_json::Value;
 
-/// Fields in the order the contract's struct declares them: `name:kind`, kind `s` string, `n` number, `b` boolean, `a` array, `o` object, `sn` string or null, `l(x|y)` one of
+/// Fields in the order the contract's struct declares them: `name:kind`, kind `s` string, `n` number, `b` boolean, `a` array, `o` object, `sn` string or null, `p(day|http|npm)` a string matching a contract pattern, `l(x|y)` one of
 /// the literals, a trailing `?` for an optional key. What a field holds beyond its kind (a string's trim and length, an array's items) is the handler's.
 const SCHEMAS: &[(&str, &str)] = &[
     ("provider.install.start", "instanceId:s"),
@@ -46,6 +46,13 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("pullRequests.setThreadResolution", "projectId:s host:s? expectedAccountId:s? allowStale:b? repository:s number:n threadId:s resolved:b"),
     ("pullRequests.setReaction", "projectId:s host:s? expectedAccountId:s? allowStale:b? repository:s number:n subjectId:s? content:l(thumbs-up|thumbs-down|laugh|hooray|confused|heart|rocket|eyes) reacted:b"),
     ("pullRequests.runAction", "stackNumber:n? expectedStackHeads:a? projectId:s host:s? expectedAccountId:s? allowStale:b? repository:s number:n action:l(merge|ready|draft|close|reopen|delete-branch|update-branch|enable-auto-merge|disable-auto-merge|revert|approve-workflows) mergeMethod:l(merge|squash|rebase)? updateMethod:l(merge|rebase)? replyWithSummary:b?"),
+    ("server.getProcessResourceHistory", "windowMs:n bucketMs:n"),
+    ("server.getResourceTelemetryHistory", "windowMs:n bucketMs:n"),
+    ("server.signalProcess", "pid:n startTimeMs:n signal:l(SIGINT|SIGKILL)"),
+    ("server.checkOtlpEndpoint", "signal:l(traces|metrics|logs) url:p(http)"),
+    ("server.getNpmRelease", "spec:p(npm)"),
+    ("server.getUsageSummary", "sinceDay:p(day) untilDay:p(day) timeZone:s resolution:l(day|hour)? sinceTime:s? untilTime:s? awaitRefresh:b?"),
+    ("shell.openInEditor", "cwd:s editor:l(cursor|trae|kiro|vscode|vscode-insiders|vscodium|zed|antigravity|idea|aqua|clion|datagrip|dataspell|goland|phpstorm|pycharm|rider|rubymine|rustrover|webstorm|file-manager) reveal:b?"),
     ("vcs.init", "cwd:s kind:l(git|jj|unknown)?"),
     ("vcs.listRefs", "cwd:s query:s? cursor:n? includeMatchingRemoteRefs:b? refKind:l(all|local|remote)? refresh:b? limit:n?"),
     ("vcs.createRef", "cwd:s refName:s switchRef:b?"),
@@ -70,6 +77,22 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("review.getDiffPreview", "cwd:s baseRef:s? commitSha:s? ignoreWhitespace:b? sourceKind:l(working-tree|branch-range)? trackedOnly:b? metadataOnly:b? file:o?"),
 ];
 
+/// The patterns the contracts check strings against: the text the decoder names, and the match.
+fn pattern(name: &str) -> (&'static str, fn(&str) -> bool) {
+    match name {
+        "day" => (r"^\d{4}-\d{2}-\d{2}$", |v| v.len() == 10 && v.bytes().enumerate().all(|(i, b)| if i == 4 || i == 7 { b == b'-' } else { b.is_ascii_digit() })),
+        "http" => (r"^https?:\/\/.", |v| {
+            let v = v.to_ascii_lowercase();
+            v.strip_prefix("https://").or_else(|| v.strip_prefix("http://")).is_some_and(|rest| !rest.is_empty())
+        }),
+        _ => (r"^(?:latest|nightly|\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?)$", |v| {
+            let (core, suffix) = v.split_once('-').map_or((v, None), |(c, s)| (c, Some(s)));
+            let numeric = core.split('.').count() == 3 && core.split('.').all(|n| !n.is_empty() && n.bytes().all(|b| b.is_ascii_digit()));
+            v == "latest" || v == "nightly" || (numeric && suffix.is_none_or(|s| !s.is_empty() && s.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'.' || b == b'-')))
+        }),
+    }
+}
+
 fn expected(kind: &str) -> String {
     match kind {
         "n" => "number".into(),
@@ -77,6 +100,7 @@ fn expected(kind: &str) -> String {
         "a" => "array".into(),
         "o" => "object".into(),
         "sn" => "string | null".into(),
+        k if k.starts_with("p(") => format!("a string matching the RegExp {}", pattern(&k[2..k.len() - 1]).0),
         k if k.starts_with("l(") => k[2..k.len() - 1].split('|').map(|v| format!("\"{v}\"")).collect::<Vec<_>>().join(" | "),
         _ => "string".into(),
     }
@@ -89,6 +113,7 @@ fn is(kind: &str, value: &Value) -> bool {
         "a" => value.is_array(),
         "o" => value.is_object(),
         "sn" => value.is_string() || value.is_null(),
+        k if k.starts_with("p(") => value.is_string(),
         k if k.starts_with("l(") => value.as_str().is_some_and(|v| k[2..k.len() - 1].split('|').any(|l| l == v)),
         _ => value.is_string(),
     }
@@ -104,6 +129,9 @@ pub fn minimal(tag: &str) -> Option<Value> {
             "a" => Value::Array(Vec::new()),
             "o" => Value::Object(Default::default()),
             "sn" => Value::Null,
+            "p(day)" => Value::from("2026-01-01"),
+            "p(http)" => Value::from("http://a"),
+            "p(npm)" => Value::from("latest"),
             k if k.starts_with("l(") => Value::from(k[2..k.len() - 1].split('|').next().unwrap_or("")),
             _ => Value::from("a"),
         };
@@ -122,7 +150,8 @@ pub fn defect(tag: &str, payload: &Value) -> Option<String> {
         match body.get(name) {
             None if optional => {}
             None => return Some(format!("Missing key\n  at [\"{name}\"]")),
-            Some(v) if !is(kind, v) => return Some(format!("Expected {}\n  at [\"{name}\"]", expected(kind))),
+            Some(v) if !is(kind, v) => return Some(format!("Expected {}\n  at [\"{name}\"]", if kind.starts_with("p(") { "string".into() } else { expected(kind) })),
+            Some(v) if kind.starts_with("p(") && !v.as_str().is_some_and(pattern(&kind[2..kind.len() - 1]).1) => return Some(format!("Expected {}\n  at [\"{name}\"]", expected(kind))),
             Some(_) => {}
         }
     }
@@ -152,6 +181,17 @@ mod tests {
             let minimal = minimal(tag).unwrap();
             assert_eq!(defect(tag, &minimal), None, "{tag}: {minimal}");
         }
+    }
+
+    #[test]
+    fn a_string_that_misses_a_contract_pattern_is_the_decoders_pattern_defect() {
+        let usage = |day: &str| defect("server.getUsageSummary", &json!({"sinceDay": day, "untilDay": "2026-01-01", "timeZone": "UTC"}));
+        assert_eq!(usage("a").unwrap(), "Expected a string matching the RegExp ^\\d{4}-\\d{2}-\\d{2}$\n  at [\"sinceDay\"]");
+        assert_eq!(usage("2026-02-30"), None);
+        let release = |spec: &str| defect("server.getNpmRelease", &json!({"spec": spec}));
+        assert_eq!((release("latest"), release("1.2.3"), release("1.2.3-rc.1")), (None, None, None));
+        assert!(release("1.2").is_some() && release("a").is_some());
+        assert_eq!(defect("server.checkOtlpEndpoint", &json!({"signal": "logs", "url": "a"})).unwrap(), "Expected a string matching the RegExp ^https?:\\/\\/.\n  at [\"url\"]");
     }
 
     #[test]
