@@ -61,19 +61,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
-      ],
-      "ids": [
-        "t3-command-message.dispatch",
-        "t3-command-runtime-request.respond"
-      ]
-    },
-    {
       "class": "kind at steps.http:ret:_.[*].payload.body",
       "severity": "breaking",
       "diffs": [
@@ -96,6 +83,18 @@
       ],
       "ids": [
         "t3-rpc-pullRequests.reportState"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0]._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error extra drift"
+      ],
+      "ids": [
+        "t3-command-runtime-request.respond"
       ]
     },
     {
