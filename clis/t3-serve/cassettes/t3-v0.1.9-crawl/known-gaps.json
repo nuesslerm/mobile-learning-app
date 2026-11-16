@@ -189,13 +189,7 @@
         "t3-rpc-sourceControl.starred-invalid-wrong-type-provider",
         "t3-rpc-subscribeDiscoveredLocalServers-invalid-wrong-type-configuredUrls",
         "t3-rpc-subscribeWorktreeSetup-invalid-drop-threadId",
-        "t3-rpc-subscribeWorktreeSetup-invalid-no-payload",
-        "t3-rpc-vcs.init-invalid-drop-cwd",
-        "t3-rpc-vcs.init-invalid-no-payload",
-        "t3-rpc-vcs.init-invalid-wrong-type-cwd",
-        "t3-rpc-vcs.removeWorktree-invalid-drop-cwd",
-        "t3-rpc-vcs.removeWorktree-invalid-no-payload",
-        "t3-rpc-vcs.removeWorktree-invalid-wrong-type-cwd"
+        "t3-rpc-subscribeWorktreeSetup-invalid-no-payload"
       ]
     },
     {
@@ -313,15 +307,9 @@
         "t3-rpc-sourceControl.star-invalid-drop-provider",
         "t3-rpc-sourceControl.star-invalid-no-payload",
         "t3-rpc-sourceControl.star-invalid-wrong-type-provider",
-        "t3-rpc-subscribeVcsBranch-invalid-wrong-type-cwd",
         "t3-rpc-terminal.open-invalid-drop-cwd",
         "t3-rpc-terminal.open-invalid-no-payload",
-        "t3-rpc-terminal.open-invalid-wrong-type-cwd",
-        "t3-rpc-vcs.createRef-invalid-wrong-type-cwd",
-        "t3-rpc-vcs.listRefs-invalid-wrong-type-cwd",
-        "t3-rpc-vcs.pull-invalid-wrong-type-cwd",
-        "t3-rpc-vcs.refreshBranch-invalid-wrong-type-cwd",
-        "t3-rpc-vcs.switchRef-invalid-wrong-type-cwd"
+        "t3-rpc-terminal.open-invalid-wrong-type-cwd"
       ]
     },
     {

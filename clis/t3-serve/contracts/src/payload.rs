@@ -1,9 +1,9 @@
-//! The request payloads of the RPCs this server answers without a handler of its own, decoded the way the pinned server's Effect schema
-//! refuses them: the first field in declaration order that is missing or of the wrong type is a defect, never a typed error.
+//! The request payloads of the RPCs below, decoded before any handler runs the way the pinned server's Effect schema
+//! as the pinned server's Effect schema refuses them: the first field in declaration order that is missing or of the wrong type is a defect, never a typed error.
 use serde_json::Value;
 
-/// Fields in the order the contract's struct declares them: `name:kind`, kind `s` string, `n` number, `b` boolean, a trailing `?` for an
-/// optional key.
+/// Fields in the order the contract's struct declares them: `name:kind`, kind `s` string, `n` number, `b` boolean, `a` array, `o` object, `l(x|y)` one of
+/// the literals, a trailing `?` for an optional key. What a field holds beyond its kind (a string's trim and length, an array's items) is the handler's.
 const SCHEMAS: &[(&str, &str)] = &[
     ("provider.install.start", "instanceId:s"),
     ("provider.install.cancel", "instanceId:s operationId:s"),
@@ -20,13 +20,24 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("server.setAcpRegistryProvider", "instanceId:s projectId:s providerId:s apiType:s baseUrl:s"),
     ("server.disableAcpRegistryProvider", "instanceId:s projectId:s providerId:s"),
     ("server.logoutAcpRegistry", "instanceId:s"),
+    ("vcs.init", "cwd:s kind:l(git|jj|unknown)?"),
+    ("vcs.listRefs", "cwd:s query:s? cursor:n? includeMatchingRemoteRefs:b? refKind:l(all|local|remote)? refresh:b? limit:n?"),
+    ("vcs.createRef", "cwd:s refName:s switchRef:b?"),
+    ("vcs.switchRef", "cwd:s refName:s"),
+    ("vcs.pull", "cwd:s"),
+    ("vcs.refreshBranch", "cwd:s"),
+    ("subscribeVcsBranch", "cwd:s"),
+    ("vcs.removeWorktree", "cwd:s path:s force:b?"),
 ];
 
-fn expected(kind: &str) -> &'static str {
+fn expected(kind: &str) -> String {
     match kind {
-        "n" => "number",
-        "b" => "boolean",
-        _ => "string",
+        "n" => "number".into(),
+        "b" => "boolean".into(),
+        "a" => "array".into(),
+        "o" => "object".into(),
+        k if k.starts_with("l(") => k[2..k.len() - 1].split('|').map(|v| format!("\"{v}\"")).collect::<Vec<_>>().join(" | "),
+        _ => "string".into(),
     }
 }
 
@@ -34,6 +45,9 @@ fn is(kind: &str, value: &Value) -> bool {
     match kind {
         "n" => value.is_number(),
         "b" => value.is_boolean(),
+        "a" => value.is_array(),
+        "o" => value.is_object(),
+        k if k.starts_with("l(") => value.as_str().is_some_and(|v| k[2..k.len() - 1].split('|').any(|l| l == v)),
         _ => value.is_string(),
     }
 }

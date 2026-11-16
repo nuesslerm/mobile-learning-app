@@ -12,7 +12,7 @@ use mimic_core::usecase::replay;
 const DIR: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/cassettes/t3-v0.1.9-crawl");
 
 /// The groups whose invalid cases the router decodes as the real server does.
-const GROUPS: [&str; 2] = ["t3-rpc-provider.install.", "AcpRegistry"];
+const GROUPS: [&str; 4] = ["t3-rpc-provider.install.", "AcpRegistry", "t3-rpc-vcs.", "t3-rpc-subscribeVcsBranch-"];
 
 fn found(set: &mimic_core::ports::CassetteSet, allow: &mimic_core::allowlist::Allowlist, ids: &[String]) -> Vec<gaps::Found> {
     let mut out = Vec::new();
@@ -51,12 +51,13 @@ fn the_invalid_payloads_of_the_decoded_groups_are_the_defects_the_real_server_an
     assert!(differences.is_empty(), "{differences:#?}");
 }
 
-/// A developer's slice: what differs for the ids of `CRAWL_PREFIX` (all their cases, not only the invalid ones), against `known-gaps.json`.
+/// A developer's slice: what differs for the invalid cases of `CRAWL_PREFIX` against `known-gaps.json` (a valid case answers from the agent API,
+/// which the chain replay settles).
 #[test]
 fn a_slice_named_by_crawl_prefix_is_compared_with_the_known_gaps() {
     let Ok(prefix) = std::env::var("CRAWL_PREFIX") else { return };
     let (set, allow) = (load_set(DIR), load_allowlist(DIR));
-    let ids = ids_of(&set, &prefix.split(',').map(String::from).collect::<Vec<_>>(), false);
+    let ids = ids_of(&set, &prefix.split(',').map(String::from).collect::<Vec<_>>(), true);
     let differences = found(&set, &allow, &ids);
     let path = format!("{DIR}/known-gaps.json");
     let mut listed = gaps::listed(&serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap()).unwrap();
