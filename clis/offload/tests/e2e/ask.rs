@@ -118,10 +118,20 @@ fn an_agent_defined_in_the_repository_answers_as_defined() {
     });
 }
 
-/// The installed opencode (the cli-e2e job pins it) lists no option the recorded table
+/// Fails, naming both versions, unless the installed opencode is the one the fixtures were recorded from
+/// (their `opencodeVersion`, which `.github/actions/install-test-deps` installs: the one pin).
+fn assert_pinned_opencode(fixture: &str) {
+    let recorded: Value = serde_json::from_str(&std::fs::read_to_string(format!("{}/tests/flow/fixtures/{fixture}", env!("CARGO_MANIFEST_DIR"))).unwrap()).unwrap();
+    let out = Command::new("opencode").arg("--version").output().expect("opencode is on PATH");
+    let installed = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    assert_eq!(installed, recorded["opencodeVersion"].as_str().unwrap(), "installed opencode {installed} is not the {fixture} version: run `npm install -g opencode-ai@<opencodeVersion>` (or re-record the fixture and bump opencodeVersion)");
+}
+
+/// The pinned opencode lists no option the recorded table
 /// (`tests/flow/fixtures/opencode-run-options.json`, which the flow tests hold `ask` to) lacks.
 #[test]
 fn the_recorded_options_are_the_ones_opencode_run_lists_now() {
+    assert_pinned_opencode("opencode-run-options.json");
     let help = Command::new("opencode").args(["run", "--help"]).output().expect("opencode is on PATH");
     let text = String::from_utf8_lossy(&help.stdout).to_string() + &String::from_utf8_lossy(&help.stderr);
     let mut listed: Vec<(Option<char>, String)> = Vec::new();
@@ -149,6 +159,7 @@ fn the_recorded_options_are_the_ones_opencode_run_lists_now() {
 /// replaces (`run`) or has a reason it is not applicable to a run on the service.
 #[test]
 fn the_recorded_commands_are_the_ones_opencode_lists_now() {
+    assert_pinned_opencode("opencode-commands.json");
     let help = Command::new("opencode").arg("--help").output().expect("opencode is on PATH");
     let text = String::from_utf8_lossy(&help.stdout).to_string() + &String::from_utf8_lossy(&help.stderr);
     let mut listed: Vec<String> = text
