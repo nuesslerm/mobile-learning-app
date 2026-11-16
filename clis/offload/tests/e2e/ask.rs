@@ -1,6 +1,8 @@
-//! `wf offload ask` against the `rca-service` and `opencode serve` this run starts on loopback (`rca.rs`): a session continues with `-c`, a
+//! `wf offload ask` against the `rca-service` and `opencode serve` this run starts on loopback (`rca.rs`), the scripted model behind it
+//! (no network, no key): a session continues with `-c`, a
 //! run is read-only without `--auto` and edits with it, an agent defined in the repository answers as defined, and `--format json`
 //! reports the session and the tokens.
+use crate::rca::Model;
 use serde_json::Value;
 use std::path::Path;
 use std::process::Command;
@@ -22,6 +24,7 @@ fn ask(dir: &Path, args: &[&str]) -> RunResult {
             .args(["--timeout-ms", "600000", "--caller", &crate::parity::caller_of(dir)])
             .current_dir(dir)
             .env("WF_USAGE", "off"),
+        Model::Scripted,
     )
     .output()
         .expect("the wf binary starts");
@@ -39,7 +42,7 @@ impl Checkout {
 
 impl Drop for Checkout {
     fn drop(&mut self) {
-        crate::parity::purge(&crate::parity::caller_of(self.0.path()));
+        crate::parity::purge(&crate::parity::caller_of(self.0.path()), Model::Scripted);
     }
 }
 
@@ -176,7 +179,7 @@ fn the_recorded_commands_are_the_ones_opencode_lists_now() {
 fn given_no_rca_host_in_the_environment_when_asks_are_pointed_then_they_go_to_the_loopback_service_of_the_run_and_not_the_deployed_one() {
     use std::io::{Read, Write};
     // Given the parent has no RCA_HOST of its own
-    let env: std::collections::HashMap<_, _> = crate::rca::rca_env().iter().cloned().collect();
+    let env: std::collections::HashMap<_, _> = crate::rca::rca_env(Model::Scripted).iter().cloned().collect();
     // When the run's variables are read, Then the host is loopback with no tailnet in the way
     assert_eq!(env["RCA_HOST"], "127.0.0.1");
     assert_eq!(env["WF_TAILNET_SOCKS"], "");

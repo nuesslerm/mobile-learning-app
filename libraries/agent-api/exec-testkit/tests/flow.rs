@@ -4,6 +4,8 @@
 mod cli;
 #[path = "flow/hosted.rs"]
 mod hosted;
+#[path = "flow/model.rs"]
+mod model;
 #[path = "flow/recordings.rs"]
 mod recordings;
 #[path = "flow/repo.rs"]

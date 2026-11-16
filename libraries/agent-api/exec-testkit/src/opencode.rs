@@ -15,7 +15,7 @@ pub struct OpencodeServer {
 }
 
 /// The `serve` command: loopback only, the key and the config as environment variables of the child.
-fn command(program: &Path, key: &str, config: &Path, home: &Path, port: u16) -> Command {
+fn command(program: &Path, key: &str, config: &Path, inline: Option<&str>, home: &Path, port: u16) -> Command {
     let mut command = Command::new(program);
     command
         .args(["serve", "--hostname", "127.0.0.1", "--port", &port.to_string()])
@@ -25,8 +25,23 @@ fn command(program: &Path, key: &str, config: &Path, home: &Path, port: u16) -> 
         .env("npm_config_cache", std::env::temp_dir().join("exec-testkit-opencode-npm-cache"))
         .current_dir(home)
         .stdin(Stdio::null());
+    if let Some(inline) = inline {
+        command.env("OPENCODE_CONFIG_CONTENT", inline);
+    }
     command
 }
+
+/// The inline config that sends the `opencode-go` provider (the first rung of the ladders) to `base_url`, with a key that is no secret.
+fn scripted_config(base_url: &str) -> String {
+    serde_json::json!({"provider": {"opencode-go": {"options": {"baseURL": base_url, "apiKey": SCRIPTED_KEY}}}}).to_string()
+}
+
+/// The environment that points any opencode (`opencode run` included) at the `FakeModel` of `base_url`.
+pub fn scripted_env(base_url: &str) -> [(&'static str, String); 2] {
+    [("OPENCODE_API_KEY", SCRIPTED_KEY.to_string()), ("OPENCODE_CONFIG_CONTENT", scripted_config(base_url))]
+}
+
+const SCRIPTED_KEY: &str = "scripted-not-a-secret";
 
 impl OpencodeServer {
     /// Starts the `opencode` of the `PATH`; returns once the server answers `GET /app`.
@@ -36,8 +51,17 @@ impl OpencodeServer {
 
     /// `start` with the program named, so a test starts a stand-in.
     pub fn start_program(program: &Path, key: &str, config: &Path) -> OpencodeServer {
+        OpencodeServer::start_with(program, key, config, None)
+    }
+
+    /// The `opencode` of the `PATH` with its `opencode-go` provider pointed at the `FakeModel` of `base_url`: no key and no network.
+    pub fn start_scripted(base_url: &str, config: &Path) -> OpencodeServer {
+        OpencodeServer::start_with(Path::new("opencode"), SCRIPTED_KEY, config, Some(&scripted_config(base_url)))
+    }
+
+    fn start_with(program: &Path, key: &str, config: &Path, inline: Option<&str>) -> OpencodeServer {
         for _ in 0..BIND_ATTEMPTS {
-            match OpencodeServer::try_start(program, key, config) {
+            match OpencodeServer::try_start(program, key, config, inline) {
                 Ok(server) => return server,
                 Err(log) if log.contains("EADDRINUSE") || log.contains("in use") => continue,
                 Err(log) => panic!("{log}"),
@@ -46,11 +70,11 @@ impl OpencodeServer {
         panic!("opencode serve could not bind a free port in {BIND_ATTEMPTS} attempts")
     }
 
-    fn try_start(program: &Path, key: &str, config: &Path) -> Result<OpencodeServer, String> {
+    fn try_start(program: &Path, key: &str, config: &Path, inline: Option<&str>) -> Result<OpencodeServer, String> {
         let port = TcpListener::bind("127.0.0.1:0").and_then(|l| l.local_addr()).expect("a free port").port();
         let home = tempfile::Builder::new().prefix("opencode-home-").tempdir().expect("a home for opencode");
         let log = std::fs::File::create(home.path().join("opencode.log")).expect("a log file");
-        let child = command(program, key, config, home.path(), port).stdout(log.try_clone().expect("a log handle")).stderr(log).spawn().unwrap_or_else(|e| panic!("{} starts: {e}", program.display()));
+        let child = command(program, key, config, inline, home.path(), port).stdout(log.try_clone().expect("a log handle")).stderr(log).spawn().unwrap_or_else(|e| panic!("{} starts: {e}", program.display()));
         let addr = SocketAddr::from(([127, 0, 0, 1], port));
         let mut server = OpencodeServer { child, addr, home };
         let deadline = Instant::now() + START_WAIT;

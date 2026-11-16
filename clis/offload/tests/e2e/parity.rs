@@ -4,6 +4,7 @@
 //! binary on PATH (the cli-e2e job installs it), the key `OPENCODE_GO_API_KEY` (the environment's, else the vault's); the service it asks is the `rca-service` this run starts on loopback (`rca.rs`). The model is
 //! pinned and the prompts are deterministic, but a model may still word an answer differently, so the checks are on the marker each
 //! prompt asks for and on the structure of what is printed, not on whole answers.
+use crate::rca::Model;
 use serde_json::Value;
 use std::process::Command;
 use std::sync::OnceLock;
@@ -56,8 +57,8 @@ pub(crate) fn caller_of(dir: &std::path::Path) -> String {
 
 /// Tells the service the test is done with the sessions it made: they are deleted from opencode (which gives their memory back) and from
 /// the service's disk now, not when they expire. A service that cannot be reached is left to its expiry.
-pub(crate) fn purge(caller: &str) {
-    let _ = crate::rca::point(Command::new(crate::support::wf_binary()).args(["offload", "sessions", "rm", "--caller", caller]).env("WF_USAGE", "off")).output();
+pub(crate) fn purge(caller: &str, model: Model) {
+    let _ = crate::rca::point(Command::new(crate::support::wf_binary()).args(["offload", "sessions", "rm", "--caller", caller]).env("WF_USAGE", "off"), model).output();
 }
 
 /// A checkout and the home the opencode binary keeps its sessions in, one pair per side so neither sees the other's.
@@ -68,7 +69,7 @@ pub(crate) struct Side {
 
 impl Drop for Side {
     fn drop(&mut self) {
-        purge(&caller_of(self.dir.path()));
+        purge(&caller_of(self.dir.path()), Model::Live);
     }
 }
 
@@ -164,7 +165,7 @@ impl Side {
     pub(crate) fn ask_without_model(&self, args: &[&str]) -> Out {
         let mut command = Command::new(crate::support::wf_binary());
         command.args(["offload", "ask"]).args(args).args(["--timeout-ms", "600000", "--caller", &caller_of(self.dir.path())]).current_dir(self.dir.path()).env("WF_USAGE", "off");
-        crate::rca::point(&mut command);
+        crate::rca::point(&mut command, Model::Live);
         finish(command, None)
     }
 
@@ -172,7 +173,7 @@ impl Side {
     pub(crate) fn ask_in(&self, args: &[&str], input: Option<&str>) -> Out {
         let mut command = Command::new(crate::support::wf_binary());
         command.args(["offload", "ask"]).args(args).args(["-m", MODEL, "--timeout-ms", "600000", "--caller", &caller_of(self.dir.path())]).current_dir(self.dir.path()).env("WF_USAGE", "off");
-        crate::rca::point(&mut command);
+        crate::rca::point(&mut command, Model::Live);
         finish(command, input)
     }
 
