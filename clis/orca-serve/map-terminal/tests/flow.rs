@@ -1,7 +1,7 @@
 //! The terminal rows through the `Host` dispatcher with an in-memory terminal set as rca: each reply is read the way the phone reads it.
 //! Given/When/Then in each test.
 use orca_core::testing::{RevocablePrincipals, ScriptedAgent};
-use orca_core::{Connection, Host, HostInfo, ServiceStatus};
+use orca_core::{AgentApi, Connection, Host, HostInfo, ServiceStatus};
 use orca_map_terminal::testing::Terminals;
 use orca_map_terminal::TerminalArea;
 use orca_map_workspace::testing::Workspaces;
@@ -295,4 +295,133 @@ fn given_a_terminal_that_printed_colored_lines_when_it_is_read_then_the_tail_is_
     assert_eq!(rig.err("terminal.read", json!({"terminal": "main:t1", "cursor": "x"})), "invalid_argument");
     assert_eq!(rig.ok("terminal.read", json!({"terminal": "feat:gone"}))["terminal"]["status"], json!("exited"));
     assert_eq!(rig.err("terminal.read", json!({"terminal": "main:nope"})), "terminal_handle_stale");
+}
+
+struct Bare {
+    agent: Arc<ScriptedAgent>,
+    terminals: Terminals,
+}
+
+impl Bare {
+    fn new() -> Bare {
+        let agent = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
+        let terminals = Terminals::default();
+        terminals.terminal("w", "t", true);
+        terminals.install(&agent);
+        Bare { agent, terminals }
+    }
+
+    fn attach(&self, after: Option<u64>) -> (Value, Box<dyn orca_core::EventStream>) {
+        let mut p = json!({"workspace": "w", "terminal": "t"});
+        if let Some(a) = after {
+            p["after_offset"] = json!(a);
+        }
+        self.agent.follow("terminal.attach", "terminal/w/t", p, "after_offset").expect("attach is answered")
+    }
+}
+
+fn drain(stream: &mut dyn orca_core::EventStream) -> Vec<(u64, String, Value)> {
+    let mut out = vec![];
+    while let Some(e) = stream.next(std::time::Duration::ZERO).unwrap() {
+        out.push((e.seq, e.kind, e.data));
+    }
+    out
+}
+
+fn data_of(e: &Value) -> Vec<u8> {
+    agent_api_terminal::b64::decode(e["data"].as_str().unwrap()).unwrap()
+}
+
+#[test]
+fn given_an_attach_at_the_end_when_bytes_are_pushed_then_each_arrives_as_an_output_event_numbered_by_the_offset_after_its_bytes() {
+    let rig = Bare::new();
+    // Given a terminal that printed five bytes and an attach from its end
+    rig.terminals.output("w", "t", b"hello");
+    let (answer, mut stream) = rig.attach(Some(5));
+    assert_eq!((answer["start_offset"].clone(), answer["offset"].clone(), answer["reset"].clone(), answer["status"].clone()), (json!(5), json!(5), json!(false), json!("running")));
+    // When it prints two chunks
+    rig.terminals.push_output("w", "t", b"ab").push_output("w", "t", b"cde");
+    // Then the attach holds two output events, each at the offset after its bytes, with the bytes
+    let events = drain(stream.as_mut());
+    assert_eq!(events.iter().map(|(seq, kind, _)| (*seq, kind.as_str())).collect::<Vec<_>>(), vec![(7, "terminal.output"), (10, "terminal.output")]);
+    assert_eq!((data_of(&events[0].2), events[0].2["offset"].clone(), data_of(&events[1].2)), (b"ab".to_vec(), json!(5), b"cde".to_vec()));
+    // And a read from the same offset reports the same end
+    let read = rig.agent.request("terminal.read", json!({"workspace": "w", "terminal": "t", "after_offset": 5})).unwrap();
+    assert_eq!((read["start_offset"].clone(), read["offset"].clone(), data_of(&read)), (json!(5), json!(10), b"abcde".to_vec()));
+}
+
+#[test]
+fn given_a_four_byte_tail_when_attached_from_an_older_offset_then_the_answer_resets_and_one_snapshot_replays_the_kept_bytes() {
+    let rig = Bare::new();
+    // Given a terminal that printed ten bytes and keeps only the last four
+    rig.terminals.with_retain(4).output("w", "t", b"0123456789");
+    // When a phone attaches from offset 2
+    let (answer, mut stream) = rig.attach(Some(2));
+    // Then the answer says reset from offset 6 to 10
+    assert_eq!((answer["start_offset"].clone(), answer["offset"].clone(), answer["reset"].clone()), (json!(6), json!(10), json!(true)));
+    // And the first event is the snapshot of the kept bytes
+    let events = drain(stream.as_mut());
+    assert_eq!((events[0].0, events[0].1.as_str(), events[0].2["reset"].clone(), data_of(&events[0].2)), (10, "terminal.snapshot", json!(true), b"6789".to_vec()));
+    // And a read from the lost offset resets the same way, while an offset inside the tail does not
+    let old = rig.agent.request("terminal.read", json!({"workspace": "w", "terminal": "t", "after_offset": 2})).unwrap();
+    assert_eq!((old["start_offset"].clone(), old["reset"].clone()), (json!(6), json!(true)));
+    let (inside, _) = rig.attach(Some(8));
+    assert_eq!((inside["start_offset"].clone(), inside["reset"].clone()), (json!(8), json!(false)));
+    // And more output past the cap moves the tail on
+    rig.terminals.push_output("w", "t", b"ab");
+    let (moved, _) = rig.attach(Some(6));
+    assert_eq!((moved["start_offset"].clone(), moved["reset"].clone()), (json!(8), json!(true)));
+}
+
+#[test]
+fn given_an_attached_terminal_when_it_exits_and_exits_again_then_the_stream_holds_one_exited_event_and_the_status_is_exited() {
+    let rig = Bare::new();
+    // Given an attach and some output
+    let (_, mut stream) = rig.attach(None);
+    rig.terminals.push_output("w", "t", b"bye");
+    // When the process exits with 3, twice
+    rig.terminals.exit("w", "t", 3).exit("w", "t", 9);
+    // Then the stream ends with one terminal.exited at the end offset carrying the first code
+    let events = drain(stream.as_mut());
+    assert_eq!(events.iter().map(|(seq, kind, _)| (*seq, kind.as_str())).collect::<Vec<_>>(), vec![(3, "terminal.output"), (3, "terminal.exited")]);
+    assert_eq!(events[1].2["exit_code"], json!(3));
+    // And a new attach answers exited with the code, and a write is refused
+    let (answer, _) = rig.attach(Some(3));
+    assert_eq!((answer["status"].clone(), answer["exit_code"].clone()), (json!("exited"), json!(3)));
+    assert!(matches!(rig.agent.request("terminal.write", json!({"workspace": "w", "terminal": "t", "data": "x"})), Err(orca_core::AgentError::Refused { code, .. }) if code == "TERMINAL_EXITED"));
+}
+
+#[test]
+fn given_an_attached_terminal_when_it_is_cleared_then_a_cleared_event_follows_and_older_offsets_reset() {
+    let rig = Bare::new();
+    // Given an attach over four printed bytes
+    rig.terminals.output("w", "t", b"abcd");
+    let (_, mut stream) = rig.attach(Some(4));
+    // When the buffer is cleared and more is printed
+    rig.terminals.clear("w", "t").push_output("w", "t", b"e");
+    // Then a cleared event at offset 4 comes before the output at 5
+    let events = drain(stream.as_mut());
+    assert_eq!(events.iter().map(|(seq, kind, _)| (*seq, kind.as_str())).collect::<Vec<_>>(), vec![(4, "terminal.cleared"), (5, "terminal.output")]);
+    // And an attach from before the clear resets to the bytes after it
+    let (answer, _) = rig.attach(Some(0));
+    assert_eq!((answer["start_offset"].clone(), answer["reset"].clone()), (json!(4), json!(true)));
+}
+
+#[test]
+fn given_the_double_when_an_offset_is_past_the_end_or_a_terminal_is_missing_then_attach_and_read_refuse_as_the_contract_does() {
+    let rig = Bare::new();
+    rig.terminals.output("w", "t", b"abc");
+    let code = |r: Result<(), orca_core::AgentError>| match r {
+        Err(orca_core::AgentError::Refused { code, .. }) => code,
+        Ok(_) => "ok".to_string(),
+        Err(e) => e.to_string(),
+    };
+    // When attaching or reading past the end, Then OFFSET_AHEAD
+    let past = json!({"workspace": "w", "terminal": "t", "after_offset": 4});
+    assert_eq!(code(rig.agent.follow("terminal.attach", "t", past.clone(), "after_offset").map(|_| ())), "OFFSET_AHEAD");
+    assert_eq!(code(rig.agent.request("terminal.read", past).map(|_| ())), "OFFSET_AHEAD");
+    // When the terminal is missing, Then UNKNOWN_TERMINAL
+    let gone = json!({"workspace": "w", "terminal": "nope"});
+    assert_eq!(code(rig.agent.follow("terminal.attach", "t", gone.clone(), "after_offset").map(|_| ())), "UNKNOWN_TERMINAL");
+    assert_eq!(code(rig.agent.request("terminal.read", gone).map(|_| ())), "UNKNOWN_TERMINAL");
 }

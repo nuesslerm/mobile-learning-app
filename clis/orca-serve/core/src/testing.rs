@@ -14,7 +14,11 @@ pub struct ScriptedAgent {
     requests: Mutex<Vec<(String, Value)>>,
     streams: Mutex<HashMap<String, Scripted>>,
     follows: Mutex<Vec<(String, Value)>>,
+    followers: Mutex<HashMap<String, Follower>>,
 }
+
+/// What a scripted follower answers: the service's answer and a stream, both made from the params.
+pub type Follower = Box<dyn Fn(&Value) -> Result<(Value, Box<dyn EventStream>), AgentError> + Send + Sync>;
 
 /// A scripted follow: what the call answers and the events its stream still holds, which the test may add to while the stream is open.
 struct Scripted {
@@ -49,7 +53,7 @@ pub type Reply = Box<dyn Fn(&Value) -> Result<Value, AgentError> + Send + Sync>;
 
 impl ScriptedAgent {
     pub fn serving(status: ServiceStatus) -> Self {
-        Self { status: Mutex::new(Ok(status)), state: Mutex::default(), calls: Mutex::default(), replies: Mutex::default(), requests: Mutex::default(), streams: Mutex::default(), follows: Mutex::default() }
+        Self { status: Mutex::new(Ok(status)), state: Mutex::default(), calls: Mutex::default(), replies: Mutex::default(), requests: Mutex::default(), streams: Mutex::default(), follows: Mutex::default(), followers: Mutex::default() }
     }
 
     pub fn set_status(&self, status: Result<ServiceStatus, AgentError>) {
@@ -71,6 +75,11 @@ impl ScriptedAgent {
         let events = Arc::new(Mutex::new(events.into_iter().map(Ok).collect::<VecDeque<_>>()));
         self.streams.lock().unwrap().insert(stream_key(method, params), Scripted { answer, events: events.clone() });
         StreamFeed(events)
+    }
+
+    /// Makes every `follow` of `method` that no `script_stream` names answer from `follower`, which sees the params.
+    pub fn follower(&self, method: &str, follower: impl Fn(&Value) -> Result<(Value, Box<dyn EventStream>), AgentError> + Send + Sync + 'static) {
+        self.followers.lock().unwrap().insert(method.to_string(), Box::new(follower));
     }
 
     /// Every `follow` opened so far with the params it was sent, in order.
@@ -110,9 +119,13 @@ impl AgentApi for ScriptedAgent {
     fn follow(&self, method: &'static str, _topic: &str, params: Value, _seq_param: &'static str) -> Result<(Value, Box<dyn EventStream>), AgentError> {
         self.calls.lock().unwrap().push(method.to_string());
         let key = stream_key(method, &params);
-        self.follows.lock().unwrap().push((method.to_string(), params));
-        match self.streams.lock().unwrap().get(&key) {
-            Some(Scripted { answer, events }) => Ok((answer.clone()?, Box::new(ScriptedStream(events.clone())))),
+        self.follows.lock().unwrap().push((method.to_string(), params.clone()));
+        if let Some(Scripted { answer, events }) = self.streams.lock().unwrap().get(&key) {
+            return Ok((answer.clone()?, Box::new(ScriptedStream(events.clone()))));
+        }
+        let followers = self.followers.lock().unwrap();
+        match followers.get(method) {
+            Some(follower) => follower(&params),
             None => Err(AgentError::Refused { code: "UNKNOWN_METHOD".into(), message: format!("{method} is not a method of this service") }),
         }
     }
