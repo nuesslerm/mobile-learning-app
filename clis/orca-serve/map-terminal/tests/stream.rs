@@ -1,5 +1,7 @@
 //! `terminal.subscribe` through the `Host` dispatcher with the terminal double: refusals, the lease and exited answers, and the JSON stream.
 //! Given/When/Then in each test.
+use orca_core::area::Out;
+use orca_map_terminal::binary::{self, op};
 use orca_core::testing::{RevocablePrincipals, ScriptedAgent};
 use orca_core::{Connection, Host, HostInfo, ServiceStatus};
 use orca_map_terminal::testing::Terminals;
@@ -186,4 +188,201 @@ fn given_two_clients_when_each_subscribes_then_neither_replaces_the_other() {
     assert_eq!(second.len(), 1);
     rig.terminals.push_output("main", "t1", b"y");
     assert_eq!(rig.events(), [json!({"type": "data", "chunk": "y"}), json!({"type": "data", "chunk": "y"})]);
+}
+
+/// One outbound frame as the phone reads it: an event's JSON, or a binary frame decoded with the codec.
+#[derive(Debug, PartialEq)]
+enum Got {
+    Json(Value),
+    Bin(u8, u32, u64, Vec<u8>),
+}
+
+fn read(frames: Vec<Out>) -> Vec<Got> {
+    frames
+        .into_iter()
+        .map(|f| match f {
+            Out::Text(t) => Got::Json(serde_json::from_str::<Value>(&t).unwrap()["result"].clone()),
+            Out::Binary(b) => {
+                let frame = binary::decode(&b).expect("a terminal frame");
+                Got::Bin(frame.opcode, frame.stream, frame.seq, frame.payload.to_vec())
+            }
+        })
+        .collect()
+}
+
+fn phone() -> Value {
+    json!({"terminal": "main:t1", "client": {"id": "p", "type": "mobile"}, "capabilities": {"terminalBinaryStream": 1, "outputAck": 1, "writeUnavailable": 1}})
+}
+
+impl Rig {
+    fn open_binary(&mut self, params: Value) -> Vec<Got> {
+        self.n += 1;
+        let frame = json!({"id": format!("r{}", self.n), "method": "terminal.subscribe", "params": params}).to_string();
+        read(self.conn.on_message_out(&frame))
+    }
+
+    fn polled(&mut self) -> Vec<Got> {
+        read(self.conn.poll_out())
+    }
+
+    fn sent(&mut self, opcode: u8, stream: u32, payload: &[u8]) -> Vec<Got> {
+        read(self.conn.on_binary(&binary::encode(opcode, stream, 0, payload)))
+    }
+}
+
+fn number(opened: &[Got]) -> u32 {
+    match &opened[0] {
+        Got::Json(v) => v["streamId"].as_u64().unwrap() as u32,
+        other => panic!("{other:?}"),
+    }
+}
+
+fn text(payload: &[u8]) -> &str {
+    std::str::from_utf8(payload).unwrap()
+}
+
+#[test]
+fn given_a_running_terminal_when_the_phone_subscribes_then_subscribed_then_the_snapshot_frames_arrive_in_order_without_queries() {
+    let mut rig = Rig::new();
+    rig.terminals.output("main", "t1", b"one\r\n\x1b[6ntwo\r\n");
+    // When the phone subscribes with the binary stream and output credit
+    let opened = rig.open_binary(phone());
+    // Then the JSON answer names the stream and its token, and the replay follows as start, chunk, end with the byte offset as seq
+    let Got::Json(first) = &opened[0] else { panic!("{opened:?}") };
+    let id = number(&opened);
+    assert_eq!((first["type"].clone(), first["truncated"].clone(), first["outputAck"].clone(), first["displayMode"].clone()), (json!("subscribed"), json!(false), json!(true), json!("auto")));
+    assert_eq!((first["cols"].clone(), first["rows"].clone()), (json!(80), json!(24)));
+    assert!(first["streamToken"].as_str().is_some_and(|t| !t.is_empty()));
+    assert_eq!(opened.len(), 4);
+    let Got::Bin(opcode, stream, seq, meta) = &opened[1] else { panic!("{opened:?}") };
+    assert_eq!((*opcode, *stream, *seq), (op::SNAPSHOT_START, id, 14));
+    let meta: Value = serde_json::from_slice(meta).unwrap();
+    assert_eq!(meta, json!({"kind": "scrollback", "cols": 80, "rows": 24, "displayMode": "auto", "seq": 14, "truncated": false, "truncatedByByteBudget": false, "source": "headless"}));
+    assert_eq!(opened[2], Got::Bin(op::SNAPSHOT_CHUNK, id, 14, b"one\r\ntwo\r\n".to_vec()));
+    assert_eq!(opened[3], Got::Bin(op::SNAPSHOT_END, id, 14, Vec::new()));
+}
+
+#[test]
+fn given_a_snapshot_of_20_kib_when_subscribed_then_it_splits_into_two_chunks_that_join_back() {
+    let mut rig = Rig::new();
+    let tail = "x".repeat(20 * 1024);
+    rig.terminals.output("main", "t1", tail.as_bytes());
+    // When the phone subscribes
+    let opened = rig.open_binary(phone());
+    // Then the replay is two chunks of at most 16 KiB holding all of it
+    let chunks: Vec<&Vec<u8>> = opened.iter().filter_map(|g| match g { Got::Bin(op::SNAPSHOT_CHUNK, _, _, p) => Some(p), _ => None }).collect();
+    assert_eq!(chunks.iter().map(|c| c.len()).collect::<Vec<_>>(), [16 * 1024, 4 * 1024]);
+}
+
+#[test]
+fn given_a_snapshot_stream_when_output_is_pushed_then_output_frames_carry_the_offset_after_them() {
+    let mut rig = Rig::new();
+    rig.terminals.output("main", "t1", b"abc");
+    let opened = rig.open_binary(phone());
+    let id = number(&opened);
+    // When the terminal prints, including an emoji split across two pushes
+    rig.terminals.push_output("main", "t1", b"de");
+    let bytes = "a😀".as_bytes();
+    rig.terminals.push_output("main", "t1", &bytes[..3]);
+    rig.terminals.push_output("main", "t1", &bytes[3..]);
+    // Then each Output frame is the text with seq = the byte offset after it, and the split character appears once
+    assert_eq!(rig.polled(), [Got::Bin(op::OUTPUT, id, 5, b"de".to_vec()), Got::Bin(op::OUTPUT, id, 6, b"a".to_vec()), Got::Bin(op::OUTPUT, id, 10, "😀".as_bytes().to_vec())]);
+}
+
+#[test]
+fn given_a_snapshot_budget_smaller_than_the_tail_when_subscribed_then_the_start_says_truncated_by_byte_budget() {
+    let mut rig = Rig::new();
+    rig.terminals.output("main", "t1", b"aaaa\nbbbb\ncccc\n");
+    // When the phone asks for a budget of 8 bytes
+    let mut params = phone();
+    params["snapshotByteBudget"] = json!(8);
+    let opened = rig.open_binary(params);
+    // Then only the newest whole line is sent and the meta says the budget cut it
+    let Got::Bin(_, _, _, meta) = &opened[1] else { panic!("{opened:?}") };
+    let meta: Value = serde_json::from_slice(meta).unwrap();
+    assert_eq!((meta["truncatedByByteBudget"].clone(), meta["truncated"].clone()), (json!(true), json!(false)));
+    let Got::Bin(_, _, _, chunk) = &opened[2] else { panic!("{opened:?}") };
+    assert_eq!(text(chunk), "cccc\n");
+}
+
+#[test]
+fn given_a_tail_that_lost_its_start_when_subscribed_then_the_snapshot_is_truncated() {
+    let mut rig = Rig::new();
+    rig.terminals.with_retain(4).output("main", "t1", b"abcdefgh");
+    // When the phone subscribes, Then the meta says the earlier output is gone
+    let opened = rig.open_binary(phone());
+    let Got::Bin(_, _, _, meta) = &opened[1] else { panic!("{opened:?}") };
+    assert_eq!(serde_json::from_slice::<Value>(meta).unwrap()["truncated"], true);
+}
+
+#[test]
+fn given_a_binary_stream_when_an_input_frame_arrives_then_the_pty_gets_the_bytes() {
+    let mut rig = Rig::new();
+    let id = number(&rig.open_binary(phone()));
+    // When the phone sends keystrokes, with a control byte and multibyte text
+    let replies = rig.sent(op::INPUT, id, "ls é\r\x03".as_bytes());
+    // Then they are written to the terminal byte for byte and nothing is answered
+    assert_eq!(rig.terminals.written(), [("main".to_string(), "t1".to_string(), "ls é\r\x03".to_string())]);
+    assert_eq!(replies, []);
+}
+
+#[test]
+fn given_an_exited_terminal_when_input_arrives_then_write_unavailable_is_answered_only_if_negotiated() {
+    let mut rig = Rig::new();
+    let id = number(&rig.open_binary(phone()));
+    rig.terminals.exit("main", "t1", 0);
+    // When the phone types after the exit, Then it is told writes are unavailable, and the stream's end rides along
+    assert_eq!(rig.sent(op::INPUT, id, b"x"), [Got::Bin(op::WRITE_UNAVAILABLE, id, 0, Vec::new()), Got::Json(json!({"type": "end"}))]);
+    // Given a second phone that did not negotiate it
+    let mut other = Rig::new();
+    let mut params = phone();
+    params["capabilities"] = json!({"terminalBinaryStream": 1});
+    let id = number(&other.open_binary(params));
+    other.terminals.exit("main", "t1", 0);
+    // Then the same input is dropped without a WriteUnavailable frame
+    assert_eq!(other.sent(op::INPUT, id, b"x"), [Got::Json(json!({"type": "end"}))]);
+}
+
+#[test]
+fn given_a_binary_stream_when_a_resize_frame_arrives_then_the_pty_is_resized_and_resized_is_answered() {
+    let mut rig = Rig::new();
+    let id = number(&rig.open_binary(phone()));
+    // When the phone fits the terminal to its screen
+    let replies = rig.sent(op::RESIZE, id, br#"{"cols":100,"rows":30}"#);
+    // Then rca resizes and a Resized frame echoes the size
+    assert_eq!(rig.terminals.resized(), [("t1".to_string(), 100, 30)]);
+    assert_eq!(replies.len(), 1);
+    let Got::Bin(opcode, stream, _, body) = &replies[0] else { panic!("{replies:?}") };
+    assert_eq!((*opcode, *stream), (op::RESIZED, id));
+    let body: Value = serde_json::from_slice(body).unwrap();
+    assert_eq!((body["cols"].clone(), body["rows"].clone(), body["displayMode"].clone()), (json!(100), json!(30), json!("auto")));
+}
+
+#[test]
+fn given_a_binary_stream_when_the_terminal_exits_then_the_last_output_comes_first_and_then_end() {
+    let mut rig = Rig::new();
+    let id = number(&rig.open_binary(phone()));
+    // When the shell prints and exits before the stream is read
+    rig.terminals.push_output("main", "t1", b"bye\n");
+    rig.terminals.exit("main", "t1", 0);
+    // Then the output is flushed, then end, once
+    assert_eq!(rig.polled(), [Got::Bin(op::OUTPUT, id, 4, b"bye\n".to_vec()), Got::Json(json!({"type": "end"}))]);
+    assert_eq!(rig.polled(), []);
+}
+
+#[test]
+fn given_a_binary_stream_when_the_buffer_is_cleared_then_an_empty_snapshot_follows_and_when_unsubscribed_it_ends() {
+    let mut rig = Rig::new();
+    rig.terminals.output("main", "t1", b"old\n");
+    let id = number(&rig.open_binary(phone()));
+    // When the terminal's buffer is cleared
+    rig.terminals.clear("main", "t1");
+    // Then a fresh snapshot with no chunks arrives at the offset it was cleared at
+    let got = rig.polled();
+    assert_eq!(got.len(), 2);
+    assert_eq!(got[1], Got::Bin(op::SNAPSHOT_END, id, 4, Vec::new()));
+    // When the phone unsubscribes, Then the stream ends and later output is not sent
+    assert_eq!(rig.sent(op::UNSUBSCRIBE, id, b""), [Got::Json(json!({"type": "end"}))]);
+    rig.terminals.push_output("main", "t1", b"more");
+    assert_eq!(rig.polled(), []);
 }

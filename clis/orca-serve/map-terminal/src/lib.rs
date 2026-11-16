@@ -9,6 +9,7 @@ use serde_json::{json, Value};
 
 #[allow(dead_code)] // the stream units that follow call these
 mod replay;
+pub mod binary;
 pub mod resume;
 mod subscribe;
 mod tabs;

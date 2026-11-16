@@ -1,9 +1,12 @@
 //! `terminal.subscribe` over rca's `terminal.read` and a held `terminal.attach`: the refusals, the lease and exited answers and the JSON
 //! stream (`scrollback`, `data`, `end`). The scrollback replays rca's retained tail, there is no screen to serialize.
+use crate::binary::{replay_frames, Binary};
 use crate::replay::{strip_queries, trim_to_budget, Utf8Carry};
+use crate::resume;
 use crate::{addressed, ask, client_param, dimension, handle_of, handle_param, lines_of, parse, refusal, DEFAULT_LINES};
 use agent_api_terminal::{b64, kind, ATTACH, READ};
 use orca_core::wire::{Failure, RUNTIME_ERROR};
+use orca_core::area::Out;
 use orca_core::{Ctx, EventStream, StreamEvent, Subscription};
 use serde_json::{json, Value};
 use std::time::Duration;
@@ -17,6 +20,8 @@ struct Params {
     viewport: Option<(u64, u64)>,
     binary: bool,
     lease_only: bool,
+    output_ack: bool,
+    write_unavailable: bool,
     budget: Option<usize>,
 }
 
@@ -59,9 +64,8 @@ impl Params {
             Some(_) => return Err(Failure::invalid("Invalid input: expected object, received undefined")),
         };
         let (binary, lease_only) = (literal_one(&caps, "terminalBinaryStream")?, literal_one(&caps, "mobileInputLeaseOnly")?);
-        for key in ["desktopViewportClaims", "writeUnavailable", "outputAck"] {
-            literal_one(&caps, key)?;
-        }
+        literal_one(&caps, "desktopViewportClaims")?;
+        let (write_unavailable, output_ack) = (literal_one(&caps, "writeUnavailable")?, literal_one(&caps, "outputAck")?);
         if let Some(resume) = params.get("resume") {
             if resume.get("streamToken").and_then(Value::as_str).is_none_or(str::is_empty) {
                 return Err(Failure::invalid("Missing stream token"));
@@ -75,6 +79,8 @@ impl Params {
             viewport,
             binary,
             lease_only,
+            output_ack,
+            write_unavailable,
             budget: budget.map(|b| b as usize),
         })
     }
@@ -183,14 +189,29 @@ pub(crate) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription
         ctx.subscriptions.cancel(&id);
         return Ok(done);
     }
-    if p.mobile {
-        // The binary stream is the next unit; a mobile client takes only the lease until then.
-        if !(p.lease_only && p.client_id.is_some()) {
-            return Err(Failure::new(RUNTIME_ERROR, "terminal_binary_stream_not_served"));
-        }
+    if p.mobile && p.lease_only && p.client_id.is_some() {
         let lease = stream(vec![subscribed(Vec::new(), false)], None, false);
         ctx.subscriptions.cancel(&id);
         return Ok(lease);
+    }
+    if p.binary {
+        let (cols, rows) = (read["cols"].as_u64().or(p.viewport.map(|v| v.0)), read["rows"].as_u64().or(p.viewport.map(|v| v.1)));
+        let attach = json!({"workspace": workspace, "terminal": terminal, "after_offset": end});
+        let (_, events) = agent.follow(ATTACH.name(), &format!("terminal/{workspace}/{terminal}"), attach, "after_offset").map_err(refusal)?;
+        let number = ctx.stream_number();
+        let token = p.output_ack.then(|| resume::registry().lock().unwrap_or_else(|e| e.into_inner()).register(ctx.connection_id, ctx.device_id, &workspace, &terminal));
+        let mut opened = json!({"type": "subscribed", "streamId": number, "lines": [], "truncated": false, "cols": cols, "rows": rows, "displayMode": "auto"});
+        if let Some(t) = &token {
+            opened["outputAck"] = json!(true);
+            opened["streamToken"] = json!(t.id);
+            resume::registry().lock().unwrap_or_else(|e| e.into_inner()).record(&t.id, 0, end);
+        }
+        let mut carry = Utf8Carry::default();
+        let mut first = vec![Out::Text(opened.to_string())];
+        first.extend(replay_frames(number, &mut carry, &bytes, start, end, p.budget, (cols, rows)));
+        let binary = Binary { id: id.clone(), number, agent: agent.clone(), target: (workspace, terminal), first, events, carry, token, write_unavailable: p.write_unavailable, budget: p.budget, size: (cols, rows), finished: false, units: 0 };
+        ctx.subscriptions.cancel(&id);
+        return Ok(Box::new(binary));
     }
 
     let mut carry = Utf8Carry::default();
