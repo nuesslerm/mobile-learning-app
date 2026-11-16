@@ -386,27 +386,6 @@
       ]
     },
     {
-      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
-      ],
-      "ids": [
-        "t3-command-delegated-task.request-invalid-no-payload",
-        "t3-command-message.dispatch-invalid-no-payload",
-        "t3-rpc-filesystem.browse-invalid-wrong-type-partialPath",
-        "t3-rpc-filesystem.getMetadata-invalid-drop-paths",
-        "t3-rpc-filesystem.getMetadata-invalid-no-payload",
-        "t3-rpc-filesystem.getMetadata-invalid-wrong-type-paths",
-        "t3-rpc-sourceControl.star-invalid-drop-provider",
-        "t3-rpc-sourceControl.star-invalid-no-payload",
-        "t3-rpc-sourceControl.star-invalid-wrong-type-provider",
-        "t3-rpc-terminal.open-invalid-drop-cwd",
-        "t3-rpc-terminal.open-invalid-no-payload",
-        "t3-rpc-terminal.open-invalid-wrong-type-cwd"
-      ]
-    },
-    {
       "class": "missing at steps.http:ret:_.[*].payload.body._tag",
       "severity": "breaking",
       "diffs": [
@@ -535,6 +514,23 @@
         "t3-http-webhooks.webhookPost-invalid-no-payload",
         "t3-http-webhooks.webhookPut-empty-empty-object",
         "t3-http-webhooks.webhookPut-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].defect",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].defect changed drift"
+      ],
+      "ids": [
+        "t3-command-delegated-task.request-invalid-no-payload",
+        "t3-command-message.dispatch-invalid-no-payload",
+        "t3-rpc-sourceControl.star-invalid-drop-provider",
+        "t3-rpc-sourceControl.star-invalid-no-payload",
+        "t3-rpc-sourceControl.star-invalid-wrong-type-provider",
+        "t3-rpc-terminal.open-invalid-drop-cwd",
+        "t3-rpc-terminal.open-invalid-no-payload",
+        "t3-rpc-terminal.open-invalid-wrong-type-cwd"
       ]
     },
     {

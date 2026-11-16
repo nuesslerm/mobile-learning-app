@@ -99,6 +99,8 @@ const SCHEMAS: &[(&str, &str)] = &[
     ("scheduledTasks.listWebhookDeliveries", "id:s acceptAnyOutcome:b?"),
     ("scheduledTasks.getWebhookDelivery", "id:s deliveryId:s acceptAnyOutcome:b?"),
     ("attachments.delete", "attachmentId:s"),
+    ("filesystem.getMetadata", "paths:a"),
+    ("filesystem.browse", "partialPath:s cwd:s?"),
     ("attachments.createUploadUrl", "name:s mimeType:l(image/gif|image/jpeg|image/png|image/webp) sizeBytes:n"),
     ("assets.createUrl", "resource:ar"),
     ("assets.persistChatAttachments", "threadId:s messageId:s attachments:a(uploadImage)"),
@@ -832,6 +834,11 @@ mod tests {
         assert_eq!(upload(json!({"type": "other"})).unwrap(), UPLOAD_UNION);
         assert_eq!(upload(json!("wrong")).unwrap(), UPLOAD_UNION);
         assert_eq!(minimal("attachments.createUploadUrl").and_then(|m| defect("attachments.createUploadUrl", &m)), None);
+        // And the filesystem inputs name their first missing or mistyped field
+        assert_eq!(d("filesystem.getMetadata", json!({})).unwrap(), "Missing key\n  at [\"paths\"]");
+        assert_eq!(d("filesystem.getMetadata", json!({"paths": "wrong"})).unwrap(), "Expected array\n  at [\"paths\"]");
+        assert_eq!(d("filesystem.browse", json!({"partialPath": 7})).unwrap(), "Expected string\n  at [\"partialPath\"]");
+        assert_eq!(minimal("filesystem.browse").and_then(|m| defect("filesystem.browse", &m)), None);
         assert_eq!(d("projects.readFile", json!({})).unwrap(), "Missing key\n  at [\"cwd\"]");
         assert_eq!(d("projects.readFile", json!({"cwd": 7})).unwrap(), "Expected string\n  at [\"cwd\"]");
         // And a worktree setup subscription needs its thread
