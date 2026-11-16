@@ -93,8 +93,8 @@ jobs:
   e2e-tests:
     name: ${{ inputs.platform }}-e2e-tests
     runs-on: ${{ fromJSON(inputs.runner || '"ubuntu-24.04"') }}
-    # the browser job also builds the export (about 4 min) and, cold, the leetcode backend
-    timeout-minutes: ${{ inputs.platform == 'browser' && 55 || 30 }}
+    # the browser job also builds the export (about 4 min) and, cold, the leetcode backend and rca-service
+    timeout-minutes: ${{ inputs.platform == 'browser' && 70 || 30 }}
     concurrency:
       group: e2e-tests-${{ inputs.platform }}
       cancel-in-progress: false
@@ -170,18 +170,36 @@ jobs:
         if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
         timeout-minutes: 3
         run: wf vm ops probe --wait 45 remote-chat-agent leetcode-backend
-      # the browser tests call no deployed service: the leetcode backend is built here and started on loopback (its /health answered
-      # before the export bakes its url). The agent and vm-ops urls bake as a closed port, so a screen that needs them shows its offline state.
+      # the browser tests call no deployed service: the leetcode backend, rca-service, its opencode server and the speech sidecar are
+      # built or installed here and started on loopback (each one's health answered before the export bakes their urls). The vm-ops url
+      # bakes as a closed port, so the screen that needs it shows its offline state. voice-edit and tamil-writing call the real model
+      # through opencode with the vault's OPENCODE_GO_API_KEY.
       - uses: ./.github/actions/sccache-cache
         if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
         with:
           mode: restore
           stage: browser-e2e-tests
-      - name: The leetcode backend on this runner
+      - uses: ./.github/actions/install-test-deps
         if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
-        timeout-minutes: 15
+        with:
+          opencode: 'true'
+      - name: The speech sidecar's python packages
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
         run: |
-          wf test backends up --only leetcode-backend --wait 120 | tee "$RUNNER_TEMP/backends.json"
+          python3 -m venv "$RUNNER_TEMP/stt-venv"
+          "$RUNNER_TEMP/stt-venv/bin/pip" install --quiet -r backend/remote-chat-agent/stt/requirements.txt
+      - name: The backends on this runner
+        if: inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
+        timeout-minutes: 25
+        env:
+          STT_PYTHON: ${{ runner.temp }}/stt-venv/bin/python
+        run: |
+          # from the vault at step time, never the step's env:, which the log header prints; the verb hands it to opencode alone
+          OPENCODE_GO_API_KEY=$(wf secret get OPENCODE_GO_API_KEY --backend bitwarden 2>/dev/null) || { echo "::error::the vault gave no OPENCODE_GO_API_KEY for the opencode server"; exit 1; }
+          echo "::add-mask::$OPENCODE_GO_API_KEY"
+          export OPENCODE_GO_API_KEY
+          # the model loads (and, cold, downloads) at the sidecar's start
+          wf test backends up --only stt,opencode-server,rca-service,leetcode-backend --wait 240 | tee "$RUNNER_TEMP/backends.json"
           jq -e '.ok' "$RUNNER_TEMP/backends.json" >/dev/null
       - name: The emulator's host setup
         if: inputs.platform == 'android' && steps.pick.outputs.any == 'true'
@@ -216,7 +234,8 @@ jobs:
             export "$name=$value"
           done < <(jq -er '.backends[].env | to_entries[] | select(.key | startswith("EXPO_PUBLIC_")) | [.key, .value] | @tsv' "$RUNNER_TEMP/backends.json")
           [ -n "${EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL:-}" ] && [ -n "${EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN:-}" ] || { echo "::error::the started backends gave no leetcode url and token to bake in"; exit 1; }
-          export EXPO_PUBLIC_AGENT_BASE_URL=http://127.0.0.1:1 EXPO_PUBLIC_VM_OPS_API_BASE_URL=http://127.0.0.1:1
+          [ -n "${EXPO_PUBLIC_AGENT_BASE_URL:-}" ] || { echo "::error::the started backends gave no rca-service url to bake in"; exit 1; }
+          export EXPO_PUBLIC_VM_OPS_API_BASE_URL=http://127.0.0.1:1
           # the app's BetterStack forwarder, as the EAS Update bakes it: the browser runs log through the same Logger
           # path; half a pair bakes in neither
           [ -n "${EXPO_PUBLIC_BETTERSTACK_TOKEN:-}" ] || EXPO_PUBLIC_BETTERSTACK_TOKEN=$(wf secret get EXPO_PUBLIC_BETTERSTACK_TOKEN --backend bitwarden 2>/dev/null) || EXPO_PUBLIC_BETTERSTACK_TOKEN=""
@@ -266,7 +285,7 @@ jobs:
         run: |
           # shellcheck disable=SC2086
           wf test run $SELECT --sha "$SHA" --out "$RUNNER_TEMP/e2e-runs" -- $FLAGS | tee "$RUNNER_TEMP/e2e-tests.jsonl"
-      - name: Stop the leetcode backend
+      - name: Stop the backends
         if: always() && inputs.platform == 'browser' && steps.pick.outputs.any == 'true'
         run: wf test backends down
       - uses: ./.github/actions/sccache-cache

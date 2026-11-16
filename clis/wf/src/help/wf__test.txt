@@ -76,16 +76,21 @@ Actions:
                          plain URLs and flags as they are and anything else as set:<8 hex of its hash>, memory is the build's largest
                          process and, with WF_VM_SAMPLE_SECS, the VM's low MemAvailable; or {ok: false, error, next}. `wf test run` refuses
                          an export whose inputs differ from the tree's; a run's result names the baked keys and a digest, never the values.
-  backends up [--only rca-service,leetcode-backend] [--no-build] [--wait <s>] [--dir <dir>] [--rca-port <n>] [--leetcode-port <n>]
+  backends up [--only stt,opencode-server,rca-service,leetcode-backend] [--no-build] [--wait <s>] [--dir <dir>] [--rca-port <n>] [--leetcode-port <n>] [--stt-port <n>] [--opencode-port <n>]
   backends down [--dir <dir>]
                          the services the e2e tests need, on this machine, so no test reaches a deployed one. up builds rca-service
                          and leetcode-backend-rs (`cargo build --locked` into <CARGO_TARGET_DIR or target>/<name>-build; RCA_SERVICE_BIN or
                          LEETCODE_BACKEND_BIN names a prebuilt one, --no-build refuses to build), starts each detached in its own process group
                          on a free loopback port (or --rca-port / --leetcode-port) with secrets made for this run, waits up to --wait (default 60) s for
-                         its GET /health, and prints {ok, dir, backends:[{name, url, host, port, pid, health, bin, log, env}]} (rca-service first); env is
+                         its GET /health, and prints {ok, dir, backends:[{name, url, host, port, pid, health, bin, log, env}]} (start order: stt, opencode-server, rca-service, leetcode-backend); env is
                          what a test or an app export is pointed at it with (RCA_HOST, RCA_PORT, CHAT_AGENT_API_SECRET, WF_TAILNET_SOCKS, SECRETS_BACKEND,
                          EXPO_PUBLIC_AGENT_BASE_URL; EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL and _TOKEN). rca-service reaches an opencode server only
-                         through OPENCODE_SERVER_URL (and _PASSWORD) of the caller's environment: starting one is not part of up. The same
+                         through OPENCODE_SERVER_URL (and _PASSWORD): a bare up takes them from the caller's environment and starts neither of the two below; --only
+                         names them. opencode-server is `opencode serve` of the PATH (OPENCODE_BIN) with the config of backend/remote-chat-agent/opencode-server and
+                         OPENCODE_GO_API_KEY of the caller's environment as its only key (given to the child alone, never printed or written; a missing one fails
+                         naming it), asked at /app; stt is the faster-whisper sidecar (STT_SERVER names the script, STT_PYTHON the python that has its
+                         requirements, STT_MODEL the model, default tiny.en). Started before rca-service, they are the OPENCODE_SERVER_URL, OPENCODE_CWD and
+                         STT_URL it is started with. The same
                          JSON is the state file <dir>/backends.json (default .agents/tmp/e2e-backends, mode 0600: it holds the secrets) with each log
                          beside it. A backend that ends or does not answer stops the ones already started and prints {ok: false, error, next}, exit 1; a second
                          up while they run is refused. down stops each recorded process that is still the program that was started (SIGTERM to its group,

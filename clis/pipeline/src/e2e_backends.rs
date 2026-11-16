@@ -10,23 +10,41 @@ use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
 use wf_kit::args::{parse_spec, Positional, Spec};
 
-const SPEC: Spec = Spec { values: &["only", "dir", "wait", "rca-port", "leetcode-port"], flags: &["no-build"], positional: Positional::Exactly(1), ..Spec::NONE };
+const SPEC: Spec = Spec { values: &["only", "dir", "wait", "rca-port", "leetcode-port", "stt-port", "opencode-port"], flags: &["no-build"], positional: Positional::Exactly(1), ..Spec::NONE };
 const STATE: &str = "backends.json";
 const DEFAULT_WAIT_S: u64 = 60;
 const STOP_WAIT: Duration = Duration::from_secs(5);
 
+/// How a backend's program is found and started.
+#[derive(PartialEq)]
+enum Kind {
+    /// A crate `cargo build` makes.
+    Cargo,
+    /// `opencode serve` of the PATH (or OPENCODE_BIN), for rca-service's model calls; asked at `/app`.
+    Opencode,
+    /// The faster-whisper sidecar (`backend/remote-chat-agent/stt/server.py`, run by STT_PYTHON or python3), for rca-service's transcription.
+    Stt,
+}
+
 /// A backend: where its crate is, which binary it makes, the variable that names a prebuilt one, and how it is asked if it is up.
 struct Def {
     name: &'static str,
+    kind: Kind,
     manifest: &'static str,
     package: &'static str,
     bin_env: &'static str,
     port_flag: &'static str,
+    health: &'static str,
+    /// Started by a bare `up` (the others only when `--only` names them).
+    default: bool,
 }
 
-const DEFS: [Def; 2] = [
-    Def { name: "rca-service", manifest: "backend/remote-chat-agent/Cargo.toml", package: "rca-service", bin_env: "RCA_SERVICE_BIN", port_flag: "rca-port" },
-    Def { name: "leetcode-backend", manifest: "backend/leetcode-backend/Cargo.toml", package: "leetcode-backend-rs", bin_env: "LEETCODE_BACKEND_BIN", port_flag: "leetcode-port" },
+// the order is the start order: rca-service reads the urls of the two before it
+const DEFS: [Def; 4] = [
+    Def { name: "stt", kind: Kind::Stt, manifest: "", package: "stt", bin_env: "STT_SERVER", port_flag: "stt-port", health: "/health", default: false },
+    Def { name: "opencode-server", kind: Kind::Opencode, manifest: "", package: "opencode", bin_env: "OPENCODE_BIN", port_flag: "opencode-port", health: "/app", default: false },
+    Def { name: "rca-service", kind: Kind::Cargo, manifest: "backend/remote-chat-agent/Cargo.toml", package: "rca-service", bin_env: "RCA_SERVICE_BIN", port_flag: "rca-port", health: "/health", default: true },
+    Def { name: "leetcode-backend", kind: Kind::Cargo, manifest: "backend/leetcode-backend/Cargo.toml", package: "leetcode-backend-rs", bin_env: "LEETCODE_BACKEND_BIN", port_flag: "leetcode-port", health: "/health", default: true },
 ];
 
 fn fail(error: impl Into<String>, next: &str) -> i32 {
@@ -46,9 +64,9 @@ pub fn run(args: &[String]) -> i32 {
 }
 
 fn up(p: &wf_kit::args::Parsed, dir: &Path) -> i32 {
-    let wanted: Vec<&str> = p.val("only").map(|v| v.split(',').map(str::trim).filter(|s| !s.is_empty()).collect()).unwrap_or_else(|| DEFS.iter().map(|d| d.name).collect());
+    let wanted: Vec<&str> = p.val("only").map(|v| v.split(',').map(str::trim).filter(|s| !s.is_empty()).collect()).unwrap_or_else(|| DEFS.iter().filter(|d| d.default).map(|d| d.name).collect());
     if let Some(bad) = wanted.iter().find(|w| !DEFS.iter().any(|d| d.name == **w)) {
-        return fail(format!("unknown backend '{bad}'"), "wf test backends up [--only rca-service,leetcode-backend]");
+        return fail(format!("unknown backend '{bad}'"), "wf test backends up [--only stt,opencode-server,rca-service,leetcode-backend]");
     }
     if let Some(state) = read_state(dir) {
         let alive: Vec<String> = recorded(&state).into_iter().filter(|r| is_ours(r)).map(|r| format!("{} (pid {})", r.name, r.pid)).collect();
@@ -62,7 +80,7 @@ fn up(p: &wf_kit::args::Parsed, dir: &Path) -> i32 {
     }
     let mut started: Vec<Value> = Vec::new();
     for def in DEFS.iter().filter(|d| wanted.contains(&d.name)) {
-        match start_one(def, p, dir, wait) {
+        match start_one(def, p, dir, wait, &started) {
             Ok(entry) => started.push(entry),
             Err(error) => {
                 stop_all(&started.iter().filter_map(as_recorded).collect::<Vec<_>>());
@@ -79,7 +97,7 @@ fn up(p: &wf_kit::args::Parsed, dir: &Path) -> i32 {
     0
 }
 
-fn start_one(def: &Def, p: &wf_kit::args::Parsed, dir: &Path, wait: Duration) -> Result<Value, String> {
+fn start_one(def: &Def, p: &wf_kit::args::Parsed, dir: &Path, wait: Duration, peers: &[Value]) -> Result<Value, String> {
     let bin = binary(def, p.flag("no-build"))?;
     let port = match p.val(def.port_flag) {
         Some(v) => v.parse::<u16>().map_err(|_| format!("--{} wants a port number, got '{v}'", def.port_flag))?,
@@ -87,10 +105,22 @@ fn start_one(def: &Def, p: &wf_kit::args::Parsed, dir: &Path, wait: Duration) ->
     };
     let home = dir.join(format!("{}-home", def.name));
     std::fs::create_dir_all(&home).map_err(|e| format!("{}: {e}", home.display()))?;
-    let (server_env, consumer_env) = environment(def, port, &home);
+    let (server_env, consumer_env) = environment(def, port, &home, peers)?;
     let log = dir.join(format!("{}.log", def.name));
     let log_file = std::fs::File::create(&log).map_err(|e| format!("{}: {e}", log.display()))?;
-    let mut command = Command::new(&bin);
+    let mut command = match def.kind {
+        Kind::Cargo => Command::new(&bin),
+        Kind::Opencode => {
+            let mut c = Command::new(&bin);
+            c.args(["serve", "--hostname", "127.0.0.1", "--port", &port.to_string()]);
+            c
+        }
+        Kind::Stt => {
+            let mut c = Command::new(std::env::var_os("STT_PYTHON").filter(|v| !v.is_empty()).unwrap_or_else(|| "python3".into()));
+            c.arg(&bin);
+            c
+        }
+    };
     command.env_clear().env("PATH", std::env::var_os("PATH").unwrap_or_default()).env("HOME", &home).current_dir(&home).envs(server_env.iter().map(|(k, v)| (k.as_str(), v.as_str())));
     // its own process group, so `down` stops it with whatever it started and it outlives this command
     command.process_group(0).stdin(Stdio::null()).stdout(log_file.try_clone().map_err(|e| e.to_string())?).stderr(log_file);
@@ -102,7 +132,7 @@ fn start_one(def: &Def, p: &wf_kit::args::Parsed, dir: &Path, wait: Duration) ->
         if let Ok(Some(status)) = child.try_wait() {
             return Err(format!("{} ended with {status} before /health answered; log {}:\n{}", def.name, log.display(), tail(&log)));
         }
-        if health(addr) {
+        if health(addr, def.health) {
             break;
         }
         if Instant::now() >= deadline {
@@ -114,17 +144,30 @@ fn start_one(def: &Def, p: &wf_kit::args::Parsed, dir: &Path, wait: Duration) ->
     }
     let url = format!("http://127.0.0.1:{port}");
     Ok(json!({
-        "name": def.name, "url": url, "host": "127.0.0.1", "port": port, "pid": pid, "health": format!("{url}/health"),
+        "name": def.name, "url": url, "host": "127.0.0.1", "port": port, "pid": pid, "health": format!("{url}{}", def.health),
         "bin": bin.display().to_string(), "log": log.display().to_string(),
         "env": consumer_env.into_iter().map(|(k, v)| (k, Value::String(v))).collect::<serde_json::Map<String, Value>>(),
     }))
 }
 
 /// The server's own environment and the one a test (or an app export) points at it with. Secrets are made for this run alone.
-fn environment(def: &Def, port: u16, home: &Path) -> (Vec<(String, String)>, Vec<(String, String)>) {
+fn environment(def: &Def, port: u16, home: &Path, peers: &[Value]) -> Result<(Vec<(String, String)>, Vec<(String, String)>), String> {
     let s = |k: &str, v: String| (k.to_string(), v);
     let url = format!("http://127.0.0.1:{port}");
-    match def.name {
+    let peer_url = |name: &str| peers.iter().find(|p| p["name"] == name).and_then(|p| p["url"].as_str().map(str::to_string));
+    Ok(match def.name {
+        "stt" => (vec![s("PORT", port.to_string()), s("STT_MODEL", std::env::var("STT_MODEL").ok().filter(|v| !v.is_empty()).unwrap_or_else(|| "tiny.en".into()))], vec![s("STT_URL", format!("{url}/transcribe"))]),
+        "opencode-server" => {
+            // the key reaches the child through its environment only: not argv, not a file, not the JSON printed below
+            let key = std::env::var("OPENCODE_GO_API_KEY").ok().filter(|v| !v.is_empty()).ok_or("opencode-server needs OPENCODE_GO_API_KEY in the environment (wf secret get OPENCODE_GO_API_KEY --backend bitwarden)")?;
+            let config = wf_kit::root::repo_root().join("backend/remote-chat-agent/opencode-server/server-config.json");
+            let server = vec![
+                s("OPENCODE_API_KEY", key),
+                s("OPENCODE_CONFIG", config.display().to_string()),
+                s("npm_config_cache", home.join("npm-cache").display().to_string()),
+            ];
+            (server, vec![s("OPENCODE_SERVER_URL", url)])
+        }
         "rca-service" => {
             let secret = random_hex();
             let mut server = vec![
@@ -135,11 +178,21 @@ fn environment(def: &Def, port: u16, home: &Path) -> (Vec<(String, String)>, Vec
                 s("RCA_ASK_ROOT", home.join("asks").display().to_string()),
                 s("RCA_LEDGER_FILE", home.join("ledger.json").display().to_string()),
             ];
-            // the opencode server the service talks to is the caller's to start (`OpencodeServer`, or `opencode serve`)
-            for key in ["OPENCODE_SERVER_URL", "OPENCODE_SERVER_PASSWORD"] {
-                if let Some(v) = std::env::var(key).ok().filter(|v| !v.is_empty()) {
-                    server.push(s(key, v));
+            // the opencode server and the speech sidecar: the ones started just before (--only), else the caller's environment
+            if let Some(u) = peer_url("opencode-server") {
+                server.push(s("OPENCODE_SERVER_URL", u));
+            } else {
+                for key in ["OPENCODE_SERVER_URL", "OPENCODE_SERVER_PASSWORD"] {
+                    if let Some(v) = std::env::var(key).ok().filter(|v| !v.is_empty()) {
+                        server.push(s(key, v));
+                    }
                 }
+            }
+            if let Some(u) = peer_url("stt") {
+                server.push(s("STT_URL", format!("{u}/transcribe")));
+            }
+            if peer_url("opencode-server").is_some() {
+                server.push(s("OPENCODE_CWD", home.display().to_string()));
             }
             let consumer = vec![
                 s("RCA_HOST", "127.0.0.1".into()),
@@ -166,12 +219,20 @@ fn environment(def: &Def, port: u16, home: &Path) -> (Vec<(String, String)>, Vec
             let consumer = vec![s("EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL", url), s("EXPO_PUBLIC_LEETCODE_BACKEND_TOKEN", bearer)];
             (server, consumer)
         }
-    }
+    })
 }
 
 /// The program of a backend: the prebuilt one its variable names, or the one `cargo build` makes (a build directory of its own, which
 /// `exec_testkit::RcaService` shares for `rca-service`, so the same build serves both).
 fn binary(def: &Def, no_build: bool) -> Result<PathBuf, String> {
+    match def.kind {
+        Kind::Opencode => return on_path(def, "opencode"),
+        Kind::Stt => {
+            let path = std::env::var_os(def.bin_env).filter(|v| !v.is_empty()).map(PathBuf::from).unwrap_or_else(|| wf_kit::root::repo_root().join("backend/remote-chat-agent/stt/server.py"));
+            return if path.is_file() { Ok(path) } else { Err(format!("{} is no file", path.display())) };
+        }
+        Kind::Cargo => {}
+    }
     if let Some(named) = std::env::var_os(def.bin_env).filter(|v| !v.is_empty()) {
         let path = PathBuf::from(named);
         return if path.is_file() { Ok(path) } else { Err(format!("{}={} is no file", def.bin_env, path.display())) };
@@ -198,6 +259,15 @@ fn binary(def: &Def, no_build: bool) -> Result<PathBuf, String> {
     }
 }
 
+/// The program a variable names, else `program` found on the PATH (as a full path, which is also what the process's command line shows).
+fn on_path(def: &Def, program: &str) -> Result<PathBuf, String> {
+    if let Some(named) = std::env::var_os(def.bin_env).filter(|v| !v.is_empty()) {
+        let path = PathBuf::from(named);
+        return if path.is_file() { Ok(path) } else { Err(format!("{}={} is no file", def.bin_env, path.display())) };
+    }
+    std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()).map(|d| d.join(program)).find(|p| p.is_file()).ok_or_else(|| format!("no `{program}` on the PATH (or name one in {})", def.bin_env))
+}
+
 fn free_port() -> Result<u16, String> {
     TcpListener::bind("127.0.0.1:0").and_then(|l| l.local_addr()).map(|a| a.port()).map_err(|e| format!("no free loopback port: {e}"))
 }
@@ -208,11 +278,11 @@ fn random_hex() -> String {
     hex::encode(bytes)
 }
 
-/// `GET /health` answered 200.
-fn health(addr: SocketAddr) -> bool {
+/// `GET <path>` answered 200.
+fn health(addr: SocketAddr, path: &str) -> bool {
     let Ok(mut stream) = TcpStream::connect_timeout(&addr, Duration::from_secs(2)) else { return false };
     let _ = stream.set_read_timeout(Some(Duration::from_secs(2)));
-    if stream.write_all(format!("GET /health HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n").as_bytes()).is_err() {
+    if stream.write_all(format!("GET {path} HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n").as_bytes()).is_err() {
         return false;
     }
     let mut head = String::new();

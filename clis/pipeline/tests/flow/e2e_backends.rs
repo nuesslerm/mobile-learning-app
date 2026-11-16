@@ -165,3 +165,59 @@ fn given_the_leetcode_backend_up_when_its_env_is_read_then_every_name_is_one_the
     assert!(names.iter().all(|n| config.contains(n)), "appConfig.ts does not read every name in {names:?}");
     sb.wf(&["down"], &rca, &leetcode);
 }
+
+const OPENCODE: &str = "#!/usr/bin/env python3\nimport http.server, os, sys\nport = int(sys.argv[sys.argv.index('--port') + 1])\nopen('@SEEN@', 'w').write(os.environ.get('OPENCODE_API_KEY', '') + ' ' + ' '.join(sys.argv[1:]))\nclass H(http.server.BaseHTTPRequestHandler):\n    def do_GET(self):\n        self.send_response(200 if self.path == '/app' else 404)\n        self.end_headers()\n    def log_message(self, *a): pass\nhttp.server.ThreadingHTTPServer(('127.0.0.1', port), H).serve_forever()\n";
+const RCA_SEEN: &str = "#!/usr/bin/env python3\nimport http.server, json, os\nopen('@SEEN@', 'w').write(json.dumps({k: os.environ.get(k) for k in ['OPENCODE_SERVER_URL', 'STT_URL', 'OPENCODE_CWD']}))\nclass H(http.server.BaseHTTPRequestHandler):\n    def do_GET(self):\n        self.send_response(200)\n        self.end_headers()\n    def log_message(self, *a): pass\nhttp.server.ThreadingHTTPServer(('127.0.0.1', int(os.environ['PORT'])), H).serve_forever()\n";
+
+#[test]
+fn given_the_voice_stack_when_up_runs_then_rca_service_is_started_pointing_at_the_opencode_server_and_the_stt_sidecar_and_the_key_is_never_printed() {
+    // Given stand-ins for every piece and a model key in the environment
+    let sb = Sandbox::new();
+    let (rca_seen, oc_seen) = (sb.root.path().join("rca.seen"), sb.root.path().join("oc.seen"));
+    let baked = |body: &str, seen: &Path| body.replace("@SEEN@", &seen.display().to_string());
+    let (rca, leetcode, opencode, stt) = (sb.stub("rca", &baked(RCA_SEEN, &rca_seen)), sb.stub("leetcode", SERVER), sb.stub("opencode", &baked(OPENCODE, &oc_seen)), sb.stub("stt.py", SERVER));
+    let state = sb.state().display().to_string();
+    let run = |args: &[&str], key: Option<&str>| {
+        let mut all = vec!["test", "backends"];
+        all.extend_from_slice(args);
+        all.extend_from_slice(&["--dir", &state]);
+        let mut opts = RunOpts::default()
+            .env("RCA_SERVICE_BIN", &rca.display().to_string())
+            .env("LEETCODE_BACKEND_BIN", &leetcode.display().to_string())
+            .env("OPENCODE_BIN", &opencode.display().to_string())
+            .env("STT_SERVER", &stt.display().to_string())
+            .env("STT_PYTHON", "python3");
+        if let Some(k) = key {
+            opts = opts.env("OPENCODE_GO_API_KEY", k);
+        }
+        let r = run_wf(&all, &opts);
+        (r.exit_code, last_json(&r), r.stdout.clone())
+    };
+    // When the opencode server is asked for without a key
+    let (code, out, _) = run(&["up", "--only", "opencode-server"], None);
+    // Then it fails naming the variable and nothing is left running
+    assert_eq!((code, out["ok"].clone()), (1, json!(false)), "{out}");
+    assert!(out["error"].as_str().unwrap().contains("OPENCODE_GO_API_KEY"), "{out}");
+    // When the stack is started with a key
+    let (code, out, stdout) = run(&["up", "--only", "stt,opencode-server,rca-service"], Some("sk-secret-key-123"));
+    // Then the three answer, in start order, and the opencode server got the key in its environment only
+    assert_eq!(code, 0, "{out}");
+    let names: Vec<&str> = out["backends"].as_array().unwrap().iter().map(|b| b["name"].as_str().unwrap()).collect();
+    assert_eq!(names, ["stt", "opencode-server", "rca-service"]);
+    let (stt_url, oc_url) = (out["backends"][0]["url"].as_str().unwrap(), out["backends"][1]["url"].as_str().unwrap());
+    assert_eq!(out["backends"][1]["health"], json!(format!("{oc_url}/app")));
+    // And rca-service was started with both urls and a working directory the opencode server shares
+    let seen: Value = serde_json::from_str(&std::fs::read_to_string(&rca_seen).unwrap()).unwrap();
+    assert_eq!(seen["OPENCODE_SERVER_URL"], json!(oc_url));
+    assert_eq!(seen["STT_URL"], json!(format!("{stt_url}/transcribe")));
+    assert!(seen["OPENCODE_CWD"].as_str().is_some_and(|c| !c.is_empty()), "{seen}");
+    // And the opencode server got the key and the loopback serve arguments
+    let oc = std::fs::read_to_string(&oc_seen).unwrap();
+    assert!(oc.starts_with("sk-secret-key-123 serve --hostname 127.0.0.1 --port "), "{oc}");
+    // And the app export is pointed at rca-service on loopback
+    assert!(out["backends"][2]["env"]["EXPO_PUBLIC_AGENT_BASE_URL"].as_str().unwrap().starts_with("http://127.0.0.1:"));
+    // And the key is in neither the printed JSON nor the state file
+    assert!(!stdout.contains("sk-secret-key-123"));
+    assert!(!std::fs::read_to_string(sb.state().join("backends.json")).unwrap().contains("sk-secret-key-123"));
+    run(&["down"], None);
+}
