@@ -996,8 +996,6 @@ jobs:
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
-      TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
-      TS_HOSTED_OAUTH_CLIENT_SECRET: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
     with:
       runner: ${{ inputs.runner }}
       platform: browser
@@ -1013,8 +1011,6 @@ jobs:
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
-      TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
-      TS_HOSTED_OAUTH_CLIENT_SECRET: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
     with:
       runner: ${{ inputs.runner }}
       platform: android

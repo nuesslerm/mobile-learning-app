@@ -53,10 +53,6 @@ on:
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN:
         required: false
-      TS_HOSTED_OAUTH_CLIENT_ID:
-        required: false
-      TS_HOSTED_OAUTH_CLIENT_SECRET:
-        required: false
   workflow_dispatch:
     inputs:
       platform:
@@ -83,11 +79,6 @@ on:
 
 permissions:
   contents: read
-
-env:
-  # the flow-tests job of the CI run saves the pnpm store; these jobs never repeat the pack
-  # vm-ops-api's CI port; the android lease (`wf android start-device`) is an exec-script and stays on the admin port
-  WF_VM_CI_PORT: "8081"
 
 jobs:
   e2e-tests:
