@@ -74,11 +74,31 @@ pub(crate) fn http(addr: SocketAddr, method: &str, path: &str, headers: &[(&str,
         request.push_str(&format!("{name}: {value}\r\n"));
     }
     stream.write_all(format!("{request}\r\n{body}").as_bytes())?;
-    let mut raw = String::new();
-    stream.read_to_string(&mut raw)?;
+    let raw = read_response(&mut stream)?;
     let (head, body) = raw.split_once("\r\n\r\n").unwrap_or((&raw, ""));
     let status = head.split(' ').nth(1).and_then(|s| s.parse().ok()).unwrap_or(0);
     Ok((status, serde_json::from_str(body).unwrap_or(Value::Null)))
+}
+
+/// Reads one response: up to its `Content-Length` when it names one (a server may keep the connection open despite `Connection: close`,
+/// as opencode 1.19.0 does for its static pages), else until the server closes it.
+fn read_response(stream: &mut TcpStream) -> std::io::Result<String> {
+    let mut raw = Vec::new();
+    let mut chunk = [0u8; 8192];
+    loop {
+        if let Some(end) = raw.windows(4).position(|w| w == b"\r\n\r\n") {
+            let head = String::from_utf8_lossy(&raw[..end]).to_ascii_lowercase();
+            let length = head.lines().find_map(|l| l.strip_prefix("content-length:")).and_then(|v| v.trim().parse::<usize>().ok());
+            if length.is_some_and(|n| raw.len() >= end + 4 + n) {
+                break;
+            }
+        }
+        match stream.read(&mut chunk)? {
+            0 => break,
+            n => raw.extend_from_slice(&chunk[..n]),
+        }
+    }
+    Ok(String::from_utf8_lossy(&raw).into_owned())
 }
 
 impl RcaService {
@@ -191,5 +211,31 @@ mod tests {
         // And a name that is no file stops the run saying which variable
         let stopped = std::panic::catch_unwind(|| resolve(Some(dir.path().join("missing").into_os_string()), PathBuf::new)).unwrap_err();
         assert!(stopped.downcast_ref::<String>().is_some_and(|message| message.contains("RCA_SERVICE_BIN=") && message.contains("is no file")));
+    }
+}
+
+#[cfg(test)]
+mod http_tests {
+    use super::*;
+
+    #[test]
+    fn given_a_server_that_keeps_the_connection_open_after_a_content_length_response_when_probed_then_the_status_returns_at_once() {
+        // Given a stand-in that answers `GET /app` with a Content-Length and then holds the socket open, as opencode 1.19.0 does
+        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        let addr = listener.local_addr().unwrap();
+        let held = std::thread::spawn(move || {
+            let (mut conn, _) = listener.accept().unwrap();
+            let mut buf = [0u8; 1024];
+            let _ = conn.read(&mut buf);
+            conn.write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: 6\r\n\r\n<html>").unwrap();
+            std::thread::sleep(Duration::from_secs(15));
+        });
+        // When it is probed
+        let started = Instant::now();
+        let result = http(addr, "GET", "/app", &[], "");
+        // Then the status comes back without waiting for the socket to close
+        assert_eq!(result.unwrap().0, 200);
+        assert!(started.elapsed() < Duration::from_secs(5), "{:?}", started.elapsed());
+        drop(held);
     }
 }
