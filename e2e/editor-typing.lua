@@ -166,6 +166,39 @@ local function line(problem, i, indent, content, mistake)
   end
 end
 
+-- The a11y read of the web view's text lags what is typed (two-sum part 1, run 44047720113: an empty read of a field the
+-- screenshot shows complete), so a missing line is waited for first; only a stable read that ends in a prefix of the last
+-- line gets that line's missing suffix typed, and an empty read is never retyped over text that may be there.
+local function missing_lines(p, last, b)
+  local got = {}
+  for l in (b .. "\n"):gmatch("([^\n]*)\n") do got[#got + 1] = l:match("^%s*(.-)%s*$") end
+  local missing = {}
+  for n = 1, last do
+    local want, found = p.lines[n][2], false
+    for _, g in ipairs(got) do if g == want then found = true break end end
+    if not found then missing[#missing + 1] = want end
+  end
+  return missing
+end
+local function read_back(p, last)
+  local b, missing = "", {}
+  local function read() b = buffer() or ""; missing = missing_lines(p, last, b); return #missing == 0 end
+  device:extended_wait_until{condition=read, timeout=5000, optional=true, label=p.id .. ': typed lines read back'}
+  for _ = 1, 2 do
+    if read() or b == "" then break end
+    local seen = b
+    device:extended_wait_until{condition=function() return (buffer() or "") ~= seen end, timeout=1500, optional=true, label='read still changing'}
+    if (buffer() or "") ~= seen then break end
+    local tail = p.lines[last][2]
+    local have = seen:match("([^\n]*)$"):match("^%s*(.-)%s*$")
+    if #missing ~= 1 or missing[1] ~= tail or tail:sub(1, #have) ~= have then break end
+    typ(tail:sub(#have + 1))
+    device:extended_wait_until{condition=read, timeout=3000, optional=true, label=p.id .. ': suffix read back'}
+  end
+  read()
+  return b, missing
+end
+
 local result = {}
 for _, p in ipairs(SOL) do
   row1_at = 1
@@ -251,17 +284,11 @@ for _, p in ipairs(SOL) do
     line(p.id, n - 1, p.lines[n][1], p.lines[n][2], n == 1)
   end
   r.keyboard_while_typing_end = device:get_device_state('keyboard').visible
-  local b = buffer() or ""
+  local b, missing = read_back(p, last)
   r.buffer_tail = b:sub(-160)
-  local got = {}
-  for l in (b .. "\n"):gmatch("([^\n]*)\n") do got[#got + 1] = l:match("^%s*(.-)%s*$") end
-  local all = true
-  for n = 1, last do
-    local want, found = p.lines[n][2], false
-    for _, g in ipairs(got) do if g == want then found = true break end end
-    all = all and found
-  end
-  r.lines_match = all
+  r.lines_match = #missing == 0
+  r.missing = missing
+  r.field_read_empty = b == ""
   done()
   if android then r.keyboard_after_done = device:get_device_state('keyboard').visible end
   device:take_screenshot(("%s/%s-keyboard-down.png"):format(out, p.id))
@@ -302,7 +329,8 @@ for _, p in ipairs(SOL) do
   local r = result[p.id]
   assert_true(r.keyboard_at_start, p.id .. ": keyboard not shown")
   assert_true(r.toolbar_above_keyboard, p.id .. ": toolbar not above the keyboard")
-  assert_true(r.lines_match, p.id .. ": typed code does not match")
+  assert_true(r.lines_match, ("%s: typed code does not match: missing %s; the field read %s"):format(p.id, json.encode(r.missing),
+    r.field_read_empty and "empty" or "..." .. json.encode(r.buffer_tail)))
   assert_true(not r.final or (r.run_local and r.run_local:match("passed")), p.id .. ": Run Local did not pass: " .. tostring(r.run_local))
   assert_true(#r.warnings == 0, p.id .. ": JS warnings: " .. tostring(r.warnings[1]))
 end
