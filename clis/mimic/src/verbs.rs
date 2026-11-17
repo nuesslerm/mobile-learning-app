@@ -22,7 +22,7 @@ use mimic_core::import::{self as legacy, Legacy};
 use mimic_core::differ::{diff_cassettes, Label, Severity, Verdict};
 use mimic_core::gaps;
 use mimic_core::fixtures::{scan, FixtureFile, FixtureRules};
-use mimic_core::ports::{CassetteSet, Store, StoreError};
+use mimic_core::ports::{CassetteSet, Driver, DriverError, Hello, Observed, Request, Store, StoreError};
 use mimic_core::rules::RuleSet;
 use mimic_core::ports::Checkpoint;
 use mimic_core::record::{record_planned, DoubleRun, Plan, Progress};
@@ -33,7 +33,7 @@ use std::path::{Path, PathBuf};
 use wf_kit::args::{parse_spec, Parsed, Positional, Spec};
 
 const RECORD: Spec = Spec { values: &["target", "seed", "recorded-on", "source", "stand-in", "chunk", "batch", "write-chunk", "stability", "max-minutes"], flags: &["keep-raw", "allow-nondeterministic", "resume", "fresh"], positional: Positional::Exactly(1), ..Spec::NONE };
-const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "rows", "gaps", "allowlist", "suite"], positional: Positional::Exactly(1), ..Spec::NONE };
+const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "rows", "gaps", "allowlist", "suite", "addr", "workspace", "mint"], positional: Positional::Exactly(1), ..Spec::NONE };
 const DIFF: Spec = Spec { values: &["allowlist"], positional: Positional::Exactly(2), ..Spec::NONE };
 const IMPORT: Spec = Spec { values: &["out", "root", "allowlist", "pin"], positional: Positional::Exactly(2), ..Spec::NONE };
 const EXPORT: Spec = Spec { values: &["out"], positional: Positional::Exactly(2), ..Spec::NONE };
@@ -333,12 +333,19 @@ fn replay(p: &Parsed) -> Done {
         Some(other) => return Err(fail(format!("--gaps takes check or write, not {other:?}"), format!("wf mimic replay {} --gaps check", set.dir.display()))),
     };
     let started = wf_kit::time::now_ms();
+    let candidate = &with_server(candidate, p)?;
     let mut driver = open_driver(candidate, candidate.spec.clone()).map_err(|e| fail(e, "fix [candidate] in mimic.toml"))?;
-    let verdict = replay_set(&content, &mut *driver, &allow, &cfg.diff, only.as_deref()).map_err(|e| fail(e.to_string(), "fix rules.json"))?;
+    // a session's own setup (the pairing, its first project and thread) is not an interaction: it runs before the first window opens
+    if candidate.script.as_ref().is_some_and(|s| s.session && s.prelude.is_some()) {
+        let _ = driver.run(&Request { id: "session-start".into(), op: Some("script".into()), input: json!({"script": [], "prelude": "session"}) });
+    }
+    let mut timed = Timed { inner: &mut *driver, windows: Vec::new() };
+    let verdict = replay_set(&content, &mut timed, &allow, &cfg.diff, only.as_deref()).map_err(|e| fail(e.to_string(), "fix rules.json"))?;
+    let windows = timed.windows;
     let rows = evidence(&verdict, &content.cassette);
     let mut evidence_paths = json!({"report": null, "trace": null});
     if let Some(suite) = p.val("suite") {
-        let (report, trace) = write_suite(suite, &set.name, &content, &verdict, started).map_err(|e| fail(e, "set WF_TEST_OUTPUT_DIR to a writable directory"))?;
+        let (report, trace) = write_suite(suite, &set.name, &content, &verdict, started, &windows).map_err(|e| fail(e, "set WF_TEST_OUTPUT_DIR to a writable directory"))?;
         evidence_paths = json!({"report": report.display().to_string(), "trace": trace.display().to_string()});
     }
     warnings.extend(verdict.unused_allowlist.iter().map(|u| format!("allowlist entry {u} matched nothing: stale or over-broad")));
@@ -397,9 +404,60 @@ fn replay(p: &Parsed) -> Done {
     Ok((out, i32::from(!ok)))
 }
 
+/// The call with the wall-clock window (`startMs`, `endMs`) its interaction ran in, for a caller that attributes what a tap saw to it.
+fn with_window(mut call: Value, windows: &[(String, i64, i64)], id: &str) -> Value {
+    if let Some((_, start, end)) = windows.iter().find(|(w, _, _)| w == id) {
+        call["startMs"] = json!(start);
+        call["endMs"] = json!(end);
+    }
+    call
+}
+
+/// A driver that notes when each of its requests ran.
+struct Timed<'a> {
+    inner: &'a mut dyn Driver,
+    windows: Vec<(String, i64, i64)>,
+}
+
+impl Driver for Timed<'_> {
+    fn hello(&mut self) -> Result<Hello, DriverError> {
+        self.inner.hello()
+    }
+
+    fn run(&mut self, request: &Request) -> Result<Observed, DriverError> {
+        let start = wf_kit::time::now_ms();
+        let observed = self.inner.run(request);
+        self.windows.push((request.id.clone(), start, wf_kit::time::now_ms()));
+        observed
+    }
+
+    fn reset(&mut self) -> Result<(), DriverError> {
+        self.inner.reset()
+    }
+}
+
+/// `--addr`, `--workspace` and `--mint` (a command that prints one credential) fill a `target = "url"` candidate: the server the caller started.
+fn with_server(candidate: &Target, p: &Parsed) -> Result<Target, Fail> {
+    let mut target = candidate.clone();
+    if ["addr", "workspace", "mint"].iter().all(|f| p.val(f).is_none()) {
+        return Ok(target);
+    }
+    match target.script.as_mut() {
+        Some(s) if !s.spawn && !s.orca => {
+            s.addr = p.val("addr").map(String::from).or(s.addr.take());
+            s.workspace = p.val("workspace").map(String::from).or(s.workspace.take());
+            if let Some(mint) = p.val("mint") {
+                s.mint = mint.split_whitespace().map(String::from).collect();
+            }
+            Ok(target)
+        }
+        _ => Err(fail("--addr, --workspace and --mint fill a candidate whose script target is \"url\"", "drop the flags, or make the candidate `driver = \"script\"` with `target = \"url\"`")),
+    }
+}
+
 /// `$WF_TEST_OUTPUT_DIR/<suite>/{report.json, trace.json}`: the harness run record and the method trace (`method-trace/1`) with the
 /// `diff` label and parity `row` of every interaction and the cassette's provenance `kind`, which `wf parity coverage --traces` reads.
-fn write_suite(suite: &str, set: &str, content: &CassetteSet, verdict: &Verdict, started: i64) -> Result<(PathBuf, PathBuf), String> {
+fn write_suite(suite: &str, set: &str, content: &CassetteSet, verdict: &Verdict, started: i64, windows: &[(String, i64, i64)]) -> Result<(PathBuf, PathBuf), String> {
     let base = std::env::var_os("WF_TEST_OUTPUT_DIR").filter(|d| !d.is_empty()).ok_or("--suite needs WF_TEST_OUTPUT_DIR")?;
     let dir = PathBuf::from(base).join(suite);
     std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
@@ -408,7 +466,7 @@ fn write_suite(suite: &str, set: &str, content: &CassetteSet, verdict: &Verdict,
     // one test per interaction: a row is served by a passing test, so one drifting interaction must not fail the others
     let kind = &content.cassette.header.provenance.kind;
     let tests: Vec<Value> = verdict.results.iter().map(|r| json!({"test": format!("{set}::{}", r.id), "cassette": kind, "verdict": if passed(r.label) { "pass" } else { "fail" }, "ms": 0,
-        "calls": [{"id": r.id, "rows": r.row.iter().collect::<Vec<_>>(), "ok": passed(r.label), "diff": r.label, "agent": [], "executor": []}]})).collect();
+        "calls": [with_window(json!({"id": r.id, "rows": r.row.iter().collect::<Vec<_>>(), "ok": passed(r.label), "diff": r.label, "agent": [], "executor": []}), windows, &r.id)]})).collect();
     let app = content.cassette.header.provenance.target.as_ref().map_or("mimic", |t| t.name.as_str());
     let trace = json!({"schema": "method-trace/1", "app": app, "suite": suite, "sha": Value::Null, "complete": true, "tests": tests});
     let cases: Vec<Value> = verdict.results.iter().map(|r| json!({"name": r.id, "verdict": if passed(r.label) { "pass" } else { "fail" }, "ms": 0,

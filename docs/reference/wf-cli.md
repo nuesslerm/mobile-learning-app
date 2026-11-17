@@ -3652,8 +3652,14 @@ Options:
                               longer differs as listed, fails) or write them there (write: the chosen interactions' groups are replaced,
                               the others kept); only the chosen interactions (--rows, --only) are compared. "gaps" holds the result
   --allowlist <file>          replace the allowlist of mimic.toml
+  --addr <host:port>          a `target = "url"` candidate: the server to play against, when it is started by the caller and has no
+                              fixed address (mimic.toml needs no addr then)
+  --workspace <path>          the server's workspace folder, as seen by the server (masked in steps)
+  --mint "<command> <arg>..." the command that prints one credential per pairing, split on spaces (its JSON `credential`, `token`, `code`
+                              or plain output is used)
   --suite <name>              write $WF_TEST_OUTPUT_DIR/<name>/report.json and
-                              trace.json (method-trace/1 with each call's row and diff, and its test's cassette kind)
+                              trace.json (method-trace/1 with each call's row and diff, its wall-clock window startMs/endMs, and
+                              its test's cassette kind; a session's own setup runs before the first window opens)
   -h, --help                  display help for command
 
 Output (schema mimic-replay/1):

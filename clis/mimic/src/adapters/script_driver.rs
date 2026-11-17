@@ -45,8 +45,9 @@ fn launch(target: &Target, spec: &ScriptSpec) -> Result<Box<dyn Launch>, String>
         let runtime = ensure_runtime(&pin, &platform(), &cache(spec), &CurlGet)?;
         Ok(Box::new(SpawnLaunch { runtime: runtime.dir, ready_ms: spec.ready_ms, cli_dir: spec.cli_dir.clone() }))
     } else {
-        let addr = spec.addr.clone().unwrap_or_default().parse().map_err(|e| format!("script addr: {e}"))?;
-        Ok(Box::new(UrlLaunch { addr, workspace: spec.workspace.clone().unwrap_or_default(), mint: spec.mint.clone() }))
+        let addr = spec.addr.as_deref().ok_or("a url target needs addr and workspace (mimic.toml, or --addr and --workspace of the verb)")?.parse().map_err(|e| format!("script addr: {e}"))?;
+        let workspace = spec.workspace.clone().ok_or("a url target needs addr and workspace (mimic.toml, or --addr and --workspace of the verb)")?;
+        Ok(Box::new(UrlLaunch { addr, workspace, mint: spec.mint.clone() }))
     }
 }
 

@@ -95,6 +95,42 @@ fn a_server_that_behaves_the_same_replays_clean_and_one_that_answers_differently
 }
 
 #[test]
+fn a_url_candidate_with_no_address_in_the_file_plays_against_the_server_the_flags_name_and_the_trace_windows_each_call() {
+    // Given a recorded set and a candidate that names no address, as a server started by the caller has none until it runs
+    let w = world();
+    w.record();
+    let toml = w.read("mimic.toml");
+    w.write("mimic.toml", &format!("{toml}\n[candidate.flag]\ndriver = \"script\"\n\n[candidate.flag.script]\ntarget = \"url\"\n"));
+    let out = tempfile::tempdir().unwrap();
+    let addr = server(false).to_string();
+
+    // When it is replayed without the flags, Then the refusal names them
+    let bare = w.run("replay", &["--candidate", "flag"]);
+    assert_eq!(bare.code, 2, "{}", bare.json);
+    assert!(bare.json["error"].as_str().unwrap().contains("--addr"), "{}", bare.json);
+
+    // And when it is replayed with the server's address and workspace and a trace is asked for
+    let before = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64;
+    let set = w.arg();
+    let run = mimic(&["replay", &set, "--candidate", "flag", "--addr", &addr, "--workspace", "/w", "--suite", "flags"], &[("WF_TEST_OUTPUT_DIR", out.path())]);
+
+    // Then every interaction is clean, and each call of the trace carries the window it ran in
+    assert_eq!((run.code, run.json["severity"].clone()), (0, json!("none")), "{}", run.json);
+    let trace: Value = serde_json::from_str(&std::fs::read_to_string(out.path().join("flags/trace.json")).unwrap()).unwrap();
+    let calls: Vec<&Value> = trace["tests"].as_array().unwrap().iter().flat_map(|t| t["calls"].as_array().unwrap()).collect();
+    assert_eq!(calls.len(), 2);
+    for call in calls {
+        let (start, end) = (call["startMs"].as_i64().unwrap(), call["endMs"].as_i64().unwrap());
+        assert!(before <= start && start <= end, "{call}");
+    }
+
+    // And flags on a candidate that is not a url target are refused
+    w.write("mimic.toml", &format!("{toml}\n[candidate.stdio]\ncommand = [\"true\"]\n"));
+    let refused = w.run("replay", &["--candidate", "stdio", "--addr", &addr]);
+    assert_eq!(refused.code, 2, "{}", refused.json);
+}
+
+#[test]
 fn a_script_driver_without_its_script_table_is_refused_when_the_file_is_read() {
     // Given a mimic.toml that names the driver and no table
     let w = world();

@@ -150,9 +150,6 @@ fn script_spec(dir: &Path, name: &str, s: ScriptFile) -> Result<ScriptSpec, Stri
     if orca && s.sidecar.is_empty() {
         return Err(format!("[{name}.script] target \"orca\" needs a sidecar command"));
     }
-    if !spawn && !orca && (s.addr.is_none() || s.workspace.is_none()) {
-        return Err(format!("[{name}.script] target \"url\" needs addr and workspace"));
-    }
     Ok(ScriptSpec {
         spawn,
         orca,
@@ -200,6 +197,7 @@ struct TargetFile {
     live_when_named: Option<String>,
 }
 
+#[derive(Clone)]
 pub struct Target {
     pub name: String,
     pub spec: StdioSpec,
