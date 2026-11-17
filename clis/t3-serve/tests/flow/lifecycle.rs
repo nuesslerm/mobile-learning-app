@@ -86,11 +86,10 @@ fn every_forwarded_command_asks_the_agent_api_for_its_method_and_an_accepted_one
         let asked: Vec<Op> = ops(&h)[before..].to_vec();
         assert_eq!(asked.last(), Some(&expected), "{kind}");
     }
-    // And the rows carry what was accepted: the fork is a thread of the family, the archive was undone and the delete removed the thread
+    // And the rows carry what was accepted: the fork is a thread of the family, the archive was undone and the delete marked the thread deleted, as the real server's projection of a deleted thread does
     let fork = row(&mut rpc, "f1");
     assert_eq!((fork["lineage"]["parentThreadId"].as_str(), fork["lineage"]["relationshipToParent"].as_str()), (Some("t1"), Some("fork")));
-    let gone = rpc.call("orchestration.getThreadProjection", json!({"threadId": "t1"}));
-    assert_eq!((failure(&gone)["_tag"].as_str(), failure(&gone)["threadId"].as_str()), (Some("OrchestrationV2GetThreadProjectionError"), Some("t1")));
+    assert!(row(&mut rpc, "t1")["deletedAt"].is_string());
 }
 
 #[test]
