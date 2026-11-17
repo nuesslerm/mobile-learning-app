@@ -73,8 +73,8 @@ fn every_forwarded_command_asks_the_agent_api_for_its_method_and_an_accepted_one
         (cmd("checkpoint.rollback", json!({"checkpointId": "r1", "scopeId": "s", "restoreFiles": false})), Op::ThreadRollback { thread: t(), turn: "r1".into(), restore_files: false }),
         (cmd("provider-session.detach", json!({"providerSessionId": "s1"})), Op::ThreadDetach { thread: t(), session: "s1".into() }),
         (cmd("subagent.stop", json!({"runId": "r1", "subagentId": "n1"})), Op::WorkflowStop { thread: t(), turn: "r1".into(), workflow: Some("n1".into()) }),
-        (json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}}), Op::ThreadFork { thread: t(), fork: "f1".into(), turn: None, title: None }),
-        (json!({"type": "thread.merge_back", "createdBy": "user", "creationSource": "mobile", "commandId": "c-merge", "sourceThreadId": "f1", "targetThreadId": "t1", "sourcePoint": {}}), Op::ThreadMergeBack { thread: "f1".into(), into: t(), turn: None }),
+        (json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {"type": "latest_stable"}}), Op::ThreadFork { thread: t(), fork: "f1".into(), turn: None, title: None }),
+        (json!({"type": "thread.merge_back", "createdBy": "user", "creationSource": "mobile", "commandId": "c-merge", "sourceThreadId": "f1", "targetThreadId": "t1", "sourcePoint": {"type": "latest_stable"}}), Op::ThreadMergeBack { thread: "f1".into(), into: t(), turn: None }),
         (cmd("thread.delete", json!({"onlyIfUnused": true})), Op::ThreadDelete { thread: t(), only_if_unused: true }),
     ];
     for (command, expected) in table {
@@ -108,6 +108,25 @@ fn a_settle_that_was_accepted_marks_the_row_and_one_the_agent_api_refused_is_its
     // Then T3 answers a dispatch error with that message, and no event was recorded
     assert_eq!(failure(&refused)["message"], message.as_str());
     assert_eq!((h.service.engine().read(|s| s.last_sequence), row(&mut rpc, "t1")["archivedAt"].is_null()), (sequence, true));
+}
+
+#[test]
+fn a_snoozed_thread_projection_carries_limit_recovery_null_and_a_fork_with_no_source_point_is_the_decoders_defect() {
+    // Given a thread, and an agent API that accepts everything
+    let (h, mut rpc) = started();
+    // When the thread is snoozed, and a fork and a merge back name a source point that is no member of the union
+    success(&dispatch(&mut rpc, cmd("thread.snooze", json!({"snoozedUntil": "2030-01-01T00:00:00.000Z"}))));
+    let before = ops(&h).len();
+    let mut point = |kind: &str, source: &str, target: &str| dispatch(&mut rpc, json!({"type": kind, "commandId": format!("c-{kind}"), "createdBy": "user", "creationSource": "web", "sourceThreadId": source, "targetThreadId": target, "sourcePoint": {}}));
+    let (fork, merge) = (point("thread.fork", "t1", "t2"), point("thread.merge_back", "t2", "t1"));
+    // Then the projection's thread row has the key the snooze sets, and both commands are refused as defects without asking the agent API
+    let thread = row(&mut rpc, "t1");
+    assert_eq!((thread["limitRecovery"].clone(), thread["snoozedUntil"].is_null()), (Value::Null, false));
+    assert!(thread.as_object().unwrap().contains_key("limitRecovery"));
+    for exit in [&fork, &merge] {
+        assert!(exit["cause"][0]["defect"].as_str().unwrap().ends_with("at [\"sourcePoint\"]"), "{exit}");
+    }
+    assert_eq!(ops(&h).len(), before);
 }
 
 #[test]
@@ -189,7 +208,7 @@ fn a_thread_is_marked_unread_only_once_a_run_of_it_completed_and_the_visit_is_th
 fn titles_and_link_metadata_answer_for_the_threads_t3_holds_and_leave_the_rest_out() {
     // Given threads t1 and a fork f1
     let (_h, mut rpc) = started();
-    success(&dispatch(&mut rpc, json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}})));
+    success(&dispatch(&mut rpc, json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {"type": "latest_stable"}})));
     // When the client asks for the titles and the link metadata of t1, f1 and an unknown thread
     let titles = rpc.call("orchestration.getThreadTitles", json!({"threadIds": ["t1", "f1", "nobody"]}));
     let meta = rpc.call("orchestration.getThreadLinkMetadata", json!({"threadIds": ["t1", "nobody"]}));
@@ -212,7 +231,7 @@ fn titles_and_link_metadata_answer_for_the_threads_t3_holds_and_leave_the_rest_o
 fn search_family_and_the_shelf_answer_t3s_shapes_from_what_the_agent_api_found() {
     // Given threads t1 and a fork f1, and an agent API that finds t1 by title and by a message, knows the family and holds both on the shelf
     let (h, mut rpc) = started();
-    success(&dispatch(&mut rpc, json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {}})));
+    success(&dispatch(&mut rpc, json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {"type": "latest_stable"}})));
     let hits = SearchResult {
         matches: vec![
             SearchHit { thread: "t1".into(), title: "Thread t1".into(), source: HitSource::Title, snippet: None, at_ms: None },

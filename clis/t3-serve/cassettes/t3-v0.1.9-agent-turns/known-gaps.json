@@ -739,43 +739,6 @@
       "ids": [
         "t3-agent-queued-run.start"
       ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:s1.[*].payload.exit.cause.[*].defect",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:s1.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:s1.[0].payload.exit.cause.[0].defect missing breaking",
-        "steps.ws:s2c:s1.[0].payload.exit.cause.[0].error extra drift"
-      ],
-      "ids": [
-        "t3-agent-thread.fork"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:s1.[*].payload.exit.cause.[*].defect",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:s1.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:s1.[0].payload.exit.cause.[0].defect missing breaking",
-        "steps.ws:s2c:s1.[0].payload.exit.cause.[0].error extra drift",
-        "steps.ws:s2c:s2.[0].payload.exit.cause.[0]._tag changed drift",
-        "steps.ws:s2c:s2.[0].payload.exit.cause.[0].defect missing breaking",
-        "steps.ws:s2c:s2.[0].payload.exit.cause.[0].error extra drift"
-      ],
-      "ids": [
-        "t3-agent-thread.merge_back"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:s2.[*].payload.exit.value.thread.limitRecovery",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:s2.[0].payload.exit.value.thread.limitRecovery missing breaking"
-      ],
-      "ids": [
-        "t3-agent-thread.snooze"
-      ]
     }
   ]
 }

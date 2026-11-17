@@ -194,10 +194,10 @@ const COMMANDS: &[(&str, &str)] = &[
     ("thread.pull-request.watch", "commandId:s threadId:s host:s repository:s number:n watching:b link:o?"),
     ("thread.model-selection.set", "commandId:s threadId:s modelSelection:ms"),
     ("provider.switch", "commandId:s threadId:s modelSelection:ms"),
-    ("thread.fork", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x title:s? sideChat:b? createdAt:dt?"),
+    ("thread.fork", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:sp title:s? sideChat:b? createdAt:dt?"),
     ("message.dispatch", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s threadId:s messageId:s text:s attachments:a? dispatchMode:x? notification:o(notification)?"),
     ("queued-run.edit", "context:x? commandId:s threadId:s runId:s text:s"),
-    ("thread.merge_back", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:x createdAt:dt?"),
+    ("thread.merge_back", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s sourceThreadId:s targetThreadId:s sourcePoint:sp createdAt:dt?"),
     ("delegated_task.request", "createdBy:l(user|agent|system) creationSource:l(web|mobile|mcp|provider|server) commandId:s parentThreadId:s parentRunId:s parentNodeId:s task:s title:s? modelSelection:ms runtimeMode:l(approval-required|auto-accept-edits|auto|full-access) interactionMode:l(default|plan) workspaceStrategy:x? completionWake:l(always|settled_only)? createdAt:dt?"),
 ];
 
@@ -339,6 +339,7 @@ fn minimal_of(schema: &str) -> Value {
             "dt" => Value::from("2026-01-01T00:00:00Z"),
             "kc" => Value::from("chat.new"),
             "ms" => serde_json::json!({"instanceId": "a", "model": "a"}),
+            "sp" => serde_json::json!({"type": "latest_stable"}),
             k if k.starts_with("o(") => NESTED.iter().find(|(n, _)| *n == &k[2..k.len() - 1]).map_or_else(|| Value::Object(Default::default()), |(_, nested)| minimal_of(nested)),
             k if k.starts_with("a(") => Value::Array(Vec::new()),
             k if k.starts_with("r(") => Value::from(bounds(k).0),
@@ -483,6 +484,11 @@ fn decode_in(schema: &str, body: &Map<String, Value>, prefix: &[String]) -> Opti
                 Some(_) => {}
             },
             Some(_) if kind == "x" => {}
+            Some(v) if kind == "sp" => {
+                if let Some(d) = source_point(v, &key) {
+                    return Some(d);
+                }
+            }
             Some(v) if kind == "kc" => {
                 if !keybinding_command(v) {
                     return Some(keybinding_command_defect(&at(&key)));
@@ -527,6 +533,22 @@ fn decode_in(schema: &str, body: &Map<String, Value>, prefix: &[String]) -> Opti
         }
     }
     None
+}
+
+/// `OrchestrationV2ThreadForkSourcePoint`: a union on `type`, so a value with no member's `type` fails with all three members, and a member lacking its id names it.
+fn source_point(value: &Value, key: &[String]) -> Option<String> {
+    let id = match value.get("type").and_then(Value::as_str) {
+        Some("latest_stable") => return None,
+        Some("run") => "runId",
+        Some("checkpoint") => "checkpointId",
+        _ => return Some(format!("Expected {}\n  at {}", tagged_union(&["latest_stable", "run", "checkpoint"], "type"), at(key))),
+    };
+    let at_id: Vec<String> = key.iter().cloned().chain([id.to_string()]).collect();
+    match value.get(id) {
+        None => Some(format!("Missing key\n  at {}", at(&at_id))),
+        Some(v) if !v.is_string() => Some(format!("Expected string\n  at {}", at(&at_id))),
+        Some(_) => None,
+    }
 }
 
 /// `ModelSelection` of the pin: the source struct needs `model`, the instance is `instanceId` or else a string `provider`, then the wire struct
@@ -735,6 +757,20 @@ mod tests {
         assert_eq!((release("latest"), release("1.2.3"), release("1.2.3-rc.1")), (None, None, None));
         assert!(release("1.2").is_some() && release("a").is_some());
         assert_eq!(defect("server.checkOtlpEndpoint", &json!({"signal": "logs", "url": "a"})).unwrap(), "Expected a string matching the RegExp ^https?:\\/\\/.\n  at [\"url\"]");
+    }
+
+    #[test]
+    fn a_fork_or_merge_back_source_point_is_one_of_the_three_members_of_the_union() {
+        let with = |kind: &str, point: Value| command(kind, json!({"createdBy": "user", "creationSource": "web", "commandId": "a", "sourceThreadId": "a", "targetThreadId": "b", "sourcePoint": point}));
+        let union = "Expected { readonly \"type\": \"latest_stable\", ... } | { readonly \"type\": \"run\", ... } | { readonly \"type\": \"checkpoint\", ... }\n  at [\"sourcePoint\"]";
+        for kind in ["thread.fork", "thread.merge_back"] {
+            // Given a source point with no member's type, When decoded, Then the whole union is the defect
+            assert_eq!((with(kind, json!({})).as_deref(), with(kind, json!({"type": "other"})).as_deref()), (Some(union), Some(union)));
+            // And a member without its id names the key, while the three valid points decode
+            assert_eq!(with(kind, json!({"type": "run"})).as_deref(), Some("Missing key\n  at [\"sourcePoint\"][\"runId\"]"));
+            assert_eq!(with(kind, json!({"type": "checkpoint", "checkpointId": 1})).as_deref(), Some("Expected string\n  at [\"sourcePoint\"][\"checkpointId\"]"));
+            assert_eq!([json!({"type": "latest_stable"}), json!({"type": "run", "runId": "r"}), json!({"type": "checkpoint", "checkpointId": "c"})].map(|p| with(kind, p)), [None, None, None]);
+        }
     }
 
     #[test]

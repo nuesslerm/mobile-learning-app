@@ -53,6 +53,7 @@ fn projection_extras(kind: &str) -> &'static [&'static str] {
         "thread.pinned" => &["pinnedAt"],
         "thread.unpinned" => &["pinOrderKey", "pinnedAt"],
         "thread.auto-settle-set" => &["autoSettleDisabledAt"],
+        "thread.snoozed" => &["limitRecovery"],
         _ => &[],
     }
 }
