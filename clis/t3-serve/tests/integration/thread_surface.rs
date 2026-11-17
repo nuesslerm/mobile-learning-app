@@ -159,6 +159,7 @@ fn queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_s
         success(&phone.command(case, &chain, message("m1", "t1", "work")));
         wait_started(&chain, "claude", 1);
         let run = phone.run_of("t1");
+        phone.begun("t1");
         // And three messages queued behind it (a phone cannot queue one yet, so rca is asked directly)
         for (item, prompt) in [("q1", "first queued"), ("q2", "the steer text"), ("q3", "to cancel")] {
             rca.call("agent.queue", "queue.add", json!({"thread": "t1", "item": item, "prompt": prompt})).expect("rca queues it");

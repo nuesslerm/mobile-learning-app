@@ -16,7 +16,7 @@ pub struct Command {
 }
 
 /// The commands whose effect is the agent API's and whose only mark on the thread's rows is that they were accepted.
-pub const ACCEPTED_ONLY: [&str; 15] = [
+pub const ACCEPTED_ONLY: [&str; 16] = [
     "queue.resume",
     "queued-run.start",
     "queued-run.reorder",
@@ -28,6 +28,7 @@ pub const ACCEPTED_ONLY: [&str; 15] = [
     "prepared-run.retry",
     "subagent.stop",
     "provider-session.detach",
+    "notification.delivery.accept",
     "thread.active.reorder",
     "thread.pull-request.link",
     "thread.pull-request.unlink",
@@ -45,7 +46,7 @@ fn required(kind: &str) -> &'static [&'static str] {
         "thread.fork" | "thread.merge_back" => &["commandId", "sourceThreadId", "targetThreadId"],
         "thread.pin.reorder" | "thread.active.reorder" => &["commandId"],
         k if ACCEPTED_ONLY.contains(&k) => &["commandId", "threadId"],
-        k if k.starts_with("thread.") || k.starts_with("run.") || k == "message.dispatch" => &["commandId", "threadId"],
+        k if k.starts_with("thread.") || k.starts_with("run.") || k.starts_with("prepared-run.") || k == "message.dispatch" => &["commandId", "threadId"],
         _ => &["commandId"],
     }
 }

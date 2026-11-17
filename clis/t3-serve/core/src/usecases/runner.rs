@@ -8,6 +8,9 @@ use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
+/// How long a dispatch waits for the provider to open before it answers anyway.
+const START_WAIT: std::time::Duration = std::time::Duration::from_secs(5);
+
 /// Events a catch-up asks for at a time.
 const PAGE: u32 = 200;
 
@@ -79,13 +82,16 @@ impl Runner {
         which.lock().unwrap_or_else(|p| p.into_inner())
     }
 
+    /// Starts the run's turn and answers once the provider has accepted it or failed to open, as T3 does: a read right after the dispatch sees which.
     pub fn launch(self: &Arc<Self>, launch: Launch) {
         let (me, thread) = (self.clone(), launch.thread_id.clone());
         let key = thread.clone();
+        let (began, wait) = std::sync::mpsc::channel();
         self.spawn(&key, move |stop| {
-            me.run(launch, stop);
+            me.run(launch, stop, began);
             me.drain(&thread);
         });
+        let _ = wait.recv_timeout(START_WAIT);
     }
 
     /// Puts a message behind the running turn in the agent API's queue; the agent API starts it by itself when the turns before it end.
@@ -222,14 +228,23 @@ impl Runner {
         Ok(())
     }
 
-    fn run(&self, launch: Launch, stop: Arc<AtomicBool>) {
+    fn run(&self, launch: Launch, stop: Arc<AtomicBool>, began: std::sync::mpsc::Sender<()>) {
         let (thread, run) = (launch.thread_id.as_str(), launch.run_id.as_str());
         self.log.event("run.started", &[("thread", thread.to_string()), ("run", run.to_string()), ("instance", launch.instance_id.clone())]);
-        let result = self.start(&launch, &stop).and_then(|(turn, after)| self.follow(thread, run, &turn, after));
-        let outcome = match result {
-            _ if stop.load(Ordering::SeqCst) => Outcome::Interrupted,
-            Ok(()) => Outcome::Completed,
-            Err(e) => Outcome::Failed(e.message()),
+        let outcome = match self.start(&launch, &stop) {
+            Err(e) => {
+                self.finish(thread, run, Outcome::OpenFailed(e.message()));
+                let _ = began.send(());
+                Outcome::OpenFailed(e.message())
+            }
+            Ok((turn, after)) => {
+                let _ = began.send(());
+                match self.follow(thread, run, &turn, after) {
+                    _ if stop.load(Ordering::SeqCst) => Outcome::Interrupted,
+                    Ok(()) => Outcome::Completed,
+                    Err(e) => Outcome::Failed(e.message()),
+                }
+            }
         };
         // A turn that finished has ended its run already, so this records nothing for it
         self.finish(thread, run, outcome.clone());

@@ -292,6 +292,19 @@ impl Phone {
         }
     }
 
+    /// Waits until the provider's turn has shown something on the thread's rows: a steer is refused before that, as T3 refuses it.
+    pub fn begun(&mut self, thread: &str) {
+        let deadline = Instant::now() + SETTLE;
+        loop {
+            let projection = success(&self.calls.call("orchestration.getThreadProjection", json!({"threadId": thread}))).clone();
+            if projection["turnItems"].as_array().is_some_and(|items| items.iter().any(|i| i["type"] == "assistant_message")) {
+                return;
+            }
+            assert!(Instant::now() < deadline, "{thread}'s turn never showed output");
+            std::thread::sleep(Duration::from_millis(50));
+        }
+    }
+
     /// A message to `thread` as one call of the trace, which ends when the run it started has: served when the command was accepted and the
     /// run completed, so the call's window holds the whole turn (the agent API calls, the executor's tools).
     pub fn message(&mut self, case: &mut Case, chain: &Chain, thread: &str, command_id: &str, text: &str) -> Value {

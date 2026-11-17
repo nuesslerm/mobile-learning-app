@@ -124,6 +124,10 @@ fn dispatch_failure(command_id: &str, command_type: &str, message: &str, cause: 
 }
 
 pub fn dispatch_error(command_id: &str, command_type: &str, message: &str) -> Value {
+    if command_type == "queued-run.edit" {
+        let cause = json!({"cause": message, "message": format!("Orchestration command {command_type} ({command_id}) was rejected before commit."), "name": "OrchestratorCommandRejectedError"});
+        return dispatch_failure(command_id, command_type, message, cause);
+    }
     let cause = json!({"cause": message, "message": format!("Failed to dispatch orchestration command {command_type} ({command_id})."), "name": "OrchestratorDispatchError"});
     dispatch_failure(command_id, command_type, message, cause)
 }

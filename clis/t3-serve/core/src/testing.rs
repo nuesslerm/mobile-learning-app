@@ -231,6 +231,8 @@ pub struct ScriptedAgent {
     /// else is finished here (failed when `fail` says why, completed otherwise).
     pub script: Mutex<Vec<AgentEventKind>>,
     pub fail: Mutex<Option<String>>,
+    /// While set, a turn is not started at all: the provider cannot open.
+    pub start_error: Mutex<Option<AgentError>>,
     /// While true a turn runs until it is interrupted, when it finishes `Interrupted`.
     pub hold: std::sync::atomic::AtomicBool,
     pub created: Mutex<Vec<AgentThread>>,
@@ -333,6 +335,9 @@ impl AgentApi for ScriptedAgent {
     fn start_turn(&self, turn: &AgentTurn) -> Result<String, AgentError> {
         self.called("turn.start");
         self.turns.lock().unwrap().push(turn.clone());
+        if let Some(error) = self.start_error.lock().unwrap().clone() {
+            return Err(error);
+        }
         let id = {
             let mut agents = self.state();
             if agents.running.contains_key(&turn.thread_id) {

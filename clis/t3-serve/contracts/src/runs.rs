@@ -41,6 +41,11 @@ pub fn session_id(instance: &str, thread: &str, uuid: &str) -> String {
     format!("provider-session:provider-instance:{instance}:thread:{thread}:{uuid}")
 }
 
+/// The session a provider that could not be opened is listed under.
+pub fn shared_session_id(instance: &str) -> String {
+    format!("provider-session:provider-instance:{instance}:shared")
+}
+
 pub fn handoff_id(instance: &str, thread: &str, uuid: &str) -> String {
     format!("context-handoff:thread:{thread}:from-provider-instance:{instance}:to-provider-instance:{instance}:{uuid}")
 }
@@ -114,7 +119,7 @@ pub fn derive(thread: &str, shell: &Map<String, Value>, runs: &[Value], workspac
         .iter()
         .map(|r| {
             let id = text(r, "id");
-            let status = if r["status"] == "queued" { json!("pending") } else { r["status"].clone() };
+            let status = if matches!(r["status"].as_str(), Some("queued" | "preparing")) { json!("pending") } else { r["status"].clone() };
             let mut row = json!({"attemptOrdinal": 1, "completedAt": r["completedAt"], "id": attempt_id(&id), "providerInstanceId": r["providerInstanceId"], "providerThreadId": pt, "providerTurnId": null, "reason": "initial", "rootNodeId": node_id(&id), "runId": id, "startedAt": r["startedAt"], "status": status});
             if is_started(r) {
                 row["nativeThreadId"] = r["nativeThreadId"].clone();
@@ -128,11 +133,11 @@ pub fn derive(thread: &str, shell: &Map<String, Value>, runs: &[Value], workspac
         .iter()
         .map(|r| {
             let id = text(r, "id");
-            let status = if r["status"] == "queued" { json!("pending") } else { r["status"].clone() };
-            json!({"checkpointScopeId": scope_id(thread), "completedAt": r["completedAt"], "countsForRun": true, "id": node_id(&id), "kind": "root_turn", "nativeItemRef": null, "parentNodeId": null, "providerThreadId": pt, "providerTurnId": null, "rootNodeId": node_id(&id), "runId": id, "runtimeRequestId": null, "startedAt": r["startedAt"], "status": status, "threadId": thread})
+            let status = if matches!(r["status"].as_str(), Some("queued" | "preparing")) { json!("pending") } else { r["status"].clone() };
+            json!({"checkpointScopeId": if r["status"] == "preparing" { Value::Null } else { json!(scope_id(thread)) }, "completedAt": r["completedAt"], "countsForRun": true, "id": node_id(&id), "kind": "root_turn", "nativeItemRef": null, "parentNodeId": null, "providerThreadId": pt, "providerTurnId": null, "rootNodeId": node_id(&id), "runId": id, "runtimeRequestId": null, "startedAt": r["startedAt"], "status": status, "threadId": thread})
         })
         .collect();
-    let scope_owner = runs.last().filter(|r| r["status"] != "cancelled");
+    let scope_owner = runs.iter().rev().find(|r| r["status"] != "preparing").filter(|r| r["status"] != "cancelled");
     let checkpoint_scopes = scope_owner
         .map(|r| {
             let id = text(r, "id");
@@ -141,6 +146,12 @@ pub fn derive(thread: &str, shell: &Map<String, Value>, runs: &[Value], workspac
         .unwrap_or_default();
     let started: Vec<&Value> = runs.iter().filter(|r| is_started(r)).collect();
     let (provider_sessions, provider_threads) = match started.first() {
+        None if first.is_some_and(|f| f["openFailed"] == true) => {
+            let head = first.unwrap_or(&Value::Null);
+            let stamp = head["completedAt"].clone();
+            let unopened = json!({"appThreadId": thread, "contextUsage": null, "createdAt": stamp, "driver": instance, "firstRunOrdinal": head["ordinal"], "forkedFrom": null, "goal": null, "handoffIds": [], "id": pt, "lastRunOrdinal": runs.last().map_or(Value::Null, |r| r["ordinal"].clone()), "nativeConversationHeadRef": null, "nativeMetadata": null, "nativeThreadRef": null, "ownerNodeId": null, "pendingBackgroundTasks": [], "providerInstanceId": instance, "providerSessionId": shared_session_id(&instance), "status": "not_loaded", "updatedAt": stamp});
+            (vec![], vec![unopened])
+        }
         None => (vec![], vec![]),
         Some(head) => {
             let session = session_id(&instance, thread, &text(head, "sessionUuid"));
@@ -159,7 +170,8 @@ pub fn derive(thread: &str, shell: &Map<String, Value>, runs: &[Value], workspac
             Some(json!({"coveredRunOrdinals": {"from": h["from"], "to": h["to"]}, "createdAt": r["startedAt"], "createdByProviderInstanceId": null, "fromProviderThreadIds": [pt], "id": handoff_id(&instance, thread, h["uuid"].as_str().unwrap_or("")), "status": "ready", "strategy": "delta_since_target_last_seen", "summaryMessageId": null, "summaryText": "", "targetRunId": r["id"], "threadId": thread, "toProviderThreadId": pt, "transferId": null, "updatedAt": r["startedAt"]}))
         })
         .collect();
-    let active_provider_thread = if started.is_empty() { Value::Null } else { json!(pt) };
+    let unopened = first.is_some_and(|f| f["openFailed"] == true);
+    let active_provider_thread = if started.is_empty() && !unopened { Value::Null } else { json!(pt) };
     Rows { runs: run_rows, attempts, nodes, checkpoint_scopes, provider_sessions, provider_threads, context_handoffs, active_provider_thread }
 }
 
@@ -177,5 +189,18 @@ mod tests {
         assert_eq!(provider_thread_id("claudeAgent", &run), "provider-thread:provider:claudeAgent:native-thread:pending%3Arun%3Athread%3Aagent-thread%3Aordinal%3A1");
         assert_eq!(signal_item_id(&run, "interrupt-request"), "turn-item:run:run%3Athread%3Aagent-thread%3Aordinal%3A1:signal:interrupt-request");
         assert_eq!(enc("a b/é"), "a%20b%2F%C3%A9");
+    }
+
+    #[test]
+    fn a_run_that_failed_to_open_lists_its_provider_thread_not_loaded_with_no_session_and_a_preparing_run_has_no_checkpoint_scope() {
+        // Given a first run whose provider never opened and a second one waiting for its workspace
+        let run = |n: u64, status: &str, open_failed: bool| json!({"id": run_id("t", n), "ordinal": n, "status": status, "providerInstanceId": "codex", "startedAt": null, "completedAt": "2026-11-01T00:00:00.000Z", "requestedAt": "2026-11-01T00:00:00.000Z", "openFailed": open_failed});
+        let rows = derive("t", &Map::new(), &[run(1, "failed", true), run(2, "preparing", false)], None);
+        // When the rows are derived, Then the provider thread is not loaded under the shared session, no session is open, and only the first node has the scope
+        let thread = &rows.provider_threads[0];
+        assert_eq!((thread["status"].as_str(), thread["providerSessionId"].as_str(), thread["lastRunOrdinal"].as_u64(), rows.provider_sessions.len()), (Some("not_loaded"), Some("provider-session:provider-instance:codex:shared"), Some(2), 0));
+        assert_eq!((rows.nodes[0]["checkpointScopeId"].is_string(), rows.nodes[1]["checkpointScopeId"].is_null(), rows.attempts[1]["status"].as_str()), (true, true, Some("pending")));
+        assert_eq!(rows.checkpoint_scopes[0]["runId"], run_id("t", 1));
+        assert!(rows.active_provider_thread.is_string());
     }
 }

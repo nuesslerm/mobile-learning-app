@@ -163,6 +163,74 @@ fn a_provider_that_fails_leaves_a_failed_run_with_the_error_in_the_thread() {
     drain(&mut rpc);
 }
 
+#[test]
+fn a_provider_that_cannot_open_ends_the_run_unstarted_with_the_open_failure_row_and_a_stop_after_it_adds_only_its_request() {
+    // Given an agent API whose provider cannot be opened
+    let (h, mut rpc, _thread) = started();
+    *h.agent.start_error.lock().unwrap() = Some(t3_core::ports::AgentError::Failed("provider opencode is not reachable".into()));
+    // When a message is dispatched, and then the thread is stopped and a queued message is sent now
+    success(&dispatch(&mut rpc, message("c-o", "go")));
+    drain(&mut rpc);
+    let failed = projection(&mut rpc);
+    success(&dispatch(&mut rpc, json!({"type": "thread.stop", "commandId": "c-stop", "threadId": "t1"})));
+    let sent_now = dispatch(&mut rpc, json!({"type": "queued-run.start", "commandId": "c-qs", "threadId": "t1", "runId": "run:thread:t1:ordinal:2"}));
+    drain(&mut rpc);
+    let stopped = projection(&mut rpc);
+    // Then the dispatch answered after the open failed: the run is failed with no start, its provider thread is not loaded under the shared session and no session is open
+    let (run, thread) = (&failed["runs"][0], &failed["providerThreads"][0]);
+    assert_eq!((run["status"].as_str(), run["startedAt"].is_null(), failed["attempts"][0]["status"].as_str(), failed["providerSessions"].as_array().map(Vec::len)), (Some("failed"), true, Some("failed"), Some(0)));
+    assert_eq!((thread["status"].as_str(), thread["nativeThreadRef"].is_null(), thread["providerSessionId"].as_str()), (Some("not_loaded"), true, Some("provider-session:provider-instance:opencode:shared")));
+    assert!(failed["thread"]["activeProviderThreadId"].is_string());
+    assert_eq!(last_error(&h, "t1").as_deref(), Some("provider opencode is not reachable"));
+    // And the failure row names the pin's failure, the stop only adds its request row to the failed run, and a queued message is not sent now after a failure
+    let rows = |p: &Value| p["turnItems"].as_array().unwrap().iter().map(|i| (i["type"].as_str().unwrap().to_string(), i["status"].as_str().unwrap().to_string())).collect::<Vec<_>>();
+    assert_eq!(failed["turnItems"][1]["failure"]["class"], "provider_error");
+    assert_eq!(rows(&stopped), [("user_message".to_string(), "completed".to_string()), ("error".into(), "failed".into()), ("run_interrupt_request".into(), "completed".into())]);
+    assert_eq!(stopped["runs"][0]["status"], "failed");
+    assert_eq!(failure(&sent_now)["message"], "A queued user message can only be sent now while the thread is stopped.");
+}
+
+#[test]
+fn a_start_deferred_message_waits_preparing_with_its_workspace_row_and_the_commands_of_a_run_that_is_not_preparing_are_refused_in_t3s_words() {
+    // Given a thread whose first run failed
+    let (h, mut rpc, _thread) = started();
+    *h.agent.start_error.lock().unwrap() = Some(t3_core::ports::AgentError::Failed("provider opencode is not reachable".into()));
+    success(&dispatch(&mut rpc, message("c-o", "go")));
+    // When a message is dispatched with its start deferred and a prepared-run command names the failed run
+    let mut deferred = message("c-d", "later");
+    deferred["dispatchMode"] = json!({"type": "defer_start"});
+    success(&dispatch(&mut rpc, deferred));
+    drain(&mut rpc);
+    let release = dispatch(&mut rpc, json!({"type": "prepared-run.release", "commandId": "c-r", "threadId": "t1", "runId": "run:thread:t1:ordinal:1"}));
+    drain(&mut rpc);
+    let p = projection(&mut rpc);
+    // Then the second run is preparing with a running workspace row and no turn was started for it, and the refusal is T3's
+    let (run, node) = (&p["runs"][1], &p["nodes"][1]);
+    assert_eq!((run["status"].as_str(), run["startedAt"].is_null(), node["status"].as_str(), node["checkpointScopeId"].is_null()), (Some("preparing"), true, Some("pending"), true));
+    let workspace = p["turnItems"].as_array().unwrap().iter().find(|i| i["type"] == "command_execution").unwrap();
+    assert_eq!((workspace["title"].as_str(), workspace["status"].as_str(), workspace["runId"].as_str()), (Some("Preparing workspace"), Some("running"), Some("run:thread:t1:ordinal:2")));
+    assert_eq!(h.agent.turns.lock().unwrap().len(), 1);
+    assert_eq!(failure(&release)["message"], "Run run:thread:t1:ordinal:1 is not awaiting workspace preparation.");
+}
+
+#[test]
+fn an_edit_of_a_run_that_is_not_queued_is_rejected_before_commit_a_notification_is_accepted_and_a_subagent_that_cannot_be_stopped_says_so() {
+    // Given a thread with one failed run
+    let (h, mut rpc, _thread) = started();
+    *h.agent.start_error.lock().unwrap() = Some(t3_core::ports::AgentError::Failed("provider opencode is not reachable".into()));
+    success(&dispatch(&mut rpc, message("c-o", "go")));
+    h.agent.replies.lock().unwrap().insert("queue.edit", Err(t3_core::ports::AgentError::Failed("Run run:thread:t1:ordinal:1 is not queued.".into())));
+    h.agent.replies.lock().unwrap().insert("workflow.stop", Err(t3_core::ports::AgentError::Failed("thread t1 is not running turn x".into())));
+    // When the run is edited, a delivery is accepted and a subagent is stopped
+    let edit = dispatch(&mut rpc, json!({"type": "queued-run.edit", "commandId": "c-e", "threadId": "t1", "runId": "run:thread:t1:ordinal:1", "text": "a"}));
+    let accepted = dispatch(&mut rpc, json!({"type": "notification.delivery.accept", "commandId": "c-n", "threadId": "t1", "messageId": "m-c-o"}));
+    let stop = dispatch(&mut rpc, json!({"type": "subagent.stop", "commandId": "c-s", "threadId": "t1", "runId": "run:thread:t1:ordinal:1", "subagentId": "a"}));
+    // Then the edit's cause is the rejection, the delivery has a sequence, and the subagent refusal is T3's
+    assert_eq!((failure(&edit)["cause"]["name"].as_str(), failure(&edit)["cause"]["message"].as_str(), failure(&edit)["detail"].as_str()), (Some("OrchestratorCommandRejectedError"), Some("Orchestration command queued-run.edit (c-e) was rejected before commit."), Some("Run run:thread:t1:ordinal:1 is not queued.")));
+    assert!(success(&accepted)["sequence"].is_number());
+    assert_eq!(failure(&stop)["message"], "The requested native subagent cannot be stopped on this run.");
+}
+
 fn queued(command_id: &str, text: &str) -> Value {
     json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": command_id, "threadId": "t1", "messageId": format!("m-{command_id}"), "text": text, "dispatchMode": {"type": "queue_after_active"}})
 }
@@ -180,6 +248,10 @@ fn a_message_sent_behind_a_running_turn_is_a_queued_run_in_the_agent_apis_queue_
     drain(&mut rpc);
     // When one message is queued behind it, then another while the agent API refuses to queue
     success(&dispatch(&mut rpc, queued("c-2", "later")));
+    let asked = |h: &Harness| h.agent.ops.lock().unwrap().iter().filter(|o| matches!(o, t3_core::ports::Op::QueueAdd { .. })).count();
+    while asked(&h) < 1 {
+        std::thread::sleep(Duration::from_millis(10));
+    }
     h.agent.replies.lock().unwrap().insert("queue.add", Err(t3_core::ports::AgentError::Failed("the queue is full".into())));
     success(&dispatch(&mut rpc, queued("c-3", "never")));
     drain(&mut rpc);

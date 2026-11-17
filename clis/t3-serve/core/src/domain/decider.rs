@@ -80,7 +80,7 @@ fn one(d: EventDraft) -> Result<Decision, String> {
 }
 
 /// The commands the thread decider builds; the rest of the decoder's union is refused with a typed error.
-pub const SUPPORTED: [&str; 26] = [
+pub const SUPPORTED: [&str; 29] = [
     "thread.settle",
     "thread.unsettle",
     "thread.snooze",
@@ -107,6 +107,9 @@ pub const SUPPORTED: [&str; 26] = [
     "thread.stop",
     "message.dispatch",
     "run.interrupt",
+    "prepared-run.fail",
+    "prepared-run.progress",
+    "prepared-run.release",
 ];
 
 fn row_event(kind: &str, shell: &Map<String, Value>, at: Millis) -> EventDraft {
@@ -289,10 +292,18 @@ pub fn decide_thread(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decision
             marked("thread.pin-reordered", &shell, &["pinOrderKey"], now)
         }
         "thread.user-input.dismiss" => one(draft("thread.command-accepted", Some(id), shell["projectId"].as_str(), now, json!({"commandType": cmd.kind}))),
-        "thread.stop" if active_run(state, id).is_none() => one(draft("thread.command-accepted", Some(id), shell["projectId"].as_str(), now, json!({"commandType": cmd.kind}))),
+        "thread.stop" if active_run(state, id).is_none() => stop_unopened(state, id, cmd.str("reason"), ctx).map_or_else(|| one(draft("thread.command-accepted", Some(id), shell["projectId"].as_str(), now, json!({"commandType": cmd.kind}))), Ok),
         "thread.stop" => interrupt(state, id, None, cmd.str("reason"), true, ctx),
         "run.interrupt" => interrupt(state, id, cmd.str("runId"), cmd.str("reason"), cmd.body.get("holdQueue") == Some(&json!(true)), ctx),
+        "queued-run.start" if active_run(state, id).is_some() || !queued_may_start(state, id) => Err("A queued user message can only be sent now while the thread is stopped.".into()),
         "queued-run.edit" | "queued-run.cancel" | "queued-run.reorder" | "queued-run.start" if queued_run(state, id, cmd.str("runId")).is_some() => queue_command(state, id, cmd, ctx),
+        "prepared-run.fail" | "prepared-run.progress" | "prepared-run.release" => {
+            let run = cmd.require("runId")?;
+            match run_named(state, id, run) {
+                Some(r) if r["status"] == "preparing" => Err(format!("command type {} is not supported by this server", cmd.kind)),
+                _ => Err(format!("Run {run} is not awaiting workspace preparation.")),
+            }
+        }
         "queue.resume" => Ok(Decision { drafts: vec![draft("thread.command-accepted", Some(id), shell["projectId"].as_str(), now, json!({"commandType": cmd.kind}))], effect: Some(Effect::Follow { thread_id: id.to_string(), run_id: None }) }),
         kind if ACCEPTED_ONLY.contains(&kind) => one(draft("thread.command-accepted", Some(id), shell["projectId"].as_str(), now, json!({"commandType": kind}))),
         "thread.pin" => {
@@ -329,6 +340,13 @@ pub fn decide_thread(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decision
         "message.dispatch" => dispatch_message(state, cmd, &shell, ctx),
         other => Err(format!("command type {other} is not supported by this server")),
     }
+}
+
+/// A queued message can be sent now only while the thread is stopped: a thread that has run ended by a stop, which a failed or finished run is not.
+/// Whether a running turn refuses it is the agent API's to say, in the same words, so a running thread passes here.
+pub fn queued_may_start(state: &State, thread: &str) -> bool {
+    let last = state.entities.get(thread).and_then(|e| e.runs.iter().rev().find(|r| r["status"] != "queued"));
+    active_run(state, thread).is_some() || last.is_none_or(|r| r["status"] == "interrupted")
 }
 
 fn active_run(state: &State, thread: &str) -> Option<Value> {
@@ -371,11 +389,21 @@ fn items_of(state: &State, thread: &str, run: &str) -> u64 {
     state.entities.get(thread).map_or(0, |e| e.turn_items.iter().filter(|i| i["runId"] == run).count() as u64)
 }
 
+/// `thread.stop` of a thread whose last run never opened its provider: the pin still records the stop request on that run, which stays failed.
+fn stop_unopened(state: &State, thread: &str, reason: Option<&str>, ctx: &Ctx) -> Option<Decision> {
+    let run = state.entities.get(thread)?.runs.last().filter(|r| r["openFailed"] == true)?.clone();
+    let run_id = run["id"].as_str().unwrap_or("");
+    let pt = thread_provider_thread(state, thread, run["providerInstanceId"].as_str().unwrap_or(""), run_id);
+    let nth = items_of(state, thread, run_id) + 1;
+    let request = signal_item(thread, &run, &pt, runs::signal_item_id(run_id, "interrupt-request"), runs::item_ordinal(run["ordinal"].as_u64().unwrap_or(0), nth), Value::Null, "completed", "Interrupt requested", "run_interrupt_request", reason.unwrap_or("Stopped by user"), &iso(ctx.now));
+    Some(Decision { drafts: vec![draft("turn-item.updated", Some(thread), None, ctx.now, request)], effect: Some(Effect::Interrupt { thread_id: thread.to_string(), hold: true }) })
+}
+
 /// `run.interrupt` and `thread.stop` (which holds the queue). A run whose provider turn has not begun ends at once, with the two signal rows the pin
 /// writes; one that has is told to stop and ends when the turn does.
 fn interrupt(state: &State, thread: &str, named: Option<&str>, reason: Option<&str>, hold: bool, ctx: &Ctx) -> Result<Decision, String> {
     let mut run = match named {
-        Some(id) if run_named(state, thread, id).is_some() => run_named(state, thread, id).filter(|r| r["status"] == "running").ok_or_else(|| format!("Run {id} is not running."))?,
+        Some(id) if run_named(state, thread, id).is_some() => run_named(state, thread, id).filter(|r| r["status"] == "running").ok_or_else(|| format!("Run {id} is not interruptible."))?,
         _ => active_run(state, thread).ok_or_else(|| format!("thread {thread} has no active run"))?,
     };
     let (at, t) = (iso(ctx.now), Some(thread));
@@ -413,11 +441,11 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
         return Err(format!("thread {thread} is archived"));
     }
     let mode = dispatch_mode(cmd);
-    if mode != "start_immediately" && mode != "queue_after_active" {
+    if !["start_immediately", "queue_after_active", "defer_start"].contains(&mode) {
         return Err(format!("dispatch mode {mode} is not supported by this server"));
     }
     let active = active_run(state, thread).is_some();
-    if active && mode == "start_immediately" {
+    if active && mode != "queue_after_active" {
         return Err(format!("thread {thread} already has an active run"));
     }
     let message = cmd.body.get("message").filter(|m| m.is_object());
@@ -434,22 +462,34 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
     let message_entity = json!({"attachments": attachments, "createdAt": at, "createdBy": created_by, "creationSource": source, "id": message_id, "nodeId": runs::node_id(&run_id), "role": "user", "runId": run_id, "streaming": false, "text": text, "threadId": thread, "updatedAt": at});
     let (native, session) = existing.first().map_or_else(|| ((ctx.new_id)(), (ctx.new_id)()), |first| (first["nativeThreadId"].clone().as_str().unwrap_or("").to_string(), first["sessionUuid"].as_str().unwrap_or("").to_string()));
     let queued = active;
+    let preparing = mode == "defer_start";
     let rank = existing.iter().filter_map(|r| r["queueRank"].as_f64()).fold(0.0, f64::max) + 1.0;
     let run = json!({
-        "id": run_id, "threadId": thread, "ordinal": ordinal, "status": if queued { "queued" } else { "running" }, "userMessageId": message_id, "stopRequested": false, "error": null,
-        "providerInstanceId": instance, "modelSelection": shell["modelSelection"], "requestedAt": at, "startedAt": if queued { Value::Null } else { at.clone().into() }, "completedAt": null,
+        "id": run_id, "threadId": thread, "ordinal": ordinal, "status": if queued { "queued" } else if preparing { "preparing" } else { "running" }, "userMessageId": message_id, "stopRequested": false, "error": null,
+        "providerInstanceId": instance, "modelSelection": shell["modelSelection"], "requestedAt": at, "startedAt": if queued || preparing { Value::Null } else { at.clone().into() }, "completedAt": null,
         "nativeThreadId": native, "sessionUuid": session, "queueRank": if queued { json!(rank) } else { Value::Null }, "updatedAt": at,
     });
     let t = Some(thread);
     let mut drafts = vec![draft("message.updated", t, None, ctx.now, message_entity)];
     if !queued {
         let pt = thread_provider_thread(state, thread, &instance, &run_id);
-        drafts.push(draft("turn-item.updated", t, None, ctx.now, user_item(thread, &run, &pt, &message_id, text, &attachments, created_by, source, "turn_start", &at)));
+        let mut item = user_item(thread, &run, &pt, &message_id, text, &attachments, created_by, source, "turn_start", &at);
+        let earlier = state.entities.get(thread).and_then(|e| e.turn_items.iter().find(|i| i["id"] == item["id"])).map(|i| i["ordinal"].clone());
+        if let Some(ordinal) = &earlier {
+            item["ordinal"] = ordinal.clone();
+        }
+        drafts.push(draft("turn-item.updated", t, None, ctx.now, item));
+        if preparing {
+            let nth = items_of(state, thread, &run_id) + u64::from(earlier.is_none()) + 1;
+            let id = format!("turn-item:provider:{instance}:native-item:workspace-preparation{}", runs::enc(&format!(":{run_id}")));
+            let row = json!({"completedAt": null, "id": id, "input": "Preparing workspace", "nativeItemRef": null, "nodeId": runs::node_id(&run_id), "ordinal": runs::item_ordinal(ordinal, nth), "parentItemId": null, "providerThreadId": pt, "providerTurnId": null, "runId": run_id, "startedAt": at, "status": "running", "threadId": thread, "title": "Preparing workspace", "type": "command_execution", "updatedAt": at});
+            drafts.push(draft("turn-item.updated", t, None, ctx.now, row));
+        }
     }
     drafts.push(draft("run.created", t, None, ctx.now, run));
     let launch = Launch {
         thread_id: thread.to_string(),
-        run_id,
+        run_id: run_id.clone(),
         instance_id: instance,
         model,
         prompt: text.to_string(),
@@ -457,7 +497,8 @@ fn dispatch_message(state: &State, cmd: &Command, shell: &Map<String, Value>, ct
         interaction_mode: shell["interactionMode"].as_str().unwrap_or("default").to_string(),
         attachments: attachments.iter().filter_map(|a| a["id"].as_str().map(str::to_string)).collect(),
     };
-    Ok(Decision { drafts, effect: Some(if queued { Effect::Queue(launch) } else { Effect::Launch(launch) }) })
+    let effect = if queued { Some(Effect::Queue(launch)) } else if preparing { None } else { Some(Effect::Launch(launch)) };
+    Ok(Decision { drafts, effect })
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -539,9 +580,6 @@ fn queue_command(state: &State, thread: &str, cmd: &Command, ctx: &Ctx) -> Resul
             Ok(Decision { drafts, effect: None })
         }
         _ => {
-            if active_run(state, thread).is_some() {
-                return Err("A queued user message can only be sent now while the thread is stopped.".into());
-            }
             Ok(Decision { drafts: start_queued(state, thread, &run, Some(false), ctx), effect: Some(Effect::Follow { thread_id: thread.to_string(), run_id: Some(run_id.to_string()) }) })
         }
     }
@@ -658,6 +696,8 @@ pub enum Outcome {
     Completed,
     Interrupted,
     Failed(String),
+    /// The provider's session could not be opened, so the turn never began.
+    OpenFailed(String),
 }
 
 /// What a running turn reports. Text, reasoning and tool output arrive as the pieces the agent API streams, and the thread's rows grow by them.
@@ -752,7 +792,7 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
             let (status, error_text) = match outcome {
                 Outcome::Completed => ("completed", Value::Null),
                 Outcome::Interrupted => ("interrupted", Value::Null),
-                Outcome::Failed(m) => ("failed", json!(logged.clone().unwrap_or_else(|| m.clone()))),
+                Outcome::Failed(m) | Outcome::OpenFailed(m) => ("failed", json!(logged.clone().unwrap_or_else(|| m.clone()))),
             };
             let mut out = vec![];
             if let Some(streaming) = existing(&assistant_id) {
@@ -764,6 +804,17 @@ pub fn decide_run_step(state: &State, thread: &str, run_id: &str, step: &RunStep
                 out.push(error(m));
             }
             let mut ended = run.clone();
+            if matches!(outcome, Outcome::OpenFailed(_)) {
+                let driver = instance.as_str().unwrap_or("");
+                let pt = thread_provider_thread(state, thread, driver, run_id);
+                let mut failed = signal_item(thread, &run, &pt, runs::signal_item_id(run_id, "provider-session-open-failure"), next_ordinal, Value::Null, "failed", "Provider session failed to open", "error", "", &at);
+                let row = failed.as_object_mut().unwrap();
+                row.remove("message");
+                row.insert("failure".into(), json!({"class": "provider_error", "code": null, "message": format!("Failed to open {driver} provider session {}.", runs::shared_session_id(driver)), "retryable": null}));
+                out.push(draft("turn-item.updated", t, None, ctx.now, failed));
+                ended["startedAt"] = Value::Null;
+                ended["openFailed"] = Value::Bool(true);
+            }
             let fields = ended.as_object_mut().unwrap();
             for (k, v) in [("status", json!(status)), ("completedAt", json!(at)), ("updatedAt", json!(at)), ("error", error_text)] {
                 fields.insert(k.into(), v);
@@ -1177,5 +1228,54 @@ mod tests {
         let begun = step(&mut state, second, RunStep::Started);
         // Then the first changed nothing, and the second started the run with its user row
         assert_eq!((early, begun, state.entities["t"].runs[1]["status"].as_str()), (0, 2, Some("running")));
+    }
+
+    #[test]
+    fn a_run_whose_provider_never_opened_fails_unstarted_with_the_open_failure_row_and_the_thread_stop_that_follows_marks_it_without_ending_anything() {
+        // Given a running run on a provider that cannot open
+        let (mut state, run) = running();
+        // When the open fails and the thread is stopped
+        step(&mut state, &run, RunStep::Finished(Outcome::OpenFailed("no driver".into())));
+        let stop = with(&mut state, Family::Thread, json!({"type": "thread.stop", "commandId": "s", "threadId": "t"})).unwrap();
+        // Then the run is failed with no start, the failure row is the pin's, and the stop adds only its request row and holds the queue
+        let ended = &state.entities["t"].runs[0];
+        assert_eq!((ended["status"].as_str(), ended["startedAt"].is_null(), ended["error"].as_str()), (Some("failed"), true, Some("no driver")));
+        let failed = state.entities["t"].turn_items[1].clone();
+        assert_eq!((failed["status"].as_str(), failed["failure"]["message"].as_str(), failed["title"].as_str()), (Some("failed"), Some("Failed to open opencode provider session provider-session:provider-instance:opencode:shared."), Some("Provider session failed to open")));
+        let kinds: Vec<&str> = state.entities["t"].turn_items.iter().map(|i| i["type"].as_str().unwrap()).collect();
+        assert_eq!((kinds, stop.effect), (vec!["user_message", "error", "run_interrupt_request"], Some(Effect::Interrupt { thread_id: "t".into(), hold: true })));
+    }
+
+    #[test]
+    fn a_message_dispatched_to_defer_its_start_waits_preparing_with_its_workspace_row_and_the_prepared_run_commands_refuse_a_run_that_is_not_preparing() {
+        // Given a thread with a failed run
+        let (mut state, run) = running();
+        step(&mut state, &run, RunStep::Finished(Outcome::Failed("x".into())));
+        // When a message is dispatched with its start deferred, and a prepared-run command names each run
+        let sent = with(&mut state, Family::Thread, json!({"type": "message.dispatch", "commandId": "d", "threadId": "t", "message": {"messageId": "m2", "text": "again"}, "dispatchMode": {"type": "defer_start"}})).unwrap();
+        let on = |state: &mut State, kind: &str, run: &str| thread_with(state, json!({"type": kind, "commandId": format!("p-{kind}-{run}"), "threadId": "t", "runId": run})).unwrap_err();
+        let (failed_run, preparing_run) = (on(&mut state, "prepared-run.release", &run), on(&mut state, "prepared-run.progress", "run:thread:t:ordinal:2"));
+        // Then it starts nothing, the run is preparing with a running workspace row, and only the run that is not preparing is refused in T3's words
+        let second = &state.entities["t"].runs[1];
+        assert_eq!((sent.effect, second["status"].as_str(), second["startedAt"].is_null()), (None, Some("preparing"), true));
+        let workspace = state.entities["t"].turn_items.iter().find(|i| i["type"] == "command_execution").unwrap();
+        assert_eq!((workspace["title"].as_str(), workspace["status"].as_str(), workspace["ordinal"].as_u64()), (Some("Preparing workspace"), Some("running"), Some(2_000_002)));
+        assert_eq!(failed_run, format!("Run {run} is not awaiting workspace preparation."));
+        assert!(preparing_run.contains("not supported"), "{preparing_run}");
+    }
+
+    #[test]
+    fn a_queued_message_is_sent_now_only_after_a_stop_and_an_interrupt_of_a_run_that_is_not_running_is_not_interruptible() {
+        // Given a failed run
+        let (mut state, run) = running();
+        step(&mut state, &run, RunStep::Finished(Outcome::Failed("x".into())));
+        // When the run is interrupted
+        let interrupt = thread_with(&mut state, json!({"type": "run.interrupt", "commandId": "i", "threadId": "t", "runId": run})).unwrap_err();
+        // Then T3 says it is not interruptible, and a thread that failed is not stopped but one that was interrupted is
+        assert_eq!(interrupt, format!("Run {run} is not interruptible."));
+        assert!(!queued_may_start(&state, "t"));
+        let (mut stopped, run) = running();
+        with(&mut stopped, Family::Thread, json!({"type": "run.interrupt", "commandId": "i", "threadId": "t", "runId": run})).unwrap();
+        assert!(queued_may_start(&stopped, "t"));
     }
 }

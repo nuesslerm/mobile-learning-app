@@ -2,7 +2,7 @@
 //! thread's rows. A command that a person's device keeps (pins, visits, modes, the order of the lists) is also kept in the agent API's `state`.
 use super::service::Service;
 use crate::domain::command::Command;
-use crate::domain::decider::provider_turn_running;
+use crate::domain::decider::{provider_turn_running, queued_may_start};
 use crate::ports::{AgentError, AgentThread, Op};
 use serde_json::{json, Value};
 
@@ -129,6 +129,7 @@ impl Service {
             "prepared-run.retry" => return Err(format!("Run {} has no failed workspace preparation to retry.", run("runId")?)),
             "provider-session.detach" => vec![Op::ThreadDetach { thread, session: run("providerSessionId")? }],
             "queue.resume" => vec![Op::QueueResume { thread, item: None }],
+            "queued-run.start" if !self.engine().read(|state| queued_may_start(state, &thread)) => return Err("A queued user message can only be sent now while the thread is stopped.".into()),
             "queued-run.start" => vec![Op::QueueResume { thread, item: Some(run("runId")?) }],
             "queued-run.reorder" => vec![Op::QueueMove { thread, item: run("runId")?, before: cmd.str("beforeRunId").map(str::to_string) }],
             "queued-run.cancel" => vec![Op::QueueDelete { thread, item: run("runId")? }],
@@ -180,7 +181,7 @@ impl Service {
         }
         let mut kept = false;
         for op in &ops {
-            let answer = self.ask(op)?;
+            let answer = self.ask(op).map_err(|message| if cmd.kind == "subagent.stop" { "The requested native subagent cannot be stopped on this run.".to_string() } else { message })?;
             kept |= matches!(op, Op::ThreadDelete { .. }) && answer["deleted"] == json!(false);
         }
         Ok(if kept { Forwarded::Kept } else { Forwarded::Apply })
