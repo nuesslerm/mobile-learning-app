@@ -37,7 +37,15 @@ end
 local shown
 run_flow("run local", function()
   device:tap_on({id='ProblemEditorRunLocalButton'})
-  shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=30000, optional=true}
+  shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=12000, optional=true}
+  if android and not shown then
+    -- on the hosted runner the first request of a reused app sometimes sits unacknowledged on a connection the DNAT rule never saw (the device's socket
+    -- table shows bytes queued to port 8789 and no answer): what the stub saw and the NAT rules are logged, and one more tap opens a fresh connection
+    log("first run: stub hits", #device:get_network_stub_hits())
+    log("nat rules", (device:run_shell("iptables -t nat -S OUTPUT; iptables -S OUTPUT | grep wf-stub")))
+    device:tap_on({id='ProblemEditorRunLocalButton'})
+    shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=30000, optional=true}
+  end
 end)
 local now = device:get_element({id='ProblemEditorRunOutcomeTotals'})
 local totals = (shown and shown.text) or (now and now.text) or ""
