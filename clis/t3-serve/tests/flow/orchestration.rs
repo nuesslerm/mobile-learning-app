@@ -68,7 +68,7 @@ fn a_thread_can_be_pinned_visited_and_have_its_modes_and_model_changed_each_as_a
     let (_h, mut rpc, thread) = started();
     let commands = [
         json!({"type": "thread.pin", "commandId": "c1", "threadId": "t1"}),
-        json!({"type": "thread.visit", "commandId": "c2", "threadId": "t1"}),
+        json!({"type": "thread.visit", "commandId": "c2", "threadId": "t1", "visitedAt": "2026-01-01T00:00:00Z"}),
         json!({"type": "thread.runtime-mode.set", "commandId": "c3", "threadId": "t1", "runtimeMode": "approval-required"}),
         json!({"type": "thread.interaction-mode.set", "commandId": "c4", "threadId": "t1", "interactionMode": "plan"}),
         json!({"type": "thread.model-selection.set", "commandId": "c5", "threadId": "t1", "modelSelection": {"instanceId": "claudeAgent", "model": "opus"}}),
@@ -134,7 +134,7 @@ fn a_second_message_is_refused_while_a_run_is_active_and_an_interrupt_ends_the_r
     drain(&mut rpc);
     // When another message arrives, then the run is interrupted
     let second = dispatch(&mut rpc, message("c-2", "again"));
-    success(&dispatch(&mut rpc, json!({"type": "run.interrupt", "commandId": "c-3", "threadId": "t1"})));
+    success(&dispatch(&mut rpc, json!({"type": "run.interrupt", "commandId": "c-3", "threadId": "t1", "runId": "r1"})));
     drain(&mut rpc);
     // Then the second is a dispatch error naming the active run, the agent API was told to stop the turn, and the run is interrupted
     assert!(failure(&second)["message"].as_str().unwrap().contains("active run"));
@@ -142,7 +142,7 @@ fn a_second_message_is_refused_while_a_run_is_active_and_an_interrupt_ends_the_r
     let p = projection(&mut rpc);
     assert_eq!((p["runs"][0]["status"].as_str(), p["runs"][0]["stopRequested"].clone()), (Some("interrupted"), json!(true)));
     // And an interrupt with nothing running is refused, while a stop of an idle thread is a no-op the pin accepts
-    assert!(failure(&dispatch(&mut rpc, json!({"type": "run.interrupt", "commandId": "c-4", "threadId": "t1"})))["message"].as_str().unwrap().contains("no active run"));
+    assert!(failure(&dispatch(&mut rpc, json!({"type": "run.interrupt", "commandId": "c-4", "threadId": "t1", "runId": "r1"})))["message"].as_str().unwrap().contains("no active run"));
     success(&dispatch(&mut rpc, json!({"type": "thread.stop", "commandId": "c-5", "threadId": "t1"})));
 }
 
@@ -191,8 +191,8 @@ fn the_file_rpcs_list_and_read_through_the_agent_api_under_the_project_and_a_fil
     seed(&mut rpc);
     h.agent.files.lock().unwrap().extend([("/workspace/demo/README.md".to_string(), "# demo".to_string()), ("/workspace/demo/src/main.rs".to_string(), "fn main() {}".to_string())]);
     // When a client lists the root and src, and reads a file and one that is not there
-    let root = rpc.call("projects.listEntries", json!({"projectId": "p1"}));
-    let src = rpc.call("projects.listEntries", json!({"projectId": "p1", "relativePath": "src"}));
+    let root = rpc.call("projects.listEntries", json!({"cwd": "/workspace/demo"}));
+    let src = rpc.call("projects.listEntries", json!({"cwd": "/workspace/demo", "directoryPath": "src"}));
     let read = rpc.call("projects.readFile", json!({"cwd": "/workspace/demo", "relativePath": "README.md"}));
     let missing = rpc.call("projects.readFile", json!({"cwd": "/workspace/demo", "relativePath": "nope"}));
     // Then the entries are paths with kinds, the read returns the contents, and a miss is a typed error

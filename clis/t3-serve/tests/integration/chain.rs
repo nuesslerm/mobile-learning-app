@@ -89,7 +89,7 @@ fn what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_ex
         assert!(kinds.contains(&"user_message") && kinds.contains(&"command_execution"), "{kinds:?}");
         assert_eq!(page.body["items"].as_array().unwrap().iter().map(|r| r["item"]["id"].clone()).collect::<Vec<_>>(), items.iter().map(|r| r["item"]["id"].clone()).collect::<Vec<_>>());
         // When the phone lists the notes directory and reads the file the model wrote
-        let listed = phone.call(case, &chain, &["rpc:projects.listEntries"], "projects.listEntries", json!({"projectId": "p1", "relativePath": "notes"}));
+        let listed = phone.call(case, &chain, &["rpc:projects.listEntries"], "projects.listEntries", json!({"cwd": chain.repo.path().display().to_string(), "directoryPath": "notes"}));
         let (listing_agent, listing_executor) = last_window(case);
         let read = phone.call(case, &chain, &["rpc:projects.readFile"], "projects.readFile", json!({"cwd": chain.repo.path().display().to_string(), "relativePath": "notes/a.txt"}));
         let (read_agent, read_executor) = last_window(case);
@@ -151,7 +151,7 @@ fn an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_t
                 assert!(started.elapsed() < std::time::Duration::from_secs(30), "the CLI never started: {}", chain.evidence());
                 std::thread::sleep(std::time::Duration::from_millis(50));
             }
-            let stop = json!({"type": command, "commandId": format!("c-s{n}"), "threadId": "t1"});
+            let stop = json!({"type": command, "commandId": format!("c-s{n}"), "threadId": "t1", "runId": "r1"});
             let projection = case.call(&chain.tap, &rows(&["rpc:orchestration.dispatchCommand", row]), || {
                 let exit = phone.calls.call("orchestration.dispatchCommand", stop);
                 let projection = phone.settled("t1");

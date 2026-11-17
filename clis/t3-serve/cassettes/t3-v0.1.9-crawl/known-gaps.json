@@ -204,9 +204,6 @@
       ],
       "ids": [
         "t3-rpc-projectClone.start-boundary-full",
-        "t3-rpc-projects.listEntries-invalid-drop-cwd",
-        "t3-rpc-projects.listEntries-invalid-no-payload",
-        "t3-rpc-projects.listEntries-invalid-wrong-type-cwd",
         "t3-rpc-projects.searchEntries-boundary-full",
         "t3-rpc-projects.searchEntries-boundary-limit-limit",
         "t3-rpc-projects.searchEntries-valid-min",
@@ -216,17 +213,9 @@
         "t3-rpc-pullRequests.filesViewed-boundary-limit-number",
         "t3-rpc-pullRequests.filesViewed-invalid-wrong-type-projectId",
         "t3-rpc-pullRequests.filesViewed-valid-min",
-        "t3-rpc-pullRequests.list-boundary-full",
-        "t3-rpc-pullRequests.list-invalid-drop-state",
-        "t3-rpc-pullRequests.list-invalid-no-payload",
-        "t3-rpc-pullRequests.list-invalid-wrong-type-state",
-        "t3-rpc-pullRequests.listStats-invalid-drop-refs",
-        "t3-rpc-pullRequests.listStats-invalid-no-payload",
-        "t3-rpc-pullRequests.listStats-invalid-wrong-type-refs",
         "t3-rpc-review.getDiffFileContents-valid-min",
         "t3-rpc-review.getDiffPreview-boundary-full",
         "t3-rpc-review.getDiffPreview-valid-min",
-        "t3-rpc-server.refreshProviders-invalid-wrong-type-instanceId",
         "t3-rpc-vcs.createRef-valid-min",
         "t3-rpc-vcs.switchRef-valid-min"
       ]
@@ -540,11 +529,7 @@
         "steps.ws:s2c:1.[0].payload.exit.cause missing breaking"
       ],
       "ids": [
-        "t3-rpc-pullRequests.invalidate-invalid-wrong-type-reference",
         "t3-rpc-pullRequests.reportState-boundary-full",
-        "t3-rpc-pullRequests.reportState-invalid-drop-reference",
-        "t3-rpc-pullRequests.reportState-invalid-no-payload",
-        "t3-rpc-pullRequests.reportState-invalid-wrong-type-reference",
         "t3-rpc-pullRequests.reportState-valid-min"
       ]
     },

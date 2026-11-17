@@ -68,7 +68,7 @@ fn a_file_written_is_listed_and_read_back_by_the_next_calls_and_a_second_write_r
         _ => None,
     }));
     let list = |rpc: &mut Rpc, path: &str| -> Vec<String> {
-        success(&rpc.call("projects.listEntries", json!({"projectId": "p1", "relativePath": path})))["entries"].as_array().unwrap().iter().map(|e| e["path"].as_str().unwrap().to_string()).collect()
+        success(&rpc.call("projects.listEntries", json!({"cwd": "/workspace/demo", "directoryPath": path})))["entries"].as_array().unwrap().iter().map(|e| e["path"].as_str().unwrap().to_string()).collect()
     };
     let read = |rpc: &mut Rpc, path: &str| rpc.call("projects.readFile", json!({"cwd": "/workspace/demo", "relativePath": path}));
     // When the phone lists the root, writes a file below a new directory, lists, reads it back, writes it again and reads and measures it
@@ -102,7 +102,7 @@ fn the_diff_of_a_thread_can_be_taken_only_at_its_finished_turns_so_a_running_tur
     h.agent.hold.store(true, Ordering::SeqCst);
     message(&mut rpc, "2", "wait");
     let while_running = (turn_diff(&mut rpc, 1), turn_diff(&mut rpc, 2));
-    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "run.interrupt", "commandId": "c-int", "threadId": "t1"})));
+    success(&rpc.call("orchestration.dispatchCommand", json!({"type": "run.interrupt", "commandId": "c-int", "threadId": "t1", "runId": "r1"})));
     let after = settled(&mut rpc, "t1");
     let (stale, now) = (turn_diff(&mut rpc, 1), turn_diff(&mut rpc, 2));
     // Then the first diff is the agent API's text, and while the second turn ran the diff of turns 0 to 1 still was and 0 to 2 was refused as unfinished

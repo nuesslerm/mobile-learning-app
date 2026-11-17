@@ -565,7 +565,7 @@ impl Connection {
     fn files(&mut self, id: Value, tag: &str, payload: &Value) -> Vec<Value> {
         let text = |key: &str| payload.get(key).and_then(Value::as_str);
         let root = text("cwd").map(str::to_string).or_else(|| text("projectId").and_then(|p| self.svc.engine().project_root(p))).unwrap_or_default();
-        let path = text("relativePath").or_else(|| text("path")).or_else(|| text("directory")).unwrap_or("");
+        let path = text("directoryPath").or_else(|| text("relativePath")).or_else(|| text("path")).or_else(|| text("directory")).unwrap_or("");
         let agent = self.svc.agent();
         let fail = |e: AgentError| vec![rpc::exit_failure(&id, wire::host_error(&e.message()))];
         let ok = |v: Value| vec![rpc::exit_success(&id, Some(v))];

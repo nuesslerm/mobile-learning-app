@@ -442,7 +442,7 @@ fn the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_si
             (cmd("thread.unpin", "t1", json!({})), "thread.pins:t1", "pinnedAt", Some(Value::Null)),
             (cmd("thread.active.reorder", "t1", json!({"orderKey": "k3"})), "thread.activeOrder:t1", "orderKey", Some(json!("k3"))),
             (cmd("thread.auto-settle.set", "t1", json!({"enabled": false})), "thread.autoSettle:t1", "autoSettleDisabledAt", None),
-            (cmd("thread.visit", "t1", json!({})), "thread.visits:t1", "lastVisitedAt", None),
+            (cmd("thread.visit", "t1", json!({"visitedAt": "2031-01-01T00:00:00.000Z"})), "thread.visits:t1", "lastVisitedAt", None),
             (cmd("thread.mark-unread", "t1", json!({})), "thread.visits:t1", "lastVisitedAt", None),
             (cmd("thread.metadata.update", "t1", json!({"title": "Renamed"})), "thread.settings:t1", "title", Some(json!("Renamed"))),
             (cmd("thread.runtime-mode.set", "t1", json!({"runtimeMode": "approval-required"})), "thread.settings:t1", "runtimeMode", Some(json!("approval-required"))),
