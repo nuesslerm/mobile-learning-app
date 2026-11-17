@@ -20,5 +20,3 @@ mod rig;
 mod terminal_pty;
 #[path = "integration/transport_m5.rs"]
 mod transport_m5;
-#[path = "integration/web_m5.rs"]
-mod web_m5;
