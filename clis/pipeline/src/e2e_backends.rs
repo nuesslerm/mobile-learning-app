@@ -195,6 +195,10 @@ fn environment(def: &Def, port: u16, home: &Path, peers: &[Value]) -> Result<(En
             }
             if peer_url("opencode-server").is_some() {
                 server.push(s("OPENCODE_CWD", home.display().to_string()));
+                // the planner's own default model signs in with a Kimi key this job does not hold (every plan answered "Invalid Authentication"): the model it
+                // plans with is one the opencode-go key serves, unless the caller names another
+                let model = std::env::var("OPENCODE_TEXT_MODEL").ok().filter(|v| !v.is_empty()).unwrap_or_else(|| "opencode-go/kimi-k2.7-code".into());
+                server.push(s("OPENCODE_TEXT_MODEL", model));
             }
             let consumer = vec![
                 s("RCA_HOST", "127.0.0.1".into()),

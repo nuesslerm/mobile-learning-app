@@ -174,7 +174,7 @@ fn given_the_leetcode_backend_up_when_its_env_is_read_then_every_name_is_one_the
 }
 
 const OPENCODE: &str = "#!/usr/bin/env python3\nimport http.server, os, sys\nport = int(sys.argv[sys.argv.index('--port') + 1])\nopen('@SEEN@', 'w').write(os.environ.get('OPENCODE_API_KEY', '') + ' ' + ' '.join(sys.argv[1:]))\nclass H(http.server.BaseHTTPRequestHandler):\n    def do_GET(self):\n        self.send_response(200 if self.path == '/app' else 404)\n        self.end_headers()\n    def log_message(self, *a): pass\nhttp.server.ThreadingHTTPServer(('127.0.0.1', port), H).serve_forever()\n";
-const RCA_SEEN: &str = "#!/usr/bin/env python3\nimport http.server, json, os\nopen('@SEEN@', 'w').write(json.dumps({k: os.environ.get(k) for k in ['OPENCODE_SERVER_URL', 'STT_URL', 'OPENCODE_CWD']}))\nclass H(http.server.BaseHTTPRequestHandler):\n    def do_GET(self):\n        self.send_response(200)\n        self.end_headers()\n    def log_message(self, *a): pass\nhttp.server.ThreadingHTTPServer(('127.0.0.1', int(os.environ['PORT'])), H).serve_forever()\n";
+const RCA_SEEN: &str = "#!/usr/bin/env python3\nimport http.server, json, os\nopen('@SEEN@', 'w').write(json.dumps({k: os.environ.get(k) for k in ['OPENCODE_SERVER_URL', 'STT_URL', 'OPENCODE_CWD', 'OPENCODE_TEXT_MODEL']}))\nclass H(http.server.BaseHTTPRequestHandler):\n    def do_GET(self):\n        self.send_response(200)\n        self.end_headers()\n    def log_message(self, *a): pass\nhttp.server.ThreadingHTTPServer(('127.0.0.1', int(os.environ['PORT'])), H).serve_forever()\n";
 
 #[test]
 fn given_the_voice_stack_when_up_runs_then_rca_service_is_started_pointing_at_the_opencode_server_and_the_stt_sidecar_and_the_key_is_never_printed() {
@@ -218,6 +218,8 @@ fn given_the_voice_stack_when_up_runs_then_rca_service_is_started_pointing_at_th
     assert_eq!(seen["OPENCODE_SERVER_URL"], json!(oc_url));
     assert_eq!(seen["STT_URL"], json!(format!("{stt_url}/transcribe")));
     assert!(seen["OPENCODE_CWD"].as_str().is_some_and(|c| !c.is_empty()), "{seen}");
+    // And the planner plans with a model the opencode-go key serves, not the Kimi one it has no key for
+    assert_eq!(seen["OPENCODE_TEXT_MODEL"], json!("opencode-go/kimi-k2.7-code"), "{seen}");
     // And the opencode server got the key and the loopback serve arguments
     let oc = std::fs::read_to_string(&oc_seen).unwrap();
     assert!(oc.starts_with("sk-secret-key-123 serve --hostname 127.0.0.1 --port "), "{oc}");
