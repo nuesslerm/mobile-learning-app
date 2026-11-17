@@ -330,16 +330,6 @@
       ]
     },
     {
-      "class": "changed at steps._:s2c:*.[*].payload.result.totalCount",
-      "severity": "drift",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.result.totalCount changed drift"
-      ],
-      "ids": [
-        "orca-worktree.list"
-      ]
-    },
-    {
       "class": "missing at steps._:s2c:*.[*].payload.snapshot",
       "severity": "breaking",
       "diffs": [

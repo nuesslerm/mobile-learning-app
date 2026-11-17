@@ -496,3 +496,13 @@ fn given_a_wrong_typed_snapshot_id_when_the_repos_are_listed_then_it_is_refused_
     assert_eq!(refused, ("invalid_argument".into(), "Invalid input: expected string, received number".into()));
     rig.ok("repo.list", json!({"afterSnapshotId": "a"}));
 }
+
+#[test]
+fn given_a_list_asked_for_a_zero_limit_or_a_repo_nobody_holds_when_it_is_asked_then_it_says_so_in_the_hosts_codes() {
+    // Given the workspaces of a host
+    let mut rig = Rig::new();
+    // When the phone lists worktrees with a limit of zero and a repo that does not exist, Then the limit is refused first
+    assert_eq!(rig.err("worktree.list", json!({"limit": 0, "repo": "nobody"})), ("invalid_limit".to_string(), "invalid_limit".to_string()));
+    // And a repo no workspace holds is the host's repo_not_found
+    assert_eq!(rig.err("worktree.list", json!({"repo": "nobody"})), ("repo_not_found".to_string(), "repo_not_found".to_string()));
+}

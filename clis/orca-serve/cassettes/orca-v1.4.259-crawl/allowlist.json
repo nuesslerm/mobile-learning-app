@@ -182,6 +182,12 @@
       "reason": "the worktrees the host holds are its own state: the recording host had none, the chain's has its workspace",
       "phase": "R2a",
       "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.totalCount",
+      "reason": "the count of the worktrees or terminals the host holds is its own state: the recording host had none, the chain's has its workspace",
+      "phase": "R7",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
     }
   ]
 }

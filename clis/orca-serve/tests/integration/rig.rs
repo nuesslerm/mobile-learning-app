@@ -46,7 +46,6 @@ pub struct Chain {
     /// The executor's repository: what the phone lists and reads is on this disk.
     pub repo: TempRepo,
     /// Where the executor puts the worktrees it makes.
-    pub base: PathBuf,
     _base: tempfile::TempDir,
     /// The executor's own home: its user-level skills are read from here.
     pub home: tempfile::TempDir,
@@ -91,7 +90,7 @@ impl Chain {
         let state = tempfile::Builder::new().prefix("orca-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");
         let (server, addr) = spawn_serve(state.path(), &errlog, &tap.url(), &bearer, web);
-        Chain { tap, service, addr, state, errlog, server, cli, repo, base, _base: base_dir, home, _exec: exec, hosted }
+        Chain { tap, service, addr, state, errlog, server, cli, repo, _base: base_dir, home, _exec: exec, hosted }
     }
 
     /// A pairing link minted by a separate `orca-serve pair` on the server's state directory, as an operator hands one to a phone.

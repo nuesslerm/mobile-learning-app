@@ -9,8 +9,8 @@
   },
   "summary": {
     "rows": 317,
-    "served": 150,
-    "pending": 14,
+    "served": 151,
+    "pending": 13,
     "notOffered": 143,
     "excluded": 7,
     "flagged": 3,
@@ -22,7 +22,7 @@
     },
     "pendingByMilestone": {
       "M5": 3,
-      "M6": 2,
+      "M6": 1,
       "M7": 4,
       "M10": 3,
       "M11": 2
@@ -3724,8 +3724,17 @@
       "id": "rpc:worktree.list",
       "kind": "rpc",
       "name": "worktree.list",
-      "state": "pending",
-      "milestone": "M6"
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.list-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:worktree.listRetiredNames",

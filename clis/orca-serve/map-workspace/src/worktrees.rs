@@ -96,8 +96,11 @@ fn selector(params: &Value) -> Result<&str, Failure> {
 }
 
 pub(crate) fn list(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    if params.get("limit").is_some_and(|l| l.as_u64().is_none_or(|n| n == 0)) {
+        return Err(Failure::new("invalid_limit", "invalid_limit"));
+    }
     let repos = match text(params, "repo").filter(|s| !s.is_empty()) {
-        Some(_) => vec![repo_of(agent, params)?],
+        Some(_) => vec![repo_of(agent, params).map_err(|e| if e.code == "selector_not_found" { Failure::new("repo_not_found", "repo_not_found") } else { e })?],
         None => repo_targets(agent)?.into_iter().filter(|t| t.kind == "root").collect(),
     };
     let mut rows = Vec::new();

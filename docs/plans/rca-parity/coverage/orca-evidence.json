@@ -9,14 +9,14 @@
         "sha": null,
         "complete": true,
         "tests": 3968,
-        "passed": 705
+        "passed": 709
       },
       {
         "suite": "wf-mimic-orca-recorded",
         "sha": null,
         "complete": true,
         "tests": 311,
-        "passed": 144
+        "passed": 145
       }
     ]
   },
@@ -1272,6 +1272,15 @@
     "rpc:worktree.create": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-worktree.create-invalid-drop-repo",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:worktree.list": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-worktree.list-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

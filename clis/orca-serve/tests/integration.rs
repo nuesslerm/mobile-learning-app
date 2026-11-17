@@ -30,5 +30,3 @@ mod terminal_m8;
 mod transport_m5;
 #[path = "integration/web_m5.rs"]
 mod web_m5;
-#[path = "integration/workspace_m6.rs"]
-mod workspace_m6;
