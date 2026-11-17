@@ -200,10 +200,6 @@ impl Phone {
         self.ended.push(stream.number);
         end
     }
-
-    pub fn raw(&mut self) -> &mut PhoneClient {
-        &mut self.client
-    }
 }
 
 pub struct Direct {

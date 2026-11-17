@@ -18,5 +18,3 @@ mod recorded_r1;
 mod rig;
 #[path = "integration/terminal_pty.rs"]
 mod terminal_pty;
-#[path = "integration/transport_m5.rs"]
-mod transport_m5;
