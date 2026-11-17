@@ -87,6 +87,7 @@ type = "cli-crate"
 # Each recorded set replays in an Nx task of its own (`cargo-integration-<group>`, tooling/nx/cargo-crates.js), keyed by its set's directory alone:
 # `filter` is the libtest filter of its test (tests/integration/recorded_r1.rs), and `cargo-integration` skips every filter.
 [package.metadata.integration.groups]
+agent_turns = { filter = "recorded_r1::agent_turns::", files = ["cassettes/t3-v0.1.9-agent-turns/**"] }
 crawl = { filter = "recorded_r1::crawl::", files = ["cassettes/t3-v0.1.9-crawl/**"] }
 recorded_1 = { filter = "recorded_r1::recorded_1::", files = ["cassettes/t3-v0.1.9-recorded-1/**"] }
 recorded_2 = { filter = "recorded_r1::recorded_2::", files = ["cassettes/t3-v0.1.9-recorded-2/**"] }
