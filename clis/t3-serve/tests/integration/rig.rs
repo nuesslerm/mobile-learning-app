@@ -163,6 +163,15 @@ impl Chain {
         serde_json::from_slice::<Value>(&out.stdout).unwrap()["code"].as_str().unwrap().to_string()
     }
 
+    /// The command `pair_with` runs, for a `wf mimic replay --mint` that pairs the phone it plays: the scopes it is to get, on this server's state directory.
+    pub fn pair_command(&self, scopes: &[String]) -> String {
+        let mut command = format!("{BIN} t3 pair --state-dir {}", self.state.path().display());
+        if !scopes.is_empty() {
+            command.push_str(&format!(" --scope {}", scopes.join(",")));
+        }
+        command
+    }
+
     pub fn direct(&self) -> Direct {
         let config = agent_api_client::Config::new(format!("ws://{}", self.service.addr()), self.service.mint("chain side door"));
         Direct { client: agent_api_client::Client::connect(config).expect("the side door opens") }

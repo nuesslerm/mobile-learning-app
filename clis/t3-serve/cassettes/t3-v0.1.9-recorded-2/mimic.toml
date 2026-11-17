@@ -33,3 +33,14 @@ prelude = "../t3-prelude.json"
 [record]
 # the pinned reference is a live server whose ids and timestamps move between two records
 allow_nondeterministic = true
+
+# the chain a test started (t3-serve over rca-service and rca-exec): its address, workspace and pairing come from `wf mimic replay --addr --workspace --mint`
+[candidate.t3-serve]
+driver = "script"
+
+[candidate.t3-serve.script]
+target = "url"
+prelude = "../t3-prelude.json"
+session = true
+# a candidate that answers from memory on loopback: a frame that is coming arrives within this
+quiet_cap_ms = 120
