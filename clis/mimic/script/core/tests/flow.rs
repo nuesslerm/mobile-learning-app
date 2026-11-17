@@ -111,6 +111,30 @@ fn given_a_cli_script_when_run_then_the_target_is_handed_the_turns_and_no_step_i
 }
 
 #[test]
+fn given_a_target_that_cannot_script_an_agent_cli_when_a_cli_script_runs_then_the_script_ends_with_a_transport_error() {
+    struct Plain;
+    impl mimic_script_core::Target for Plain {
+        fn workspace(&self) -> String {
+            "/tmp/ws".into()
+        }
+        fn mint(&mut self) -> Result<String, String> {
+            Ok("cred-1".into())
+        }
+    }
+    let clock = FakeClock::default();
+    let transport = ScriptedTransport::new(&clock);
+    transport.reply(200, &[], "{}");
+    let mut interpreter = Interpreter::new(Box::new(transport.clone()), Box::new(Plain), Box::new(clock.clone()), Policy::default());
+    let case = json!({"script": [{"cli.script": {"cli": "claude", "turns": [{}]}}, {"http": {"path": "/me"}}]});
+
+    let observed = interpreter.run_case(&Case::parse(&case).unwrap()).unwrap();
+
+    assert_eq!(observed.steps.len(), 1, "the http call after it never runs: {:?}", observed.steps);
+    assert_eq!(observed.steps[0].payload, json!({"transport_error": "this target cannot script an agent CLI"}));
+    assert_eq!((observed.outcome.status, observed.outcome.code.as_deref()), (Status::Error, Some("transport")));
+}
+
+#[test]
 fn given_a_cli_script_naming_an_unknown_cli_or_no_turns_when_parsed_then_it_is_a_request_error() {
     let unknown = Case::parse(&json!({"script": [{"cli.script": {"cli": "gemini", "turns": []}}]})).unwrap_err();
     let no_turns = Case::parse(&json!({"script": [{"cli.script": {"cli": "codex"}}]})).unwrap_err();
