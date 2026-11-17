@@ -161,7 +161,8 @@ jobs:
           run_install: false
       # A replay runs the repository's own drivers as the candidate: a fresh hosted checkout has no node_modules, so they need the pinned node and their install
       - name: Node of the drivers a replay runs
-        if: ${{ env.ACTION == 'replay' }}
+        # a set that pins a node already has it from the step above (`wf mimic provision` refuses any other); the drivers run on it too
+        if: ${{ env.ACTION == 'replay' && matrix.node == '' }}
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22.22.0
