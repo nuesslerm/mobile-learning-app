@@ -17,7 +17,7 @@ Decided with the owner: scope is backends, then CLIs; markdown moves to `pulldow
 | `multipart.rs` | axum `multipart` (multer) |
 | `curl.rs`, `opencode.rs` TcpStream client | `reqwest` (rustls, no default features); SSE read with `eventsource-stream` |
 | `proc.rs` | `tokio::process` |
-| `telemetry.rs`, `log.rs` | `tracing`, `tracing-subscriber` (JSON), `opentelemetry-otlp` (http-proto) + `tracing-opentelemetry`; secret redaction as one small subscriber layer |
+| `telemetry.rs`, `log.rs` | `tracing`, `tracing-subscriber` (JSON), hand-written OTLP/HTTP JSON over `ureq` from one export thread (no opentelemetry crates); secret redaction as one small subscriber layer |
 | `zod.rs` issue JSON | `serde` + `serde_path_to_error`; library error text is the response |
 | `util.rs` random hex, base64, percent-encoding | `getrandom`/`uuid`, `base64`, `percent-encoding` |
 | `md.rs` regex chain, `fancy-regex` | `pulldown-cmark` (HTML differs: viewer expectations re-baselined) |
