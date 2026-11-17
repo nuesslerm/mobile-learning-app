@@ -95,7 +95,7 @@
   "targets": {
     "command:thread.create": "agent:thread.create",
     "command:message.dispatch": "agent:turn.start",
-    "command:thread.stop": "agent:turn.interrupt",
+    "command:thread.stop": "agent:thread.forceStop",
     "command:run.interrupt": "agent:turn.interrupt",
     "command:thread.archive": "agent:thread.archive",
     "command:thread.unarchive": "agent:thread.archive",
@@ -807,6 +807,21 @@
       "oracle": "mimic"
     },
     "rpc:worktreeSetup.cancel": {
+      "oracle": "mimic"
+    },
+    "command:run.interrupt": {
+      "oracle": "mimic"
+    },
+    "command:thread.stop": {
+      "oracle": "mimic"
+    },
+    "command:queued-run.edit": {
+      "oracle": "mimic"
+    },
+    "command:queued-run.cancel": {
+      "oracle": "mimic"
+    },
+    "command:thread.snooze": {
       "oracle": "mimic"
     }
   },

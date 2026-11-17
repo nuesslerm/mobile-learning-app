@@ -142,13 +142,21 @@
       "milestone": "M4",
       "target": "agent:queue.delete",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_steers_the_running_turn_before_the_rest_start_by_themselves",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-turns::t3-agent-queued-run.cancel",
         "agent": [
+          "queue.add",
           "queue.delete",
-          "thread.create"
+          "thread.create",
+          "thread.subscribe",
+          "turn.start"
         ],
-        "executor": []
+        "executor": [
+          "git_checkpoint"
+        ],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -159,13 +167,21 @@
       "milestone": "M4",
       "target": "agent:queue.edit",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_steers_the_running_turn_before_the_rest_start_by_themselves",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-turns::t3-agent-queued-run.edit",
         "agent": [
+          "queue.add",
           "queue.edit",
-          "thread.create"
+          "thread.create",
+          "thread.subscribe",
+          "turn.start"
         ],
-        "executor": []
+        "executor": [
+          "git_checkpoint"
+        ],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -196,12 +212,20 @@
       "milestone": "M3",
       "target": "agent:turn.interrupt",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "chain::an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_to_interrupt_it",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-turns::t3-agent-run.interrupt",
         "agent": [
-          "turn.interrupt"
+          "thread.create",
+          "thread.subscribe",
+          "turn.interrupt",
+          "turn.start"
         ],
-        "executor": []
+        "executor": [
+          "git_checkpoint"
+        ],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -582,13 +606,16 @@
       "milestone": "M4",
       "target": "agent:thread.settle",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-turns::t3-agent-thread.snooze",
         "agent": [
           "thread.create",
           "thread.settle"
         ],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -597,16 +624,22 @@
       "name": "thread.stop",
       "state": "served",
       "milestone": "M3",
-      "target": "agent:turn.interrupt",
+      "target": "agent:thread.forceStop",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "chain::an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_to_interrupt_it",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-turns::t3-agent-thread.stop",
         "agent": [
+          "thread.create",
+          "thread.forceStop",
           "thread.subscribe",
-          "turn.interrupt",
           "turn.start"
         ],
-        "executor": []
+        "executor": [
+          "git_checkpoint"
+        ],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
