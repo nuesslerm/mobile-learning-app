@@ -325,6 +325,18 @@
     "rpc:orchestration.subscribeThread": {
       "oracle": "mimic"
     },
+    "rpc:orchestration.getThreadTitles": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getThreadLinkMetadata": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getNativeChildWork": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.subscribePromptSuggestion": {
+      "oracle": "mimic"
+    },
     "rpc:subscribePreviewEvents": {
       "oracle": "mimic"
     },

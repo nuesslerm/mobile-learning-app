@@ -9,21 +9,19 @@
   },
   "summary": {
     "rows": 222,
-    "served": 171,
-    "pending": 4,
+    "served": 175,
+    "pending": 0,
     "notOffered": 47,
     "excluded": 0,
     "flagged": 0,
-    "answeredByMapper": 4,
+    "answeredByMapper": 0,
     "byKind": {
       "command": 40,
       "http": 23,
       "mutation": 3,
       "rpc": 156
     },
-    "pendingByMilestone": {
-      "M4": 4
-    }
+    "pendingByMilestone": {}
   },
   "rows": [
     {
@@ -1406,9 +1404,19 @@
       "id": "rpc:orchestration.getNativeChildWork",
       "kind": "rpc",
       "name": "orchestration.getNativeChildWork",
-      "state": "pending",
+      "state": "served",
       "milestone": "M4",
-      "note": "answered by the mapper (clis/t3-serve/contracts/src/rpc.rs IMPLEMENTED_RPCS); no run-bundle evidence yet"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-queries::t3-query-getNativeChildWork",
+        "agent": [
+          "thread.create"
+        ],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:orchestration.getOlderSettledThreads",
@@ -1448,9 +1456,19 @@
       "id": "rpc:orchestration.getThreadLinkMetadata",
       "kind": "rpc",
       "name": "orchestration.getThreadLinkMetadata",
-      "state": "pending",
+      "state": "served",
       "milestone": "M4",
-      "note": "answered by the mapper (clis/t3-serve/contracts/src/rpc.rs IMPLEMENTED_RPCS); no run-bundle evidence yet"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-queries::t3-query-getThreadLinkMetadata",
+        "agent": [
+          "thread.create"
+        ],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:orchestration.getThreadProjection",
@@ -1472,9 +1490,19 @@
       "id": "rpc:orchestration.getThreadTitles",
       "kind": "rpc",
       "name": "orchestration.getThreadTitles",
-      "state": "pending",
+      "state": "served",
       "milestone": "M4",
-      "note": "answered by the mapper (clis/t3-serve/contracts/src/rpc.rs IMPLEMENTED_RPCS); no run-bundle evidence yet"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-queries::t3-query-getThreadTitles",
+        "agent": [
+          "thread.create"
+        ],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:orchestration.getTurnDiff",
@@ -1587,9 +1615,19 @@
       "kind": "rpc",
       "name": "orchestration.subscribePromptSuggestion",
       "subscription": true,
-      "state": "pending",
+      "state": "served",
       "milestone": "M4",
-      "note": "answered by the mapper (clis/t3-serve/contracts/src/rpc.rs IMPLEMENTED_RPCS); no run-bundle evidence yet"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-queries::t3-query-subscribePromptSuggestion",
+        "agent": [
+          "thread.create"
+        ],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:orchestration.subscribeShell",

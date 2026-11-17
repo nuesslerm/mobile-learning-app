@@ -318,6 +318,13 @@
         "complete": true,
         "tests": 13,
         "passed": 8
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 4,
+        "passed": 4
       }
     ]
   },
@@ -979,6 +986,17 @@
       "diff": "allowlisted",
       "cassette": "recorded"
     },
+    "rpc:orchestration.getNativeChildWork": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-queries::t3-query-getNativeChildWork",
+      "agent": [
+        "thread.create"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
     "rpc:orchestration.getOlderSettledThreads": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getOlderSettledThreads-boundary-full",
@@ -999,10 +1017,32 @@
       "diff": "allowlisted",
       "cassette": "recorded"
     },
+    "rpc:orchestration.getThreadLinkMetadata": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-queries::t3-query-getThreadLinkMetadata",
+      "agent": [
+        "thread.create"
+      ],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
     "rpc:orchestration.getThreadProjection": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getThreadProjection-invalid-drop-threadId",
       "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.getThreadTitles": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-queries::t3-query-getThreadTitles",
+      "agent": [
+        "thread.create"
+      ],
       "executor": [],
       "oracle": "mimic",
       "diff": "allowlisted",
@@ -1057,6 +1097,17 @@
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.subscribeCommandOutput-invalid-drop-threadId",
       "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.subscribePromptSuggestion": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-queries::t3-query-subscribePromptSuggestion",
+      "agent": [
+        "thread.create"
+      ],
       "executor": [],
       "oracle": "mimic",
       "diff": "allowlisted",
