@@ -96,7 +96,7 @@ impl Observer {
 
 pub struct Tap {
     addr: SocketAddr,
-    log: Arc<Mutex<Vec<Seen>>>,
+    log: Arc<Mutex<Vec<(i64, Seen)>>>,
     stop: Arc<AtomicBool>,
     accepting: Option<JoinHandle<()>>,
 }
@@ -138,7 +138,12 @@ impl Tap {
     }
 
     pub fn since(&self, mark: usize) -> Vec<Seen> {
-        self.log.lock().unwrap_or_else(|e| e.into_inner()).iter().skip(mark).cloned().collect()
+        self.log.lock().unwrap_or_else(|e| e.into_inner()).iter().skip(mark).map(|(_, seen)| seen.clone()).collect()
+    }
+
+    /// Everything seen so far with the epoch milliseconds it was seen at, for a caller that holds windows of wall-clock time.
+    pub fn stamped(&self) -> Vec<(i64, Seen)> {
+        self.log.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
 }
 
@@ -152,6 +157,10 @@ impl Drop for Tap {
 }
 
 type Socket = WebSocket<TcpStream>;
+
+fn now_ms() -> i64 {
+    std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64)
+}
 
 /// The headers of a client's handshake that belong to the connection and not to the request: the proxy's own handshake sets them again.
 fn is_connection_header(name: &str) -> bool {
@@ -184,7 +193,7 @@ fn upstream(service: SocketAddr, request: &HttpRequest) -> Result<Socket, ErrorR
 
 // the handshake callback below returns tungstenite's `ErrorResponse`
 #[allow(clippy::result_large_err)]
-fn relay(client: TcpStream, service: SocketAddr, log: &Mutex<Vec<Seen>>, stop: &AtomicBool) -> Result<(), String> {
+fn relay(client: TcpStream, service: SocketAddr, log: &Mutex<Vec<(i64, Seen)>>, stop: &AtomicBool) -> Result<(), String> {
     client.set_nonblocking(false).map_err(|e| e.to_string())?;
     let (mut service_side, mut channel) = (None, Channel::Other);
     let mut down = tungstenite::accept_hdr(client, |request: &HttpRequest, response: HttpResponse| -> Result<HttpResponse, ErrorResponse> {
@@ -216,7 +225,7 @@ enum Moved {
 }
 
 /// Moves the frame that is waiting on `from`, if one is, to `to`, and keeps what `see` makes of a text frame.
-fn pass(from: &mut Socket, to: &mut Socket, mut see: impl FnMut(&str) -> Option<Seen>, log: &Mutex<Vec<Seen>>) -> Moved {
+fn pass(from: &mut Socket, to: &mut Socket, mut see: impl FnMut(&str) -> Option<Seen>, log: &Mutex<Vec<(i64, Seen)>>) -> Moved {
     let message = match from.read() {
         Ok(message) => message,
         Err(Error::Io(e)) if matches!(e.kind(), std::io::ErrorKind::WouldBlock | std::io::ErrorKind::TimedOut) => return Moved::Nothing,
@@ -225,7 +234,7 @@ fn pass(from: &mut Socket, to: &mut Socket, mut see: impl FnMut(&str) -> Option<
     match message {
         Message::Text(text) => {
             if let Some(seen) = see(text.as_str()) {
-                log.lock().unwrap_or_else(|e| e.into_inner()).push(seen);
+                log.lock().unwrap_or_else(|e| e.into_inner()).push((now_ms(), seen));
             }
             send(to, Message::Text(text))
         }

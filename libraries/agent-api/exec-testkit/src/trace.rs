@@ -53,6 +53,25 @@ impl Case {
     }
 }
 
+/// Fills `agent` and `executor` of every call of a replay trace (`method-trace/1` as `wf mimic replay --suite` writes it) with what the tap saw
+/// while the call ran: the call's `startMs` and `endMs` are its window, ends included. A call without a window keeps its lists. A caller passes
+/// the stamps of the chain the replay ran against, so the session setup the replay does before its first window is no call's hit.
+pub fn attribute(trace: &mut Value, seen: &[(i64, Seen)]) {
+    let calls = trace["tests"].as_array_mut().into_iter().flatten().flat_map(|t| t["calls"].as_array_mut().into_iter().flatten());
+    for call in calls {
+        let (Some(start), Some(end)) = (call["startMs"].as_i64(), call["endMs"].as_i64()) else { continue };
+        let (mut agent, mut executor) = (Vec::new(), Vec::new());
+        for (_, hit_seen) in seen.iter().filter(|(at, _)| (start..=end).contains(at)) {
+            match hit_seen {
+                Seen::Agent { method, ok, code } => agent.push(hit("method", method, *ok, code.clone())),
+                Seen::Executor { tool, ok, code } => executor.push(hit("tool", tool, *ok, code.clone())),
+            }
+        }
+        call["agent"] = json!(agent);
+        call["executor"] = json!(executor);
+    }
+}
+
 fn hit(key: &str, name: &str, ok: bool, code: Option<String>) -> Value {
     let mut hit = json!({ key: name, "ok": ok });
     if let Some(code) = code {
@@ -229,6 +248,30 @@ fn iso(ms: i64) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn given_a_replay_trace_with_windows_when_attributed_then_each_call_gets_the_hits_seen_in_its_window_and_the_session_setup_before_it_is_nobodys() {
+        // Given a hit of the session setup before the first window, one in each window, one between them, and a call with no window
+        let seen = [
+            (90, Seen::Agent { method: "thread.create".into(), ok: true, code: None }),
+            (110, Seen::Agent { method: "thread.pin".into(), ok: true, code: None }),
+            (120, Seen::Executor { tool: "write_file".into(), ok: false, code: Some("DENIED".into()) }),
+            (150, Seen::Agent { method: "turn.start".into(), ok: true, code: None }),
+            (210, Seen::Agent { method: "thread.get".into(), ok: true, code: None }),
+        ];
+        let mut trace = json!({"tests": [
+            {"calls": [{"id": "a", "startMs": 100, "endMs": 130, "agent": [], "executor": []}]},
+            {"calls": [{"id": "b", "startMs": 200, "endMs": 220, "agent": [], "executor": []}, {"id": "c", "agent": [], "executor": []}]},
+        ]});
+        // When the trace is attributed
+        attribute(&mut trace, &seen);
+        // Then a call has the hits of its window only, with the failure's code, and a call without a window has none
+        let call = |t: usize, c: usize| trace["tests"][t]["calls"][c].clone();
+        assert_eq!(call(0, 0)["agent"], json!([{"method": "thread.pin", "ok": true}]));
+        assert_eq!(call(0, 0)["executor"], json!([{"tool": "write_file", "ok": false, "code": "DENIED"}]));
+        assert_eq!(call(1, 0)["agent"], json!([{"method": "thread.get", "ok": true}]));
+        assert_eq!((call(1, 1)["agent"].clone(), call(1, 1)["executor"].clone()), (json!([]), json!([])));
+    }
 
     #[test]
     fn given_the_type_name_of_a_function_in_a_test_when_named_then_it_is_the_module_path_libtest_lists() {
