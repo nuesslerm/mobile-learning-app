@@ -331,6 +331,9 @@
     "rpc:server.getDatabaseStorage": {
       "oracle": "mimic"
     },
+    "command:thread.unsnooze": {
+      "oracle": "mimic"
+    },
     "command:thread.pin": {
       "oracle": "mimic"
     },
