@@ -19,6 +19,10 @@ pub struct State {
     pub projects: BTreeMap<String, Map<String, Value>>,
     pub threads: BTreeMap<String, Map<String, Value>>,
     pub entities: BTreeMap<String, Entities>,
+    /// Per thread, the projection keys an event has set that the base row leaves out.
+    pub projection_extras: BTreeMap<String, Map<String, Value>>,
+    /// Deleted threads: the real server still answers their projection, with `deletedAt` set.
+    pub deleted: BTreeMap<String, Map<String, Value>>,
 }
 
 /// What folding one event did to the shell.
@@ -39,6 +43,18 @@ pub fn event_json(e: &StoredEvent) -> Value {
         "type": e.kind,
         "payload": e.payload,
     })
+}
+
+/// The keys of a thread row that the real projection carries only after an event of that kind set them: the recorded pin leaves `pinOrderKey` out, the unpin and the settle carry it as null.
+fn projection_extras(kind: &str) -> &'static [&'static str] {
+    match kind {
+        "thread.settled" => &["activeOrderKey", "pinOrderKey", "pinnedAt", "unsettledAt"],
+        "thread.unsettled" => &["unsettledAt"],
+        "thread.pinned" => &["pinnedAt"],
+        "thread.unpinned" => &["pinOrderKey", "pinnedAt"],
+        "thread.auto-settle-set" => &["autoSettleDisabledAt"],
+        _ => &[],
+    }
 }
 
 fn merge(into: &mut Map<String, Value>, patch: &Value) {
@@ -114,8 +130,14 @@ impl State {
             }
             "thread.deleted" => {
                 if let Some(id) = &e.thread_id {
-                    applied.removed_from = self.threads.remove(id).map(|s| location(&s));
+                    let removed = self.threads.remove(id);
+                    if let Some(mut shell) = removed.clone() {
+                        shell.insert("deletedAt".into(), Value::String(iso(e.occurred_at)));
+                        self.deleted.insert(id.clone(), shell);
+                    }
+                    applied.removed_from = removed.map(|s| location(&s));
                     self.entities.remove(id);
+                    self.projection_extras.entry(id.clone()).or_default().insert("titleRegeneration".into(), e.payload.get("titleRegeneration").cloned().unwrap_or(Value::Null));
                 }
             }
             kind if kind.starts_with("thread.") => {
@@ -127,6 +149,12 @@ impl State {
                     for (k, v) in e.payload.as_object().into_iter().flatten() {
                         if k != "id" && shell.contains_key(k) {
                             applied.shell_changed |= shell.insert(k.clone(), v.clone()).as_ref() != Some(v);
+                        }
+                    }
+                    if let Some(id) = &e.thread_id {
+                        let extras = self.projection_extras.entry(id.clone()).or_default();
+                        for key in projection_extras(kind) {
+                            extras.insert((*key).into(), e.payload.get(*key).or_else(|| shell.get(*key)).cloned().unwrap_or(Value::Null));
                         }
                     }
                 }
@@ -224,11 +252,23 @@ impl State {
     }
 
     pub fn thread_projection(&self, id: &str) -> Option<Value> {
-        let shell = self.threads.get(id)?;
+        self.projection_of(self.threads.get(id)?, id)
+    }
+
+    /// A projection read, which still answers for a deleted thread.
+    pub fn thread_projection_read(&self, id: &str) -> Option<Value> {
+        self.projection_of(self.threads.get(id).or_else(|| self.deleted.get(id))?, id)
+    }
+
+    fn projection_of(&self, shell: &Map<String, Value>, id: &str) -> Option<Value> {
         let empty = Entities::default();
         let entities = self.entities.get(id).unwrap_or(&empty);
         let mut out = Map::new();
-        out.insert("thread".into(), thread_projection_row(shell));
+        let mut thread = thread_projection_row(shell);
+        if let (Some(row), Some(extras)) = (thread.as_object_mut(), self.projection_extras.get(id)) {
+            row.extend(extras.clone());
+        }
+        out.insert("thread".into(), thread);
         let list = |items: &Vec<Value>| Value::Array(items.clone());
         let none = || json!([]);
         for (key, value) in [

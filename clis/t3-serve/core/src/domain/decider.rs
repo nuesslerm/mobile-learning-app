@@ -294,7 +294,12 @@ pub fn decide_thread(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decision
             event("thread.unpinned", &shell)
         }
         "thread.visit" => {
-            touched(&mut shell, &at, vec![("lastVisitedAt", at.clone().into())]);
+            let visited = match cmd.str("visitedAt") {
+                Some(text) if t3_contracts::time::parse_iso(text).is_none() => return Err(format!("Thread {id} visit time {text} is not a valid timestamp.")),
+                Some(text) => text.to_string(),
+                None => at.clone(),
+            };
+            touched(&mut shell, &at, vec![("lastVisitedAt", visited.into())]);
             event("thread.visited", &shell)
         }
         "thread.guest-share.close" if shell.get("guestShare").is_none_or(Value::is_null) => one(draft("thread.command-accepted", Some(id), shell["projectId"].as_str(), now, json!({"commandType": cmd.kind}))),
@@ -825,6 +830,45 @@ mod tests {
         assert_eq!(snoozed["snoozedUntil"], "2030-01-01T00:00:00.000Z");
         let end = &state.threads["t"];
         assert_eq!((end["settledOverride"].as_str(), end["settledAt"].is_null(), end["snoozedUntil"].is_null(), end["unsettledAt"].is_null()), (Some("active"), true, true, false));
+    }
+
+    #[test]
+    fn the_projection_carries_the_optional_keys_only_after_a_command_set_them_as_the_real_server_does() {
+        // Given a thread nobody pinned or settled
+        let mut state = live();
+        let keys = |state: &State| -> Vec<String> { state.thread_projection("t").unwrap()["thread"].as_object().unwrap().keys().filter(|k| ["activeOrderKey", "pinOrderKey", "pinnedAt", "unsettledAt", "autoSettleDisabledAt"].contains(&k.as_str())).cloned().collect() };
+        let send = |state: &mut State, kind: &str| {
+            thread_with(state, json!({"type": kind, "commandId": "c", "threadId": "t"})).unwrap();
+        };
+        let before = keys(&state);
+        // When it is pinned, unpinned, settled and unsettled
+        send(&mut state, "thread.pin");
+        let pinned = keys(&state);
+        send(&mut state, "thread.unpin");
+        let unpinned = keys(&state);
+        send(&mut state, "thread.settle");
+        let settled = keys(&state);
+        send(&mut state, "thread.unsettle");
+        // Then each command added exactly the keys the recording shows for it, and unsettling stamped its time
+        assert_eq!((before.len(), pinned, unpinned.len(), settled.len()), (0, vec!["pinnedAt".to_string()], 2, 4));
+        assert!(state.thread_projection("t").unwrap()["thread"]["unsettledAt"].is_string());
+    }
+
+    #[test]
+    fn a_visit_needs_a_valid_time_and_a_deleted_thread_still_has_its_projection_with_the_time_it_was_deleted() {
+        // Given a thread
+        let mut state = live();
+        // When a visit names a time that is not one, a valid one, and the thread is then deleted
+        let invalid = thread_with(&mut state, json!({"type": "thread.visit", "commandId": "c", "threadId": "t", "visitedAt": "a"}));
+        thread_with(&mut state, json!({"type": "thread.visit", "commandId": "c", "threadId": "t", "visitedAt": "2030-01-01T00:00:00.000Z"})).unwrap();
+        let visited = state.thread_projection("t").unwrap()["thread"]["lastVisitedAt"].clone();
+        thread_with(&mut state, json!({"type": "thread.delete", "commandId": "c", "threadId": "t"})).unwrap();
+        // Then the first is refused with the real server's words, the second is kept, and only the read of a deleted thread answers
+        assert_eq!(invalid.unwrap_err(), "Thread t visit time a is not a valid timestamp.");
+        assert_eq!(visited, "2030-01-01T00:00:00.000Z");
+        assert!(state.thread_projection("t").is_none());
+        let deleted = state.thread_projection_read("t").unwrap();
+        assert!(deleted["thread"]["deletedAt"].is_string() && deleted["thread"]["titleRegeneration"].is_null() && deleted["thread"].get("titleRegeneration").is_some());
     }
 
     #[test]

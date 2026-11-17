@@ -334,6 +334,12 @@
     "command:thread.unsnooze": {
       "oracle": "mimic"
     },
+    "command:thread.settle": {
+      "oracle": "mimic"
+    },
+    "command:thread.unsettle": {
+      "oracle": "mimic"
+    },
     "command:thread.pin": {
       "oracle": "mimic"
     },

@@ -16,7 +16,7 @@
         "sha": null,
         "complete": true,
         "tests": 1349,
-        "passed": 1060
+        "passed": 1062
       },
       {
         "suite": "wf-mimic-t3-recorded",
@@ -38,6 +38,13 @@
         "complete": true,
         "tests": 71,
         "passed": 64
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 144,
+        "passed": 60
       }
     ]
   },
@@ -316,13 +323,16 @@
       "cassette": "recorded"
     },
     "command:thread.settle": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-scenarios::t3-scn-command-thread.settle",
       "agent": [
         "thread.create",
         "thread.settle"
       ],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.snooze": {
       "suite": "t3-serve-integration",
@@ -362,13 +372,16 @@
       "cassette": "recorded"
     },
     "command:thread.unsettle": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-scenarios::t3-scn-command-thread.unsettle",
       "agent": [
         "thread.create",
         "thread.settle"
       ],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.unsnooze": {
       "suite": "wf-mimic-t3-recorded",

@@ -363,19 +363,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value extra drift",
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.lastVisitedAt kind breaking"
-      ],
-      "ids": [
-        "t3-scn-command-thread.visit"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
       "severity": "breaking",
       "diffs": [
@@ -962,18 +949,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:2.[0].payload.exit._tag changed drift",
-        "steps.ws:s2c:2.[0].payload.exit.value missing breaking",
-        "steps.ws:s2c:2.[0].payload.exit.cause extra drift"
-      ],
-      "ids": [
-        "t3-scn-command-thread.delete"
-      ]
-    },
-    {
       "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.attempts",
       "severity": "breaking",
       "diffs": [
@@ -1395,60 +1370,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.thread.activeOrderKey",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.activeOrderKey missing breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.pinOrderKey missing breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.pinnedAt missing breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.unsettledAt missing breaking"
-      ],
-      "ids": [
-        "t3-scn-command-thread.settle"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.thread.autoSettleDisabledAt",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.autoSettleDisabledAt missing breaking"
-      ],
-      "ids": [
-        "t3-scn-command-thread.auto-settle.set"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.thread.pinOrderKey",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.pinOrderKey missing breaking",
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.pinnedAt missing breaking"
-      ],
-      "ids": [
-        "t3-scn-command-thread.unpin"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.thread.pinnedAt",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.pinnedAt missing breaking"
-      ],
-      "ids": [
-        "t3-scn-command-thread.pin"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.thread.unsettledAt",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:2.[0].payload.exit.value.thread.unsettledAt missing breaking"
-      ],
-      "ids": [
-        "t3-scn-command-thread.unsettle"
-      ]
-    },
-    {
       "class": "changed at steps.ws:s2c:s1.[*].payload.exit.value.attempts",
       "severity": "breaking",
       "diffs": [
@@ -1826,12 +1747,10 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:s10.[*].payload.exit.value",
+      "class": "missing at steps.ws:s2c:s10.[*].payload.exit.value.thread.guestShare",
       "severity": "breaking",
       "diffs": [
-        "steps.ws:s2c:s10.[0].payload.exit._tag changed drift",
-        "steps.ws:s2c:s10.[0].payload.exit.value missing breaking",
-        "steps.ws:s2c:s10.[0].payload.exit.cause extra drift",
+        "steps.ws:s2c:s10.[0].payload.exit.value.thread.guestShare missing breaking",
         "steps.ws:s2c:s3.[0].payload.exit.value.thread.titleRegeneration missing breaking"
       ],
       "ids": [

@@ -225,7 +225,7 @@ impl Engine {
     }
 
     pub fn thread_projection(&self, thread_id: &str) -> Option<Value> {
-        self.lock().state.thread_projection(thread_id)
+        self.lock().state.thread_projection_read(thread_id)
     }
 
     /// The directory a project's files live under, for the file RPCs.

@@ -562,13 +562,16 @@
       "milestone": "M4",
       "target": "agent:thread.settle",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-scenarios::t3-scn-command-thread.settle",
         "agent": [
           "thread.create",
           "thread.settle"
         ],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -648,13 +651,16 @@
       "milestone": "M4",
       "target": "agent:thread.settle",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-scenarios::t3-scn-command-thread.unsettle",
         "agent": [
           "thread.create",
           "thread.settle"
         ],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
