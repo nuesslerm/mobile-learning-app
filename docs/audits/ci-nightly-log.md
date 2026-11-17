@@ -30,3 +30,11 @@ One entry per night, appended by the nightly audit session (the "Nightly audit c
 - Earlier fixes checked: none listed in the last 7 days.
 - Tracker: t3 pinned 0.1.9, latest 0.1.9 (current). The last two track-contracts runs failed: 43699839667 (2026-11-15 09:33 UTC, step "Check the pins") and 43651197829. Orca not checked (no `GITHUB_TOKEN`). Nothing landed.
 - Inbox issue `#79` not updated: `gh issue` is blocked in this session (GraphQL).
+
+## 2026-11-17
+
+- Verdict: run 43844387127 (scheduled 2026-11-16 09:57 UTC, about 19 h old), `ok: false`, 422 findings, 62 hard (all `should-have-hit`), 360 `replayed-nothing`. Hard findings are flat against 2026-11-16 (67); total findings rose from 281. Largest waste: `crate-t3-serve:cargo-integration` (500 s), `crate-pipeline:cargo-contract` (364 s, 363 s).
+- Fixes landed: none. The cause of the `should-have-hit` misses on the cargo stages is still not traced and now spans four nights; `wf ci audit` cannot run here (no `bws`, no ledger credentials).
+- Earlier fixes checked: none listed in the last 7 days.
+- Tracker: t3 is behind: pinned 0.1.9, latest 0.1.10 (drifted). The last three track-contracts runs all failed in the step "Check the pins" (43843558576 on 2026-11-16 09:51 UTC, 43699839667, 43651197829), so no record or drift report exists for 0.1.10. Orca not checked (no `GITHUB_TOKEN`). Nothing landed.
+- Not recorded in inbox issue `#79` (`gh issue` is blocked in this session): the audit cache misses (four nights) and the failing "Check the pins" step (three runs) need an owner or a session with the vault.
