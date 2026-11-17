@@ -44,14 +44,17 @@
       "path": "steps.ws:s2c:12.payload.exit.cause.defect",
       "reason": "the union of a command of an unknown type lists the 55 types of v0.1.6; the pinned v0.1.9 lists 56 (thread.tag.set), and this server answers as the pin",
       "phase": "C9"
-    }
+    },
+    { "path": "settings.projectSettingsFolded", "reason": "this set was recorded on server v0.1.6 and t3-serve answers the settings of the pinned v0.1.9, where this default changed", "phase": "R2a" },
+    { "path": "settings.sidebarAutoSettleAfterDays", "reason": "this set was recorded on server v0.1.6 and t3-serve answers the settings of the pinned v0.1.9, where this default changed", "phase": "R2a" }
   ],
   "omitted": [
     {
       "path": "capabilities.fileAttachments",
       "reason": "the feature is not built, and an absent flag is how a client hides it",
       "phase": "5"
-    }
+    },
+    { "path": "settings.cursorKeychainUsageEnabled", "reason": "this set was recorded on server v0.1.6 and t3-serve answers the settings of the pinned v0.1.9, where this setting is gone", "phase": "R2a" }
   ],
   "shapeOnly": [
     {
