@@ -403,6 +403,19 @@ fn a_command_of_a_thread_the_server_does_not_hold_is_refused_with_the_pins_cause
 }
 
 #[test]
+fn a_project_mutation_under_the_id_of_a_refused_thread_command_is_judged_on_its_own_and_names_the_missing_project() {
+    // Given a thread command refused under the id c-1
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    rpc.call("orchestration.dispatchCommand", json!({"type": "thread.archive", "commandId": "c-1", "threadId": "ghost"}));
+    // When a project command of the same id deletes a project the server does not hold
+    let delete = rpc.call("projects.mutate", json!({"type": "project.delete", "commandId": "c-1", "projectId": "nope"}));
+    // Then the refusal names the missing project, not the earlier thread command
+    let error = failure(&delete);
+    assert_eq!((error["cause"]["name"].as_str(), error["cause"]["message"].as_str()), (Some("ProjectNotFoundError"), Some("Project nope was not found.")));
+}
+
+#[test]
 fn a_refusal_for_any_other_reason_carries_the_dispatch_error_cause() {
     // Given a thread that is not archived
     let h = Harness::start();

@@ -36,6 +36,12 @@ fn dispatch_failed(message: impl Into<String>) -> QueryFailure {
     QueryFailure::Error(json!({"_tag": "OrchestrationDispatchCommandError", "message": message.into()}))
 }
 
+/// A refusal of the scratch promotion: the dispatch error whose cause is the promotion's own, as the pin words it.
+fn promotion_failed(message: impl Into<String>) -> QueryFailure {
+    let message = message.into();
+    QueryFailure::Error(json!({"_tag": "OrchestrationDispatchCommandError", "message": message, "cause": {"message": message, "name": "ScratchThreadPromotionError"}}))
+}
+
 fn failure_text(failure: Failure) -> String {
     match failure {
         Failure::Defect(message) | Failure::Refused { message, .. } => message,
@@ -327,14 +333,14 @@ impl Service {
     pub fn create_from_thread(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let thread = field(payload, "threadId")?;
         let _one = self.lock_projects();
-        let shell = self.engine().read(|state| state.threads.get(thread).cloned()).ok_or_else(|| dispatch_failed("Thread not found."))?;
+        let shell = self.engine().read(|state| state.threads.get(thread).cloned()).ok_or_else(|| promotion_failed("Thread not found."))?;
         let title = shell.get("title").and_then(Value::as_str).unwrap_or("Project").to_string();
         let project = shell.get("projectId").and_then(Value::as_str).unwrap_or_default().to_string();
         let scratch = format!("{}/{SCRATCH}", self.root().map_err(dispatch_failed)?);
         let own = shell.get("worktreePath").and_then(Value::as_str).filter(|p| !p.is_empty()).map(str::to_string).or_else(|| self.engine().project_root(&project));
         let is_scratch = self.is_scratch_project(&project, &scratch);
         let already = own.as_deref().is_some_and(|folder| self.engine().project_root(&project).as_deref() == Some(folder)) && !is_scratch;
-        let refused = || dispatch_failed("Only a No project thread with its own folder can become a project.");
+        let refused = || promotion_failed("Only a No project thread with its own folder can become a project.");
         let folder = own.filter(|folder| folder.rsplit_once('/').is_some_and(|(parent, _)| parent == scratch) && (is_scratch || already)).ok_or_else(refused)?;
         let moving: Vec<(String, String)> = self.engine().read(|state| {
             let text = |row: &serde_json::Map<String, Value>, key: &str| row.get(key).and_then(Value::as_str).map(str::to_string);
@@ -342,7 +348,7 @@ impl Service {
             state.threads.iter().filter(|(id, row)| (is_scratch && id.as_str() == thread) || (text(row, "worktreePath").as_deref() == Some(folder.as_str()) && in_scratch(row))).map(|(id, row)| (id.clone(), text(row, "title").unwrap_or_else(|| "This thread".into()))).collect()
         });
         if let Some((_, busy)) = moving.iter().find(|(id, _)| self.engine().active_run(id).is_some()) {
-            return Err(dispatch_failed(format!("\"{busy}\" is still working. Finish or stop it first.")));
+            return Err(promotion_failed(format!("\"{busy}\" is still working. Finish or stop it first.")));
         }
         let id = match self.project_at(&folder) {
             Some(id) => id,

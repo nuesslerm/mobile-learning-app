@@ -201,6 +201,52 @@ pub fn project_not_found_error(command_id: &str, project_id: &str) -> Value {
     json!({"_tag": "ProjectMutationError", "commandId": command_id, "message": PROJECT_MUTATION_FAILED, "cause": {"message": format!("Project {project_id} was not found."), "name": "ProjectNotFoundError"}})
 }
 
+/// What a file RPC says for a workspace folder that does not exist: the RPC's own error `tag` with the pin's failure code, the folder as given
+/// and the cause that names it. `verb` is how the pin words the operation ("list", "search"); `extra` holds the fields only that RPC has.
+pub fn workspace_root_missing(tag: &str, verb: &str, cwd: &str, extra: Value) -> Value {
+    let mut error = json!({
+        "_tag": tag,
+        "cwd": cwd,
+        "failure": "workspace_root_not_found",
+        "message": format!("Failed to {verb} workspace entries in '{cwd}'."),
+        "normalizedCwd": cwd,
+        "cause": {"message": format!("Workspace root does not exist: {cwd}"), "name": "WorkspaceRootNotExistsError"},
+    });
+    if let (Some(into), Some(from)) = (error.as_object_mut(), extra.as_object()) {
+        into.extend(from.clone());
+    }
+    error
+}
+
+/// `projects.readFile` in a folder that does not exist: the operation that failed is the resolution of the folder itself.
+pub fn read_file_root_missing(cwd: &str, relative_path: &str) -> Value {
+    let resolved = format!("{}/{relative_path}", cwd.trim_end_matches('/'));
+    json!({
+        "_tag": "ProjectReadFileError",
+        "cwd": cwd,
+        "failure": "operation_failed",
+        "message": format!("Failed to read workspace file '{relative_path}' in '{cwd}'."),
+        "operation": "realpath-workspace-root",
+        "operationPath": relative_path,
+        "relativePath": relative_path,
+        "resolvedPath": resolved,
+        "cause": {
+            "name": "WorkspaceFileSystemOperationError",
+            "message": format!("Workspace file operation 'realpath-workspace-root' failed at '{relative_path}' for resolved path '{resolved}' (requested as '{relative_path}' in '{cwd}')."),
+            "cause": {"name": "Error", "message": format!("ENOENT: no such file or directory, realpath '{cwd}'")},
+        },
+    })
+}
+
+/// `projects.writeFile` in a folder that is no project, managed worktree or thread worktree of this server.
+pub fn write_file_unknown_workspace(cwd: &str, relative_path: &str, missing: bool) -> Value {
+    let mut cause = json!({"name": "UnknownWorkspaceError", "message": format!("'{cwd}' is not a registered project, a managed worktree, or a thread's worktree.")});
+    if missing {
+        cause["cause"] = json!({"name": "PlatformError", "message": format!("NotFound: FileSystem.realPath ({cwd})"), "cause": {"name": "Error", "message": format!("ENOENT: no such file or directory, lstat '{cwd}'")}});
+    }
+    json!({"_tag": "ProjectWriteFileError", "cwd": cwd, "failure": "workspace_path_outside_root", "message": format!("Failed to write workspace file '{relative_path}' in '{cwd}'."), "relativePath": relative_path, "cause": cause})
+}
+
 /// A file or turn operation the execution host refused or could not do.
 pub fn host_error(message: &str) -> Value {
     json!({"_tag": "ExecutionHostError", "message": message})

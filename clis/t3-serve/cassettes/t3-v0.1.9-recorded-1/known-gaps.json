@@ -29,20 +29,10 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].config.environment.capabilities.cloudVoiceTranscription",
+      "class": "changed at steps.ws:s2c:*.[*].payload.values.[*].config.keybindings",
       "severity": "breaking",
       "diffs": [
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.cloudVoiceTranscription missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.freshContext missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpApprovalCodes missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpHostedApproval missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.modelCatalogRefresh missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.oneTimeSchedules missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.scheduledTaskThreadModes missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.vcsBranchStatus missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.voiceTranscription missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.environment.databaseMigration changed drift",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.platform.machine missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings changed breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].command changed drift",
         "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].shortcut.key changed drift",

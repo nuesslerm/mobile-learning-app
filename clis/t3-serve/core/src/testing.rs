@@ -238,6 +238,8 @@ pub struct ScriptedAgent {
     pub interrupted: Mutex<Vec<String>>,
     /// While set, `history` answers it instead of the log.
     pub history_error: Mutex<Option<AgentError>>,
+    /// While set, `list_dir` answers it: a folder the executor does not have.
+    pub dir_error: Mutex<Option<AgentError>>,
     /// While true, `history` sends the log from its first event whatever number it is asked after.
     pub resend: std::sync::atomic::AtomicBool,
     /// The methods asked, in order, by their agent API names.
@@ -411,6 +413,9 @@ impl AgentApi for ScriptedAgent {
 
     fn list_dir(&self, root: &str, path: &str) -> Result<Vec<DirEntry>, AgentError> {
         self.called("file.list");
+        if let Some(error) = self.dir_error.lock().unwrap().clone() {
+            return Err(error);
+        }
         let prefix = format!("{root}/{}", path.trim_matches('/'));
         let prefix = prefix.trim_end_matches('/').to_string() + "/";
         let files = self.files.lock().unwrap();

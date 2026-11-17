@@ -104,7 +104,7 @@ impl Engine {
         if let Some(receipt) = self.store.receipt(&cmd.command_id).map_err(|e| refuse(e.0))? {
             return Ok(Dispatched { sequence: receipt.sequence, row: project_row(&inner), effect: None, replayed: true });
         }
-        if let Some(reason) = inner.rejected.get(&cmd.command_id) {
+        if let Some(reason) = inner.rejected.get(&cmd.command_id).filter(|_| family == Family::Thread) {
             return Err(Failure::PreviouslyRejected { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), reason: reason.clone() });
         }
         let new_id = || uuid(self.ids.as_ref());

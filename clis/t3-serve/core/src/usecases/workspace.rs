@@ -73,10 +73,23 @@ impl Service {
             .unwrap_or_default()
     }
 
+    /// Whether the folder is a project's root or a worktree a thread works in: the only folders a file may be written under.
+    fn is_workspace(&self, root: &str) -> bool {
+        self.engine().read(|s| s.projects.values().any(|p| p["workspaceRoot"] == root) || s.threads.values().any(|t| t["worktreePath"] == root))
+    }
+
+    /// Whether the agent API cannot list the folder at all, which is how a missing workspace shows.
+    pub(super) fn root_missing(&self, root: &str) -> bool {
+        self.agent().list_dir(root, "").is_err()
+    }
+
     /// `projects.writeFile`: the file written under the project's directory, its parents made.
     pub fn write_file(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (root, path) = (field(payload, "cwd")?, field(payload, "relativePath")?);
         let content = payload.get("contents").and_then(Value::as_str).ok_or_else(|| QueryFailure::Defect("Missing key\n  at [\"contents\"]".into()))?;
+        if !self.is_workspace(root) {
+            return Err(QueryFailure::Error(wire::write_file_unknown_workspace(root, path, self.root_missing(root))));
+        }
         let op = Op::FileWrite { root: root.into(), path: path.into(), content: content.into() };
         self.agent().run(&op).map_err(|e| failed_with("ProjectWriteFileError", &e, json!({"cwd": root, "relativePath": path})))?;
         Ok(json!({"relativePath": path}))
@@ -85,14 +98,15 @@ impl Service {
     /// `filesystem.browse`: the directories of the directory the partial path is in whose names start with what follows its last slash.
     pub fn browse(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let partial = field(payload, "partialPath")?;
-        let cwd = payload.get("cwd").and_then(Value::as_str).filter(|c| !c.is_empty());
+        let cwd = payload.get("cwd").and_then(Value::as_str).filter(|c| c.starts_with('/'));
         let refuse = |failure: &str, message: String| QueryFailure::Error(json!({"_tag": "FilesystemBrowseError", "partialPath": partial, "cwd": cwd, "failure": failure, "message": message}));
         let bytes = partial.as_bytes();
         if bytes.len() >= 3 && bytes[1] == b':' && (bytes[2] == b'\\' || bytes[2] == b'/') {
             return Err(refuse("windows_path_unsupported", format!("Windows paths are not supported: {partial}")));
         }
         let absolute = partial.starts_with('/') || partial.starts_with('~');
-        if !absolute && cwd.is_none() {
+        let explicit = ["./", "../"].iter().any(|p| partial.starts_with(p)) || partial == "." || partial == "..";
+        if !absolute && explicit && cwd.is_none() {
             return Err(refuse("current_project_required", "A relative path needs the project it is relative to.".into()));
         }
         let (dir, prefix) = match partial.rsplit_once('/') {
@@ -143,7 +157,12 @@ impl Service {
         let limit = payload.get("limit").and_then(Value::as_u64).filter(|l| *l > 0).ok_or_else(|| QueryFailure::Defect("Expected a positive integer at [\"limit\"]".into()))? as usize;
         let kind = payload.get("kind").and_then(Value::as_str);
         let images = payload.get("imageOnly").and_then(Value::as_bool).unwrap_or(false);
+        let extra = json!({"queryLength": query.chars().count(), "limit": limit});
         let refuse = |e: AgentError| failed_with("ProjectSearchEntriesError", &e, json!({"cwd": root, "queryLength": query.chars().count(), "limit": limit}));
+        let missing = || QueryFailure::Error(wire::workspace_root_missing("ProjectSearchEntriesError", "search", root, extra.clone()));
+        if !self.is_workspace(root) && self.root_missing(root) {
+            return Err(missing());
+        }
         let (found, truncated): (Vec<(String, bool)>, bool) = if query.is_empty() {
             let top = self.agent().list_dir(root, "").map_err(refuse)?;
             (top.into_iter().map(|e| (e.name, e.directory)).collect(), false)

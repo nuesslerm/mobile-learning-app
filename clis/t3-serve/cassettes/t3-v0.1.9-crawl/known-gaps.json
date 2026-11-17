@@ -2,40 +2,6 @@
   "schema": "mimic-known-gaps/2",
   "groups": [
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause.cause",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.cause missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.message changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.name changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift"
-      ],
-      "ids": [
-        "t3-command-message.dispatch-invalid-wrong-type-commandId",
-        "t3-command-message.dispatch-valid-min",
-        "t3-command-prepared-run.release-invalid-wrong-type-commandId",
-        "t3-command-prepared-run.release-valid-min",
-        "t3-command-prepared-run.retry-invalid-wrong-type-commandId",
-        "t3-command-prepared-run.retry-valid-min",
-        "t3-command-provider-session.detach-invalid-wrong-type-commandId",
-        "t3-command-provider-session.detach-valid-min",
-        "t3-command-queued-run.start-invalid-wrong-type-commandId",
-        "t3-command-run.interrupt-valid-min",
-        "t3-command-runtime-request.respond-boundary-full",
-        "t3-command-runtime-request.respond-invalid-wrong-type-commandId",
-        "t3-command-runtime-request.respond-valid-min",
-        "t3-command-thread.delete-valid-min",
-        "t3-command-thread.pin-invalid-wrong-type-commandId",
-        "t3-command-thread.pin-valid-min",
-        "t3-command-thread.runtime-mode.set-invalid-wrong-type-commandId",
-        "t3-command-thread.settle-valid-min",
-        "t3-command-thread.unsnooze-invalid-wrong-type-commandId",
-        "t3-command-thread.user-input.dismiss-valid-min",
-        "t3-rpc-orchestration.dispatchCommand-valid-min"
-      ]
-    },
-    {
       "class": "kind at steps.http:ret:_.[*].payload.body",
       "severity": "breaking",
       "diffs": [
@@ -91,41 +57,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
-      ],
-      "ids": [
-        "t3-rpc-device.configure-boundary-full",
-        "t3-rpc-device.configure-invalid-no-payload",
-        "t3-rpc-device.configure-valid-min",
-        "t3-rpc-device.list-invalid-no-payload",
-        "t3-rpc-device.list-valid-min",
-        "t3-rpc-filesystem.browse-boundary-full",
-        "t3-rpc-filesystem.browse-valid-min",
-        "t3-rpc-server.acceptAcpRegistryUrlAuth-valid-min",
-        "t3-rpc-server.getProcessDiagnostics-invalid-no-payload",
-        "t3-rpc-server.getProcessDiagnostics-valid-min",
-        "t3-rpc-server.getProcessResourceHistory-boundary-limit-windowMs",
-        "t3-rpc-server.getProcessResourceHistory-valid-min",
-        "t3-rpc-server.getResourceTelemetryHistory-boundary-limit-windowMs",
-        "t3-rpc-server.getResourceTelemetryHistory-valid-min",
-        "t3-rpc-server.getTraceDiagnostics-invalid-no-payload",
-        "t3-rpc-server.getTraceDiagnostics-valid-min",
-        "t3-rpc-server.prepareTriage-boundary-full",
-        "t3-rpc-server.prepareTriage-valid-min",
-        "t3-rpc-server.retryResourceTelemetry-invalid-no-payload",
-        "t3-rpc-server.retryResourceTelemetry-valid-min",
-        "t3-rpc-server.searchAcpRegistry-valid-min",
-        "t3-rpc-server.uninstallAcpRegistryManagedBinary-valid-min",
-        "t3-rpc-sourceControl.star-valid-min",
-        "t3-rpc-sourceControl.starred-valid-min"
-      ]
-    },
-    {
       "class": "kind at steps.http:ret:_.[*].payload.body",
       "severity": "breaking",
       "diffs": [
@@ -162,38 +93,69 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
       "severity": "breaking",
       "diffs": [
         "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value extra drift"
+        "steps.ws:s2c:1.[0].payload.exit.value missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
       ],
       "ids": [
-        "t3-rpc-projects.searchEntries-boundary-full",
-        "t3-rpc-projects.searchEntries-boundary-limit-limit",
-        "t3-rpc-projects.searchEntries-valid-min",
-        "t3-rpc-projects.writeFile-valid-min"
+        "t3-rpc-device.configure-boundary-full",
+        "t3-rpc-device.configure-invalid-no-payload",
+        "t3-rpc-device.configure-valid-min",
+        "t3-rpc-device.list-invalid-no-payload",
+        "t3-rpc-device.list-valid-min",
+        "t3-rpc-server.acceptAcpRegistryUrlAuth-valid-min",
+        "t3-rpc-server.getProcessDiagnostics-invalid-no-payload",
+        "t3-rpc-server.getProcessDiagnostics-valid-min",
+        "t3-rpc-server.getProcessResourceHistory-boundary-limit-windowMs",
+        "t3-rpc-server.getProcessResourceHistory-valid-min",
+        "t3-rpc-server.getResourceTelemetryHistory-boundary-limit-windowMs",
+        "t3-rpc-server.getResourceTelemetryHistory-valid-min",
+        "t3-rpc-server.getTraceDiagnostics-invalid-no-payload",
+        "t3-rpc-server.getTraceDiagnostics-valid-min",
+        "t3-rpc-server.prepareTriage-boundary-full",
+        "t3-rpc-server.prepareTriage-valid-min",
+        "t3-rpc-server.retryResourceTelemetry-invalid-no-payload",
+        "t3-rpc-server.retryResourceTelemetry-valid-min",
+        "t3-rpc-server.searchAcpRegistry-valid-min",
+        "t3-rpc-server.uninstallAcpRegistryManagedBinary-valid-min",
+        "t3-rpc-sourceControl.star-valid-min",
+        "t3-rpc-sourceControl.starred-valid-min"
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.values",
-      "severity": "breaking",
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause.message",
+      "severity": "drift",
       "diffs": [
-        "steps.ws:s2c:1.[0].payload._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.values missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit extra drift"
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.name changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift"
       ],
       "ids": [
-        "t3-rpc-subscribeAuthAccess-invalid-no-payload",
-        "t3-rpc-subscribeAuthAccess-valid-min",
-        "t3-rpc-subscribeDeviceState-invalid-no-payload",
-        "t3-rpc-subscribeDeviceState-valid-min",
-        "t3-rpc-subscribeDiscoveredLocalServers-boundary-full",
-        "t3-rpc-subscribeDiscoveredLocalServers-invalid-no-payload",
-        "t3-rpc-subscribeDiscoveredLocalServers-valid-min",
-        "t3-rpc-subscribeResourceTelemetry-invalid-no-payload",
-        "t3-rpc-subscribeResourceTelemetry-valid-min"
+        "t3-command-message.dispatch-invalid-wrong-type-commandId",
+        "t3-command-message.dispatch-valid-min",
+        "t3-command-prepared-run.release-invalid-wrong-type-commandId",
+        "t3-command-prepared-run.release-valid-min",
+        "t3-command-prepared-run.retry-invalid-wrong-type-commandId",
+        "t3-command-prepared-run.retry-valid-min",
+        "t3-command-provider-session.detach-invalid-wrong-type-commandId",
+        "t3-command-provider-session.detach-valid-min",
+        "t3-command-queued-run.start-invalid-wrong-type-commandId",
+        "t3-command-run.interrupt-valid-min",
+        "t3-command-runtime-request.respond-boundary-full",
+        "t3-command-runtime-request.respond-invalid-wrong-type-commandId",
+        "t3-command-runtime-request.respond-valid-min",
+        "t3-command-thread.delete-valid-min",
+        "t3-command-thread.pin-invalid-wrong-type-commandId",
+        "t3-command-thread.pin-valid-min",
+        "t3-command-thread.runtime-mode.set-invalid-wrong-type-commandId",
+        "t3-command-thread.settle-valid-min",
+        "t3-command-thread.unsnooze-invalid-wrong-type-commandId",
+        "t3-command-thread.user-input.dismiss-valid-min",
+        "t3-rpc-orchestration.dispatchCommand-valid-min"
       ]
     },
     {
@@ -240,6 +202,26 @@
         "t3-rpc-server.logoutAcpRegistry-valid-min",
         "t3-rpc-server.setAcpRegistryProvider-boundary-full",
         "t3-rpc-server.setAcpRegistryProvider-valid-min"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.values",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.values missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit extra drift"
+      ],
+      "ids": [
+        "t3-rpc-subscribeAuthAccess-invalid-no-payload",
+        "t3-rpc-subscribeAuthAccess-valid-min",
+        "t3-rpc-subscribeDeviceState-invalid-no-payload",
+        "t3-rpc-subscribeDeviceState-valid-min",
+        "t3-rpc-subscribeDiscoveredLocalServers-boundary-full",
+        "t3-rpc-subscribeDiscoveredLocalServers-invalid-no-payload",
+        "t3-rpc-subscribeDiscoveredLocalServers-valid-min",
+        "t3-rpc-subscribeResourceTelemetry-invalid-no-payload",
+        "t3-rpc-subscribeResourceTelemetry-valid-min"
       ]
     },
     {
@@ -325,31 +307,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking"
-      ],
-      "ids": [
-        "t3-mutation-project.delete-boundary-full",
-        "t3-mutation-project.delete-valid-min",
-        "t3-mutation-project.update-valid-min",
-        "t3-rpc-projects.createFromThread-invalid-wrong-type-threadId",
-        "t3-rpc-projects.createFromThread-valid-min"
-      ]
-    },
-    {
-      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation changed drift"
-      ],
-      "ids": [
-        "t3-rpc-pullRequests.generateReviewGuide-boundary-full"
-      ]
-    },
-    {
       "class": "missing at steps.http:ret:_.[*].payload.body.models",
       "severity": "breaking",
       "diffs": [
@@ -384,6 +341,21 @@
         "t3-rpc-provider.install.remove-valid-min",
         "t3-rpc-provider.install.start-valid-min",
         "t3-rpc-provider.install.subscribe-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause.message",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.normalizedCwd changed drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.listEntries-boundary-full",
+        "t3-rpc-projects.listEntries-valid-min",
+        "t3-rpc-projects.searchEntries-boundary-full",
+        "t3-rpc-projects.searchEntries-boundary-limit-limit",
+        "t3-rpc-projects.searchEntries-valid-min"
       ]
     },
     {
@@ -437,16 +409,6 @@
       ]
     },
     {
-      "class": "extra at steps.ws:s2c:*.[*]",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0] extra drift"
-      ],
-      "ids": [
-        "t3-rpc-server.discoverSourceControl-invalid-no-payload"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error",
       "severity": "breaking",
       "diffs": [
@@ -459,18 +421,6 @@
         "t3-command-thread.created.record-valid-min",
         "t3-rpc-server.reclaimDatabaseSpace-invalid-no-payload",
         "t3-rpc-server.reclaimDatabaseSpace-valid-min"
-      ]
-    },
-    {
-      "class": "extra at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.provider",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.provider extra drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.requirement extra drift"
-      ],
-      "ids": [
-        "t3-rpc-pullRequests.routingIdentity-valid-min"
       ]
     },
     {
@@ -534,20 +484,10 @@
       ]
     },
     {
-      "class": "missing at steps.http:ret:_.[*].payload.body.capabilities.cloudVoiceTranscription",
-      "severity": "breaking",
+      "class": "changed at steps.http:ret:_.[*].payload.body.databaseMigration",
+      "severity": "drift",
       "diffs": [
-        "steps.http:ret:_.[0].payload.body.capabilities.cloudVoiceTranscription missing breaking",
-        "steps.http:ret:_.[0].payload.body.capabilities.freshContext missing breaking",
-        "steps.http:ret:_.[0].payload.body.capabilities.mcpApprovalCodes missing breaking",
-        "steps.http:ret:_.[0].payload.body.capabilities.mcpHostedApproval missing breaking",
-        "steps.http:ret:_.[0].payload.body.capabilities.modelCatalogRefresh missing breaking",
-        "steps.http:ret:_.[0].payload.body.capabilities.oneTimeSchedules missing breaking",
-        "steps.http:ret:_.[0].payload.body.capabilities.scheduledTaskThreadModes missing breaking",
-        "steps.http:ret:_.[0].payload.body.capabilities.vcsBranchStatus missing breaking",
-        "steps.http:ret:_.[0].payload.body.capabilities.voiceTranscription missing breaking",
-        "steps.http:ret:_.[0].payload.body.databaseMigration changed drift",
-        "steps.http:ret:_.[0].payload.body.platform.machine missing breaking"
+        "steps.http:ret:_.[0].payload.body.databaseMigration changed drift"
       ],
       "ids": [
         "t3-http-metadata.descriptor-empty-empty-object",
@@ -684,18 +624,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit missing breaking",
-        "steps.ws:s2c:1.[0].payload.values extra drift"
-      ],
-      "ids": [
-        "t3-rpc-subscribeServerConfig-invalid-wrong-type-environmentThemes"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.values",
       "severity": "breaking",
       "diffs": [
@@ -774,41 +702,6 @@
       "diffs": [
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.failure missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.normalizedCwd missing breaking"
-      ],
-      "ids": [
-        "t3-rpc-projects.listEntries-boundary-full",
-        "t3-rpc-projects.listEntries-valid-min"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cwd missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.failure missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operationPath missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.relativePath missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.resolvedPath missing breaking"
-      ],
-      "ids": [
-        "t3-rpc-projects.readFile-boundary-full",
-        "t3-rpc-projects.readFile-valid-min"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.message extra drift",
@@ -868,6 +761,19 @@
       ]
     },
     {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause.cause.message",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.cause.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.resolvedPath changed drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.readFile-boundary-full",
+        "t3-rpc-projects.readFile-valid-min"
+      ]
+    },
+    {
       "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
       "severity": "drift",
       "diffs": [
@@ -891,20 +797,10 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.environment.capabilities.cloudVoiceTranscription",
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.keybindings",
       "severity": "breaking",
       "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.cloudVoiceTranscription missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.freshContext missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.mcpApprovalCodes missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.mcpHostedApproval missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.modelCatalogRefresh missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.oneTimeSchedules missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.scheduledTaskThreadModes missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.vcsBranchStatus missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.voiceTranscription missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.value.environment.databaseMigration changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.environment.platform.machine missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.value.keybindings changed breaking",
         "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[13].command changed drift",
         "steps.ws:s2c:1.[0].payload.exit.value.keybindings.[13].shortcut.key changed drift",
@@ -1170,6 +1066,17 @@
       ]
     },
     {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.parentPath",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.value.parentPath changed drift"
+      ],
+      "ids": [
+        "t3-rpc-filesystem.browse-boundary-full",
+        "t3-rpc-filesystem.browse-valid-min"
+      ]
+    },
+    {
       "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.revision",
       "severity": "drift",
       "diffs": [
@@ -1206,20 +1113,10 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].config.environment.capabilities.cloudVoiceTranscription",
+      "class": "changed at steps.ws:s2c:*.[*].payload.values.[*].config.keybindings",
       "severity": "breaking",
       "diffs": [
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.cloudVoiceTranscription missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.freshContext missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpApprovalCodes missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpHostedApproval missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.modelCatalogRefresh missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.oneTimeSchedules missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.scheduledTaskThreadModes missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.vcsBranchStatus missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.voiceTranscription missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.environment.databaseMigration changed drift",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.platform.machine missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings changed breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].command changed drift",
         "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].shortcut.key changed drift",
@@ -1492,31 +1389,11 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].payload.environment.capabilities.cloudVoiceTranscription",
-      "severity": "breaking",
+      "class": "changed at steps.ws:s2c:*.[*].payload.values.[*].payload.environment.databaseMigration",
+      "severity": "drift",
       "diffs": [
-        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.cloudVoiceTranscription missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.freshContext missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.mcpApprovalCodes missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.mcpHostedApproval missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.modelCatalogRefresh missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.oneTimeSchedules missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.scheduledTaskThreadModes missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.vcsBranchStatus missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.voiceTranscription missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.databaseMigration changed drift",
-        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.platform.machine missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.cloudVoiceTranscription missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.freshContext missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.mcpApprovalCodes missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.mcpHostedApproval missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.modelCatalogRefresh missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.oneTimeSchedules missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.scheduledTaskThreadModes missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.vcsBranchStatus missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.voiceTranscription missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.databaseMigration changed drift",
-        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.platform.machine missing breaking"
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.databaseMigration changed drift"
       ],
       "ids": [
         "t3-rpc-subscribeServerLifecycle-invalid-no-payload",
@@ -1565,6 +1442,28 @@
       ],
       "ids": [
         "t3-http-auth.pairingCredential-valid-min"
+      ]
+    },
+    {
+      "class": "extra at steps.ws:s2c:*.[*]",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0] extra drift"
+      ],
+      "ids": [
+        "t3-rpc-server.discoverSourceControl-invalid-no-payload"
+      ]
+    },
+    {
+      "class": "missing at steps.ws:s2c:*.[*].payload.exit",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload._tag changed drift",
+        "steps.ws:s2c:1.[0].payload.exit missing breaking",
+        "steps.ws:s2c:1.[0].payload.values extra drift"
+      ],
+      "ids": [
+        "t3-rpc-subscribeServerConfig-invalid-wrong-type-environmentThemes"
       ]
     },
     {
@@ -1658,6 +1557,40 @@
       ]
     },
     {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause.cause.cause.message",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.cause.cause.message changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause.cause.message changed drift"
+      ],
+      "ids": [
+        "t3-rpc-projects.writeFile-valid-min"
+      ]
+    },
+    {
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.detail",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.operation changed drift"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.generateReviewGuide-boundary-full"
+      ]
+    },
+    {
+      "class": "extra at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.provider",
+      "severity": "drift",
+      "diffs": [
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.reason changed drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.provider extra drift",
+        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.requirement extra drift"
+      ],
+      "ids": [
+        "t3-rpc-pullRequests.routingIdentity-valid-min"
+      ]
+    },
+    {
       "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.availableMemoryBytes",
       "severity": "drift",
       "diffs": [
@@ -1708,10 +1641,9 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value.commitError",
-      "severity": "breaking",
+      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.workspaceRoot",
+      "severity": "drift",
       "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.value.commitError missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.value.workspaceRoot changed drift"
       ],
       "ids": [
@@ -1719,56 +1651,11 @@
       ]
     },
     {
-      "class": "changed at steps.ws:s2c:*.[*].payload.exit.value.sourceControlProviders",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders changed breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].auth.detail._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].auth.detail.value missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].auth.host._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].auth.host.value extra drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].installHint changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].version._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].version.value missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[0].appSignIn extra drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.detail._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.detail.value missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.host._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.host.value extra drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.status changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].auth.accounts extra drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].detail._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].detail.value missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].executable changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].installHint changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].kind changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].status changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.sourceControlProviders.[1].appSignIn extra drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.versionControlSystems changed breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value.versionControlSystems.[0].installHint changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.versionControlSystems.[0].version._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.value.versionControlSystems.[0].version.value missing breaking"
-      ],
-      "ids": [
-        "t3-rpc-server.discoverSourceControl-valid-min"
-      ]
-    },
-    {
       "class": "changed at steps.ws:s2c:*.[*].payload.values",
       "severity": "breaking",
       "diffs": [
         "steps.ws:s2c:1.[0].payload.values changed breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.cloudVoiceTranscription missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.freshContext missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpApprovalCodes missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpHostedApproval missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.modelCatalogRefresh missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.oneTimeSchedules missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.scheduledTaskThreadModes missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.vcsBranchStatus missing breaking",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.voiceTranscription missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.environment.databaseMigration changed drift",
-        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.platform.machine missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings changed breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].command changed drift",
         "steps.ws:s2c:1.[0].payload.values.[0].config.keybindings.[13].shortcut.key changed drift",
@@ -2015,16 +1902,6 @@
       ],
       "ids": [
         "t3-rpc-subscribeServerConfig-boundary-full"
-      ]
-    },
-    {
-      "class": "kind at steps.ws:s2c:*.[*].payload.values.[*].projection.thread.archivedAt",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.values.[0].projection.thread.archivedAt kind breaking"
-      ],
-      "ids": [
-        "t3-rpc-orchestration.subscribeThread-valid-golden"
       ]
     }
   ]
