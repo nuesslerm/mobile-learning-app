@@ -9,14 +9,14 @@
         "sha": null,
         "complete": true,
         "tests": 3968,
-        "passed": 622
+        "passed": 705
       },
       {
         "suite": "wf-mimic-orca-recorded",
         "sha": null,
         "complete": true,
         "tests": 311,
-        "passed": 121
+        "passed": 144
       }
     ]
   },
@@ -39,9 +39,27 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:agent.launchReplay": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agent.launchReplay-invalid-drop-agent",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:agentSession.cancel": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-agentSession.cancel-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:agentSession.commands": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSession.commands-boundary-limit-sessionId",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -57,15 +75,78 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:agentSession.create": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSession.create-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:agentSession.currentRequests": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSession.currentRequests-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:agentSession.history": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSession.history-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:agentSession.hold": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSession.hold-boundary-limit-sessionId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:agentSession.item": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSession.item-boundary-limit-sessionId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:agentSession.modelCatalog": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-agentSession.modelCatalog-boundary-full",
       "agent": [],
       "executor": []
     },
+    "rpc:agentSession.options": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSession.options-boundary-limit-sessionId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:agentSession.queuedMessageDelete": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-agentSession.queuedMessageDelete-boundary-limit-messageId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:agentSession.queuedMessageEditHold": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSession.queuedMessageEditHold-empty-min",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -171,6 +252,15 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:agentSession.subscribe": {
+      "suite": "wf-mimic-orca-recorded",
+      "test": "orca-v1.4.259-recorded::orca-agentSession.subscribe",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:agentSession.unsubscribe": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-agentSession.unsubscribe-boundary-full",
@@ -180,9 +270,42 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:agentSessionAttachment.read": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.read-invalid-drop-path",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:agentSessionAttachment.readTextChunk": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.readTextChunk-invalid-drop-path",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:agentSessionAttachment.uploadAbort": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.uploadAbort-invalid-drop-uploadId",
+      "agent": [],
+      "executor": []
+    },
     "rpc:agentSessionAttachment.uploadAppend": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.uploadAppend-boundary-limit-uploadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:agentSessionAttachment.uploadCommit": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.uploadCommit-invalid-drop-uploadId",
+      "agent": [],
+      "executor": []
+    },
+    "rpc:agentSessionAttachment.uploadStart": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.uploadStart-invalid-drop-sessionId",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

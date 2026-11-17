@@ -1373,3 +1373,22 @@ fn given_detection_inputs_of_the_wrong_type_or_for_a_host_this_machine_is_not_wh
     assert_eq!(other_host, ("invalid_argument".into(), "Invalid host id".into()));
     rig.ok("preflight.refreshAgents", json!({"worktreeHostId": "local", "userInitiated": true}));
 }
+
+#[test]
+fn given_calls_with_no_session_or_envelope_when_sent_then_each_is_refused_with_the_hosts_schema_words() {
+    // Given a host with no session
+    let mut rig = Rig::new();
+    // When the phone sends each method with no params, Then the schema's words name what is missing
+    for method in ["agentSession.history", "agentSession.item", "agentSession.hold", "agentSession.options", "agentSession.commands", "agentSession.currentRequests", "agentSession.subscribe"] {
+        assert_eq!(rig.err(method, json!({})).1, "Invalid input: expected string, received undefined", "{method}");
+    }
+    for method in ["agentSession.send", "agentSession.cancel", "agentSession.setOption", "agentSession.queuedMessageSend", "agentSession.respondToApproval"] {
+        assert_eq!(rig.err(method, json!({})).1, "Invalid input: expected object, received undefined", "{method}");
+        assert_eq!(rig.err(method, json!({"envelope": "x"})).1, "Invalid input: expected object, received string", "{method}");
+    }
+    assert_eq!(rig.err("agentSession.create", json!({})).1, "Invalid input");
+    assert_eq!(rig.err("agentSession.queuedMessageMove", json!({})).1, "Invalid input");
+    assert_eq!(rig.err("agentSession.queuedMessageEditHold", json!({})).1, "Invalid discriminator value. Expected 'acquire' | 'renew' | 'release'");
+    assert_eq!(rig.err("agent.launchReplay", json!({})).1, "Unknown TUI agent");
+    assert_eq!(rig.err("agentSession.history", json!({"sessionId": 7})).1, "Invalid input: expected string, received number");
+}

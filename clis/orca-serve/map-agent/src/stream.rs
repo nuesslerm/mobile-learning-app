@@ -38,7 +38,7 @@ fn batch(session: &str, folded: &crate::fold::Folded, after: u64) -> Value {
 }
 
 pub(crate) fn open(ctx: &mut Ctx, params: &Value) -> Result<Box<dyn Subscription>, Failure> {
-    let session = crate::session::text(params, "sessionId").ok_or_else(|| Failure::invalid("Invalid session id"))?.to_string();
+    let session = crate::session::agent_session_id(params)?.to_string();
     let agent = ctx.agent_handle.clone();
     crate::journal::view(agent.as_ref(), &session)?;
     let (events, _) = events_after(agent.as_ref(), &session, 0)?;

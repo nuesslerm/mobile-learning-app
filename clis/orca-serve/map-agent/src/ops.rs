@@ -15,8 +15,19 @@ pub(crate) struct Envelope {
 }
 
 impl Envelope {
+    /// The methods whose input is a union of shapes refuse a missing or mistyped envelope as the union, with no detail.
+    pub fn read_union(params: &Value) -> Result<Envelope, Failure> {
+        if !params["envelope"].is_object() {
+            return Err(Failure::invalid("Invalid input"));
+        }
+        Envelope::read(params)
+    }
+
     pub fn read(params: &Value) -> Result<Envelope, Failure> {
         let e = &params["envelope"];
+        if !e.is_object() {
+            return Err(Failure::invalid(format!("Invalid input: expected object, received {}", params.get("envelope").map_or("undefined", orca_core::wire::received))));
+        }
         let text = |k: &str| e[k].as_str().filter(|s| !s.is_empty()).map(str::to_string).ok_or_else(|| Failure::invalid(format!("Invalid envelope: missing {k}")));
         let session = text("sessionId")?;
         if !crate::ids::is_session_id(&session) {

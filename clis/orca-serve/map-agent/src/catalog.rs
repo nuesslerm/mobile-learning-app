@@ -57,7 +57,7 @@ fn session_driver(thread: &Value) -> Result<&str, Failure> {
 }
 
 fn session_id(params: &Value) -> Result<&str, Failure> {
-    text(params, "sessionId").ok_or_else(|| Failure::invalid("Invalid session id"))
+    agent_session_id(params)
 }
 
 /// `agentSession.options`: the models of the session's driver and the model its next turn runs on.

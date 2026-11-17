@@ -168,7 +168,7 @@ fn plain(agent: &dyn AgentApi, env: &Envelope, value: Value) -> Result<Value, Fa
 }
 
 pub(crate) fn move_to(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let env = Envelope::read(params)?;
+    let env = Envelope::read_union(params)?;
     if let Some(done) = lookup(agent, &env)? {
         return Ok(done);
     }
@@ -219,10 +219,13 @@ fn lease_key(session: &str) -> String {
 /// `agentSession.queuedMessageEditHold`: the edit lease of a card. The lease is kept in rca's state under the editor's id with its deadline;
 /// rca's queue has no per-card hold, so a card that starts while it is leased answers the save as `gone`, dispatched.
 pub(crate) fn edit_hold(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let session = text(params, "sessionId").ok_or_else(|| Failure::invalid("Invalid session id"))?;
+    if !params.is_object() && !params.is_null() {
+        return Err(Failure::invalid(format!("Invalid input: expected object, received {}", orca_core::wire::received(params))));
+    }
+    let action = params["action"].as_str().filter(|a| matches!(*a, "acquire" | "renew" | "release")).ok_or_else(|| Failure::invalid("Invalid discriminator value. Expected 'acquire' | 'renew' | 'release'"))?;
+    let session = crate::session::agent_session_id(params)?;
     let message = id(params)?;
     let edit = text(params, "editId").ok_or_else(|| Failure::invalid("Invalid edit id"))?;
-    let action = params["action"].as_str().filter(|a| matches!(*a, "acquire" | "renew" | "release")).ok_or_else(|| Failure::invalid("Invalid action"))?;
     let now = now_ms();
     let mut leases: Map<String, Value> = match state_get(agent, &lease_key(session))? {
         Some(Value::Object(m)) => m,

@@ -20,7 +20,7 @@ pub(crate) fn text<'a>(params: &'a Value, key: &str) -> Option<&'a str> {
 }
 
 fn session_id(params: &Value) -> Result<&str, Failure> {
-    text(params, "sessionId").ok_or_else(|| Failure::invalid("Invalid session id"))
+    agent_session_id(params)
 }
 
 /// The Orca agent ids this host runs, and the rca driver each one is.
@@ -147,6 +147,9 @@ pub(crate) fn send(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
 
 /// `agentSession.create` for a new chat: the thread, and the first message as its first turn.
 pub(crate) fn create(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    if !params["envelope"].is_object() {
+        return Err(Failure::invalid("Invalid input"));
+    }
     if params.get("providerHandle").is_some() {
         return Err(unsupported());
     }
@@ -332,7 +335,7 @@ pub(crate) fn current_requests(agent: &dyn AgentApi, params: &Value) -> Result<V
 
 /// `nativeChat.readSession`: the transcript as the phone's chat rows, newest window first, paged by the row offset (the event's `seq`).
 pub(crate) fn read_session(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let session = session_id(params)?;
+    let session = text(params, "sessionId").ok_or_else(|| Failure::invalid("Invalid session id"))?;
     if params["agent"].as_str().is_none_or(str::is_empty) {
         return Err(Failure::invalid("Missing agent"));
     }

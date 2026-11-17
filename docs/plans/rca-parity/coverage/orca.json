@@ -9,8 +9,8 @@
   },
   "summary": {
     "rows": 317,
-    "served": 135,
-    "pending": 29,
+    "served": 150,
+    "pending": 14,
     "notOffered": 143,
     "excluded": 7,
     "flagged": 3,
@@ -23,7 +23,7 @@
     "pendingByMilestone": {
       "M5": 3,
       "M6": 2,
-      "M7": 19,
+      "M7": 4,
       "M10": 3,
       "M11": 2
     }
@@ -166,8 +166,17 @@
       "id": "rpc:agent.launchReplay",
       "kind": "rpc",
       "name": "agent.launchReplay",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agent.launchReplay-invalid-drop-agent",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentActivity.clear",
@@ -223,8 +232,17 @@
       "id": "rpc:agentSession.commands",
       "kind": "rpc",
       "name": "agentSession.commands",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.commands-boundary-limit-sessionId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.continueInterrupted",
@@ -255,8 +273,17 @@
       "id": "rpc:agentSession.create",
       "kind": "rpc",
       "name": "agentSession.create",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.create-invalid-no-payload",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.createSupport",
@@ -269,29 +296,65 @@
       "id": "rpc:agentSession.currentRequests",
       "kind": "rpc",
       "name": "agentSession.currentRequests",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.currentRequests-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.history",
       "kind": "rpc",
       "name": "agentSession.history",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.history-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.hold",
       "kind": "rpc",
       "name": "agentSession.hold",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.hold-boundary-limit-sessionId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.item",
       "kind": "rpc",
       "name": "agentSession.item",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.item-boundary-limit-sessionId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.modelCatalog",
@@ -310,8 +373,17 @@
       "id": "rpc:agentSession.options",
       "kind": "rpc",
       "name": "agentSession.options",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.options-boundary-limit-sessionId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.queuedMessageDelete",
@@ -333,8 +405,17 @@
       "id": "rpc:agentSession.queuedMessageEditHold",
       "kind": "rpc",
       "name": "agentSession.queuedMessageEditHold",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.queuedMessageEditHold-empty-min",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.queuedMessageMove",
@@ -535,8 +616,17 @@
       "kind": "rpc",
       "name": "agentSession.subscribe",
       "subscription": true,
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-recorded",
+        "test": "orca-v1.4.259-recorded::orca-agentSession.subscribe",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.subscribeStatus",
@@ -575,22 +665,40 @@
       "id": "rpc:agentSessionAttachment.read",
       "kind": "rpc",
       "name": "agentSessionAttachment.read",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.read-invalid-drop-path",
+        "agent": [],
+        "executor": []
+      }
     },
     {
       "id": "rpc:agentSessionAttachment.readTextChunk",
       "kind": "rpc",
       "name": "agentSessionAttachment.readTextChunk",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.readTextChunk-invalid-drop-path",
+        "agent": [],
+        "executor": []
+      }
     },
     {
       "id": "rpc:agentSessionAttachment.uploadAbort",
       "kind": "rpc",
       "name": "agentSessionAttachment.uploadAbort",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.uploadAbort-invalid-drop-uploadId",
+        "agent": [],
+        "executor": []
+      }
     },
     {
       "id": "rpc:agentSessionAttachment.uploadAppend",
@@ -612,15 +720,30 @@
       "id": "rpc:agentSessionAttachment.uploadCommit",
       "kind": "rpc",
       "name": "agentSessionAttachment.uploadCommit",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.uploadCommit-invalid-drop-uploadId",
+        "agent": [],
+        "executor": []
+      }
     },
     {
       "id": "rpc:agentSessionAttachment.uploadStart",
       "kind": "rpc",
       "name": "agentSessionAttachment.uploadStart",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.uploadStart-invalid-drop-sessionId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:aiVault.listSessions",

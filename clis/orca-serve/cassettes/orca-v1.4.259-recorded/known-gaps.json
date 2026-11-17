@@ -158,37 +158,6 @@
       ]
     },
     {
-      "class": "changed at steps._:s2c:*.[*].payload.error.message",
-      "severity": "drift",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.error.message changed drift"
-      ],
-      "ids": [
-        "orca-agent.launchReplay",
-        "orca-agentSession.cancel",
-        "orca-agentSession.commands",
-        "orca-agentSession.conversationCommand",
-        "orca-agentSession.create",
-        "orca-agentSession.currentRequests",
-        "orca-agentSession.history",
-        "orca-agentSession.hold",
-        "orca-agentSession.item",
-        "orca-agentSession.options",
-        "orca-agentSession.queuedMessageDelete",
-        "orca-agentSession.queuedMessageEditHold",
-        "orca-agentSession.queuedMessageMove",
-        "orca-agentSession.queuedMessageSend",
-        "orca-agentSession.queuedMessageUpdate",
-        "orca-agentSession.queuedMessagesResume",
-        "orca-agentSession.respondToApproval",
-        "orca-agentSession.respondToQuestion",
-        "orca-agentSession.send",
-        "orca-agentSession.setOption",
-        "orca-agentSessionAttachment.uploadAppend",
-        "orca-agentSessionAttachment.uploadStart"
-      ]
-    },
-    {
       "class": "changed at steps._:s2c:*.[*].payload.error.code",
       "severity": "drift",
       "diffs": [
@@ -313,17 +282,6 @@
       ],
       "ids": [
         "orca-agentSession.modelCatalog"
-      ]
-    },
-    {
-      "class": "changed at steps._:s2c:*.[*].payload.error.message",
-      "severity": "drift",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.error.message changed drift",
-        "steps._:s2c:0.[0].payload.message changed drift"
-      ],
-      "ids": [
-        "orca-agentSession.subscribe"
       ]
     },
     {

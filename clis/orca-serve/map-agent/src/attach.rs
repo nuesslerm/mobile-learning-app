@@ -76,6 +76,8 @@ fn uint(object: &Map<String, Value>, key: &str) -> Result<u64, Failure> {
 fn string<'a>(object: &'a Map<String, Value>, key: &str, max: usize) -> Result<&'a str, Failure> {
     match object.get(key).and_then(Value::as_str) {
         Some(s) if !s.is_empty() && s.chars().count() <= max => Ok(s),
+        _ if !object.contains_key(key) => Err(Failure::invalid("Invalid input: expected string, received undefined")),
+        _ if !object[key].is_string() => Err(Failure::invalid(format!("Invalid input: expected string, received {}", orca_core::wire::received(&object[key])))),
         _ => Err(Failure::invalid(format!("Invalid input: {key} must be 1 to {max} characters"))),
     }
 }
