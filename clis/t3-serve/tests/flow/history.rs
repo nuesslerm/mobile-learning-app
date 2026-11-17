@@ -95,7 +95,7 @@ fn the_routes_refuse_without_the_protocol_a_bearer_or_the_scope_and_answer_an_un
     let history = "/api/orchestration/threads/t1/history?cursor=";
     let cursor = Cursor { snapshot_sequence: 0, source_thread_id: "t1".into(), source_item_id: "x".into(), position: 0, inclusive: false }.encode();
     let cases = [
-        ("/api/orchestration/threads/t1/transcript", Some(bearer.as_str()), None, 426, "", "orchestration_protocol_incompatible"),
+        ("/api/orchestration/threads/t1/transcript", Some(bearer.as_str()), Some("1"), 426, "", "orchestration_protocol_incompatible"),
         ("/api/orchestration/threads/t1/transcript", None, Some("2"), 401, "EnvironmentAuthInvalidError", "missing_credential"),
         ("/api/orchestration/threads/t1/transcript", Some("not-a-token"), Some("2"), 401, "EnvironmentAuthInvalidError", "invalid_credential"),
         ("/api/orchestration/threads/t1/transcript", Some(narrow.as_str()), Some("2"), 403, "EnvironmentScopeRequiredError", "insufficient_scope"),
@@ -117,6 +117,10 @@ fn the_routes_refuse_without_the_protocol_a_bearer_or_the_scope_and_answer_an_un
         let trace = reply.body["traceId"].as_str().unwrap();
         assert!(h.log.lines().iter().any(|l| l.starts_with("orchestration.http.refused") && l.contains(trace)), "{trace}");
     }
+    // And a request with no protocol header at all is a bare 400
+    let bare = get(h.addr, "/api/orchestration/threads/t1/transcript", Some(&bearer), None);
+    assert_eq!((bare.status, bare.body.clone()), (400, Value::Null));
+    assert!(!bare.head.contains("content-type"), "{}", bare.head);
     // And the scope error names the permission, while a good cursor of the same thread is served
     let scoped = get(h.addr, "/api/orchestration/threads/t1/history?cursor=x", Some(&narrow), Some("2")).body;
     assert_eq!(scoped["requiredPermission"].as_str(), Some("orchestration:read"));

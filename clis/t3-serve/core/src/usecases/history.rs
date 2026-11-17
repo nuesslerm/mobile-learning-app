@@ -23,14 +23,26 @@ impl Service {
     }
 
     pub(super) fn environment_gate(&self, route: &'static str, request: &EnvironmentRequest) -> Result<(), Refusal> {
-        if request.protocol != Some("2") {
-            self.log("orchestration.http.refused", &[("route", route.to_string()), ("status", "426".into())]);
-            return Err(Refusal { status: 426, body: wire::protocol_incompatible() });
+        match request.protocol {
+            Some("2") => {}
+            None => {
+                self.log("orchestration.http.refused", &[("route", route.to_string()), ("status", "400".into())]);
+                return Err(Refusal::bare(400));
+            }
+            Some(_) => {
+                self.log("orchestration.http.refused", &[("route", route.to_string()), ("status", "426".into())]);
+                return Err(Refusal { status: 426, body: wire::protocol_incompatible() });
+            }
         }
-        if !request.authorization.is_some_and(|h| h.starts_with("Bearer ")) {
+        self.read_gate(route, request.authorization)
+    }
+
+    /// The bearer (401) and `orchestration:read` (403) of a read route, which the protocol header does not gate.
+    pub(super) fn read_gate(&self, route: &'static str, authorization: Option<&str>) -> Result<(), Refusal> {
+        if !authorization.is_some_and(|h| h.starts_with("Bearer ")) {
             return Err(self.environment_refusal(route, EnvironmentError::CredentialMissing));
         }
-        let principal = match self.authenticate(request.authorization) {
+        let principal = match self.authenticate(authorization) {
             Ok(principal) => principal,
             Err(refused) if refused.status == 401 => return Err(self.environment_refusal(route, EnvironmentError::CredentialInvalid)),
             Err(refused) => return Err(refused),

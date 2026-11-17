@@ -3,6 +3,7 @@
 //! shelf) is asked of it; what t3 keeps as a cache of the thread's log (items, archived rows, snapshots) is read from its rows.
 use super::history::EnvironmentRequest;
 use super::service::{Refusal, Service};
+use crate::domain::state::is_deleted;
 use crate::ports::{AgentError, Op};
 use serde_json::{json, Map, Value};
 use t3_contracts::time::{iso, parse_iso};
@@ -224,6 +225,13 @@ impl Service {
     pub fn shell_snapshot_http(&self, request: &EnvironmentRequest) -> Result<Value, Refusal> {
         self.environment_gate("shellSnapshot", request)?;
         Ok(self.engine().read(|state| state.shell_snapshot()["snapshot"].clone()))
+    }
+
+    /// `GET /api/projects`: the live projects, as `projects.mutate` answers a row, behind the bearer and `orchestration:read`.
+    pub fn projects_snapshot_http(&self, authorization: Option<&str>) -> Result<Value, Refusal> {
+        self.read_gate("projectsSnapshot", authorization)?;
+        let projects = self.engine().read(|state| state.projects.iter().filter(|(_, p)| !is_deleted(p)).filter_map(|(id, _)| state.project_row(id)).collect::<Vec<_>>());
+        Ok(json!({"projects": projects, "updatedAt": iso(self.0.clock.now_ms())}))
     }
 
     /// `GET /api/orchestration/threads/:threadId/bounded`: the thread's projection whole, which is no bigger than a window of it here.

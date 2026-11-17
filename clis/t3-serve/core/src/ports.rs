@@ -108,6 +108,12 @@ pub trait AuthStore: Send + Sync {
     fn put_ticket(&self, hash: &str, ticket: &TicketRecord, expires_at: Millis) -> StoreResult<()>;
     /// Single use; a ticket past its expiry or already redeemed is `None`.
     fn consume_ticket(&self, hash: &str, now: Millis) -> StoreResult<Option<TicketRecord>>;
+    /// Deletes the bearer with this id and the tickets it minted; whether there was one.
+    fn revoke_token(&self, id: &str) -> StoreResult<bool>;
+    /// Deletes every live bearer but the one with this id; how many.
+    fn revoke_other_tokens(&self, keep_id: &str, now: Millis) -> StoreResult<usize>;
+    /// Deletes a pairing code nobody redeemed yet, by the id the mint answered with; whether there was one.
+    fn revoke_grant(&self, id: &str) -> StoreResult<bool>;
 }
 
 /// Small durable values: the environment id.

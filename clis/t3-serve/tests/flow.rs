@@ -3,6 +3,8 @@
 #[path = "flow/support/mod.rs"]
 mod support;
 
+#[path = "flow/access.rs"]
+mod access;
 #[path = "flow/agent_threads.rs"]
 mod agent_threads;
 #[path = "flow/binary.rs"]

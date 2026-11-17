@@ -16,6 +16,8 @@ const MAX_BODY: usize = 64 * 1024;
 /// The upload route takes the attachment's bytes: as much as the agent API keeps, with longer to read them in.
 const UPLOAD_TIMEOUT: Duration = Duration::from_secs(120);
 /// `GET /api/orchestration/threads/:threadId/history` and `.../transcript`.
+/// `/api/hooks/:a/:b`, the webhook routes: no webhook is built here, so each is a hook that does not exist.
+const HOOKS: &str = "/api/hooks/";
 const THREADS: &str = "/api/orchestration/threads/";
 
 pub struct Request {
@@ -105,6 +107,7 @@ fn reason(status: u16) -> &'static str {
         204 => "No Content",
         409 => "Conflict",
         400 => "Bad Request",
+        415 => "Unsupported Media Type",
         401 => "Unauthorized",
         403 => "Forbidden",
         404 => "Not Found",
@@ -123,6 +126,36 @@ pub fn respond(stream: &mut TcpStream, status: u16, body: &Value) {
 fn respond_text(stream: &mut TcpStream, status: u16, text: &str) {
     let head = format!("HTTP/1.1 {status} {}\r\n{COMMON}Content-Type: text/plain; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(status), text.len());
     let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(text.as_bytes())).and_then(|()| stream.flush());
+}
+
+/// What the pin answers a request its schema refuses: the status and the CORS header, nothing else.
+fn respond_bare(stream: &mut TcpStream, status: u16) {
+    let head = format!("HTTP/1.1 {status} {}\r\nAccess-Control-Allow-Origin: *\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", reason(status));
+    let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.flush());
+}
+
+/// A JSON route given a body that does not say it is JSON.
+fn respond_unsupported(stream: &mut TcpStream) {
+    const TEXT: &str = "Unsupported content-type: text/plain";
+    let head = format!("HTTP/1.1 415 {}\r\n{COMMON}Content-Type: text/plain\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", reason(415), TEXT.len());
+    let _ = stream.write_all(head.as_bytes()).and_then(|()| stream.write_all(TEXT.as_bytes())).and_then(|()| stream.flush());
+}
+
+fn is_json(request: &Request) -> bool {
+    request.header("content-type").is_some_and(|t| t.to_ascii_lowercase().contains("json"))
+}
+
+/// The JSON object a POST route takes, or the answer already sent: 415 for a body that is not declared JSON, a bare 400 for one that is not an object.
+fn json_object(stream: &mut TcpStream, request: &Request) -> Option<Value> {
+    if !is_json(request) {
+        respond_unsupported(stream);
+        return None;
+    }
+    let body = serde_json::from_slice::<Value>(&request.body).ok().filter(Value::is_object);
+    if body.is_none() {
+        respond_bare(stream, 400);
+    }
+    body
 }
 
 fn respond_empty(stream: &mut TcpStream, status: u16) {
@@ -167,6 +200,9 @@ fn respond_with(stream: &mut TcpStream, status: u16, body: &Value, extra: &str) 
 }
 
 fn refused(stream: &mut TcpStream, r: Refusal, extra: &str) {
+    if r.body.is_null() {
+        return respond_bare(stream, r.status);
+    }
     respond_with(stream, r.status, &r.body, extra);
 }
 
@@ -201,15 +237,39 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             }
         }
         ("POST", "/api/auth/pairing-token") => {
-            let body = if request.body.is_empty() { Ok(json!({})) } else { serde_json::from_slice::<Value>(&request.body) };
-            match body {
-                Ok(body) if body.is_object() => match svc.pairing_credential(auth, &body) {
-                    Ok(answer) => respond_with(&mut stream, 200, &answer, NO_STORE),
-                    Err(r) => refused(&mut stream, r, NO_STORE),
-                },
-                _ => respond_with(&mut stream, 400, &wire::bad_request("the body is a JSON object"), NO_STORE),
+            if !is_json(&request) {
+                return respond_unsupported(&mut stream);
+            }
+            let body = if request.body.is_empty() { Some(json!({})) } else { serde_json::from_slice::<Value>(&request.body).ok().filter(Value::is_object) };
+            let Some(body) = body else { return respond_bare(&mut stream, 400) };
+            match svc.pairing_credential(auth, &body) {
+                Ok(answer) => respond_with(&mut stream, 200, &answer, NO_STORE),
+                Err(r) => refused(&mut stream, r, NO_STORE),
             }
         }
+        ("POST", path @ ("/api/auth/browser-session" | "/api/auth/clients/revoke" | "/api/auth/pairing-links/revoke")) => {
+            let Some(body) = json_object(&mut stream, &request) else { return };
+            let answer = match path {
+                "/api/auth/browser-session" => svc.browser_session(&body),
+                "/api/auth/clients/revoke" => svc.revoke_client(auth, &body),
+                _ => svc.revoke_pairing_link(auth, &body),
+            };
+            match answer {
+                Ok(body) => respond(&mut stream, 200, &body),
+                Err(r) => refused(&mut stream, r, ""),
+            }
+        }
+        ("POST", "/api/auth/clients/revoke-others") => match svc.revoke_other_clients(auth) {
+            Ok(body) => respond(&mut stream, 200, &body),
+            Err(r) => refused(&mut stream, r, ""),
+        },
+        ("GET" | "POST" | "PUT" | "PATCH", path) if path.strip_prefix(HOOKS).and_then(|rest| rest.split_once('/')).is_some_and(|(a, b)| !a.is_empty() && !b.is_empty() && !b.contains('/')) => {
+            respond_with(&mut stream, 404, &json!({"error": "hook_not_found"}), "x-t3-hook-outcome: not_found\r\n")
+        }
+        ("GET", "/api/projects") => match svc.projects_snapshot_http(auth) {
+            Ok(body) => respond(&mut stream, 200, &body),
+            Err(r) => refused(&mut stream, r, ""),
+        },
         ("GET", "/ws") => match svc.connect(&request.query) {
             Ok(connection) => socket::upgrade(stream, &request, connection, stop),
             Err(r) => refused(&mut stream, r, ""),
@@ -222,6 +282,9 @@ pub fn handle(mut stream: TcpStream, svc: &Service, stop: &AtomicBool) {
             }
         }
         ("POST", "/api/pull-requests/diff") => {
+            if !is_json(&request) {
+                return respond_unsupported(&mut stream);
+            }
             let env = EnvironmentRequest { authorization: auth, protocol: request.header(ORCHESTRATION_PROTOCOL_HEADER) };
             match svc.pull_request_diff_http(&env, &request.body) {
                 Ok(body) => respond(&mut stream, 200, &body),

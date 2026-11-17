@@ -606,12 +606,12 @@ impl Service {
         Ok(json!({"patch": diff["diff"].as_str().unwrap_or_default(), "truncated": diff["truncated"].as_bool().unwrap_or(false), "nextCursor": null}))
     }
 
-    /// `POST /api/pull-requests/diff`: the same read as an HTTP route, behind the environment gate (protocol, bearer, scope) with the JSON error the route declares.
+    /// `POST /api/pull-requests/diff`: the same read as an HTTP route, behind the environment gate (protocol, bearer, scope) with a bare 400 for a body the route's schema refuses.
     pub fn pull_request_diff_http(&self, request: &EnvironmentRequest, body: &[u8]) -> Result<Value, Refusal> {
         self.environment_gate("pullRequests.diff", request)?;
-        let payload: Value = serde_json::from_slice(body).map_err(|_| Refusal { status: 400, body: json!({"_tag": "BadRequest", "message": "the body is a JSON pull request reference"}) })?;
+        let payload: Value = serde_json::from_slice(body).map_err(|_| Refusal::bare(400))?;
         self.pr_diff(&payload).map_err(|failure| match failure {
-            QueryFailure::Defect(message) => Refusal { status: 400, body: json!({"_tag": "BadRequest", "message": message}) },
+            QueryFailure::Defect(_) => Refusal::bare(400),
             QueryFailure::Error(error) => Refusal { status: if error["_tag"] == UNAVAILABLE { 503 } else { 502 }, body: error },
         })
     }

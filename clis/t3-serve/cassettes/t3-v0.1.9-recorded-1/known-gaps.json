@@ -50,20 +50,6 @@
       ]
     },
     {
-      "class": "kind at steps.http:ret:_.[*].payload.body",
-      "severity": "breaking",
-      "diffs": [
-        "steps.http:ret:_.[2].payload.body kind breaking",
-        "steps.http:ret:_.[2].payload.headers.content-type extra drift",
-        "steps.http:ret:_.[2].payload.headers.vary extra drift",
-        "steps.http:ret:_.[2].payload.status changed breaking"
-      ],
-      "ids": [
-        "t3-http-orchestration.shellSnapshot",
-        "t3-http-orchestration.threadTranscript"
-      ]
-    },
-    {
       "class": "missing at steps.http:ret:_.[*].payload.body.models",
       "severity": "breaking",
       "diffs": [

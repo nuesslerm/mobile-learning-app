@@ -62,8 +62,15 @@ pub struct Parts {
 #[derive(Clone)]
 pub struct Service(pub(crate) Arc<Parts>, Arc<Runner>, pub(crate) Arc<Held>);
 
-fn refuse(status: u16, body: Value) -> Refusal {
+pub(super) fn refuse(status: u16, body: Value) -> Refusal {
     Refusal { status, body }
+}
+
+impl Refusal {
+    /// An answer with no body, which the pin gives a request its schema refuses.
+    pub fn bare(status: u16) -> Refusal {
+        Refusal { status, body: Value::Null }
+    }
 }
 
 impl Service {
@@ -197,7 +204,7 @@ impl Service {
         Ok(wire::token_response(&secret, &grant.scopes))
     }
 
-    fn store_failed(&self, event: &'static str, error: String) -> Refusal {
+    pub(super) fn store_failed(&self, event: &'static str, error: String) -> Refusal {
         self.log(event, &[("error", error)]);
         refuse(500, json!({"code": "internal", "message": "The server could not reach its store."}))
     }
@@ -236,34 +243,37 @@ impl Service {
         Ok(wire::ticket_response(&secret, &iso(expires_at)))
     }
 
+    /// The principal behind the bearer when it holds `access:write`, which the routes that hand out or take back access need.
+    pub(super) fn access_writer(&self, header: Option<&str>) -> Result<Principal, Refusal> {
+        let principal = self.authenticate(header)?;
+        if !principal.scopes.iter().any(|s| s == "access:write") {
+            return Err(self.insufficient_scope(&principal, "access:write"));
+        }
+        Ok(principal)
+    }
+
+    fn insufficient_scope(&self, principal: &Principal, scope: &str) -> Refusal {
+        self.log("access.scope.refused", &[("scope", scope.to_string()), ("tokenId", principal.token_id.clone())]);
+        refuse(403, json!({"_tag": "EnvironmentScopeRequiredError", "code": "insufficient_scope", "requiredScope": scope, "traceId": opaque_secret(&self.0.ids.random_bytes(16))}))
+    }
+
     /// `POST /api/auth/pairing-token`: a pairing code for another device, which a client with `access:write` mints and which carries only scopes
     /// that client holds itself, so a device can never hand out more than it has.
     pub fn pairing_credential(&self, header: Option<&str>, body: &Value) -> Result<Value, Refusal> {
-        let principal = self.authenticate(header)?;
-        let insufficient = |scope: &str| {
-            self.log("pairing.credential.refused", &[("scope", scope.to_string()), ("tokenId", principal.token_id.clone())]);
-            refuse(403, json!({"_tag": "EnvironmentScopeRequiredError", "code": "insufficient_scope", "requiredScope": scope, "traceId": opaque_secret(&self.0.ids.random_bytes(16))}))
-        };
-        if !principal.scopes.iter().any(|s| s == "access:write") {
-            return Err(insufficient("access:write"));
-        }
-        let invalid = |message: &str| refuse(400, json!({"_tag": "EnvironmentHttpBadRequestError", "code": "bad_request", "reason": "invalid_scope", "message": message}));
+        let principal = self.access_writer(header)?;
         let label = match body.get("label") {
             None => None,
-            Some(v) => Some(v.as_str().map(str::trim).filter(|l| !l.is_empty()).ok_or_else(|| refuse(400, wire::bad_request("label is a non-empty string")))?.to_string()),
+            Some(v) => Some(v.as_str().map(str::trim).filter(|l| !l.is_empty()).ok_or_else(|| Refusal::bare(400))?.to_string()),
         };
         let scopes: Vec<String> = match body.get("scopes") {
             None => t3_contracts::scopes::DEFAULT_PAIRING_SCOPES.iter().map(|s| s.to_string()).collect(),
-            Some(v) => v.as_array().and_then(|a| a.iter().map(|s| s.as_str().map(str::to_string)).collect()).ok_or_else(|| refuse(400, wire::bad_request("scopes is a list of scope names")))?,
+            Some(v) => v.as_array().and_then(|a| a.iter().map(|s| s.as_str().map(str::to_string)).collect()).ok_or_else(|| Refusal::bare(400))?,
         };
-        if scopes.is_empty() || scopes.iter().enumerate().any(|(i, s)| scopes[..i].contains(s)) {
-            return Err(invalid("scopes is a non-empty list with no scope twice"));
-        }
-        if let Some(unknown) = scopes.iter().find(|s| !t3_contracts::scopes::is_scope(s)) {
-            return Err(invalid(&format!("{unknown} is not a scope")));
+        if scopes.is_empty() || scopes.iter().enumerate().any(|(i, s)| scopes[..i].contains(s)) || scopes.iter().any(|s| !t3_contracts::scopes::is_scope(s)) {
+            return Err(Refusal::bare(400));
         }
         if let Some(missing) = scopes.iter().find(|s| !principal.scopes.contains(s)) {
-            return Err(insufficient(missing));
+            return Err(self.insufficient_scope(&principal, missing));
         }
         let request = PairingRequest { scopes, label: label.clone().unwrap_or_else(|| "pairing link".into()), ttl_seconds: wire::PAIRING_TTL_SECONDS };
         let pairing = mint(self.0.auth.as_ref(), self.0.clock.as_ref(), self.0.ids.as_ref(), request).map_err(|e| self.store_failed("pairing.credential.failed", e))?;

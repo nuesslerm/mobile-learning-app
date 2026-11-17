@@ -11,6 +11,8 @@ pub use t3_serve::testing::{Harness, ENVIRONMENT_ID, START_MS};
 pub struct Reply {
     pub status: u16,
     pub body: Value,
+    /// The status line and headers as sent, lower-cased.
+    pub head: String,
 }
 
 pub fn http(addr: SocketAddr, method: &str, path: &str, headers: &[(&str, &str)], body: &str) -> Reply {
@@ -25,7 +27,7 @@ pub fn http(addr: SocketAddr, method: &str, path: &str, headers: &[(&str, &str)]
     stream.read_to_string(&mut raw).unwrap();
     let (head, body) = raw.split_once("\r\n\r\n").unwrap_or((&raw, ""));
     let status = head.split(' ').nth(1).and_then(|s| s.parse().ok()).unwrap_or(0);
-    Reply { status, body: serde_json::from_str(body).unwrap_or(Value::Null) }
+    Reply { status, body: serde_json::from_str(body).unwrap_or(Value::Null), head: head.to_ascii_lowercase() }
 }
 
 pub const GRANT: &str = "urn:ietf:params:oauth:grant-type:token-exchange";

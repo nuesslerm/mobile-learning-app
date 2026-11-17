@@ -44,7 +44,7 @@ fn a_pairing_code_minted_over_http_pairs_a_second_device_with_only_the_delegated
         let admin = Phone::connect_with(case, &chain, &with(&["access:write"]));
         let device = Phone::connect(case, &chain);
         // When the admin mints a credential for a reader
-        let headers = [("Authorization", admin.bearer.as_str())];
+        let headers = [("Authorization", admin.bearer.as_str()), ("Content-Type", "application/json")];
         let minted = http_call(case, &chain, &["http:auth.pairingCredential"], ("POST", "/api/auth/pairing-token", &headers, r#"{"label": "reader", "scopes": ["orchestration:read"]}"#), 200);
         // Then the code pairs a device that holds that one scope, once
         let code = minted.body["credential"].as_str().expect("a credential").to_string();
@@ -52,7 +52,7 @@ fn a_pairing_code_minted_over_http_pairs_a_second_device_with_only_the_delegated
         assert_eq!((paired.status, paired.body["scope"].clone()), (200, json!("orchestration:read")), "{:?}", paired.body);
         assert_eq!(exchange(chain.addr, &code).status, 401);
         // And the device without access:write is refused with the scope it lacks, and the chain's log shows the refusal arrived
-        let own = [("Authorization", device.bearer.as_str())];
+        let own = [("Authorization", device.bearer.as_str()), ("Content-Type", "application/json")];
         let refused = http_call(case, &chain, &["http:auth.pairingCredential"], ("POST", "/api/auth/pairing-token", &own, "{}"), 403);
         assert_eq!(refused.body["requiredScope"], "access:write");
     });

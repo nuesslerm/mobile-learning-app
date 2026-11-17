@@ -45,11 +45,6 @@
         "steps.http:ret:_.[2].payload.status changed breaking"
       ],
       "ids": [
-        "t3-http-auth.browserSession-invalid-drop-credential",
-        "t3-http-auth.browserSession-invalid-wrong-type-credential",
-        "t3-http-auth.revokeClient-invalid-drop-sessionId",
-        "t3-http-auth.revokePairingLink-invalid-drop-id",
-        "t3-http-auth.revokePairingLink-invalid-wrong-type-id",
         "t3-http-connect.health-invalid-drop-proof",
         "t3-http-connect.health-invalid-wrong-type-proof",
         "t3-http-connect.linkProof-invalid-drop-challenge",
@@ -66,20 +61,9 @@
         "t3-http-mcpOAuth.decision-invalid-wrong-type-authorization",
         "t3-http-mcpOAuth.decision-valid-min",
         "t3-http-mcpOAuth.register-invalid-wrong-type-client-name",
-        "t3-http-orchestration.shellSnapshot-empty-empty-object",
-        "t3-http-orchestration.shellSnapshot-invalid-no-payload",
-        "t3-http-orchestration.threadBoundedSnapshot-empty-empty-object",
-        "t3-http-orchestration.threadBoundedSnapshot-invalid-no-payload",
-        "t3-http-orchestration.threadHistoryPage-empty-empty-object",
-        "t3-http-orchestration.threadHistoryPage-invalid-no-payload",
         "t3-http-orchestration.threadSnapshot-empty-empty-object",
         "t3-http-orchestration.threadSnapshot-invalid-no-payload",
-        "t3-http-orchestration.threadTranscript-empty-empty-object",
-        "t3-http-orchestration.threadTranscript-invalid-no-payload",
         "t3-http-projects.mutate-valid-min",
-        "t3-http-pullRequests.diff-boundary-full",
-        "t3-http-pullRequests.diff-invalid-wrong-type-cursor",
-        "t3-http-pullRequests.diff-valid-min",
         "t3-http-voice.cancelModelDownload-invalid-drop-modelId",
         "t3-http-voice.cancelModelDownload-invalid-wrong-type-modelId",
         "t3-http-voice.downloadModel-invalid-drop-modelId",
@@ -183,9 +167,6 @@
         "steps.http:ret:_.[2].payload.status changed breaking"
       ],
       "ids": [
-        "t3-http-auth.browserSession-invalid-no-payload",
-        "t3-http-auth.revokeClient-invalid-no-payload",
-        "t3-http-auth.revokePairingLink-invalid-no-payload",
         "t3-http-connect.health-invalid-no-payload",
         "t3-http-connect.linkProof-invalid-no-payload",
         "t3-http-connect.preferences-invalid-no-payload",
@@ -200,7 +181,6 @@
         "t3-http-mcpOAuth.token-valid-min",
         "t3-http-projects.mutate-invalid-no-payload",
         "t3-http-projects.mutate-invalid-wrong-type",
-        "t3-http-pullRequests.diff-invalid-no-payload",
         "t3-http-voice.cancelModelDownload-invalid-no-payload",
         "t3-http-voice.downloadModel-invalid-no-payload",
         "t3-http-voice.linkModels-invalid-no-payload",
@@ -313,7 +293,6 @@
         "steps.http:ret:_.[2].payload.status changed breaking"
       ],
       "ids": [
-        "t3-http-auth.browserSession-valid-min",
         "t3-http-voice.downloadModel-boundary-limit-modelId",
         "t3-http-voice.downloadModel-valid-min",
         "t3-http-voice.linkModels-valid-min",
@@ -410,26 +389,6 @@
         "t3-http-connect.t3MintCredential-valid-min",
         "t3-http-mcpOAuth.approval-boundary-full",
         "t3-http-mcpOAuth.approval-valid-min"
-      ]
-    },
-    {
-      "class": "missing at steps.http:ret:_.[*].payload.body.error",
-      "severity": "breaking",
-      "diffs": [
-        "steps.http:ret:_.[2].payload.body.error missing breaking",
-        "steps.http:ret:_.[2].payload.body.code extra drift",
-        "steps.http:ret:_.[2].payload.body.message extra drift",
-        "steps.http:ret:_.[2].payload.headers.x-t3-hook-outcome missing breaking"
-      ],
-      "ids": [
-        "t3-http-webhooks.webhookGet-empty-empty-object",
-        "t3-http-webhooks.webhookGet-invalid-no-payload",
-        "t3-http-webhooks.webhookPatch-empty-empty-object",
-        "t3-http-webhooks.webhookPatch-invalid-no-payload",
-        "t3-http-webhooks.webhookPost-empty-empty-object",
-        "t3-http-webhooks.webhookPost-invalid-no-payload",
-        "t3-http-webhooks.webhookPut-empty-empty-object",
-        "t3-http-webhooks.webhookPut-invalid-no-payload"
       ]
     },
     {
@@ -732,21 +691,6 @@
       ]
     },
     {
-      "class": "missing at steps.http:ret:_.[*].payload.body.revoked",
-      "severity": "breaking",
-      "diffs": [
-        "steps.http:ret:_.[2].payload.body.revoked missing breaking",
-        "steps.http:ret:_.[2].payload.body.code extra drift",
-        "steps.http:ret:_.[2].payload.body.message extra drift",
-        "steps.http:ret:_.[2].payload.status changed breaking"
-      ],
-      "ids": [
-        "t3-http-auth.revokeClient-invalid-wrong-type-sessionId",
-        "t3-http-auth.revokeClient-valid-min",
-        "t3-http-auth.revokePairingLink-valid-min"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
       "severity": "breaking",
       "diffs": [
@@ -907,21 +851,6 @@
       "severity": "breaking",
       "diffs": [
         "steps.http:ret:_.[2].payload.body kind breaking",
-        "steps.http:ret:_.[2].payload.headers.cache-control extra drift",
-        "steps.http:ret:_.[2].payload.headers.content-type extra drift",
-        "steps.http:ret:_.[2].payload.headers.pragma extra drift",
-        "steps.http:ret:_.[2].payload.headers.vary extra drift"
-      ],
-      "ids": [
-        "t3-http-auth.pairingCredential-boundary-full",
-        "t3-http-auth.pairingCredential-invalid-wrong-type-label"
-      ]
-    },
-    {
-      "class": "kind at steps.http:ret:_.[*].payload.body",
-      "severity": "breaking",
-      "diffs": [
-        "steps.http:ret:_.[2].payload.body kind breaking",
         "steps.http:ret:_.[2].payload.headers.cache-control missing breaking",
         "steps.http:ret:_.[2].payload.headers.content-security-policy missing breaking",
         "steps.http:ret:_.[2].payload.headers.content-type changed drift",
@@ -1044,35 +973,6 @@
       "ids": [
         "t3-http-voice.cloudKeys-empty-empty-object",
         "t3-http-voice.cloudKeys-invalid-no-payload"
-      ]
-    },
-    {
-      "class": "missing at steps.http:ret:_.[*].payload.body.projects",
-      "severity": "breaking",
-      "diffs": [
-        "steps.http:ret:_.[2].payload.body.projects missing breaking",
-        "steps.http:ret:_.[2].payload.body.updatedAt missing breaking",
-        "steps.http:ret:_.[2].payload.body.code extra drift",
-        "steps.http:ret:_.[2].payload.body.message extra drift",
-        "steps.http:ret:_.[2].payload.status changed breaking"
-      ],
-      "ids": [
-        "t3-http-projects.snapshot-empty-empty-object",
-        "t3-http-projects.snapshot-invalid-no-payload"
-      ]
-    },
-    {
-      "class": "missing at steps.http:ret:_.[*].payload.body.revokedCount",
-      "severity": "breaking",
-      "diffs": [
-        "steps.http:ret:_.[2].payload.body.revokedCount missing breaking",
-        "steps.http:ret:_.[2].payload.body.code extra drift",
-        "steps.http:ret:_.[2].payload.body.message extra drift",
-        "steps.http:ret:_.[2].payload.status changed breaking"
-      ],
-      "ids": [
-        "t3-http-auth.revokeOtherClients-empty-empty-object",
-        "t3-http-auth.revokeOtherClients-invalid-no-payload"
       ]
     },
     {
@@ -2038,20 +1938,6 @@
       "ids": [
         "t3-rpc-orchestration.subscribeShell-invalid-no-payload",
         "t3-rpc-orchestration.subscribeShell-valid-min"
-      ]
-    },
-    {
-      "class": "kind at steps.http:ret:_.[*].payload.body",
-      "severity": "breaking",
-      "diffs": [
-        "steps.http:ret:_.[2].payload.body kind breaking",
-        "steps.http:ret:_.[2].payload.headers.content-type changed drift",
-        "steps.http:ret:_.[2].payload.headers.cache-control extra drift",
-        "steps.http:ret:_.[2].payload.headers.pragma extra drift",
-        "steps.http:ret:_.[2].payload.status changed breaking"
-      ],
-      "ids": [
-        "t3-http-auth.pairingCredential-invalid-no-payload"
       ]
     },
     {

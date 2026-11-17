@@ -9,7 +9,10 @@ fn scoped(h: &Harness, scopes: &[&str]) -> String {
 }
 
 fn mint(h: &Harness, bearer: &str, body: &str) -> Reply {
-    let headers = if bearer.is_empty() { vec![] } else { vec![("Authorization", bearer)] };
+    let mut headers = vec![("Content-Type", "application/json")];
+    if !bearer.is_empty() {
+        headers.push(("Authorization", bearer));
+    }
     http(h.addr, "POST", "/api/auth/pairing-token", &headers, body)
 }
 
@@ -73,12 +76,12 @@ fn a_credential_is_refused_without_a_bearer_without_access_write_and_for_scopes_
     assert_eq!(anonymous.status, 401);
     assert_eq!((plain.status, plain.body["requiredScope"].clone()), (403, json!("access:write")));
     assert_eq!((beyond.status, beyond.body["requiredScope"].clone(), beyond.body["code"].clone()), (403, json!("filesystem:write"), json!("insufficient_scope")));
-    for refused in [&unknown, &twice, &none] {
-        assert_eq!((refused.status, refused.body["reason"].clone()), (400, json!("invalid_scope")), "{:?}", refused.body);
+    for refused in [&unknown, &twice, &none, &broken] {
+        assert_eq!((refused.status, refused.body.clone()), (400, Value::Null));
+        assert!(!refused.head.contains("content-type") && !refused.head.contains("cache-control"), "{}", refused.head);
     }
-    assert_eq!(broken.status, 400);
     assert_eq!(h.log.lines().iter().filter(|l| l.contains("pairing.credential.minted")).count(), 0);
-    logged(&h, "pairing.credential.refused");
+    logged(&h, "access.scope.refused");
 }
 
 /// A thread t1 whose row carries a guest share, and the server started again over its log (a share exists only as a row that carries one).

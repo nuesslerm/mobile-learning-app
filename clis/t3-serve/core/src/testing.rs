@@ -178,6 +178,29 @@ impl AuthStore for MemStore {
             _ => None,
         })
     }
+
+    fn revoke_token(&self, id: &str) -> StoreResult<bool> {
+        let mut d = self.data();
+        d.tickets.retain(|_, (t, _, _)| t.token_id != id);
+        let before = d.tokens.len();
+        d.tokens.retain(|_, t| t.id != id);
+        Ok(d.tokens.len() < before)
+    }
+
+    fn revoke_other_tokens(&self, keep_id: &str, _now: Millis) -> StoreResult<usize> {
+        let mut d = self.data();
+        d.tickets.retain(|_, (t, _, _)| t.token_id == keep_id);
+        let before = d.tokens.len();
+        d.tokens.retain(|_, t| t.id == keep_id);
+        Ok(before - d.tokens.len())
+    }
+
+    fn revoke_grant(&self, id: &str) -> StoreResult<bool> {
+        let mut d = self.data();
+        let before = d.grants.len();
+        d.grants.retain(|hash, (_, _, used)| *used || !hash.starts_with(id));
+        Ok(d.grants.len() < before)
+    }
 }
 
 impl MetaStore for MemStore {
