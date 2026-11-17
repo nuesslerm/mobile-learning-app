@@ -590,7 +590,8 @@ impl Connection {
         let root = text("cwd").map(str::to_string).or_else(|| text("projectId").and_then(|p| self.svc.engine().project_root(p))).unwrap_or_default();
         let path = text("directoryPath").or_else(|| text("relativePath")).or_else(|| text("path")).or_else(|| text("directory")).unwrap_or("");
         let agent = self.svc.agent();
-        let missing = !root.is_empty() && agent.list_dir(&root, "").is_err();
+        // asked only when the call failed: a missing workspace folder is told from other failures by one more listing, which a call that worked must not pay
+        let missing = || !root.is_empty() && agent.list_dir(&root, "").is_err();
         let fail = |e: AgentError| vec![rpc::exit_failure(&id, wire::host_error(&e.message()))];
         let ok = |v: Value| vec![rpc::exit_success(&id, Some(v))];
         match tag {
@@ -600,12 +601,12 @@ impl Connection {
                     let rows: Vec<Value> = entries.iter().map(|e| json!({"path": join(&e.name), "kind": if e.directory { "directory" } else { "file" }, "parentPath": if path.is_empty() { Value::Null } else { json!(path) }})).collect();
                     ok(json!({"entries": rows, "truncated": false}))
                 }
-                Err(_) if missing => vec![rpc::exit_failure(&id, wire::workspace_root_missing("ProjectListEntriesError", "list", &root, json!({})))],
+                Err(_) if missing() => vec![rpc::exit_failure(&id, wire::workspace_root_missing("ProjectListEntriesError", "list", &root, json!({})))],
                 Err(e) => fail(e),
             },
             "projects.readFile" => match agent.read_file(&root, path) {
                 Ok(contents) => ok(json!({"relativePath": path, "contents": contents})),
-                Err(_) if missing => vec![rpc::exit_failure(&id, wire::read_file_root_missing(&root, path))],
+                Err(_) if missing() => vec![rpc::exit_failure(&id, wire::read_file_root_missing(&root, path))],
                 Err(e) => fail(e),
             },
             _ => fail(AgentError::Failed(format!("{tag} is not a file RPC"))),
