@@ -22,12 +22,10 @@
     },
     "pendingByMilestone": {
       "M5": 3,
-      "M6": 1,
-      "M7": 5,
-      "M8": 13,
-      "M9": 2,
-      "M10": 1,
-      "M11": 4
+      "M6": 2,
+      "M7": 19,
+      "M10": 3,
+      "M11": 2
     }
   },
   "rows": [
@@ -99,61 +97,35 @@
       "state": "served",
       "milestone": "M10",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "settings_m10::the_accounts_screen_lists_the_signed_in_providers_and_selecting_one_changes_the_provider_rca_uses",
-        "agent": [
-          "provider.list"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-accounts.list-invalid-wrong-type-refreshUsage",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:accounts.selectClaude",
       "kind": "rpc",
       "name": "accounts.selectClaude",
-      "state": "served",
-      "milestone": "M10",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "settings_m10::the_accounts_screen_lists_the_signed_in_providers_and_selecting_one_changes_the_provider_rca_uses",
-        "agent": [
-          "provider.list",
-          "provider.select"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M10"
     },
     {
       "id": "rpc:accounts.selectCodex",
       "kind": "rpc",
       "name": "accounts.selectCodex",
-      "state": "served",
-      "milestone": "M10",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "settings_m10::the_accounts_screen_lists_the_signed_in_providers_and_selecting_one_changes_the_provider_rca_uses",
-        "agent": [
-          "provider.list",
-          "provider.select"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M10"
     },
     {
       "id": "rpc:accounts.selectCodexForTarget",
       "kind": "rpc",
       "name": "accounts.selectCodexForTarget",
-      "state": "served",
-      "milestone": "M10",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "settings_m10::the_accounts_screen_lists_the_signed_in_providers_and_selecting_one_changes_the_provider_rca_uses",
-        "agent": [
-          "provider.list",
-          "provider.select"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M10"
     },
     {
       "id": "rpc:accounts.subscribe",
@@ -181,36 +153,21 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_chat_created_with_a_message_and_a_launch_each_run_a_turn_once_and_a_retry_of_either_runs_nothing_again",
-        "agent": [
-          "repo.list",
-          "state.get",
-          "state.set",
-          "thread.create",
-          "thread.get",
-          "turn.start"
-        ],
-        "executor": [
-          "git_checkpoint",
-          "write_file"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agent.launch-invalid-drop-agent",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:agent.launchReplay",
       "kind": "rpc",
       "name": "agent.launchReplay",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_chat_created_with_a_message_and_a_launch_each_run_a_turn_once_and_a_retry_of_either_runs_nothing_again",
-        "agent": [
-          "state.get"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentActivity.clear",
@@ -244,15 +201,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
-        "agent": [
-          "state.get",
-          "state.set",
-          "thread.forceStop",
-          "thread.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.cancel-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -268,19 +223,8 @@
       "id": "rpc:agentSession.commands",
       "kind": "rpc",
       "name": "agentSession.commands",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_catalog_m7b::the_phone_lists_the_models_of_an_agent_reads_a_chats_options_and_sets_one_and_its_commands_come_from_the_executors_skills",
-        "agent": [
-          "commands.list",
-          "thread.get"
-        ],
-        "executor": [
-          "skill_scan"
-        ]
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.continueInterrupted",
@@ -298,119 +242,56 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_conversation_command_reaches_the_cli_as_the_prompt_it_reads_and_runs_as_a_turn_of_the_chat",
-        "agent": [
-          "state.get",
-          "state.set",
-          "thread.get",
-          "turn.start"
-        ],
-        "executor": [
-          "git_checkpoint"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.conversationCommand-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:agentSession.create",
       "kind": "rpc",
       "name": "agentSession.create",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_catalog_m7b::the_phone_lists_the_models_of_an_agent_reads_a_chats_options_and_sets_one_and_its_commands_come_from_the_executors_skills",
-        "agent": [
-          "queue.list",
-          "repo.list",
-          "state.get",
-          "state.set",
-          "thread.create",
-          "thread.get",
-          "thread.history"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.createSupport",
       "kind": "rpc",
       "name": "agentSession.createSupport",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
-        "agent": [
-          "agents.detect",
-          "repo.list"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.currentRequests",
       "kind": "rpc",
       "name": "agentSession.currentRequests",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
-        "agent": [
-          "thread.get",
-          "thread.history"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.history",
       "kind": "rpc",
       "name": "agentSession.history",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
-        "agent": [
-          "queue.list",
-          "thread.get",
-          "thread.history"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.hold",
       "kind": "rpc",
       "name": "agentSession.hold",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
-        "agent": [
-          "thread.get"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.item",
       "kind": "rpc",
       "name": "agentSession.item",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
-        "agent": [
-          "thread.get",
-          "thread.history"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.modelCatalog",
@@ -419,11 +300,9 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_catalog_m7b::the_phone_lists_the_models_of_an_agent_reads_a_chats_options_and_sets_one_and_its_commands_come_from_the_executors_skills",
-        "agent": [
-          "models.list"
-        ],
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.modelCatalog-boundary-full",
+        "agent": [],
         "executor": []
       }
     },
@@ -431,18 +310,8 @@
       "id": "rpc:agentSession.options",
       "kind": "rpc",
       "name": "agentSession.options",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_catalog_m7b::the_phone_lists_the_models_of_an_agent_reads_a_chats_options_and_sets_one_and_its_commands_come_from_the_executors_skills",
-        "agent": [
-          "models.list",
-          "state.get",
-          "thread.get"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.queuedMessageDelete",
@@ -451,33 +320,21 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
-        "agent": [
-          "queue.delete",
-          "state.get",
-          "state.set",
-          "thread.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.queuedMessageDelete-boundary-limit-messageId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:agentSession.queuedMessageEditHold",
       "kind": "rpc",
       "name": "agentSession.queuedMessageEditHold",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
-        "agent": [
-          "queue.list",
-          "state.get",
-          "state.set"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.queuedMessageMove",
@@ -486,16 +343,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
-        "agent": [
-          "queue.list",
-          "queue.move",
-          "state.get",
-          "state.set",
-          "thread.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.queuedMessageMove-empty-min",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -505,17 +359,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
-        "agent": [
-          "queue.resume",
-          "state.get",
-          "state.set",
-          "thread.get"
-        ],
-        "executor": [
-          "git_checkpoint"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.queuedMessageSend-boundary-limit-messageId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -525,14 +375,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
-        "agent": [
-          "queue.edit",
-          "queue.list",
-          "thread.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.queuedMessageUpdate-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -542,18 +391,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::queued_messages_are_edited_moved_and_deleted_on_rcas_queue_and_a_cancelled_turn_holds_the_queue_until_the_phone_resumes_it_in_the_order_it_set",
-        "agent": [
-          "queue.list",
-          "queue.resume",
-          "state.get",
-          "state.set",
-          "thread.get"
-        ],
-        "executor": [
-          "git_checkpoint"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.queuedMessagesResume-empty-min",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -572,10 +416,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.release-boundary-limit-sessionId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -585,14 +432,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_turn_that_asks_for_approval_and_a_question_waits_until_the_phone_answers_and_a_stale_answer_asks_rca_nothing",
-        "agent": [
-          "state.get",
-          "thread.get",
-          "thread.history"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.respondToApproval-boundary-limit-itemId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -602,18 +448,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_turn_that_asks_for_approval_and_a_question_waits_until_the_phone_answers_and_a_stale_answer_asks_rca_nothing",
-        "agent": [
-          "input.answer",
-          "state.get",
-          "state.set",
-          "thread.get",
-          "thread.history"
-        ],
-        "executor": [
-          "write_file"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.respondToQuestion-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -629,8 +470,17 @@
       "id": "rpc:agentSession.rewind",
       "kind": "rpc",
       "name": "agentSession.rewind",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.rewind-boundary-limit-itemId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.send",
@@ -639,26 +489,30 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
-        "agent": [
-          "state.get",
-          "state.set",
-          "thread.get",
-          "turn.start"
-        ],
-        "executor": [
-          "git_checkpoint",
-          "write_file"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.send-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:agentSession.sendRecorded",
       "kind": "rpc",
       "name": "agentSession.sendRecorded",
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.sendRecorded-invalid-drop-sessionId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:agentSession.setOption",
@@ -667,15 +521,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_catalog_m7b::the_phone_lists_the_models_of_an_agent_reads_a_chats_options_and_sets_one_and_its_commands_come_from_the_executors_skills",
-        "agent": [
-          "models.list",
-          "state.get",
-          "state.set",
-          "thread.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.setOption-boundary-limit-key",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -683,18 +535,8 @@
       "kind": "rpc",
       "name": "agentSession.subscribe",
       "subscription": true,
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
-        "agent": [
-          "queue.list",
-          "thread.get",
-          "thread.history"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSession.subscribeStatus",
@@ -720,54 +562,35 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSession.unsubscribe-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:agentSessionAttachment.read",
       "kind": "rpc",
       "name": "agentSessionAttachment.read",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
-        "agent": [
-          "attachment.get"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSessionAttachment.readTextChunk",
       "kind": "rpc",
       "name": "agentSessionAttachment.readTextChunk",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
-        "agent": [
-          "attachment.get"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSessionAttachment.uploadAbort",
       "kind": "rpc",
       "name": "agentSessionAttachment.uploadAbort",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
-        "agent": [],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSessionAttachment.uploadAppend",
@@ -776,41 +599,28 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-agentSessionAttachment.uploadAppend-boundary-limit-uploadId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:agentSessionAttachment.uploadCommit",
       "kind": "rpc",
       "name": "agentSessionAttachment.uploadCommit",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
-        "agent": [
-          "upload.put"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:agentSessionAttachment.uploadStart",
       "kind": "rpc",
       "name": "agentSessionAttachment.uploadStart",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
-        "agent": [
-          "thread.get"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:aiVault.listSessions",
@@ -837,13 +647,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
-        "agent": [
-          "repo.list",
-          "schedule.upsert"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-automation.create-invalid-drop-name",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -853,13 +663,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
-        "agent": [
-          "schedule.delete",
-          "schedule.list"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-automation.delete-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -869,12 +679,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
-        "agent": [
-          "schedule.list"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-automation.list-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -884,16 +695,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
-        "agent": [
-          "schedule.list",
-          "schedule.runNow"
-        ],
-        "executor": [
-          "git_checkpoint",
-          "write_file"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-automation.runNow-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -912,12 +720,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
-        "agent": [
-          "schedule.list"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-automation.show-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -927,13 +736,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "schedules_m12::an_automation_is_saved_listed_updated_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
-        "agent": [
-          "schedule.list",
-          "schedule.upsert"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-automation.update-invalid-drop-id",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1142,15 +951,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_creates_a_file_that_is_then_on_the_executors_disk_and_a_name_that_is_taken_is_refused_by_the_executor",
-        "agent": [
-          "file.create",
-          "repo.list"
-        ],
-        "executor": [
-          "create_file"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.createFile-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1160,15 +967,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
-        "agent": [
-          "file.list",
-          "repo.list"
-        ],
-        "executor": [
-          "list_dir"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.list-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1193,8 +998,17 @@
       "id": "rpc:files.pathsExist",
       "kind": "rpc",
       "name": "files.pathsExist",
-      "state": "pending",
-      "milestone": "M6"
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.pathsExist-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:files.read",
@@ -1203,15 +1017,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_path_that_leaves_the_workspace_is_refused_on_the_phone_and_the_executor_refuses_it_too_so_nothing_outside_is_read_or_written",
-        "agent": [
-          "file.readChunk",
-          "repo.list"
-        ],
-        "executor": [
-          "read_chunk"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.read-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1221,13 +1033,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::an_uploaded_image_is_read_back_byte_for_byte_and_the_message_that_names_it_reaches_the_workspace_where_rca_exec_stages_it",
-        "agent": [
-          "attachment.get",
-          "repo.list"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.readChatImage-boundary-limit-path",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1237,15 +1049,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_lists_reads_and_previews_the_files_the_executor_holds_and_every_byte_it_gets_is_the_disks",
-        "agent": [
-          "file.readChunk",
-          "repo.list"
-        ],
-        "executor": [
-          "read_chunk"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.readChunk-boundary-limit-offset",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1255,15 +1065,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_lists_reads_and_previews_the_files_the_executor_holds_and_every_byte_it_gets_is_the_disks",
-        "agent": [
-          "file.list",
-          "repo.list"
-        ],
-        "executor": [
-          "list_dir"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.readDir-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1273,15 +1081,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_lists_reads_and_previews_the_files_the_executor_holds_and_every_byte_it_gets_is_the_disks",
-        "agent": [
-          "file.readChunk",
-          "repo.list"
-        ],
-        "executor": [
-          "read_chunk"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.readPreview-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1318,15 +1124,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_lists_reads_and_previews_the_files_the_executor_holds_and_every_byte_it_gets_is_the_disks",
-        "agent": [
-          "file.search",
-          "repo.list"
-        ],
-        "executor": [
-          "search_entries"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.searchPaths-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1336,15 +1140,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_lists_reads_and_previews_the_files_the_executor_holds_and_every_byte_it_gets_is_the_disks",
-        "agent": [
-          "file.stat",
-          "repo.list"
-        ],
-        "executor": [
-          "stat"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-files.stat-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1379,15 +1181,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_merge_stopped_on_conflicts_is_read_resolved_completed_and_aborted_and_the_repository_ends_as_git_would_leave_it",
-        "agent": [
-          "git.merge",
-          "repo.list"
-        ],
-        "executor": [
-          "git_merge"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.abortMerge-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1397,15 +1197,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_rebase_from_a_base_is_applied_and_one_that_stops_on_conflicts_is_aborted_and_the_branch_is_as_it_was",
-        "agent": [
-          "git.rebase",
-          "repo.list"
-        ],
-        "executor": [
-          "git_rebase"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.abortRebase-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1415,27 +1213,30 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
-        "agent": [
-          "git.compare",
-          "git.history",
-          "git.status",
-          "repo.list"
-        ],
-        "executor": [
-          "git_compare",
-          "git_log",
-          "git_status"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.branchCompare-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:git.branchDiff",
       "kind": "rpc",
       "name": "git.branchDiff",
-      "state": "pending",
-      "milestone": "M9"
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.branchDiff-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:git.bulkStage",
@@ -1444,15 +1245,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
-        "agent": [
-          "git.stage",
-          "repo.list"
-        ],
-        "executor": [
-          "git_stage"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.bulkStage-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1462,15 +1261,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
-        "agent": [
-          "git.unstage",
-          "repo.list"
-        ],
-        "executor": [
-          "git_unstage"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.bulkUnstage-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1498,15 +1295,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
-        "agent": [
-          "git.checkout",
-          "repo.list"
-        ],
-        "executor": [
-          "git_checkout"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.checkout-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1516,15 +1311,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
-        "agent": [
-          "git.commit",
-          "repo.list"
-        ],
-        "executor": [
-          "git_commit"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.commit-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1534,25 +1327,30 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
-        "agent": [
-          "git.compare",
-          "git.history",
-          "repo.list"
-        ],
-        "executor": [
-          "git_compare",
-          "git_log"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.commitCompare-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:git.commitDiff",
       "kind": "rpc",
       "name": "git.commitDiff",
-      "state": "pending",
-      "milestone": "M9"
+      "state": "served",
+      "milestone": "M9",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.commitDiff-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:git.completeMerge",
@@ -1561,15 +1359,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_merge_stopped_on_conflicts_is_read_resolved_completed_and_aborted_and_the_repository_ends_as_git_would_leave_it",
-        "agent": [
-          "git.merge",
-          "repo.list"
-        ],
-        "executor": [
-          "git_merge"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.completeMerge-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1588,15 +1384,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
-        "agent": [
-          "git.discard",
-          "repo.list"
-        ],
-        "executor": [
-          "git_discard"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.discard-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1615,15 +1409,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::commits_are_published_fetched_pulled_and_fast_forwarded_against_a_bare_remote_and_the_repository_holds_what_the_phone_moved",
-        "agent": [
-          "git.fastForward",
-          "repo.list"
-        ],
-        "executor": [
-          "git_fast_forward"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.fastForward-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1633,15 +1425,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::commits_are_published_fetched_pulled_and_fast_forwarded_against_a_bare_remote_and_the_repository_holds_what_the_phone_moved",
-        "agent": [
-          "git.fetch",
-          "repo.list"
-        ],
-        "executor": [
-          "git_fetch"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.fetch-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1651,15 +1441,13 @@
       "state": "served",
       "milestone": "M10",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "settings_m10::a_commit_message_is_written_by_the_service_s_model_from_the_staged_diff_alone_and_nothing_is_committed",
-        "agent": [
-          "git.generateCommitMessage",
-          "repo.list"
-        ],
-        "executor": [
-          "git_diff"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.generateCommitMessage-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1678,17 +1466,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
-        "agent": [
-          "git.history",
-          "git.status",
-          "repo.list"
-        ],
-        "executor": [
-          "git_log",
-          "git_status"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.history-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1698,15 +1482,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
-        "agent": [
-          "git.refs",
-          "repo.list"
-        ],
-        "executor": [
-          "git_refs"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.localBranches-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1716,15 +1498,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::commits_are_published_fetched_pulled_and_fast_forwarded_against_a_bare_remote_and_the_repository_holds_what_the_phone_moved",
-        "agent": [
-          "git.pull",
-          "repo.list"
-        ],
-        "executor": [
-          "git_pull"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.pull-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1734,15 +1514,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::commits_are_published_fetched_pulled_and_fast_forwarded_against_a_bare_remote_and_the_repository_holds_what_the_phone_moved",
-        "agent": [
-          "git.push",
-          "repo.list"
-        ],
-        "executor": [
-          "git_push"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.push-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1752,15 +1530,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_rebase_from_a_base_is_applied_and_one_that_stops_on_conflicts_is_aborted_and_the_branch_is_as_it_was",
-        "agent": [
-          "git.rebase",
-          "repo.list"
-        ],
-        "executor": [
-          "git_rebase"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.rebaseFromBase-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1779,15 +1555,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_merge_stopped_on_conflicts_is_read_resolved_completed_and_aborted_and_the_repository_ends_as_git_would_leave_it",
-        "agent": [
-          "git.conflictResolve",
-          "repo.list"
-        ],
-        "executor": [
-          "git_conflict_resolve"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.resolveConflict-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1797,15 +1571,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
-        "agent": [
-          "git.stage",
-          "repo.list"
-        ],
-        "executor": [
-          "git_stage"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.stage-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1815,15 +1587,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_merge_stopped_on_conflicts_is_read_resolved_completed_and_aborted_and_the_repository_ends_as_git_would_leave_it",
-        "agent": [
-          "git.status",
-          "repo.list"
-        ],
-        "executor": [
-          "git_status"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.status-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1833,15 +1603,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::a_working_tree_is_read_staged_committed_discarded_and_compared_and_each_change_is_in_the_repository_itself",
-        "agent": [
-          "git.unstage",
-          "repo.list"
-        ],
-        "executor": [
-          "git_unstage"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.unstage-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1851,15 +1619,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "git_m9::commits_are_published_fetched_pulled_and_fast_forwarded_against_a_bare_remote_and_the_repository_holds_what_the_phone_moved",
-        "agent": [
-          "git.upstreamStatus",
-          "repo.list"
-        ],
-        "executor": [
-          "git_upstream"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.upstreamStatus-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1940,15 +1706,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
-        "agent": [
-          "pr.ready",
-          "repo.list"
-        ],
-        "executor": [
-          "hosted_pr_ready"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.markPRDraft-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1958,15 +1722,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
-        "agent": [
-          "pr.ready",
-          "repo.list"
-        ],
-        "executor": [
-          "hosted_pr_ready"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.markPRReadyForReview-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -1976,15 +1738,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
-        "agent": [
-          "pr.merge",
-          "repo.list"
-        ],
-        "executor": [
-          "hosted_pr_merge"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.mergePR-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2003,15 +1763,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
-        "agent": [
-          "pr.checks",
-          "repo.list"
-        ],
-        "executor": [
-          "hosted_pr_checks"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.prChecks-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2026,8 +1784,17 @@
       "id": "rpc:github.prFileContents",
       "kind": "rpc",
       "name": "github.prFileContents",
-      "state": "pending",
-      "milestone": "M11"
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.prFileContents-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.prForBranch",
@@ -2036,19 +1803,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
-        "agent": [
-          "pr.checks",
-          "pr.list",
-          "pr.view",
-          "repo.list"
-        ],
-        "executor": [
-          "hosted_pr_checks",
-          "hosted_pr_list",
-          "hosted_pr_view"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.prForBranch-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2202,15 +1963,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
-        "agent": [
-          "pr.requestReviewers",
-          "repo.list"
-        ],
-        "executor": [
-          "hosted_pr_request_reviewers"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.removePRReviewers-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2229,15 +1988,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
-        "agent": [
-          "pr.requestReviewers",
-          "repo.list"
-        ],
-        "executor": [
-          "hosted_pr_request_reviewers"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.requestPRReviewers-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2292,15 +2049,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
-        "agent": [
-          "pr.edit",
-          "repo.list"
-        ],
-        "executor": [
-          "hosted_pr_edit"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.updatePR-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2319,15 +2074,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_branchs_pull_request_and_its_checks_are_read_through_gh_and_each_pull_request_change_is_what_gh_was_asked_to_do",
-        "agent": [
-          "pr.edit",
-          "repo.list"
-        ],
-        "executor": [
-          "hosted_pr_edit"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.updatePRTitle-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2400,15 +2153,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_merge_requests_merge_and_update_are_what_glab_was_asked_to_do_and_a_rebase_merge_is_refused_before_glab_starts",
-        "agent": [
-          "mr.merge",
-          "repo.list"
-        ],
-        "executor": [
-          "hosted_pr_merge"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-gitlab.mergeMR-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2436,19 +2187,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_merge_requests_merge_and_update_are_what_glab_was_asked_to_do_and_a_rebase_merge_is_refused_before_glab_starts",
-        "agent": [
-          "mr.edit",
-          "mr.ready",
-          "mr.setLabels",
-          "repo.list"
-        ],
-        "executor": [
-          "hosted_pr_edit",
-          "hosted_pr_labels",
-          "hosted_pr_ready"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-gitlab.updateMR-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2507,8 +2252,17 @@
       "id": "rpc:hostedReview.forBranch",
       "kind": "rpc",
       "name": "hostedReview.forBranch",
-      "state": "pending",
-      "milestone": "M11"
+      "state": "served",
+      "milestone": "M11",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-hostedReview.forBranch-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:hostedReview.getCreationEligibility",
@@ -2697,10 +2451,13 @@
       "state": "served",
       "milestone": "M5",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "web_m5::a_phone_lists_the_hosts_this_host_relays_to_and_there_are_none",
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-mobileRelay.hosts.list-empty-empty-object",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2710,34 +2467,37 @@
       "state": "served",
       "milestone": "M5",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "web_m5::a_phone_lists_the_hosts_this_host_relays_to_and_there_are_none",
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-mobileRelay.hosts.worktrees-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:mobileRelay.projectSections",
       "kind": "rpc",
       "name": "mobileRelay.projectSections",
-      "state": "served",
-      "milestone": "M6",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_reads_the_project_catalog_and_folder_workspaces_rca_holds_and_a_workspace_made_by_another_device_appears",
-        "agent": [
-          "repo.list",
-          "state.get"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M6"
     },
     {
       "id": "rpc:mobileWeb.bundle.brotliRange",
       "kind": "rpc",
       "name": "mobileWeb.bundle.brotliRange",
-      "state": "pending",
-      "milestone": "M5"
+      "state": "served",
+      "milestone": "M5",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-mobileWeb.bundle.brotliRange-invalid-drop-buildId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:mobileWeb.bundle.chunk",
@@ -2746,8 +2506,8 @@
       "state": "served",
       "milestone": "M5",
       "evidence": {
-        "suite": "wf-mimic-orca-mobile-bundle",
-        "test": "orca-mobile-bundle::windows",
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-mobileWeb.bundle.chunk-invalid-drop-buildId",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -2759,21 +2519,24 @@
       "id": "rpc:mobileWeb.bundle.localeCatalog",
       "kind": "rpc",
       "name": "mobileWeb.bundle.localeCatalog",
-      "state": "pending",
-      "milestone": "M5"
+      "state": "served",
+      "milestone": "M5",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-mobileWeb.bundle.localeCatalog-invalid-drop-locale",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:mobileWeb.bundle.manifest",
       "kind": "rpc",
       "name": "mobileWeb.bundle.manifest",
-      "state": "served",
-      "milestone": "M5",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "web_m5::a_phone_fetches_the_manifest_and_every_asset_in_chunks_and_ranges_and_the_bytes_are_the_hosts_files",
-        "agent": [],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M5"
     },
     {
       "id": "rpc:mobileWeb.bundle.range",
@@ -2782,10 +2545,13 @@
       "state": "served",
       "milestone": "M5",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "web_m5::a_phone_fetches_the_manifest_and_every_asset_in_chunks_and_ranges_and_the_bytes_are_the_hosts_files",
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-mobileWeb.bundle.range-invalid-drop-buildId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2795,13 +2561,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_m7::a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_on_its_stream_its_history_and_its_items",
-        "agent": [
-          "thread.get",
-          "thread.history"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-nativeChat.readSession-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2809,8 +2575,17 @@
       "kind": "rpc",
       "name": "nativeChat.subscribe",
       "subscription": true,
-      "state": "pending",
-      "milestone": "M7"
+      "state": "served",
+      "milestone": "M7",
+      "evidence": {
+        "suite": "wf-mimic-orca-recorded",
+        "test": "orca-v1.4.259-recorded::orca-nativeChat.subscribe",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:nativeChat.unsubscribe",
@@ -2923,8 +2698,17 @@
       "id": "rpc:pairing.exchangeTicket",
       "kind": "rpc",
       "name": "pairing.exchangeTicket",
-      "state": "pending",
-      "milestone": "M5"
+      "state": "served",
+      "milestone": "M5",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-pairing.exchangeTicket-empty-min",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:pairing.getEndpoints",
@@ -2967,14 +2751,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
-        "agent": [
-          "agents.detect"
-        ],
-        "executor": [
-          "cli_detect"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-preflight.detectAgents-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2984,12 +2767,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
-        "agent": [
-          "agents.detect"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-preflight.detectRemoteAgents-valid-min",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -2999,14 +2783,13 @@
       "state": "served",
       "milestone": "M7",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
-        "agent": [
-          "agents.detect"
-        ],
-        "executor": [
-          "cli_detect"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-preflight.refreshAgents-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3016,13 +2799,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
-        "agent": [
-          "repo.list",
-          "state.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-project.list-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3048,13 +2831,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
-        "agent": [
-          "repo.list",
-          "state.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-projectHostSetup.list-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3064,15 +2847,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
-        "agent": [
-          "git.refs",
-          "repo.list"
-        ],
-        "executor": [
-          "git_refs"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-repo.baseRefDefault-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3082,17 +2863,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
-        "agent": [
-          "file.readChunk",
-          "file.stat",
-          "repo.list"
-        ],
-        "executor": [
-          "read_chunk",
-          "stat"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-repo.hooks-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3102,13 +2879,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
-        "agent": [
-          "repo.list",
-          "state.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-repo.list-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3118,14 +2895,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
-        "agent": [
-          "repo.list",
-          "state.get",
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-repo.saveSparsePreset-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3135,15 +2911,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
-        "agent": [
-          "git.refs",
-          "repo.list"
-        ],
-        "executor": [
-          "git_refs"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-repo.searchRefs-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3153,13 +2927,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
-        "agent": [
-          "repo.list",
-          "state.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-repo.sparsePresets-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3169,28 +2943,21 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
-        "agent": [
-          "repo.list",
-          "state.get",
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-repo.update-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:runtime.clientCapabilities.update",
       "kind": "rpc",
       "name": "runtime.clientCapabilities.update",
-      "state": "served",
-      "milestone": "M5",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "transport_m5::a_paired_phone_handshakes_and_asks_the_host_what_it_is_and_the_status_comes_from_the_real_service",
-        "agent": [],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M5"
     },
     {
       "id": "rpc:runtime.clientEvents.subscribe",
@@ -3200,12 +2967,13 @@
       "state": "served",
       "milestone": "M5",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "transport_m5::a_phone_opens_the_client_events_stream_and_ends_it",
-        "agent": [
-          "state.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-recorded",
+        "test": "orca-v1.4.259-recorded::orca-runtime.clientEvents.subscribe",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3228,44 +2996,98 @@
       "id": "rpc:session.tabs.activate",
       "kind": "rpc",
       "name": "session.tabs.activate",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-session.tabs.activate-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:session.tabs.close",
       "kind": "rpc",
       "name": "session.tabs.close",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-session.tabs.close-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:session.tabs.createTerminal",
       "kind": "rpc",
       "name": "session.tabs.createTerminal",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-session.tabs.createTerminal-boundary-limit-launchToken",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:session.tabs.list",
       "kind": "rpc",
       "name": "session.tabs.list",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-session.tabs.list-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:session.tabs.subscribe",
       "kind": "rpc",
       "name": "session.tabs.subscribe",
       "subscription": true,
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-recorded",
+        "test": "orca-v1.4.259-recorded::orca-session.tabs.subscribe",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:session.tabs.unsubscribe",
       "kind": "rpc",
       "name": "session.tabs.unsubscribe",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-session.tabs.unsubscribe-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:settings.get",
@@ -3274,12 +3096,13 @@
       "state": "served",
       "milestone": "M10",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
-        "agent": [
-          "state.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-settings.get-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3298,12 +3121,13 @@
       "state": "served",
       "milestone": "M10",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
-        "agent": [
-          "state.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-settings.getTerminalQuickCommands-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3322,12 +3146,9 @@
       "state": "served",
       "milestone": "M10",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
-        "agent": [
-          "state.get",
-          "state.set"
-        ],
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-settings.update-invalid-no-payload",
+        "agent": [],
         "executor": []
       }
     },
@@ -3338,13 +3159,13 @@
       "state": "served",
       "milestone": "M10",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
-        "agent": [
-          "state.get",
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-recorded",
+        "test": "orca-v1.4.259-recorded::orca-settings.updateTerminalQuickCommands",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3365,19 +3186,8 @@
       "id": "rpc:skills.discover",
       "kind": "rpc",
       "name": "skills.discover",
-      "state": "served",
-      "milestone": "M7",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
-        "agent": [
-          "repo.list",
-          "skills.list"
-        ],
-        "executor": [
-          "skill_scan"
-        ]
-      }
+      "state": "pending",
+      "milestone": "M7"
     },
     {
       "id": "rpc:speech.dictation.cancel",
@@ -3479,30 +3289,40 @@
       "id": "rpc:stats.summary",
       "kind": "rpc",
       "name": "stats.summary",
-      "state": "pending",
-      "milestone": "M10"
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-stats.summary-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:status.get",
       "kind": "rpc",
       "name": "status.get",
-      "state": "served",
-      "milestone": "M5",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "transport_m5::a_paired_phone_handshakes_and_asks_the_host_what_it_is_and_the_status_comes_from_the_real_service",
-        "agent": [
-          "service.status"
-        ],
-        "executor": []
-      }
+      "state": "pending",
+      "milestone": "M5"
     },
     {
       "id": "rpc:terminal.ackOutput",
       "kind": "rpc",
       "name": "terminal.ackOutput",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-terminal.ackOutput-boundary-limit-units",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:terminal.clearBuffer",
@@ -3511,14 +3331,13 @@
       "state": "served",
       "milestone": "M8",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "terminal_m8::a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
-        "agent": [
-          "terminal.clear"
-        ],
-        "executor": [
-          "pty_write"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-terminal.clearBuffer-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3528,23 +3347,30 @@
       "state": "served",
       "milestone": "M8",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "terminal_m8::a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
-        "agent": [
-          "terminal.close"
-        ],
-        "executor": [
-          "pty_attach",
-          "pty_close"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-terminal.close-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:terminal.focus",
       "kind": "rpc",
       "name": "terminal.focus",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-terminal.focus-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:terminal.getAutoRestoreFit",
@@ -3562,30 +3388,46 @@
       "state": "served",
       "milestone": "M8",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "terminal_m8::a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
-        "agent": [
-          "repo.list",
-          "terminal.list"
-        ],
-        "executor": [
-          "pty_list"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-terminal.list-invalid-no-payload",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:terminal.openInputSession",
       "kind": "rpc",
       "name": "terminal.openInputSession",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-terminal.openInputSession-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:terminal.read",
       "kind": "rpc",
       "name": "terminal.read",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-terminal.read-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:terminal.rename",
@@ -3594,12 +3436,13 @@
       "state": "served",
       "milestone": "M8",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "terminal_m8::a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
-        "agent": [
-          "terminal.rename"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-terminal.rename-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3609,14 +3452,13 @@
       "state": "served",
       "milestone": "M8",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "terminal_m8::a_terminal_is_listed_typed_into_cleared_renamed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
-        "agent": [
-          "terminal.write"
-        ],
-        "executor": [
-          "pty_write"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-terminal.send-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3632,16 +3474,34 @@
       "id": "rpc:terminal.setDisplayMode",
       "kind": "rpc",
       "name": "terminal.setDisplayMode",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-terminal.setDisplayMode-invalid-drop-terminal",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:terminal.subscribe",
       "kind": "rpc",
       "name": "terminal.subscribe",
       "subscription": true,
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-recorded",
+        "test": "orca-v1.4.259-recorded::orca-terminal.subscribe",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:terminal.unsubscribe",
@@ -3653,15 +3513,27 @@
         "suite": "wf-mimic-orca-crawl",
         "test": "orca-v1.4.259-crawl::orca-terminal.unsubscribe-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:terminal.updateViewport",
       "kind": "rpc",
       "name": "terminal.updateViewport",
-      "state": "pending",
-      "milestone": "M8"
+      "state": "served",
+      "milestone": "M8",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-terminal.updateViewport-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:ui.get",
@@ -3670,12 +3542,13 @@
       "state": "served",
       "milestone": "M10",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
-        "agent": [
-          "state.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-ui.get-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3685,12 +3558,9 @@
       "state": "served",
       "milestone": "M10",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "settings_m10::settings_quick_commands_and_ui_state_are_kept_by_rca_and_read_back",
-        "agent": [
-          "state.get",
-          "state.set"
-        ],
+        "suite": "wf-mimic-orca-recorded",
+        "test": "orca-v1.4.259-recorded::orca-ui.set",
+        "agent": [],
         "executor": []
       }
     },
@@ -3718,36 +3588,21 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_pull_requests_worktree_starts_at_its_head_fetched_into_a_ref_of_its_own_and_no_branch_or_checkout_moves",
-        "agent": [
-          "repo.list",
-          "state.get",
-          "worktree.create"
-        ],
-        "executor": [
-          "git_worktree_add"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.create-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
       "id": "rpc:worktree.list",
       "kind": "rpc",
       "name": "worktree.list",
-      "state": "served",
-      "milestone": "M6",
-      "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
-        "agent": [
-          "repo.list",
-          "state.get",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list"
-        ]
-      }
+      "state": "pending",
+      "milestone": "M6"
     },
     {
       "id": "rpc:worktree.listRetiredNames",
@@ -3756,13 +3611,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
-        "agent": [
-          "repo.list",
-          "state.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.listRetiredNames-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3772,15 +3627,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_updates_a_repo_saves_a_preset_reads_hooks_and_refs_and_prefetches_a_remote_and_each_matches_the_executors_repository",
-        "agent": [
-          "git.fetch",
-          "repo.list"
-        ],
-        "executor": [
-          "git_fetch"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.prefetchCreateBase-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3799,17 +3652,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_pull_requests_worktree_starts_at_its_head_fetched_into_a_ref_of_its_own_and_no_branch_or_checkout_moves",
-        "agent": [
-          "git.fetch",
-          "mr.view",
-          "repo.list"
-        ],
-        "executor": [
-          "git_fetch",
-          "hosted_pr_view"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.resolveMrBase-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3819,17 +3668,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "hosted_m11::a_pull_requests_worktree_starts_at_its_head_fetched_into_a_ref_of_its_own_and_no_branch_or_checkout_moves",
-        "agent": [
-          "git.fetch",
-          "pr.view",
-          "repo.list"
-        ],
-        "executor": [
-          "git_fetch",
-          "hosted_pr_view"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.resolvePrBase-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3839,19 +3684,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
-        "agent": [
-          "repo.list",
-          "state.get",
-          "state.set",
-          "worktree.list",
-          "worktree.remove"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "git_worktree_remove"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.rm-invalid-drop-worktree",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3861,17 +3700,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
-        "agent": [
-          "repo.list",
-          "state.get",
-          "state.set",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.set-boundary-limit-suppressedGitHubPR",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3881,16 +3716,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "workspace_m6::a_phone_creates_lists_sets_reads_into_and_removes_a_worktree_and_each_step_is_what_git_has_on_the_executors_disk",
-        "agent": [
-          "repo.list",
-          "state.get",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list"
-        ]
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-worktree.show-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {
@@ -3909,10 +3741,13 @@
       "state": "served",
       "milestone": "M5",
       "evidence": {
-        "suite": "orca-serve-integration",
-        "test": "agent_catalog_m7b::the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_missing_and_its_skills_are_discovered",
+        "suite": "wf-mimic-orca-recorded",
+        "test": "orca-v1.4.259-recorded::orca-transport.e2ee.handshake.wrong-host-key",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     }
   ]
