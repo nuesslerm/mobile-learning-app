@@ -1,7 +1,6 @@
 //! The M11 rows through the real router over the agent double: the pull request reads and actions, the source control sign-in, the clones and
 //! the thread links. The double answers the neutral shape the executor's `hosted_*` actions produce (`rca-exec` `hosted::shape`); what a request
-//! becomes (the `Op::Hosted` the agent API is asked, its method and params) and what the phone is told are both asserted. The chain
-//! (`tests/integration/hosted_m11.rs`) runs the same calls through the real service and executor with fake `gh` and `glab`.
+//! becomes (the `Op::Hosted` the agent API is asked, its method and params) and what the phone is told are both asserted.
 use super::support::*;
 use std::sync::Mutex;
 use t3_core::ports::{AgentError, AgentEventKind, Finish, Op};

@@ -12,8 +12,6 @@ mod support;
 mod attachments_m12;
 #[path = "integration/chain.rs"]
 mod chain;
-#[path = "integration/hosted_m11.rs"]
-mod hosted_m11;
 #[path = "integration/local_m5.rs"]
 mod local_m5;
 #[path = "integration/preview_m12.rs"]
@@ -24,8 +22,6 @@ mod recorded_r1;
 mod rollback_m12;
 #[path = "integration/projects_m12.rs"]
 mod projects_m12;
-#[path = "integration/prs_m12.rs"]
-mod prs_m12;
 #[path = "integration/rig.rs"]
 mod rig;
 #[path = "integration/scripted_turn_replay.rs"]

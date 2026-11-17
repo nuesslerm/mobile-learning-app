@@ -3175,7 +3175,6 @@ dependencies = [
  "base64 0.22.1",
  "exec-fs",
  "exec-git",
- "exec-hosted",
  "exec-testkit",
  "getrandom 0.3.4",
  "mimic-core",

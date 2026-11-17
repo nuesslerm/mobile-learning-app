@@ -25,13 +25,13 @@ inputs = ["cassettes/**", "../../docs/plans/rca-parity/coverage/t3-methods.json"
 
 # The integration chain (tests/integration.rs) runs the built binaries t3-serve, rca-service and rca-exec against each other, and the scripted CLI
 # that exec-testkit builds from its own workspace: a change to any of the last three reruns it (`uses`, with their workspaces' manifests and
-# lockfile slices), and so does a change to the methods list it names its rows from and to the cassettes and the hosted fixtures its replay reads. The flow task reads
+# lockfile slices), and so does a change to the methods list it names its rows from and to the cassettes its replay reads. The flow task reads
 # neither the crates it uses nor these files.
 [package.metadata.integration]
 uses = ["rca-service", "rca-exec", "exec-testkit", "wf-mimic", "mimic-core"]
 # the crate files the chain reads: the binary's sources, its own tests and the client they share with the flow tests; a flow test, the Dockerfile and the compose file are not
 sources = ["src/**", "tests/integration.rs", "tests/integration/**", "tests/flow/support/**"]
-inputs = ["cassettes/**", "../../tooling/t3-conformance/t3-pin.json", "../../docs/plans/rca-parity/coverage/t3-methods.json", "../../libraries/agent-api/exec-hosted/tests/cassettes/**"]
+inputs = ["cassettes/**", "../../tooling/t3-conformance/t3-pin.json", "../../docs/plans/rca-parity/coverage/t3-methods.json"]
 
 [features]
 testing = ["t3-core/testing"]
@@ -72,7 +72,6 @@ agent-api-hosted = { path = "../../libraries/agent-api/agent-api-hosted", featur
 agent-api-schedules = { path = "../../libraries/agent-api/agent-api-schedules", features = ["testing"] }
 agent-api-attachments = { path = "../../libraries/agent-api/agent-api-attachments", features = ["testing"] }
 agent-api-preview = { path = "../../libraries/agent-api/agent-api-preview", features = ["testing"] }
-exec-hosted = { path = "../../libraries/agent-api/exec-hosted", features = ["testing"] }
 exec-git = { path = "../../libraries/agent-api/exec-git" }
 exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }
 mimic-core = { version = "0.1.1", registry = "mla" }

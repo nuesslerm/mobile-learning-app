@@ -136,7 +136,6 @@
     "clis/t3-serve -> libraries/agent-api/agent-api-workspace",
     "clis/t3-serve -> libraries/agent-api/exec-fs",
     "clis/t3-serve -> libraries/agent-api/exec-git",
-    "clis/t3-serve -> libraries/agent-api/exec-hosted",
     "clis/t3-serve -> libraries/agent-api/exec-testkit",
     "clis/vnc-auth-capture/listener -> clis/wf-kit",
     "clis/vnc-auth-capture/listener -> clis/wf-login"

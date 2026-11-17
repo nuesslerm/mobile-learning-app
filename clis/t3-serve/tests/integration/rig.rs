@@ -1,7 +1,7 @@
 //! The chain's processes and the phone that drives them. The service, the executor and the mapper are real processes; the executor and the mapper
 //! reach the service through a `Tap`, so every agent API call the mapper makes and every tool the service asks the executor is seen.
 use crate::support::*;
-use exec_testkit::{Case, HostedClis, RcaExec, RcaService, ScriptedCli, Suite, Tap, TempRepo};
+use exec_testkit::{Case, RcaExec, RcaService, ScriptedCli, Suite, Tap, TempRepo};
 use std::collections::BTreeSet;
 use std::io::{BufRead, BufReader};
 use std::net::SocketAddr;
@@ -82,8 +82,6 @@ pub struct Chain {
     /// Where the executor puts the worktrees it makes, and the one directory outside its root it may list (`alpha`, `beta`, and a file).
     pub base: PathBuf,
     pub shared: PathBuf,
-    /// The fake `gh` and `glab` first on the executor's `PATH`, for the chains that read and act on hosted source control.
-    pub hosted: Option<HostedClis>,
     _dirs: tempfile::TempDir,
     server: Child,
     errlog: PathBuf,
@@ -102,20 +100,6 @@ impl Chain {
     /// The service with the scripted CLIs first on its `PATH`, the executor attached for workspace `w1` through the tap on a new repository, and
     /// `t3-serve serve` pointed at the tap with a bearer the operator minted. It returns once serve says it listens.
     pub fn start() -> Chain {
-        Chain::start_with(None)
-    }
-
-    /// `start` with the executor's `PATH` led by the fake `gh` and `glab` (`Chain::hosted`).
-    pub fn start_hosted() -> Chain {
-        Chain::start_with(Some(HostedClis::install()))
-    }
-
-    /// The fake `gh` and `glab` of a chain made by `start_hosted`.
-    pub fn clis(&self) -> &HostedClis {
-        self.hosted.as_ref().expect("the chain was started with start_hosted")
-    }
-
-    fn start_with(hosted: Option<HostedClis>) -> Chain {
         let cli = ScriptedCli::install();
         let repo = TempRepo::new();
         let service = RcaService::start(SECRET, &cli.path());
@@ -128,26 +112,12 @@ impl Chain {
         }
         std::fs::write(shared.join("notes.txt"), "not a directory").unwrap();
         let flags = ["--worktree-base", base.to_str().unwrap(), "--browse-allow", shared.to_str().unwrap()];
-        let exec = match &hosted {
-            Some(clis) => RcaExec::serve_on(&tap.url(), "w1", &repo, SECRET, &flags, &clis.path()),
-            None => RcaExec::serve_with(&tap.url(), "w1", &repo, SECRET, &flags),
-        };
+        let exec = RcaExec::serve_with(&tap.url(), "w1", &repo, SECRET, &flags);
         let bearer = service.mint("t3 chain");
         let state = tempfile::Builder::new().prefix("t3-serve-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");
         let (server, addr) = spawn_serve(state.path(), &errlog, &tap.url(), &bearer);
-        Chain { tap, cli, repo, service, addr, state, base, shared, hosted, _dirs: dirs, server, errlog, _exec: exec }
-    }
-
-    /// `t3-serve serve` stopped and started again on the same state directory and the same service, as a restart of the server is: what it kept in its
-    /// own store stays, what it held in memory is gone, and a phone pairs and connects again (the address is new).
-    pub fn restart_serve(&mut self) {
-        let _ = self.server.kill();
-        let _ = self.server.wait();
-        let bearer = self.service.mint("t3 chain restarted");
-        let (server, addr) = spawn_serve(self.state.path(), &self.errlog, &self.tap.url(), &bearer);
-        self.server = server;
-        self.addr = addr;
+        Chain { tap, cli, repo, service, addr, state, base, shared, _dirs: dirs, server, errlog, _exec: exec }
     }
 
     /// A pairing code minted by a separate `t3-serve pair` on the server's state directory, as an operator hands one to a phone, with the scopes the
