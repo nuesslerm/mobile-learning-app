@@ -8,8 +8,6 @@
 mod agent_m7;
 #[path = "integration/agent_catalog_m7b.rs"]
 mod agent_catalog_m7b;
-#[path = "integration/hosted_m11.rs"]
-mod hosted_m11;
 #[path = "integration/mimic_x2.rs"]
 mod mimic_x2;
 #[path = "integration/mimic_x6.rs"]

@@ -1,6 +1,6 @@
 //! The chain's processes and the phone that drives them. The service, the executor and `orca-serve` are real processes; the executor and
 //! `orca-serve` reach the service through a `Tap`, so every agent API call the mapper makes is seen.
-use exec_testkit::{Case, HostedClis, RcaExec, RcaService, ScriptedCli, Suite, Tap, TempRepo};
+use exec_testkit::{Case, RcaExec, RcaService, ScriptedCli, Suite, Tap, TempRepo};
 use orca_crypto::pairing::PairingOffer;
 use orca_serve::testing::PhoneClient;
 use serde_json::{json, Value};
@@ -50,8 +50,6 @@ pub struct Chain {
     /// The executor's own home: its user-level skills are read from here.
     pub home: tempfile::TempDir,
     _exec: RcaExec,
-    /// The fake `gh` and `glab` first on the executor's `PATH`, for the chains that act on hosted source control.
-    hosted: Option<HostedClis>,
 }
 
 impl Chain {
@@ -64,20 +62,10 @@ impl Chain {
 
     /// `start`, with `env` also in the service's environment.
     pub fn start_with_env(web: Option<&Path>, env: &[(&str, &str)]) -> Chain {
-        Chain::start_full(web, env, None)
+        Chain::start_full(web, env)
     }
 
-    /// `start` with the executor's `PATH` led by the fake `gh` and `glab` (`Chain::clis`).
-    pub fn start_hosted() -> Chain {
-        Chain::start_full(None, &[], Some(HostedClis::install()))
-    }
-
-    /// The fake `gh` and `glab` the executor runs: what they print is set here, and what they were started with is read back.
-    pub fn clis(&self) -> &HostedClis {
-        self.hosted.as_ref().expect("the chain was started with start_hosted")
-    }
-
-    fn start_full(web: Option<&Path>, env: &[(&str, &str)], hosted: Option<HostedClis>) -> Chain {
+    fn start_full(web: Option<&Path>, env: &[(&str, &str)]) -> Chain {
         let cli = ScriptedCli::install();
         let repo = TempRepo::new();
         let service = RcaService::start_with_env(SECRET, &cli.path(), env);
@@ -85,12 +73,12 @@ impl Chain {
         let base_dir = tempfile::Builder::new().prefix("orca-chain-worktrees-").tempdir().unwrap();
         let base = base_dir.path().to_path_buf();
         let home = tempfile::Builder::new().prefix("orca-chain-home-").tempdir().unwrap();
-        let exec = RcaExec::serve_with_home(&tap.url(), "w1", &repo, SECRET, &["--worktree-base", base.to_str().unwrap()], &hermetic_path(&cli, hosted.as_ref()), Some(home.path()));
+        let exec = RcaExec::serve_with_home(&tap.url(), "w1", &repo, SECRET, &["--worktree-base", base.to_str().unwrap()], &hermetic_path(&cli), Some(home.path()));
         let bearer = service.mint("orca chain");
         let state = tempfile::Builder::new().prefix("orca-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");
         let (server, addr) = spawn_serve(state.path(), &errlog, &tap.url(), &bearer, web);
-        Chain { tap, service, addr, state, errlog, server, cli, repo, _base: base_dir, home, _exec: exec, hosted }
+        Chain { tap, service, addr, state, errlog, server, cli, repo, _base: base_dir, home, _exec: exec }
     }
 
     /// A pairing link minted by a separate `orca-serve pair` on the server's state directory, as an operator hands one to a phone.
@@ -365,16 +353,10 @@ pub fn answered(case: &Case, method: &str, ok: bool) {
     assert!(window.iter().any(|(m, o)| m == method && *o == ok), "{method} was not {} in the call's window: {window:?}", if ok { "answered" } else { "refused" });
 }
 
-/// That the executor ran `action` successfully in the last call's window.
-pub fn ran(case: &Case, action: &str) -> bool {
-    case.calls().last().unwrap()["executor"].as_array().unwrap().iter().any(|h| h["tool"] == action && h["ok"] == true)
-}
-
 /// The scripted CLIs first, then the host's PATH without any directory that holds a real agent CLI, so a CLI taken away is missing.
-fn hermetic_path(cli: &exec_testkit::ScriptedCli, hosted: Option<&HostedClis>) -> std::ffi::OsString {
+fn hermetic_path(cli: &exec_testkit::ScriptedCli) -> std::ffi::OsString {
     let agents = ["claude", "codex", "opencode"];
     let mut dirs = vec![cli.dir().to_path_buf()];
-    dirs.extend(hosted.map(|h| h.dir().to_path_buf()));
     dirs.extend(std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()).filter(|d| !agents.iter().any(|a| d.join(a).exists())));
     std::env::join_paths(dirs).expect("a PATH")
 }
