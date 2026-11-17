@@ -49,8 +49,12 @@ run_flow("run local", function()
     -- on the hosted runner the first request of a reused app sometimes sits unacknowledged on a connection the DNAT rule never saw (the device's socket
     -- table shows bytes queued to port 8789 and no answer): what the stub saw and the NAT rules are logged, and one more tap opens a fresh connection
     log("first run: stub hits", #device:get_network_stub_hits())
-    log("nat rules", (device:run_shell("iptables -t nat -S OUTPUT; iptables -S OUTPUT | grep wf-stub")))
+    log("nat rules", (device:run_shell("iptables -t nat -L OUTPUT -v -n -x; iptables -L OUTPUT -v -n -x")))
+    -- a fresh app process opens fresh sockets, all of them behind the rules
+    device:run_shell("am force-stop host.exp.exponent")
     stub_run()
+    device:open_link(base .. "/leetcode/two-sum")
+    device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
     device:tap_on({id='ProblemEditorRunLocalButton'})
     shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=30000, optional=true}
   end
