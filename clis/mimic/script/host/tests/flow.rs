@@ -2,7 +2,7 @@
 //! server for a case, keeps it for the next and starts another after `reset`, against a fake `t3`.
 use mimic_core::ports::{Driver, Request};
 use mimic_script_core::Policy;
-use mimic_script_host::hermetic::{Host, STUB_VERSION};
+use mimic_script_host::hermetic::{refuse_candidate_only_steps, write_cli_script, Host, STUB_VERSION};
 use mimic_script_host::pin::{sha256_hex, Pin};
 use mimic_script_host::provision::{ensure_runtime, Get};
 use mimic_script_host::target::SpawnLaunch;
@@ -98,15 +98,53 @@ fn ask(driver: &mut ScriptDriver, id: &str, script: Value) -> Vec<Value> {
     observed.steps.into_iter().map(|s| s.payload).collect()
 }
 
+/// A directory of scripted agent CLIs as a test leaves one: the programs, and a script and a log of an earlier case.
+fn scripted_dir() -> tempfile::TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("codex"), "#!/bin/sh\n").unwrap();
+    std::fs::write(dir.path().join("codex.script.json"), r#"{"turns":[{"hang":true}]}"#).unwrap();
+    std::fs::write(dir.path().join("codex.invocations.jsonl"), "{}\n").unwrap();
+    dir
+}
+
 #[test]
-fn given_scripted_clis_when_the_host_is_prepared_then_they_come_before_the_stubs_on_the_path() {
+fn given_scripted_clis_when_the_host_is_prepared_then_its_own_copy_comes_before_the_stubs_on_the_path_without_the_earlier_script_or_log() {
     let root = tempfile::tempdir().unwrap();
-    let scripted = tempfile::tempdir().unwrap();
+    let scripted = scripted_dir();
 
     let host = Host::prepare(root.path(), Some(scripted.path())).unwrap();
 
+    let cli = host.cli.clone().unwrap();
     let path = host.env.iter().find(|(k, _)| k == "PATH").unwrap().1.clone();
-    assert!(path.starts_with(&format!("{}:{}:", scripted.path().display(), host.bin.display())), "{path}");
+    assert!(path.starts_with(&format!("{}:{}:", cli.display(), host.bin.display())), "{path}");
+    let mut files: Vec<String> = std::fs::read_dir(&cli).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect();
+    files.sort();
+    assert_eq!(files, ["codex"]);
+}
+
+#[test]
+fn given_two_hosts_from_one_directory_when_one_is_scripted_then_the_other_does_not_see_the_script_and_the_version_line_is_forced() {
+    let (a, b) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
+    let scripted = scripted_dir();
+    let (first, second) = (Host::prepare(a.path(), Some(scripted.path())).unwrap(), Host::prepare(b.path(), Some(scripted.path())).unwrap());
+
+    write_cli_script(first.cli.as_ref().unwrap(), "codex", &json!([{"hang": true}])).unwrap();
+
+    let script: Value = serde_json::from_str(&std::fs::read_to_string(first.cli.as_ref().unwrap().join("codex.script.json")).unwrap()).unwrap();
+    assert_eq!((script["turns"].clone(), script["version"].as_str()), (json!([{"hang": true}]), Some(format!("codex {STUB_VERSION}").as_str())));
+    assert!(!second.cli.as_ref().unwrap().join("codex.script.json").exists());
+    assert_eq!(std::fs::read_to_string(scripted.path().join("codex.script.json")).unwrap(), r#"{"turns":[{"hang":true}]}"#);
+}
+
+#[test]
+fn given_a_reference_host_when_a_turn_calls_a_tool_or_writes_a_credential_then_it_is_refused_and_a_protocol_free_turn_is_not() {
+    let hang = json!([{"hang": true}, {"exit_code": 1, "stderr": "no"}]);
+    let tool = json!([{"steps": [{"step": "mcp_call", "id": "1", "tool": "write_file", "args": {}}]}]);
+    let login = json!([{"steps": [{"step": "credential", "env": "X", "file": "f", "content": "c"}]}]);
+
+    assert_eq!(refuse_candidate_only_steps(&hang), Ok(()));
+    assert!(refuse_candidate_only_steps(&tool).unwrap_err().contains("`mcp_call`"));
+    assert!(refuse_candidate_only_steps(&login).unwrap_err().contains("`credential`"));
 }
 
 #[test]
@@ -130,6 +168,23 @@ fn given_a_driver_when_cases_run_then_one_server_serves_them_in_a_hermetic_envir
     let environment = seen(&first);
     assert!(environment.contains("TZ=UTC") && environment.contains("ARGS=serve --host 127.0.0.1 --port") && environment.contains("--no-browser <workspace>"), "{environment}");
     assert!(environment.contains("/bin:/usr/bin:/bin"), "{environment}");
+}
+
+#[test]
+fn given_a_cli_script_when_a_case_runs_on_a_spawned_server_then_the_script_is_written_into_its_host_and_no_step_is_recorded() {
+    let work = tempfile::tempdir().unwrap();
+    let runtime = work.path().join("runtime");
+    std::fs::create_dir_all(&runtime).unwrap();
+    std::os::unix::fs::symlink(fake_t3(), runtime.join("t3")).unwrap();
+    let scripted = scripted_dir();
+    let launch = SpawnLaunch { runtime, ready_ms: 20_000, cli_dir: Some(scripted.path().to_path_buf()) };
+    let mut driver = ScriptDriver::new(Box::new(launch), Policy { settle_ms: 20, ..Policy::default() }, vec![], false, None);
+
+    let steps = ask(&mut driver, "a", json!([{"cli.script": {"cli": "codex", "turns": [{"hang": true}]}}, {"http": {"path": "/environment-of-server"}}]));
+    let refused = ask(&mut driver, "b", json!([{"cli.script": {"cli": "codex", "turns": [{"steps": [{"step": "mcp_call", "id": "1", "tool": "t", "args": {}}]}]}}]));
+
+    assert_eq!(steps.len(), 2, "only the http call and its answer are steps: {steps:?}");
+    assert!(refused[0]["transport_error"].as_str().is_some_and(|e| e.contains("`mcp_call`")), "{refused:?}");
 }
 
 #[test]

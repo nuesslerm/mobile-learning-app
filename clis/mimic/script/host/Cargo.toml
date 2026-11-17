@@ -21,14 +21,14 @@ required-features = ["testing"]
 
 [dependencies]
 mimic-core = { version = "0.1.1", registry = "mla" }
-mimic-script-core = { version = "0.1.6", registry = "mla" }
+mimic-script-core = { version = "0.1.7", registry = "mla" }
 mimic-script-net = { version = "0.1.5", registry = "mla" }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 sha2 = "0.10"
 
 [dev-dependencies]
 mimic-script-host = { path = ".", features = ["testing"] }
-mimic-script-core = { version = "0.1.6", registry = "mla", features = ["testing"] }
+mimic-script-core = { version = "0.1.7", registry = "mla", features = ["testing"] }
 tempfile = "3"
 
 [package.metadata.arch]

@@ -22,6 +22,10 @@ pub trait Server {
     fn make_git(&self, _name: &str) -> Result<String, String> {
         Err("this server cannot make a repository".into())
     }
+    /// What the agent CLI `cli` does from its next start on (see `Target::script_cli`).
+    fn script_cli(&self, _cli: &str, _turns: &serde_json::Value) -> Result<(), String> {
+        Err("this server cannot script an agent CLI".into())
+    }
     /// Run-specific paths this server makes (its scratch folder) and the placeholder each becomes in every step.
     fn masks(&self) -> Vec<(String, String)> {
         Vec::new()
@@ -53,6 +57,10 @@ impl Target for Running {
 
     fn make_git(&mut self, name: &str) -> Result<String, String> {
         self.server.make_git(name)
+    }
+
+    fn script_cli(&mut self, cli: &str, turns: &serde_json::Value) -> Result<(), String> {
+        self.server.script_cli(cli, turns)
     }
 
     fn masks(&self) -> Vec<(String, String)> {

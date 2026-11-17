@@ -1,6 +1,6 @@
 //! What a case runs against: a server started for it from the pinned release (`SpawnLaunch`) or one that is already running (`UrlLaunch`).
 use crate::driver::{Launch, Server};
-use crate::hermetic::Host;
+use crate::hermetic::{refuse_candidate_only_steps, write_cli_script, Host};
 use mimic_script_core::Transport;
 use mimic_script_net::TcpTransport;
 use serde_json::Value;
@@ -42,6 +42,7 @@ struct Spawned {
     binary: PathBuf,
     env: Vec<(String, String)>,
     root: PathBuf,
+    cli: Option<PathBuf>,
     child: RefCell<Option<Child>>,
 }
 
@@ -62,13 +63,33 @@ impl Server for Spawned {
         credential_of(&String::from_utf8_lossy(&out.stdout))
     }
 
+    fn script_cli(&self, cli: &str, turns: &Value) -> Result<(), String> {
+        let dir = self.cli.as_ref().ok_or("this host was given no directory of scripted agent CLIs")?;
+        refuse_candidate_only_steps(turns)?;
+        write_cli_script(dir, cli, turns)
+    }
+
     fn stop(&self) {
+        self.log_cli_starts();
         if let Some(mut child) = self.child.borrow_mut().take() {
             // the server writes into its home until it is gone: removing it first fails
             let _ = Command::new("kill").args(["-TERM", &child.id().to_string()]).status();
             let _ = child.wait();
         }
         let _ = std::fs::remove_dir_all(&self.root);
+    }
+}
+
+impl Spawned {
+    /// A probe aid: the arguments of every start of a scripted agent CLI, before the host's directory is removed with them.
+    fn log_cli_starts(&self) {
+        let Some(dir) = &self.cli else { return };
+        for cli in ["claude", "codex", "opencode"] {
+            let Ok(text) = std::fs::read_to_string(dir.join(format!("{cli}.invocations.jsonl"))) else { continue };
+            for line in text.lines().filter_map(|l| serde_json::from_str::<Value>(l).ok()) {
+                eprintln!("level=info source=mimic msg=host.cli.invocations cli={cli} argv={}", line["argv"]);
+            }
+        }
     }
 }
 
@@ -118,7 +139,7 @@ impl Launch for SpawnLaunch {
             let _ = std::fs::remove_dir_all(&root);
             return Err(e);
         }
-        Ok(std::rc::Rc::new(Spawned { addr, workspace: host.workspace.display().to_string(), binary, env: host.env, root, child: RefCell::new(Some(child)) }))
+        Ok(std::rc::Rc::new(Spawned { addr, workspace: host.workspace.display().to_string(), binary, env: host.env, root, cli: host.cli, child: RefCell::new(Some(child)) }))
     }
 }
 
@@ -128,12 +149,15 @@ pub struct UrlLaunch {
     pub workspace: String,
     /// Run for each credential; its output is the credential or the JSON of `credential_of`.
     pub mint: Vec<String>,
+    /// The directory of scripted agent CLIs the server's `PATH` starts first, when the caller has one: a `cli.script` writes into it.
+    pub cli_dir: Option<PathBuf>,
 }
 
 struct Remote {
     addr: SocketAddr,
     workspace: String,
     mint: Vec<String>,
+    cli_dir: Option<PathBuf>,
 }
 
 impl Server for Remote {
@@ -155,12 +179,17 @@ impl Server for Remote {
         Ok(credential_of(&text).unwrap_or_else(|_| text.trim().to_string()))
     }
 
+    fn script_cli(&self, cli: &str, turns: &Value) -> Result<(), String> {
+        let dir = self.cli_dir.as_ref().ok_or("this server was given no directory of scripted agent CLIs (`--cli-dir`)")?;
+        write_cli_script(dir, cli, turns)
+    }
+
     fn stop(&self) {}
 }
 
 impl Launch for UrlLaunch {
     fn start(&mut self) -> Result<std::rc::Rc<dyn Server>, String> {
-        Ok(std::rc::Rc::new(Remote { addr: self.addr, workspace: self.workspace.clone(), mint: self.mint.clone() }))
+        Ok(std::rc::Rc::new(Remote { addr: self.addr, workspace: self.workspace.clone(), mint: self.mint.clone(), cli_dir: self.cli_dir.clone() }))
     }
 }
 
