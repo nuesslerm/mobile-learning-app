@@ -1,5 +1,5 @@
 //! `wf parity coverage --by-oracle` over fixture trees: each class decided from the cassettes, the known gaps and the decisions, and the
-//! host state of a chain test read from its source.
+//! host state of a behaviour test read from its source.
 use super::support::*;
 use std::path::Path;
 
@@ -20,8 +20,8 @@ fn interactions(rows: &[(&str, &str)]) -> String {
     rows.iter().map(|(id, row)| json!({"id": id, "row": row}).to_string() + "\n").collect()
 }
 
-/// A tree whose table serves six rows (four by chain tests, two by a replay) plus a pending one, with a recorded set, an authored set,
-/// a gap file naming one breaking and one drift interaction, and two chain test sources.
+/// A tree whose table serves six rows (four by behaviour tests, two by a replay) plus a pending one, with a recorded set, an authored set,
+/// a gap file naming one breaking and one drift interaction, and two behaviour test sources.
 fn tree() -> tempfile::TempDir {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
@@ -101,7 +101,7 @@ fn each_served_row_gets_the_class_its_recording_and_decisions_decide() {
 
 #[test]
 fn a_chain_tests_host_state_is_read_from_its_source_and_comments_do_not_count() {
-    // Given a chain test that scripts a turn, starts the gh double and restarts the server, with a needle in a comment and a JSON key named restart
+    // Given a behaviour test that scripts a turn, starts the gh double and restarts the server, with a needle in a comment and a JSON key named restart
     let dir = tree();
     // When the table is built
     let run = by_oracle(dir.path(), &[]);
@@ -139,7 +139,7 @@ fn the_check_passes_on_what_a_write_made_and_fails_naming_the_table_once_it_is_e
 
 #[test]
 fn evidence_naming_a_chain_test_whose_source_is_gone_fails_the_check_and_other_flags_are_refused() {
-    // Given a table whose evidence names a chain test file that does not exist
+    // Given a table whose evidence names a behaviour test file that does not exist
     let dir = tree();
     std::fs::remove_file(dir.path().join(format!("{CHAIN}/beta.rs"))).unwrap();
     // When it is checked, Then the file is named
@@ -153,7 +153,7 @@ fn evidence_naming_a_chain_test_whose_source_is_gone_fails_the_check_and_other_f
 
 #[test]
 fn orca_reads_its_own_sets_and_chain_tests() {
-    // Given an Orca tree with one row served by a chain test and a recorded set that labels it
+    // Given an Orca tree with one row served by a behaviour test and a recorded set that labels it
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
     put(root, "docs/plans/rca-parity/coverage/orca.json", &json!({"rows": [row("rpc:files.stat", "orca-serve-integration", "web::serves_it")]}).to_string());
@@ -162,7 +162,7 @@ fn orca_reads_its_own_sets_and_chain_tests() {
     put(root, "clis/orca-serve/tests/integration/web.rs", "#[test]\nfn serves_it() {}\n");
     // When the table is built for Orca
     let run = coverage(root, &["--app", "orca", "--by-oracle"]);
-    // Then the row is (a), served by the chain test, and the md is the Orca one
+    // Then the row is (a), served by the behaviour test, and the md is the Orca one
     assert_eq!((run.code, run.json["counts"].clone()), (0, json!({"a": 1, "b": 0, "c": 0, "d": 0})), "{}", run.stdout);
     assert!(std::fs::read_to_string(root.join("docs/plans/rca-parity/coverage/orca-oracle.md")).unwrap().contains("| `rpc:files.stat` | chain `web` |"));
 }

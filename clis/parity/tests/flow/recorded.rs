@@ -1,5 +1,5 @@
 //! The Evidence port over the real recorded sets (`clis/t3-serve/cassettes/t3-v0.1.9-recorded-{1,2,3}`, `clis/orca-serve/cassettes/orca-v1.4.259-recorded`): a row decided
-//! `oracle: mimic` is served only by a clean replay of a set whose kind is `recorded`. The replays are those the chain tests of the two adapters
+//! `oracle: mimic` is served only by a clean replay of a set whose kind is `recorded`. The replays are those the behaviour tests of the two adapters
 //! proved (an interaction differs only where `known-gaps.json` lists it); the sets, their rows and their gaps are read from the repository.
 use super::support::*;
 use std::collections::{BTreeMap, BTreeSet};

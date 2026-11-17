@@ -33,6 +33,8 @@ pub struct RowSpec<'a> {
     pub held: bool,
     /// The row's decision says `oracle: mimic`: only an admitted oracle replay serves it.
     pub mimic: bool,
+    /// The row's decision names why no recording can show it (class (d)): a behaviour test may serve it.
+    pub unrecordable: bool,
 }
 
 /// What proves a row served: the test, and where its call went.
@@ -115,10 +117,10 @@ pub fn required_method(target: Option<&str>) -> Option<&str> {
 /// The rows `calls` serve. A row no call serves is absent. Among the calls that serve a row the test whose name sorts first (then its first
 /// call) is the evidence, so a refresh names the same test whatever order the tests finished in. A row decided `oracle: mimic` is served
 /// only by a call the oracle replay labelled and `oracle` admits (a clean or allowlisted diff on a recorded cassette); a call without a label,
-/// as a chain test's is, never serves it.
+/// as a behaviour test's is, never serves it. A row with neither `oracle: mimic` nor an `unrecordable` reason is served by nothing.
 pub fn resolve(calls: &[Call], rows: &[RowSpec], oracle: &dyn Evidence) -> BTreeMap<String, Entry> {
     let mut out = BTreeMap::new();
-    for row in rows.iter().filter(|r| !r.held) {
+    for row in rows.iter().filter(|r| !r.held && (r.mimic || r.unrecordable)) {
         let required = required_method(row.target);
         let serves = |c: &&Call| {
             c.rows.iter().any(|r| r == row.id)
@@ -199,7 +201,7 @@ pub fn source_json(traces: &str, runs: Vec<Value>) -> Value {
 }
 
 pub fn unknown_problem(rows: Vec<String>) -> Option<Problem> {
-    (!rows.is_empty()).then(|| Problem { rule: "unknown-trace-row", message: "the traces name rows the coverage table has no phone row for: fix the rows the chain test names".into(), rows })
+    (!rows.is_empty()).then(|| Problem { rule: "unknown-trace-row", message: "the traces name rows the coverage table has no phone row for: fix the rows the behaviour test names".into(), rows })
 }
 
 #[cfg(test)]
@@ -242,7 +244,7 @@ mod tests {
         ]);
         let (read, _) = calls("t3", &[trace(true, tests)]).unwrap();
         // When the rows are resolved, the command forwarding to turn.start and a row with no target
-        let spec = |id, target, held| RowSpec { id, target, held, mimic: false };
+        let spec = |id, target, held| RowSpec { id, target, held, mimic: false, unrecordable: true };
         let rows = [spec("command:message.dispatch", Some("agent:turn.start"), false), spec("rpc:local", None, false), spec("command:unseen", Some("t3-local"), false)];
         let served = resolve(&read, &rows, &AdmitOnly::default());
         // Then the command is served by the first test by name whose call shows turn.start answered, the local row needs only its call, and an unseen row is absent
@@ -259,7 +261,7 @@ mod tests {
         // Given a command whose target is turn.start, answered on the wire without turn.start in its window
         let (read, _) = calls("t3", &[trace(true, json!([{"test": "a::t", "verdict": "pass", "calls": [call(&["command:thread.create"], true, &[], &[])]}]))]).unwrap();
         // When resolved, Then it is not served: the wire answered it, but not through the agent API
-        assert!(resolve(&read, &[RowSpec { id: "command:thread.create", target: Some("agent:thread.create"), held: false, mimic: false }], &AdmitOnly::default()).is_empty());
+        assert!(resolve(&read, &[RowSpec { id: "command:thread.create", target: Some("agent:thread.create"), held: false, mimic: false, unrecordable: true }], &AdmitOnly::default()).is_empty());
         // And the rows the traces name that the table lacks are found
         assert_eq!(unknown_rows(&read, &BTreeSet::from(["rpc:other"])), ["command:thread.create"]);
     }
@@ -290,11 +292,11 @@ mod tests {
         ]);
         let (read, _) = calls("t3", &[trace(true, tests)]).unwrap();
         let oracle = AdmitOnly::of(&[("recorded", "clean"), ("recorded", "allowlisted")]);
-        let row = |mimic| [RowSpec { id: "rpc:x", target: None, held: false, mimic }];
+        let row = |mimic| [RowSpec { id: "rpc:x", target: None, held: false, mimic, unrecordable: !mimic }];
         // When the row is decided oracle: mimic, Then only the clean recorded replay serves it, and the entry names the diff and the cassette
         let served = resolve(&read, &row(true), &oracle);
         assert_eq!((served["rpc:x"].test.as_str(), served["rpc:x"].oracle.as_deref(), served["rpc:x"].diff.as_deref(), served["rpc:x"].cassette.as_deref()), ("d::clean", Some("mimic"), Some("clean"), Some("recorded")));
-        // And without the oracle decision the first test by name serves it, as before
+        // And a row with an unrecordable reason and no oracle decision is served by the first test by name
         assert_eq!(resolve(&read, &row(false), &oracle)["rpc:x"].test, "a::drift");
         // And with no admitted replay at all the row is not served
         let only_drift = calls("t3", &[trace(true, json!([replayed("a::drift", "recorded", "drift")]))]).unwrap().0;

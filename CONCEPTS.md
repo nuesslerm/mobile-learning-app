@@ -100,6 +100,18 @@ A test that starts the built program as a black box (the real binary or process,
 
 It differs from a flow test, which calls the entry point in-process and replaces dependencies in code, and from an e2e test, which replaces nothing. Table and worked example: `docs/solutions/testing/verification-ladder.md`.
 
+## Recorded set
+
+The cassettes of one recorded session of a real server at its pin, named `<app>-v<version>-<kind>` (`t3-v0.1.9-recorded-1`, `orca-v1.4.259-scenarios`): the phone's calls with the real server's answers, made on a hosted runner by one step interpreter that also replays them. Beside it, `known-gaps.json` lists every difference a replay still shows, each as drift or breaking. A set's provenance kind says whether it was `recorded` from the real server; only a `recorded` set can serve a row. Doctrine: `docs/plans/mimic/plan.md`, `docs/plans/rca-parity/plan.md` section 5.
+
+## Replay
+
+`wf mimic replay <set> --rows <prefix,...> --gaps check`: the recorded calls run against the candidate (`t3-serve` or `orca-serve` over the real `rca-service` and `rca-exec`, with the scripted agent CLI of both sides) and each answer is labelled clean, allowlisted, drift or breaking. A replay is the parity oracle: a phone row is served when its replay is clean or allowlisted and the method-hit trace shows the call reached rca (`"oracle": "mimic"` in the decisions file). Replays are split by rca feature crate (`replay-<crate>` Nx tasks), so a change to one mapper crate reruns its own rows.
+
+## Behaviour test
+
+A test of what the candidate does that no recording can show: a pty's output, a restart, a clock, an interaction no recorded set holds. It is a flow or integration test named for the behaviour it checks (`terminal_pty`, `thread_surface`), never for a milestone. It serves a row only through an `unrecordable` reason in the decisions file that says why no recording shows it (class (d) of `wf parity coverage --by-oracle`); a row with neither a replay nor that reason is not served, and `wf parity coverage --check` fails it.
+
 ## E2E test
 
 A test of the same entry point against the real running production environment: the VM, the real vault, the real services and network. Nothing is replaced. It runs through runbooks (`wf offload ask --runbook`) and `wf vm exec`, and it is the tier that catches the real environment disagreeing with the assumptions the lower tiers encode. See `docs/solutions/testing/verification-ladder.md`.

@@ -5,8 +5,8 @@
     "milestones": "Row id or `prefix*` to the milestone of docs/plans/rca-parity/plan.md section 6 in which the row becomes served; the longest match wins. aiVault.* and orchestration.party* stay pending until decision 1 (by M7); pairing.* until decision 1 (by M5).",
     "reverify": "Row id to why a trace hit does not serve it yet: the host answers without doing the work. A call that only passes by refusing or by an empty answer never counts; remove the note in the commit that makes the answer functional and reverified through the chain.",
     "traceNoise": "Row id or `prefix*` to why a trace may name a row the phone does not reach (the crawl drives the whole host surface): `wf parity coverage --traces` does not report such a row as unknown-trace-row. A row the phone reaches never needs one, and a mistyped row a test names is not noise.",
-    "unrecordable": "A served row no recording can show (a pty's output, a restart, a clock): a row decision with an `unrecordable` reason, or the top-level `unrecordableTests` map of `file::test` (or `file::*`) to the reason; `wf parity coverage --by-oracle` classes it (d). Empty until a case is shown to be unrecordable.",
-    "decisions": "Rows with a state other than pending: not-offered needs a reason and a decidedBy milestone, excluded a reason. Flagged (ORCA_SIDEBAR_INPUTS_IS_MAIN) and off-allowlist rows are classed by the scan itself. No row is marked served here: served needs run-bundle evidence. A row may carry `\"oracle\": \"mimic\"` (docs/plans/mimic/plan.md): only a `wf mimic replay --suite` trace whose call is labelled clean or allowlisted on a `recorded` cassette serves it, never a chain test."
+    "unrecordable": "A served row no recording can show (a pty's output, a restart, a clock, an interaction no recorded set holds): a row decision with an `unrecordable` reason, or the top-level `unrecordableTests` map of `file::test` (or `file::*`) to the reason; `wf parity coverage --by-oracle` classes it (d). A served row with neither `\"oracle\": \"mimic\"` nor this reason fails `wf parity coverage --check` (rule served-without-oracle).",
+    "decisions": "Rows with a state other than pending: not-offered needs a reason and a decidedBy milestone, excluded a reason. Flagged (ORCA_SIDEBAR_INPUTS_IS_MAIN) and off-allowlist rows are classed by the scan itself. No row is marked served here: served needs run-bundle evidence. A row may carry `\"oracle\": \"mimic\"` (docs/plans/mimic/plan.md): only a `wf mimic replay --suite` trace whose call is labelled clean or allowlisted on a `recorded` cassette serves it, never a behaviour test."
   },
   "milestones": {
     "transport:*": "M5",
@@ -1271,6 +1271,27 @@
     },
     "rpc:terminal.updateViewport": {
       "oracle": "mimic"
+    },
+    "rpc:agentSession.modelCatalog": {
+      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+    },
+    "rpc:agentSessionAttachment.read": {
+      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+    },
+    "rpc:agentSessionAttachment.readTextChunk": {
+      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+    },
+    "rpc:agentSessionAttachment.uploadAbort": {
+      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+    },
+    "rpc:agentSessionAttachment.uploadCommit": {
+      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+    },
+    "rpc:settings.update": {
+      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+    },
+    "rpc:ui.set": {
+      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
     }
   },
   "reverify": {

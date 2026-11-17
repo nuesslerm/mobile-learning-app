@@ -1,7 +1,7 @@
 ---
 title: Test types — what each covers, what it doubles, one example each
 date: 2026-09-05
-updated: 2026-10-24
+updated: 2026-11-17
 category: testing
 tags: [testing, vitest, e2e, runbooks, visual, verification]
 problem_type: knowledge
@@ -49,6 +49,15 @@ Worked example, `backend/remote-chat-agent` (Rust):
 - e2e: `wf vm exec` probes the deployed `remote-chat-agent` on the VM with the real vault and the real opencode.
 
 Naming trap in Rust: Cargo calls every file under `tests/` an "integration test", but those run in-process against the crate's public API, which is a flow test here. Name them `tests/flow*.rs`, never `tests/integration*.rs`; integration tests in this repo are the black-box suites started as real processes; a package runs its suite as its `test:integration` script. A new integration suite is written in Rust: a crate of its own whose tests start the service's process, or, in a `clis/wf-*` crate, a `tests/integration.rs` for the journeys that need a real process the flow tests double (a Chromium, ffmpeg): its `cargo-integration` Nx task runs one test at a time. CI runs every integration test in the `deployment-verification-tests` stage, after the CLIs are built and the services deployed, never in `flow-tests`. A real Chromium in a flow test is a violation of the flow rule: move the test.
+
+## Replay and behaviour tests: the parity oracle
+
+The phone apps' parity (T3 Code and Orca over rca) is not proved by a test its author wrote from reading the reference source: that can pass while the real server answers otherwise. The oracle is a **replay** of a **recorded set** (the real server's own answers, made on a hosted runner) against `t3-serve` or `orca-serve` over the real `rca-service` and `rca-exec`. It is an integration test (real binaries, the agent CLIs scripted on `PATH`, no real model) whose expected values come from the real server, split into one `replay-<crate>` Nx task per rca feature crate.
+
+- A row is **served** when its replay is clean or allowlisted and the trace shows the call reached rca; the decision says `"oracle": "mimic"`.
+- A **behaviour test** keeps only what no recording can show (a pty's output, a restart, a clock, an interaction no recorded set holds). Its row carries an `unrecordable` reason in the decisions file, and the test is named for the behaviour, not a milestone.
+- `wf parity coverage --check` fails a served row with neither an oracle nor that reason; `--by-oracle` lists each served row with its class (a to d).
+- A replay is integration evidence of the mapper against a recording. It is not deployment verification: say which type ran (`wf mimic replay` and the behaviour tests are integration, a recording of the real server is the reference, not a run of the deployed service).
 
 ## Test behavior, not the implementation
 

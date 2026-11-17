@@ -24,7 +24,7 @@ pub struct Flood {
 pub struct Rule {
     pub program: String,
     pub args: Vec<String>,
-    /// The rule answers every start whose arguments begin with `args`, the first rule in order that does (a chain test that checks what the
+    /// The rule answers every start whose arguments begin with `args`, the first rule in order that does (a behaviour test that checks what the
     /// start was given from its log, not the argv the plan builds).
     #[serde(default)]
     pub prefix: bool,

@@ -22,7 +22,7 @@ pub struct Decisions {
     pub reverify: BTreeMap<String, String>,
     /// Row id, or a prefix ending in `*`, to why a trace may name it though the phone does not reach it: the crawl drives the whole host surface.
     pub trace_noise: Vec<(String, String)>,
-    /// Chain test (`file::test`, or `file::*`) to why no recording can show what it proves.
+    /// Behaviour test (`file::test`, or `file::*`) to why no recording can show what it proves.
     pub unrecordable_tests: Vec<(String, String)>,
 }
 
@@ -113,7 +113,7 @@ fn needs_target(app: &str, row: &Row) -> bool {
 pub fn build(list: &MethodsList, decisions: &Decisions, answered: &BTreeMap<String, String>, evidence: &BTreeMap<String, Entry>, oracle: &dyn Evidence) -> Coverage {
     let app = list.app.as_str();
     let (mut out, mut problems) = (vec![], vec![]);
-    let (mut unassigned, mut untargeted, mut incomplete, mut unproven, mut unreached) = (vec![], vec![], vec![], vec![], vec![]);
+    let (mut unassigned, mut untargeted, mut incomplete, mut unproven, mut unreached, mut no_oracle) = (vec![], vec![], vec![], vec![], vec![], vec![]);
     for row in list.phone_rows() {
         let mut o = Map::new();
         o.insert("id".into(), row.id.clone().into());
@@ -146,6 +146,10 @@ pub fn build(list: &MethodsList, decisions: &Decisions, answered: &BTreeMap<Stri
         let proof = evidence.get(&row.id).filter(|e| state == "pending" && held.is_none() && (!decisions.mimic(&row.id) || (e.oracle.as_deref() == Some("mimic") && oracle.admits(e.cassette.as_deref(), e.diff.as_deref()))));
         let unreached_method = proof.and_then(|e| required.filter(|m| !e.agent.iter().any(|a| a == m)));
         let proof = proof.filter(|_| unreached_method.is_none());
+        // a served row has the recording as its oracle, or a written reason why none can show it
+        if proof.is_some_and(|e| !decisions.mimic(&row.id) && decisions.unrecordable(&row.id, &e.test).is_none()) {
+            no_oracle.push(row.id.clone());
+        }
         if decision.and_then(|d| d.get("oracle")).is_some_and(|o| o.as_str() != Some("mimic")) {
             incomplete.push(row.id.clone());
         }
@@ -202,6 +206,7 @@ pub fn build(list: &MethodsList, decisions: &Decisions, answered: &BTreeMap<Stri
         ("untargeted", untargeted, "command rows without a target of the form agent:<method>, state:<key> or t3-local"),
         ("incomplete-decision", incomplete, "not-offered rows need a reason and a decidedBy, excluded rows a reason, and an oracle can only be mimic"),
         ("served-without-evidence", unproven, "a row is served only with run-bundle evidence (a passing test and a method-hit trace) in <app>-evidence.json: refresh it with --traces"),
+        ("served-without-oracle", no_oracle, "a row is served by the recording (`oracle: mimic` in its decision, a clean or allowlisted replay) or carries an `unrecordable` reason naming why no recording can show it"),
         ("stale-evidence", unreached, "the evidence names rows the table does not serve: refresh it with --traces, or remove the not-offered decision or the reverify note"),
         ("stale-decision", stale, "decisions name rows the phone no longer reaches"),
     ] {
@@ -254,7 +259,7 @@ fn markdown(app: &str, doc: &Value) -> String {
         doc["pin"]["commit"].as_str().map_or("?", |c| &c[..c.len().min(8)])
     );
     md.push_str(&format!(
-        "{} rows: {} served (a passing test of a chain run and its method-hit trace, `{app}-evidence.json`), {} pending, {} not offered, {} excluded, {} flagged.",
+        "{} rows: {} served (a passing test of a run and its method-hit trace, `{app}-evidence.json`), {} pending, {} not offered, {} excluded, {} flagged.",
         s["rows"], s["served"], s["pending"], s["notOffered"], s["excluded"], s["flagged"]
     ));
     if s["pending"].as_u64().unwrap_or(0) > 0 {
@@ -415,6 +420,18 @@ mod tests {
         let rule = |name: &str| c.problems.iter().find(|p| p.rule == name).map(|p| p.rows.clone()).unwrap_or_default();
         assert_eq!(rule("stale-evidence"), ["rpc:held"]);
         assert!(rule("served-without-evidence").is_empty());
+    }
+
+    #[test]
+    fn a_served_row_with_neither_an_oracle_nor_an_unrecordable_reason_fails_the_check() {
+        // Given three rows served by a behaviour test's evidence: one decided unrecordable with a reason, one with a blank reason, one with no decision
+        let decisions = Decisions::parse(r#"{"milestones": {"rpc:*": "M3"}, "decisions": {"rpc:reasoned": {"unrecordable": "a pty's output"}, "rpc:blank": {"unrecordable": " "}}}"#).unwrap();
+        let evidence = BTreeMap::from([("rpc:reasoned".to_string(), entry("pty::a")), ("rpc:blank".to_string(), entry("pty::b")), ("rpc:bare".to_string(), entry("pty::c"))]);
+        // When the table is built
+        let c = build(&list(vec![phone("rpc", "reasoned"), phone("rpc", "blank"), phone("rpc", "bare")]), &decisions, &BTreeMap::new(), &evidence, &crate::testing::AdmitOnly::default());
+        // Then only the two without a written reason fail the check
+        let rule = |name: &str| c.problems.iter().find(|p| p.rule == name).map(|p| p.rows.clone()).unwrap_or_default();
+        assert_eq!(rule("served-without-oracle"), ["rpc:blank", "rpc:bare"]);
     }
 
     #[test]

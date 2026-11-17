@@ -15,7 +15,7 @@ links:
 ## What is broken
 
 Every answer of the `pullRequests.*`, `sourceControl.*`, `projectClone.*` and `subscribeProjectClones` rows is built from the Effect schemas of the pinned
-T3 contracts (`packages/contracts/src/pullRequest.ts`, `sourceControl.ts`, `projectClone.ts`), and the chain tests check them against the executor's
+T3 contracts (`packages/contracts/src/pullRequest.ts`, `sourceControl.ts`, `projectClone.ts`), and the behaviour tests check them against the executor's
 neutral answer (and so against fixtures written from the CLIs' documentation, see `exec-hosted-fixtures-not-from-real-clis`). No session of a real T3
 server with a GitHub account was recorded for these rows, so three things are unverified against the phone: how `Schema.Option` fields
 (`SourceControlProviderAuth.account`, `.host`, `.detail`, `SourceControlDiscoveryItem.version`) are encoded (the mapper sends `{"_tag":"Some","value":x}` and

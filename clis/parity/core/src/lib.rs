@@ -74,7 +74,7 @@ impl App {
         self.path("-decisions.json")
     }
 
-    /// The recorded sets and the chain tests live beside the app's server.
+    /// The recorded sets and the behaviour tests live beside the app's server.
     pub fn cassette_dir(self) -> String {
         format!("clis/{}-serve/cassettes", self.name())
     }
@@ -83,7 +83,7 @@ impl App {
         format!("clis/{}-serve/tests/integration", self.name())
     }
 
-    /// The agent API methods and executor tools the app's chain tests prove its rows served by.
+    /// The agent API methods and executor tools the app's behaviour tests prove its unrecordable rows served by.
     pub fn evidence_file(self) -> String {
         self.path("-evidence.json")
     }
@@ -100,7 +100,7 @@ pub struct Request {
     pub mode: Mode,
     /// The revision `pending` is compared against; by default HEAD when the table is dirty, else HEAD^.
     pub base: Option<String>,
-    /// Where the method-hit traces of a chain run are (a test output dir, a trace file, a bundle or its URL): a write refreshes the evidence
+    /// Where the method-hit traces of a run are (a test output dir, a trace file, a bundle or its URL): a write refreshes the evidence
     /// from them, a check compares the checked-in evidence with them. Without it the checked-in evidence stands.
     pub traces: Option<String>,
     /// Row-id prefixes that limit a refresh to the rows they start: the evidence of every other row stays as checked in, and only the problems
@@ -212,7 +212,7 @@ pub fn run(req: &Request, tree: &dyn Tree, history: &dyn History, traces: &dyn T
             let rows: Vec<evidence::RowSpec> = list
                 .phone_rows()
                 .filter(|r| !matches!(r.class.as_deref(), Some("flagged" | "offAllowlist")))
-                .map(|r| evidence::RowSpec { id: r.id.as_str(), target: targets.get(&r.id).map(String::as_str), held: decisions.reverify.contains_key(&r.id), mimic: decisions.mimic(&r.id) })
+                .map(|r| evidence::RowSpec { id: r.id.as_str(), target: targets.get(&r.id).map(String::as_str), held: decisions.reverify.contains_key(&r.id), mimic: decisions.mimic(&r.id), unrecordable: decisions.rows.get(&r.id).is_some_and(|d| d.get("unrecordable").and_then(Value::as_str).is_some_and(|w| !w.trim().is_empty())) })
                 .collect();
             let known: std::collections::BTreeSet<&str> = list.phone_rows().map(|r| r.id.as_str()).collect();
             problems.extend(evidence::unknown_problem(evidence::unknown_rows(&calls, &known).into_iter().filter(|r| !decisions.is_trace_noise(r)).collect()));

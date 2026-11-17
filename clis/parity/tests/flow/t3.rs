@@ -188,7 +188,7 @@ fn an_unknown_app_is_refused_with_the_usage() {
     assert!(run.json["next"].as_str().unwrap().contains("--app t3|orca"));
 }
 
-/// The `trace.json` of a chain run (`method-trace/1`): one test per `(name, verdict, calls)`, each call `(rows, ok, agent methods answered, executor tools answered)`.
+/// The `trace.json` of a run (`method-trace/1`): one test per `(name, verdict, calls)`, each call `(rows, ok, agent methods answered, executor tools answered)`.
 type Calls<'a> = Vec<(Vec<&'a str>, bool, Vec<&'a str>, Vec<&'a str>)>;
 
 fn trace(complete: bool, tests: &[(&str, &str, Calls)]) -> String {
@@ -198,6 +198,15 @@ fn trace(complete: bool, tests: &[(&str, &str, Calls)]) -> String {
         .map(|(name, verdict, calls)| json!({"test": name, "verdict": verdict, "ms": 5, "calls": calls.iter().map(|(rows, ok, agent, tools)| json!({"rows": rows, "ok": ok, "agent": hits("method", agent), "executor": hits("tool", tools)})).collect::<Vec<_>>()}))
         .collect();
     serde_json::to_string_pretty(&json!({"schema": "method-trace/1", "app": "t3", "suite": "t3-serve-integration", "sha": "abc", "complete": complete, "tests": tests})).unwrap()
+}
+
+/// Decide rows unrecordable: only a row with an oracle or such a reason may be served by a behaviour test's trace.
+fn unrecordable(f: &Fixture, ids: &[&str]) {
+    let mut decisions = f.json(&f.table("-decisions.json"));
+    for id in ids {
+        decisions["decisions"][*id] = json!({"unrecordable": "a fixture row no recording shows"});
+    }
+    f.write(&f.table("-decisions.json"), &serde_json::to_string_pretty(&decisions).unwrap());
 }
 
 /// A written fixture and a test output dir holding `<suite>/trace.json`.
@@ -217,6 +226,7 @@ fn a_trace_serves_the_rows_its_passing_tests_called_and_the_evidence_file_is_wha
     assert_eq!(f.run(&[]).code, 0);
     let rows: Vec<String> = f.methods().into_iter().filter(|(id, r)| r["phone"] == true && id.starts_with("rpc:")).map(|(id, _)| id).collect();
     let (probe, other) = (rows[0].as_str(), rows[1].as_str());
+    unrecordable(&f, &[probe, other, "command:reached.create"]);
     let text = trace(
         true,
         &[
@@ -271,6 +281,7 @@ fn a_refused_call_a_failed_test_an_incomplete_run_and_a_forwarding_row_without_i
     let incomplete = trace(false, &[("chain::stopped", "pass", calls)]);
     let (f2, out) = (Fixture::at_pin("t3"), tempfile::tempdir().unwrap());
     assert_eq!(f2.run(&[]).code, 0);
+    unrecordable(&f2, &[rows[0].as_str(), rows[1].as_str(), "command:reached.create"]);
     std::fs::write(out.path().join("trace.json"), incomplete).unwrap();
     // When the tables are written from the incomplete run
     let run = f2.run(&["--traces", out.path().to_str().unwrap()]);
@@ -315,6 +326,7 @@ fn traces_are_read_from_a_trace_file_a_bundle_and_a_dir_and_a_source_with_none_i
     // Given a written fixture and a trace
     let text = trace(true, &[("chain::t", "pass", vec![(vec!["rpc:reached.probe"], true, vec![], vec![])])]);
     let (f, out) = with_trace(&text);
+    unrecordable(&f, &["rpc:reached.probe"]);
     let file = out.path().join("t3-serve-integration/trace.json");
     // When the tables are written from the trace file, Then the row is served
     assert_eq!(f.run(&["--traces", file.to_str().unwrap()]).code, 0);
@@ -441,6 +453,7 @@ fn a_sliced_refresh_replaces_the_evidence_of_the_rows_it_names_and_leaves_every_
     assert_eq!(f.run(&[]).code, 0);
     let rows: Vec<String> = f.methods().into_iter().filter(|(id, r)| r["phone"] == true && id.starts_with("rpc:")).map(|(id, _)| id).collect();
     let (a, b) = (rows[0].as_str(), rows[1].as_str());
+    unrecordable(&f, &[a, b]);
     let first = tempfile::tempdir().unwrap();
     std::fs::create_dir_all(first.path().join("t3-serve-integration")).unwrap();
     std::fs::write(first.path().join("t3-serve-integration/trace.json"), trace(true, &[("chain::old", "pass", vec![(vec![a], true, vec![], vec![]), (vec![b], true, vec![], vec![])])])).unwrap();
@@ -459,4 +472,30 @@ fn a_sliced_refresh_replaces_the_evidence_of_the_rows_it_names_and_leaves_every_
     assert_eq!(after["rows"][a]["test"], "chain::new");
     assert_eq!(after["rows"][b], before["rows"][b]);
     assert_eq!(after["rows"].as_object().unwrap().len(), 2);
+}
+
+#[test]
+fn a_row_served_by_a_behaviour_test_needs_an_unrecordable_reason_and_a_check_names_one_that_has_none() {
+    // Given the written tables and a trace whose passing test called the probe row, which has neither an oracle nor an unrecordable reason
+    let f = Fixture::at_pin("t3");
+    assert_eq!(f.run(&[]).code, 0);
+    let probe = f.methods().into_iter().find(|(id, r)| r["phone"] == true && id.starts_with("rpc:")).map(|(id, _)| id).unwrap();
+    let out = tempfile::tempdir().unwrap();
+    std::fs::write(out.path().join("trace.json"), trace(true, &[("behaviour::t", "pass", vec![(vec![probe.as_str()], true, vec![], vec![])])])).unwrap();
+
+    // When the tables are written from it, Then the row is not served
+    let run = f.run(&["--traces", out.path().to_str().unwrap()]);
+    assert_eq!((run.code, run.json["summary"]["served"].clone()), (0, json!(0)), "{}", run.stdout);
+
+    // And an evidence entry planted for the row is named by the check
+    let mut evidence = f.json(&f.table("-evidence.json"));
+    evidence["rows"][probe.as_str()] = json!({"suite": "t3-serve-integration", "test": "behaviour::t", "agent": [], "executor": []});
+    f.write(&f.table("-evidence.json"), &serde_json::to_string_pretty(&evidence).unwrap());
+    let check = f.run(&["--check"]);
+    assert_eq!(check.code, 1);
+    assert!(problems(&check).iter().any(|(r, rows)| r == "served-without-oracle" && rows == &[probe.clone()]), "{}", check.stdout);
+
+    // And with a written reason the row is served and the check has nothing to say about it
+    unrecordable(&f, &[probe.as_str()]);
+    assert!(problems(&f.run(&["--check"])).iter().all(|(r, _)| r != "served-without-oracle"));
 }

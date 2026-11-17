@@ -24,7 +24,7 @@ are kept and told to every follower.
 ## Why blocked
 
 A device or browser action needs a real emulator or Chromium at the executor, which the pipeline runs only in CI (the Android job) and which a
-chain test cannot start: the device-driving verbs are forbidden by hand, and there is no recorded device or browser session to replay. Owner
+behaviour test cannot start: the device-driving verbs are forbidden by hand, and there is no recorded device or browser session to replay. Owner
 decision 1 (not-offered sets) has not confirmed that device and preview are dropped for T3.
 
 ## What unblocks it

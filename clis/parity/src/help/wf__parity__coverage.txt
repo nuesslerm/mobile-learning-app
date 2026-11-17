@@ -23,7 +23,11 @@ A row whose decision says `"oracle": "mimic"` is served only by a `wf mimic repl
 cassette never serves it. Its evidence entry then names `oracle`, `diff` and
 `cassette`, and the table's note shows them.
 
---traces refreshes the evidence from a chain run: the test output dir
+A served row needs `"oracle": "mimic"` or an `unrecordable` reason in its decision
+(why no recording can show it); a row with neither fails the check (rule
+served-without-oracle), and the evidence file keeps only those rows.
+
+--traces refreshes the evidence from a run: the test output dir
 (WF_TEST_OUTPUT_DIR, every <suite>/trace.json under it), one trace.json, or the
 bundle.json `wf test publish` made of the run (a path or its URL; its `traces`
 list is read). A write rewrites <app>-evidence.json and the tables from it; a
@@ -42,7 +46,7 @@ a = recorded, with no gap listed or only drift gaps; b = recorded, with a gap li
 as breaking; c = no interaction in any recorded set; d = no recording can show it
 (the row's decision has an `unrecordable` reason, or its test is on the
 `unrecordableTests` list of <app>-decisions.json, which starts empty). The md also
-lists, per chain test file in clis/<app>-serve/tests/integration, the host state
+lists, per behaviour test file in clis/<app>-serve/tests/integration, the host state
 its source sets up that the mimic driver cannot: a scripted agent turn
 (Script::of, .script(, Turn::), the gh double (start_hosted, HostedClis), a restart
 (restart_serve), a clock and a service started with its own environment
@@ -50,7 +54,7 @@ its source sets up that the mimic driver cannot: a scripted agent turn
 and a differing md fails (rule stale; chain-source-missing when evidence names a
 test file that is gone). It takes only --app, --check and --root. Output: {ok, app,
 mode, by: "oracle", served, counts: {a, b, c, d}, chainCounts (the same for the
-rows a chain test serves), recordedSets, chainTests: [{file, rows, tests,
+rows a behaviour test serves), recordedSets, chainTests: [{file, rows, tests,
 hostState}], problems, wrote}.
 
 Without the reference checked out, the table is rebuilt from the checked-in
@@ -70,9 +74,9 @@ Options:
                               the table does not serve, a trace names a row the
                               phone does not reach, or pending rose
   --by-oracle                 Classify each served row by what a recording shows
-                              and scan the chain tests' host state
+                              and scan the behaviour tests' host state
                               (<app>-oracle.md)
-  --traces <dir|bundle>       The method-hit traces of a chain run: a test output
+  --traces <dir|bundle>       The method-hit traces of a run: a test output
                               dir, a trace.json, or a bundle.json (path or URL)
   --rows <prefix,...>         With --traces: refresh only the rows whose id starts
                               with a prefix; the evidence of the other rows stays
@@ -90,7 +94,7 @@ served, pending, notOffered, excluded, flagged, answeredByMapper, byKind,
 pendingByMilestone}, evidence: {file, rows, refreshedFrom (a URL or a repository path, else null)}, problems: [{rule,
 message, rows}], wrote (write mode)}.
 Rules: stale, unassigned, untargeted, incomplete-decision,
-served-without-evidence, stale-evidence, unknown-trace-row, stale-decision,
+served-without-evidence, served-without-oracle, stale-evidence, unknown-trace-row, stale-decision,
 pending-rose, scratch-trace-path. A write reports the
 problems and exits 0; --check exits 1 on any. A refusal prints {ok: false,
 app, error, next} and exits 1.

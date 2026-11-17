@@ -30,4 +30,4 @@ a test repository and a signed-in CLI exist.
 
 An owner-gated run on the VM (docs/plans/mimic/plan.md, D5), against one test repository on each provider and the CLIs' own sign-in, that
 records each action's output into the set with `provenance.kind: recorded` and the CLI versions stamped (the CLI pin file (D5)). Every row
-of the coverage tables whose chain test depends on these cassettes keeps a reverify note until then.
+of the coverage tables whose behaviour test depends on these cassettes keeps a reverify note until then.
