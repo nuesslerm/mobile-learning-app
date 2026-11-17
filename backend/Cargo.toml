@@ -20,8 +20,6 @@ hyper-util = { version = "0.1", default-features = false, features = ["server", 
 libc = "0.2"
 memory-stats = "1"
 nix = { version = "0.31", default-features = false, features = ["signal"] }
-opentelemetry = "0.30"
-opentelemetry-http = "0.30"
 path-clean = "1"
 percent-encoding = "2"
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
@@ -41,7 +39,6 @@ tower = "0.5"
 tower-http = { version = "0.6", features = ["catch-panic", "cors", "limit", "trace"] }
 tower_governor = "0.7"
 tracing = "0.1"
-tracing-opentelemetry = "0.31"
 url = "2"
 uuid = { version = "1", features = ["v4"] }
 

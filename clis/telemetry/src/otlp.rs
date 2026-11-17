@@ -49,6 +49,11 @@ pub fn logs_body(resource: Value, scope: &str, records: Vec<Value>) -> Value {
     json!({ "resourceLogs": [{ "resource": resource, "scopeLogs": [{ "scope": { "name": scope }, "logRecords": records }] }] })
 }
 
+#[cfg(feature = "service")]
+pub fn spans_body(resource: Value, scope: &str, spans: Vec<Value>) -> Value {
+    json!({ "resourceSpans": [{ "resource": resource, "scopeSpans": [{ "scope": { "name": scope }, "spans": spans }] }] })
+}
+
 pub fn log_record(at: SystemTime, level: &str, body: &str, attributes: Value) -> Value {
     let (number, text) = severity(level);
     let mut record = Map::new();
@@ -61,6 +66,7 @@ pub fn log_record(at: SystemTime, level: &str, body: &str, attributes: Value) ->
     Value::Object(record)
 }
 
+#[cfg(feature = "metrics")]
 /// Gauges grouped by metric name, one data point per `(attributes, value)`.
 pub fn gauges_body(resource: Value, scope: &str, at: SystemTime, gauges: Vec<(String, Value, f64)>) -> Value {
     let mut by_name: Vec<(String, Vec<Value>)> = Vec::new();
