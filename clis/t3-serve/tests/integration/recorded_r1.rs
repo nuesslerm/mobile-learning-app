@@ -6,7 +6,7 @@ use crate::rig::*;
 use crate::support::mimic_t3;
 use crate::support::*;
 
-const CASSETTES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/cassettes");
+pub const CASSETTES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/cassettes");
 /// The crawl set (every valid, boundary and invalid case of every endpoint): its reads share one chain and its state-changing cases another, in
 /// cassette order, as the VM recording shared one server between them. The recorded slices run each interaction on a chain of its own.
 const CRAWL: &str = "t3-v0.1.9-crawl";
@@ -54,17 +54,19 @@ const SUITE_NAME: &str = "wf-mimic-t3-recorded";
 /// One call of `wf-mimic mimic replay` of `ids` against `chain`: its address, its repository as the server sees it and the pairing command with the
 /// scopes the recorded session was granted. The call's trace (each call's window) is attributed from what the chain's tap saw, so the agent
 /// methods that answered each interaction are in the trace `wf parity coverage --traces` reads.
-fn mimic(dir: &str, ids: &[String], chain: &Chain, scopes: &[String], out: &std::path::Path) -> (Value, Value) {
+pub fn mimic(dir: &str, ids: &[String], chain: &Chain, scopes: &[String], out: &std::path::Path) -> (Value, Value) {
     let workspace = std::fs::canonicalize(chain.repo.path()).unwrap().display().to_string();
     let only = ids.join(",");
     let output = std::process::Command::new(wf_mimic())
-        .args(["mimic", "replay", dir, "--candidate", "t3-serve", "--only", &only, "--gaps", "check", "--suite", SUITE_NAME, "--addr", &chain.addr.to_string(), "--workspace", &workspace, "--mint", &chain.pair_command(scopes)])
+        .args(["mimic", "replay", dir, "--candidate", "t3-serve", "--only", &only, "--gaps", "check", "--suite", SUITE_NAME, "--addr", &chain.addr.to_string(), "--workspace", &workspace, "--mint", &chain.pair_command(scopes), "--cli-dir", &chain.cli.dir().display().to_string()])
         .env("WF_TEST_OUTPUT_DIR", out)
         .stdin(std::process::Stdio::null())
         .output()
         .unwrap();
     let run: Value = serde_json::from_slice(&output.stdout).unwrap_or_else(|e| panic!("wf-mimic printed no JSON ({e}): {}\n{}\n{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr), chain.evidence()));
-    let mut trace = read(&out.join(SUITE_NAME).join("trace.json").display().to_string());
+    let trace_file = out.join(SUITE_NAME).join("trace.json");
+    assert!(trace_file.is_file(), "wf-mimic wrote no trace: {run}\n{}", chain.evidence());
+    let mut trace = read(&trace_file.display().to_string());
     let stamps = chain.tap.stamped();
     exec_testkit::attribute(&mut trace, &stamps);
     // Then each hit is in the window of the call that made it: the hits of the session prelude (before the first window) and of a push between two windows are nobody's
