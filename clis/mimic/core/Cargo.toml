@@ -22,7 +22,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 sha2 = "0.10"
 base64 = "0.22"
-regex = "1"
+regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 
 # The flow test (tests/flow.rs) needs the doubles, and the pre-push gate runs it without features; it also reads the pinned T3
 # goldens (tooling/t3-conformance/goldens) as the read-only oracle of the normalisation rules.
