@@ -32,5 +32,3 @@ mod terminal_m8;
 mod thread_surface;
 #[path = "integration/vcs_m9.rs"]
 mod vcs_m9;
-#[path = "integration/workspace_m6.rs"]
-mod workspace_m6;
