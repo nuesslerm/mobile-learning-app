@@ -26,7 +26,8 @@ impl Service {
     pub fn revoke_pairing_link(&self, header: Option<&str>, body: &Value) -> Result<Value, Refusal> {
         self.access_writer(header)?;
         let id = body.get("id").and_then(Value::as_str).ok_or_else(|| Refusal::bare(400))?;
-        let revoked = self.0.auth.revoke_grant(id).map_err(|e| self.store_failed("pairing.revoke.failed", e.0))?;
+        // The pin matches the whole id: a shorter string is no link's id, though it prefixes some hash
+        let revoked = id.chars().count() == crate::domain::auth::ID_LENGTH && self.0.auth.revoke_grant(id).map_err(|e| self.store_failed("pairing.revoke.failed", e.0))?;
         self.log("pairing.link.revoked", &[("revoked", revoked.to_string())]);
         Ok(json!({"revoked": revoked}))
     }

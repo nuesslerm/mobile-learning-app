@@ -101,6 +101,20 @@ fn a_pairing_link_not_yet_used_is_revoked_once_and_its_code_pairs_no_device() {
 }
 
 #[test]
+fn a_string_shorter_than_a_link_id_revokes_no_link_though_it_prefixes_one() {
+    // Given an admin that minted a pairing credential
+    let h = Harness::start();
+    let admin = bearer_with(&h, &["orchestration:read", "access:write"]);
+    let minted = post(&h, "/api/auth/pairing-token", &admin, r#"{"scopes": ["orchestration:read"]}"#);
+    let (id, code) = (minted.body["id"].as_str().unwrap().to_string(), minted.body["credential"].as_str().unwrap().to_string());
+    // When the admin revokes the first character of its id
+    let short = post(&h, "/api/auth/pairing-links/revoke", &admin, &json!({"id": &id[..1]}).to_string());
+    // Then nothing is revoked and the code still pairs a device
+    assert_eq!(short.body, json!({"revoked": false}));
+    assert_eq!(exchange(h.addr, &code).status, 200);
+}
+
+#[test]
 fn revoking_the_other_clients_keeps_the_caller_and_counts_the_others() {
     // Given an admin and two other devices
     let h = Harness::start();

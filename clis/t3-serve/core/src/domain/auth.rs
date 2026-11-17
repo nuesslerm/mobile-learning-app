@@ -31,8 +31,10 @@ pub fn opaque_secret(random: &[u8]) -> String {
 
 /// The id a token is known by in logs and records: a prefix of its hash, which reveals nothing of the secret.
 pub fn token_id(hash: &str) -> String {
-    hash.chars().take(12).collect()
+    hash.chars().take(ID_LENGTH).collect()
 }
+
+pub const ID_LENGTH: usize = 12;
 
 pub fn validate_scopes(requested: &[String]) -> Result<Vec<String>, String> {
     if requested.is_empty() {
