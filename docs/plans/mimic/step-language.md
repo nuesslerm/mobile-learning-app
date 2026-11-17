@@ -60,6 +60,14 @@ The phone session always closes when a case ends (there is no `close` op); the e
 
 Legacy desugar: `connect{timeout_ms: connect_timeout_ms}` + `request{rid:String(i)}` per requests[i]; so the 286 committed orca rows reproduce byte for byte. Masks (`<uuid:1>`, `<volatile:updatedAt>`, `<userdata>`, `<scratch>`) stay in the rule set; the interpreter only replaces the per-run workspace/scratch/userdata path by `<workspace>`/`<scratch>`/`<userdata>` (existing orca/client.ts:60-72 behaviour).
 
+## 3a. `cli.script` (the agent CLI of the host)
+
+| op | fields | semantics | emits |
+|---|---|---|---|
+| `cli.script` | `cli` (`claude`, `codex` or `opencode`), `turns` (a list of the scripted CLI's `Turn` JSON) | `Target::script_cli`: what the agent CLI the server starts does from its next start on, one turn per start; the log of earlier starts is forgotten. A target that cannot script it (the default) ends the script with a `transport_error` like `git`. An unknown `cli` or a missing `turns` list is the request error `script: unknown cli <name>`. | none |
+
+The turn vocabulary that behaves the same on the pinned T3 and on rca is protocol-free: `{}` is a silent turn that exits 0, `{"hang": true}` never answers (the run stays live), `{"exit_code": 1, "stderr": "..."}` fails. A turn that prints, writes a file or calls a tool (`steps`) needs the CLI protocol the real T3 speaks to its CLI (codex app-server JSON-RPC, the Claude SDK control protocol), which the scripted CLI does not answer, so such a turn exists only on a candidate: the reference host refuses the steps `mcp_call` and `credential`.
+
 ## 4. Variables and templating
 
 - Static vars: `workspace` (server workspace dir), `bad-credential` = `NOTACREDENTIAL`.

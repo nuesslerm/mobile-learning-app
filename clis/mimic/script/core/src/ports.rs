@@ -105,6 +105,11 @@ pub trait Target {
     fn make_git(&mut self, _name: &str) -> Result<String, String> {
         Err("this target cannot make a repository".into())
     }
+    /// What the agent CLI `cli` (`claude`, `codex`, `opencode`) does from its next start on: `turns` is the list of its runs, one per start, in the
+    /// scripted CLI's own JSON. The log of earlier starts is forgotten.
+    fn script_cli(&mut self, _cli: &str, _turns: &serde_json::Value) -> Result<(), String> {
+        Err("this target cannot script an agent CLI".into())
+    }
     /// Run-specific paths the target knows (scratch folder, user data dir) and the placeholder each becomes in every step.
     fn masks(&self) -> Vec<(String, String)> {
         Vec::new()

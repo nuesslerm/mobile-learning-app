@@ -40,11 +40,13 @@ pub struct FixedTarget {
     pub mints: Rc<Cell<u32>>,
     /// A test bumps it to model the server restarting.
     pub generation: Rc<Cell<u64>>,
+    /// The `(cli, turns)` of every `cli.script` the target was handed, in order.
+    pub scripted: Rc<RefCell<Vec<(String, Value)>>>,
 }
 
 impl FixedTarget {
     pub fn new(workspace: &str, credential: &str) -> FixedTarget {
-        FixedTarget { workspace: workspace.into(), credential: credential.into(), mints: Rc::default(), generation: Rc::default() }
+        FixedTarget { workspace: workspace.into(), credential: credential.into(), mints: Rc::default(), generation: Rc::default(), scripted: Rc::default() }
     }
 }
 
@@ -64,6 +66,11 @@ impl Target for FixedTarget {
 
     fn make_git(&mut self, name: &str) -> Result<String, String> {
         Ok(format!("{SCRATCH}/{name}"))
+    }
+
+    fn script_cli(&mut self, cli: &str, turns: &Value) -> Result<(), String> {
+        self.scripted.borrow_mut().push((cli.into(), turns.clone()));
+        Ok(())
     }
 
     fn masks(&self) -> Vec<(String, String)> {

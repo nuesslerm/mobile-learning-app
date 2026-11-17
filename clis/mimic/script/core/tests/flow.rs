@@ -97,6 +97,28 @@ fn given_scripts_when_run_then_a_credential_is_minted_once_and_only_when_named()
 }
 
 #[test]
+fn given_a_cli_script_when_run_then_the_target_is_handed_the_turns_and_no_step_is_recorded() {
+    let clock = FakeClock::default();
+    let transport = ScriptedTransport::new(&clock);
+    transport.reply(200, &[], "{}");
+    let target = FixedTarget::new("/tmp/ws", "cred-1");
+    let scripted = target.scripted.clone();
+
+    let observed = run_with(json!({"script": [{"cli.script": {"cli": "codex", "turns": [{"hang": true}]}}, {"http": {"path": "/me"}}]}), Box::new(transport.clone()), &clock, Policy::default(), target);
+
+    assert_eq!(*scripted.borrow(), [("codex".to_string(), json!([{"hang": true}]))]);
+    assert_eq!(channels(&observed).len(), 2, "only the http call and its answer are steps: {:?}", observed.steps);
+}
+
+#[test]
+fn given_a_cli_script_naming_an_unknown_cli_or_no_turns_when_parsed_then_it_is_a_request_error() {
+    let unknown = Case::parse(&json!({"script": [{"cli.script": {"cli": "gemini", "turns": []}}]})).unwrap_err();
+    let no_turns = Case::parse(&json!({"script": [{"cli.script": {"cli": "codex"}}]})).unwrap_err();
+
+    assert_eq!((unknown.as_str(), no_turns.contains("turns")), ("script: unknown cli gemini", true));
+}
+
+#[test]
 fn given_an_exit_that_comes_after_three_seconds_when_awaited_then_the_quiet_window_runs_after_the_exit_not_before() {
     let clock = FakeClock::default();
     let transport = ScriptedTransport::new(&clock);

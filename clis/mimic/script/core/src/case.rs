@@ -2,7 +2,10 @@
 //! beside an optional `capture` and, on a `ws-send`, an optional `await: "exit"`.
 use serde_json::Value;
 
-pub const OPS: [&str; 10] = ["http", "ws-open", "ws-send", "ws-close", "git", "connect", "request", "subscribe", "listen", "unsubscribe"];
+pub const OPS: [&str; 11] = ["http", "ws-open", "ws-send", "ws-close", "git", "connect", "request", "subscribe", "listen", "unsubscribe", "cli.script"];
+
+/// The agent CLIs a `cli.script` can script.
+pub const CLIS: [&str; 3] = ["claude", "codex", "opencode"];
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Entry {
@@ -36,6 +39,15 @@ impl Case {
             };
             if !OPS.contains(&op.as_str()) {
                 return Err(format!("script: unknown script step {op}"));
+            }
+            if op.as_str() == "cli.script" {
+                let cli = object[*op].get("cli").and_then(Value::as_str).unwrap_or_default();
+                if !CLIS.contains(&cli) {
+                    return Err(format!("script: unknown cli {cli}"));
+                }
+                if !object[*op].get("turns").is_some_and(Value::is_array) {
+                    return Err("script: `cli.script` needs a `turns` list".into());
+                }
             }
             let await_exit = match object.get("await") {
                 None => false,
@@ -101,6 +113,8 @@ mod tests {
             (json!({"script": [{"fetch": {}}]}), "unknown script step fetch"),
             (json!({"script": [{"ws-send": {}, "await": "quiet"}]}), "unknown await quiet"),
             (json!({"nothing": 1}), "no `script` list"),
+            (json!({"script": [{"cli.script": {"cli": "gemini", "turns": []}}]}), "unknown cli gemini"),
+            (json!({"script": [{"cli.script": {"cli": "codex"}}]}), "needs a `turns` list"),
         ];
         for (input, said) in cases {
             assert!(Case::parse(&input).unwrap_err().contains(said), "{input}");

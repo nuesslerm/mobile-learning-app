@@ -220,6 +220,7 @@ impl Interpreter {
             "ws-open" => self.ws_open(run, &arg),
             "ws-send" => self.ws_send(run, entry, &arg),
             "git" => self.git(run, &arg),
+            "cli.script" => self.cli_script(run, &arg),
             "connect" => self.connect(run, &arg),
             "subscribe" => self.subscribe(run, &arg),
             "listen" => self.listen(run, &arg),
@@ -235,6 +236,17 @@ impl Interpreter {
                 run.vars.insert(format!("git.{name}"), Value::String(path));
                 true
             }
+            Err(e) => {
+                Self::transport_failed(run, &e);
+                false
+            }
+        }
+    }
+
+    fn cli_script(&mut self, run: &mut Run, arg: &Value) -> bool {
+        let (cli, turns) = (arg.get("cli").map(js_string).unwrap_or_default(), arg.get("turns").cloned().unwrap_or(Value::Null));
+        match self.target.script_cli(&cli, &turns) {
+            Ok(()) => true,
             Err(e) => {
                 Self::transport_failed(run, &e);
                 false
