@@ -13,7 +13,7 @@ import { orcaLib } from './orca-lib/index.ts'
 import { cases, spike } from './orca/schema.ts'
 import { refreshCorpus, writeCorpus } from './corpus/index.ts'
 import { crawl } from './crawl/index.ts'
-import { writeAgentMethods, writeAgentTurns, writeScenarios } from './scenarios/index.ts'
+import { writeAgentMethods, writeAgentQueries, writeAgentTurns, writeScenarios } from './scenarios/index.ts'
 import { voiceEditDsl } from './voice-edit-dsl/index.ts'
 
 const TARGETS = { 'orca-lib': orcaLib, 'voice-edit-dsl': voiceEditDsl }
@@ -43,6 +43,10 @@ if (verb === 'scenarios' && name === 't3-agent') {
 }
 if (verb === 'scenarios' && name === 't3-methods') {
   process.stdout.write(`${JSON.stringify(writeAgentMethods(namespace))}\n`)
+  process.exit(0)
+}
+if (verb === 'scenarios' && name === 't3-queries') {
+  process.stdout.write(`${JSON.stringify(writeAgentQueries(namespace))}\n`)
   process.exit(0)
 }
 if (verb === 'scenarios' && (name === 'orca' || name === 't3')) {

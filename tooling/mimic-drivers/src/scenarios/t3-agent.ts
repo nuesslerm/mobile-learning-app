@@ -5,6 +5,7 @@
 // CLI cannot speak the protocol the real T3 holds with its CLI, and a real agent needs a credential the reference host must not hold (R3 State line).
 // A second set, `t3-v0.1.9-agent-methods`, holds the cases whose row has to be the label of the case that runs its agent method: a recorded set's corpus
 // is frozen with its cassette, so these are not edits of the first. checkpoint.rollback is not in it: it needs a finished turn of a real agent.
+// A third set, `t3-v0.1.9-agent-queries`, holds one case per query row the first two sets never ask of a thread the server knows.
 import type { Capture } from '../capture.ts'
 import type { Case } from '../corpus/types.ts'
 import type { Json } from '../protocol.ts'
@@ -59,6 +60,14 @@ const METHODS: Agent[] = [
   { id: 'subscribeVcsBranch', rows: ['vcs.init', 'subscribeVcsBranch'], note: 'make the workspace a repository, then subscribe to its branch', hung: false, queue: 0, thread: false, steps: [{ m: 'vcs.init', set: REPO, wait: true }, { m: 'subscribeVcsBranch', set: REPO }] }
 ]
 
+/** The label of a case is its last row: each reads a thread that thread.create made and answered, so the call window holds the query answered OK (a thread with no turn has no native children, a title, a link and no suggestion). */
+const QUERIES: Agent[] = [
+  { id: 'getThreadTitles', rows: ['orchestration.getThreadTitles'], note: 'read the title of a thread that exists', hung: false, queue: 0, steps: [{ m: 'orchestration.getThreadTitles', set: { threadIds: [AGENT_THREAD] } }] },
+  { id: 'getThreadLinkMetadata', rows: ['orchestration.getThreadLinkMetadata'], note: 'read the link metadata (title and project) of a thread that exists', hung: false, queue: 0, steps: [{ m: 'orchestration.getThreadLinkMetadata', set: { threadIds: [AGENT_THREAD] } }] },
+  { id: 'getNativeChildWork', rows: ['orchestration.getNativeChildWork'], note: 'read the native child work of a thread that is no provider-native subagent', hung: false, queue: 0, steps: [{ m: 'orchestration.getNativeChildWork', set: THIS }] },
+  { id: 'subscribePromptSuggestion', rows: ['orchestration.subscribePromptSuggestion'], note: 'subscribe to the predicted next prompt of a thread that has none', hung: false, queue: 0, steps: [{ m: 'orchestration.subscribePromptSuggestion', set: THIS }] }
+]
+
 function frameOf(api: Api, name: string): Entry {
   const matches = api.endpoints.filter((e) => e.name === name)
   if (matches.length !== 1) return fail(`${name} is ${matches.length} endpoints of the crawl, expected one`)
@@ -108,6 +117,7 @@ function derive(api: Api, agents: Agent[], prefix: string): ScenarioSet {
 
 export const t3AgentScenarios = (api: Api): ScenarioSet => derive(api, TURNS, 't3-agent')
 export const t3AgentMethodScenarios = (api: Api): ScenarioSet => derive(api, METHODS, 't3-method')
+export const t3AgentQueryScenarios = (api: Api): ScenarioSet => derive(api, QUERIES, 't3-query')
 
 function frameOfRow(api: Api, name: string): string {
   const row = api.endpoints.find((e) => e.name === name)

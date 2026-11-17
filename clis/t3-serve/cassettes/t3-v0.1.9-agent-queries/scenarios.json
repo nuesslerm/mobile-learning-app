@@ -1,0 +1,75 @@
+{
+ "schema": "mimic-scenarios/1",
+ "app": "t3",
+ "source": "clis/t3-serve/cassettes/t3-api",
+ "counts": {
+  "endpoints": 4,
+  "scenarios": 4,
+  "populated": 4,
+  "emptyOnly": 0
+ },
+ "scenarios": [
+  {
+   "id": "t3-query-getThreadTitles",
+   "kind": "story",
+   "rows": [
+    "rpc:orchestration.getThreadTitles"
+   ],
+   "note": "read the title of a thread that exists"
+  },
+  {
+   "id": "t3-query-getThreadLinkMetadata",
+   "kind": "story",
+   "rows": [
+    "rpc:orchestration.getThreadLinkMetadata"
+   ],
+   "note": "read the link metadata (title and project) of a thread that exists"
+  },
+  {
+   "id": "t3-query-getNativeChildWork",
+   "kind": "story",
+   "rows": [
+    "rpc:orchestration.getNativeChildWork"
+   ],
+   "note": "read the native child work of a thread that is no provider-native subagent"
+  },
+  {
+   "id": "t3-query-subscribePromptSuggestion",
+   "kind": "story",
+   "rows": [
+    "rpc:orchestration.subscribePromptSuggestion"
+   ],
+   "note": "subscribe to the predicted next prompt of a thread that has none"
+  }
+ ],
+ "coverage": [
+  {
+   "row": "rpc:orchestration.getThreadTitles",
+   "state": "populated",
+   "via": [
+    "t3-query-getThreadTitles"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.getThreadLinkMetadata",
+   "state": "populated",
+   "via": [
+    "t3-query-getThreadLinkMetadata"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.getNativeChildWork",
+   "state": "populated",
+   "via": [
+    "t3-query-getNativeChildWork"
+   ]
+  },
+  {
+   "row": "rpc:orchestration.subscribePromptSuggestion",
+   "state": "populated",
+   "via": [
+    "t3-query-subscribePromptSuggestion"
+   ]
+  }
+ ]
+}

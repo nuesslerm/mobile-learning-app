@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { repoRoot } from '../lock.ts'
 import { API_DIR, SET_DIR, loadApi } from './api.ts'
 import { orcaScenarios } from './orca.ts'
-import { t3AgentMethodScenarios, t3AgentScenarios } from './t3-agent.ts'
+import { t3AgentMethodScenarios, t3AgentQueryScenarios, t3AgentScenarios } from './t3-agent.ts'
 import { t3Scenarios } from './t3.ts'
 import type { ScenarioSet, Summary } from './types.ts'
 
@@ -62,6 +62,22 @@ export function agentMethods(): ScenarioSet {
 export function writeAgentMethods(dir: string = join(repoRoot, AGENT_METHODS_DIR)): Summary {
   const set = agentMethods()
   const out = render('t3', set, 't3-agent-methods')
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, 'corpus.json'), out.corpus)
+  writeFileSync(join(dir, 'scenarios.json'), out.scenarios)
+  return { schema: 'mimic-scenarios-summary/1', app: 't3', endpoints: set.coverage.length, scenarios: set.scenarios.length, populated: set.coverage.length, emptyOnly: 0, reasons: {}, wrote: [join(dir, 'corpus.json'), join(dir, 'scenarios.json')] }
+}
+
+/** The T3 query rows asked of a thread the server knows (getThreadTitles, getThreadLinkMetadata, getNativeChildWork, subscribePromptSuggestion): its own set, one hosted `[record t3-v0.1.9-agent-queries]`. */
+export const AGENT_QUERIES_DIR = 'clis/t3-serve/cassettes/t3-v0.1.9-agent-queries'
+
+export function agentQueries(): ScenarioSet {
+  return t3AgentQueryScenarios(loadApi('t3'))
+}
+
+export function writeAgentQueries(dir: string = join(repoRoot, AGENT_QUERIES_DIR)): Summary {
+  const set = agentQueries()
+  const out = render('t3', set, 't3-agent-queries')
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, 'corpus.json'), out.corpus)
   writeFileSync(join(dir, 'scenarios.json'), out.scenarios)
