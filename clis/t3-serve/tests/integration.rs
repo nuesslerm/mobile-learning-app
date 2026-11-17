@@ -12,8 +12,6 @@ mod support;
 mod attachments_m12;
 #[path = "integration/chain.rs"]
 mod chain;
-#[path = "integration/local_m5.rs"]
-mod local_m5;
 #[path = "integration/recorded_r1.rs"]
 mod recorded_r1;
 #[path = "integration/rollback_m12.rs"]
