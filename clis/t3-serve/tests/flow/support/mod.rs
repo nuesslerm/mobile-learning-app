@@ -157,6 +157,11 @@ pub fn forget_seeding(h: &Harness) {
     h.agent.calls.lock().unwrap().clear();
 }
 
+/// The error the thread's last run ended with, as the shell row keeps it.
+pub fn last_error(h: &Harness, thread: &str) -> Option<String> {
+    h.service.engine().read(|s| s.threads[thread]["lastError"].as_str().map(str::to_string))
+}
+
 /// A project `p1` with a thread `t1`: sequences 1 and 2.
 pub fn seed(rpc: &mut Rpc) {
     assert_eq!(success(&rpc.call("projects.mutate", project_create("c-p1", "p1")))["id"], "p1");

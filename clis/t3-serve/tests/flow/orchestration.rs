@@ -134,13 +134,13 @@ fn a_second_message_is_refused_while_a_run_is_active_and_an_interrupt_ends_the_r
     drain(&mut rpc);
     // When another message arrives, then the run is interrupted
     let second = dispatch(&mut rpc, message("c-2", "again"));
-    success(&dispatch(&mut rpc, json!({"type": "run.interrupt", "commandId": "c-3", "threadId": "t1", "runId": "r1"})));
+    success(&dispatch(&mut rpc, json!({"type": "run.interrupt", "commandId": "c-3", "threadId": "t1", "runId": "run:thread:t1:ordinal:1"})));
     drain(&mut rpc);
     // Then the second is a dispatch error naming the active run, the agent API was told to stop the turn, and the run is interrupted
     assert!(failure(&second)["message"].as_str().unwrap().contains("active run"));
     assert_eq!(h.agent.interrupted.lock().unwrap().as_slice(), ["t1"]);
     let p = projection(&mut rpc);
-    assert_eq!((p["runs"][0]["status"].as_str(), p["runs"][0]["stopRequested"].clone()), (Some("interrupted"), json!(true)));
+    assert_eq!((p["runs"][0]["status"].as_str(), h.service.engine().read(|s| s.threads["t1"]["latestRunStopRequested"].clone())), (Some("interrupted"), json!(true)));
     // And an interrupt with nothing running is refused, while a stop of an idle thread is a no-op the pin accepts
     assert!(failure(&dispatch(&mut rpc, json!({"type": "run.interrupt", "commandId": "c-4", "threadId": "t1", "runId": "r1"})))["message"].as_str().unwrap().contains("no active run"));
     success(&dispatch(&mut rpc, json!({"type": "thread.stop", "commandId": "c-5", "threadId": "t1"})));
@@ -157,20 +157,90 @@ fn a_provider_that_fails_leaves_a_failed_run_with_the_error_in_the_thread() {
     drain(&mut rpc);
     // Then the run is failed with the message, an error item exists, and the thread is idle again
     let p = projection(&mut rpc);
-    assert_eq!((p["runs"][0]["status"].as_str(), p["runs"][0]["error"].as_str()), (Some("failed"), Some("provider opencode is not reachable")));
+    assert_eq!((p["runs"][0]["status"].as_str(), last_error(&h, "t1").as_deref()), (Some("failed"), Some("provider opencode is not reachable")));
     assert!(p["turnItems"].as_array().unwrap().iter().any(|i| i["type"] == "error" && i["message"] == "provider opencode is not reachable"));
     success(&dispatch(&mut rpc, message("c-g", "retry")));
     drain(&mut rpc);
 }
 
+fn queued(command_id: &str, text: &str) -> Value {
+    json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": command_id, "threadId": "t1", "messageId": format!("m-{command_id}"), "text": text, "dispatchMode": {"type": "queue_after_active"}})
+}
+
+fn run_rows(rpc: &mut Rpc) -> Vec<(String, String, Value)> {
+    projection(rpc)["runs"].as_array().unwrap().iter().map(|r| (r["id"].as_str().unwrap().to_string(), r["status"].as_str().unwrap().to_string(), r["queuePosition"].clone())).collect()
+}
+
+#[test]
+fn a_message_sent_behind_a_running_turn_is_a_queued_run_in_the_agent_apis_queue_and_one_the_agent_api_refuses_is_cancelled() {
+    // Given a turn the agent API keeps running
+    let (h, mut rpc, _thread) = started();
+    h.agent.hold.store(true, std::sync::atomic::Ordering::SeqCst);
+    success(&dispatch(&mut rpc, message("c-1", "long")));
+    drain(&mut rpc);
+    // When one message is queued behind it, then another while the agent API refuses to queue
+    success(&dispatch(&mut rpc, queued("c-2", "later")));
+    h.agent.replies.lock().unwrap().insert("queue.add", Err(t3_core::ports::AgentError::Failed("the queue is full".into())));
+    success(&dispatch(&mut rpc, queued("c-3", "never")));
+    drain(&mut rpc);
+    // Then the agent API was asked to queue both prompts under their run ids, and the first waits first in line while the second is cancelled
+    let adds: Vec<(String, String)> = h.agent.ops.lock().unwrap().iter().filter_map(|o| if let t3_core::ports::Op::QueueAdd { item, prompt, .. } = o { Some((item.clone(), prompt.clone())) } else { None }).collect();
+    assert_eq!(adds, [("run:thread:t1:ordinal:2".to_string(), "later".to_string()), ("run:thread:t1:ordinal:3".to_string(), "never".to_string())]);
+    assert_eq!(run_rows(&mut rpc), [("run:thread:t1:ordinal:1".to_string(), "running".to_string(), Value::Null), ("run:thread:t1:ordinal:2".to_string(), "queued".to_string(), json!(1)), ("run:thread:t1:ordinal:3".to_string(), "cancelled".to_string(), Value::Null)]);
+    // And the cancelled run's message is taken back while the queued one stays, and neither has a row of the timeline yet
+    let p = projection(&mut rpc);
+    let texts: Vec<&str> = p["messages"].as_array().unwrap().iter().map(|m| m["text"].as_str().unwrap()).collect();
+    assert_eq!((texts, p["turnItems"].as_array().unwrap().len()), (vec!["long", "later"], 1));
+}
+
+#[test]
+fn a_thread_stop_forces_the_agent_api_to_stop_and_hold_its_queue_and_a_turn_the_provider_has_not_begun_ends_at_once_with_the_interrupt_rows() {
+    // Given a turn the agent API keeps running and a message queued behind it
+    let (h, mut rpc, _thread) = started();
+    h.agent.hold.store(true, std::sync::atomic::Ordering::SeqCst);
+    success(&dispatch(&mut rpc, message("c-1", "long")));
+    success(&dispatch(&mut rpc, queued("c-2", "later")));
+    drain(&mut rpc);
+    // When the thread is stopped with a reason
+    success(&dispatch(&mut rpc, json!({"type": "thread.stop", "commandId": "c-3", "threadId": "t1", "reason": "user"})));
+    drain(&mut rpc);
+    // Then the agent API was told to force the stop, the run is interrupted with the two rows that say why, and the queued run still waits
+    assert!(h.agent.ops.lock().unwrap().iter().any(|o| matches!(o, t3_core::ports::Op::ThreadForceStop { thread, .. } if thread == "t1")));
+    let p = projection(&mut rpc);
+    let rows: Vec<(&str, &str)> = p["turnItems"].as_array().unwrap().iter().map(|i| (i["type"].as_str().unwrap(), i["message"].as_str().unwrap_or(""))).collect();
+    assert_eq!(rows, [("user_message", ""), ("run_interrupt_request", "user"), ("run_interrupt_result", "Run interrupted before provider start")]);
+    assert_eq!(run_rows(&mut rpc).into_iter().map(|(_, status, position)| (status, position)).collect::<Vec<_>>(), [("interrupted".to_string(), Value::Null), ("queued".to_string(), json!(1))]);
+}
+
+#[test]
+fn a_queued_message_is_steered_into_a_turn_only_once_the_provider_has_begun_it() {
+    // Given a turn the agent API keeps running, with a message queued behind it
+    let (h, mut rpc, _thread) = started();
+    h.agent.hold.store(true, std::sync::atomic::Ordering::SeqCst);
+    success(&dispatch(&mut rpc, message("c-1", "long")));
+    success(&dispatch(&mut rpc, queued("c-2", "later")));
+    drain(&mut rpc);
+    let steer = |id: &str| json!({"type": "queued-message.promote-to-steer", "commandId": id, "threadId": "t1", "queuedRunId": "run:thread:t1:ordinal:2", "targetRunId": "run:thread:t1:ordinal:1"});
+    // When the queued message is promoted before the provider shows anything
+    let early = dispatch(&mut rpc, steer("c-3"));
+    // Then T3 refuses in its words and the agent API is not asked
+    assert_eq!(failure(&early)["message"], "No running provider turn found for active run run:thread:t1:ordinal:1.");
+    assert!(!h.agent.ops.lock().unwrap().iter().any(|o| matches!(o, t3_core::ports::Op::TurnSteer { .. })));
+    // And once the turn has shown text, the promotion is asked of the agent API
+    h.agent.append("t1", Some("u1"), AgentEventKind::Text("working".into()));
+    std::thread::sleep(std::time::Duration::from_millis(300));
+    success(&dispatch(&mut rpc, steer("c-4")));
+    assert!(h.agent.ops.lock().unwrap().iter().any(|o| matches!(o, t3_core::ports::Op::TurnSteer { .. })));
+}
+
 #[test]
 fn undecodable_commands_are_defects_and_commands_the_server_does_not_build_are_typed_refusals() {
     let (_h, mut rpc, _thread) = started();
-    // When a command misses its id, names an unknown type, and one is a real type this server does not build; and a queue mode
+    // When a command misses its id, names an unknown type, and one is a real type this server does not build; and a dispatch mode it does not offer
     let missing = dispatch(&mut rpc, json!({"type": "message.dispatch"}));
     let unknown = dispatch(&mut rpc, json!({"type": "conformance.noSuch", "commandId": "x"}));
     let settle = dispatch(&mut rpc, json!({"type": "thread.pull-request.sync", "commandId": "c-s", "threadId": "t1"}));
-    let queued = dispatch(&mut rpc, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-q", "threadId": "t1", "dispatchMode": "queue_after_active", "messageId": "m-q", "text": "x"}));
+    let queued = dispatch(&mut rpc, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-q", "threadId": "t1", "dispatchMode": "run_later", "messageId": "m-q", "text": "x"}));
     let empty = dispatch(&mut rpc, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-e", "threadId": "t1", "messageId": "m-e", "text": ""}));
     // Then the first two are decoder defects, the others dispatch errors that say what is unsupported or missing
     assert_eq!(missing["cause"][0]["defect"], "Missing key\n  at [\"createdBy\"]");
@@ -179,7 +249,7 @@ fn undecodable_commands_are_defects_and_commands_the_server_does_not_build_are_t
     let wrong = dispatch(&mut rpc, json!("wrong"));
     assert_eq!(wrong["cause"][0]["defect"], unknown["cause"][0]["defect"]);
     assert!(failure(&settle)["message"].as_str().unwrap().contains("thread.pull-request.sync is not supported"));
-    assert!(failure(&queued)["message"].as_str().unwrap().contains("queue_after_active"));
+    assert!(failure(&queued)["message"].as_str().unwrap().contains("run_later"));
     assert!(failure(&empty)["message"].as_str().unwrap().contains("text"));
 }
 

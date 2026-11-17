@@ -4,6 +4,7 @@ use serde_json::{json, Map, Value};
 use std::collections::BTreeMap;
 use t3_contracts::history::projected_rows;
 use t3_contracts::rows::{project_defaults, thread_defaults, thread_projection_row};
+use t3_contracts::runs;
 use t3_contracts::time::iso;
 
 #[derive(Debug, Clone, Default)]
@@ -164,10 +165,12 @@ impl State {
                 if let Some(id) = &e.thread_id {
                     let entities = self.entities.entry(id.clone()).or_default();
                     upsert(&mut entities.runs, &e.payload);
-                    if let Some(shell) = self.threads.get_mut(id) {
+                    let provider_thread = entities.runs.first().map(|first| runs::provider_thread_id(first["providerInstanceId"].as_str().unwrap_or(""), first["id"].as_str().unwrap_or("")));
+                    let waiting = matches!(e.payload["status"].as_str(), Some("queued" | "cancelled"));
+                    if let (false, Some(shell)) = (waiting, self.threads.get_mut(id)) {
                         let run = &e.payload;
                         let running = run["status"] == "running";
-                        let set = [
+                        let mut set = vec![
                             ("status", json!(if running { "running" } else { "idle" })),
                             ("activeRunId", if running { run["id"].clone() } else { Value::Null }),
                             ("latestRunId", run["id"].clone()),
@@ -176,13 +179,22 @@ impl State {
                             ("latestRunCompletedAt", run["completedAt"].clone()),
                             ("latestRunStopRequested", json!(run["stopRequested"] == true)),
                             ("lastError", run.get("error").cloned().unwrap_or(Value::Null)),
+                            ("activeProviderThreadId", provider_thread.map_or(Value::Null, Value::from)),
                             ("updatedAt", updated_at),
                         ];
+                        if e.kind == "run.created" {
+                            set.push(("lastVisitedAt", run["requestedAt"].clone()));
+                        }
                         set.into_iter().for_each(|(k, v)| {
                             shell.insert(k.into(), v);
                         });
                         applied.shell_changed = true;
                     }
+                }
+            }
+            "message.removed" => {
+                if let Some(entities) = e.thread_id.as_ref().and_then(|id| self.entities.get_mut(id)) {
+                    entities.messages.retain(|m| m["id"] != e.payload["id"]);
                 }
             }
             "message.updated" => {
@@ -264,29 +276,34 @@ impl State {
     fn projection_of(&self, shell: &Map<String, Value>, id: &str) -> Option<Value> {
         let empty = Entities::default();
         let entities = self.entities.get(id).unwrap_or(&empty);
+        let workspace = shell["worktreePath"].as_str().or_else(|| shell["projectId"].as_str().and_then(|p| self.projects.get(p)).and_then(|p| p["workspaceRoot"].as_str()));
+        let rows = runs::derive(id, shell, &entities.runs, workspace);
         let mut out = Map::new();
         let mut thread = thread_projection_row(shell);
-        if let (Some(row), Some(extras)) = (thread.as_object_mut(), self.projection_extras.get(id)) {
-            row.extend(extras.clone());
+        if let Some(row) = thread.as_object_mut() {
+            row.insert("activeProviderThreadId".into(), rows.active_provider_thread.clone());
+            if let Some(extras) = self.projection_extras.get(id) {
+                row.extend(extras.clone());
+            }
         }
         out.insert("thread".into(), thread);
         let list = |items: &Vec<Value>| Value::Array(items.clone());
         let none = || json!([]);
         for (key, value) in [
-            ("runs", list(&entities.runs)),
-            ("attempts", none()),
-            ("nodes", none()),
+            ("runs", Value::Array(rows.runs)),
+            ("attempts", Value::Array(rows.attempts)),
+            ("nodes", Value::Array(rows.nodes)),
             ("subagents", none()),
-            ("providerSessions", none()),
-            ("providerThreads", none()),
+            ("providerSessions", Value::Array(rows.provider_sessions)),
+            ("providerThreads", Value::Array(rows.provider_threads)),
             ("providerTurns", none()),
             ("runtimeRequests", none()),
             ("messages", list(&entities.messages)),
             ("plans", none()),
             ("turnItems", list(&entities.turn_items)),
-            ("checkpointScopes", none()),
+            ("checkpointScopes", Value::Array(rows.checkpoint_scopes)),
             ("checkpoints", none()),
-            ("contextHandoffs", none()),
+            ("contextHandoffs", Value::Array(rows.context_handoffs)),
             ("contextTransfers", none()),
             ("visibleTurnItems", Value::Array(projected_rows(id, &entities.turn_items))),
         ] {

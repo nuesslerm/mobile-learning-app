@@ -170,6 +170,14 @@ impl Engine {
         self.commit(&mut inner, drafts, command_id, receipt.then_some((command_id, "agent.event"))).map(|_| ())
     }
 
+    /// A queued run the agent API did not accept ends cancelled, with its message taken back.
+    pub fn cancel_queued(&self, thread_id: &str, run_id: &str) -> Result<(), StoreError> {
+        let mut inner = self.lock();
+        let Some(run) = inner.state.entities.get(thread_id).and_then(|e| e.runs.iter().find(|r| r["id"] == run_id && r["status"] == "queued")).cloned() else { return Ok(()) };
+        let drafts = crate::domain::decider::cancelled(&run, self.clock.now_ms());
+        self.commit(&mut inner, drafts, &format!("queue-failed-{run_id}"), None).map(|_| ())
+    }
+
     pub fn thread_exists(&self, thread_id: &str) -> bool {
         self.lock().state.threads.contains_key(thread_id)
     }
@@ -178,6 +186,17 @@ impl Engine {
     pub fn active_run(&self, thread_id: &str) -> Option<String> {
         let inner = self.lock();
         inner.state.entities.get(thread_id)?.runs.iter().rev().find(|r| r["status"] == "running").and_then(|r| r["id"].as_str().map(str::to_string))
+    }
+
+    /// The run that starts next from the thread's queue.
+    pub fn next_queued(&self, thread_id: &str) -> Option<String> {
+        let inner = self.lock();
+        crate::domain::decider::queued_runs(&inner.state, thread_id).first().and_then(|r| r["id"].as_str().map(str::to_string))
+    }
+
+    /// Whether the thread's rows hold a run of this id.
+    pub fn knows_run(&self, thread_id: &str, run_id: &str) -> bool {
+        self.lock().state.entities.get(thread_id).is_some_and(|e| e.runs.iter().any(|r| r["id"] == run_id))
     }
 
     /// Every thread with a run that is running, and that run.

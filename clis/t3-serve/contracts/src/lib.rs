@@ -4,6 +4,7 @@ pub mod environment;
 pub mod history;
 pub mod payload;
 pub mod rows;
+pub mod runs;
 pub mod rpc;
 pub mod scopes;
 pub mod time;

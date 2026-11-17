@@ -93,7 +93,7 @@ fn the_recorded_turns_of_the_contract_become_the_threads_rows_a_failing_tool_a_l
     dispatch_message(&mut rpc, "c-2", "again");
     let p = settled(&mut rpc, "t1");
     let AgentEventKind::Failure(logged) = second[1].clone() else { panic!("the second turn opens with its failure") };
-    assert_eq!((p["runs"][1]["status"].as_str(), p["runs"][1]["error"].as_str()), (Some("failed"), Some(logged.as_str())));
+    assert_eq!((p["runs"][1]["status"].as_str(), last_error(&h, "t1").as_deref()), (Some("failed"), Some(logged.as_str())));
     assert_eq!(texts(&p).len(), 3, "the user's second message and no answer");
     // And the thread is idle with both runs recorded
     assert_eq!((p["runs"].as_array().unwrap().len(), shell_status(&mut rpc).as_str()), (2, "idle"));
@@ -183,7 +183,7 @@ fn a_run_whose_turn_was_never_started_is_failed_when_t3_serve_starts_again_and_t
     restarted.service.resume_runs();
     let p = settled(&mut rpc, "t1");
     // Then the run is failed saying why, and no turn was started
-    assert_eq!((p["runs"][0]["status"].as_str(), p["runs"][0]["error"].as_str()), (Some("failed"), Some("t3 serve stopped before the turn was started")));
+    assert_eq!((p["runs"][0]["status"].as_str(), last_error(&restarted, "t1").as_deref()), (Some("failed"), Some("t3 serve stopped before the turn was started")));
     assert!(h.agent.turns.lock().unwrap().is_empty());
 }
 

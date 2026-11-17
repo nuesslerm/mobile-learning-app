@@ -142,7 +142,7 @@ fn an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_t
         chain.cli.script("claude", &Script::of(vec![stays()]));
         let mut phone = Phone::connect(case, &chain);
         phone.seed(case, &chain);
-        for (n, (command, row)) in [("run.interrupt", "command:run.interrupt"), ("thread.stop", "command:thread.stop")].into_iter().enumerate() {
+        for (n, (command, row, method)) in [("run.interrupt", "command:run.interrupt", "turn.interrupt"), ("thread.stop", "command:thread.stop", "thread.forceStop")].into_iter().enumerate() {
             // When a message starts a turn, the CLI is running, and the phone sends the command
             let message = json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": format!("c-m{n}"), "threadId": "t1", "messageId": format!("m{n}"), "text": "work"});
             success(&phone.call(case, &chain, &["rpc:orchestration.dispatchCommand", "command:message.dispatch"], "orchestration.dispatchCommand", message));
@@ -158,9 +158,9 @@ fn an_interrupt_and_a_stop_each_end_the_turn_the_cli_is_running_by_telling_rca_t
                 let interrupted = projection["runs"].as_array().and_then(|r| r.last()).is_some_and(|r| r["status"] == "interrupted");
                 (exit["_tag"] == "Success" && interrupted, projection)
             });
-            // Then rca was told to interrupt the turn and answered it, and the run ended interrupted
+            // Then rca was told to interrupt the turn (a stop forces it, which holds the queue) and answered it, and the run ended interrupted
             let (agent, _) = last_window(case);
-            assert!(agent.contains(&("turn.interrupt".to_string(), true)), "{command}: {agent:?}");
+            assert!(agent.contains(&(method.to_string(), true)), "{command}: {agent:?}");
             assert_eq!(projection["runs"].as_array().unwrap().last().unwrap()["status"], "interrupted", "{command}");
         }
     });

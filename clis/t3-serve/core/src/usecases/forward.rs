@@ -2,6 +2,7 @@
 //! thread's rows. A command that a person's device keeps (pins, visits, modes, the order of the lists) is also kept in the agent API's `state`.
 use super::service::Service;
 use crate::domain::command::Command;
+use crate::domain::decider::provider_turn_running;
 use crate::ports::{AgentError, AgentThread, Op};
 use serde_json::{json, Value};
 
@@ -134,6 +135,10 @@ impl Service {
             "queued-run.edit" => vec![Op::QueueEdit { thread, item: run("runId")?, prompt: cmd.body.get("text").and_then(Value::as_str).unwrap_or_default().to_string() }],
             "queued-message.promote-to-steer" => {
                 let target = run("targetRunId")?;
+                let waiting = self.engine().read(|state| state.entities.get(&thread).is_some_and(|e| e.runs.iter().any(|r| r["id"] == target.as_str() && r["status"] == "running")) && !provider_turn_running(state, &thread, &target));
+                if waiting {
+                    return Err(format!("No running provider turn found for active run {target}."));
+                }
                 vec![Op::TurnSteer { thread, turn: Some(self.turn_of(&target).unwrap_or(target)), item: Some(run("queuedRunId")?) }]
             }
             "runtime-request.respond" => {

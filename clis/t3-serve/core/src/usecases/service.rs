@@ -137,7 +137,9 @@ impl Service {
         }
         match &dispatched.effect {
             Some(Effect::Launch(launch)) => self.1.launch(launch.clone()),
-            Some(Effect::Interrupt { thread_id }) => self.1.interrupt(thread_id),
+            Some(Effect::Queue(launch)) => self.1.queue(launch.clone()),
+            Some(Effect::Interrupt { thread_id, hold }) => self.1.interrupt(thread_id, *hold),
+            Some(Effect::Follow { thread_id, run_id }) => self.1.resume_queue(thread_id, run_id.clone()),
             None => {}
         }
         Ok(dispatched)

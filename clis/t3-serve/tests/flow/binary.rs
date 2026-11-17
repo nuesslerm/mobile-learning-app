@@ -169,7 +169,7 @@ fn without_an_rca_url_a_message_fails_its_run_saying_no_agent_api_is_configured_
     success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m", "threadId": "t1", "messageId": "m1", "text": "go"})));
     let p = settled(&mut rpc, "t1");
     // Then the run failed with the reason, an error row says the same, and the thread takes another message
-    assert_eq!((p["runs"][0]["status"].as_str(), p["runs"][0]["error"].as_str()), (Some("failed"), Some("no agent API is configured (start serve with --rca-url)")));
+    assert_eq!((p["runs"][0]["status"].as_str(), p["turnItems"].as_array().unwrap().iter().find(|i| i["type"] == "error").and_then(|i| i["message"].as_str())), (Some("failed"), Some("no agent API is configured (start serve with --rca-url)")));
     assert!(p["turnItems"].as_array().unwrap().iter().any(|i| i["type"] == "error"));
     success(&rpc.call("orchestration.dispatchCommand", json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-n", "threadId": "t1", "messageId": "m2", "text": "again"})));
     server.stop();
