@@ -102,7 +102,7 @@ fn replay(name: &str) {
             let _ = std::fs::remove_dir_all(&scratch);
             let (run, trace) = mimic(&dir, ids, &chain, &scopes, &scratch);
             let listed = |key: &str| run["gaps"][key].as_array().into_iter().flatten().filter_map(|n| n.as_str().map(String::from)).collect::<Vec<_>>();
-            assert!(run["results"].is_array(), "no results: {run}\n{}", chain.evidence());
+            assert!(run["results"].is_array() && run["gaps"]["mode"] == "check", "no results or no gaps comparison: {run}\n{}", chain.evidence());
             results.extend(run["results"].as_array().cloned().unwrap_or_default());
             new.extend(listed("new"));
             stale.extend(listed("stale"));

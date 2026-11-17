@@ -173,7 +173,7 @@ fn stale_artifacts(app: App, sets: &[String], commit: &str, version: &str) -> Ve
         format!("re-record the cassette sets {} (CI: git commit --allow-empty -m \"[track {name}]\" && git push origin dev; by hand: wf mimic record <set>, docs/runbooks/record-reference-servers-on-the-vm.md)", sets.join(", ")),
         format!("git submodule update --init {reference} and check it out at {commit}, then wf parity coverage --app {name} (the methods list and the coverage table; a commit marked 'parity: pin-bump' may raise pending)"),
         format!("wf mimic crawl --all (the crawl sets of {name}: inventory, corpus and coverage of the new source), then node tooling/mimic-drivers/src/cli.ts scenarios {name}"),
-        format!("derive the known gaps again after the record (WF_MIMIC_WRITE_GAPS=<set>, runbook section 7), then wf parity coverage --app {name} --traces <dir> for the evidence"),
+        format!("derive the known gaps again after the record (wf mimic replay <set dir> --candidate <name> --gaps write, runbook section 7), then wf parity coverage --app {name} --traces <dir> for the evidence"),
     ];
     if app == App::T3 {
         steps.push("tooling/t3-conformance/goldens, if the T3 conformance tests still read them".into());
