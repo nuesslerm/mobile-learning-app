@@ -6,6 +6,7 @@
       "severity": "breaking",
       "diffs": [
         "steps.http:ret:_.[0].payload.body.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.fileAttachments missing breaking",
         "steps.http:ret:_.[0].payload.body.capabilities.freshContext missing breaking",
         "steps.http:ret:_.[0].payload.body.capabilities.mcpApprovalCodes missing breaking",
         "steps.http:ret:_.[0].payload.body.capabilities.mcpHostedApproval missing breaking",

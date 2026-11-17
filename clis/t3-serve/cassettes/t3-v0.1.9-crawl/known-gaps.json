@@ -488,6 +488,7 @@
       "severity": "breaking",
       "diffs": [
         "steps.http:ret:_.[0].payload.body.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.fileAttachments missing breaking",
         "steps.http:ret:_.[0].payload.body.capabilities.freshContext missing breaking",
         "steps.http:ret:_.[0].payload.body.capabilities.mcpApprovalCodes missing breaking",
         "steps.http:ret:_.[0].payload.body.capabilities.mcpHostedApproval missing breaking",
@@ -810,6 +811,7 @@
       "severity": "breaking",
       "diffs": [
         "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.fileAttachments missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.freshContext missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.mcpApprovalCodes missing breaking",
         "steps.ws:s2c:1.[0].payload.exit.value.environment.capabilities.mcpHostedApproval missing breaking",
@@ -1122,6 +1124,7 @@
       "severity": "breaking",
       "diffs": [
         "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.fileAttachments missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.freshContext missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpApprovalCodes missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpHostedApproval missing breaking",
@@ -1407,6 +1410,7 @@
       "severity": "breaking",
       "diffs": [
         "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.fileAttachments missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.freshContext missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.mcpApprovalCodes missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.mcpHostedApproval missing breaking",
@@ -1417,6 +1421,7 @@
         "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.capabilities.voiceTranscription missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].payload.environment.databaseMigration changed drift",
         "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.fileAttachments missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.freshContext missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.mcpApprovalCodes missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[1].payload.environment.capabilities.mcpHostedApproval missing breaking",
@@ -1688,6 +1693,7 @@
       "diffs": [
         "steps.ws:s2c:1.[0].payload.values changed breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.fileAttachments missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.freshContext missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpApprovalCodes missing breaking",
         "steps.ws:s2c:1.[0].payload.values.[0].config.environment.capabilities.mcpHostedApproval missing breaking",

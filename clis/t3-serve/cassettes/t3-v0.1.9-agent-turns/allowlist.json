@@ -81,20 +81,8 @@
       "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
     },
     {
-      "path": "capabilities.fileAttachments",
-      "reason": "the feature is not built, and an absent flag is how a client hides it",
-      "phase": "5",
-      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
-    },
-    {
       "path": "platform.machine",
       "reason": "the recording host's machine class, which the environment descriptor of this server does not carry",
-      "phase": "R2a",
-      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
-    },
-    {
-      "path": "exit.cause.error.cause.cause",
-      "reason": "the pin keeps a refused command's receipt for a moment only: a command id it refused before is answered as a thread with no projection when its receipt is not yet or no longer seen, and as previously rejected otherwise, in an order that follows time and not the command; this server always answers previously rejected",
       "phase": "R2a",
       "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
     },
@@ -133,12 +121,6 @@
     {
       "path": "versionControlSystems",
       "reason": "which version-control tools the host has and their versions are the host's",
-      "phase": "R2a",
-      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
-    },
-    {
-      "path": "projection.thread",
-      "reason": "the crawl shares one chain between its writes: the pin re-ran the create of a thread whose receipt it no longer saw, which cleared the archive the earlier case set, so the archived state follows time and not the command",
       "phase": "R2a",
       "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
     }
