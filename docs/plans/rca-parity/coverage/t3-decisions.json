@@ -406,6 +406,396 @@
       "state": "not-offered",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
       "decidedBy": "M12"
+    },
+    "command:queue.resume": {
+      "oracle": "mimic"
+    },
+    "command:thread.active.reorder": {
+      "oracle": "mimic"
+    },
+    "command:thread.archive": {
+      "oracle": "mimic"
+    },
+    "command:thread.auto-settle.set": {
+      "oracle": "mimic"
+    },
+    "command:thread.delete": {
+      "oracle": "mimic"
+    },
+    "command:thread.interaction-mode.set": {
+      "oracle": "mimic"
+    },
+    "command:thread.mark-unread": {
+      "oracle": "mimic"
+    },
+    "command:thread.metadata.update": {
+      "oracle": "mimic"
+    },
+    "command:thread.model-selection.set": {
+      "oracle": "mimic"
+    },
+    "command:thread.pin.reorder": {
+      "oracle": "mimic"
+    },
+    "command:thread.pull-request.link": {
+      "oracle": "mimic"
+    },
+    "command:thread.pull-request.unlink": {
+      "oracle": "mimic"
+    },
+    "command:thread.pull-request.watch": {
+      "oracle": "mimic"
+    },
+    "command:thread.runtime-mode.set": {
+      "oracle": "mimic"
+    },
+    "command:thread.unpin": {
+      "oracle": "mimic"
+    },
+    "command:thread.visit": {
+      "oracle": "mimic"
+    },
+    "http:auth.pairingCredential": {
+      "oracle": "mimic"
+    },
+    "http:auth.webSocketTicketFor": {
+      "oracle": "mimic"
+    },
+    "http:orchestration.shellSnapshot": {
+      "oracle": "mimic"
+    },
+    "http:orchestration.threadBoundedSnapshot": {
+      "oracle": "mimic"
+    },
+    "http:orchestration.threadHistoryPage": {
+      "oracle": "mimic"
+    },
+    "http:orchestration.threadTranscript": {
+      "oracle": "mimic"
+    },
+    "http:pullRequests.diff": {
+      "oracle": "mimic"
+    },
+    "mutation:project.update": {
+      "oracle": "mimic"
+    },
+    "rpc:assets.createUrl": {
+      "oracle": "mimic"
+    },
+    "rpc:assets.persistChatAttachments": {
+      "oracle": "mimic"
+    },
+    "rpc:attachments.createUploadUrl": {
+      "oracle": "mimic"
+    },
+    "rpc:attachments.delete": {
+      "oracle": "mimic"
+    },
+    "rpc:filesystem.browse": {
+      "oracle": "mimic"
+    },
+    "rpc:filesystem.getMetadata": {
+      "oracle": "mimic"
+    },
+    "rpc:git.preparePullRequestThread": {
+      "oracle": "mimic"
+    },
+    "rpc:git.runStackedAction": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.dispatchCommand": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.forceStopThread": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getFullThreadDiff": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getOlderSettledThreads": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getThreadFamily": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getThreadProjection": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getTurnDiff": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.getTurnItem": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.launchThread": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.searchThreads": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.stopWorkflow": {
+      "oracle": "mimic"
+    },
+    "rpc:orchestration.subscribeCommandOutput": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.adjust": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.close": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.list": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.open": {
+      "oracle": "mimic"
+    },
+    "rpc:preview.resize": {
+      "oracle": "mimic"
+    },
+    "rpc:projectClone.cancel": {
+      "oracle": "mimic"
+    },
+    "rpc:projectClone.retry": {
+      "oracle": "mimic"
+    },
+    "rpc:projectClone.start": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.createFromThread": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.createNew": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.listEntries": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.mutate": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.readFile": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.searchEntries": {
+      "oracle": "mimic"
+    },
+    "rpc:projects.writeFile": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.cancel": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.complete": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.logout": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.respond": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.start": {
+      "oracle": "mimic"
+    },
+    "rpc:provider.auth.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.activity": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.changeBreakdown": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.checks": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.comment": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.detail": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.diffFileContents": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.filesViewed": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.filterOptions": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.generateReviewGuide": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.labelCandidates": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.linkedThreads": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.list": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.listStats": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.preview": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.replyToThread": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.requestReviewers": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.reviewGuide": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.reviewerCandidates": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.routing": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.routingIdentity": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.runAction": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.setFilesViewed": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.setLabels": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.setReaction": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.setThreadResolution": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.stack": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.submitReview": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.summary": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.threadComments": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.update": {
+      "oracle": "mimic"
+    },
+    "rpc:pullRequests.updateComment": {
+      "oracle": "mimic"
+    },
+    "rpc:review.getDiffFileContents": {
+      "oracle": "mimic"
+    },
+    "rpc:review.getDiffPreview": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.delete": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.rotateWebhookToken": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.runNow": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.setEnabled": {
+      "oracle": "mimic"
+    },
+    "rpc:scheduledTasks.upsert": {
+      "oracle": "mimic"
+    },
+    "rpc:server.discoverSourceControl": {
+      "oracle": "mimic"
+    },
+    "rpc:server.getUsageSummary": {
+      "oracle": "mimic"
+    },
+    "rpc:server.refreshProviders": {
+      "oracle": "mimic"
+    },
+    "rpc:server.reportClientActivity": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.appAccess": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.lookupRepository": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.publishRepository": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.signInCancel": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.signInStart": {
+      "oracle": "mimic"
+    },
+    "rpc:sourceControl.signInWait": {
+      "oracle": "mimic"
+    },
+    "rpc:subscribeProjectClones": {
+      "oracle": "mimic"
+    },
+    "rpc:subscribeVcsStatus": {
+      "oracle": "mimic"
+    },
+    "rpc:subscribeWorktreeSetup": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.attach": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.clear": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.close": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.observe": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.open": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.resize": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.write": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.createRef": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.createWorktree": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.listRefs": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.pull": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.refreshStatus": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.switchRef": {
+      "oracle": "mimic"
+    },
+    "rpc:worktreeSetup.cancel": {
+      "oracle": "mimic"
     }
   },
   "reverify": {}

@@ -102,16 +102,16 @@
       "milestone": "M4",
       "target": "agent:queue.resume",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_the_executor_writing_for_each",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-recorded-2::t3-command-queue.resume",
         "agent": [
           "queue.resume",
           "thread.create"
         ],
-        "executor": [
-          "git_checkpoint",
-          "write_file"
-        ]
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -248,12 +248,13 @@
       "milestone": "M4",
       "target": "state:thread.activeOrder",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-        "agent": [
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.active.reorder-invalid-drop-commandId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -264,13 +265,16 @@
       "milestone": "M4",
       "target": "agent:thread.archive",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_starts_it_or_resumes_the_queue_and_rca_refuses_it_on_an_archived_thread",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.archive-valid-golden",
         "agent": [
           "thread.archive",
           "thread.create"
         ],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -281,12 +285,13 @@
       "milestone": "M4",
       "target": "state:thread.autoSettle",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-        "agent": [
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.auto-settle.set-invalid-drop-commandId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -313,13 +318,16 @@
       "milestone": "M4",
       "target": "agent:thread.delete",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_holds_and_a_second_archive_is_refused",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-recorded-2::t3-command-thread.delete",
         "agent": [
           "thread.create",
           "thread.delete"
         ],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -367,12 +375,13 @@
       "milestone": "M4",
       "target": "state:thread.settings",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-        "agent": [
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.interaction-mode.set-invalid-drop-commandId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -383,12 +392,13 @@
       "milestone": "M4",
       "target": "state:thread.visits",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-        "agent": [
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.mark-unread-invalid-drop-commandId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -416,12 +426,13 @@
       "milestone": "M4",
       "target": "state:thread.settings",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-        "agent": [
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.metadata.update-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -432,12 +443,13 @@
       "milestone": "M4",
       "target": "state:thread.settings",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-        "agent": [
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.model-selection.set-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -449,7 +461,7 @@
       "target": "state:thread.pins",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-command-thread.pin",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.pin-boundary-full",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -465,12 +477,13 @@
       "milestone": "M4",
       "target": "state:thread.pins",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-        "agent": [
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.pin.reorder-invalid-drop-commandId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -481,13 +494,13 @@
       "milestone": "M11",
       "target": "state:thread.pullRequests",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
-        "agent": [
-          "state.get",
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.pull-request.link-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -498,13 +511,13 @@
       "milestone": "M11",
       "target": "state:thread.pullRequests",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
-        "agent": [
-          "state.get",
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.pull-request.unlink-invalid-drop-commandId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -515,13 +528,13 @@
       "milestone": "M11",
       "target": "state:thread.pullRequests",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
-        "agent": [
-          "state.get",
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.pull-request.watch-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -532,12 +545,13 @@
       "milestone": "M4",
       "target": "state:thread.settings",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-        "agent": [
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.runtime-mode.set-invalid-drop-commandId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -617,12 +631,13 @@
       "milestone": "M4",
       "target": "state:thread.pins",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-        "agent": [
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.unpin-invalid-drop-commandId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -686,12 +701,13 @@
       "milestone": "M4",
       "target": "state:thread.visits",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_side_door_reads_them",
-        "agent": [
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-command-thread.visit-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -701,10 +717,13 @@
       "state": "served",
       "milestone": "M5",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "local_m5::a_pairing_code_minted_over_http_pairs_a_second_device_with_only_the_delegated_scopes_and_a_device_without_access_write_is_refused",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-auth.pairingCredential-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -715,7 +734,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-http-auth.session",
+        "test": "t3-v0.1.9-crawl::t3-http-auth.session-empty-empty-object",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -731,7 +750,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-http-auth.token",
+        "test": "t3-v0.1.9-crawl::t3-http-auth.token-boundary-full",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -747,7 +766,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-http-auth.webSocketTicket",
+        "test": "t3-v0.1.9-crawl::t3-http-auth.webSocketTicket-empty-empty-object",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -762,10 +781,13 @@
       "state": "served",
       "milestone": "M3",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-auth.webSocketTicketFor-empty-empty-object",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -806,10 +828,13 @@
       "state": "served",
       "milestone": "M3",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-orchestration.shellSnapshot-empty-empty-object",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -819,12 +844,13 @@
       "state": "served",
       "milestone": "M3",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
-        "agent": [
-          "thread.history"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-orchestration.threadBoundedSnapshot-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -834,12 +860,13 @@
       "state": "served",
       "milestone": "M3",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
-        "agent": [
-          "thread.history"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-orchestration.threadHistoryPage-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -849,12 +876,13 @@
       "state": "served",
       "milestone": "M3",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
-        "agent": [
-          "thread.history"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-orchestration.threadTranscript-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -864,16 +892,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::a_pull_request_is_read_from_gh_through_rca_and_the_phone_gets_its_summary_preview_detail_checks_and_diff",
-        "agent": [
-          "pr.diff",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_diff"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-http-pullRequests.diff-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1014,12 +1039,13 @@
       "milestone": "M12",
       "target": "state:project.settings",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "chain::a_project_is_renamed_and_deleted_and_the_shell_the_phone_reads_afterwards_no_longer_lists_it",
-        "agent": [
-          "state.set"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-mutation-project.update-invalid-drop-commandId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1029,12 +1055,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
-        "agent": [
-          "attachment.get"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-assets.createUrl-invalid-drop-resource",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1044,12 +1071,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
-        "agent": [
-          "upload.put"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-assets.persistChatAttachments-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1059,10 +1087,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-attachments.createUploadUrl-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1072,12 +1103,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "attachments_m12::an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_rca_exec_for_the_turn_and_come_back_through_asset_urls_and_a_delete_takes_one_away",
-        "agent": [
-          "attachment.delete"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-attachments.delete-invalid-drop-attachmentId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1151,9 +1183,12 @@
       "milestone": "M6",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-filesystem.browse",
+        "test": "t3-v0.1.9-crawl::t3-rpc-filesystem.browse-invalid-drop-partialPath",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1163,14 +1198,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "workspace_m6::a_file_is_written_searched_and_measured_in_the_repository_and_a_directory_outside_it_is_browsed_only_inside_the_allowlist",
-        "agent": [
-          "file.stat"
-        ],
-        "executor": [
-          "stat"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-filesystem.getMetadata-invalid-drop-paths",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1180,20 +1214,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "prs_m12::a_pull_request_is_prepared_in_a_worktree_at_its_fetched_head_and_the_same_worktree_is_found_again",
-        "agent": [
-          "git.fetch",
-          "pr.view",
-          "worktree.create",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_fetch",
-          "git_worktree_add",
-          "git_worktree_list",
-          "hosted_pr_view"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-git.preparePullRequestThread-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1204,27 +1231,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "vcs_m9::a_commit_and_push_are_stacked_with_progress_a_pull_brings_what_another_clone_pushed_and_the_status_stream_follows_the_repository",
-        "agent": [
-          "git.commit",
-          "git.diff",
-          "git.push",
-          "git.stage",
-          "git.status",
-          "git.subscribe",
-          "git.upstreamStatus",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_commit",
-          "git_diff",
-          "git_push",
-          "git_stage",
-          "git_status",
-          "git_upstream",
-          "git_worktree_list"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-git.runStackedAction-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1271,9 +1284,12 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-orchestration.dispatchCommand",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.dispatchCommand-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1284,9 +1300,12 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.forceStopThread",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.forceStopThread-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1297,7 +1316,7 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-orchestration.getArchivedShellSnapshot",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getArchivedShellSnapshot-invalid-no-payload",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -1312,16 +1331,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "workspace_m6::a_worktree_made_for_a_new_branch_is_a_checkout_under_the_base_whose_files_and_diff_are_the_worktrees_and_not_the_repositorys",
-        "agent": [
-          "thread.diff",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_diff",
-          "git_worktree_list"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getFullThreadDiff-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1340,9 +1356,14 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.getOlderSettledThreads",
-        "agent": [],
-        "executor": []
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getOlderSettledThreads-boundary-full",
+        "agent": [
+          "thread.shelf"
+        ],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1353,9 +1374,12 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-orchestration.getThreadFamily",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getThreadFamily-invalid-drop-threadId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1373,10 +1397,13 @@
       "state": "served",
       "milestone": "M3",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "chain::a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_the_run_on_its_streams",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getThreadProjection-invalid-drop-threadId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1394,16 +1421,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "workspace_m6::the_diff_of_a_thread_is_what_git_shows_in_its_directory_for_the_whole_thread_and_for_its_turns",
-        "agent": [
-          "turn.diff",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_diff",
-          "git_worktree_list"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getTurnDiff-boundary-limit-fromTurnCount",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1413,12 +1437,13 @@
       "state": "served",
       "milestone": "M4",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
-        "agent": [
-          "thread.history"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getTurnItem-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1438,9 +1463,12 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.launchThread",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.launchThread-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1450,12 +1478,13 @@
       "state": "served",
       "milestone": "M4",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::a_turn_item_its_output_a_search_the_family_and_the_snapshots_are_read_from_what_ran_through_rca",
-        "agent": [
-          "thread.search"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.searchThreads-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1466,9 +1495,12 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-orchestration.stopWorkflow",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.stopWorkflow-invalid-drop-threadId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1480,9 +1512,12 @@
       "milestone": "M4",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-orchestration.subscribeCommandOutput",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.subscribeCommandOutput-invalid-drop-threadId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1517,7 +1552,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-orchestration.subscribeThread",
+        "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.subscribeThread-boundary-full",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -1559,12 +1594,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "preview_m12::tabs_are_opened_listed_resized_adjusted_reported_and_closed_and_a_second_phone_following_the_stream_sees_each_change_in_order",
-        "agent": [
-          "preview.adjust"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-preview.adjust-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1575,9 +1611,14 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-preview.close",
-        "agent": [],
-        "executor": []
+        "test": "t3-v0.1.9-crawl::t3-rpc-preview.close-boundary-full",
+        "agent": [
+          "preview.close"
+        ],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1587,12 +1628,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "preview_m12::tabs_are_opened_listed_resized_adjusted_reported_and_closed_and_a_second_phone_following_the_stream_sees_each_change_in_order",
-        "agent": [
-          "preview.list"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-preview.list-invalid-drop-threadId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1603,9 +1645,12 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-preview.open",
+        "test": "t3-v0.1.9-crawl::t3-rpc-preview.open-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1616,9 +1661,12 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-preview.resize",
+        "test": "t3-v0.1.9-crawl::t3-rpc-preview.resize-invalid-drop-threadId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1628,12 +1676,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::a_clone_makes_the_project_runs_gh_in_the_executor_streams_its_end_is_cancelled_when_it_hangs_and_retries",
-        "agent": [
-          "clone.cancel"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-projectClone.cancel-invalid-drop-projectId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1644,9 +1693,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-projectClone.retry",
+        "test": "t3-v0.1.9-crawl::t3-rpc-projectClone.retry-invalid-drop-projectId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1657,9 +1709,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-projectClone.start",
+        "test": "t3-v0.1.9-crawl::t3-rpc-projectClone.start-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1670,9 +1725,12 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-projects.createFromThread",
+        "test": "t3-v0.1.9-crawl::t3-rpc-projects.createFromThread-invalid-drop-threadId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1683,9 +1741,12 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-projects.createNew",
+        "test": "t3-v0.1.9-crawl::t3-rpc-projects.createNew-invalid-drop-name",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1696,9 +1757,19 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-projects.ensureScratch",
-        "agent": [],
-        "executor": [],
+        "test": "t3-v0.1.9-crawl::t3-rpc-projects.ensureScratch-invalid-no-payload",
+        "agent": [
+          "file.browse",
+          "file.mkdir",
+          "file.write",
+          "state.set",
+          "workspace.create"
+        ],
+        "executor": [
+          "browse",
+          "make_dir",
+          "write_file"
+        ],
         "oracle": "mimic",
         "diff": "allowlisted",
         "cassette": "recorded"
@@ -1711,16 +1782,13 @@
       "state": "served",
       "milestone": "M3",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
-        "agent": [
-          "file.list",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "list_dir"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-projects.listEntries-invalid-drop-cwd",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1730,15 +1798,13 @@
       "state": "served",
       "milestone": "M3",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
-        "agent": [
-          "file.browse",
-          "state.set"
-        ],
-        "executor": [
-          "browse"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-projects.mutate-invalid-no-payload",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1748,16 +1814,13 @@
       "state": "served",
       "milestone": "M3",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "chain::what_a_turn_wrote_is_read_back_as_transcript_history_and_files_through_the_executor",
-        "agent": [
-          "file.read",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "read_file"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-projects.readFile-invalid-drop-cwd",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1768,9 +1831,12 @@
       "milestone": "M6",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-projects.searchEntries",
+        "test": "t3-v0.1.9-crawl::t3-rpc-projects.searchEntries-invalid-drop-cwd",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1781,9 +1847,12 @@
       "milestone": "M6",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-projects.writeFile",
+        "test": "t3-v0.1.9-crawl::t3-rpc-projects.writeFile-invalid-drop-cwd",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1794,9 +1863,12 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-provider.auth.cancel",
+        "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.cancel-invalid-drop-instanceId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1807,9 +1879,12 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-provider.auth.complete",
+        "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.complete-invalid-drop-instanceId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1820,9 +1895,12 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-provider.auth.logout",
+        "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.logout-invalid-drop-instanceId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1842,9 +1920,12 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-provider.auth.respond",
+        "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.respond-invalid-drop-instanceId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1855,9 +1936,12 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-provider.auth.start",
+        "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.start-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1869,9 +1953,12 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-provider.auth.subscribe",
+        "test": "t3-v0.1.9-crawl::t3-rpc-provider.auth.subscribe-invalid-drop-instanceId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1918,9 +2005,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.activity",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.activity-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1931,9 +2021,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.changeBreakdown",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.changeBreakdown-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1944,9 +2037,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.checks",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.checks-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1956,16 +2052,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-        "agent": [
-          "pr.comment",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_comment"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.comment-invalid-drop-body",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1976,9 +2069,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.detail",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.detail-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1989,9 +2085,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.diffFileContents",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.diffFileContents-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2002,9 +2101,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.filesViewed",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.filesViewed-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2014,18 +2116,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
-        "agent": [
-          "pr.labelCandidates",
-          "sourceControl.lookupRepository",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_repo_labels",
-          "hosted_repo_view"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.filterOptions-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2035,17 +2132,15 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "prs_m12::a_review_guide_is_written_by_a_model_turn_of_the_real_service_over_gh_s_diff_checked_against_it_and_kept_in_rcas_state",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.generateReviewGuide-boundary-limit-number",
         "agent": [
-          "pr.view",
-          "state.get",
-          "worktree.list"
+          "state.get"
         ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_view"
-        ]
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2065,9 +2160,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.labelCandidates",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.labelCandidates-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2077,12 +2175,15 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "prs_m12::a_threads_pull_request_links_are_kept_in_rcas_state_and_the_watch_is_read_back_by_a_restarted_server",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.linkedThreads-boundary-full",
         "agent": [
           "state.get"
         ],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2092,20 +2193,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
-        "agent": [
-          "pr.list",
-          "sourceControl.discover",
-          "sourceControl.lookupRepository",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_auth_status",
-          "hosted_pr_list",
-          "hosted_repo_view"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.list-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2115,16 +2209,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::the_list_stats_and_filters_and_who_gh_is_signed_in_as_come_from_the_repositorys_own_remote_and_the_hosts_answers",
-        "agent": [
-          "pr.files",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_files"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.listStats-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2135,9 +2226,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.preview",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.preview-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2147,16 +2241,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-        "agent": [
-          "pr.reply",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_reply"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.replyToThread-invalid-drop-threadId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2176,9 +2267,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.requestReviewers",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.requestReviewers-invalid-drop-reviewers",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2189,9 +2283,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-pullRequests.reviewGuide",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.reviewGuide-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2202,9 +2299,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.reviewerCandidates",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.reviewerCandidates-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2215,9 +2315,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.routing",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.routing-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2228,9 +2331,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.routingIdentity",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.routingIdentity-invalid-drop-host",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2240,16 +2346,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-        "agent": [
-          "pr.merge",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_merge"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.runAction-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2260,9 +2363,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-pullRequests.setFilesViewed",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.setFilesViewed-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2273,9 +2379,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.setLabels",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.setLabels-invalid-drop-labels",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2285,16 +2394,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "prs_m12::a_reaction_is_added_then_taken_back_by_deleting_the_accounts_own_reaction_and_a_comment_is_edited_with_its_text_on_stdin",
-        "agent": [
-          "pr.react",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_react"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.setReaction-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2304,16 +2410,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-        "agent": [
-          "pr.resolveThread",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_resolve_thread"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.setThreadResolution-invalid-drop-threadId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2324,9 +2427,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.stack",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.stack-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2336,16 +2442,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-        "agent": [
-          "pr.review",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_review"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.submitReview-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2366,9 +2469,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-pullRequests.summary",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.summary-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2378,16 +2484,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::the_activity_a_thread_the_breakdown_and_the_candidates_are_read_from_gh_and_know_what_the_pull_request_already_has",
-        "agent": [
-          "pr.threads",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_threads"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.threadComments-invalid-drop-threadId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2397,16 +2500,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::each_action_of_the_phone_starts_gh_with_what_the_phone_sent_the_text_on_stdin_and_never_as_an_option",
-        "agent": [
-          "pr.edit",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_edit"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.update-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2416,16 +2516,13 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "prs_m12::a_reaction_is_added_then_taken_back_by_deleting_the_accounts_own_reaction_and_a_comment_is_edited_with_its_text_on_stdin",
-        "agent": [
-          "pr.editComment",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "hosted_pr_comment_edit"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.updateComment-invalid-drop-commentId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2436,9 +2533,12 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-review.getDiffFileContents",
+        "test": "t3-v0.1.9-crawl::t3-rpc-review.getDiffFileContents-invalid-drop-cwd",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2449,9 +2549,12 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-review.getDiffPreview",
+        "test": "t3-v0.1.9-crawl::t3-rpc-review.getDiffPreview-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2462,9 +2565,12 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-scheduledTasks.delete",
+        "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.delete-invalid-drop-id",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2475,9 +2581,12 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-scheduledTasks.rotateWebhookToken",
+        "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.rotateWebhookToken-invalid-drop-id",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2488,9 +2597,12 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-scheduledTasks.runNow",
+        "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.runNow-invalid-drop-id",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2501,9 +2613,12 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-scheduledTasks.setEnabled",
+        "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.setEnabled-invalid-drop-id",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2515,8 +2630,11 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-scheduledTasks.subscribe",
-        "agent": [],
+        "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.subscribe-invalid-no-payload",
+        "agent": [
+          "schedule.list",
+          "schedule.subscribe"
+        ],
         "executor": [],
         "oracle": "mimic",
         "diff": "allowlisted",
@@ -2530,16 +2648,13 @@
       "state": "served",
       "milestone": "M12",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "schedules_m12::a_scheduled_task_is_saved_followed_run_by_hand_and_deleted_and_the_run_is_a_real_turn_that_writes_a_file_through_the_executor",
-        "agent": [
-          "schedule.subscribe",
-          "schedule.upsert",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-scheduledTasks.upsert-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2567,14 +2682,17 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::the_sign_in_shows_the_cli_code_and_address_waits_for_the_account_cancels_another_and_discovery_says_who_is_signed_in_with_no_token_in_any_answer",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.discoverSourceControl-valid-min",
         "agent": [
           "sourceControl.discover"
         ],
         "executor": [
           "hosted_auth_status"
-        ]
+        ],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2599,9 +2717,12 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-server.getUsageSummary",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.getUsageSummary-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2621,7 +2742,7 @@
       "milestone": "M3",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-server.probe",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.probe-invalid-no-payload",
         "agent": [],
         "executor": [],
         "oracle": "mimic",
@@ -2636,13 +2757,13 @@
       "state": "served",
       "milestone": "M10",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "settings_m10::two_providers_sign_in_by_a_device_code_and_a_pasted_code_each_in_its_own_directory_and_a_turn_then_runs_in_the_signed_in_ones_alone",
-        "agent": [
-          "provider.list",
-          "provider.refresh"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.refreshProviders-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2661,12 +2782,13 @@
       "state": "served",
       "milestone": "M5",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "local_m5::a_clients_activity_is_kept_by_the_real_service_and_a_client_without_the_diagnostics_scope_never_reaches_it",
-        "agent": [
-          "service.clientActivity"
-        ],
-        "executor": []
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.reportClientActivity-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2718,9 +2840,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-sourceControl.appAccess",
+        "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.appAccess-invalid-drop-provider",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2731,9 +2856,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-sourceControl.lookupRepository",
+        "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.lookupRepository-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2744,9 +2872,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-sourceControl.publishRepository",
+        "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.publishRepository-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2757,9 +2888,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-sourceControl.signInCancel",
+        "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.signInCancel-invalid-drop-provider",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2770,9 +2904,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-sourceControl.signInStart",
+        "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.signInStart-invalid-drop-provider",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2783,9 +2920,12 @@
       "milestone": "M11",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-sourceControl.signInWait",
+        "test": "t3-v0.1.9-crawl::t3-rpc-sourceControl.signInWait-invalid-drop-provider",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2807,8 +2947,10 @@
       "milestone": "M12",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-subscribePreviewEvents",
-        "agent": [],
+        "test": "t3-v0.1.9-crawl::t3-rpc-subscribePreviewEvents-invalid-no-payload",
+        "agent": [
+          "preview.subscribe"
+        ],
         "executor": [],
         "oracle": "mimic",
         "diff": "allowlisted",
@@ -2823,12 +2965,15 @@
       "state": "served",
       "milestone": "M11",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "hosted_m11::a_clone_makes_the_project_runs_gh_in_the_executor_streams_its_end_is_cancelled_when_it_hangs_and_retries",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-subscribeProjectClones-invalid-no-payload",
         "agent": [
-          "clone.status"
+          "clone.subscribe"
         ],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2880,9 +3025,15 @@
       "milestone": "M8",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-subscribeTerminalMetadata",
-        "agent": [],
-        "executor": [],
+        "test": "t3-v0.1.9-crawl::t3-rpc-subscribeTerminalMetadata-invalid-no-payload",
+        "agent": [
+          "terminal.list",
+          "worktree.list"
+        ],
+        "executor": [
+          "git_worktree_list",
+          "pty_list"
+        ],
         "oracle": "mimic",
         "diff": "allowlisted",
         "cassette": "recorded"
@@ -2906,9 +3057,12 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-subscribeVcsStatus",
+        "test": "t3-v0.1.9-crawl::t3-rpc-subscribeVcsStatus-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2919,16 +3073,13 @@
       "state": "served",
       "milestone": "M6",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "workspace_m6::the_setup_of_a_worktree_rca_started_is_followed_by_the_phone_to_done_and_a_long_one_is_cancelled_by_it",
-        "agent": [
-          "worktree.list",
-          "worktree.setup.subscribe"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "worktree_setup"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-subscribeWorktreeSetup-invalid-drop-threadId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2939,17 +3090,13 @@
       "state": "served",
       "milestone": "M8",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "terminal_m8::a_terminal_cannot_start_outside_the_executors_root_and_the_executors_environment_does_not_reach_the_shell",
-        "agent": [
-          "terminal.attach",
-          "terminal.list",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "pty_list"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-terminal.attach-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2959,16 +3106,13 @@
       "state": "served",
       "milestone": "M8",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "terminal_m8::a_terminal_is_attached_typed_into_resized_observed_cleared_listed_and_closed_and_each_call_ran_its_pty_action_in_the_executors_shell",
-        "agent": [
-          "terminal.clear",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "pty_write"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-terminal.clear-invalid-drop-terminalId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2979,9 +3123,12 @@
       "milestone": "M8",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-terminal.close",
+        "test": "t3-v0.1.9-crawl::t3-rpc-terminal.close-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -2993,9 +3140,12 @@
       "milestone": "M8",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-terminal.observe",
+        "test": "t3-v0.1.9-crawl::t3-rpc-terminal.observe-invalid-drop-terminalId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3005,17 +3155,13 @@
       "state": "served",
       "milestone": "M8",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "terminal_m8::a_terminal_cannot_start_outside_the_executors_root_and_the_executors_environment_does_not_reach_the_shell",
-        "agent": [
-          "terminal.open",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_worktree_list",
-          "pty_list",
-          "pty_open"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-terminal.open-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3026,9 +3172,12 @@
       "milestone": "M8",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-terminal.resize",
+        "test": "t3-v0.1.9-crawl::t3-rpc-terminal.resize-boundary-limit-cols",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3039,9 +3188,12 @@
       "milestone": "M8",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-3::t3-rpc-terminal.write",
+        "test": "t3-v0.1.9-crawl::t3-rpc-terminal.write-invalid-drop-data",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3052,9 +3204,12 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-vcs.createRef",
+        "test": "t3-v0.1.9-crawl::t3-rpc-vcs.createRef-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3065,9 +3220,12 @@
       "milestone": "M6",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-vcs.createWorktree",
+        "test": "t3-v0.1.9-crawl::t3-rpc-vcs.createWorktree-invalid-drop-path",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3077,18 +3235,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "vcs_m9::the_status_refs_and_diffs_of_the_repository_are_read_and_a_branch_is_made_and_switched_to_through_the_executors_git",
-        "agent": [
-          "git.refs",
-          "git.upstreamStatus",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_refs",
-          "git_upstream",
-          "git_worktree_list"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-vcs.listRefs-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3099,9 +3252,12 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-vcs.pull",
+        "test": "t3-v0.1.9-crawl::t3-rpc-vcs.pull-invalid-drop-cwd",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3120,9 +3276,12 @@
       "milestone": "M9",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-2::t3-rpc-vcs.refreshStatus",
+        "test": "t3-v0.1.9-crawl::t3-rpc-vcs.refreshStatus-boundary-full",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3132,18 +3291,13 @@
       "state": "served",
       "milestone": "M9",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "vcs_m9::the_status_refs_and_diffs_of_the_repository_are_read_and_a_branch_is_made_and_switched_to_through_the_executors_git",
-        "agent": [
-          "git.checkout",
-          "git.refs",
-          "worktree.list"
-        ],
-        "executor": [
-          "git_checkout",
-          "git_refs",
-          "git_worktree_list"
-        ]
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-vcs.switchRef-invalid-drop-cwd",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3154,9 +3308,12 @@
       "milestone": "M6",
       "evidence": {
         "suite": "wf-mimic-t3-recorded",
-        "test": "t3-v0.1.9-recorded-1::t3-rpc-worktreeSetup.cancel",
+        "test": "t3-v0.1.9-crawl::t3-rpc-worktreeSetup.cancel-invalid-drop-threadId",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     }
   ]
