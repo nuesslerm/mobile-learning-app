@@ -6,6 +6,7 @@ use crate::domain::decider::{decide, decide_adopt, decide_run_step, Ctx, Effect,
 use crate::domain::state::{event_json, State};
 use crate::ports::{Clock, EventDraft, EventStore, Ids, StoreError, StoredEvent};
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{Arc, Mutex};
 
@@ -23,6 +24,8 @@ pub enum Failure {
     Defect(String),
     Refused { command_id: String, command_type: String, message: String },
     ProjectNotEmpty { command_id: String, project_id: String },
+    ThreadMissing { command_id: String, command_type: String, thread_id: String },
+    PreviouslyRejected { command_id: String, command_type: String, reason: String },
 }
 
 pub struct Dispatched {
@@ -37,6 +40,8 @@ pub struct Dispatched {
 struct Inner {
     state: State,
     subscribers: Vec<Sender<Arc<Published>>>,
+    /// Command ids refused for a missing thread, with the first refusal's message; the pin refuses a repeat with it (a restart forgets them).
+    rejected: HashMap<String, String>,
 }
 
 pub struct Engine {
@@ -56,7 +61,7 @@ impl Engine {
         for event in store.read_after(0)? {
             state.apply(&event);
         }
-        Ok(Engine { store, clock, ids, inner: Mutex::new(Inner { state, subscribers: Vec::new() }) })
+        Ok(Engine { store, clock, ids, inner: Mutex::new(Inner { state, subscribers: Vec::new(), rejected: HashMap::new() }) })
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -96,10 +101,18 @@ impl Engine {
         if let Some(receipt) = self.store.receipt(&cmd.command_id).map_err(|e| refuse(e.0))? {
             return Ok(Dispatched { sequence: receipt.sequence, row: project_row(&inner), effect: None, replayed: true });
         }
+        if let Some(reason) = inner.rejected.get(&cmd.command_id) {
+            return Err(Failure::PreviouslyRejected { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), reason: reason.clone() });
+        }
         let new_id = || uuid(self.ids.as_ref());
-        let decision = decide(&inner.state, family, &cmd, &Ctx { now: self.clock.now_ms(), new_id: &new_id }).map_err(|r| match r {
+        let decided = decide(&inner.state, family, &cmd, &Ctx { now: self.clock.now_ms(), new_id: &new_id });
+        let decision = decided.map_err(|r| match r {
             Rejection::Refused(m) => refuse(m),
             Rejection::ProjectNotEmpty(project_id) => Failure::ProjectNotEmpty { command_id: cmd.command_id.clone(), project_id },
+            Rejection::ThreadMissing(thread_id) => {
+                inner.rejected.insert(cmd.command_id.clone(), t3_contracts::wire::projection_load_failed(&thread_id));
+                Failure::ThreadMissing { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), thread_id }
+            }
         })?;
         let stored = self.commit(&mut inner, decision.drafts, &cmd.command_id, Some((&cmd.command_id, &cmd.kind))).map_err(|e| refuse(e.0))?;
         let sequence = stored.last().map_or(inner.state.last_sequence, |e| e.sequence);

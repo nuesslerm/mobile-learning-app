@@ -98,17 +98,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.detail missing breaking"
-      ],
-      "ids": [
-        "t3-command-thread.unarchive"
-      ]
-    },
-    {
       "class": "kind at steps.ws:s2c:*.[*].payload.exit.value.fetchedAt",
       "severity": "breaking",
       "diffs": [

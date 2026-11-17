@@ -227,6 +227,14 @@ impl Connection {
                         let error = if project { wire::project_mutation_error(&command_id, wire::PROJECT_MUTATION_FAILED) } else { wire::dispatch_error(&command_id, &command_type, &message) };
                         vec![rpc::exit_failure(&id, error)]
                     }
+                    Err(Failure::ThreadMissing { command_id, command_type, thread_id }) => {
+                        self.svc.log("rpc.command.refused", &[("type", command_type.clone()), ("message", wire::projection_load_failed(&thread_id))]);
+                        vec![rpc::exit_failure(&id, if project { wire::project_mutation_error(&command_id, wire::PROJECT_MUTATION_FAILED) } else { wire::dispatch_thread_missing(&command_id, &command_type, &thread_id) })]
+                    }
+                    Err(Failure::PreviouslyRejected { command_id, command_type, reason }) => {
+                        self.svc.log("rpc.command.refused", &[("type", command_type.clone()), ("message", reason.clone())]);
+                        vec![rpc::exit_failure(&id, if project { wire::project_mutation_error(&command_id, wire::PROJECT_MUTATION_FAILED) } else { wire::dispatch_previously_rejected(&command_id, &command_type, &reason) })]
+                    }
                     Err(Failure::ProjectNotEmpty { command_id, project_id }) => {
                         self.svc.log("rpc.command.refused", &[("type", "project.delete".into()), ("message", wire::project_not_empty(&project_id))]);
                         vec![rpc::exit_failure(&id, wire::project_mutation_error(&command_id, &wire::project_not_empty(&project_id)))]

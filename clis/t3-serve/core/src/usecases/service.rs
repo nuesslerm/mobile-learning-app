@@ -101,7 +101,7 @@ impl Service {
         let parsed = Command::parse(raw, family).ok();
         let fresh = |cmd: &Command| !self.0.engine.accepted(&cmd.command_id).unwrap_or(false);
         let forwarded = match &parsed {
-            Some(cmd) if family == Family::Thread && is_forwarded(&cmd.kind) && fresh(cmd) => {
+            Some(cmd) if family == Family::Thread && is_forwarded(&cmd.kind) && fresh(cmd) && cmd.str("threadId").or(cmd.str("sourceThreadId")).is_none_or(|t| self.0.engine.thread_exists(t)) => {
                 let outcome = self.forward(cmd).map_err(|message| Failure::Refused { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), message })?;
                 Some((cmd.clone(), outcome))
             }

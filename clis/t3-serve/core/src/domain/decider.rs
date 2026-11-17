@@ -39,6 +39,8 @@ pub enum Rejection {
     Refused(String),
     /// `project.delete` without `force` of a project that still holds threads (`ProjectNotEmptyError`).
     ProjectNotEmpty(String),
+    /// A command of a thread the read model does not hold.
+    ThreadMissing(String),
 }
 
 impl From<String> for Rejection {
@@ -52,6 +54,7 @@ impl Rejection {
         match self {
             Rejection::Refused(message) => message.clone(),
             Rejection::ProjectNotEmpty(project) => t3_contracts::wire::project_not_empty(project),
+            Rejection::ThreadMissing(thread) => format!("No orchestration projection exists for thread {thread}."),
         }
     }
 }
@@ -457,6 +460,16 @@ pub fn delete_project(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decisio
 }
 
 pub fn decide(state: &State, family: Family, cmd: &Command, ctx: &Ctx) -> Result<Decision, Rejection> {
+    let subject = match cmd.kind.as_str() {
+        "thread.create" => None,
+        "thread.fork" | "thread.merge_back" => cmd.str("sourceThreadId"),
+        _ => cmd.str("threadId"),
+    };
+    if let (Family::Thread, Some(thread)) = (family, subject) {
+        if !state.threads.contains_key(thread) {
+            return Err(Rejection::ThreadMissing(thread.to_string()));
+        }
+    }
     match family {
         Family::Thread => decide_thread(state, cmd, ctx).map_err(Rejection::Refused),
         Family::Project if cmd.kind == "project.delete" => delete_project(state, cmd, ctx),

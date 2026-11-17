@@ -118,8 +118,32 @@ pub fn authorization_error(permission: &str) -> Value {
     })
 }
 
+/// `OrchestrationV2DispatchCommandError`: `detail` repeats `message`, and `cause` is the failure the pin's dispatcher wrapped.
+fn dispatch_failure(command_id: &str, command_type: &str, message: &str, cause: Value) -> Value {
+    json!({"_tag": "OrchestrationV2DispatchCommandError", "commandId": command_id, "commandType": command_type, "detail": message, "message": message, "cause": cause})
+}
+
 pub fn dispatch_error(command_id: &str, command_type: &str, message: &str) -> Value {
-    json!({"_tag": "OrchestrationV2DispatchCommandError", "commandId": command_id, "commandType": command_type, "message": message})
+    let cause = json!({"cause": message, "message": format!("Failed to dispatch orchestration command {command_type} ({command_id})."), "name": "OrchestratorDispatchError"});
+    dispatch_failure(command_id, command_type, message, cause)
+}
+
+/// What the pin's dispatcher fails with for a command of a thread it holds no projection of.
+pub fn dispatch_thread_missing(command_id: &str, command_type: &str, thread_id: &str) -> Value {
+    let message = format!("No orchestration projection exists for thread {thread_id}.");
+    let cause = json!({"cause": {"message": message, "name": "ProjectionStoreThreadNotFoundError"}, "message": projection_load_failed(thread_id), "name": "OrchestratorProjectionError"});
+    dispatch_failure(command_id, command_type, &message, cause)
+}
+
+/// The outer message of `dispatch_thread_missing`'s cause, which a later dispatch of the same command id quotes.
+pub fn projection_load_failed(thread_id: &str) -> String {
+    format!("Failed to load orchestration projection for thread {thread_id}.")
+}
+
+/// A command id whose first dispatch was refused is refused again with the first refusal's message (`reason`).
+pub fn dispatch_previously_rejected(command_id: &str, command_type: &str, reason: &str) -> Value {
+    let message = format!("Command {command_id} was previously rejected: {reason}");
+    dispatch_failure(command_id, command_type, &message, json!({"message": message, "name": "OrchestratorCommandPreviouslyRejectedError"}))
 }
 
 /// `orchestration.launchThread`'s declared error.
