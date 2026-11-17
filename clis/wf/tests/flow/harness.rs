@@ -180,7 +180,7 @@ fn an_android_script_reads_the_screen_drives_the_device_and_calls_an_agent() {
     // When the script stubs a backend route and lets the device call it
     let backend = MockServer::start(None);
     backend.routes(&[("GET /api/problems", MockReply::text(200, "from the backend"))]);
-    let lua = format!("local r = device:add_network_stub('POST', '*/api/leetcode/run', {{ json_body = {{ ok = true }}, status = 201 }})\nlog('answer ' .. device:run_shell('wf-probe ' .. r.port))\nlog('forwarded ' .. device:run_shell('wf-forward ' .. r.port .. ' {}'))\nlog('hits ' .. #device:get_network_stub_hits() .. ' ' .. device:get_network_stub_hits()[1].url)", backend.port);
+    let lua = format!("local r = device:add_network_stub('POST', '*/api/leetcode/run', {{ json_body = {{ ok = true }}, status = 201 }})\ndevice:add_network_stub('POST', '*/api/leetcode/run', {{ json_body = {{ ok = true }}, status = 201 }})\nlog('answer ' .. device:run_shell('wf-probe ' .. r.port))\nlog('forwarded ' .. device:run_shell('wf-forward ' .. r.port .. ' {}'))\nlog('hits ' .. #device:get_network_stub_hits() .. ' ' .. device:get_network_stub_hits()[1].url)", backend.port);
     let stubbed = android(&lua, &["--test-output-dir", "stub-rec"], &[]);
     let calls = s.calls("adb");
     // Then the device got the canned answer and the hit was kept under the backend's URL, the backend ports went to the stub server, and the rules were cleared
@@ -188,6 +188,8 @@ fn an_android_script_reads_the_screen_drives_the_device_and_calls_an_agent() {
     assert!(stubbed.stdout.contains("answer {\"ok\":true}") && stubbed.stdout.contains("hits 1 http://100.64.0.9:8789/api/leetcode/run"), "{}", stubbed.stdout);
     // and a call no stub matches went on to the backend its Host header names, leaving no hit
     assert!(stubbed.stdout.contains("forwarded from the backend") && backend.requests().len() == 1, "{}", stubbed.stdout);
+    // and a stub declared again on the running server installs the rules again, for a device that lost them since the run began
+    assert_eq!(calls.iter().filter(|c| c.contains("wf-stub-rules-ok")).count(), 2, "{calls:?}");
     let rules = calls.iter().find(|c| c.contains("wf-stub-rules-ok")).unwrap_or_else(|| panic!("no rules in {calls:?}"));
     assert!(rules.contains("--dport 8787 -m comment --comment wf-stub -j DNAT --to-destination 127.0.0.1:") && rules.contains("--dport 8789 "), "{rules}");
     assert!(rules.contains("--ctorigdstport 8789 ! --ctstate DNAT -m comment --comment wf-stub -j REJECT --reject-with tcp-reset"), "a connection opened before the rule bypasses the stub: {rules}");

@@ -95,6 +95,13 @@ impl AndroidDevice {
     /// for any connection to those ports that predates the rule.
     fn start_stubs(&self) -> Result<crate::stub_server::StubServer, String> {
         let server = crate::stub_server::StubServer::start("0.0.0.0:0")?;
+        self.install_stub_rules(server.port)?;
+        Ok(server)
+    }
+
+    /// (Re)installs the DNAT and reset rules for the stub server's port: it clears the ones this harness left first, so it can run again at any time. The
+    /// device can lose the rules between the start of a run and a request (a probe at the start reached the stub and the rule list a few seconds later was empty).
+    fn install_stub_rules(&self, stub_port: u16) -> Result<(), String> {
         let serial = self.serial()?;
         input::ensure_root(&serial);
         let routes = input::adb_text(&serial, &["shell", "ip route show table all"]).map_err(|e| format!("stub: {e}"))?;
@@ -102,7 +109,7 @@ impl AndroidDevice {
         let ports = std::env::var("WF_ANDROID_STUB_PORTS").unwrap_or_else(|_| "8787,8789".into());
         let mut script = CLEAR_STUB_RULES.to_string();
         for port in ports.split(',').map(str::trim).filter(|p| !p.is_empty()) {
-            script.push_str(&format!(" && iptables -t nat -I OUTPUT -p tcp --dport {port} -m comment --comment {STUB_RULE} -j DNAT --to-destination {gateway}:{}", server.port));
+            script.push_str(&format!(" && iptables -t nat -I OUTPUT -p tcp --dport {port} -m comment --comment {STUB_RULE} -j DNAT --to-destination {gateway}:{stub_port}"));
             // a reused app keeps keep-alive connections opened before the DNAT rule, which NAT never revisits: reset them so
             // the app's HTTP client reconnects through the stub
             script.push_str(&format!(" && iptables -I OUTPUT -p tcp -m conntrack --ctorigdstport {port} ! --ctstate DNAT -m comment --comment {STUB_RULE} -j REJECT --reject-with tcp-reset"));
@@ -111,7 +118,7 @@ impl AndroidDevice {
         // a rule that fails part-way must not stay behind: the backend ports would point at a stub that is gone
         let added = input::adb_text(&serial, &["shell", &script]).map_err(|e| format!("stub: {e}"));
         let refused = match &added {
-            Ok(o) if o.contains("wf-stub-rules-ok") => return Ok(server),
+            Ok(o) if o.contains("wf-stub-rules-ok") => return Ok(()),
             Ok(o) => format!("stub: the device refused the DNAT rules: {}", o.trim()),
             Err(e) => e.clone(),
         };
@@ -283,6 +290,9 @@ impl Device for AndroidDevice {
         let mut slot = self.stubs.borrow_mut();
         if slot.is_none() {
             *slot = Some(self.start_stubs()?);
+        } else if let Some(server) = slot.as_ref() {
+            // a stub declared on a running server asserts the rules again: the run may have started them long before this call
+            self.install_stub_rules(server.port)?;
         }
         let server = slot.as_ref().expect("started");
         let summary = json!({ "pattern": stub.pattern, "method": stub.method, "status": stub.status, "bytes": stub.body.len(), "port": server.port });

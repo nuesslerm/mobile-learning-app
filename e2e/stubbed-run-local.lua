@@ -12,7 +12,8 @@ features: leetcode
 local android = device.platform == "android"
 local base = env.base or (not android and "http://127.0.0.1:8800/mla-tamagui" or nil)
 assert_true(base, "pass --env base=<update link>; wf test run does")
-device:add_network_stub("POST", "*/api/leetcode/run", { body_file = "e2e/stubs/leetcode-run-two-sum.json", headers = { ["content-type"] = "application/json" } })
+local function stub_run() device:add_network_stub("POST", "*/api/leetcode/run", { body_file = "e2e/stubs/leetcode-run-two-sum.json", headers = { ["content-type"] = "application/json" } }) end
+stub_run()
 if android then
   -- is the path emulator -> DNAT rule -> stub alive at all, before the app is involved? One bare connect from the device shell: the stub logs the connection it accepts
   log("stub probe", (device:run_shell("echo | nc -w 3 10.0.2.2 8789; echo rc=$?")))
@@ -40,6 +41,8 @@ end
 -- a reused app may still show an earlier run's outcome on this screen, so the stubbed one is waited for, not the first
 local shown
 run_flow("run local", function()
+  -- declaring the stub again asserts the device's redirect rules again: the device can lose them between the start of the run and this tap
+  stub_run()
   device:tap_on({id='ProblemEditorRunLocalButton'})
   shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=12000, optional=true}
   if android and not shown then
@@ -47,6 +50,7 @@ run_flow("run local", function()
     -- table shows bytes queued to port 8789 and no answer): what the stub saw and the NAT rules are logged, and one more tap opens a fresh connection
     log("first run: stub hits", #device:get_network_stub_hits())
     log("nat rules", (device:run_shell("iptables -t nat -S OUTPUT; iptables -S OUTPUT | grep wf-stub")))
+    stub_run()
     device:tap_on({id='ProblemEditorRunLocalButton'})
     shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=30000, optional=true}
   end
