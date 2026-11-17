@@ -16,8 +16,6 @@ mod chain;
 mod replay_features;
 #[path = "integration/checkpoint_rollback.rs"]
 mod checkpoint_rollback;
-#[path = "integration/projects.rs"]
-mod projects;
 #[path = "integration/rig.rs"]
 mod rig;
 #[path = "integration/scripted_turn_replay.rs"]
@@ -26,5 +24,3 @@ mod scripted_turn_replay;
 mod terminal_pty;
 #[path = "integration/thread_surface.rs"]
 mod thread_surface;
-#[path = "integration/vcs.rs"]
-mod vcs;

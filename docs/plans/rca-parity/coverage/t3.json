@@ -9,12 +9,12 @@
   },
   "summary": {
     "rows": 222,
-    "served": 169,
-    "pending": 6,
+    "served": 171,
+    "pending": 4,
     "notOffered": 47,
     "excluded": 0,
     "flagged": 0,
-    "answeredByMapper": 6,
+    "answeredByMapper": 4,
     "byKind": {
       "command": 40,
       "http": 23,
@@ -22,8 +22,7 @@
       "rpc": 156
     },
     "pendingByMilestone": {
-      "M4": 4,
-      "M9": 2
+      "M4": 4
     }
   },
   "rows": [
@@ -192,16 +191,22 @@
       "milestone": "M4",
       "target": "agent:queue.resume",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "thread_surface::a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_starts_it_or_resumes_the_queue_and_rca_refuses_it_on_an_archived_thread",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-methods::t3-method-queued-run.start",
         "agent": [
+          "queue.add",
           "queue.resume",
-          "thread.create"
+          "thread.create",
+          "thread.forceStop",
+          "thread.subscribe",
+          "turn.start"
         ],
         "executor": [
-          "git_checkpoint",
-          "write_file"
-        ]
+          "git_checkpoint"
+        ],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -259,6 +264,7 @@
         "test": "thread_surface::a_workflow_stop_and_a_subagent_stop_each_end_the_running_turn_through_rca_and_a_stop_with_nothing_running_is_not_asked_of_rca",
         "agent": [
           "thread.create",
+          "thread.subscribe",
           "workflow.stop"
         ],
         "executor": []
@@ -326,12 +332,15 @@
       "milestone": "M3",
       "target": "agent:thread.create",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "attachments::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-methods::t3-method-thread.create",
         "agent": [
           "thread.create"
         ],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1041,16 +1050,21 @@
       "milestone": "M12",
       "target": "agent:workspace.create",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "projects::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-methods::t3-method-project.create",
         "agent": [
           "file.browse",
+          "file.mkdir",
           "state.set",
           "workspace.create"
         ],
         "executor": [
-          "browse"
-        ]
+          "browse",
+          "make_dir"
+        ],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -1061,16 +1075,22 @@
       "milestone": "M12",
       "target": "agent:workspace.remove",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "projects::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-methods::t3-method-project.delete",
         "agent": [
           "file.browse",
+          "file.mkdir",
           "state.set",
+          "workspace.create",
           "workspace.remove"
         ],
         "executor": [
-          "browse"
-        ]
+          "browse",
+          "make_dir"
+        ],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {
@@ -3092,9 +3112,32 @@
       "kind": "rpc",
       "name": "subscribeVcsBranch",
       "subscription": true,
-      "state": "pending",
+      "state": "served",
       "milestone": "M9",
-      "note": "answered by the mapper (clis/t3-serve/contracts/src/rpc.rs IMPLEMENTED_RPCS); no run-bundle evidence yet"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-methods::t3-method-subscribeVcsBranch",
+        "agent": [
+          "file.browse",
+          "git.diff",
+          "git.init",
+          "git.status",
+          "git.subscribe",
+          "git.upstreamStatus",
+          "worktree.list"
+        ],
+        "executor": [
+          "browse",
+          "git_diff",
+          "git_init",
+          "git_status",
+          "git_upstream",
+          "git_worktree_list"
+        ],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:subscribeVcsStatus",
@@ -3312,9 +3355,31 @@
       "id": "rpc:vcs.refreshBranch",
       "kind": "rpc",
       "name": "vcs.refreshBranch",
-      "state": "pending",
+      "state": "served",
       "milestone": "M9",
-      "note": "answered by the mapper (clis/t3-serve/contracts/src/rpc.rs IMPLEMENTED_RPCS); no run-bundle evidence yet"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-agent-methods::t3-method-vcs.refreshBranch",
+        "agent": [
+          "file.browse",
+          "git.diff",
+          "git.init",
+          "git.status",
+          "git.upstreamStatus",
+          "worktree.list"
+        ],
+        "executor": [
+          "browse",
+          "git_diff",
+          "git_init",
+          "git_status",
+          "git_upstream",
+          "git_worktree_list"
+        ],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:vcs.refreshStatus",

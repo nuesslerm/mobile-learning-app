@@ -6,10 +6,52 @@
     "runs": [
       {
         "suite": "t3-serve-integration",
-        "sha": "08cb07e0c9e0a65fc9ac17b1e3fa97117dad912f",
-        "complete": false,
+        "sha": "6ee095686cc6828612fc6661296d9b36734c420c",
+        "complete": true,
+        "tests": 34,
+        "passed": 34
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 17,
+        "passed": 17
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
         "tests": 1,
         "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 1,
+        "passed": 0
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 4,
+        "passed": 4
       },
       {
         "suite": "wf-mimic-t3-recorded",
@@ -22,36 +64,260 @@
         "suite": "wf-mimic-t3-recorded",
         "sha": null,
         "complete": true,
-        "tests": 1349,
-        "passed": 1062
+        "tests": 832,
+        "passed": 587
       },
       {
         "suite": "wf-mimic-t3-recorded",
         "sha": null,
         "complete": true,
-        "tests": 73,
-        "passed": 68
+        "tests": 42,
+        "passed": 37
       },
       {
         "suite": "wf-mimic-t3-recorded",
         "sha": null,
         "complete": true,
-        "tests": 72,
-        "passed": 61
+        "tests": 38,
+        "passed": 27
       },
       {
         "suite": "wf-mimic-t3-recorded",
         "sha": null,
         "complete": true,
-        "tests": 71,
-        "passed": 64
+        "tests": 39,
+        "passed": 32
       },
       {
         "suite": "wf-mimic-t3-recorded",
         "sha": null,
         "complete": true,
-        "tests": 144,
+        "tests": 88,
+        "passed": 38
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 43,
+        "passed": 37
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 6,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 228,
+        "passed": 217
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 15,
+        "passed": 15
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 16,
+        "passed": 16
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 14,
+        "passed": 14
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 20,
+        "passed": 8
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 41,
+        "passed": 41
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 34,
+        "passed": 34
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 77,
+        "passed": 70
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 5,
+        "passed": 5
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 14,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 77,
         "passed": 60
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 5,
+        "passed": 5
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 6,
+        "passed": 6
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 13,
+        "passed": 8
       }
     ]
   },
@@ -148,16 +414,22 @@
       "cassette": "recorded"
     },
     "command:queued-run.start": {
-      "suite": "t3-serve-integration",
-      "test": "thread_surface::a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_starts_it_or_resumes_the_queue_and_rca_refuses_it_on_an_archived_thread",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-methods::t3-method-queued-run.start",
       "agent": [
+        "queue.add",
         "queue.resume",
-        "thread.create"
+        "thread.create",
+        "thread.forceStop",
+        "thread.subscribe",
+        "turn.start"
       ],
       "executor": [
-        "git_checkpoint",
-        "write_file"
-      ]
+        "git_checkpoint"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:run.interrupt": {
       "suite": "wf-mimic-t3-recorded",
@@ -191,6 +463,7 @@
       "test": "thread_surface::a_workflow_stop_and_a_subagent_stop_each_end_the_running_turn_through_rca_and_a_stop_with_nothing_running_is_not_asked_of_rca",
       "agent": [
         "thread.create",
+        "thread.subscribe",
         "workflow.stop"
       ],
       "executor": []
@@ -226,12 +499,15 @@
       "cassette": "recorded"
     },
     "command:thread.create": {
-      "suite": "t3-serve-integration",
-      "test": "attachments::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-methods::t3-method-thread.create",
       "agent": [
         "thread.create"
       ],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "command:thread.delete": {
       "suite": "wf-mimic-t3-recorded",
@@ -552,28 +828,39 @@
       "cassette": "recorded"
     },
     "mutation:project.create": {
-      "suite": "t3-serve-integration",
-      "test": "projects::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-methods::t3-method-project.create",
       "agent": [
         "file.browse",
+        "file.mkdir",
         "state.set",
         "workspace.create"
       ],
       "executor": [
-        "browse"
-      ]
+        "browse",
+        "make_dir"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "mutation:project.delete": {
-      "suite": "t3-serve-integration",
-      "test": "projects::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-methods::t3-method-project.delete",
       "agent": [
         "file.browse",
+        "file.mkdir",
         "state.set",
+        "workspace.create",
         "workspace.remove"
       ],
       "executor": [
-        "browse"
-      ]
+        "browse",
+        "make_dir"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "mutation:project.update": {
       "suite": "wf-mimic-t3-recorded",
@@ -1530,6 +1817,30 @@
       "diff": "allowlisted",
       "cassette": "recorded"
     },
+    "rpc:subscribeVcsBranch": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-methods::t3-method-subscribeVcsBranch",
+      "agent": [
+        "file.browse",
+        "git.diff",
+        "git.init",
+        "git.status",
+        "git.subscribe",
+        "git.upstreamStatus",
+        "worktree.list"
+      ],
+      "executor": [
+        "browse",
+        "git_diff",
+        "git_init",
+        "git_status",
+        "git_upstream",
+        "git_worktree_list"
+      ],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
     "rpc:subscribeVcsStatus": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-subscribeVcsStatus-boundary-full",
@@ -1643,6 +1954,29 @@
       "test": "t3-v0.1.9-crawl::t3-rpc-vcs.pull-invalid-drop-cwd",
       "agent": [],
       "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:vcs.refreshBranch": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-agent-methods::t3-method-vcs.refreshBranch",
+      "agent": [
+        "file.browse",
+        "git.diff",
+        "git.init",
+        "git.status",
+        "git.upstreamStatus",
+        "worktree.list"
+      ],
+      "executor": [
+        "browse",
+        "git_diff",
+        "git_init",
+        "git_status",
+        "git_upstream",
+        "git_worktree_list"
+      ],
       "oracle": "mimic",
       "diff": "allowlisted",
       "cassette": "recorded"

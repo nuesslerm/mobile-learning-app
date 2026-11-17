@@ -825,16 +825,16 @@
       "oracle": "mimic"
     },
     "command:thread.fork": {
-      "unrecordable": "no recording shows it: the recorded T3 refused the command at its decoder and no agent method ran, so a replay cannot show what a fork changes; the behaviour test thread_surface is the only check of it"
+      "unrecordable": "no recording shows it: the recorded fork (t3-v0.1.9-agent-methods, on a thread with no finished turn) was refused by T3 and the replay's call window holds agent method thread.fork answered NO_STABLE_TURN, never an answered fork; the behaviour test thread_surface is the only check of it"
     },
     "command:thread.merge_back": {
-      "unrecordable": "no recording shows it: the recorded T3 refused the command at its decoder and no agent method ran, so a replay cannot show what a merge back changes; the behaviour test thread_surface is the only check of it"
+      "unrecordable": "no recording shows it: the recorded merge back follows a fork T3 refused (no finished turn), so its call window holds thread.fork answered NO_STABLE_TURN and no agent method thread.mergeBack; the behaviour test thread_surface is the only check of it"
     },
     "command:queued-message.promote-to-steer": {
       "unrecordable": "no recording shows it: the recorded T3 refused the promotion and never asked turn.steer, so the steer of a running turn is in no replay; the behaviour test thread_surface is the only check of it"
     },
     "command:queued-run.start": {
-      "unrecordable": "no recording shows it: its recorded story is labelled command:run.interrupt and the window of that label holds thread.forceStop and queue.resume, not the start of a queued run, and one listed breaking gap remains; the behaviour test thread_surface is the only check of it"
+      "oracle": "mimic"
     },
     "command:runtime-request.respond": {
       "unrecordable": "no recording shows it: the recorded interactions never reach agent method approval.answer (an answered approval needs a scripted turn that raises one, which no recorded set holds); the behaviour test thread_surface is the only check of it"
@@ -852,7 +852,7 @@
       "unrecordable": "no recording shows it: the recorded call window of the row does not hold agent method thread.detach answering; the behaviour test thread_surface is the only check of it"
     },
     "command:thread.create": {
-      "unrecordable": "no recording shows it: no recorded call window of the row holds agent method thread.create answering a successful create (the recorded call is the prelude's repeat); the behaviour test attachments is the only check of it"
+      "oracle": "mimic"
     },
     "command:message.dispatch": {
       "unrecordable": "no recording shows it: the recorded replay differs on a breaking gap listed in known-gaps.json (the attachment upload path waits for the 0.1.9 version split); the behaviour test attachments is the only check of it"
@@ -864,10 +864,10 @@
       "unrecordable": "no recording shows it: the recorded rollback was answered TURN_NOT_FOUND, so no recorded call window holds agent method thread.rollback answering a rollback after a real turn; the behaviour test checkpoint_rollback is the only check of it"
     },
     "mutation:project.create": {
-      "unrecordable": "no recording shows it: no recorded call window of the row holds agent method workspace.create answering a successful create (it needs a labelled step with a created project); the behaviour test projects is the only check of it"
+      "oracle": "mimic"
     },
     "mutation:project.delete": {
-      "unrecordable": "no recording shows it: no recorded call window of the row holds agent method workspace.remove answering a successful delete (it needs a labelled step with a created and deleted project); the behaviour test projects is the only check of it"
+      "oracle": "mimic"
     },
     "rpc:orchestration.subscribeShell": {
       "unrecordable": "no recording shows it: the recorded streams of the row differ on breaking gaps listed in known-gaps.json and no recorded interaction answers it through the chain with a labelled call; the behaviour test chain is the only check of it"
@@ -879,6 +879,12 @@
       "unrecordable": "no recording shows it: the recorded streams of the row differ on breaking gaps listed in known-gaps.json and no recorded interaction answers it through the chain with a labelled call; the behaviour test chain is the only check of it"
     },
     "rpc:server.updateSettings": {
+      "oracle": "mimic"
+    },
+    "rpc:vcs.refreshBranch": {
+      "oracle": "mimic"
+    },
+    "rpc:subscribeVcsBranch": {
       "oracle": "mimic"
     }
   },

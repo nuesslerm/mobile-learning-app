@@ -213,6 +213,19 @@ impl Service {
         Ok((StatusFold { root: root.into(), has_remote, local, remote, branch_only: false }, first))
     }
 
+    /// `vcs.init`: a repository made by the executor in the folder `cwd` (an absolute folder below its root); a repository that is there stays as it is.
+    pub fn vcs_init(&self, payload: &Value) -> Result<(), QueryFailure> {
+        let cwd = field(payload, "cwd")?;
+        if outside_repository(cwd) || payload.get("kind").and_then(Value::as_str).is_some_and(|k| k == "jj") {
+            return Err(QueryFailure::Error(t3_contracts::wire::unsupported_error("vcs.init")));
+        }
+        let failed = |detail: String| QueryFailure::Error(manager_error("init", cwd, &detail));
+        let root = self.root().map_err(failed)?;
+        let path = super::projects::relative(&root, cwd).ok_or_else(|| failed(format!("{cwd} is outside the folder this server serves ({root}).")))?;
+        let path = if path.is_empty() { ".".to_string() } else { path };
+        self.agent().run(&Op::GitInit { path, initial_branch: None, files: Vec::new(), message: None }).map(drop).map_err(|e| failed(e.message()))
+    }
+
     /// `vcs.refreshBranch`: reads the repository once so its branch is current; the answer carries nothing.
     pub fn vcs_refresh_branch(&self, payload: &Value) -> Result<(), QueryFailure> {
         let root = field(payload, "cwd")?;

@@ -373,3 +373,20 @@ fn a_directory_that_is_no_path_of_the_executors_machine_is_no_repository_and_the
     assert_eq!(failure(&prepared), &json!({"_tag": "GitManagerError", "operation": "GitWorkflowService.preparePullRequestThread", "cwd": cwd, "detail": "Failed to resolve the VCS driver for this Git workflow.", "cause": no_driver}));
     assert!(ops(&h).is_empty(), "{:?}", ops(&h));
 }
+
+#[test]
+fn a_repository_is_made_by_the_executor_in_an_absolute_folder_below_its_root_and_a_relative_or_jj_one_is_unsupported() {
+    // Given a server over an agent API whose executor is rooted at /workspace
+    let (h, mut rpc) = started();
+    // When the phone asks for a repository in /workspace/demo
+    let made = rpc.call("vcs.init", json!({"cwd": ROOT}));
+    // Then the answer carries nothing, and the executor was asked to init the folder below its root with no files and no commit
+    assert!(success(&made).is_null());
+    assert!(ops(&h).contains(&Op::GitInit { path: "demo".into(), initial_branch: None, files: vec![], message: None }), "{:?}", ops(&h));
+    // When the folder is relative or the kind is jj
+    for payload in [json!({"cwd": "demo"}), json!({"cwd": ROOT, "kind": "jj"})] {
+        let refused = rpc.call("vcs.init", payload);
+        // Then the phone is told the operation is not supported
+        assert_eq!(failure(&refused)["_tag"], "UnsupportedOperationError");
+    }
+}

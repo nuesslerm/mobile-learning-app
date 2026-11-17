@@ -67,8 +67,7 @@
         "t3-scn-rpc-orchestration.searchThread",
         "t3-scn-rpc-projects.listIgnoredFiles",
         "t3-scn-rpc-projects.searchContents",
-        "t3-scn-rpc-review.getBranchCommits",
-        "t3-scn-rpc-vcs.init"
+        "t3-scn-rpc-review.getBranchCommits"
       ]
     },
     {

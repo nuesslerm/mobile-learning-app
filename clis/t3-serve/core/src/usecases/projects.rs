@@ -57,7 +57,7 @@ pub fn workspace_name(project: &str) -> String {
 }
 
 /// `dir` relative to `root` (empty for `root` itself), or none when `dir` is not below it.
-fn relative(root: &str, dir: &str) -> Option<String> {
+pub(super) fn relative(root: &str, dir: &str) -> Option<String> {
     let (root, dir) = (root.trim_end_matches('/'), dir.trim_end_matches('/'));
     if dir == root {
         return Some(String::new());
@@ -153,7 +153,14 @@ impl Service {
     }
 
     /// Checks the project's folder with the agent API and, below the root, makes it the workspace named for the project (none for the root itself).
-    fn register_project(&self, id: &str, dir: &str, moved: bool) -> Result<(), String> {
+    fn register_project(&self, id: &str, dir: &str, moved: bool, make: bool) -> Result<(), String> {
+        // `createWorkspaceRootIfMissing`: the executor makes the folder (never this server) before it is checked
+        if make {
+            let root = self.served_path(".").map_err(|e| e.message())?;
+            if let Some(below) = relative(&root, dir).filter(|r| !r.is_empty()) {
+                self.agent().run(&Op::FileMkdir { path: below, parents: true }).map_err(|e| e.message())?;
+            }
+        }
         let (_, relative) = self.below_root(dir)?;
         let workspace = workspace_name(id);
         if relative.is_empty() {
@@ -192,9 +199,12 @@ impl Service {
         let id = cmd.require("projectId")?;
         let known = self.engine().read(|state| state.projects.contains_key(id));
         match cmd.kind.as_str() {
-            "project.create" if !known => self.register_project(id, cmd.require("workspaceRoot")?, false),
+            "project.create" if !known => {
+                let make = cmd.body.get("createWorkspaceRootIfMissing").and_then(Value::as_bool).unwrap_or(false);
+                self.register_project(id, cmd.require("workspaceRoot")?, false, make)
+            }
             "project.update" if known => match cmd.str("workspaceRoot") {
-                Some(root) if self.engine().project_root(id).as_deref() != Some(root) => self.register_project(id, root, true),
+                Some(root) if self.engine().project_root(id).as_deref() != Some(root) => self.register_project(id, root, true, false),
                 _ => Ok(()),
             },
             _ => Ok(()),
@@ -303,7 +313,7 @@ impl Service {
     }
 
     /// The executor's root, without a trailing slash.
-    fn root(&self) -> Result<String, String> {
+    pub(super) fn root(&self) -> Result<String, String> {
         Ok(self.served_path(".").map_err(|e| e.message())?.trim_end_matches('/').to_string())
     }
 
