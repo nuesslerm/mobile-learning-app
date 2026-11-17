@@ -2797,7 +2797,6 @@
         "orca-session.tabs.unsubscribeAll-valid-min",
         "orca-settings.getAgentLaunch-empty-empty-object",
         "orca-settings.getAgentLaunch-invalid-no-payload",
-        "orca-settings.update-boundary-limit-machineName",
         "orca-settings.updatePRBotAuthorOverride-valid-min",
         "orca-skills.autoUpdateBundledOrca-boundary-full",
         "orca-skills.autoUpdateBundledOrca-valid-min",

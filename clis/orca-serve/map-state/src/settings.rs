@@ -12,6 +12,8 @@ enum Kind {
     Selection,
     /// Kept as sent: its shape is the phone's own (nested records the schema normalises per field).
     Record,
+    /// A string kept trimmed, at most this many characters.
+    Trimmed(usize),
 }
 
 const KEYS: &[(&str, Kind)] = &[
@@ -39,10 +41,8 @@ const KEYS: &[(&str, Kind)] = &[
     ("prBotAuthorOverrides", Kind::Record),
     ("nativeChatAutoContinueAfterUsageLimit", Kind::Bool),
     ("nativeChatPermissionMode", Kind::Text),
+    ("machineName", Kind::Trimmed(255)),
 ];
-
-/// The host's own name is set where it runs (`--label`), so the phone cannot rename it: a rename that was kept would change nothing the phone reads back.
-const MACHINE_NAME: &str = "machineName";
 
 fn check(key: &str, kind: &Kind, value: &Value) -> Result<(), Failure> {
     let fits = match kind {
@@ -51,6 +51,7 @@ fn check(key: &str, kind: &Kind, value: &Value) -> Result<(), Failure> {
         Kind::OneOf(allowed) => value.as_str().is_some_and(|v| allowed.contains(&v)),
         Kind::Selection => value.is_null() || value.as_array().is_some_and(|l| l.iter().all(Value::is_string)),
         Kind::Record => true,
+        Kind::Trimmed(max) => value.as_str().is_some_and(|v| v.trim().chars().count() <= *max),
     };
     if fits {
         Ok(())
@@ -65,15 +66,16 @@ pub(crate) fn update(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
         Value::Object(patch) => patch,
         _ => return Err(Failure::invalid("settings.update takes an object of the settings to change")),
     };
+    let mut kept_patch = patch.clone();
     for (key, value) in patch {
-        if key == MACHINE_NAME {
-            return Err(Failure::invalid("The host's name is set where it runs, not from a phone"));
-        }
         let (_, kind) = KEYS.iter().find(|(k, _)| k == key).ok_or_else(|| Failure::invalid(format!("Unknown setting: {key}")))?;
         check(key, kind, value)?;
+        if let (Kind::Trimmed(_), Some(text)) = (kind, value.as_str()) {
+            kept_patch.insert(key.clone(), json!(text.trim()));
+        }
     }
     let mut settings = store::read_object(agent, SETTINGS)?;
-    settings.extend(patch.iter().map(|(k, v)| (k.clone(), v.clone())));
+    settings.extend(kept_patch);
     store::write(agent, SETTINGS, Value::Object(settings.clone()))?;
     Ok(json!({"settings": store::with_defaults(SETTINGS, settings)}))
 }

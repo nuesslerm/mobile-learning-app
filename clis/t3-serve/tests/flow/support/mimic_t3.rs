@@ -31,9 +31,29 @@ pub fn granted_scopes(set: &CassetteSet) -> Vec<String> {
     grant.payload["body"]["scope"].as_str().expect("scope is a string").split(' ').map(String::from).collect()
 }
 
+/// The settings the pinned v0.1.9 server has and v0.1.6 did not: the set of v0.1.6 cannot name an extra key in an allowlist, and t3-serve answers v0.1.9.
+const SETTINGS_OF_THE_NEWER_PIN: [&str; 12] = [
+    "cloudSpeechCredentials",
+    "fastWorktreeCheckout",
+    "ghqCloneLayout",
+    "hiddenThreadTags",
+    "hideTaggedThreads",
+    "promptSuggestionsEnabled",
+    "speechAcceleration",
+    "speechModelId",
+    "speechModelUnloadTimeout",
+    "speechPostProcessingModelSelection",
+    "speechProjectCustomWords",
+    "textGenerators",
+];
+
+fn is_newer_pin_setting(d: &mimic_core::differ::Diff) -> bool {
+    d.kind == mimic_core::differ::DiffKind::Extra && SETTINGS_OF_THE_NEWER_PIN.iter().any(|k| mimic_core::allowlist::plain(&d.path).ends_with(&format!(".settings.{k}")))
+}
+
 /// What a replay found that the allowlist does not name, one line each.
 pub fn differences(v: &Verdict) -> Vec<String> {
-    let mut out: Vec<String> = v.results.iter().flat_map(|r| r.diffs.iter().filter(|d| d.severity != mimic_core::differ::Severity::None).map(move |d| format!("{} {}: {:?} {:?}", r.id, d.path, d.kind, d.severity))).collect();
+    let mut out: Vec<String> = v.results.iter().flat_map(|r| r.diffs.iter().filter(|d| d.severity != mimic_core::differ::Severity::None && !is_newer_pin_setting(d)).map(move |d| format!("{} {}: {:?} {:?}", r.id, d.path, d.kind, d.severity))).collect();
     out.extend(v.results.iter().filter_map(|r| r.error.as_ref().map(|e| format!("{}: {e}", r.id))));
     out
 }

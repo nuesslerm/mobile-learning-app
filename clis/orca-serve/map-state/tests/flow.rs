@@ -83,6 +83,17 @@ fn given_no_setting_kept_when_the_phone_reads_and_updates_settings_then_the_patc
 }
 
 #[test]
+fn given_a_machine_name_with_spaces_when_the_phone_renames_the_host_then_it_is_kept_trimmed_and_read_back_after_a_restart() {
+    // Given nothing kept
+    let mut rig = Rig::new();
+    // When the phone renames the host with a name padded by spaces
+    let renamed = rig.ok("settings.update", json!({"machineName": "  Studio  "}));
+    // Then the answer holds the trimmed name over the defaults, and a server started afterwards reads it
+    assert_eq!(renamed["settings"], over_defaults("settings", json!({"machineName": "Studio"})));
+    assert_eq!(rig.after_restart().ok("settings.get", json!({}))["settings"]["machineName"], json!("Studio"));
+}
+
+#[test]
 fn given_settings_the_schema_refuses_when_updated_then_each_is_refused_and_nothing_is_kept() {
     let mut rig = Rig::new();
     for (patch, says) in [
@@ -90,7 +101,8 @@ fn given_settings_the_schema_refuses_when_updated_then_each_is_refused_and_nothi
         (json!({"compactWorktreeCards": "yes"}), "Invalid value for setting compactWorktreeCards"),
         (json!({"defaultTaskViewPreset": "everything"}), "Invalid value for setting defaultTaskViewPreset"),
         (json!({"defaultRepoSelection": [1]}), "Invalid value for setting defaultRepoSelection"),
-        (json!({"compactWorktreeCards": true, "machineName": "x"}), "set where it runs"),
+        (json!({"compactWorktreeCards": true, "machineName": 7}), "Invalid value for setting machineName"),
+        (json!({"machineName": "a".repeat(256)}), "Invalid value for setting machineName"),
         (json!("a string"), "takes an object"),
     ] {
         // When the phone sends the patch, Then it is refused as an invalid argument saying why, and the valid part of it was not kept either

@@ -3296,9 +3296,12 @@
       "milestone": "M10",
       "evidence": {
         "suite": "wf-mimic-orca-crawl",
-        "test": "orca-v1.4.259-crawl::orca-settings.update-invalid-no-payload",
+        "test": "orca-v1.4.259-crawl::orca-settings.update-boundary-limit-machineName",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
       }
     },
     {

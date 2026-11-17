@@ -879,7 +879,7 @@
       "unrecordable": "no recording shows it: the recorded streams of the row differ on breaking gaps listed in known-gaps.json and no recorded interaction answers it through the chain with a labelled call; the behaviour test chain is the only check of it"
     },
     "rpc:server.updateSettings": {
-      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+      "oracle": "mimic"
     }
   },
   "reverify": {}

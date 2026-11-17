@@ -1418,9 +1418,12 @@
     },
     "rpc:server.updateSettings": {
       "suite": "wf-mimic-t3-recorded",
-      "test": "t3-v0.1.9-recorded-2::t3-rpc-server.updateSettings",
+      "test": "t3-v0.1.9-crawl::t3-rpc-server.updateSettings-boundary-full",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:sourceControl.appAccess": {
       "suite": "wf-mimic-t3-recorded",

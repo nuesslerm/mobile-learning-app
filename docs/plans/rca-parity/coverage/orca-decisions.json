@@ -1273,25 +1273,25 @@
       "oracle": "mimic"
     },
     "rpc:agentSession.modelCatalog": {
-      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+      "unrecordable": "blocked, not a recording limit: the pinned phone declares agent-session.structured.v1 through runtime.clientCapabilities.update, which the recorded orcad refuses, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server, which accepts the declaration so the phone works, answers the call itself; the owner revoked the allowlist that hid this (08cb07e) and refusing the declaration breaks the phone, so the row needs the owner's decision between the two (R10); it keeps its replay evidence because pending may not rise"
     },
     "rpc:agentSessionAttachment.read": {
-      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+      "unrecordable": "blocked, not a recording limit: the pinned phone declares agent-session.structured.v1 through runtime.clientCapabilities.update, which the recorded orcad refuses, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server, which accepts the declaration so the phone works, answers the call itself; the owner revoked the allowlist that hid this (08cb07e) and refusing the declaration breaks the phone, so the row needs the owner's decision between the two (R10); it keeps its replay evidence because pending may not rise"
     },
     "rpc:agentSessionAttachment.readTextChunk": {
-      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+      "unrecordable": "blocked, not a recording limit: the pinned phone declares agent-session.structured.v1 through runtime.clientCapabilities.update, which the recorded orcad refuses, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server, which accepts the declaration so the phone works, answers the call itself; the owner revoked the allowlist that hid this (08cb07e) and refusing the declaration breaks the phone, so the row needs the owner's decision between the two (R10); it keeps its replay evidence because pending may not rise"
     },
     "rpc:agentSessionAttachment.uploadAbort": {
-      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+      "unrecordable": "blocked, not a recording limit: the pinned phone declares agent-session.structured.v1 through runtime.clientCapabilities.update, which the recorded orcad refuses, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server, which accepts the declaration so the phone works, answers the call itself; the owner revoked the allowlist that hid this (08cb07e) and refusing the declaration breaks the phone, so the row needs the owner's decision between the two (R10); it keeps its replay evidence because pending may not rise"
     },
     "rpc:agentSessionAttachment.uploadCommit": {
-      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+      "unrecordable": "blocked, not a recording limit: the pinned phone declares agent-session.structured.v1 through runtime.clientCapabilities.update, which the recorded orcad refuses, so the recorded answer is structured_agent_session_unsupported (clientCapabilityMissing) where this server, which accepts the declaration so the phone works, answers the call itself; the owner revoked the allowlist that hid this (08cb07e) and refusing the declaration breaks the phone, so the row needs the owner's decision between the two (R10); it keeps its replay evidence because pending may not rise"
     },
     "rpc:settings.update": {
-      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+      "oracle": "mimic"
     },
     "rpc:ui.set": {
-      "unrecordable": "blocked, not a recording limit: the recorded replay of the row differs on a breaking gap listed in known-gaps.json, so it is not oracle-served; the row keeps its replay evidence because pending may not rise, and this reason goes when the gap is fixed"
+      "unrecordable": "blocked, not a recording limit: ui.set answers the pin's sanitised state (strict keys, a wrong-typed value dropped, null params as {}, each key normalised, pairing-local keys stripped, workspaceCleanup.browse and the tour and tip id lists normalised) and map-state stores what it is given; the port needs about 25 helpers of references/orca/src/shared, and the crawl replay also needs jiraSavedFilterState, which the recorded chain sets with ui.mutateJiraSavedFilters, a method not served here; it keeps its replay evidence because pending may not rise"
     }
   },
   "reverify": {
