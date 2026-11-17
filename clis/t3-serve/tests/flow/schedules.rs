@@ -1,7 +1,6 @@
 //! The `scheduledTasks.*` rows through the real router over the agent double: what a phone's save becomes (the `Op::Schedule` the agent API is
 //! asked: snake_case schedule, the model's instance as the driver, the project's directory as the workspace, the phone's own fields in `meta`),
-//! what the phone is told of the task, what rca does not offer (refused by name, nothing sent), and the stream. The chain
-//! (`tests/integration/schedules_m12.rs`) runs the same calls through the real service and executor.
+//! what the phone is told of the task, what rca does not offer (refused by name, nothing sent), and the stream.
 use super::support::*;
 use t3_core::ports::{AgentError, Op};
 

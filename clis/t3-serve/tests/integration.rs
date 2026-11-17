@@ -24,8 +24,6 @@ mod projects_m12;
 mod rig;
 #[path = "integration/scripted_turn_replay.rs"]
 mod scripted_turn_replay;
-#[path = "integration/schedules_m12.rs"]
-mod schedules_m12;
 #[path = "integration/settings_m10.rs"]
 mod settings_m10;
 #[path = "integration/terminal_m8.rs"]
