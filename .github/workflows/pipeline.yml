@@ -721,6 +721,8 @@ jobs:
       # a task writes its suites' run records (<suite>/report.json, trace.json) to its own folder under .agents/tmp/test-output, an Nx output the cache restores
       - name: Integration tests
         timeout-minutes: 38
+        env:
+          WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
         run: wf test run --stage integration-tests --plan "$RUNNER_TEMP/plan.json" --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
       - uses: ./.github/actions/nx-cache
         if: ${{ !cancelled() }}
@@ -736,10 +738,12 @@ jobs:
       - name: Publish the integration run bundles
         if: always()
         timeout-minutes: 5
+        env:
+          WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
         run: |
           found=0
           # each integration task writes its run records under .agents/tmp/test-output/<crate>/<task>/<suite>/ (Nx outputs of the task), so a task
-          # Nx replayed from the cache restores them and its shard still publishes a bundle. A chain's run record (t3-serve-integration,
+          # Nx replayed from the cache restores them and its shard still publishes a bundle (vm-ops-api's and remote-chat-agent's scripts still write to $WF_TEST_OUTPUT_DIR, so only a run that executed them publishes). A chain's run record (t3-serve-integration,
           # orca-serve-integration) and a mimic replay's (wf-mimic-*) carry their method-hit trace (trace.json) into the bundle `wf mimic coverage --traces` reads
           while IFS= read -r dir; do
             [ -f "$dir/report.json" ] || continue
@@ -751,7 +755,7 @@ jobs:
             else
               printf '%s\n' "$out"
             fi
-          done < <(find .agents/tmp/test-output -type d \( -name 'vm-ops-api-*' -o -name 't3-serve-*' -o -name 'wf-mimic-*' -o -name 'orca-serve-*' \) 2>/dev/null | sort)
+          done < <(find .agents/tmp/test-output "$WF_TEST_OUTPUT_DIR" -type d \( -name 'vm-ops-api-*' -o -name 't3-serve-*' -o -name 'wf-mimic-*' -o -name 'orca-serve-*' \) 2>/dev/null | sort)
           [ "$found" = 1 ] || echo "no integration report this run (no integration task ran or was restored from the cache)"
       - name: Upload the integration run bundles
         if: always()
