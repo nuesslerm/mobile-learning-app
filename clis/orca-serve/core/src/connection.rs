@@ -35,7 +35,7 @@ impl Host {
     /// The dispatcher of a socket that proved `device_id` holds `device_token`.
     pub fn connection(self: &Arc<Self>, device_id: &str, device_token: &str, client_capabilities: Vec<String>) -> Connection {
         let n = self.connections.fetch_add(1, Ordering::SeqCst) + 1;
-        Connection { host: self.clone(), id: format!("conn{n}"), device_id: device_id.to_string(), device_token: device_token.to_string(), client_capabilities, subscriptions: Subscriptions::default() }
+        Connection { host: self.clone(), id: format!("{:016x}", n.wrapping_mul(0x9E37_79B9_7F4A_7C15)), device_id: device_id.to_string(), device_token: device_token.to_string(), client_capabilities, subscriptions: Subscriptions::default() }
     }
 }
 
@@ -49,6 +49,11 @@ pub struct Connection {
 }
 
 impl Connection {
+    /// Sixteen hex digits, the shape of the pinned host's connection ids, which its stream ids embed.
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+
     pub fn client_capabilities(&self) -> &[String] {
         &self.client_capabilities
     }

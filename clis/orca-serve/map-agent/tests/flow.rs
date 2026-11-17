@@ -1325,3 +1325,40 @@ fn given_a_chat_when_a_rewind_cannot_be_done_then_it_is_refused_with_the_hosts_r
     assert_eq!(reason(&busy), invalid("busy"));
     assert!(sent(&rig, "thread.rollback").is_empty());
 }
+
+#[test]
+fn given_a_session_id_that_is_no_agent_session_id_when_a_row_takes_it_then_it_is_refused_as_an_invalid_agent_session_id() {
+    // Given a host
+    let mut rig = Rig::new();
+    let envelope = json!({"clientOperationId": "op", "expectedRuntimeFence": 1, "payloadFingerprint": "f", "sessionId": "a"});
+    // When the phone releases, sets an option, or asks for a model catalog under an id of no agent, or leaves the id out or sends a number
+    let release = rig.err("agentSession.release", json!({"sessionId": "a", "holderId": "h"}));
+    let release_number = rig.err("agentSession.release", json!({"sessionId": 7}));
+    let release_none = rig.err("agentSession.release", json!({}));
+    let option = rig.err("agentSession.setOption", json!({"envelope": envelope, "key": "model", "value": "m"}));
+    let catalog = rig.err("agentSession.modelCatalog", json!({"agent": "claude", "sessionId": "a"}));
+    // Then the id is the refusal, or the schema's own message when it is no string
+    let invalid = ("invalid_argument".to_string(), "Invalid agent session id".to_string());
+    assert_eq!((release, option, catalog), (invalid.clone(), invalid.clone(), invalid));
+    assert_eq!(release_number.1, "Invalid input: expected string, received number");
+    assert_eq!(release_none.1, "Invalid input: expected string, received undefined");
+    // And a session id of an agent is released
+    assert_eq!(rig.ok("agentSession.release", json!({"sessionId": "claude_a", "holderId": "h"})), json!({"released": true}));
+}
+
+#[test]
+fn given_detection_inputs_of_the_wrong_type_or_for_a_host_this_machine_is_not_when_agents_are_detected_then_each_is_refused_as_the_host_refuses_it() {
+    // Given an executor with agent CLIs
+    let mut rig = Rig::new();
+    // When the phone detects or refreshes with a number for the worktree, a flag that is no boolean, or another host's id
+    let wrong_type = rig.err("preflight.detectAgents", json!({"worktreeId": 7}));
+    let wrong_refresh = rig.err("preflight.refreshAgents", json!({"worktreeId": 7}));
+    let wrong_flag = rig.err("preflight.refreshAgents", json!({"userInitiated": "yes"}));
+    let other_host = rig.err("preflight.detectAgents", json!({"worktreeHostId": "a", "project": {"repo": "a"}}));
+    // Then the schema's own message or the host id refusal answers, and this machine's id is accepted
+    assert_eq!(wrong_type, ("invalid_argument".into(), "Invalid input: expected string, received number".into()));
+    assert_eq!(wrong_refresh, wrong_type);
+    assert_eq!(wrong_flag, ("invalid_argument".into(), "Invalid input: expected boolean, received string".into()));
+    assert_eq!(other_host, ("invalid_argument".into(), "Invalid host id".into()));
+    rig.ok("preflight.refreshAgents", json!({"worktreeHostId": "local", "userInitiated": true}));
+}

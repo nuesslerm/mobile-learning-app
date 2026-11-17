@@ -89,7 +89,7 @@ fn given_a_client_events_subscription_when_opened_and_ended_then_ready_carries_t
     let subscription = ready["result"]["subscriptionId"].as_str().unwrap().to_string();
     // Then it is a streaming frame whose snapshot reads rca's state, and the id says which connection it belongs to
     assert_eq!((ready["streaming"].clone(), ready["result"]["type"].clone()), (json!(true), json!("ready")));
-    assert_eq!(ready["result"]["snapshot"], json!({"sshStates": [], "nativeChatQueueFollowUps": false}));
+    assert_eq!(ready["result"]["snapshot"], json!({"sshStates": [], "nativeChatQueueFollowUps": false, "nativeChatCiResultLines": true}));
     assert!(subscription.starts_with("runtime-client-events-"));
     assert!(h.agent.calls().contains(&"state.get".to_string()));
     // When the other phone tries to end that stream, and the owner ends it

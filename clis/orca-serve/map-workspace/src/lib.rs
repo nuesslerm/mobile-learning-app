@@ -129,7 +129,7 @@ impl Area for WorkspaceArea {
             FILES_CREATE_FILE => files::create_file(agent, params),
             FOLDER_WORKSPACE_LIST => catalog::folder_workspaces(agent),
             PROJECT_SECTIONS => catalog::project_sections(agent),
-            REPO_LIST_ROW => repos::list(agent),
+            REPO_LIST_ROW => repos::list(agent, params),
             REPO_UPDATE => repos::update(agent, params),
             REPO_HOOKS => repos::hooks(agent, params),
             REPO_SPARSE_PRESETS => repos::sparse_presets(agent, params),

@@ -178,7 +178,7 @@ impl Area for AgentArea {
             AGENT_SESSION_ITEM => session::item(agent, params),
             AGENT_SESSION_UNSUBSCRIBE => unsubscribe(ctx, params),
             AGENT_SESSION_HOLD => session::hold(agent, params),
-            AGENT_SESSION_RELEASE => Ok(session::release()),
+            AGENT_SESSION_RELEASE => session::release(params),
             AGENT_SESSION_CURRENT_REQUESTS => session::current_requests(agent, params),
             AGENT_SESSION_SEND_RECORDED => session::send_recorded(agent, params),
             AGENT_SESSION_REWIND => rewind::rewind(agent, params),
@@ -237,10 +237,7 @@ impl Area for AgentArea {
 
 /// With a subscription id, that one stream of the session; without, every stream this connection has on it.
 fn unsubscribe(ctx: &mut Ctx, params: &Value) -> Result<Value, Failure> {
-    let session = string_field(params, "sessionId")?.ok_or_else(|| Failure::invalid("Invalid input: expected string, received undefined"))?;
-    if !ids::is_session_id(session) {
-        return Err(Failure::invalid("Invalid agent session id"));
-    }
+    let session = session::agent_session_id(params)?;
     let base = stream::base(ctx.connection_id, session);
     match string_field(params, "subscriptionId")? {
         Some(id) => ctx.subscriptions.cancel(&format!("{base}:{id}")),

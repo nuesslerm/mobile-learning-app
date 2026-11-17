@@ -222,7 +222,6 @@
       ],
       "ids": [
         "orca-agentSession.agents",
-        "orca-agentSession.release",
         "orca-agentSessionAttachment.uploadAbort",
         "orca-runtime.clientCapabilities.update"
       ]
@@ -420,16 +419,6 @@
       ]
     },
     {
-      "class": "missing at steps._:s2c:*.[*].payload.result.orphanCount",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.result.orphanCount missing breaking"
-      ],
-      "ids": [
-        "orca-automation.list"
-      ]
-    },
-    {
       "class": "changed at steps._:s2c:*.[*].payload.result.projects",
       "severity": "breaking",
       "diffs": [
@@ -471,17 +460,6 @@
       ],
       "ids": [
         "orca-accounts.subscribe"
-      ]
-    },
-    {
-      "class": "missing at steps._:s2c:*.[*].payload.snapshot.nativeChatCiResultLines",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.snapshot.nativeChatCiResultLines missing breaking",
-        "steps._:s2c:0.[0].payload.subscriptionId changed drift"
-      ],
-      "ids": [
-        "orca-runtime.clientEvents.subscribe"
       ]
     },
     {

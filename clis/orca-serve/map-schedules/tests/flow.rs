@@ -188,7 +188,8 @@ fn given_a_list_for_another_owner_or_a_schedule_rca_answers_unreadably_when_aske
     let mut rig = Rig::new();
     rig.ok("automation.create", weekday_nine());
     // When the phone lists the orphans, Then there are none; and for an ssh target the call is refused
-    assert_eq!(rig.ok("automation.list", json!({"selector": {"kind": "orphan"}})), json!({"automations": [], "items": []}));
+    assert_eq!(rig.ok("automation.list", json!({"selector": {"kind": "orphan"}})), json!({"automations": [], "items": [], "orphanCount": 0}));
+    assert_eq!(rig.err("automation.list", json!({"selector": "wrong"})), ("invalid_argument".into(), "Invalid input: expected object, received string".into()));
     assert!(rig.err("automation.list", json!({"selector": {"kind": "ssh", "targetId": "t", "expectedTargetGeneration": 1}})).1.contains("no ssh targets"));
     // When rca answers a schedule whose automation record has lost its fields
     rig.agent.reply("schedule.list", |_| Ok(json!({"tasks": [{"id": "s9", "title": "t", "prompt": "p", "enabled": true, "schedule": {"type": "interval", "every_ms": 60000}, "workspace": "main", "driver": "codex", "model": null, "thread": null, "runtime_mode": null, "interaction_mode": null, "created_at_ms": 1, "updated_at_ms": 1, "next_run_ms": 2, "last_run_ms": null, "last_run_status": "never", "last_run_error": null, "run_count": 0, "webhook": null, "meta": {"orca": {"project_id": "p"}}}]})));
@@ -196,4 +197,14 @@ fn given_a_list_for_another_owner_or_a_schedule_rca_answers_unreadably_when_aske
     let (code, message) = rig.err("automation.list", json!({}));
     assert_eq!(code, "runtime_error");
     assert!(message.contains("s9") && message.contains("unreadable") && message.contains("missing field"), "{message}");
+}
+
+#[test]
+fn given_no_automations_when_the_phone_lists_them_then_the_list_carries_the_orphan_count_the_host_adds() {
+    // Given a host with no automation
+    let mut rig = Rig::new();
+    // When the phone lists them
+    let listed = rig.ok("automation.list", json!({}));
+    // Then the list is empty with no orphans
+    assert_eq!(listed, json!({"automations": [], "items": [], "orphanCount": 0}));
 }

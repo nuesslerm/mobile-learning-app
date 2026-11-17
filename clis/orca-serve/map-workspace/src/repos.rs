@@ -68,7 +68,8 @@ fn display_name(row: &Value) -> &str {
     row["displayName"].as_str().unwrap_or_default()
 }
 
-pub(crate) fn list(agent: &dyn AgentApi) -> Result<Value, Failure> {
+pub(crate) fn list(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    orca_core::wire::string_field(params, "afterSnapshotId")?;
     let rows = repo_targets(agent)?.iter().map(|t| repo_row(agent, t)).collect::<Result<Vec<_>, _>>()?;
     Ok(json!({"repos": rows}))
 }

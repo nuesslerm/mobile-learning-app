@@ -42,6 +42,15 @@ pub(crate) fn unsupported() -> Failure {
     Failure::new(orca_core::wire::RUNTIME_ERROR, "structured_agent_session_unsupported")
 }
 
+/// `params.sessionId` as an agent session id: a string of the `<agent>_<token>` shape.
+pub(crate) fn agent_session_id(params: &Value) -> Result<&str, Failure> {
+    let session = orca_core::wire::string_field(params, "sessionId")?.ok_or_else(|| Failure::invalid("Invalid input: expected string, received undefined"))?;
+    if !crate::ids::is_session_id(session) {
+        return Err(Failure::invalid("Invalid agent session id"));
+    }
+    Ok(session)
+}
+
 /// The text of a send body and the attachment ids of its `image-ref` blocks, in order.
 pub(crate) fn body_parts(body: &Value) -> Result<(String, Vec<String>), Failure> {
     let blocks = body["blocks"].as_array().ok_or_else(|| Failure::invalid("Invalid message body"))?;
@@ -285,8 +294,9 @@ pub(crate) fn hold(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
     Ok(json!({"held": true}))
 }
 
-pub(crate) fn release() -> Value {
-    json!({"released": true})
+pub(crate) fn release(params: &Value) -> Result<Value, Failure> {
+    agent_session_id(params)?;
+    Ok(json!({"released": true}))
 }
 
 /// A version the phone echoes back: the same while the open requests are the same.

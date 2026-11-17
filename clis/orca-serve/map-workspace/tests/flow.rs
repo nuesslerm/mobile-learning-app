@@ -485,3 +485,14 @@ fn given_a_repo_with_and_without_a_remote_when_the_create_base_is_prefetched_the
     assert_eq!((with, without), (Value::Null, Value::Null));
     assert_eq!(rig.files.fetched(), ["main"]);
 }
+
+#[test]
+fn given_a_wrong_typed_snapshot_id_when_the_repos_are_listed_then_it_is_refused_and_a_string_is_accepted() {
+    // Given a host
+    let mut rig = Rig::new();
+    // When the phone lists the repos after a snapshot id of the wrong type, and of the right one
+    let refused = rig.err("repo.list", json!({"afterSnapshotId": 7}));
+    // Then the first is refused as the schema refuses it, and the second is answered
+    assert_eq!(refused, ("invalid_argument".into(), "Invalid input: expected string, received number".into()));
+    rig.ok("repo.list", json!({"afterSnapshotId": "a"}));
+}

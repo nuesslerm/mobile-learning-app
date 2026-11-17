@@ -84,9 +84,12 @@ fn record(task: &TaskView, kept: &Kept) -> Result<Value, Failure> {
 }
 
 pub fn list(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    if let Some(selector) = params.get("selector").filter(|s| !s.is_object()) {
+        return Err(Failure::invalid(format!("Invalid input: expected object, received {}", orca_core::wire::received(selector))));
+    }
     match params.pointer("/selector/kind").and_then(Value::as_str) {
         None | Some("self") => {}
-        Some("orphan") => return Ok(json!({"automations": [], "items": []})),
+        Some("orphan") => return Ok(json!({"automations": [], "items": [], "orphanCount": 0})),
         Some(other) => return Err(Failure::invalid(format!("The selector {other} is not offered: this host has no ssh targets"))),
     }
     let (mut automations, mut items) = (Vec::new(), Vec::new());
@@ -94,7 +97,7 @@ pub fn list(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
         automations.push(record(&task, &kept)?);
         items.push(json!({"automationId": task.id, "selector": {"kind": "self"}, "usageSummary": {"lastRunStatus": run_status(task.last_run_status), "lastRunAt": task.last_run_ms}}));
     }
-    Ok(json!({"automations": automations, "items": items}))
+    Ok(json!({"automations": automations, "items": items, "orphanCount": 0}))
 }
 
 fn id_of(params: &Value) -> Result<&str, Failure> {

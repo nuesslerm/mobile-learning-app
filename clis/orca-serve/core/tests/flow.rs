@@ -138,7 +138,8 @@ fn given_a_stream_when_opened_cancelled_and_the_connection_closed_then_each_gets
     let mut conn = host.connection("dev", "tok", vec![]);
     let first = frames(conn.on_message(r#"{"id":"s1","method":"ticks"}"#));
     conn.on_message(r#"{"id":"s2","method":"ticks"}"#);
-    let id = format!("ticks-conn1-{}", 1);
+    assert!(conn.id().len() == 16 && conn.id().bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)), "{}", conn.id());
+    let id = format!("ticks-{}-1", conn.id());
     // Then the open answered with its first event, streaming, addressed to the stream's request
     assert_eq!((first[0]["id"].clone(), first[0]["streaming"].clone(), first[0]["result"].clone()), (json!("s1"), json!(true), json!({"tick": 1})));
     assert_eq!(conn.open_streams(), 2);

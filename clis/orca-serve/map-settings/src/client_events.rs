@@ -5,6 +5,7 @@ use serde_json::{json, Value};
 const PREFIX: &str = "runtime-client-events-";
 const STATE_SCOPE: &str = "orca";
 const QUEUE_FOLLOW_UPS_KEY: &str = "nativeChatQueueFollowUps";
+const CI_RESULT_LINES_KEY: &str = "nativeChatCiResultLines";
 
 struct ClientEvents {
     id: String,
@@ -15,8 +16,8 @@ struct ClientEvents {
 pub(crate) fn open(ctx: &mut Ctx) -> Box<dyn Subscription> {
     let id = ctx.subscription_id(PREFIX);
     // Queued follow-ups are the default; only an explicit `false` kept in rca's state turns them off.
-    let queue = !matches!(ctx.agent.state_get(STATE_SCOPE, QUEUE_FOLLOW_UPS_KEY), Ok(Some(Value::Bool(false))));
-    let ready = json!({"type": "ready", "subscriptionId": id, "snapshot": {"sshStates": [], "nativeChatQueueFollowUps": queue}});
+    let on = |key: &str| !matches!(ctx.agent.state_get(STATE_SCOPE, key), Ok(Some(Value::Bool(false))));
+    let ready = json!({"type": "ready", "subscriptionId": id, "snapshot": {"sshStates": [], "nativeChatQueueFollowUps": on(QUEUE_FOLLOW_UPS_KEY), "nativeChatCiResultLines": on(CI_RESULT_LINES_KEY)}});
     Box::new(ClientEvents { id, ready: Some(ready) })
 }
 

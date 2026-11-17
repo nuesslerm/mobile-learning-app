@@ -43,7 +43,14 @@ impl Area for AccountsArea {
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
         match method {
-            ACCOUNTS_LIST => snapshot(ctx.agent),
+            ACCOUNTS_LIST => {
+                for key in ["refreshUsage", "refreshStaleUsage"] {
+                    if let Some(v) = params.get(key).filter(|v| !v.is_boolean()) {
+                        return Err(Failure::invalid(format!("Invalid input: expected boolean, received {}", orca_core::wire::received(v))));
+                    }
+                }
+                snapshot(ctx.agent)
+            }
             ACCOUNTS_SELECT_CLAUDE => select(ctx.agent, CLAUDE, params),
             ACCOUNTS_SELECT_CODEX => select(ctx.agent, CODEX, params),
             ACCOUNTS_SELECT_CODEX_FOR_TARGET => {

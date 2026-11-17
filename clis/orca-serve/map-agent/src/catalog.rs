@@ -4,7 +4,7 @@
 use crate::agent::{ask, refusal, refused_code, state_set};
 use crate::journal::view;
 use crate::ops::{lookup, refused, Envelope};
-use crate::session::{accepted, agent_of, driver_of, finish, now_ms, text, unsupported};
+use crate::session::{accepted, agent_of, agent_session_id, driver_of, finish, now_ms, text, unsupported};
 use agent_api_catalog::{code as catalog_code, AGENTS_DETECT, COMMANDS_LIST, DRIVERS, MODELS_LIST, SKILLS_LIST};
 use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::{AgentApi, AgentError};
@@ -125,7 +125,11 @@ pub(crate) fn set_option(agent: &dyn AgentApi, params: &Value) -> Result<Value, 
 
 /// `agentSession.modelCatalog`: the models of an agent, from the service's table (a listing the driver does not make by itself).
 pub(crate) fn model_catalog(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let driver = driver_of(text(params, "agent").ok_or_else(|| Failure::invalid("Invalid agent"))?).ok_or_else(unsupported)?;
+    let id = text(params, "agent").ok_or_else(|| Failure::invalid("Invalid agent"))?;
+    if params.get("sessionId").is_some() {
+        agent_session_id(params)?;
+    }
+    let driver = driver_of(id).ok_or_else(unsupported)?;
     let catalog = models_of(agent, driver)?;
     Ok(json!({"origin": "probe", "models": model_options(&catalog), "fetchedAt": now_ms(), "defaultHoldsInEveryWorkspace": true}))
 }
@@ -174,6 +178,20 @@ fn detect(agent: &dyn AgentApi, executor: Option<&str>, refresh: bool) -> Result
     agent.request(AGENTS_DETECT.name(), p)
 }
 
+/// The optional string keys of a detection call and the host id, which only this machine (`local`) answers to.
+fn detection_target(params: &Value, keys: &[&str]) -> Result<(), Failure> {
+    for key in keys {
+        orca_core::wire::string_field(params, key)?;
+    }
+    if params.get("userInitiated").is_some_and(|v| !v.is_boolean()) {
+        return Err(Failure::invalid(format!("Invalid input: expected boolean, received {}", orca_core::wire::received(&params["userInitiated"]))));
+    }
+    if orca_core::wire::string_field(params, "worktreeHostId")?.is_some_and(|h| h != "local") {
+        return Err(Failure::invalid("Invalid host id"));
+    }
+    Ok(())
+}
+
 fn no_project(params: &Value) -> Result<(), Failure> {
     if params.get("project").is_some_and(|p| !p.is_null()) {
         return Err(Failure::invalid("Detection for a project is not offered by this host"));
@@ -183,12 +201,14 @@ fn no_project(params: &Value) -> Result<(), Failure> {
 
 /// `preflight.detectAgents`: the Orca ids of the agents whose CLI the executor has.
 pub(crate) fn detect_agents(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    detection_target(params, &["repoId", "worktreeId", "worktreeHostId"])?;
     no_project(params)?;
     Ok(json!(installed(&detect(agent, None, false).map_err(refusal)?)))
 }
 
 /// `preflight.refreshAgents`: the same list asked of the executor again, answered with the path facts the reference reports (its shell was hydrated).
-pub(crate) fn refresh_agents(agent: &dyn AgentApi, _params: &Value) -> Result<Value, Failure> {
+pub(crate) fn refresh_agents(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    detection_target(params, &["repoId", "worktreeId", "worktreeHostId"])?;
     let found = detect(agent, None, true).map_err(refusal)?;
     Ok(json!({"agents": installed(&found), "addedPathSegments": [], "shellHydrationOk": true, "pathSource": "shell_hydrate", "pathFailureReason": "none"}))
 }

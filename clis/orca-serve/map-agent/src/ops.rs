@@ -18,7 +18,11 @@ impl Envelope {
     pub fn read(params: &Value) -> Result<Envelope, Failure> {
         let e = &params["envelope"];
         let text = |k: &str| e[k].as_str().filter(|s| !s.is_empty()).map(str::to_string).ok_or_else(|| Failure::invalid(format!("Invalid envelope: missing {k}")));
-        Ok(Envelope { session: text("sessionId")?, op: text("clientOperationId")?, fingerprint: text("payloadFingerprint")? })
+        let session = text("sessionId")?;
+        if !crate::ids::is_session_id(&session) {
+            return Err(Failure::invalid("Invalid agent session id"));
+        }
+        Ok(Envelope { session, op: text("clientOperationId")?, fingerprint: text("payloadFingerprint")? })
     }
 }
 

@@ -134,3 +134,14 @@ fn given_rca_answers_the_provider_list_without_a_required_field_when_the_account
         assert!(message.contains(missing), "{message}");
     }
 }
+
+#[test]
+fn given_a_wrong_typed_refresh_flag_when_the_accounts_are_listed_then_it_is_refused_as_the_schema_refuses_it() {
+    // Given a host
+    let mut rig = Rig::new();
+    // When the phone lists the accounts with a string where a flag belongs
+    let refused = rig.err("accounts.list", json!({"refreshUsage": "wrong"}));
+    // Then the schema's own message answers, and a boolean is still accepted
+    assert_eq!(refused, ("invalid_argument".into(), "Invalid input: expected boolean, received string".into()));
+    rig.ok("accounts.list", json!({"refreshUsage": false, "refreshStaleUsage": true}));
+}
