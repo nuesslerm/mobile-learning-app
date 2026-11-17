@@ -79,8 +79,7 @@ pub struct Chain {
     pub service: RcaService,
     pub addr: SocketAddr,
     pub state: tempfile::TempDir,
-    /// Where the executor puts the worktrees it makes, and the one directory outside its root it may list (`alpha`, `beta`, and a file).
-    pub base: PathBuf,
+    /// The one directory outside the executor's root it may list (`alpha`, `beta`, and a file).
     pub shared: PathBuf,
     _dirs: tempfile::TempDir,
     server: Child,
@@ -117,7 +116,7 @@ impl Chain {
         let state = tempfile::Builder::new().prefix("t3-serve-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");
         let (server, addr) = spawn_serve(state.path(), &errlog, &tap.url(), &bearer);
-        Chain { tap, cli, repo, service, addr, state, base, shared, _dirs: dirs, server, errlog, _exec: exec }
+        Chain { tap, cli, repo, service, addr, state, shared, _dirs: dirs, server, errlog, _exec: exec }
     }
 
     /// A pairing code minted by a separate `t3-serve pair` on the server's state directory, as an operator hands one to a phone, with the scopes the
