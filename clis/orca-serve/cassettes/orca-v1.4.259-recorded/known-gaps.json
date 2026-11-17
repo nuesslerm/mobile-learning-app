@@ -10,9 +10,6 @@
       ],
       "ids": [
         "orca-accounts.consumeCodexResetCredit",
-        "orca-accounts.selectClaude",
-        "orca-accounts.selectCodex",
-        "orca-accounts.selectCodexForTarget",
         "orca-agentActivity.clear",
         "orca-agentActivity.setRead",
         "orca-agentSession.continueInterrupted",

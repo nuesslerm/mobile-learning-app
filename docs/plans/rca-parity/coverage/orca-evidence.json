@@ -9,14 +9,14 @@
         "sha": null,
         "complete": true,
         "tests": 3968,
-        "passed": 709
+        "passed": 722
       },
       {
         "suite": "wf-mimic-orca-recorded",
         "sha": null,
         "complete": true,
         "tests": 311,
-        "passed": 145
+        "passed": 148
       }
     ]
   },
@@ -24,6 +24,33 @@
     "rpc:accounts.list": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-accounts.list-invalid-wrong-type-refreshUsage",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:accounts.selectClaude": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-accounts.selectClaude-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:accounts.selectCodex": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-accounts.selectCodex-invalid-drop-accountId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:accounts.selectCodexForTarget": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-accounts.selectCodexForTarget-empty-min",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

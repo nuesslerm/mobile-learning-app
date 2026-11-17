@@ -9,8 +9,8 @@
   },
   "summary": {
     "rows": 317,
-    "served": 151,
-    "pending": 13,
+    "served": 154,
+    "pending": 10,
     "notOffered": 143,
     "excluded": 7,
     "flagged": 3,
@@ -24,7 +24,6 @@
       "M5": 3,
       "M6": 1,
       "M7": 4,
-      "M10": 3,
       "M11": 2
     }
   },
@@ -110,22 +109,49 @@
       "id": "rpc:accounts.selectClaude",
       "kind": "rpc",
       "name": "accounts.selectClaude",
-      "state": "pending",
-      "milestone": "M10"
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-accounts.selectClaude-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:accounts.selectCodex",
       "kind": "rpc",
       "name": "accounts.selectCodex",
-      "state": "pending",
-      "milestone": "M10"
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-accounts.selectCodex-invalid-drop-accountId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:accounts.selectCodexForTarget",
       "kind": "rpc",
       "name": "accounts.selectCodexForTarget",
-      "state": "pending",
-      "milestone": "M10"
+      "state": "served",
+      "milestone": "M10",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-accounts.selectCodexForTarget-empty-min",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:accounts.subscribe",

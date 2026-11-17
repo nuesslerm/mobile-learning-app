@@ -54,7 +54,16 @@ impl Area for AccountsArea {
             ACCOUNTS_SELECT_CLAUDE => select(ctx.agent, CLAUDE, params),
             ACCOUNTS_SELECT_CODEX => select(ctx.agent, CODEX, params),
             ACCOUNTS_SELECT_CODEX_FOR_TARGET => {
+                if !matches!(params.get("accountId"), Some(Value::String(_) | Value::Null)) {
+                    return Err(Failure::invalid("Invalid input"));
+                }
                 let target = &params["target"];
+                if target["runtime"] == "host" && target.get("wslDistro").is_some_and(|d| !d.is_null()) {
+                    return Err(Failure::invalid(format!("Invalid input: expected null, received {}", orca_core::wire::received(&target["wslDistro"]))));
+                }
+                if target["runtime"] != "host" && params["accountId"].as_str().is_some_and(|id| id != CODEX) {
+                    return Err(gone(CODEX));
+                }
                 if target["runtime"] != "host" {
                     return Err(Failure::invalid("rca runs no WSL: only the host target can be selected"));
                 }
@@ -129,12 +138,19 @@ fn unavailable(provider: &str) -> Value {
     json!({"provider": provider, "status": "unavailable", "session": null, "weekly": null, "updatedAt": 0, "error": "rca does not read usage limits"})
 }
 
+/// The host's answer for an account id it does not hold.
+fn gone(provider: &str) -> Failure {
+    Failure::new(RUNTIME_ERROR, if provider == CLAUDE { "That Claude account no longer exists." } else { "That Codex rate limit account no longer exists." })
+}
+
 /// Makes the one account of `provider` the active one, which is selecting the provider rca's turns use.
 fn select(agent: &dyn AgentApi, provider: &str, params: &Value) -> Result<Value, Failure> {
     match params.get("accountId") {
         Some(Value::String(id)) if id == provider => {}
-        Some(Value::String(id)) => return Err(Failure::invalid(format!("Unknown account: {id}"))),
-        _ => return Err(Failure::invalid("rca always uses a provider's own login: name the account, there is no unmanaged default to clear to")),
+        Some(Value::String(_)) => return Err(gone(provider)),
+        None => return Err(Failure::invalid("Invalid input")),
+        Some(Value::Null) => return Err(Failure::invalid("rca always uses a provider's own login: name the account, there is no unmanaged default to clear to")),
+        Some(_) => return Err(Failure::invalid("Invalid input")),
     }
     agent.request(PROVIDER_SELECT.name(), json!({"provider": provider})).map_err(refusal)?;
     snapshot(agent)

@@ -104,9 +104,8 @@ fn given_a_selection_rca_cannot_honour_when_it_is_asked_then_it_is_refused_befor
     let mut rig = Rig::new();
     rig.providers.signed_in("codex");
     for (method, params, says) in [
-        ("accounts.selectCodex", json!({"accountId": "someone-else"}), "Unknown account"),
         ("accounts.selectCodex", json!({"accountId": null}), "no unmanaged default"),
-        ("accounts.selectCodex", json!({}), "no unmanaged default"),
+        ("accounts.selectCodex", json!({}), "Invalid input"),
         ("accounts.selectCodexForTarget", json!({"accountId": "codex", "target": {"runtime": "wsl", "wslDistro": "Ubuntu"}}), "no WSL"),
     ] {
         // When the phone asks, Then it is refused as an invalid argument saying why
@@ -114,6 +113,9 @@ fn given_a_selection_rca_cannot_honour_when_it_is_asked_then_it_is_refused_befor
         assert_eq!(code, "invalid_argument", "{method}");
         assert!(message.contains(says), "{method}: {message}");
     }
+    // And an account the host does not hold is its runtime error with the host's words
+    let (code, message) = rig.err("accounts.selectCodex", json!({"accountId": "someone-else"}));
+    assert_eq!((code.as_str(), message.as_str()), ("runtime_error", "That Codex rate limit account no longer exists."));
     assert!(rig.agent.requests().is_empty());
 }
 
