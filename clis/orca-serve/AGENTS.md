@@ -13,8 +13,8 @@ The pin is `tooling/orca-conformance/orca-pin.json`. `map-state/src/defaults.jso
 ## Tests
 
 - Flow (`map-*/tests/flow.rs`): the area through `Host` with `ScriptedAgent` doubling rca. Assert whole answers (derive the expected object from `defaults.json`), never spot-check keys.
-- Integration (`tests/integration/*_mNN.rs`): built binaries through the real rca-service and rca-exec, one file per milestone; each row counts only when its agent method answered in the call's window (method-hit trace).
-- Recorded replay (`recorded_r1`, `mimic_*`): the real host's answers from `cassettes/`; a difference is an adapter bug listed in `known-gaps.json` until fixed.
+- Integration (`tests/integration/*.rs`): built binaries through the real rca-service and rca-exec, one file per behaviour; each row counts only when its agent method answered in the call's window (method-hit trace).
+- Recorded replay (`replay_features`, one test per mapping crate that names its rows in `[package.metadata.integration.replay]`; `mimic_*`): the real host's answers from `cassettes/`; a difference is an adapter bug listed in `known-gaps.json` until fixed.
 
 ## Coverage
 
