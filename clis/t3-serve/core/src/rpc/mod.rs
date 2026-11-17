@@ -467,7 +467,7 @@ impl Connection {
                     "pullRequests.runAction" => self.svc.pr_run_action(payload),
                     "pullRequests.setFilesViewed" => self.svc.pr_set_files_viewed(payload),
                     "sourceControl.signInCancel" => self.svc.sc_sign_in_cancel(payload),
-                    _ => Ok(()),
+                    _ => self.svc.pr_report_state(payload),
                 };
                 vec![self.answered(&id, tag, answer.map(|()| None))]
             }

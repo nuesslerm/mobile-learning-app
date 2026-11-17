@@ -2,18 +2,6 @@
   "schema": "mimic-known-gaps/2",
   "groups": [
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit._tag changed drift",
-        "steps.ws:s2c:1.[0].payload.exit.cause missing breaking",
-        "steps.ws:s2c:1.[0].payload.exit.value extra drift"
-      ],
-      "ids": [
-        "t3-command-thread.mark-unread"
-      ]
-    },
-    {
       "class": "kind at steps.http:ret:_.[*].payload.body",
       "severity": "breaking",
       "diffs": [

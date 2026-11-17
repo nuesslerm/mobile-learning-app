@@ -348,3 +348,28 @@ fn a_stacked_action_that_cannot_run_ends_with_a_failed_frame_naming_the_phase_a_
     assert_eq!((last(&pr).0, last(&pr).1), ("action_failed".into(), json!("push")));
     assert!(ops(&h).iter().all(|o| o.method() != "git.commit"));
 }
+
+#[test]
+fn a_directory_that_is_no_path_of_the_executors_machine_is_no_repository_and_the_rows_that_need_a_repository_refuse_it_in_the_pinned_servers_words() {
+    // Given a relative directory, which the pinned server resolves against a directory of its own that holds no repository
+    let (h, mut rpc) = started();
+    let cwd = "rel";
+    let no_driver = json!({"name": "VcsUnsupportedOperationError", "message": "VCS operation is unsupported for unknown in VcsDriverRegistry.resolve: No supported VCS repository was detected at rel."});
+    // When the phone lists refs, switches, creates a ref, pulls, reads two reviews and starts a stacked action in it
+    let listed = rpc.call("vcs.listRefs", json!({"cwd": cwd}));
+    let routed = ["vcs.switchRef", "vcs.createRef", "vcs.pull"].map(|tag| rpc.call(tag, json!({"cwd": cwd, "refName": "b"})));
+    let reviews = [("review.getDiffPreview", json!({"cwd": cwd})), ("review.getDiffFileContents", json!({"cwd": cwd, "sourceKind": "working-tree", "changeType": "change", "oldPath": "a", "newPath": "a", "baseRef": "a", "headRef": "a"}))].map(|(tag, payload)| rpc.call(tag, payload));
+    let stacked = rpc.call("git.runStackedAction", json!({"cwd": cwd, "actionId": "x", "action": "commit"}));
+    let prepared = rpc.call("git.preparePullRequestThread", json!({"cwd": cwd, "reference": "7", "mode": "local"}));
+    // Then the list says it is no repository, each git command is the unrouted command error, each review the workspace root error, the stacked action the manager error, and the executor was never asked
+    assert_eq!(success(&listed), &json!({"refs": [], "isRepo": false, "hasPrimaryRemote": false, "nextCursor": null, "totalCount": 0}));
+    for (exit, operation) in routed.iter().zip(["switchRef", "createRef", "pullCurrentBranch"]) {
+        assert_eq!(failure(exit), &json!({"_tag": "GitCommandError", "operation": format!("GitWorkflowService.{operation}"), "command": "vcs-route", "cwd": cwd, "detail": "Failed to resolve the VCS driver for this Git command.", "cause": no_driver}));
+    }
+    for (exit, operation, what) in reviews.iter().zip([("getDiffPreview", "diff preview"), ("getDiffFileContents", "diff file contents")]).map(|(e, (o, w))| (e, o, w)) {
+        assert_eq!(failure(exit), &json!({"_tag": "VcsRepositoryDetectionError", "operation": format!("ReviewService.{operation}"), "cwd": cwd, "detail": format!("Review {what} cwd must stay within the configured workspace root.")}));
+    }
+    assert_eq!(failure(&stacked), &json!({"_tag": "GitManagerError", "operation": "GitWorkflowService.runStackedAction", "cwd": cwd, "detail": "Failed to resolve the VCS driver for this Git workflow.", "cause": no_driver}));
+    assert_eq!(failure(&prepared), &json!({"_tag": "GitManagerError", "operation": "GitWorkflowService.preparePullRequestThread", "cwd": cwd, "detail": "Failed to resolve the VCS driver for this Git workflow.", "cause": no_driver}));
+    assert!(ops(&h).is_empty(), "{:?}", ops(&h));
+}

@@ -151,7 +151,6 @@ fn the_device_state_commands_are_kept_in_the_agent_apis_state_by_what_changed() 
         (cmd("thread.runtime-mode.set", json!({"runtimeMode": "approval-required"})), "thread.settings:t1", "runtimeMode", json!("approval-required")),
         (cmd("thread.interaction-mode.set", json!({"interactionMode": "plan"})), "thread.settings:t1", "interactionMode", json!("plan")),
         (cmd("thread.model-selection.set", json!({"modelSelection": {"instanceId": "opencode", "model": "m2"}})), "thread.settings:t1", "modelSelection", json!({"instanceId": "opencode", "model": "m2"})),
-        (cmd("thread.mark-unread", json!({})), "thread.visits:t1", "lastVisitedAt", Value::Null),
     ];
     for (command, key, field, value) in cases {
         let kind = command["type"].as_str().unwrap().to_string();
@@ -165,6 +164,26 @@ fn the_device_state_commands_are_kept_in_the_agent_apis_state_by_what_changed() 
         let (scope, kept) = given.unwrap_or_else(|| panic!("{kind} kept nothing under {key}"));
         assert_eq!((scope.as_str(), &kept[field]), ("t3", &value), "{kind}");
     }
+}
+
+#[test]
+fn a_thread_is_marked_unread_only_once_a_run_of_it_completed_and_the_visit_is_then_forgotten_in_the_agent_apis_state() {
+    // Given a thread nobody ran
+    let (_h, mut rpc) = started();
+    // When it is marked unread
+    let refused = dispatch(&mut rpc, cmd("thread.mark-unread", json!({})));
+    // Then T3's refusal names it and the thread is unchanged
+    assert!(failure(&refused)["message"].as_str().unwrap().contains("has no completed run to mark unread"), "{refused}");
+    // And given a thread whose run completed
+    let (h, mut rpc, _) = with_turn();
+    // When it is marked unread
+    success(&dispatch(&mut rpc, cmd("thread.mark-unread", json!({}))));
+    // Then the visit the agent API keeps is empty
+    let kept = h.agent.ops.lock().unwrap().iter().rev().find_map(|o| match o {
+        Op::StateSet { key, value, .. } if key == "thread.visits:t1" => Some(value.clone()),
+        _ => None,
+    });
+    assert_eq!(kept.map(|v| v["lastVisitedAt"].clone()), Some(Value::Null));
 }
 
 #[test]

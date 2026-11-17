@@ -273,6 +273,7 @@ pub fn decide_thread(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decision
             touched(&mut shell, &at, vec![("autoSettleDisabledAt", if enabled { Value::Null } else { at.clone().into() })]);
             marked("thread.auto-settle-set", &shell, &["autoSettleDisabledAt"], now)
         }
+        "thread.mark-unread" if shell.get("latestRunCompletedAt").is_none_or(Value::is_null) => Err(format!("Thread {id} has no completed run to mark unread.")),
         "thread.mark-unread" => {
             touched(&mut shell, &at, vec![("lastVisitedAt", Value::Null)]);
             event("thread.marked-unread", &shell)
@@ -824,6 +825,20 @@ mod tests {
         assert_eq!(snoozed["snoozedUntil"], "2030-01-01T00:00:00.000Z");
         let end = &state.threads["t"];
         assert_eq!((end["settledOverride"].as_str(), end["settledAt"].is_null(), end["snoozedUntil"].is_null(), end["unsettledAt"].is_null()), (Some("active"), true, true, false));
+    }
+
+    #[test]
+    fn marking_unread_needs_a_completed_run_and_then_forgets_the_visit() {
+        // Given a thread nobody ran and one visited after a run completed
+        let mut state = live();
+        let mark = json!({"type": "thread.mark-unread", "commandId": "c", "threadId": "t"});
+        // When it is marked unread before and after a run completed
+        let refused = thread_with(&mut state, mark.clone());
+        state.threads.get_mut("t").unwrap().extend([("latestRunCompletedAt".to_string(), json!("2030-01-01T00:00:00.000Z")), ("lastVisitedAt".to_string(), json!("2030-01-02T00:00:00.000Z"))]);
+        thread_with(&mut state, mark).unwrap();
+        // Then the first is refused in T3's words and the second clears the visit
+        assert_eq!(refused.err().as_deref(), Some("Thread t has no completed run to mark unread."));
+        assert!(state.threads["t"]["lastVisitedAt"].is_null());
     }
 
     #[test]

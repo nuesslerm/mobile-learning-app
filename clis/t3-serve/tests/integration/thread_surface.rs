@@ -113,6 +113,11 @@ fn settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_
         assert_eq!(starts.len(), 2);
         assert!(starts[1].argv.windows(2).any(|w| w == ["--resume", "sess-1"]), "{:?}", starts[1].argv);
         assert_eq!(rca.events("t1", "thread.merge_consumed").len(), 1);
+        // When the phone marks the thread unread now that a run of it completed
+        success(&phone.command(case, &chain, cmd("thread.mark-unread", "t1", json!({}))));
+        // Then rca's state group holds a visit that is empty
+        assert!(answered(case, "state.set"), "{:?}", asked(case));
+        assert_eq!(state_value(&mut rca, "thread.visits:t1")["lastVisitedAt"], Value::Null);
         // When the phone detaches the provider session and sends another message
         success(&phone.command(case, &chain, cmd("provider-session.detach", "t1", json!({"providerSessionId": "sess-1"}))));
         assert!(answered(case, "thread.detach"), "{:?}", asked(case));
@@ -443,7 +448,6 @@ fn the_device_state_commands_leave_their_values_in_rcas_state_group_where_the_si
             (cmd("thread.active.reorder", "t1", json!({"orderKey": "k3"})), "thread.activeOrder:t1", "orderKey", Some(json!("k3"))),
             (cmd("thread.auto-settle.set", "t1", json!({"enabled": false})), "thread.autoSettle:t1", "autoSettleDisabledAt", None),
             (cmd("thread.visit", "t1", json!({"visitedAt": "2031-01-01T00:00:00.000Z"})), "thread.visits:t1", "lastVisitedAt", None),
-            (cmd("thread.mark-unread", "t1", json!({})), "thread.visits:t1", "lastVisitedAt", None),
             (cmd("thread.metadata.update", "t1", json!({"title": "Renamed"})), "thread.settings:t1", "title", Some(json!("Renamed"))),
             (cmd("thread.runtime-mode.set", "t1", json!({"runtimeMode": "approval-required"})), "thread.settings:t1", "runtimeMode", Some(json!("approval-required"))),
             (cmd("thread.interaction-mode.set", "t1", json!({"interactionMode": "plan"})), "thread.settings:t1", "interactionMode", Some(json!("plan"))),
