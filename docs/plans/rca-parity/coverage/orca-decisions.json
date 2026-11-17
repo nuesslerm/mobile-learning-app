@@ -855,6 +855,420 @@
       "state": "not-offered",
       "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the phone sends only the thread id, and rca's pr.resolveThread needs the pull request number too, which this host would have to keep an index of from earlier reads and otherwise guess by scanning open pull requests.",
       "decidedBy": "M12"
+    },
+    "rpc:accounts.list": {
+      "oracle": "mimic"
+    },
+    "rpc:accounts.selectClaude": {
+      "oracle": "mimic"
+    },
+    "rpc:accounts.selectCodex": {
+      "oracle": "mimic"
+    },
+    "rpc:accounts.selectCodexForTarget": {
+      "oracle": "mimic"
+    },
+    "rpc:agent.launch": {
+      "oracle": "mimic"
+    },
+    "rpc:agent.launchReplay": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.cancel": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.commands": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.conversationCommand": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.create": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.currentRequests": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.history": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.hold": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.item": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.options": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessageDelete": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessageEditHold": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessageMove": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessageSend": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessageUpdate": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.queuedMessagesResume": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.release": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.respondToApproval": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.respondToQuestion": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.send": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.setOption": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSessionAttachment.uploadAppend": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSessionAttachment.uploadStart": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.create": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.delete": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.list": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.runNow": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.show": {
+      "oracle": "mimic"
+    },
+    "rpc:automation.update": {
+      "oracle": "mimic"
+    },
+    "rpc:files.createFile": {
+      "oracle": "mimic"
+    },
+    "rpc:files.list": {
+      "oracle": "mimic"
+    },
+    "rpc:files.read": {
+      "oracle": "mimic"
+    },
+    "rpc:files.readChatImage": {
+      "oracle": "mimic"
+    },
+    "rpc:files.readChunk": {
+      "oracle": "mimic"
+    },
+    "rpc:files.readDir": {
+      "oracle": "mimic"
+    },
+    "rpc:files.readPreview": {
+      "oracle": "mimic"
+    },
+    "rpc:files.searchPaths": {
+      "oracle": "mimic"
+    },
+    "rpc:files.stat": {
+      "oracle": "mimic"
+    },
+    "rpc:git.abortMerge": {
+      "oracle": "mimic"
+    },
+    "rpc:git.abortRebase": {
+      "oracle": "mimic"
+    },
+    "rpc:git.branchCompare": {
+      "oracle": "mimic"
+    },
+    "rpc:git.bulkStage": {
+      "oracle": "mimic"
+    },
+    "rpc:git.bulkUnstage": {
+      "oracle": "mimic"
+    },
+    "rpc:git.checkout": {
+      "oracle": "mimic"
+    },
+    "rpc:git.commit": {
+      "oracle": "mimic"
+    },
+    "rpc:git.commitCompare": {
+      "oracle": "mimic"
+    },
+    "rpc:git.completeMerge": {
+      "oracle": "mimic"
+    },
+    "rpc:git.discard": {
+      "oracle": "mimic"
+    },
+    "rpc:git.fastForward": {
+      "oracle": "mimic"
+    },
+    "rpc:git.fetch": {
+      "oracle": "mimic"
+    },
+    "rpc:git.generateCommitMessage": {
+      "oracle": "mimic"
+    },
+    "rpc:git.history": {
+      "oracle": "mimic"
+    },
+    "rpc:git.localBranches": {
+      "oracle": "mimic"
+    },
+    "rpc:git.pull": {
+      "oracle": "mimic"
+    },
+    "rpc:git.push": {
+      "oracle": "mimic"
+    },
+    "rpc:git.rebaseFromBase": {
+      "oracle": "mimic"
+    },
+    "rpc:git.resolveConflict": {
+      "oracle": "mimic"
+    },
+    "rpc:git.stage": {
+      "oracle": "mimic"
+    },
+    "rpc:git.status": {
+      "oracle": "mimic"
+    },
+    "rpc:git.unstage": {
+      "oracle": "mimic"
+    },
+    "rpc:git.upstreamStatus": {
+      "oracle": "mimic"
+    },
+    "rpc:github.markPRDraft": {
+      "oracle": "mimic"
+    },
+    "rpc:github.markPRReadyForReview": {
+      "oracle": "mimic"
+    },
+    "rpc:github.mergePR": {
+      "oracle": "mimic"
+    },
+    "rpc:github.prChecks": {
+      "oracle": "mimic"
+    },
+    "rpc:github.prForBranch": {
+      "oracle": "mimic"
+    },
+    "rpc:github.removePRReviewers": {
+      "oracle": "mimic"
+    },
+    "rpc:github.requestPRReviewers": {
+      "oracle": "mimic"
+    },
+    "rpc:github.updatePR": {
+      "oracle": "mimic"
+    },
+    "rpc:github.updatePRTitle": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.mergeMR": {
+      "oracle": "mimic"
+    },
+    "rpc:gitlab.updateMR": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileRelay.hosts.list": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileRelay.hosts.worktrees": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileWeb.bundle.range": {
+      "oracle": "mimic"
+    },
+    "rpc:nativeChat.readSession": {
+      "oracle": "mimic"
+    },
+    "rpc:preflight.detectAgents": {
+      "oracle": "mimic"
+    },
+    "rpc:preflight.detectRemoteAgents": {
+      "oracle": "mimic"
+    },
+    "rpc:preflight.refreshAgents": {
+      "oracle": "mimic"
+    },
+    "rpc:project.list": {
+      "oracle": "mimic"
+    },
+    "rpc:projectHostSetup.list": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.baseRefDefault": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.hooks": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.list": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.saveSparsePreset": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.searchRefs": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.sparsePresets": {
+      "oracle": "mimic"
+    },
+    "rpc:repo.update": {
+      "oracle": "mimic"
+    },
+    "rpc:runtime.clientEvents.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:settings.get": {
+      "oracle": "mimic"
+    },
+    "rpc:settings.getTerminalQuickCommands": {
+      "oracle": "mimic"
+    },
+    "rpc:settings.updateTerminalQuickCommands": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.clearBuffer": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.close": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.list": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.rename": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.send": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:ui.get": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.create": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.list": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.listRetiredNames": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.prefetchCreateBase": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.resolveMrBase": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.resolvePrBase": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.rm": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.set": {
+      "oracle": "mimic"
+    },
+    "rpc:worktree.show": {
+      "oracle": "mimic"
+    },
+    "transport:e2ee.handshake": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.rewind": {
+      "oracle": "mimic"
+    },
+    "rpc:agentSession.sendRecorded": {
+      "oracle": "mimic"
+    },
+    "rpc:files.pathsExist": {
+      "oracle": "mimic"
+    },
+    "rpc:git.branchDiff": {
+      "oracle": "mimic"
+    },
+    "rpc:git.commitDiff": {
+      "oracle": "mimic"
+    },
+    "rpc:github.prFileContents": {
+      "oracle": "mimic"
+    },
+    "rpc:hostedReview.forBranch": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileWeb.bundle.brotliRange": {
+      "oracle": "mimic"
+    },
+    "rpc:mobileWeb.bundle.localeCatalog": {
+      "oracle": "mimic"
+    },
+    "rpc:nativeChat.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.activate": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.close": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.createTerminal": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.list": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:session.tabs.unsubscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:stats.summary": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.focus": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.read": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.setDisplayMode": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.subscribe": {
+      "oracle": "mimic"
+    },
+    "rpc:terminal.updateViewport": {
+      "oracle": "mimic"
     }
   },
   "reverify": {
