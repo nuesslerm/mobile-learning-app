@@ -718,11 +718,9 @@ jobs:
           mode: restore
           stage: integration-tests-${{ matrix.shard }}of${{ needs.plan.outputs.shard_count }}
       # Each built binary run as a black box (vm-ops-api's suite, the services') with every dependency a fake, through the Nx cache;
-      # a suite writes its run record to $WF_TEST_OUTPUT_DIR/<suite>/report.json
+      # a task writes its suites' run records (<suite>/report.json, trace.json) to its own folder under .agents/tmp/test-output, an Nx output the cache restores
       - name: Integration tests
         timeout-minutes: 38
-        env:
-          WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
         run: wf test run --stage integration-tests --plan "$RUNNER_TEMP/plan.json" --shard "${{ matrix.shard }}/${{ needs.plan.outputs.shard_count }}" ${{ needs.plan.outputs.fresh == 'true' && '--fresh' || '' }}
       - uses: ./.github/actions/nx-cache
         if: ${{ !cancelled() }}
@@ -738,23 +736,23 @@ jobs:
       - name: Publish the integration run bundles
         if: always()
         timeout-minutes: 5
-        env:
-          WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
         run: |
           found=0
-          # a chain's run record (t3-serve-integration, orca-serve-integration) and a mimic replay's (wf-mimic-*) carry their method-hit trace (trace.json) into the bundle `wf mimic coverage --traces` reads
-          for dir in "$WF_TEST_OUTPUT_DIR"/vm-ops-api-*/ "$WF_TEST_OUTPUT_DIR"/t3-serve-*/ "$WF_TEST_OUTPUT_DIR"/wf-mimic-*/ "$WF_TEST_OUTPUT_DIR"/orca-serve-*/; do
-            [ -f "${dir}report.json" ] || continue
+          # each integration task writes its run records under .agents/tmp/test-output/<crate>/<task>/<suite>/ (Nx outputs of the task), so a task
+          # Nx replayed from the cache restores them and its shard still publishes a bundle. A chain's run record (t3-serve-integration,
+          # orca-serve-integration) and a mimic replay's (wf-mimic-*) carry their method-hit trace (trace.json) into the bundle `wf mimic coverage --traces` reads
+          while IFS= read -r dir; do
+            [ -f "$dir/report.json" ] || continue
             found=1
-            if ! out=$(WF_SITE=ci wf test publish "$dir"); then
+            if ! out=$(WF_SITE=ci wf test publish "$dir/"); then
               printf '%s\n' "$out"
               # the wf this job runs is the previous push's; one from before the integration platform refuses the record
               case "$out" in *"not a test harness platform: 'integration'"*) echo "::warning::$dir not published: this push's clis build adds the integration platform" ;; *) exit 1 ;; esac
             else
               printf '%s\n' "$out"
             fi
-          done
-          [ "$found" = 1 ] || echo "no integration report this run (no suite changed, or Nx replayed the run)"
+          done < <(find .agents/tmp/test-output -type d \( -name 'vm-ops-api-*' -o -name 't3-serve-*' -o -name 'wf-mimic-*' -o -name 'orca-serve-*' \) 2>/dev/null | sort)
+          [ "$found" = 1 ] || echo "no integration report this run (no integration task ran or was restored from the cache)"
       - name: Upload the integration run bundles
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

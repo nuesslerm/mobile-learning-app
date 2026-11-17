@@ -250,13 +250,20 @@ const namesCrate = (entry) => !/[/.*]/.test(entry);
 
 const unique = (inputs) => [...new Map(inputs.map((i) => [JSON.stringify(i), i])).values()];
 
-const rustTask = (inputs, command) => ({
-  executor: 'nx:run-commands',
-  cache: true,
-  inputs,
-  outputs: [],
-  options: { cwd: '{workspaceRoot}', command },
-});
+// Where a task that runs integration tests leaves its run records (`<suite>/report.json`, `<suite>/trace.json`): a folder of its own in the
+// workspace, so its Nx outputs carry them and a cache hit restores what the run wrote (a shard that replays everything still publishes them)
+const RECORDS = '.agents/tmp/test-output';
+const rustTask = (inputs, command, records) => {
+  // `{workspaceRoot}` is valid only at the start of an option, and the tests run in their crate's directory: the command takes the absolute path from its cwd
+  const dir = records ? `${RECORDS}/${records}` : null;
+  return {
+    executor: 'nx:run-commands',
+    cache: true,
+    inputs,
+    outputs: dir ? [`{workspaceRoot}/${dir}`] : [],
+    options: { cwd: '{workspaceRoot}', command: dir ? `D="$PWD/${dir}" && rm -rf "$D" && WF_TEST_OUTPUT_DIR="$D" ${command}` : command },
+  };
+};
 
 // package.json files are matched too, though only read: Nx re-runs a plugin when a file it matched changed, and a script's
 // `cargo -p <crate>` is a dependency
@@ -381,8 +388,8 @@ exports.createNodes = [
         'cargo-clippy': rustTask([...checks, 'archRules'], `cargo clippy --locked -p ${c.name} --all-targets --manifest-path ${c.manifest} -- -D warnings`),
       };
       const own = (f) => join(c.dir, f);
-      const testTarget = (file, command, inputs) =>
-        !pkg && existsSync(join(root, c.dir, 'tests', file)) ? rustTask(inputs, command) : null;
+      const testTarget = (file, command, inputs, records) =>
+        !pkg && existsSync(join(root, c.dir, 'tests', file)) ? rustTask(inputs, command, records) : null;
       const flowCommand = `cargo test --locked -p ${c.name} --test flow --manifest-path ${c.manifest}`;
       const flow = testTarget('flow.rs', flowCommand, [...OWN, ...tier, ...extra(c, [], 'flow')]);
       // the built binaries as a black box with every dependency a fake, one test at a time on a port of its own, after the services are deployed
@@ -407,13 +414,14 @@ exports.createNodes = [
       const integration = testTarget(
         'integration.rs',
         [integrationCommand, ...integrationGroups.map((g) => `--skip ${c.integration.groups[g].filter}`), ...(c.replay.sets.length ? ['--skip replay_features::'] : [])].join(' '),
-        [...baseInputs, ...tier, ...extra(c, sourceFiles, 'integration'), ...withoutGroups(null)]
+        [...baseInputs, ...tier, ...extra(c, sourceFiles, 'integration'), ...withoutGroups(null)],
+        `${c.name}/cargo-integration`
       );
       const integrationTargets = integration
         ? Object.fromEntries(
             integrationGroups.map((g) => [
               `cargo-integration-${g}`,
-              rustTask([...baseInputs, ...tier, ...extra(c, [...sourceFiles, ...groupFiles(g)], 'integration'), ...withoutGroups(g)], `${integrationCommand} ${c.integration.groups[g].filter}`),
+              rustTask([...baseInputs, ...tier, ...extra(c, [...sourceFiles, ...groupFiles(g)], 'integration'), ...withoutGroups(g)], `${integrationCommand} ${c.integration.groups[g].filter}`, `${c.name}/cargo-integration-${g}`),
             ])
           )
         : {};
@@ -443,7 +451,8 @@ exports.createNodes = [
                   { input: 'rustProduction', projects: [...new Set(reached.map(projectOf))] },
                   ...extra(c, [...sourceFiles, ...mFiles], 'integration'),
                 ],
-                `${integrationCommand} replay_features::${id.replaceAll('-', '_')}::`
+                `${integrationCommand} replay_features::${id.replaceAll('-', '_')}::`,
+                `${c.name}/replay-${id}`
               ),
             ];
           })

@@ -93,6 +93,8 @@ while [ $# -gt 0 ]; do case "$1" in -p) p="$2"; shift;; --test) t=" $2"; shift;;
 # a test run's own arguments after `--`: its filters, and what it skips as `!<filter>`
 if [ "$sub" = test ] && [ "$1" = -- ]; then shift; while [ $# -gt 0 ]; do case "$1" in --skip) f="$f !$2"; shift;; -*) ;; *) f="$f $1";; esac; shift; done; fi
 echo "$sub $p$t$f" >> "$RAN_LOG"
+# an integration run leaves its suite's trace where the task was told to (`WF_TEST_OUTPUT_DIR`), the way the real suites do
+if [ "$sub" = test ] && [ -n "$WF_TEST_OUTPUT_DIR" ]; then mkdir -p "$WF_TEST_OUTPUT_DIR/$p-suite"; printf '{"suite":"%s","filter":"%s"}' "$p" "$f" > "$WF_TEST_OUTPUT_DIR/$p-suite/trace.json"; fi
 "#,
         );
 
@@ -483,6 +485,42 @@ fn an_integration_chain_keys_on_the_binaries_it_runs_in_other_workspaces_and_the
         let (r, did) = f.stage("integration-tests");
         assert_eq!((r.exit_code, did), (1, ran(&[])), "{}\n{}", r.stdout, r.stderr);
         assert!(r.stderr.contains("chain: [package.metadata.integration] uses names \"svcs\""), "{}", r.stderr);
+    });
+}
+
+#[test]
+fn an_integration_task_replayed_from_the_cache_restores_the_trace_its_run_left() {
+    // Given an integration chain that ran once and left the trace of its suites in the task's own folder
+    let f = Fixture::new();
+    assert_eq!(f.runs("integration-tests"), every_integration(), "the first run runs every task");
+    let records = f.ws.join(".agents/tmp/test-output");
+    let traces = |dir: &std::path::Path| -> Vec<String> {
+        let mut found: Vec<String> = ["chain/cargo-integration/chain-suite", "chain/cargo-integration-north/chain-suite", "chain/cargo-integration-south/chain-suite", "svc/cargo-integration/svc-suite"]
+            .iter()
+            .filter(|rel| dir.join(rel).join("trace.json").is_file())
+            .map(|rel| rel.to_string())
+            .collect();
+        found.sort();
+        found
+    };
+    let written = traces(&records);
+    assert!(written.contains(&"chain/cargo-integration-north/chain-suite".to_string()), "each task writes its own folder: {written:?}");
+    assert!(written.contains(&"chain/cargo-integration/chain-suite".to_string()), "{written:?}");
+    let north = std::fs::read_to_string(records.join("chain/cargo-integration-north/chain-suite/trace.json")).unwrap();
+    assert!(north.contains("sets::north::"), "the group's folder holds the group's own run: {north}");
+
+    // When the workspace loses the records (a fresh runner) and the stage runs again, every task replaying from the cache
+    std::fs::remove_dir_all(&records).unwrap();
+    assert_eq!(f.runs("integration-tests"), ran(&[]), "nothing changed, nothing runs");
+
+    // Then the cache hit restored the same traces, so the shard still has them to publish
+    assert_eq!(traces(&records), written, "a replayed task restores its trace");
+    assert_eq!(std::fs::read_to_string(records.join("chain/cargo-integration-north/chain-suite/trace.json")).unwrap(), north);
+
+    // And a changed task runs again and rewrites only its own folder
+    f.with_edit("clis/chain/tests/sets/north/case.json", || {
+        assert_eq!(f.runs("integration-tests"), ran(&[CHAIN_NORTH]));
+        assert_eq!(traces(&records), written);
     });
 }
 
