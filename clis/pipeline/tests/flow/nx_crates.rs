@@ -94,7 +94,7 @@ while [ $# -gt 0 ]; do case "$1" in -p) p="$2"; shift;; --test) t=" $2"; shift;;
 if [ "$sub" = test ] && [ "$1" = -- ]; then shift; while [ $# -gt 0 ]; do case "$1" in --skip) f="$f !$2"; shift;; -*) ;; *) f="$f $1";; esac; shift; done; fi
 echo "$sub $p$t$f" >> "$RAN_LOG"
 # an integration run leaves its suite's trace where the task was told to (`WF_TEST_OUTPUT_DIR`), the way the real suites do
-if [ "$sub" = test ] && [ -n "$WF_TEST_OUTPUT_DIR" ]; then mkdir -p "$WF_TEST_OUTPUT_DIR/$p-suite"; printf '{"suite":"%s","filter":"%s"}' "$p" "$f" > "$WF_TEST_OUTPUT_DIR/$p-suite/trace.json"; fi
+if [ "$sub" = test ] && [ -n "$WF_TEST_OUTPUT_DIR" ]; then mkdir -p "$WF_TEST_OUTPUT_DIR/$p-suite"; printf '{"suite":"%s","filter":"%s"}' "$p" "$f" > "$WF_TEST_OUTPUT_DIR/$p-suite/trace.json"; printf '{"schema":1}' > "$WF_TEST_OUTPUT_DIR/$p-suite/report.json"; mkdir -p "$WF_TEST_OUTPUT_DIR/wf-mimic-$p/feature/set"; printf '{"schema":1}' > "$WF_TEST_OUTPUT_DIR/wf-mimic-$p/feature/set/report.json"; fi
 "#,
         );
 
@@ -497,7 +497,7 @@ fn an_integration_task_replayed_from_the_cache_restores_the_trace_its_run_left()
     let traces = |dir: &std::path::Path| -> Vec<String> {
         let mut found: Vec<String> = ["chain/cargo-integration/chain-suite", "chain/cargo-integration-north/chain-suite", "chain/cargo-integration-south/chain-suite", "svc/cargo-integration/svc-suite"]
             .iter()
-            .filter(|rel| dir.join(rel).join("trace.json").is_file())
+            .filter(|rel| dir.join(rel).join("trace.json").is_file() && dir.join(rel).join("report.json").is_file())
             .map(|rel| rel.to_string())
             .collect();
         found.sort();
@@ -516,6 +516,9 @@ fn an_integration_task_replayed_from_the_cache_restores_the_trace_its_run_left()
     // Then the cache hit restored the same traces, so the shard still has them to publish
     assert_eq!(traces(&records), written, "a replayed task restores its trace");
     assert_eq!(std::fs::read_to_string(records.join("chain/cargo-integration-north/chain-suite/trace.json")).unwrap(), north);
+
+    // And a replay's record, which sits two levels under its suite folder (wf-mimic-<crate>/<feature>/<set>/), is restored with its report.json, the file `wf test publish` needs
+    assert!(records.join("chain/cargo-integration-north/wf-mimic-chain/feature/set/report.json").is_file(), "a nested record keeps its report.json through the cache");
 
     // And a changed task runs again and rewrites only its own folder
     f.with_edit("clis/chain/tests/sets/north/case.json", || {

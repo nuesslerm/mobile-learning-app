@@ -180,6 +180,29 @@ impl Suite {
     }
 }
 
+/// The run record of a replay that gathered its tests' traces itself (`method-trace/1` tests, each with a `verdict`): `trace.json` and the
+/// `report.json` `wf test publish` takes, in `dir`. The run is `fail` when a test failed or `failure` is set, else `pass`.
+pub fn write_replay_record(dir: &Path, suite: &str, app: &str, tests: &[Value], failure: Option<&str>, started: std::time::Instant) -> std::io::Result<()> {
+    std::fs::create_dir_all(dir)?;
+    let finished = now_ms();
+    let started_ms = finished - started.elapsed().as_millis() as i64;
+    let failed = tests.iter().find(|t| t["verdict"] == "fail").map(|t| format!("{}: failed", t["test"].as_str().unwrap_or_default()));
+    let message = failure.map(String::from).or(failed);
+    let verdict = if message.is_some() { "fail" } else { "pass" };
+    let sha = git_head();
+    let cases: Vec<Value> = tests.iter().map(|t| json!({"name": t["test"], "verdict": t["verdict"], "ms": t["ms"], "message": Value::Null})).collect();
+    let report = json!({
+        "schema": 1, "verdict": verdict, "ok": verdict == "pass", "exitCode": i32::from(verdict != "pass"), "message": message,
+        "expectedCases": tests.len(), "script": suite, "platform": "integration", "sha": sha,
+        "startedMs": started_ms, "finishedMs": finished, "started": iso(started_ms), "finished": iso(finished),
+        "durationS": ((finished - started_ms).max(0) as f64 / 100.0).round() / 10.0,
+        "recordDir": dir.display().to_string(), "cases": cases, "warnings": [],
+    });
+    let trace = json!({"schema": SCHEMA, "app": app, "suite": suite, "sha": sha, "complete": true, "tests": tests});
+    write_atomically(&dir.join("trace.json"), &trace)?;
+    write_atomically(&dir.join("report.json"), &report)
+}
+
 fn write_atomically(path: &Path, value: &Value) -> std::io::Result<()> {
     let tmp = path.with_extension("json.tmp");
     std::fs::write(&tmp, serde_json::to_string_pretty(value)? + "\n")?;

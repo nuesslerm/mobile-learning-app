@@ -69,6 +69,7 @@ fn interactions(set: &Path) -> Vec<serde_json::Value> {
 }
 
 fn replay(id: &str) {
+    let started = std::time::Instant::now();
     let rows = features().into_iter().find(|(name, _)| name == id).unwrap_or_else(|| panic!("no crate declares replay rows as {id}")).1;
     let base = candidate_dir().join("cassettes");
     let scratch_dir = scratch("recorded");
@@ -136,9 +137,8 @@ fn replay(id: &str) {
         let dir = out.join("orca-serve-integration");
         std::fs::create_dir_all(&dir).unwrap();
         if !trace_tests.is_empty() {
-            let trace = json!({"schema": "method-trace/1", "app": "orca", "suite": "wf-mimic-orca-crawl", "sha": null, "complete": true, "tests": trace_tests});
-            std::fs::create_dir_all(out.join("wf-mimic-orca-crawl")).unwrap();
-            std::fs::write(out.join("wf-mimic-orca-crawl/trace.json"), serde_json::to_string_pretty(&trace).unwrap()).unwrap();
+            let failure = (!failures.is_empty()).then(|| failures.join("\n"));
+            exec_testkit::write_replay_record(&out.join("wf-mimic-orca-crawl"), "wf-mimic-orca-crawl", "orca", &trace_tests, failure.as_deref(), started).unwrap();
         }
         std::fs::write(dir.join("recorded-diff.json"), serde_json::to_string_pretty(&json!({"schema": "mimic-diff-table/1", "feature": id, "sets": table})).unwrap()).unwrap();
     }

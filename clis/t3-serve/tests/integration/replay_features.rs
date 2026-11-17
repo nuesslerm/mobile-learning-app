@@ -110,6 +110,7 @@ fn replay(id: &str) {
 }
 
 fn replay_set(id: &str, rows: &[String], name: &str, failures: &mut Vec<String>) -> usize {
+    let started = std::time::Instant::now();
     let dir = format!("{CASSETTES}/{name}");
     // Given the set the pinned server recorded on the VM, stamped with the hash of the pin file as it is now
     let set = mimic_t3::load_set(&dir);
@@ -154,9 +155,8 @@ fn replay_set(id: &str, rows: &[String], name: &str, failures: &mut Vec<String>)
     if let Some(out) = std::env::var_os("WF_TEST_OUTPUT_DIR").filter(|d| !d.is_empty()) {
         let dir = std::path::Path::new(&out).join(SUITE_NAME).join(id).join(name);
         std::fs::create_dir_all(&dir).unwrap();
-        // the method trace `wf mimic coverage --traces` reads (the shape `wf mimic replay --suite` writes, each call with the agent methods that answered it)
-        let trace = json!({"schema": "method-trace/1", "app": "t3", "suite": SUITE_NAME, "sha": null, "complete": true, "tests": tests});
-        std::fs::write(dir.join("trace.json"), serde_json::to_string_pretty(&trace).unwrap()).unwrap();
+        // the run record `wf test publish` takes and the method trace `wf mimic coverage --traces` reads (each call with the agent methods that answered it)
+        exec_testkit::write_replay_record(&dir, SUITE_NAME, "t3", &tests, failure.as_deref(), started).unwrap();
         let table: Vec<Value> = results.into_iter().map(|mut r| (r["set"] = json!(name), r).1).collect();
         std::fs::write(dir.join("recorded-diff.json"), serde_json::to_string_pretty(&json!({"schema": "mimic-diff-table/1", "compared": tests.len(), "results": table})).unwrap()).unwrap();
     }

@@ -46,7 +46,7 @@ pub use repo::{git_env, TempRepo};
 pub use script::{Invocation, Script, Step, Turn};
 pub use service::RcaService;
 pub use tap::{Seen, Tap};
-pub use trace::{attribute, Case, Suite};
+pub use trace::{attribute, write_replay_record, Case, Suite};
 
 /// A stub that never ends on its own: it ends when its parent does (the test that spawned it), so a hung stub cannot outlive its test
 /// and hold the lock `cargo` runs under, and at the latest after ten minutes.
