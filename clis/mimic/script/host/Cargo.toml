@@ -20,7 +20,7 @@ path = "src/bin/fake-t3.rs"
 required-features = ["testing"]
 
 [dependencies]
-mimic-core = { version = "0.1.1", registry = "mla" }
+mimic-core = { version = "0.1.2", registry = "mla" }
 mimic-script-core = { version = "0.1.7", registry = "mla" }
 mimic-script-net = { version = "0.1.5", registry = "mla" }
 serde_json = { version = "1", features = ["float_roundtrip"] }

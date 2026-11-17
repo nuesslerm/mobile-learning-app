@@ -75,7 +75,7 @@ agent-api-attachments = { path = "../../libraries/agent-api/agent-api-attachment
 agent-api-preview = { path = "../../libraries/agent-api/agent-api-preview", features = ["testing"] }
 exec-git = { path = "../../libraries/agent-api/exec-git" }
 exec-testkit = { path = "../../libraries/agent-api/exec-testkit" }
-mimic-core = { version = "0.1.1", registry = "mla" }
+mimic-core = { version = "0.1.2", registry = "mla" }
 mimic-script-core = { version = "0.1.7", registry = "mla" }
 mimic-script-host = { version = "0.1.8", registry = "mla" }
 tempfile = "3"

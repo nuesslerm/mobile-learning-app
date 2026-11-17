@@ -15,7 +15,7 @@ doctest = false
 testing = []
 
 [dependencies]
-mimic-core = { version = "0.1.1", registry = "mla" }
+mimic-core = { version = "0.1.2", registry = "mla" }
 serde_json = { version = "1", features = ["float_roundtrip"] }
 base64 = "0.22"
 

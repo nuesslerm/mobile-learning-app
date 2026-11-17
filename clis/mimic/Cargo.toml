@@ -41,7 +41,7 @@ wf-kit = { path = "../wf-kit" }
 wf-bucket = { path = "../wf-bucket" }
 cli-http = { path = "../http" }
 mimic-coverage-core = { path = "coverage" }
-mimic-core = { version = "0.1.1", registry = "mla" }
+mimic-core = { version = "0.1.2", registry = "mla" }
 mimic-script-core = { version = "0.1.7", registry = "mla" }
 mimic-script-host = { version = "0.1.8", registry = "mla" }
 mimic-script-orca = { version = "0.1.3", registry = "mla" }
@@ -52,7 +52,7 @@ toml = { version = "0.8", default-features = false, features = ["parse"] }
 # The pre-push gate runs the flow test without features: the self dev-dependency builds the toy for it.
 [dev-dependencies]
 wf-mimic = { path = ".", features = ["testing"] }
-mimic-core = { version = "0.1.1", registry = "mla", features = ["testing"] }
+mimic-core = { version = "0.1.2", registry = "mla", features = ["testing"] }
 mimic-coverage-core = { path = "coverage", features = ["testing"] }
 tempfile = "3"
 tiny_http = "0.12"

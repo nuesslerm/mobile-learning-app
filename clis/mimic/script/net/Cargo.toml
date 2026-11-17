@@ -17,7 +17,7 @@ flate2 = "1"
 serde_json = { version = "1", features = ["float_roundtrip"] }
 
 [dev-dependencies]
-mimic-core = { version = "0.1.1", registry = "mla" }
+mimic-core = { version = "0.1.2", registry = "mla" }
 mimic-script-core = { version = "0.1.6", registry = "mla", features = ["testing"] }
 flate2 = "1"
 

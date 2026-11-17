@@ -255,9 +255,9 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
 name = "mimic-core"
-version = "0.1.1"
+version = "0.1.2"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
-checksum = "e6a735a7b73a08821e99c571cc2cd8c8b2965dc768bc0c9f6b835ee19b2d18c5"
+checksum = "5c3705702e1807c8c80713fb2d3a678a34765a8bdffd2d66bcd24189fb2c0815"
 dependencies = [
  "base64",
  "regex",
