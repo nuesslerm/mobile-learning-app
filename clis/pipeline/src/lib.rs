@@ -76,8 +76,8 @@ pub fn run_test(rest: &[String]) -> Option<i32> {
 
 /// Every first word the router of `wf` routes, for the dead-reference scan in the thin binary (a flow test of `wf` keeps it equal to its table).
 pub const ROUTER_WORDS: &[&str] = &[
-    "check", "ship", "ask", "plan", "run", "flow", "test", "ci", "android", "browser", "vm", "secret", "repo", "bench", "knowledge", "agent-config", "offload", "cache", "bucket", "lib", "t3", "exec", "mimic",
-    "parity", "help", "log", "worker", "browser-daemon", "mcp-guard", "build-sha",
+    "check", "ship", "ask", "plan", "run", "flow", "test", "ci", "android", "browser", "vm", "secret", "repo", "bench", "knowledge", "agent-config", "rca", "cache", "bucket", "lib", "t3", "exec", "mimic",
+    "help", "log", "worker", "browser-daemon", "mcp-guard", "build-sha",
 ];
 
 /// `check --staged`, `--pushed`, `--budget` and `--dead-refs`, spelled and ordered as the router of `wf` does, so the thin binary answers the same.

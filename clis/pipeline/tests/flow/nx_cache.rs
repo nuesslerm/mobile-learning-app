@@ -20,7 +20,7 @@ const BROWSER: [&str; 4] = ["app-routes", "editor-typing", "tamil-writing", "voi
 const ANDROID: [&str; 4] = ["editor-typing", "stubbed-run-local", "tamil-writing", "voice-edit"];
 const HARNESS: [&str; 5] = ["@cli/harness-contracts", "@cli/harness-data", "@cli/harness-use-cases", "@cli/harness-di", "@cli/harness-ui"];
 const SERVICES: [&str; 5] = ["@app/leetcode-auth-cookie-capture", "@app/leetcode-backend", "@app/remote-chat-agent", "@backend/reporting-service", "@infra/watchdog"];
-const CRATES: [&str; 17] = ["agent-config-sync", "cdp", "cli-http", "harness-flow", "knowledge", "rca-core", "rca-ladder", "wf", "offload", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "secrets", "deploy", "wf-vmops"];
+const CRATES: [&str; 17] = ["agent-config-sync", "cdp", "cli-http", "harness-flow", "knowledge", "rca-core", "rca-ladder", "wf", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "secrets", "deploy", "wf-vmops"];
 
 struct Workspace {
     dir: tempfile::TempDir,
@@ -435,22 +435,22 @@ fn nx_reruns_a_package_or_crate_task_exactly_when_its_sources_or_a_dependency_s_
     }
     let flow_cases: Vec<(&str, &str, BTreeSet<String>)> = vec![
         ("the crate every service takes from the registry: no service flow test reruns", "backend/service-kit/src/heartbeat.rs", flow(&[], &[])),
-        ("a crate the CLIs build, and the agent service reaches through its own dependencies", "clis/http/src/lib.rs", flow(&["@app/remote-chat-agent"], &["cli-http", "cdp", "harness-flow", "knowledge", "wf", "offload", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "secrets", "deploy", "wf-vmops"])),
+        ("a crate the CLIs build, and the agent service reaches through its own dependencies", "clis/http/src/lib.rs", flow(&["@app/remote-chat-agent"], &["cli-http", "cdp", "harness-flow", "knowledge", "wf", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "secrets", "deploy", "wf-vmops"])),
         ("a library a CLI and a service take from the registry", "libraries/rca-core/src/file_store.rs", flow(&[], &["rca-core", "rca-ladder"])),
         ("one crate's flow test", "clis/cdp/tests/flow.rs", flow(&[], &["cdp"])),
         ("a wf crate with a flow test of its own", "clis/pipeline/src/ci_comment.rs", flow(&[], &["pipeline", "deploy", "wf"])),
         ("the bucket crate the publisher and the planner build on","clis/wf-bucket/src/cache_runs.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "wf-bucket", "wf-bench", "wf-harness", "pipeline", "deploy", "wf"])),
-        ("the VM crate every caller of vm-ops-api builds", "clis/wf-vmops/src/vm_exec.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "wf-vmops", "wf-bucket", "offload", "wf-bench", "wf-harness", "wf-login", "pipeline", "deploy", "wf"])),
+        ("the VM crate every caller of vm-ops-api builds", "clis/wf-vmops/src/vm_exec.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "wf-vmops", "wf-bucket", "rca", "wf-bench", "wf-harness", "wf-login", "pipeline", "deploy", "wf"])),
         ("the planner crate", "clis/pipeline/src/legs.rs", flow(&[], &["pipeline", "deploy", "wf"])),
         ("the crate of `wf ship` and `wf check --deployed`", "clis/deploy/src/ship_eas.rs", flow(&[], &["deploy", "wf"])),
         ("the crate of the `wf vm` verbs", "clis/deploy/src/vm_ops.rs", flow(&[], &["deploy", "wf"])),
         ("the crate of `wf secret login` and the desktop's listener", "clis/wf-login/src/vnc/engine.rs", flow(&[], &["wf-login", "wf"])),
-        ("the crate of `wf offload ask` and the worker", "clis/offload/src/dispatch.rs", flow(&[], &["offload", "wf-bench", "wf"])),
+        ("the crate of `wf rca ask` and the worker", "clis/rca/src/dispatch.rs", flow(&[], &["rca", "wf-bench", "wf"])),
         ("the device harness crate", "clis/harness-core/src/device/lua.rs", flow(&[], &["harness-flow", "wf-harness", "wf-bench", "pipeline", "deploy", "wf"])),
         ("the crate of `wf bench`", "clis/wf-bench/src/bench.rs", flow(&[], &["wf-bench", "wf"])),
-        ("the secrets crate every wf crate that reads a value builds", "clis/secrets/src/secrets/util.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "secrets", "offload", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "deploy", "wf-vmops", "wf"])),
-        ("the kit every wf crate builds, and rca-exec, whose binary the agent service's flow tests run", "clis/wf-kit/src/args.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "knowledge", "agent-config-sync", "secrets", "offload", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "deploy", "wf-vmops", "wf"])),
-        ("a double the flow tests share (in src, so its users rerun)", "clis/wf-testkit/src/stubs.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "knowledge", "secrets", "offload", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "deploy", "wf-vmops", "wf"])),
+        ("the secrets crate every wf crate that reads a value builds", "clis/secrets/src/secrets/util.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "secrets", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "deploy", "wf-vmops", "wf"])),
+        ("the kit every wf crate builds, and rca-exec, whose binary the agent service's flow tests run", "clis/wf-kit/src/args.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "knowledge", "agent-config-sync", "secrets", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "deploy", "wf-vmops", "wf"])),
+        ("a double the flow tests share (in src, so its users rerun)", "clis/wf-testkit/src/stubs.rs", flow(&["@app/remote-chat-agent"], &["harness-flow", "knowledge", "secrets", "rca", "wf-bench", "wf-bucket", "wf-harness", "wf-login", "pipeline", "deploy", "wf-vmops", "wf"])),
         ("the flow test of a crate inside a service", "backend/leetcode-backend/rs/tests/flow.rs", flow(&["@app/leetcode-backend"], &[])),
         ("the flow test of the crate a package runs", "backend/watchdog/rs/tests/flow.rs", flow(&["@infra/watchdog"], &[])),
         ("the CLIs' lockfile, which an edit that does not parse makes the whole file (the agent service's flow tests run rca-exec from it)", "clis/Cargo.lock", flow(&["@app/remote-chat-agent"], &CRATES.iter().copied().filter(|c| *c != "rca-core" && *c != "rca-ladder").collect::<Vec<_>>())),
@@ -586,8 +586,8 @@ fn a_change_in_a_wf_crate_plans_the_flow_tests_of_exactly_the_crates_that_build_
         (got != want).then(|| format!("{file}\n  got      {got:?}\n  expected {want:?}"))
     };
     let wrong: Vec<String> = [
-        by_crate("clis/secrets/src/secrets/util.rs", &["secrets", "offload", "wf-bucket", "wf-lib", "wf-login", "deploy", "wf-vmops", "wf", "pipeline", "wf-harness", "harness-flow", "wf-bench", "wf-mimic", "orca-map-mobile"]),
-        by_crate("clis/wf-vmops/src/vm_exec.rs", &["wf-vmops", "offload", "wf-bench", "wf-harness", "wf-login", "pipeline", "deploy", "wf", "harness-flow", "wf-bucket", "wf-mimic", "orca-map-mobile"]),
+        by_crate("clis/secrets/src/secrets/util.rs", &["secrets", "rca", "wf-bucket", "wf-lib", "wf-login", "deploy", "wf-vmops", "wf", "pipeline", "wf-harness", "harness-flow", "wf-bench", "wf-mimic", "orca-map-mobile"]),
+        by_crate("clis/wf-vmops/src/vm_exec.rs", &["wf-vmops", "rca", "wf-bench", "wf-harness", "wf-login", "pipeline", "deploy", "wf", "harness-flow", "wf-bucket", "wf-mimic", "orca-map-mobile"]),
         by_crate("clis/wf-bucket/src/cache_runs.rs", &["wf-bucket", "pipeline", "deploy", "wf", "wf-harness", "harness-flow", "wf-bench", "wf-mimic", "orca-map-mobile"]),
     ].into_iter().flatten().collect();
     assert!(wrong.is_empty(), "{}", wrong.join("\n"));
@@ -599,7 +599,7 @@ fn a_change_in_a_wf_crate_plans_the_flow_tests_of_exactly_the_crates_that_build_
     assert_eq!(planned("clis/deploy/src/ship_eas.rs"), with(dependants("deploy", &["wf"]), &["deploy changed"]));
     assert_eq!(planned("clis/deploy/src/vm_ops.rs"), with(dependants("deploy", &["wf"]), &["deploy changed"]));
     assert_eq!(planned("clis/wf-login/src/vnc/engine.rs"), with(dependants("wf-login", &["wf"]), &["wf-login changed"]));
-    assert_eq!(planned("clis/offload/src/dispatch.rs"), with(dependants("offload", &["wf-bench", "wf"]), &["offload changed"]));
+    assert_eq!(planned("clis/rca/src/dispatch.rs"), with(dependants("rca", &["wf-bench", "wf"]), &["rca changed"]));
     assert_eq!(planned("clis/harness-core/src/device/lua.rs"), with(dependants("wf-harness", &["wf-bench"]), &["wf-harness depends on harness-core (cargo)", "harness-flow depends on harness-core (cargo)", "wf depends on harness-flow (cargo)", "pipeline depends on harness-core (cargo)", "deploy depends on pipeline (cargo)"]));
     assert_eq!(planned("clis/wf-bench/src/bench.rs"), with(dependants("wf-bench", &["wf"]), &["wf-bench changed"]));
     // When a file of wf itself changes, Then only wf's tests are planned
@@ -619,7 +619,7 @@ fn a_change_in_a_wf_crate_plans_the_flow_tests_of_exactly_the_crates_that_build_
     }
 }
 
-const OFFLOAD_GROUPS: [&str; 4] = ["ask", "parity", "parity_features", "parity_capabilities"];
+const RCA_GROUPS: [&str; 4] = ["ask", "compare", "compare_features", "compare_capabilities"];
 
 #[test]
 fn a_crate_with_e2e_groups_plans_one_entry_per_group_for_a_change_of_its_own_and_none_for_one_of_a_dependency() {
@@ -629,7 +629,7 @@ fn a_crate_with_e2e_groups_plans_one_entry_per_group_for_a_change_of_its_own_and
     git(&["init", "-q"]);
     git(&["add", "-A"]);
     assert!(git(&["commit", "-q", "-m", "The copy"]).status.success());
-    // And the e2e entries of the offload crate a commit that changes `file` would plan, by group and Nx target
+    // And the e2e entries of the rca crate a commit that changes `file` would plan, by group and Nx target
     let planned = |file: &str| -> BTreeSet<String> {
         let mut entries = BTreeSet::new();
         let base = String::from_utf8_lossy(&git(&["rev-parse", "HEAD"]).stdout).trim().to_string();
@@ -638,14 +638,14 @@ fn a_crate_with_e2e_groups_plans_one_entry_per_group_for_a_change_of_its_own_and
             let sha = w.commit("Change one file");
             let r = w.wf(&["test", "plan", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
             assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
-            entries = last_line(&r)["stages"]["cli-e2e-tests"].as_array().unwrap().iter().filter(|t| t["crate"] == "offload").map(|t| format!("{} {}", t["group"].as_str().unwrap_or("-"), t["target"].as_str().unwrap_or("-"))).collect();
+            entries = last_line(&r)["stages"]["cli-e2e-tests"].as_array().unwrap().iter().filter(|t| t["crate"] == "rca").map(|t| format!("{} {}", t["group"].as_str().unwrap_or("-"), t["target"].as_str().unwrap_or("-"))).collect();
         });
         entries
     };
 
     // When a file of the crate changes, Then every group is an entry of its own, run as its own Nx task
-    let every: BTreeSet<String> = OFFLOAD_GROUPS.iter().map(|g| format!("{g} cargo-e2e-{g}")).collect();
-    assert_eq!(planned("clis/offload/src/worker_run.rs"), every);
+    let every: BTreeSet<String> = RCA_GROUPS.iter().map(|g| format!("{g} cargo-e2e-{g}")).collect();
+    assert_eq!(planned("clis/rca/src/worker_run.rs"), every);
     // When only a crate it builds on changes, Then no live-model group is planned
     assert_eq!(planned("clis/wf-kit/src/args.rs"), set(&[]));
 }
@@ -655,10 +655,10 @@ fn nx_reruns_an_e2e_group_exactly_when_its_test_file_or_what_every_group_reads_c
     let w = Workspace::copy();
     // the double logs the crate and the test filter each task was asked for
     write_script(&w.bin.join("cargo"), "if [ \"$1\" = metadata ]; then echo 'the Nx graph must not need cargo' >&2; exit 1; fi\nwhile [ $# -gt 0 ]; do [ \"$1\" = -p ] && p=\"$2\"; last=\"$1\"; shift; done\necho \"cargo $p $last\" >> \"$RAN_LOG\"\n");
-    let entries: Vec<Value> = OFFLOAD_GROUPS.iter().map(|g| json!({ "kind": "e2e", "crate": "offload", "group": g, "target": format!("cargo-e2e-{g}") })).collect();
+    let entries: Vec<Value> = RCA_GROUPS.iter().map(|g| json!({ "kind": "e2e", "crate": "rca", "group": g, "target": format!("cargo-e2e-{g}") })).collect();
     let plan = w.plan("cli-e2e-tests", entries);
-    let groups = |names: &[&str]| -> BTreeSet<String> { names.iter().map(|g| format!("cargo offload {g}::")).collect() };
-    let every = groups(&OFFLOAD_GROUPS);
+    let groups = |names: &[&str]| -> BTreeSet<String> { names.iter().map(|g| format!("cargo rca {g}::")).collect() };
+    let every = groups(&RCA_GROUPS);
 
     // Given every group passed once
     let (r, did) = w.run_stage("cli-e2e-tests", &plan, &[]);
@@ -668,18 +668,18 @@ fn nx_reruns_an_e2e_group_exactly_when_its_test_file_or_what_every_group_reads_c
 
     // When a file changes, Then exactly the groups that read it run again
     let cases: Vec<(&str, &str, BTreeSet<String>)> = vec![
-        ("the test file of one group", "clis/offload/tests/e2e/parity_features.rs", groups(&["parity_features"])),
-        ("the test file of another group", "clis/offload/tests/e2e/ask.rs", groups(&["ask"])),
-        ("the parity group's own test file", "clis/offload/tests/e2e/parity.rs", groups(&["parity"])),
-        ("the helpers every group imports", "clis/offload/tests/e2e/parity_support.rs", every.clone()),
-        ("the module list of the suite", "clis/offload/tests/e2e.rs", every.clone()),
-        ("the support the suite shares with the flow tests", "clis/offload/tests/flow/support/mod.rs", every.clone()),
-        ("the source the asks go through", "clis/offload/src/dispatch_run.rs", every.clone()),
-        ("the rca client every ask calls", "clis/offload/src/rca_client.rs", every.clone()),
-        ("the worker, which no ask runs", "clis/offload/src/worker_run.rs", ran(&[])),
-        ("the batch mode, which no group drives", "clis/offload/src/dispatch_batch.rs", ran(&[])),
-        ("the pricing sync", "clis/offload/src/pricing_sync.rs", ran(&[])),
-        ("a flow test of the crate", "clis/offload/tests/flow/ask.rs", ran(&[])),
+        ("the test file of one group", "clis/rca/tests/e2e/compare_features.rs", groups(&["compare_features"])),
+        ("the test file of another group", "clis/rca/tests/e2e/ask.rs", groups(&["ask"])),
+        ("the compare group's own test file", "clis/rca/tests/e2e/compare.rs", groups(&["compare"])),
+        ("the helpers every group imports", "clis/rca/tests/e2e/compare_support.rs", every.clone()),
+        ("the module list of the suite", "clis/rca/tests/e2e.rs", every.clone()),
+        ("the support the suite shares with the flow tests", "clis/rca/tests/flow/support/mod.rs", every.clone()),
+        ("the source the asks go through", "clis/rca/src/dispatch_run.rs", every.clone()),
+        ("the rca client every ask calls", "clis/rca/src/rca_client.rs", every.clone()),
+        ("the worker, which no ask runs", "clis/rca/src/worker_run.rs", ran(&[])),
+        ("the batch mode, which no group drives", "clis/rca/src/dispatch_batch.rs", ran(&[])),
+        ("the pricing sync", "clis/rca/src/pricing_sync.rs", ran(&[])),
+        ("a flow test of the crate", "clis/rca/tests/flow/ask.rs", ran(&[])),
         ("the lockfile", "clis/Cargo.lock", every.clone()),
         ("a crate it builds on", "clis/wf-kit/src/args.rs", every.clone()),
         ("the read-only agent every group's checkout holds", ".opencode/agents/read-only.md", every.clone()),

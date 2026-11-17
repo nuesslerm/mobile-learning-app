@@ -2,7 +2,7 @@
 //! temporary git repository, with the scripted CLI of `exec-testkit` standing in for the model CLI the service starts. Nothing is doubled but
 //! the model. Each test drives the wire the way the phone does (the handshake and sealed frames of `orca-crypto`, whose vectors the pinned
 //! reference recorded) and records what each call did on the way (a method-hit trace, `trace.json` beside the run record in
-//! `$WF_TEST_OUTPUT_DIR/orca-serve-integration`): `wf parity coverage --app orca --traces` marks a row served only for a passing test whose trace
+//! `$WF_TEST_OUTPUT_DIR/orca-serve-integration`): `wf mimic coverage --app orca --traces` marks a row served only for a passing test whose trace
 //! shows the call was answered and not merely refused.
 #[path = "integration/agent_sessions.rs"]
 mod agent_sessions;

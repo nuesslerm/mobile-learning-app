@@ -68,7 +68,7 @@ Order of reporting per `docs/solutions/testing/verification-ladder.md`.
 - Timing: the broker deploys beside `vm-ops-api`; `vm-ops-api` still ships first (it builds itself at the commit).
 
 ## Benchmarks
-A new workflow and a new `wf` verb: log a cheap benchmark (the extra seconds per job for the OIDC exchange and one broker call, one run per runner kind) in `docs/audits/2026-09-02-token-diet-decision-log.md`; no model spend is involved, so no `wf offload` run.
+A new workflow and a new `wf` verb: log a cheap benchmark (the extra seconds per job for the OIDC exchange and one broker call, one run per runner kind) in `docs/audits/2026-09-02-token-diet-decision-log.md`; no model spend is involved, so no `wf rca` run.
 
 ## Open questions
 1. Absorb the GitHub access broker plan's broker into this service (recommended, Wave 5.3) or keep it in `vm-ops-api`?

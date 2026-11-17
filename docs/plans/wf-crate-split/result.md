@@ -33,7 +33,7 @@ that crate's test.
 | wf-vmops | 2 | 2 | ok | ok | 4 |
 | wf-plan | 23 | 23 | ok | ok | 354 (the `nx_cache` tests copy the repo and run Nx) |
 | deploy | 14 | 14 | ok | ok | 12 |
-| offload | 10 | 10 | ok | ok | 10 |
+| rca | 10 | 10 | ok | ok | 10 |
 | deploy | 18 | 18 | ok | ok | 51 |
 | wf-bench | 5 | 5 | ok | ok | 38 |
 | wf-login | 6 | 6 | ok | ok | 18 |
@@ -122,7 +122,7 @@ What a change in each crate reruns, from the real graph (plan section 5 in brack
 | `wf-plan` | plan, ship, wf | 61 [56] |
 | `deploy` | ship, wf | 38 [35] |
 | `deploy` | vm, wf | 34 [34] |
-| `offload` | ask, wf | 30 [27] |
+| `rca` | ask, wf | 30 [27] |
 | `the ci crate`, `wf-login` | ci or login, wf | 26, 26 [24, 23] |
 | `wf-bench` | bench, wf | 25 [23] |
 | `wf` | wf | 20 [17] |

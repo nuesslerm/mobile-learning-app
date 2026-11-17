@@ -1,8 +1,22 @@
-//! The flow tests of `wf mimic`: they enter through the thin `wf-mimic` binary (or `WF_BIN`, the full wf through its router) and
+//! The flow tests of `wf mimic` (the coverage tables and the pin tracking run on fixture trees whose references are real git checkouts, and on the repository's own tables): they enter through the thin `wf-mimic` binary (or `WF_BIN`, the full wf through its router) and
 //! record, replay, diff and verify the toy reference `mimic-toy`, a program that makes up an id, a timestamp and a token on every run.
 #[path = "flow/support/mod.rs"]
 mod support;
+#[path = "flow/coverage_support/mod.rs"]
+mod coverage_support;
 
+#[path = "flow/coverage_orca.rs"]
+mod coverage_orca;
+#[path = "flow/coverage_oracle.rs"]
+mod coverage_oracle;
+#[path = "flow/coverage_recorded.rs"]
+mod coverage_recorded;
+#[path = "flow/coverage_repo.rs"]
+mod coverage_repo;
+#[path = "flow/coverage_t3.rs"]
+mod coverage_t3;
+#[path = "flow/coverage_track.rs"]
+mod coverage_track;
 #[path = "flow/crawl.rs"]
 mod crawl;
 #[path = "flow/fixtures.rs"]

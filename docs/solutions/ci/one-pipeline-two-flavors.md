@@ -91,7 +91,7 @@ sequenceDiagram
 
 `vm-ops-api` is the first leg because every other leg redeploys through it, and its swap drops their in-flight requests ("Peer disconnected"). The other legs build in parallel and wait only just before their redeploy. On the VM the wait is a no-op because legs already run one at a time.
 
-`cli-e2e-tests` joins no tailnet: `setup-job` and `hosted-setup` take `tailnet: 'false'` and no Tailscale secrets, because the offload e2e starts its own rca-service and opencode on the runner. Every other job keeps the default `true`.
+`cli-e2e-tests` joins no tailnet: `setup-job` and `hosted-setup` take `tailnet: 'false'` and no Tailscale secrets, because the rca e2e starts its own rca-service and opencode on the runner. Every other job keeps the default `true`.
 
 Image builds fetch the shared libraries from the public libs bucket over plain HTTPS, so a build container on a hosted runner needs no tailnet name or `--add-host` (the registry proxy and `WF_BUILD_ADD_HOSTS` are gone).
 

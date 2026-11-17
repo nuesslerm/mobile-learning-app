@@ -452,9 +452,9 @@ exports.createNodes = [
       // a real Chromium or other real dependency the flow tests double: one test at a time, after the services are deployed
       const e2eChecks = [...OWN, ...tier, ...extra(c, [], 'e2e')];
       const e2e = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1`, e2eChecks);
-      // the same suite without the parity tests (a test whose path names `parity` compares a live model with another): minutes of model
+      // the same suite without the compare tests (a test whose path names `compare` compares a live model with another): minutes of model
       // time that only a change to the crate itself, or a full plan, is worth
-      const e2eSmoke = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1 --skip parity`, e2eChecks);
+      const e2eSmoke = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1 --skip compare`, e2eChecks);
       // the deployed service asked over its real interface: its result is a fact about the VM, so no cache replays it
       const verifyDeployed = testTarget('deployed_verification.rs', `cargo test --locked -p ${c.name} --test deployed_verification --manifest-path ${c.manifest} -- --ignored --test-threads=1`, checks);
       if (verifyDeployed) verifyDeployed.cache = false;

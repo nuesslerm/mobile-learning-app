@@ -8,9 +8,9 @@ files:
   - "**/backend/remote-chat-agent/exec-channel/src/**/*.rs"
   - "**/libraries/rca-core/src/**/*.rs"
   - "**/mimic/core/src/**/*.rs"
+  - "**/mimic/coverage/src/**/*.rs"
   - "**/mimic/script/core/src/**/*.rs"
   - "**/orca-serve/core/src/**/*.rs"
-  - "**/parity/core/src/**/*.rs"
   - "**/t3-serve/core/src/**/*.rs"
   # END generated:ast-grep-files
 ignores:

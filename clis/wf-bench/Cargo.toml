@@ -24,7 +24,7 @@ test = false
 [dependencies]
 wf-kit = { path = "../wf-kit" }
 wf-harness = { path = "../wf-harness" }
-offload = { path = "../offload" }
+rca = { path = "../rca" }
 rca-core = { version = "0.1", registry = "mla" }
 cli-http = { path = "../http" }
 serde_json = { version = "1", features = ["preserve_order"] }

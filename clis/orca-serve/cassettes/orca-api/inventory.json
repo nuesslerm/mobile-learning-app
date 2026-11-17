@@ -21,7 +21,7 @@
       "name": "mobile-calls",
       "available": true,
       "found": 299,
-      "note": "quoted method names under mobile/src, plus the reachability scan of the catalog (wf parity coverage)"
+      "note": "quoted method names under mobile/src, plus the reachability scan of the catalog (wf mimic coverage)"
     },
     {
       "name": "cli-source",
@@ -22236,7 +22236,7 @@
     },
     {
       "class": "mobile call sites with a computed method name",
-      "missing_source": "the type-level call graph of mobile/src (wf parity coverage lists the dynamic sites)",
+      "missing_source": "the type-level call graph of mobile/src (wf mimic coverage lists the dynamic sites)",
       "detail": "sendRequest(method) with a variable: the names come from the callers, which the quoted-name scan sees only where they are literals"
     },
     {
@@ -22299,7 +22299,7 @@
         "name": "mobile-calls",
         "available": true,
         "found": 299,
-        "note": "quoted method names under mobile/src, plus the reachability scan of the catalog (wf parity coverage)"
+        "note": "quoted method names under mobile/src, plus the reachability scan of the catalog (wf mimic coverage)"
       },
       {
         "name": "cli-source",
@@ -22333,7 +22333,7 @@
       },
       {
         "class": "mobile call sites with a computed method name",
-        "missing_source": "the type-level call graph of mobile/src (wf parity coverage lists the dynamic sites)",
+        "missing_source": "the type-level call graph of mobile/src (wf mimic coverage lists the dynamic sites)",
         "detail": "sendRequest(method) with a variable: the names come from the callers, which the quoted-name scan sees only where they are literals"
       },
       {

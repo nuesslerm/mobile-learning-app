@@ -23,7 +23,7 @@ Actions:
                          run one stage of a plan (default: plan HEAD~1..HEAD) through the workspace's Nx cache: a task whose
                          inputs hash the same as an earlier pass is replayed, the rest run. A package stage runs each kind's
                          target over its packages (`nx run-many -t <script> -p a,b --parallel <n>`, default 4; the flow call also runs
-                         the crates' `cargo-flow`; the integration-tests stage runs test:integration and a crate's `cargo-integration`, the cli-e2e-tests stage the crates' `cargo-e2e` (a crate reached only through a dependency runs `cargo-e2e-smoke`: the same suite without its parity tests, or nothing when its suite is the live-model parity one, `tests/e2e/parity.rs`), one project at a time),
+                         the crates' `cargo-flow`; the integration-tests stage runs test:integration and a crate's `cargo-integration`, the cli-e2e-tests stage the crates' `cargo-e2e` (a crate reached only through a dependency runs `cargo-e2e-smoke`: the same suite without its compare tests, or nothing when its suite is the live-model compare one, `tests/e2e/compare.rs`), one project at a time),
                          every kind even after a red one, and prints {ok, stage, kinds:[{kind, target, projects, verdict,
                          durationS}], expectedRevisions}; the deployment-verification-tests stage also hands its tests WF_EXPECTED_REVISIONS
                          ({service: commit}) and lists them as expectedRevisions [{app, commit, why}]: the pushed commit, or the
@@ -114,7 +114,7 @@ Actions:
                          <dir> is a harness run's test output dir (report.json), a flow report dir (.flow-report) or an e2e run dir
                          (result.json). bundle.json (schema 1) lists every file's public URL, report {html,json},
                          screenshots[], recordings[], debug, timing, traces[] (the method-hit traces, trace.json, of an
-                         integration chain: `wf parity coverage --traces` reads them), metrics, and the run's screen, warning
+                         integration chain: `wf mimic coverage --traces` reads them), metrics, and the run's screen, warning
                          count and timingSummary; every recording and the report page are read back from the bucket (readBack). `cache`
                          is what the build-cache shim did in the runs that stopped in the last 15 minutes and no bundle carried yet:
                          {runs, hits, misses, puts, skipped, requests, bytes, degraded, latencyMs: {get, put, exists: {n, sumMs, avgMs, maxMs}}}, null when none did.

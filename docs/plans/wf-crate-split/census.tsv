@@ -18,14 +18,14 @@ android::the_device_state_reads_only_the_parts_asked_for	clis/wf-harness/tests/f
 android::the_lab_scripts_boot_a_slim_redroid_safely_and_report_its_features	clis/wf-harness/tests/flow/android.rs	harness	android start-device;android stop-device;android lease;android list-devices	0.370	clis/wf/src/android_features.json;clis/wf/src/android_stock_packages.txt	no	no	harness	-
 android::the_lesson_pads_as_redroid_shows_them_are_traced_along_the_whole_guide	clis/wf-harness/tests/flow/android.rs	harness	android draw-strokes-on	2.158	clis/wf/tests/flow/fixtures/trace/*	no	no	harness	-
 android::the_recording_stops_once_screenrecord_has_written_its_file_and_exited_waiting_at_most_5_s	clis/wf-harness/tests/flow/android.rs	harness	android stop-recording	0.361	-	no	no	harness	-
-ask::a_batch_asks_once_per_matched_file_with_a_shared_template_a_bounded_number_at_a_time	clis/offload/tests/flow/ask.rs	ask	ask	2.057	-	no	no	ask	-
-ask::a_runbook_is_driven_through_the_ladder_and_judged_by_the_steps_the_agent_reports	clis/offload/tests/flow/ask.rs	ask	ask	0.645	-	no	no	ask	-
-ask::an_ask_runs_one_prompt_down_the_cheap_model_ladder_and_logs_the_run	clis/offload/tests/flow/ask.rs	ask	ask	5.852	-	no	no	ask	-
-ask::ask_savings_prices_what_delegating_avoided_from_the_run_log_and_the_delegation_report	clis/offload/tests/flow/ask.rs	ask	ask	0.110	-	no	no	ask	-
-ask::ask_stats_summarize_the_run_log_here_or_on_the_vm_ledger	clis/offload/tests/flow/ask.rs	ask	ask	0.272	-	no	no	ask	-
-ask::the_ladder_tools_clear_a_pool_s_cooldown_and_refresh_model_prices_from_openrouter	clis/offload/tests/flow/ask.rs	ask	repo ladder	0.175	-	no	no	ask	-
-ask::the_pool_cooldown_mirror_reads_and_writes_signed_on_the_primary_port	clis/offload/tests/flow/ask.rs	ask	ask	0.156	-	no	no	ask	-
-ask::the_preflight_probe_marks_a_capped_pool_cold_before_its_rung_runs_and_a_live_ask_tees_the_run_to_the_dashboard	clis/offload/tests/flow/ask.rs	ask	ask	0.820	-	no	no	ask	-
+ask::a_batch_asks_once_per_matched_file_with_a_shared_template_a_bounded_number_at_a_time	clis/rca/tests/flow/ask.rs	ask	ask	2.057	-	no	no	ask	-
+ask::a_runbook_is_driven_through_the_ladder_and_judged_by_the_steps_the_agent_reports	clis/rca/tests/flow/ask.rs	ask	ask	0.645	-	no	no	ask	-
+ask::an_ask_runs_one_prompt_down_the_cheap_model_ladder_and_logs_the_run	clis/rca/tests/flow/ask.rs	ask	ask	5.852	-	no	no	ask	-
+ask::ask_savings_prices_what_delegating_avoided_from_the_run_log_and_the_delegation_report	clis/rca/tests/flow/ask.rs	ask	ask	0.110	-	no	no	ask	-
+ask::ask_stats_summarize_the_run_log_here_or_on_the_vm_ledger	clis/rca/tests/flow/ask.rs	ask	ask	0.272	-	no	no	ask	-
+ask::the_ladder_tools_clear_a_pool_s_cooldown_and_refresh_model_prices_from_openrouter	clis/rca/tests/flow/ask.rs	ask	repo ladder	0.175	-	no	no	ask	-
+ask::the_pool_cooldown_mirror_reads_and_writes_signed_on_the_primary_port	clis/rca/tests/flow/ask.rs	ask	ask	0.156	-	no	no	ask	-
+ask::the_preflight_probe_marks_a_capped_pool_cold_before_its_rung_runs_and_a_live_ask_tees_the_run_to_the_dashboard	clis/rca/tests/flow/ask.rs	ask	ask	0.820	-	no	no	ask	-
 auth::a_person_logs_a_tool_in_through_the_shared_desktop_and_drives_its_capture	clis/wf-login/tests/flow/auth.rs	login	secret login	0.833	-	no	no	login	-
 auth::a_person_logs_each_tool_in_here_and_wf_confirms_only_what_left_a_credential	clis/wf-login/tests/flow/auth.rs	login	secret login	0.219	-	no	no	login	-
 auth::the_listener_admits_only_the_owner_starts_and_reuses_sessions_and_gates_the_viewer_by_link_token	clis/wf-login/tests/flow/auth.rs	login	secret login	0.198	-	no	no	login	-
@@ -159,5 +159,5 @@ vm::vm_recover_brings_an_unreachable_vm_and_its_unhealthy_apps_back	clis/deploy/
 vm_drill::a_drill_takes_the_service_down_and_names_who_brought_it_back	clis/deploy/tests/flow/vm_drill.rs	vm	vm ops	0.418	-	no	no	vm	-
 vm_drill::a_drill_that_never_takes_the_service_down_fails_and_one_that_cannot_start_sends_nothing	clis/deploy/tests/flow/vm_drill.rs	vm	vm ops	0.242	-	no	no	vm	-
 vm_drill::a_drill_whose_service_stays_down_fails_with_recovered_false_and_no_flip	clis/deploy/tests/flow/vm_drill.rs	vm	vm ops	0.130	-	no	no	vm	-
-worker::a_plan_is_checked_before_it_runs_and_its_state_is_read_off_the_remote	clis/offload/tests/flow/worker.rs	ask	plan;worker check;worker status	1.016	-	no	no	ask	-
-worker::a_worker_runs_a_plan_once_landing_what_passes_its_gate_and_releasing_what_cannot_run	clis/offload/tests/flow/worker.rs	ask	plan	4.072	-	no	no	ask	-
+worker::a_plan_is_checked_before_it_runs_and_its_state_is_read_off_the_remote	clis/rca/tests/flow/worker.rs	ask	plan;worker check;worker status	1.016	-	no	no	ask	-
+worker::a_worker_runs_a_plan_once_landing_what_passes_its_gate_and_releasing_what_cannot_run	clis/rca/tests/flow/worker.rs	ask	plan	4.072	-	no	no	ask	-

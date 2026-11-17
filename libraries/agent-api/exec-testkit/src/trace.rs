@@ -3,7 +3,7 @@
 //! A mapper's behaviour test drives the phone's wire one call at a time. Each call is a window on the `Tap`: the agent API methods and the executor
 //! tools that went through it while the call ran, each with whether it was answered ok. A test is the calls it made and its verdict.
 //! `trace.json` (schema `method-trace/1`) is written after every test beside `report.json` (a harness run record, schema 1, platform
-//! `integration`) in `$WF_TEST_OUTPUT_DIR/<suite>/`, and `wf parity coverage --traces` reads it:
+//! `integration`) in `$WF_TEST_OUTPUT_DIR/<suite>/`, and `wf mimic coverage --traces` reads it:
 //!
 //! ```json
 //! {"schema": "method-trace/1", "app": "t3", "suite": "t3-serve-integration", "sha": "<commit>", "complete": true,

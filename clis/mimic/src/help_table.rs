@@ -15,5 +15,7 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("mimic publish", false, include_str!("help/wf__mimic__publish.txt")),
     ("mimic fetch", false, include_str!("help/wf__mimic__fetch.txt")),
     ("mimic import", false, include_str!("help/wf__mimic__import.txt")),
+    ("mimic coverage", false, include_str!("help/wf__mimic__coverage.txt")),
+    ("mimic track", false, include_str!("help/wf__mimic__track.txt")),
     ("mimic export", false, include_str!("help/wf__mimic__export.txt")),
 ];

@@ -406,7 +406,7 @@ struct CrawlFile {
     cwd: Option<String>,
     #[serde(default)]
     env: BTreeMap<String, String>,
-    /// The committed listing of the pinned source (`wf parity coverage` writes it): every row id there must be in the crawl.
+    /// The committed listing of the pinned source (`wf mimic coverage` writes it): every row id there must be in the crawl.
     catalog: Option<String>,
     /// The pin file the crawl is made against, and the pointer to the commit in it; a crawl at another commit is stale.
     pin: Option<String>,

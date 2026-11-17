@@ -21,9 +21,9 @@ started against the deployed rca stops at startup naming the variable until one 
 ## Why blocked
 
 A bearer is minted by the service that will check it, and the deployed rca still runs the build before device bearers: it has no
-`/agent/v1/bearers`. The first push of this milestone redeploys it; only then can `wf offload bearers mint --label t3` answer.
+`/agent/v1/bearers`. The first push of this milestone redeploys it; only then can `wf rca bearers mint --label t3` answer.
 
 ## What unblocks it
 
-After the deploy that ships the bearer endpoints: run `wf offload bearers mint --label t3` (over the tailnet, with the service secret), store
+After the deploy that ships the bearer endpoints: run `wf rca bearers mint --label t3` (over the tailnet, with the service secret), store
 the printed token in the vault under `T3_RCA_BEARER`, and start `t3 serve` with it. `wf secret doctor` then no longer lists the key.

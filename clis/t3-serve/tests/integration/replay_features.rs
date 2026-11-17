@@ -71,7 +71,7 @@ const SUITE_NAME: &str = "wf-mimic-t3-recorded";
 
 /// One call of `wf-mimic mimic replay` of `ids` against `chain`: its address, its repository as the server sees it and the pairing command with the
 /// scopes the recorded session was granted. The call's trace (each call's window) is attributed from what the chain's tap saw, so the agent
-/// methods that answered each interaction are in the trace `wf parity coverage --traces` reads.
+/// methods that answered each interaction are in the trace `wf mimic coverage --traces` reads.
 pub fn mimic(dir: &str, ids: &[String], chain: &Chain, scopes: &[String], out: &std::path::Path) -> (Value, Value) {
     let workspace = std::fs::canonicalize(chain.repo.path()).unwrap().display().to_string();
     let only = ids.join(",");
@@ -97,7 +97,7 @@ pub fn mimic(dir: &str, ids: &[String], chain: &Chain, scopes: &[String], out: &
 }
 
 /// One feature's replay: its rows of every set. Its trace and diff table go to `wf-mimic-t3-recorded/<feature>/<set>/`: a task writes its own feature only, and
-/// `wf parity coverage --traces` reads every `trace.json` under the output dir.
+/// `wf mimic coverage --traces` reads every `trace.json` under the output dir.
 fn replay(id: &str) {
     let rows = features().into_iter().find(|(f, _)| f == id).unwrap_or_else(|| panic!("no feature {id}")).1;
     let mut compared = 0;
@@ -154,7 +154,7 @@ fn replay_set(id: &str, rows: &[String], name: &str, failures: &mut Vec<String>)
     if let Some(out) = std::env::var_os("WF_TEST_OUTPUT_DIR").filter(|d| !d.is_empty()) {
         let dir = std::path::Path::new(&out).join(SUITE_NAME).join(id).join(name);
         std::fs::create_dir_all(&dir).unwrap();
-        // the method trace `wf parity coverage --traces` reads (the shape `wf mimic replay --suite` writes, each call with the agent methods that answered it)
+        // the method trace `wf mimic coverage --traces` reads (the shape `wf mimic replay --suite` writes, each call with the agent methods that answered it)
         let trace = json!({"schema": "method-trace/1", "app": "t3", "suite": SUITE_NAME, "sha": null, "complete": true, "tests": tests});
         std::fs::write(dir.join("trace.json"), serde_json::to_string_pretty(&trace).unwrap()).unwrap();
         let table: Vec<Value> = results.into_iter().map(|mut r| (r["set"] = json!(name), r).1).collect();

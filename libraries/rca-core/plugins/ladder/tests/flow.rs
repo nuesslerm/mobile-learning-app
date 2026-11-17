@@ -1,4 +1,4 @@
-//! Flows through the ladder plugin `wf offload ask` and the service build on, replaying `tests/flow/golden/rca-ladder.json`:
+//! Flows through the ladder plugin `wf rca ask` and the service build on, replaying `tests/flow/golden/rca-ladder.json`:
 //! a dispatch (ladder, cooldown ledger, `run_once`, the file stores).
 #[path = "flow/golden.rs"]
 mod golden;

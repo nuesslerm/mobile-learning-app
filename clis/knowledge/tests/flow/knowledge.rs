@@ -1,5 +1,5 @@
 //! The flow tests of `wf knowledge`: the gaps and learnings ledger (`rank`, `index`, `stale`) over a throwaway repository,
-//! and the Gemini bundle (`index --gemini`) through fake `pnpm`/`repomix` and `wf offload ask` stubs, through the thin `knowledge` binary.
+//! and the Gemini bundle (`index --gemini`) through fake `pnpm`/`repomix` and `wf rca ask` stubs, through the thin `knowledge` binary.
 use crate::support::{iso_from_ms, now_ms, run_wf, Gem, RunOpts};
 use regex::Regex;
 use serde_json::{json, Value};

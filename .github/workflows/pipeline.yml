@@ -742,7 +742,7 @@ jobs:
           WF_TEST_OUTPUT_DIR: ${{ runner.temp }}/test-output
         run: |
           found=0
-          # a chain's run record (t3-serve-integration, orca-serve-integration) and a mimic replay's (wf-mimic-*) carry their method-hit trace (trace.json) into the bundle `wf parity coverage --traces` reads
+          # a chain's run record (t3-serve-integration, orca-serve-integration) and a mimic replay's (wf-mimic-*) carry their method-hit trace (trace.json) into the bundle `wf mimic coverage --traces` reads
           for dir in "$WF_TEST_OUTPUT_DIR"/vm-ops-api-*/ "$WF_TEST_OUTPUT_DIR"/t3-serve-*/ "$WF_TEST_OUTPUT_DIR"/wf-mimic-*/ "$WF_TEST_OUTPUT_DIR"/orca-serve-*/; do
             [ -f "${dir}report.json" ] || continue
             found=1

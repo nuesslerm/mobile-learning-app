@@ -23,7 +23,7 @@ inputs = ["../../docs/plans/rca-parity/coverage/orca-methods.json", "../../docs/
 # The integration chain (tests/integration.rs) runs the built binaries orca-serve, rca-service and rca-exec against each other, and the scripted CLI
 # that exec-testkit builds from its own workspace: a change to any of the last three reruns it, and so does a change to the methods list it
 # names its rows from and to the recorded bundle it serves. The `wf-mimic` binary replays that bundle against map-mobile's example driver
-# (tests/integration/mimic_x2.rs), whose run record carries the clean diff `wf parity coverage` counts a mimic-backed row for. The Orca oracle
+# (tests/integration/mimic_x2.rs), whose run record carries the clean diff `wf mimic coverage` counts a mimic-backed row for. The Orca oracle
 # (tests/integration/mimic_x6.rs) runs the `orca` driver of tooling/mimic-drivers under Node against orca-serve and a scripted host double, over cassettes/.
 [package.metadata.integration]
 uses = ["rca-service", "rca-exec", "exec-testkit", "wf-mimic", "mimic-core"]

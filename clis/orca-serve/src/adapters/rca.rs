@@ -8,7 +8,7 @@ use serde_json::{json, Value};
 
 pub struct RcaAgent {
     authority: String,
-    /// A device bearer: the one credential this server holds for rca (`wf offload bearers mint`).
+    /// A device bearer: the one credential this server holds for rca (`wf rca bearers mint`).
     bearer: String,
 }
 

@@ -46,15 +46,15 @@ fn a_verb_with_a_thin_binary_builds_only_its_package_and_runs_it_with_the_same_a
     // Given no thin binary built
     let b = Bench::new(0);
 
-    // When `offload ask hello` runs
-    let out = b.run(&["offload", "ask", "hello"]);
+    // When `rca ask hello` runs
+    let out = b.run(&["rca", "ask", "hello"]);
 
-    // Then cargo built the offload package's binary once and that binary ran with the arguments
+    // Then cargo built the rca package's binary once and that binary ran with the arguments
     assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
-    assert_eq!(stdout(&out), "ran:offload offload ask hello");
+    assert_eq!(stdout(&out), "ran:rca rca ask hello");
     let builds = b.builds();
     assert_eq!(builds.len(), 1);
-    assert!(builds[0].starts_with("build --locked -p offload --bin offload --manifest-path "), "{builds:?}");
+    assert!(builds[0].starts_with("build --locked -p rca --bin rca --manifest-path "), "{builds:?}");
 }
 
 #[test]
@@ -62,15 +62,15 @@ fn two_verbs_of_one_crate_share_its_binary_and_a_verb_of_another_crate_builds_an
     // Given a bench
     let b = Bench::new(0);
 
-    // When a ship, a vm and a parity verb run
+    // When a ship, a vm and a lib verb run
     let ship = b.run(&["ship", "--help"]);
     let vm = b.run(&["vm", "net"]);
-    let parity = b.run(&["parity", "coverage"]);
+    let lib = b.run(&["lib", "release"]);
 
-    // Then ship and vm ran the deploy binary and parity ran wf-parity
-    assert_eq!((stdout(&ship), stdout(&vm), stdout(&parity)), ("ran:deploy ship --help".into(), "ran:deploy vm net".into(), "ran:wf-parity parity coverage".into()));
+    // Then ship and vm ran the deploy binary and lib ran wf-lib
+    assert_eq!((stdout(&ship), stdout(&vm), stdout(&lib)), ("ran:deploy ship --help".into(), "ran:deploy vm net".into(), "ran:wf-lib lib release".into()));
     let packages: Vec<String> = b.builds().iter().map(|l| l.split(' ').nth(3).unwrap().to_string()).collect();
-    assert_eq!(packages, vec!["deploy", "deploy", "parity"]);
+    assert_eq!(packages, vec!["deploy", "deploy", "wf-lib"]);
 }
 
 #[test]

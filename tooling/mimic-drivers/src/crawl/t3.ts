@@ -155,7 +155,7 @@ export function t3Crawl(options: { runtime?: string } = {}): Report {
   const notes: Report['sources'] = [
     { name: 'schema', available: true, found: wire.length, note: `${r.unknown.size} schema constructors read as any` },
     { name: 'cli-source', available: cliTexts.length > 0, found: cliCommands.length },
-    { name: 'mobile-calls', available: mobileTexts.length > 0, found: 0, note: 'literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf parity coverage)' },
+    { name: 'mobile-calls', available: mobileTexts.length > 0, found: 0, note: 'literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf mimic coverage)' },
     { name: 'catalog', available: catalog.size > 0, found: catalog.size }
   ]
   const blind: Report['blind'] = [

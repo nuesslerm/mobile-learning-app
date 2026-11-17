@@ -282,7 +282,7 @@ pub fn severity_of(diffs: &[Diff]) -> Severity {
     diffs.iter().map(|d| d.severity).max().unwrap_or(Severity::None)
 }
 
-/// The evidence label of one interaction: what `wf parity coverage` filters on.
+/// The evidence label of one interaction: what `wf mimic coverage` filters on.
 #[derive(Serialize, Clone, Copy, Debug, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Label {

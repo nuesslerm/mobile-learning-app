@@ -2,7 +2,7 @@
 
 ## Problem
 
-The full `wf` links 24 crates (closure of `clis/wf`), so every first build in the sandbox compiles all of them and its test executables fill the disk (see `docs/audits/2026-11-08-gate-dependency-audit.md`). Most sessions use two or three verbs. Each wf concept already ships as its own thin binary (`deploy`, `offload`, `knowledge`, `agent-config-sync`, `wf-lib`, `wf-mimic`, `harness-flow` and the other `src/bin/*.rs` of the crates), and `WF_BIN=<full wf> cargo test -p wf-<name> --test flow` is the parity oracle that checks the thin binary and the router agree.
+The full `wf` links 24 crates (closure of `clis/wf`), so every first build in the sandbox compiles all of them and its test executables fill the disk (see `docs/audits/2026-11-08-gate-dependency-audit.md`). Most sessions use two or three verbs. Each wf concept already ships as its own thin binary (`deploy`, `rca`, `knowledge`, `agent-config-sync`, `wf-lib`, `wf-mimic`, `harness-flow` and the other `src/bin/*.rs` of the crates), and `WF_BIN=<full wf> cargo test -p wf-<name> --test flow` is the parity oracle that checks the thin binary and the router agree.
 
 ## Design
 
@@ -13,7 +13,7 @@ A small launcher `wf` (its own crate depending on `wf-kit` only) that holds one 
 3. If missing or stale, take `flock` on `<target>/.wf-lazy.lock` (the second caller waits and then finds it built), run `cargo build --locked -p <package> --bin <thin>` with `CARGO_INCREMENTAL=0` with its stderr passed through, then `exec`. A failed build exits with cargo's code and prints the command to rerun.
 4. Verbs that need two crates (`wf ship` runs `deploy` over `pipeline`) are one thin binary whose closure holds both; the table never names two.
 
-What each verb builds on first use: the crate that owns it and its closure, per `wf check --blast-radius` (`deploy` 15 crates, `offload` 5, `knowledge` 3, `parity` 3, `agent-config-sync` 1, `secrets` 3, `wf-bucket` 7), instead of 24 for any verb. Never built by a verb that does not name it: the orca-serve and t3-serve crates and the harness crates unless a verb of theirs runs.
+What each verb builds on first use: the crate that owns it and its closure, per `wf check --blast-radius` (`deploy` 15 crates, `rca` 5, `knowledge` 3, `parity` 3, `agent-config-sync` 1, `secrets` 3, `wf-bucket` 7), instead of 24 for any verb. Never built by a verb that does not name it: the orca-serve and t3-serve crates and the harness crates unless a verb of theirs runs.
 
 ## How it is tested
 
@@ -22,7 +22,7 @@ Types and what each covers:
 - **Flow** (`clis/wf-lazy/tests/flow.rs`, through the launcher binary, `cargo` doubled by a stub that records its argv and writes a fake thin binary): a verb whose thin binary is missing builds exactly its package once and then runs it; a second call runs without calling cargo; touching a source of the crate rebuilds only that crate; two concurrent first calls build once; a failed build exits with cargo's code and no verb runs; an unknown verb runs the full router.
 - **Table check** (unit over `cargo metadata`, in `wf check --budget`): every verb of `routes::COMMANDS` has exactly one row, and every row's binary exists in its package; the table is derived, so a new verb with no thin binary fails the pre-commit gate.
 - **Parity** (`WF_BIN=<launcher> cargo test -p wf-<name> --test flow` for each crate in the post-land `rust-clis` job): the launcher is the oracle's third path beside the thin binary and the full router.
-- **Sandbox measurement** (runbook, once): disk written and seconds from an empty target to the first `wf offload ask --help`, against the full build; logged in `docs/audits/2026-09-02-token-diet-decision-log.md`.
+- **Sandbox measurement** (runbook, once): disk written and seconds from an empty target to the first `wf rca ask --help`, against the full build; logged in `docs/audits/2026-09-02-token-diet-decision-log.md`.
 
 ## Not decided
 

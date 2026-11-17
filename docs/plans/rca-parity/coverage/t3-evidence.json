@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "app": "t3",
-  "generatedBy": "wf parity coverage --app t3 --traces <dir|bundle>",
+  "generatedBy": "wf mimic coverage --app t3 --traces <dir|bundle>",
   "source": {
     "runs": [
       {

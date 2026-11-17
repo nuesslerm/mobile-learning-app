@@ -2,7 +2,7 @@
 //! There is one spelling for everything; a first word not listed here is an unknown command.
 //!
 //! A handler gets the words after its command word and returns `None` for a shape it does not serve, which is reported as
-//! unsupported. Verbs: `check`, `ship`, `offload` (`run`, `ask`, `plan` and `worker` only say they are gone). Devices: `android`, `browser`. Nouns: `vm`, `secret`, `repo`, `cache`, `lib`, `t3`, `exec`, `mimic`, `parity`, `ci`.
+//! unsupported. Verbs: `check`, `ship`, `rca` (`run`, `ask`, `plan` and `worker` only say they are gone). Devices: `android`, `browser`. Nouns: `vm`, `secret`, `repo`, `cache`, `lib`, `t3`, `exec`, `mimic`, `ci`.
 //! `t3`, `exec` and `mimic` run separate binaries (`external`), and so does `help` for them.
 use crate::{external, log_emit};
 use pipeline::{arch_rules, dead_refs, e2e_run, export_site, test_results, visual};
@@ -27,14 +27,13 @@ pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[
     ("bench", wf_bench::run),
     ("knowledge", knowledge::run),
     ("agent-config", agent_config_sync::verb::run),
-    ("offload", offload::offload),
+    ("rca", rca::rca),
     ("cache", wf_bucket::cache::run),
     ("bucket", wf_bucket::bucket_run),
     ("lib", wf_lib::run),
     ("t3", external::t3),
     ("exec", external::exec),
     ("mimic", external::mimic),
-    ("parity", parity::run),
     ("help", external::help),
     ("log", log),
     ("worker", worker_gone),
@@ -155,9 +154,9 @@ fn test(rest: &[String]) -> Option<i32> {
     })
 }
 
-/// `ask`, `plan` and `worker` live under `offload` now: each prints the spelling that replaced it and exits 2.
+/// `ask`, `plan` and `worker` live under `rca` now: each prints the spelling that replaced it and exits 2.
 fn moved(old: &str, new: &str, rest: &[String]) -> Option<i32> {
-    println!("{}", serde_json::json!({ "error": format!("wf {old} is gone: it is `wf offload {new}`"), "next": format!("wf offload {new} {}", rest.join(" ")).trim() }));
+    println!("{}", serde_json::json!({ "error": format!("wf {old} is gone: it is `wf rca {new}`"), "next": format!("wf rca {new} {}", rest.join(" ")).trim() }));
     Some(2)
 }
 
@@ -194,7 +193,7 @@ fn repo(rest: &[String]) -> Option<i32> {
         (verb, tail) if verb == "bench" => format!("wf bench {}", tail.join(" ")),
         (verb, tail) if verb == "knowledge" => format!("wf knowledge {}", tail.join(" ")),
         (verb, tail) if verb == "sync" => format!("wf agent-config sync {}", tail.join(" ")),
-        (verb, tail) if verb == "ladder" => format!("wf offload ladder {}", tail.join(" ")),
+        (verb, tail) if verb == "ladder" => format!("wf rca ladder {}", tail.join(" ")),
         (verb, _) if verb == "bundle" => "pnpm --filter mla-tamagui run build:editor-bundle (or check:editor-bundle)".to_string(),
         _ => return None,
     };

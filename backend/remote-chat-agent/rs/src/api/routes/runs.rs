@@ -119,7 +119,7 @@ pub async fn purge(Call { app, req, .. }: Call) -> Response {
     }
 }
 
-/// `GET /runs/log[?limit=n]`: the run log as text, for `wf offload ask --stats` and `--savings`.
+/// `GET /runs/log[?limit=n]`: the run log as text, for `wf rca ask --stats` and `--savings`.
 pub async fn log(Call { app, req, .. }: Call) -> Response {
     if !authorised_strict(&app, &req) {
         return unauthorized();

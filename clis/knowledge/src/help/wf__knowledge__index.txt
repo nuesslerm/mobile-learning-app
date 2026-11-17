@@ -6,7 +6,7 @@ repomix pack split into Google Docs, uploaded in place for the Gemini Gem
 Options:
   --write             write the docs/solutions index file instead of printing it
   --gemini            build the Gemini Gem context bundle (repomix --compress
-                      skeleton, ARCHITECTURE.md drafted by `wf offload ask`, the
+                      skeleton, ARCHITECTURE.md drafted by `wf rca ask`, the
                       full repomix pack, one upload)
   --remote <dest>     --gemini: <drive-folder-id>/<doc-name-prefix> (credential: the
                       gcloud login with Drive access) or local:<dir>/<doc-name-prefix>

@@ -28,7 +28,7 @@
 ARG AGENT_BASE_TAG=latest
 FROM docker.io/${IMAGE_NAMESPACE:-nuesslerm}/agent-base:${AGENT_BASE_TAG}
 
-# the version the parity e2e tests of `wf offload ask` run `opencode run` at (clis/offload/tests/e2e): a run on this server behaves as they check
+# the version the parity e2e tests of `wf rca ask` run `opencode run` at (clis/rca/tests/e2e): a run on this server behaves as they check
 ARG OPENCODE_VERSION=1.19.0
 RUN --mount=type=cache,target=/root/.npm npm install -g opencode-ai@${OPENCODE_VERSION}
 

@@ -13,7 +13,7 @@ Both halves are Rust and the VM runs the service as `rca-service` (`backend/remo
 Where it departed from this plan:
 - **No strangler front.** The black-box suite (15 files, 304 tests, written against the Node bundle first and run unchanged on Rust) was the oracle, so the service was replaced in slices behind the suite and cut over once. `clis/rca-edge`, the front built for the strangler, was never started by any container and is retired.
 - **Media is Rust or a spawned binary, as decided**: `resvg`/`image`, `tree-sitter-highlight`, `zip` + `quick-xml`, `pdftotext`, `tesseract`, a checksum-pinned static `ffmpeg`, whisper.cpp, `curl` for the sidecar and Groq, a multipart reader in the crate. The `pdf-extract` fallback is not shipped. No Node worker exists.
-- **`claude` and `codex` are not ported.** The production image was built with `AGENT_CLIS=opencode`, which prunes both, so the deployed Node service served opencode alone; the Rust service refuses them by name. The gateways stay in the TypeScript `rca` CLI that `wf offload plan` and `wf check --visual` still call, so the package keeps 8,089 lines of TypeScript (the CLI and its tests) and 6 direct dependencies; the other 14,021 lines of server code, 59 test files and 16 dependencies are gone.
+- **`claude` and `codex` are not ported.** The production image was built with `AGENT_CLIS=opencode`, which prunes both, so the deployed Node service served opencode alone; the Rust service refuses them by name. The gateways stay in the TypeScript `rca` CLI that `wf rca plan` and `wf check --visual` still call, so the package keeps 8,089 lines of TypeScript (the CLI and its tests) and 6 direct dependencies; the other 14,021 lines of server code, 59 test files and 16 dependencies are gone.
 - **Production parity was added after the routes**: the vault lookup, BetterStack log and span export, the startup check and the heartbeat, which the black-box suite cannot see.
 - **Debian's `ffmpeg` made the first image 209 MB larger than Node's**; the static build made it 67 MB smaller (837,936,988 against 904,610,891 bytes).
 
@@ -30,7 +30,7 @@ Numbers (n=5 medians on one harness; the VM figures are containers on arm64, 3 t
 | Container idle resident set (VM) | 131.4 MB | 5.1 MB |
 | Image, unpacked (VM) | 904.6 MB | 837.9 MB |
 
-Open: twelve `docs/gaps/rca-*` records (eight describe Node defects the Rust service fixes and tests; a gap closes only through `/cf-compound`), callers of `POST /api/diff` outside this repository must now send `X-Bot-Secret`, and moving `wf offload plan` onto `rca-core` plus porting the two gateways would remove the TypeScript package altogether.
+Open: twelve `docs/gaps/rca-*` records (eight describe Node defects the Rust service fixes and tests; a gap closes only through `/cf-compound`), callers of `POST /api/diff` outside this repository must now send `X-Bot-Secret`, and moving `wf rca plan` onto `rca-core` plus porting the two gateways would remove the TypeScript package altogether.
 
 ## Strategy
 1. **Library first.** Port the surface `wf` imports into a Rust crate `rca-core`: `plugins/ladder` (reads `model-ladders.json`, the rotation and escalation rules), `plugins/cooldowns` and the pool ledger (`.agents/tmp/pool-cooldowns.json`, learned reset times), `plugins/ledger`, `runWithPlugins`, the opencode run driver (spawns the `opencode` CLI; the mock is `libraries/hook-runtime/mock-opencode-bin`), and stats. Then the blocked `wf` groups can go native on top of it, which is where the CLI half of the migration ends.
@@ -40,7 +40,7 @@ Open: twelve `docs/gaps/rca-*` records (eight describe Node defects the Rust ser
 ## Phases (each its own PR off `origin/dev`)
 0. **Baseline.** Idle RSS and RSS under a scripted chat session; import-time RSS per dependency (extend `wf bench cli --deps` to the service's packages); per-route latency; image size. Decision log first.
 1. **Black-box harness for the service.** Start the service as a process with `opencode` replaced by the mock binary, the provider gateways pointed at local mocks, and drive HTTP and WebSocket from the tests. The 95 existing tests are sorted: delete those a black-box test subsumes, keep pure-logic ones as Rust unit tests when their code is ported.
-2. **`rca-core` crate** (ladder, cooldowns, ledger, run plugins, stats) with golden tests against the TypeScript output for the same ledger files and ladders. Repoint `wf offload ask --stats`, `work` and `status`.
+2. **`rca-core` crate** (ladder, cooldowns, ledger, run plugins, stats) with golden tests against the TypeScript output for the same ledger files and ladders. Repoint `wf rca ask --stats`, `work` and `status`.
 3. **`wf` groups unblocked by `rca-core`:** `dispatch`, `work`, `knowledge`, `verify`, `runbook`, `report`, then the OTLP-dependent `log`.
 4. **Service skeleton and front proxy** (HTTP, WebSocket passthrough, auth via `vm-request-auth-rs`, rate limit, body limits).
 5. **Small routes first:** `control`, `question`, `plan`, `runs`, `editStats`, `diff`, `vcs`, `sourceControl`, `worktree`.
@@ -56,7 +56,7 @@ Same tier order as the other plans: runbook checks against the deployed service,
 - Event-sourced engine semantics (ordering, idempotent replay) are easy to get subtly wrong; the recorded-thread replay tests are the safety net.
 - `effect` structures much of the TypeScript; a literal translation will be awkward. Port behaviour, not structure.
 - Secrets and provider tokens flow through `@cli/secrets`; `secrets-rs` must exist (extracted from `clis/wf/src/secrets`) before the gateways.
-- The runner is what executes every delegated task in this repo: a regression in `rca-core` stalls the delegation workflow itself. Land it behind the same fail-closed rules as the hook-called `wf` commands, and keep the TypeScript runner available until a full `wf offload plan` plan has run on the Rust one.
+- The runner is what executes every delegated task in this repo: a regression in `rca-core` stalls the delegation workflow itself. Land it behind the same fail-closed rules as the hook-called `wf` commands, and keep the TypeScript runner available until a full `wf rca plan` plan has run on the Rust one.
 
 ## Decisions needed
 1. ~~Accept the on-demand Node media worker, or replace each media dependency first.~~ Answered 2026-10-08: replace first, Rust wherever it passes (see strategy step 3); a Node worker only as a tested exception.

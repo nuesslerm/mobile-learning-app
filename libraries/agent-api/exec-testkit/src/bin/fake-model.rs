@@ -1,5 +1,5 @@
 //! The program that stands in for the model API (see `exec_testkit::model`): an OpenAI-compatible `POST /v1/chat/completions` on `$PORT` of
-//! 127.0.0.1 that answers the prompts the offload e2e asks from a script, as a stream (what opencode asks for) or as one JSON body.
+//! 127.0.0.1 that answers the prompts the rca e2e asks from a script, as a stream (what opencode asks for) or as one JSON body.
 //! `GET /v1/requests` returns the request bodies it has seen, so a test pins the shape opencode sends.
 use serde_json::{json, Value};
 use std::io::{BufRead, BufReader, Read, Write};

@@ -4,7 +4,7 @@
 //! newest first in `<out>/index.json`. `<out>` is `--out`, else `WF_TEST_RUNS_DIR`, else `$RUNNER_TEMP/test-runs`. The same call posts the run's `HEALTH_RPT.TEST_RUNS` row with the bundle's
 //! report URL as `report_path`, so the dashboards and the reporter see one record per run. The bundle's `cache` block is what the
 //! build-cache shim did since the last publish (`cache_runs`), `null` when no shim ran. Its `traces` list the method-hit traces
-//! (`trace.json`) of an integration chain beside its run record, which `wf parity coverage --traces` reads.
+//! (`trace.json`) of an integration chain beside its run record, which `wf mimic coverage --traces` reads.
 use crate::test_metrics;
 use serde_json::{json, Map, Value};
 use std::path::{Path, PathBuf};

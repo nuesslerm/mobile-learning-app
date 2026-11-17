@@ -14,7 +14,7 @@ mobile app and of the CLI, the CLI's own command specs) and writes beside it:
 `wf mimic record` then runs corpus.json against the real server.
 
 The completeness guard fails (exit 1, nothing written) when the pinned source's own
-listing (the committed catalog, written by `wf parity coverage`) names an endpoint the
+listing (the committed catalog, written by `wf mimic coverage`) names an endpoint the
 crawl lacks ("lags-source"), an endpoint has no case and no skip reason ("uncovered"),
 a schema-derived endpoint lacks a valid or an invalid case ("missing-class"), a case names
 no endpoint, the inventory's class counts differ from the cases, or the crawl was made

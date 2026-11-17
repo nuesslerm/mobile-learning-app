@@ -26,7 +26,7 @@ pub struct Settings {
     /// What the phone shows as this host's name.
     pub label: String,
     pub rca_url: Option<String>,
-    /// `ORCA_RCA_BEARER`: the device bearer this server opens rca's agent API with (`wf offload bearers mint --label orca`).
+    /// `ORCA_RCA_BEARER`: the device bearer this server opens rca's agent API with (`wf rca bearers mint --label orca`).
     pub rca_bearer: Option<String>,
     /// `ORCA_MOBILE_WEB_DIR`: the directory holding the phone web page's `manifest.json` and assets. The host serves it and does not build it.
     pub web_dir: Option<PathBuf>,
@@ -89,7 +89,7 @@ pub fn wire(settings: &Settings) -> Result<Wired, String> {
             rca.check_waiting(RCA_ATTEMPTS, RCA_PAUSE)?;
             Arc::new(rca)
         }
-        (Some(_), None) => return Err("--rca-url needs ORCA_RCA_BEARER in the environment: a device bearer for rca's agent API (wf offload bearers mint --label orca)".into()),
+        (Some(_), None) => return Err("--rca-url needs ORCA_RCA_BEARER in the environment: a device bearer for rca's agent API (wf rca bearers mint --label orca)".into()),
         (None, _) => return Err("--rca-url (ORCA_RCA_URL) is required: the rca service this server fronts".into()),
     };
     let id = runtime_id(&settings.state_dir, entropy.as_ref())?;

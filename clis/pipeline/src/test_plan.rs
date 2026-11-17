@@ -25,7 +25,7 @@ const SCRIPTS: [(&str, &str, &str); 9] = [
     // no package defines this script: the stage runs the crates' `cargo-e2e`. A package's own `test:e2e` runs against local services (a
     // backend binary, an opencode server) that this job does not have; its deployed form is `test:verify:deployed`.
     ("cli-e2e-tests", "e2e", "test:cli-e2e"),
-    // the crates' `cargo-e2e-smoke`: the same suite without the parity tests, for a crate reached only through a dependency
+    // the crates' `cargo-e2e-smoke`: the same suite without the compare tests, for a crate reached only through a dependency
     ("cli-e2e-tests", "e2e-smoke", "test:cli-e2e-smoke"),
     ("deployment-verification-tests", "deployment-verification", "test:verify:deployed"),
 ];
@@ -306,9 +306,9 @@ fn contract_selected(scope: &Scope, reason: &str, dir: &str) -> bool {
     }
 }
 
-/// Whether a crate's parity tests (`cargo-e2e`, live models) run: for a full plan and when a file of the crate itself changed; a crate reached
+/// Whether a crate's compare tests (`cargo-e2e`, live models) run: for a full plan and when a file of the crate itself changed; a crate reached
 /// only through a dependency or the Nx graph runs `cargo-e2e-smoke`, the rest of its e2e suite, or nothing when the suite is all live models.
-fn parity_selected(scope: &Scope, reason: &str, dir: &str) -> bool {
+fn compare_selected(scope: &Scope, reason: &str, dir: &str) -> bool {
     match scope {
         Scope::Changed(files) => reason == "changed" && files.iter().any(|f| f.starts_with(&format!("{dir}/"))),
         _ => true,
@@ -529,11 +529,11 @@ fn crate_tests(root: &Path, scope: &Scope, packages: &[Package], every: Vec<Crat
         out.extend(integration_entry(root, c, &reason));
         out.extend(deployed_verification_entry(root, c, &reason));
         if root.join(&c.dir).join("tests/e2e.rs").is_file() {
-            // a crate whose e2e suite is the live-model parity one (`tests/e2e/parity.rs`) runs none of it for a change that only reaches it
-            let live = root.join(&c.dir).join("tests/e2e/parity.rs").is_file();
-            let selected = parity_selected(scope, &reason, &c.dir);
+            // a crate whose e2e suite is the live-model compare one (`tests/e2e/compare.rs`) runs none of it for a change that only reaches it
+            let live = root.join(&c.dir).join("tests/e2e/compare.rs").is_file();
+            let selected = compare_selected(scope, &reason, &c.dir);
             if selected || !live {
-                let (kind, filter) = if selected { ("e2e", "") } else { ("e2e-smoke", " --skip parity") };
+                let (kind, filter) = if selected { ("e2e", "") } else { ("e2e-smoke", " --skip compare") };
                 // a full-suite crate with groups is one entry per group: each is the Nx task `cargo-e2e-<group>`, replayed on its own inputs
                 let groups: Vec<Option<&String>> = if selected && !c.e2e_groups.is_empty() { c.e2e_groups.iter().map(Some).collect() } else { vec![None] };
                 for group in groups {
@@ -834,7 +834,7 @@ fn run_e2e_stage(nx: &Path, root: &Path, stage: &str, names: &[String], rest: &[
 
 #[cfg(test)]
 mod tests {
-    use super::{contract_selected, deployed_verification_entry, parity_selected, shapes_the_nx_graph, verified_projects, Crate, Scope};
+    use super::{contract_selected, deployed_verification_entry, compare_selected, shapes_the_nx_graph, verified_projects, Crate, Scope};
     use serde_json::json;
 
     fn crate_at(dir: &str) -> Crate {
@@ -895,12 +895,12 @@ mod tests {
     }
 
     #[test]
-    fn given_a_crate_changed_itself_or_a_full_plan_when_planned_then_its_parity_tests_run_and_through_a_dependency_or_the_graph_they_do_not() {
-        let own = changed(&["clis/offload/src/lib.rs"]);
-        assert!(parity_selected(&own, "changed", "clis/offload"));
-        assert!(parity_selected(&Scope::All, "all", "clis/offload"));
-        assert!(!parity_selected(&changed(&["clis/wf-vmops/src/host_summary.rs"]), "changed", "clis/offload"), "another crate's file is not the crate's own change");
-        assert!(!parity_selected(&own, "depends on wf-vmops (cargo)", "clis/offload"));
-        assert!(!parity_selected(&own, "the Nx graph or its inputs changed (the cache's contract suite)", "clis/offload"));
+    fn given_a_crate_changed_itself_or_a_full_plan_when_planned_then_its_compare_tests_run_and_through_a_dependency_or_the_graph_they_do_not() {
+        let own = changed(&["clis/rca/src/lib.rs"]);
+        assert!(compare_selected(&own, "changed", "clis/rca"));
+        assert!(compare_selected(&Scope::All, "all", "clis/rca"));
+        assert!(!compare_selected(&changed(&["clis/wf-vmops/src/host_summary.rs"]), "changed", "clis/rca"), "another crate's file is not the crate's own change");
+        assert!(!compare_selected(&own, "depends on wf-vmops (cargo)", "clis/rca"));
+        assert!(!compare_selected(&own, "the Nx graph or its inputs changed (the cache's contract suite)", "clis/rca"));
     }
 }

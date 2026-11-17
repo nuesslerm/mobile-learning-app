@@ -45,9 +45,9 @@ criteria:
       test -s "$f" && grep -qi 'driver commands' "$f" && grep -qi 'lab module' "$f" && grep -qi 'static guard' "$f" && grep -q '__device_lab_v1__' "$f"
   - id: p1.units
     phase: 1
-    description: 'docs/plans/device-lab/units.jsonl exists and passes the plan checker, `wf offload plan --check`: no parse errors, cycles or missing gates, and 1-3 files per unit.'
+    description: 'docs/plans/device-lab/units.jsonl exists and passes the plan checker, `wf rca plan --check`: no parse errors, cycles or missing gates, and 1-3 files per unit.'
     command: |-
-      test -s docs/plans/device-lab/units.jsonl && wf offload plan --check device-lab
+      test -s docs/plans/device-lab/units.jsonl && wf rca plan --check device-lab
 
   # ---- Phase 2: lab export gate. Lab code ships only when EXPO_PUBLIC_DEVICE_LAB=1.
   - id: p2.lab-flag

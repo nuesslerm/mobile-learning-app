@@ -106,7 +106,7 @@ entry of a crate: its handler functions (`fn(&[String]) -> Option<i32>`, the typ
 | `wf-vmops` (about 730) | `vmops` 200, `vm_exec` 308, `vm_sampler` 82, `tailnet_resolve` 97, plus `running_commit`, `RECOVER_APPS`, `ps` (from `deploy.rs`/`vm_ops.rs`), `android_lab::IMAGE`; feature `testing` = `FakeVm` (233) | none (FakeVm is used by 66 tests in 8 files) | kit, secrets |
 | `wf-plan` (about 2,200) | `verify` 549 (pnpm graph, affected, gate, budget; `--staged`, `--budget`), `nx` 113, `nx_drift` 180, `test_plan` 407, the catalog half of `e2e_tests` (`E2eTest`, `parse_test`, `select`, `pick`, `plan`, `run_stage`, `repo`, `git`, `head_sha`, `unit_key`, `args_key`, about 300 of 477), `lock_closure` 264, the planning half of `deploy.rs` (legs, `affected_since`, `app_changed_since`, `expected_revisions`, about 300 of 375), the image table and `app_image` of `build_image` (about 60), `cm6` 48; `project.json` with today's contract inputs | nx_cache 7, pipeline plan/run-stage cases (about 6), check staged/budget (about 7), expected_revisions 1: about 21 | kit, secrets, bucket, vmops |
 | `deploy` (about 3,100) | `vm_ops` 224, `vm_logs` 390, `vm_recover` 291, `vm_drill` 176, `agent_deps` 240, `infra` 490, `tailscale` 450, `tailscale_up` 152, `report_run` 613, `report_health` 59 | vm 7, vm_drill 3, tailnet 4, agents `vm deps` 2, report health 1: about 17 | kit, secrets, vmops |
-| `offload` (3,311) | `dispatch` 243, `dispatch_batch` 188, `dispatch_run` 910, `cooldown_mirror` 65, `pricing_sync` 104, `runbook` 188, `worker_plan` 494, `worker_run` 1,119 | ask 8, worker 2 | kit, secrets, vmops, rca-core |
+| `rca` (3,311) | `dispatch` 243, `dispatch_batch` 188, `dispatch_run` 910, `cooldown_mirror` 65, `pricing_sync` 104, `runbook` 188, `worker_plan` 494, `worker_run` 1,119 | ask 8, worker 2 | kit, secrets, vmops, rca-core |
 | `deploy` (about 1,800) | `ship` 77, `ship_eas` 275, `deploy` run/status/retire (about 75), `deploy_run` 351, `build_image` scripts (about 229), `verify_tier3` (about 776 after the bucket helpers leave: `check --deployed`, `wait_serving`) | ship 15, deploy_legs 1, check `--deployed` 2: about 18 | kit, secrets, vmops, bucket, plan |
 | `wf-harness` (about 12,370, 25 modules, 33 files) | `device/` 4,455 (mlua only here), `android*` (6 modules), `browser*` (6 modules), `golden`, `pixelmatch`, `spans`, `run`, `run_report`, `run_stop`, `slot`, `staticd`, `stub_server`, `tailnet_forward`, `tailnet_url`, `trace`, `video_check`, `android_lab`, `android_lease`; `help/wf__run__api.txt`, `assets/u2.jar`; feature `testing` = `MockDaemon`, `BrowserSession` | browser 17, android 15, harness 11 (minus about 3 that drive `flow run`), maestro 7: about 47 | kit, vmops, cdp |
 | `wf-bench` (2,016) | `app_bench/` 1,764, `bench` 252 | bench 6 | kit, harness |
@@ -125,7 +125,7 @@ L1  wf-secrets            (kit)
 L2  wf-bucket             (kit, secrets)          wf-vmops   (kit, secrets)
 L3  the ci crate                 (kit, secrets, bucket)
     wf-plan               (kit, secrets, bucket, vmops)
-    deploy, offload, wf-login   (kit, secrets, vmops [, rca-core | cdp])
+    deploy, rca, wf-login   (kit, secrets, vmops [, rca-core | cdp])
     wf-harness            (kit, vmops, cdp)
 L4  deploy               (kit, secrets, vmops, bucket, plan)
     wf-bench              (kit, harness)
@@ -189,7 +189,7 @@ the family stays in one crate) and the kernel edges resolve as follows.
 | `vm_exec -> android_lab::capture_code`; `vm_recover -> deploy::{RECOVER_APPS,ps}`; `deploy`/`verify_tier3 -> vm_ops::running_commit` | `capture_code` to kit; `RECOVER_APPS`, `ps`, `running_commit` (deploy has a private copy at `deploy.rs:131`, merge them) to `wf-vmops` | W5 |
 | `build_image -> android_lab::IMAGE` | constant to `wf-vmops` | W5 |
 | `report_run <-> report_health`, `worker_plan <-> worker_run`, `browser_daemon <-> browser_launch`, `secrets` mod `<->` writers, `vnc` engine `<->` relay, `android_input <-> android_u2`, `app_bench` mod `<->` suites | stay inside one crate | none |
-| `worker_plan -> visual::run` (`worker_plan.rs:474`), `visual -> worker_plan::repo_root` (`visual.rs:871`) | the `wf offload worker visual` forward moves to `routes.rs`; `visual` uses `root::repo_root` (7 repo-root helpers differ: `worker_plan`'s returns `Err` for a non-git cwd, check before swapping) | W8 |
+| `worker_plan -> visual::run` (`worker_plan.rs:474`), `visual -> worker_plan::repo_root` (`visual.rs:871`) | the `wf rca worker visual` forward moves to `routes.rs`; `visual` uses `root::repo_root` (7 repo-root helpers differ: `worker_plan`'s returns `Err` for a non-git cwd, check before swapping) | W8 |
 | `auth -> vmops::tailnet_via` | login depends on `wf-vmops` | W12 |
 | `slot -> browser::{read_registry,registry_dir,registry_path}` | both in harness | none |
 | `app_bench -> dispatch_run` (`js_num` only) | kit | W1 |
@@ -272,7 +272,7 @@ What a change reruns (flow tests that rerun, HEAD estimate; today every row is 1
 | `wf-plan` (verify, test_plan, nx, deploy legs) | plan, ship, wf | 56 |
 | `wf-harness` (device, android, browser, run) | harness, bench, wf | 70 |
 | `deploy` (deploy, ship_eas, verify_tier3) | ship, wf | 35 |
-| `offload` | ask, wf | 27 |
+| `rca` | ask, wf | 27 |
 | `deploy` (vm_ops, vm_logs, vm_recover, infra, tailscale, report) | vm, wf | 34 |
 | `the ci crate` (ci_comment, test_publish, test_metrics) | ci, wf | 24 |
 | `wf-login` (vnc, auth) | login, wf | 23 |
@@ -377,7 +377,7 @@ binary (`install-wf`).
 | W5 | `wf-vmops` with `FakeVm` | `vmops.rs`, `vm_exec.rs`, `vm_sampler.rs`, `tailnet_resolve.rs`, `running_commit`, `RECOVER_APPS`, `ps`, `IMAGE`; `tests/flow/support/fake_vm.rs` to `wf-vmops/src/testing.rs`; merge the two `running_commit` copies | no test of FakeVm moved yet; every test using `FakeVm` still passes; `rg -e 'vm_ops::running_commit' -e 'deploy::RECOVER_APPS' -e 'deploy::ps' -e 'android_lab::IMAGE' -e 'android_lab::capture_code' clis` prints nothing |
 | W6 | `wf-plan`: `nx_cache` leaves `wf` | `verify.rs`, `nx.rs`, `nx_drift.rs`, `test_plan.rs`, catalog half of `e2e_tests.rs`, `lock_closure.rs`, planning half of `deploy.rs`, image table of `build_image.rs`, `cm6.rs`; router half of `e2e_tests.rs` into `routes.rs`; `test_plan.rs:182`; `clis/pipeline/project.json` (contract inputs); `clis/wf/project.json` shrinks; `nx_cache.rs`, `pipeline.rs`, `check.rs` cases move; rerun-table test | `crate-wf-plan:cargo-flow` about 21 passed, `crate-wf` no longer runs `nx_cache` (7); a commit touching only `package.json` plans `wf-plan` (and its dependants) and not harness or ask; the rerun-table test passes for every crate that exists; measured `flow-tests` stage time of a docs-only vs `ci_comment`-only vs `wf-plan`-only commit logged |
 | W7 | `deploy` | `vm_ops`, `vm_logs`, `vm_recover`, `vm_drill`, `agent_deps`, `infra`, `tailscale`, `tailscale_up`, `report_run`, `report_health`; tests vm, vm_drill, tailnet, agents `vm deps`, report health; the help files of `vm`; `routes.rs` `vm`/`net` arms call the crate | `crate-deploy:cargo-flow` about 17 passed; `registry.json` notes for `vm_logs.rs` reworded or pushed; thin binary also mounts `secret` for `report_run`'s `secret doctor` |
-| W8 | `offload` | `dispatch*`, `cooldown_mirror`, `pricing_sync`, `runbook`, `worker_plan`, `worker_run`; tests ask, worker; `worker visual` forward to `routes.rs`; `visual.rs:871` repo root | `crate-wf-ask` 10 passed; `wf offload worker visual` still runs through `wf` |
+| W8 | `rca` | `dispatch*`, `cooldown_mirror`, `pricing_sync`, `runbook`, `worker_plan`, `worker_run`; tests ask, worker; `worker visual` forward to `routes.rs`; `visual.rs:871` repo root | `crate-wf-ask` 10 passed; `wf rca worker visual` still runs through `wf` |
 | W9 | `deploy` | `ship`, `ship_eas`, run/status/retire of `deploy`, `deploy_run`, scripts of `build_image`, `verify_tier3`; tests ship, deploy_legs, check `--deployed`; `routes::check` probe | `crate-deploy` about 18 passed; `check <sha>` and `--deployed` unchanged (check tests); deploy script fixtures byte-identical (`ship.rs`) |
 | W10 | `wf-harness` with `testing` feature | `device/`, `android*`, `browser*`, `golden`, `pixelmatch`, `spans`, `run`, `run_report`, `run_stop`, `slot`, `staticd`, `stub_server`, `tailnet_forward`, `tailnet_url`, `trace`, `video_check`; `MockDaemon`, `BrowserSession`; publisher and help hooks; `tooling/nx/e2e-tests.js`; tests browser, android, harness, maestro | `crate-wf-harness` about 47 passed; the Nx e2e project hashes for `e2e-*` change only when a listed file did (same files as before, new prefix): `nx_cache` file-to-e2e table passes; a flow test in `wf` proves `browser test --publish` publishes |
 | W11 | `wf-bench` | `app_bench/`, `bench.rs`, tests bench; thin binary mounts `browser-daemon` | `crate-wf-bench` 6 passed |

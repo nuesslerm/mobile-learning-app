@@ -47,7 +47,7 @@ credential, so the constraint holds by construction. The startup check
 (`rs/src/startup.rs`) refuses to start, by name, when `AGENT_CLI` names a backend
 it does not serve (`claude`, `codex`) or is not a backend at all. Neither gateway exists any more: the TypeScript ones
 (`claudeGateway.ts`, `codexGateway.ts`) were removed with the rest of the Node
-service, and no Rust gateway drives either CLI. The opencode runs of `wf offload ask`
-and `wf offload plan` (which runs `wf offload ask` per unit) strip `ANTHROPIC_API_KEY` and
+service, and no Rust gateway drives either CLI. The opencode runs of `wf rca ask`
+and `wf rca plan` (which runs `wf rca ask` per unit) strip `ANTHROPIC_API_KEY` and
 `ANTHROPIC_AUTH_TOKEN` from the `opencode` child's environment (black-box test
-"wf offload ask and the Anthropic credential policy").
+"wf rca ask and the Anthropic credential policy").

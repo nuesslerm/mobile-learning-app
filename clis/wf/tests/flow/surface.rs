@@ -120,7 +120,7 @@ fn a_new_caller_learns_the_commands_from_the_version_and_the_help_of_every_comma
     assert_eq!(top.exit_code, 0);
     assert!(top.stdout.contains("Usage: wf") && top.stdout.contains("Dev workflow CLI"), "{}", top.stdout);
     let names: Vec<&str> = top.stdout.lines().skip_while(|l| *l != "Commands:").skip(1).filter_map(|l| l.strip_prefix("  ")).filter(|l| !l.starts_with(' ')).filter_map(|l| l.split_whitespace().next()).collect();
-    assert_eq!(names, ["check", "ship", "offload", "flow", "test", "ci", "android", "browser", "vm", "secret", "agent-config", "bench", "knowledge", "cache", "lib", "t3", "exec", "mimic", "parity", "help"]);
+    assert_eq!(names, ["check", "ship", "rca", "flow", "test", "ci", "android", "browser", "vm", "secret", "agent-config", "bench", "knowledge", "cache", "lib", "t3", "exec", "mimic", "help"]);
 
     // When every command of the table is asked for its help
     for entry in &table {
@@ -146,8 +146,8 @@ fn a_new_caller_learns_the_commands_from_the_version_and_the_help_of_every_comma
     for (args, usage) in [
         (vec!["check", "--help"], "Usage: wf check"),
         (vec!["ship", "eas", "--help"], "Usage: wf ship eas"),
-        (vec!["offload", "ask", "--help"], "Usage: wf offload ask"),
-        (vec!["offload", "plan", "--help"], "Usage: wf offload plan"),
+        (vec!["rca", "ask", "--help"], "Usage: wf rca ask"),
+        (vec!["rca", "plan", "--help"], "Usage: wf rca plan"),
         (vec!["vm", "creds", "sync", "--help"], "Usage: wf vm creds sync"),
         (vec!["vm", "net", "auth-key", "status", "--help"], "Usage: wf vm net auth-key status"),
         (vec!["vm", "net", "device", "list", "--help"], "Usage: wf vm net device list"),
@@ -156,7 +156,7 @@ fn a_new_caller_learns_the_commands_from_the_version_and_the_help_of_every_comma
         (vec!["bench", "cli", "--help"], "Usage: wf bench cli"),
         (vec!["agent-config", "sync", "--help"], "Usage: wf agent-config sync"),
         (vec!["knowledge", "rank", "--help"], "Usage: wf knowledge rank"),
-        (vec!["offload", "ladder", "clear-cooldown", "--help"], "Usage: wf offload ladder clear-cooldown"),
+        (vec!["rca", "ladder", "clear-cooldown", "--help"], "Usage: wf rca ladder clear-cooldown"),
     ] {
         let r = run_wf(&args, &RunOpts::default());
         assert_eq!(r.exit_code, 0, "{args:?}: {}{}", r.stdout, r.stderr);
@@ -271,7 +271,7 @@ fn a_caller_with_a_retired_or_malformed_command_line_is_refused_with_the_reason(
     let wf = |args: &[&str]| run_wf(args, &RunOpts::default().cwd(dir.path()));
 
     // When `repo`, `mcp-guard`, `ask`, `plan` or `worker` runs, Then each prints the spelling that replaced it and exits 2
-    for (argv, next) in [(vec!["repo", "sync", "--check"], "wf agent-config sync --check"), (vec!["repo", "bench", "cli"], "wf bench cli"), (vec!["repo", "knowledge", "rank", "x"], "wf knowledge rank x"), (vec!["repo", "ladder", "clear-cooldown", "p"], "wf offload ladder clear-cooldown p"), (vec!["mcp-guard"], "wf agent-config mcp-guard"), (vec!["ask", "--stats"], "wf offload ask --stats"), (vec!["plan", "x"], "wf offload plan x"), (vec!["worker", "check", "--plan", "x"], "wf offload worker check --plan x"), (vec!["worker", "visual", "--files", "a"], "wf check --visual --files a")] {
+    for (argv, next) in [(vec!["repo", "sync", "--check"], "wf agent-config sync --check"), (vec!["repo", "bench", "cli"], "wf bench cli"), (vec!["repo", "knowledge", "rank", "x"], "wf knowledge rank x"), (vec!["repo", "ladder", "clear-cooldown", "p"], "wf rca ladder clear-cooldown p"), (vec!["mcp-guard"], "wf agent-config mcp-guard"), (vec!["ask", "--stats"], "wf rca ask --stats"), (vec!["plan", "x"], "wf rca plan x"), (vec!["worker", "check", "--plan", "x"], "wf rca worker check --plan x"), (vec!["worker", "visual", "--files", "a"], "wf check --visual --files a")] {
         let r = wf(&argv);
         assert_eq!(r.exit_code, 2, "{argv:?}: {}{}", r.stdout, r.stderr);
         assert!(r.stdout.contains(&format!("\"next\":\"{next}\"")), "{argv:?}: {}", r.stdout);
@@ -289,12 +289,12 @@ fn a_caller_with_a_retired_or_malformed_command_line_is_refused_with_the_reason(
     }
 
     // When the earlier global --app, the admin flags that left ask, or a positional vm logs no longer takes are given
-    let app = wf(&["offload", "plan", "--check", "x", "--app", "mla-tamagui"]);
+    let app = wf(&["rca", "plan", "--check", "x", "--app", "mla-tamagui"]);
     // Then clap refuses each with exit 2
     assert_eq!(app.exit_code, 2);
     assert!(app.stderr.contains("unexpected argument '--app'"), "{}", app.stderr);
     for flag in ["--clear-cooldown", "--pricing-sync"] {
-        assert_eq!(wf(&["offload", "ask", flag]).exit_code, 2, "{flag}");
+        assert_eq!(wf(&["rca", "ask", flag]).exit_code, 2, "{flag}");
     }
     assert_eq!(wf(&["vm", "logs", "remote-chat-agent"]).exit_code, 2);
 
@@ -311,12 +311,12 @@ fn a_caller_with_a_retired_or_malformed_command_line_is_refused_with_the_reason(
     assert!(no_value.stderr.contains("error: a value is required for '--files <files>' but none was supplied"), "{}", no_value.stderr);
     assert!(missing.stderr.contains("error: the following required arguments were not provided:") && missing.stderr.contains("--message <message>"), "{}", missing.stderr);
     assert!(flag_value.stderr.contains("error: unexpected value '1' for '--budget' found; no more were expected"), "{}", flag_value.stderr);
-    for (argv, flag) in [(vec!["offload", "ask", "--stats=1"], "--stats"), (vec!["check", "--health", "--list-unit-targets=1"], "--list-unit-targets")] {
+    for (argv, flag) in [(vec!["rca", "ask", "--stats=1"], "--stats"), (vec!["check", "--health", "--list-unit-targets=1"], "--list-unit-targets")] {
         let r = wf(&argv);
         assert_eq!(r.exit_code, 2, "{flag}");
         assert!(r.stderr.contains(&format!("error: unexpected value '1' for '{flag}' found; no more were expected")), "{flag}: {}", r.stderr);
     }
-    for argv in [vec!["offload", "ask", "--stats", "--bogus"], vec!["check", "--budget", "--bogus"], vec!["check", "--health", "--list-unit-targets", "--bogus"]] {
+    for argv in [vec!["rca", "ask", "--stats", "--bogus"], vec!["check", "--budget", "--bogus"], vec!["check", "--health", "--list-unit-targets", "--bogus"]] {
         let r = wf(&argv);
         assert_eq!(r.exit_code, 2, "{argv:?}");
         assert!(r.stderr.contains("error: unexpected argument '--bogus' found"), "{argv:?}: {}", r.stderr);
@@ -419,7 +419,7 @@ fn the_program_options_mean_the_same_wherever_the_caller_puts_them() {
     // and inside a command's own options it is read and dropped
     let own = wf_in(s, &["check", "--health", "--frontend", "other", "--list-unit-targets"]);
     assert_eq!((own.exit_code, untimed(&own.stdout)), (0, untimed(&wf_in(s, &["check", "--health", "--list-unit-targets"]).stdout)), "{}", own.stderr);
-    for args in [vec!["--frontend", "mla-tamagui", "offload", "plan", "--check", "no-such-slug"], vec!["offload", "plan", "--frontend", "mla-tamagui", "--check", "no-such-slug"], vec!["offload", "plan", "--check", "no-such-slug", "--frontend=mla-tamagui"]] {
+    for args in [vec!["--frontend", "mla-tamagui", "rca", "plan", "--check", "no-such-slug"], vec!["rca", "plan", "--frontend", "mla-tamagui", "--check", "no-such-slug"], vec!["rca", "plan", "--check", "no-such-slug", "--frontend=mla-tamagui"]] {
         let r = run_wf(&args, &RunOpts::default().cwd(&repo_root()));
         assert_eq!(r.exit_code, 2, "{args:?}");
         assert!(format!("{}{}", r.stdout, r.stderr).contains("no units file:"), "{args:?}: {}{}", r.stdout, r.stderr);

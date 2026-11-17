@@ -190,6 +190,12 @@ ls:
   clis/mimic/core/src/*:
     .dir: snake_case
     .rs: snake_case
+  clis/mimic/coverage/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/coverage/src/*:
+    .dir: snake_case
+    .rs: snake_case
   clis/mimic/script/core/src:
     .dir: snake_case
     .rs: snake_case
@@ -200,12 +206,6 @@ ls:
     .dir: snake_case
     .rs: snake_case
   clis/orca-serve/core/src/*:
-    .dir: snake_case
-    .rs: snake_case
-  clis/parity/core/src:
-    .dir: snake_case
-    .rs: snake_case
-  clis/parity/core/src/*:
     .dir: snake_case
     .rs: snake_case
   clis/rca-exec/src:

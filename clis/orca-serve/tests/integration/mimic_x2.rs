@@ -1,6 +1,6 @@
 //! The recorded Orca mobile bundle (`wf mimic` cassette of the pinned Orca contract) replayed against the host's window serving, with the run
 //! record the integration stage publishes (`$WF_TEST_OUTPUT_DIR/wf-mimic-orca-mobile-bundle`, `report.json` and the method trace beside it):
-//! `wf parity coverage --app orca --traces` reads that trace, so the evidence of a mimic-backed row is made in CI and not only on a desk.
+//! `wf mimic coverage --app orca --traces` reads that trace, so the evidence of a mimic-backed row is made in CI and not only on a desk.
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};

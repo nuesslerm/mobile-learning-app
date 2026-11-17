@@ -15,7 +15,7 @@ Commands:
   ship [options] [service...] Build, push and redeploy a service on the VM;
                               --changed, --status; `ship eas`, `ship retire`,
                               `ship build`
-  offload                     Work on the cheap-model ladder: ask, stats, plan,
+  rca                         Work on the cheap-model ladder: ask, stats, plan,
                               worker, ladder
   flow run [<test file>]      The flow harness: vitest over *.flow.test.tsx,
                               report in .flow-report; --publish
@@ -47,8 +47,7 @@ Commands:
   exec                        The executor of an rca workspace: serve (the
                               separate binary rca-exec)
   mimic                       Characterization against a pinned reference:
-                              record, replay, diff, verify (the separate
-                              binary wf-mimic)
-  parity                      Parity coverage of the phone apps over the agent
-                              API: coverage
+                              record, replay, diff, verify, and the phone
+                              apps' coverage tables and pin tracking:
+                              coverage, track (the separate binary wf-mimic)
   help [command]              display help for command

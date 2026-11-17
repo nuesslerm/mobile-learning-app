@@ -25,7 +25,7 @@ use t3_core::ports::{AgentApi, AgentError, AgentEvent, AgentEventKind, AgentThre
 
 pub struct RcaAgent {
     authority: String,
-    /// A device bearer, which is the one credential this mapper holds for rca (`wf offload bearers mint`).
+    /// A device bearer, which is the one credential this mapper holds for rca (`wf rca bearers mint`).
     bearer: String,
     /// The rca workspace whose executor works where the projects' files are: every turn and file call acts there.
     workspace: String,

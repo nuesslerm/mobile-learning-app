@@ -39,4 +39,4 @@ The owner frees the VM's tailnet names with `wf vm net device retire --force --a
 `wf vm terraform exec infra/oracle-cloud -- apply -replace=oci_core_instance.main` with
 `TF_VAR_bws_read_access_token` set to a working read token (or adds an allow rule for those two
 commands). Then rotate agent-shell's machine token (`wf secret set ...`, redeploy agent-shell) and run
-`wf offload plan vm-puppeteer`.
+`wf rca plan vm-puppeteer`.

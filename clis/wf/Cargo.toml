@@ -16,12 +16,11 @@ path = "src/main.rs"
 
 [dependencies]
 wf-kit = { path = "../wf-kit" }
-offload = { path = "../offload" }
+rca = { path = "../rca" }
 wf-bench = { path = "../wf-bench" }
 knowledge = { path = "../knowledge" }
 wf-bucket = { path = "../wf-bucket" }
 wf-lib = { path = "../lib" }
-parity = { path = "../parity" }
 wf-harness = { path = "../wf-harness" }
 harness-flow = { path = "../harness-flow" }
 wf-login = { path = "../wf-login" }

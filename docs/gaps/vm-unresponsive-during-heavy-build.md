@@ -50,7 +50,7 @@ The hang recurred twice. On 19 Oct (CI run 39307044623 at dcab33aae) a cold Nx f
 Out of date above:
 
 - "`wf vm recover` ... is the only current lever": it is still the only recovery lever, but since 18-19 Oct CI also has preventive ones. The flow and typecheck stages run `--parallel 2` (the old `deploy.yml`). The Android job refuses to start the device below 2000 MB available (.github/workflows/e2e-tests.yml:148). Image builds yield CPU through `--cpu-shares 128` (clis/deploy/src/build_image.rs:206) and wait while a device run is up (9d44b94ff). None of these caps memory.
-- "nothing records PSI": almost true. vm-ops-api logged PSI attributes in `self_build.waiting_for_headroom` during its own self-build, which is gone (it no longer builds). wf's worker reads /proc/pressure/memory for admission (clis/offload/src/worker_run.rs:557) and stores nothing.
+- "nothing records PSI": almost true. vm-ops-api logged PSI attributes in `self_build.waiting_for_headroom` during its own self-build, which is gone (it no longer builds). wf's worker reads /proc/pressure/memory for admission (clis/rca/src/worker_run.rs:557) and stores nothing.
 - The gap names only the 15 Sep `wf ship remote-chat-agent` incident. It should add the 18 Oct (memory pressure from the device, 10572/11927 MB used) and 19 Oct (VM off the tailnet 19:04-19:31 during a cold four-wide Nx flow stage) recurrences from docs/audits/2026-09-02-token-diet-decision-log.md:2420 and :2454.
 
 Update 2026-11-13: the hangs came from cold Nx stages and the device running on the VM next to its apps. With the VM runner gone, CI and the device run on GitHub-hosted runners and no longer compete with the VM's apps, so the preventive levers above are historical.

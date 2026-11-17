@@ -58,7 +58,7 @@ knowledge                    docs/solutions knowledge index (rank, index, stale)
   index                      Rebuild the docs/solutions index; with --gemini, build one ARCHITECTURE.md + repomix bundle and upload it over one Drive file for the Gemini Gem
   rank                       Rank docs/solutions learnings relevant to these files
   stale                      List learnings not touched in --days
-offload                      Work on the cheap-model ladder: ask, stats, plan, worker, ladder
+rca                          Work on the cheap-model ladder: ask, stats, plan, worker, ladder
   ask                        Run one prompt on the cheap-model ladder (rca): an argument, --prompt, --prompt-
   plan                       Run docs/plans/<slug>/units.jsonl on git-leased worktrees (the git-state worker)
   stats                      The run-log summary of the cheap-model ladder
@@ -66,8 +66,6 @@ offload                      Work on the cheap-model ladder: ask, stats, plan, w
     clear-cooldown           Drop a pool from the cooldown list so the ladder tries it again
     sync-pricing             Refresh model-pricing.json from the OpenRouter model list
   api                        A script is plain Lua 5.4 with these globals
-parity                       How far the agent API mappers are from parity with the pinned phone apps
-  coverage                   Scan the pinned phone app and build its coverage table (--check compares)
 secret                       Manage secrets (macOS Keychain locally; Bitwarden in production — pick with --ba
   cache                      Remove the local copy of the vault
   create                     Create a vault secret, using its registry description as the note
@@ -141,12 +139,12 @@ vm                           The VM: run a script in agent-shell, read logs, rec
 | `wf test record` | nothing: bundles are the record |
 | `wf test enqueue / queue verbs` | the e2e-tests job in CI, or wf test run |
 | `wf test plan --latest` | `wf test results --query "<terms>"` |
-| the top-level `ask`, `plan` and `worker` | wf offload ask, wf offload plan, wf offload worker |
+| the top-level `ask`, `plan` and `worker` | wf rca ask, wf rca plan, wf rca worker |
 | the old `worker visual` | wf check --visual |
 | the `repo` group's `bench` verbs | wf bench ... |
 | the `repo` group's `knowledge` verbs | wf knowledge ... |
 | the `repo` group's `sync [--check]`, and the top-level `mcp-guard` | wf agent-config sync [--check], wf agent-config mcp-guard |
-| the `repo` group's `ladder` verbs | wf offload ladder ... |
+| the `repo` group's `ladder` verbs | wf rca ladder ... |
 | the `repo` group's `bundle [--check]` | pnpm --filter mla-tamagui run build:editor-bundle (check:editor-bundle) |
 | `wf run <script>` | wf android test <lua> / wf browser test <lua> |
 | android run, browser run (renamed; each an unknown verb since H8) | wf android test <lua>, wf browser test <lua> (`--env`, `--test-output-dir`, `--logpoint` on the browser only; `--goldens` is gone) |
@@ -2807,7 +2805,7 @@ Pass = the script exits 0. Exit 0 when it passed, 1 otherwise.
 Arms:
   sonnet     claude -p --model sonnet --output-format json (no tools, no MCP,
              outside the repo); cost and tokens from its JSON
-  opencode   the cheap-model ladder (`wf offload ask`'s rotation, read-only, caller
+  opencode   the cheap-model ladder (`wf rca ask`'s rotation, read-only, caller
              agent-proof); the first rung that answers
   scripted   no agent: runs --script (default
              e2e/agent-proof.lua), the floor
@@ -2951,7 +2949,7 @@ Usage: `wf knowledge index [options]`
 | Option | Meaning |
 |---|---|
 | `--write` | write the docs/solutions index file instead of printing it |
-| `--gemini` | build the Gemini Gem context bundle (repomix --compress skeleton, ARCHITECTURE.md drafted by `wf offload ask`, the full repomix pack, one upload) |
+| `--gemini` | build the Gemini Gem context bundle (repomix --compress skeleton, ARCHITECTURE.md drafted by `wf rca ask`, the full repomix pack, one upload) |
 | `--remote <dest>` | --gemini: <drive-folder-id>/<file-name> (credential: the gcloud login with Drive access) or local:<dir>/<file-name> (default: $GEMINI_CONTEXT_REMOTE) |
 | `--prompt <path>` | --gemini: the ARCHITECTURE.md prompt (default: "docs/gemini-context/architecture-prompt.md") |
 | `--cache-dir <path>` | --gemini: gitignored scratch dir for the skeleton, the pack and the bundle (default: ".gemini-context-cache") |
@@ -2977,7 +2975,7 @@ repomix bundle and upload it over one Drive file for the Gemini Gem
 Options:
   --write             write the docs/solutions index file instead of printing it
   --gemini            build the Gemini Gem context bundle (repomix --compress
-                      skeleton, ARCHITECTURE.md drafted by `wf offload ask`, the
+                      skeleton, ARCHITECTURE.md drafted by `wf rca ask`, the
                       full repomix pack, one upload)
   --remote <dest>     --gemini: <drive-folder-id>/<file-name> (credential: the
                       gcloud login with Drive access) or local:<dir>/<file-name>
@@ -3056,24 +3054,24 @@ Options:
 
 </details>
 
-## offload
+## rca
 
-### `wf offload`
+### `wf rca`
 
 Work on the cheap-model ladder, and the ladder's administration
 
-Usage: `wf offload [options] [command]`
+Usage: `wf rca [options] [command]`
 
 Examples:
 
 ```sh
-wf offload
+wf rca
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload [options] [command]
+Usage: wf rca [options] [command]
 
 Work on the cheap-model ladder, and the ladder's administration
 
@@ -3095,11 +3093,11 @@ Commands:
 
 </details>
 
-### `wf offload ask`
+### `wf rca ask`
 
 Run one prompt on the cheap-model ladder (rca): an argument, --prompt, --prompt-file, or - for stdin.
 
-Usage: `wf offload ask [options] [prompt]`
+Usage: `wf rca ask [options] [prompt]`
 
 | Option | Meaning |
 |---|---|
@@ -3111,15 +3109,15 @@ Usage: `wf offload ask [options] [prompt]`
 Examples:
 
 ```sh
-wf offload ask --runbook persistent-session-services
-wf offload ask and the Anthropic credential policy
-wf offload ask --savings
+wf rca ask --runbook persistent-session-services
+wf rca ask and the Anthropic credential policy
+wf rca ask --savings
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload ask [options] [prompt]
+Usage: wf rca ask [options] [prompt]
 
 Run one prompt on the cheap-model ladder (rca): an argument, --prompt,
 --prompt-file, or - for stdin.
@@ -3134,25 +3132,25 @@ Options:
 
 </details>
 
-### `wf offload stats`
+### `wf rca stats`
 
-The run-log summary of the cheap-model ladder (the same as `wf offload ask --stats`)
+The run-log summary of the cheap-model ladder (the same as `wf rca ask --stats`)
 
-Usage: `wf offload stats [options]`
+Usage: `wf rca stats [options]`
 
 Examples:
 
 ```sh
-wf offload stats --json
+wf rca stats --json
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload stats [options]
+Usage: wf rca stats [options]
 
 The run-log summary of the cheap-model ladder: okRate, p50 and cost per shape,
-tier, model and pool (the same as `wf offload ask --stats`)
+tier, model and pool (the same as `wf rca ask --stats`)
 
 Options:
   --json      output machine-readable JSON lines
@@ -3161,11 +3159,11 @@ Options:
 
 </details>
 
-### `wf offload plan`
+### `wf rca plan`
 
 Run docs/plans/<slug>/units.jsonl on git-leased worktrees (the git-state worker); --check only validates the plan, --status shows each unit.
 
-Usage: `wf offload plan [options] <slug>`
+Usage: `wf rca plan [options] <slug>`
 
 | Option | Meaning |
 |---|---|
@@ -3180,15 +3178,15 @@ Usage: `wf offload plan [options] <slug>`
 Examples:
 
 ```sh
-wf offload plan --check device-lab
-wf offload plan --site sandbox
-wf offload plan vm-puppeteer
+wf rca plan --check device-lab
+wf rca plan --site sandbox
+wf rca plan vm-puppeteer
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload plan [options] <slug>
+Usage: wf rca plan [options] <slug>
 
 Run docs/plans/<slug>/units.jsonl on git-leased worktrees (the git-state
 worker); --check only validates the plan, --status shows each unit.
@@ -3208,24 +3206,24 @@ Options:
 
 </details>
 
-### `wf offload sessions`
+### `wf rca sessions`
 
-The sessions the rca service keeps for `wf offload ask`
+The sessions the rca service keeps for `wf rca ask`
 
-Usage: `wf offload sessions [options] [command]`
+Usage: `wf rca sessions [options] [command]`
 
 Examples:
 
 ```sh
-wf offload sessions
+wf rca sessions
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload sessions [options] [command]
+Usage: wf rca sessions [options] [command]
 
-The sessions the rca service keeps for `wf offload ask`
+The sessions the rca service keeps for `wf rca ask`
 
 Options:
   -h, --help       display help for command
@@ -3237,25 +3235,25 @@ Commands:
 
 </details>
 
-### `wf offload sessions rm`
+### `wf rca sessions rm`
 
 Drop every session a caller made
 
-Usage: `wf offload sessions rm [options]`
+Usage: `wf rca sessions rm [options]`
 
 Examples:
 
 ```sh
-wf offload sessions rm --caller e2e-run-1
+wf rca sessions rm --caller e2e-run-1
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload sessions rm --caller <name>
+Usage: wf rca sessions rm --caller <name>
 
 Drops every session the caller `<name>` made on the rca service (the `--caller`
-of `wf offload ask`): each is deleted from opencode, which gives its memory
+of `wf rca ask`): each is deleted from opencode, which gives its memory
 back, and its kept directory is removed. A test that is done with its sessions
 says so instead of leaving them to the service's expiry (three hours idle).
 
@@ -3269,22 +3267,22 @@ Options:
 
 </details>
 
-### `wf offload bearers`
+### `wf rca bearers`
 
 The device bearers of the rca service's agent API socket
 
-Usage: `wf offload bearers [options] [command]`
+Usage: `wf rca bearers [options] [command]`
 
 Examples:
 
 ```sh
-wf offload bearers
+wf rca bearers
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload bearers [options] [command]
+Usage: wf rca bearers [options] [command]
 
 The device bearers of the rca service's agent API socket
 
@@ -3300,22 +3298,22 @@ Commands:
 
 </details>
 
-### `wf offload bearers mint`
+### `wf rca bearers mint`
 
 Mint a device bearer and print its token, once
 
-Usage: `wf offload bearers mint --label <name>`
+Usage: `wf rca bearers mint --label <name>`
 
 Examples:
 
 ```sh
-wf offload bearers mint --label t3
+wf rca bearers mint --label t3
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload bearers mint --label <name>
+Usage: wf rca bearers mint --label <name>
 
 Mints a device bearer on the rca service and prints its token: the one credential
 a mapper (wf t3 serve) or a phone opens the agent API socket (/agent/v1/socket)
@@ -3334,22 +3332,22 @@ Options:
 
 </details>
 
-### `wf offload bearers list`
+### `wf rca bearers list`
 
 List the device bearers that were not revoked
 
-Usage: `wf offload bearers list`
+Usage: `wf rca bearers list`
 
 Examples:
 
 ```sh
-wf offload bearers list
+wf rca bearers list
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload bearers list
+Usage: wf rca bearers list
 
 Lists the device bearers of the rca service that were not revoked, oldest first:
 their id, label and creation time, never a token.
@@ -3363,24 +3361,24 @@ Options:
 
 </details>
 
-### `wf offload bearers revoke`
+### `wf rca bearers revoke`
 
 Revoke a device bearer
 
-Usage: `wf offload bearers revoke <id>`
+Usage: `wf rca bearers revoke <id>`
 
 Examples:
 
 ```sh
-wf offload bearers revoke bearer-1a2b3c4d5e6f
+wf rca bearers revoke bearer-1a2b3c4d5e6f
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload bearers revoke <id>
+Usage: wf rca bearers revoke <id>
 
-Revokes the device bearer with that id (from `wf offload bearers list`): its token
+Revokes the device bearer with that id (from `wf rca bearers list`): its token
 opens the agent API socket no longer, from the next connection on. A socket that
 is open stays open until it closes.
 
@@ -3393,23 +3391,23 @@ Options:
 
 </details>
 
-### `wf offload ladder`
+### `wf rca ladder`
 
 The cheap-model ladder's administration
 
-Usage: `wf offload ladder [options] [command]`
+Usage: `wf rca ladder [options] [command]`
 
 Examples:
 
 ```sh
-wf offload ladder sync-pricing
-wf offload ladder clear-cooldown minimax
+wf rca ladder sync-pricing
+wf rca ladder clear-cooldown minimax
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload ladder [options] [command]
+Usage: wf rca ladder [options] [command]
 
 The cheap-model ladder's administration
 
@@ -3424,22 +3422,22 @@ Commands:
 
 </details>
 
-#### `wf offload ladder clear-cooldown`
+#### `wf rca ladder clear-cooldown`
 
 Drop a pool from the cooldown list so the ladder tries it again
 
-Usage: `wf offload ladder clear-cooldown [options] <pool>`
+Usage: `wf rca ladder clear-cooldown [options] <pool>`
 
 Examples:
 
 ```sh
-wf offload ladder clear-cooldown
+wf rca ladder clear-cooldown
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload ladder clear-cooldown [options] <pool>
+Usage: wf rca ladder clear-cooldown [options] <pool>
 
 Drop a pool from the cooldown list so the ladder tries it again
 
@@ -3449,22 +3447,22 @@ Options:
 
 </details>
 
-#### `wf offload ladder sync-pricing`
+#### `wf rca ladder sync-pricing`
 
 Refresh model-pricing.json from the OpenRouter model list
 
-Usage: `wf offload ladder sync-pricing [options]`
+Usage: `wf rca ladder sync-pricing [options]`
 
 Examples:
 
 ```sh
-wf offload ladder sync-pricing
+wf rca ladder sync-pricing
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf offload ladder sync-pricing [options]
+Usage: wf rca ladder sync-pricing [options]
 
 Refresh model-pricing.json from the OpenRouter model list
 
@@ -3497,6 +3495,8 @@ reference's whole API and a request corpus from its pinned source; `stabilize` i
 the mask rules that make several recordings of one corpus equal; `remask` applies a
 changed rules.json to a committed set and re-seals it; `import` and `export`
 convert legacy CLI fixtures into an imported set and prove the conversion lossless.
+`coverage` and `track` keep the phone apps' coverage tables (docs/plans/rca-parity/plan.md
+section 5) and follow the pins of the real servers the sets are recorded from.
 
 This is the separate binary wf-mimic: `wf mimic ...` runs `wf-mimic mimic ...`
 in its place, found beside wf, else on PATH, so a change here rebuilds
@@ -3550,6 +3550,8 @@ Commands:
   replay [options] <set>      Run the cassette's inputs against a candidate and diff
   diff [options] <a> <b>      Diff two cassette sets
   verify [options] [set...]   Check sets are fresh and intact (offline)
+  coverage [options]          Scan the pinned reference and write, or check, the app's method list and coverage table
+  track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
   trigger [options]           Read the marker of a commit message into the capture jobs it asks for
   provision [options] <set>   Install a set's reference as its [provision] block says
   job [options] <record|replay> <set>  One capture job: chunked record, or replay and diff table
@@ -3738,7 +3740,7 @@ mobile app and of the CLI, the CLI's own command specs) and writes beside it:
 `wf mimic record` then runs corpus.json against the real server.
 
 The completeness guard fails (exit 1, nothing written) when the pinned source's own
-listing (the committed catalog, written by `wf parity coverage`) names an endpoint the
+listing (the committed catalog, written by `wf mimic coverage`) names an endpoint the
 crawl lacks ("lags-source"), an endpoint has no case and no skip reason ("uncovered"),
 a schema-derived endpoint lacks a valid or an invalid case ("missing-class"), a case names
 no endpoint, the inventory's class counts differ from the cases, or the crawl was made
@@ -4195,58 +4197,23 @@ Output (schema mimic-fetch/1):
 
 </details>
 
-## parity
-
-### `wf parity`
-
-How far the agent API mappers are from parity with the pinned phone apps
-
-Usage: `wf parity [options] [command]`
-
-<details><summary>Full help</summary>
-
-```text
-Usage: wf parity [options] [command]
-
-How far the agent API mappers are from parity with the pinned phone apps
-(docs/plans/rca-parity/plan.md section 5): every method, command type, HTTP
-call and subscription the phone reaches is a row in a coverage table under
-docs/plans/rca-parity/coverage/, and parity is reached when no row is pending.
-It is also the standalone binary `wf-parity` (`wf-parity parity coverage ...`).
-
-Every line on stdout is one JSON object and no verb prompts. A failed check or
-a refusal prints {ok: false, ...} and exits 1; a malformed line exits 2.
-
-Options:
-  -h, --help                  display help for command
-
-Commands:
-  coverage [options]          Scan the pinned reference and write, or check,
-                              the app's method list and coverage table
-  track <verb> [options]      Is the pinned reference the newest release of the
-                              real server: check, bump, plan
-  help [command]              display help for command
-```
-
-</details>
-
-### `wf parity coverage`
+### `wf mimic coverage`
 
 Scan the pinned phone app and build its coverage table
 
-Usage: `wf parity coverage --app t3|orca [--check] [--traces <dir|bundle>] [--root <dir>] [--base <rev>]`
+Usage: `wf mimic coverage --app t3|orca [--check] [--by-oracle] [--traces <dir|bundle>] [--rows <prefix,...>] [--root <dir>] [--base <rev>]`
 
 Examples:
 
 ```sh
-wf parity coverage --app t3
-wf parity coverage --app orca --check
+wf mimic coverage --app t3
+wf mimic coverage --app orca --check
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf parity coverage --app t3|orca [--check] [--traces <dir|bundle>] [--rows <prefix,...>] [--root <dir>] [--base <rev>]
+Usage: wf mimic coverage --app t3|orca [--check] [--by-oracle] [--traces <dir|bundle>] [--rows <prefix,...>] [--root <dir>] [--base <rev>]
 
 Scan the pinned phone app and build its coverage table. The reference is
 references/t3code (pinned by tooling/t3-conformance/t3-pin.json) or
@@ -4271,7 +4238,11 @@ A row whose decision says `"oracle": "mimic"` is served only by a `wf mimic repl
 cassette never serves it. Its evidence entry then names `oracle`, `diff` and
 `cassette`, and the table's note shows them.
 
---traces refreshes the evidence from a chain run: the test output dir
+A served row needs `"oracle": "mimic"` or an `unrecordable` reason in its decision
+(why no recording can show it); a row with neither fails the check (rule
+served-without-oracle), and the evidence file keeps only those rows.
+
+--traces refreshes the evidence from a run: the test output dir
 (WF_TEST_OUTPUT_DIR, every <suite>/trace.json under it), one trace.json, or the
 bundle.json `wf test publish` made of the run (a path or its URL; its `traces`
 list is read). A write rewrites <app>-evidence.json and the tables from it; a
@@ -4280,6 +4251,26 @@ evidence stands, so a check never needs the run. The evidence records where the
 traces were read only as a URL or a path inside the repository (--traces paths
 under the root are made relative); an absolute or scratch path is left out, and
 a checked-in file that has one fails the check.
+
+--by-oracle prints, in place of the table, which test serves each served row and
+whether a recording could. It reads the checked-in <app>.json, the decisions, the
+row labels of the interactions of every set under clis/<app>-serve/cassettes whose
+provenance kind is `recorded` and the set's known-gaps.json (no server runs), and
+writes docs/plans/rca-parity/coverage/<app>-oracle.md. Each served row has a class:
+a = recorded, with no gap listed or only drift gaps; b = recorded, with a gap listed
+as breaking; c = no interaction in any recorded set; d = no recording can show it
+(the row's decision has an `unrecordable` reason, or its test is on the
+`unrecordableTests` list of <app>-decisions.json, which starts empty). The md also
+lists, per behaviour test file in clis/<app>-serve/tests/integration, the host state
+its source sets up that the mimic driver cannot: a scripted agent turn
+(Script::of, .script(, Turn::), the gh double (start_hosted, HostedClis), a restart
+(restart_serve), a clock and a service started with its own environment
+(start_with_env, e.g. a model API double); comments are skipped. With --check nothing is written
+and a differing md fails (rule stale; chain-source-missing when evidence names a
+test file that is gone). It takes only --app, --check and --root. Output: {ok, app,
+mode, by: "oracle", served, counts: {a, b, c, d}, chainCounts (the same for the
+rows a behaviour test serves), recordedSets, chainTests: [{file, rows, tests,
+hostState}], problems, wrote}.
 
 Without the reference checked out, the table is rebuilt from the checked-in
 method list. A reference checked out at another commit than its pin is refused
@@ -4297,7 +4288,10 @@ Options:
                               served without evidence, the evidence names a row
                               the table does not serve, a trace names a row the
                               phone does not reach, or pending rose
-  --traces <dir|bundle>       The method-hit traces of a chain run: a test output
+  --by-oracle                 Classify each served row by what a recording shows
+                              and scan the behaviour tests' host state
+                              (<app>-oracle.md)
+  --traces <dir|bundle>       The method-hit traces of a run: a test output
                               dir, a trace.json, or a bundle.json (path or URL)
   --rows <prefix,...>         With --traces: refresh only the rows whose id starts
                               with a prefix; the evidence of the other rows stays
@@ -4315,7 +4309,7 @@ served, pending, notOffered, excluded, flagged, answeredByMapper, byKind,
 pendingByMilestone}, evidence: {file, rows, refreshedFrom (a URL or a repository path, else null)}, problems: [{rule,
 message, rows}], wrote (write mode)}.
 Rules: stale, unassigned, untargeted, incomplete-decision,
-served-without-evidence, stale-evidence, unknown-trace-row, stale-decision,
+served-without-evidence, served-without-oracle, stale-evidence, unknown-trace-row, stale-decision,
 pending-rose, scratch-trace-path. A write reports the
 problems and exits 0; --check exits 1 on any. A refusal prints {ok: false,
 app, error, next} and exits 1.
@@ -4323,33 +4317,33 @@ app, error, next} and exits 1.
 
 </details>
 
-### `wf parity track`
+### `wf mimic track`
 
 Follow the real servers the phone apps are conformed to
 
-Usage: `wf parity track check|bump --app t3|orca [--root <dir>]`
+Usage: `wf mimic track check|bump --app t3|orca [--root <dir>]`
 
 Examples:
 
 ```sh
-wf parity track check --app t3
-wf parity track bump --app orca
-wf parity track plan --message "[track t3 orca]"
-wf parity track report --plan plan.json --inputs out --out report
+wf mimic track check --app t3
+wf mimic track bump --app orca
+wf mimic track plan --message "[track t3 orca]"
+wf mimic track report --plan plan.json --inputs out --out report
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf parity track check|bump --app t3|orca [--root <dir>]
-       wf parity track plan (--message <text> | --file <path|->) [--root <dir>]
-       wf parity track report --plan <plan.json> --inputs <dir> --out <dir> [--run <id>] [--sha <commit>]
+Usage: wf mimic track check|bump --app t3|orca [--root <dir>]
+       wf mimic track plan (--message <text> | --file <path|->) [--root <dir>]
+       wf mimic track report --plan <plan.json> --inputs <dir> --out <dir> [--run <id>] [--sha <commit>]
 
 Follow the real servers the phone apps are conformed to. T3 is the npm package
 `t3` (pinned in tooling/t3-conformance/t3-pin.json, its release on
 github.com/pingdotgg/t3code); Orca is the newest GitHub release of
 stablyai/orca (tooling/orca-conformance/orca-pin.json). No verb prompts and
-every line on stdout is one JSON object (schema parity-track/1).
+every line on stdout is one JSON object (schema mimic-track/1).
 
 check   Compare the pin with the newest release. A pin that is behind is data,
         not a failure (exit 0):
@@ -4370,8 +4364,8 @@ plan    Read the [track <app>... [chunk=<minutes>] [fresh]] marker of a commit
         the sets it names.
 report  Fold a tracker run into one drift report. --inputs holds the capture
         outputs (<set>.record.json and <set>.replay.json of `wf mimic job`,
-        coverage-<app>.json of `wf parity coverage`); --out gets
-        drift-report.json {schema parity-track-report/1, ok, run, sha, apps:
+        coverage-<app>.json of `wf mimic coverage`); --out gets
+        drift-report.json {schema mimic-track-report/1, ok, run, sha, apps:
         [{app, pinned, latest, drifted, status: current|incomplete|
         discrepancies|needs-work|clean, sets: [{set, recorded, replay}],
         coverage}], next}, summary.md, and report.json + report.html (a
@@ -4512,7 +4506,7 @@ Commands:
   scope-check [options]                 Check each CI job's keys against
                                         their scopes (open jobs read no
                                         ci-deploy key) — JSON, never a value
-  parity [options]                      Per CI scope, the keys the vault holds
+  scope-compare [options]               Per CI scope, the keys the vault holds
                                         against the registry and a keyed hash
                                         of each value, to compare two runner
                                         kinds — JSON, never a value
@@ -5175,11 +5169,11 @@ Options:
 
 </details>
 
-### `wf secret parity`
+### `wf secret scope-compare`
 
 For each CI scope (ci-open, ci-deploy), list the registry keys, the keys the scope's vault project holds, the ones it lacks, a hash of each name list and a keyed hash (HMAC-SHA256 of key name and value under the nonce) of every value held. Run it on two runner kinds with the same `--nonce` and diff the JSON. Prints JSON and never a value. Exits 1 when a scope lacks a registry key, except a key that only deploy groups list as optional (listed as missingOptional).
 
-Usage: `wf secret parity [options]`
+Usage: `wf secret scope-compare [options]`
 
 | Option | Meaning |
 |---|---|
@@ -5190,13 +5184,13 @@ Usage: `wf secret parity [options]`
 Examples:
 
 ```sh
-wf secret parity --json --nonce "$RUN_NONCE" > parity-$RUNNER_NAME.json
+wf secret scope-compare --json --nonce "$RUN_NONCE" > scopes-$RUNNER_NAME.json
 ```
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf secret parity [options]
+Usage: wf secret scope-compare [options]
 
 For each CI scope (ci-open, ci-deploy), list the registry keys, the keys the
 scope's vault project holds, the ones it lacks, a hash of each name list, and a
@@ -5750,7 +5744,7 @@ default.
 
 With --rca-url (http://host:port) turns and project files go through the rca
 service's agent API (/agent/v1/socket), opened with the device bearer in
-T3_RCA_BEARER (wf offload bearers mint --label t3); the service secret is not
+T3_RCA_BEARER (wf rca bearers mint --label t3); the service secret is not
 used. A message starts a turn (thread.create, turn.start, thread.subscribe on
 agent.threads) and the thread's events become its messages, tool calls and run;
 history and transcript reads first catch the thread up from thread.history, and
@@ -5871,7 +5865,7 @@ Actions:
                          run one stage of a plan (default: plan HEAD~1..HEAD) through the workspace's Nx cache: a task whose
                          inputs hash the same as an earlier pass is replayed, the rest run. A package stage runs each kind's
                          target over its packages (`nx run-many -t <script> -p a,b --parallel <n>`, default 4; the flow call also runs
-                         the crates' `cargo-flow`; the integration-tests stage runs test:integration and a crate's `cargo-integration`, the cli-e2e-tests stage the crates' `cargo-e2e` (a crate reached only through a dependency runs `cargo-e2e-smoke`: the same suite without its parity tests, or nothing when its suite is the live-model parity one, `tests/e2e/parity.rs`), one project at a time),
+                         the crates' `cargo-flow`; the integration-tests stage runs test:integration and a crate's `cargo-integration`, the cli-e2e-tests stage the crates' `cargo-e2e` (a crate reached only through a dependency runs `cargo-e2e-smoke`: the same suite without its compare tests, or nothing when its suite is the live-model compare one, `tests/e2e/compare.rs`), one project at a time),
                          every kind even after a red one, and prints {ok, stage, kinds:[{kind, target, projects, verdict,
                          durationS}], expectedRevisions}; the deployment-verification-tests stage also hands its tests WF_EXPECTED_REVISIONS
                          ({service: commit}) and lists them as expectedRevisions [{app, commit, why}]: the pushed commit, or the
@@ -5961,7 +5955,7 @@ Actions:
                          <dir> is a harness run's test output dir (report.json), a flow report dir (.flow-report) or an e2e run dir
                          (result.json). bundle.json (schema 1) lists every file's public URL, report {html,json},
                          screenshots[], recordings[], debug, timing, traces[] (the method-hit traces, trace.json, of an
-                         integration chain: `wf parity coverage --traces` reads them), metrics, and the run's screen, warning
+                         integration chain: `wf mimic coverage --traces` reads them), metrics, and the run's screen, warning
                          count and timingSummary; every recording and the report page are read back from the bucket (readBack). `cache`
                          is what the build-cache shim did in the runs that stopped in the last 15 minutes and no bundle carried yet:
                          {runs, hits, misses, puts, skipped, requests, bytes, degraded, latencyMs: {get, put, exists: {n, sumMs, avgMs, maxMs}}}, null when none did.

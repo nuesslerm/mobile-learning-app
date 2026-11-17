@@ -398,8 +398,8 @@ fn verify_scope_in_ci_names_a_key_missing_from_the_ci_project() {
     assert!(only_token(&v, OPEN_TOKEN), "{:?}", v.calls());
 }
 
-fn parity(v: &Vault, args: &[&str]) -> (i32, Value, String) {
-    let mut full = vec!["parity", "--json"];
+fn scope_compare(v: &Vault, args: &[&str]) -> (i32, Value, String) {
+    let mut full = vec!["scope-compare", "--json"];
     full.extend_from_slice(args);
     let r = ci(v, &full, &push_to_dev());
     let text: String = format!("{}{}", r.stdout, r.stderr).lines().filter(|l| !l.starts_with("::add-mask::")).collect::<Vec<_>>().join("\n");
@@ -413,13 +413,13 @@ fn scope_of<'a>(report: &'a Value, scope: &str) -> &'a Value {
 const NONCE: &str = "shared-run-nonce-0123456789";
 
 #[test]
-fn parity_of_two_runner_kinds_with_one_nonce_is_identical_and_a_divergent_value_or_missing_key_shows() {
+fn scope_compare_of_two_runner_kinds_with_one_nonce_is_identical_and_a_divergent_value_or_missing_key_shows() {
     let v = two_projects();
 
     // When two runners (same tokens, one with a different working directory and workflow event
-    // variables) run the parity verb with the same nonce
-    let (vm_code, vm_run, vm_text) = parity(&v, &["--nonce", NONCE]);
-    let hosted = ci(&v, &["parity", "--json", "--nonce", NONCE], &[("CI", "true"), ("GITHUB_ACTIONS", "true"), ("GITHUB_EVENT_NAME", "push"), ("GITHUB_REF", "refs/heads/dev"), ("BWS_CI_DEPLOY_ACCESS_TOKEN", DEPLOY_TOKEN), ("RUNNER_NAME", "hosted-1")]);
+    // variables) run the scope-compare verb with the same nonce
+    let (vm_code, vm_run, vm_text) = scope_compare(&v, &["--nonce", NONCE]);
+    let hosted = ci(&v, &["scope-compare", "--json", "--nonce", NONCE], &[("CI", "true"), ("GITHUB_ACTIONS", "true"), ("GITHUB_EVENT_NAME", "push"), ("GITHUB_REF", "refs/heads/dev"), ("BWS_CI_DEPLOY_ACCESS_TOKEN", DEPLOY_TOKEN), ("RUNNER_NAME", "hosted-1")]);
     // Then the reports are byte-identical, hold exactly the registry keys of each scope, and carry a hash per key
     assert_eq!((vm_code, hosted.exit_code), (0, 0), "{}", hosted.stderr);
     assert_eq!(hosted.stdout, serde_json::to_string_pretty(&vm_run).unwrap() + "\n");
@@ -443,7 +443,7 @@ fn parity_of_two_runner_kinds_with_one_nonce_is_identical_and_a_divergent_value_
     }
     deploy.extend(project_of("ci-open", "open"));
     v.holds(DEPLOY_TOKEN, Value::Array(deploy));
-    let (code, drifted, text) = parity(&v, &["--nonce", NONCE]);
+    let (code, drifted, text) = scope_compare(&v, &["--nonce", NONCE]);
     // Then it exits 1, names the missing key, differs from the first run in the changed value's hash and the held names' hash only,
     // and leaves the ci-open scope identical
     assert_eq!(code, 1, "{text}");
@@ -460,13 +460,13 @@ fn parity_of_two_runner_kinds_with_one_nonce_is_identical_and_a_divergent_value_
 }
 
 #[test]
-fn parity_hashes_depend_on_the_nonce_and_a_nonce_is_generated_when_none_is_given() {
+fn scope_compare_hashes_depend_on_the_nonce_and_a_nonce_is_generated_when_none_is_given() {
     let v = two_projects();
 
     // When the verb runs twice without a nonce, and once with an explicit one that is too short
-    let (_, first, _) = parity(&v, &[]);
-    let (_, second, _) = parity(&v, &[]);
-    let short = ci(&v, &["parity", "--json", "--nonce", "short"], &push_to_dev());
+    let (_, first, _) = scope_compare(&v, &[]);
+    let (_, second, _) = scope_compare(&v, &[]);
+    let short = ci(&v, &["scope-compare", "--json", "--nonce", "short"], &push_to_dev());
 
     // Then each run prints its own nonce, the hashes of the same values differ between them, the names hashes do not, and a short
     // nonce is refused naming the rule
@@ -480,7 +480,7 @@ fn parity_hashes_depend_on_the_nonce_and_a_nonce_is_generated_when_none_is_given
 }
 
 #[test]
-fn parity_lists_a_key_only_deploy_groups_call_optional_as_missing_optional_without_failing() {
+fn scope_compare_lists_a_key_only_deploy_groups_call_optional_as_missing_optional_without_failing() {
     // Given a ci-deploy project that lacks GROQ_API_KEY, which no deploy group requires (the app falls back without it)
     let v = two_projects();
     let mut deploy = held(&scope_keys("ci-deploy"));
@@ -488,8 +488,8 @@ fn parity_lists_a_key_only_deploy_groups_call_optional_as_missing_optional_witho
     deploy.extend(project_of("ci-open", "open"));
     v.holds(DEPLOY_TOKEN, Value::Array(deploy));
 
-    // When the parity verb runs
-    let (code, report, text) = parity(&v, &["--nonce", NONCE]);
+    // When the scope-compare verb runs
+    let (code, report, text) = scope_compare(&v, &["--nonce", NONCE]);
 
     // Then it passes, lists the key as missingOptional and not as missing, and prints no value
     assert_eq!(code, 0, "{text}");

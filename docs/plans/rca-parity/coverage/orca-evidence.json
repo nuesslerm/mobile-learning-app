@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "app": "orca",
-  "generatedBy": "wf parity coverage --app orca --traces <dir|bundle>",
+  "generatedBy": "wf mimic coverage --app orca --traces <dir|bundle>",
   "source": {
     "runs": [
       {

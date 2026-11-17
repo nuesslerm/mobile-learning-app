@@ -1,6 +1,6 @@
 //! One-shot runs (`use-cases/runOnce.ts`): a prompt put to the models of a ladder, one after the other, until one gives an answer that
 //! passes the output checks. What decides which model is next, which pools are cold, how a failure is classed and what a run leaves in
-//! the run log is `rca-core`, which `wf offload ask` shares; this module is the attempt (a turn against opencode, its tool calls folded
+//! the run log is `rca-core`, which `wf rca ask` shares; this module is the attempt (a turn against opencode, its tool calls folded
 //! into events), the two files, the diff of what a run wrote, and the result as JSON.
 
 use super::opencode_client::Client;

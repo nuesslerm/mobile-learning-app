@@ -115,7 +115,7 @@ fn replay(id: &str) {
             failures.push(format!("{name}: differences not in known-gaps.json:\n{}\nlisted gaps that no longer differ as listed:\n{stale:?}", new.join("\n")));
         }
         if name == CRAWL {
-            // the method trace `wf parity coverage --traces` reads (the shape `wf mimic replay --suite` writes): one test per compared interaction, clean unless listed
+            // the method trace `wf mimic coverage --traces` reads (the shape `wf mimic replay --suite` writes): one test per compared interaction, clean unless listed
             let label = |id: &str| results.iter().find(|r| r["id"] == id).map_or("clean", |r| r["label"].as_str().unwrap_or("breaking")).to_string();
             let tests: Vec<serde_json::Value> = interactions
                 .iter()

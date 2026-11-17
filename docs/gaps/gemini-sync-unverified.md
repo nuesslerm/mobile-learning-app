@@ -27,7 +27,7 @@ Read the file id and `modifiedTime` of `repomix-context.md` after the next night
 ## 2026-10-30 check
 
 - No scheduled run happened at 03:17 UTC: GitHub fires `schedule` only from the default branch, and the workflow lives on `dev` (every run so far is a `push`). The nightly needs the workflow on `main`, which the `dev` → `main` merge brings.
-- Push run 17 (`4e480e8`) failed at the draft: the rca service skipped every rung for cold pools, and the client printed "All 0 models were exhausted". The message now names the skipped pools. The cause is the shared cooldowns after the parity e2e load; the draft honors cold pools because it pins no model.
+- Push run 17 (`4e480e8`) failed at the draft: the rca service skipped every rung for cold pools, and the client printed "All 0 models were exhausted". The message now names the skipped pools. The cause is the shared cooldowns after the compare e2e load; the draft honors cold pools because it pins no model.
 
 ## 2026-10-31 change
 

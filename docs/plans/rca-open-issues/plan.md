@@ -241,11 +241,11 @@ CI budget: 8-10 min plus about 1 min of deployment verification.
 
 ### Step 15. Token usage in the run-log row of a remote run (issue L, slice only)
 
-Symptom: the answer of `POST /runs` carries `usage` (`rs/src/application/runs.rs:684-686`) but the run-log row appended by `append_run_log` (`runs.rs:502-512`) has no tokens or cost, so `wf offload ask --stats` shows zeros for remote rows.
+Symptom: the answer of `POST /runs` carries `usage` (`rs/src/application/runs.rs:684-686`) but the run-log row appended by `append_run_log` (`runs.rs:502-512`) has no tokens or cost, so `wf rca ask --stats` shows zeros for remote rows.
 
-Fix design: write the attempt's `usage` into the row where it is appended; keep the format `--stats` already reads on the local path. Layer today: `rs/application/runs.rs`; after R8 it moves with the `RunHost` implementation to `infrastructure/run_host.rs`. Wait for R8 (decision: do this step after R8; it edits the code R8 moves, and nothing is exposed meanwhile). Test: runs flow (`rs/tests/flow/runs.rs`): Given a run whose double reports usage, When it completes, Then the row `GET /runs/log` returns has non-zero tokens (arrived probe: the same row has the attempt's model and status). The runbook-on-service (a checkout the service runs in, deleting `dispatch_local`) is a feature in `clis/offload` and is not in this plan; the note stays open for it.
+Fix design: write the attempt's `usage` into the row where it is appended; keep the format `--stats` already reads on the local path. Layer today: `rs/application/runs.rs`; after R8 it moves with the `RunHost` implementation to `infrastructure/run_host.rs`. Wait for R8 (decision: do this step after R8; it edits the code R8 moves, and nothing is exposed meanwhile). Test: runs flow (`rs/tests/flow/runs.rs`): Given a run whose double reports usage, When it completes, Then the row `GET /runs/log` returns has non-zero tokens (arrived probe: the same row has the attempt's model and status). The runbook-on-service (a checkout the service runs in, deleting `dispatch_local`) is a feature in `clis/rca` and is not in this plan; the note stays open for it.
 
-CI budget: 8-10 min (rca) plus the `wf offload` e2e if its inputs change; do not touch `clis/offload` in this step.
+CI budget: 8-10 min (rca) plus the `wf rca` e2e if its inputs change; do not touch `clis/rca` in this step.
 
 ## Order and what can run before the hexagonal split
 

@@ -21,7 +21,7 @@
       "name": "mobile-calls",
       "available": true,
       "found": 4,
-      "note": "literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf parity coverage)"
+      "note": "literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf mimic coverage)"
     },
     {
       "name": "catalog",
@@ -6971,7 +6971,7 @@
         "name": "mobile-calls",
         "available": true,
         "found": 4,
-        "note": "literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf parity coverage)"
+        "note": "literal tags and WS_METHODS keys under apps/mobile/src, plus the reachability scan of the catalog (wf mimic coverage)"
       },
       {
         "name": "catalog",

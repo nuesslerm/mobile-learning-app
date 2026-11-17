@@ -179,7 +179,7 @@ After step 9 (not before):
 | `rs` (api, compose) | rs unit, flow, integration, clippy |
 | the TS suites only | the e2e and bench tasks, no Rust |
 
-The per-group e2e tasks already exist for offload (`cargo-e2e-ask`, `-parity`, `-parity_features`, `-parity_capabilities`, defined
+The per-group e2e tasks already exist for rca (`cargo-e2e-ask`, `-parity`, `-parity_features`, `-parity_capabilities`, defined
 in `tooling/nx/cargo-crates.js`); rca can use the same `e2e` group metadata for its TS-free Rust e2e if any appears. Today rca
 has none; this is not planned.
 

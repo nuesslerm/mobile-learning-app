@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "app": "t3",
-  "generatedBy": "wf parity coverage --app t3",
+  "generatedBy": "wf mimic coverage --app t3",
   "pin": {
     "file": "tooling/t3-conformance/t3-pin.json",
     "version": "0.1.9",

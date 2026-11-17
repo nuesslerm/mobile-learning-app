@@ -27,8 +27,8 @@ fn find(dir: &Path, out: &mut Vec<PathBuf>) {
 
 fn read_catalog(cfg: &CrawlConfig) -> Result<Option<Catalog>, Fail> {
     let Some(path) = &cfg.catalog else { return Ok(None) };
-    let text = std::fs::read_to_string(path).map_err(|e| fail(format!("catalog {}: {e}", path.display()), "run wf parity coverage, or fix catalog in crawl.toml"))?;
-    Catalog::parse(&text).map(Some).map_err(|e| fail(format!("catalog {}: {e}", path.display()), "regenerate it with wf parity coverage"))
+    let text = std::fs::read_to_string(path).map_err(|e| fail(format!("catalog {}: {e}", path.display()), "run wf mimic coverage, or fix catalog in crawl.toml"))?;
+    Catalog::parse(&text).map(Some).map_err(|e| fail(format!("catalog {}: {e}", path.display()), "regenerate it with wf mimic coverage"))
 }
 
 fn committed(dir: &Path) -> [Option<String>; 3] {

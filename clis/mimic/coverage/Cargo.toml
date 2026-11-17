@@ -1,0 +1,18 @@
+[package]
+name = "mimic-coverage-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The pure core of `wf mimic coverage` and `wf mimic track`: the reference scans of the pinned phone apps, the coverage table and its checks"
+
+[lib]
+doctest = false
+
+[features]
+testing = []
+
+[dependencies]
+serde_json = { version = "1", features = ["preserve_order"] }
+
+[package.metadata.arch]
+type = "rust-flat-core"

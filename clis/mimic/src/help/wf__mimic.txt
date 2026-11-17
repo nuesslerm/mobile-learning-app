@@ -10,6 +10,8 @@ reference's whole API and a request corpus from its pinned source; `stabilize` i
 the mask rules that make several recordings of one corpus equal; `remask` applies a
 changed rules.json to a committed set and re-seals it; `import` and `export`
 convert legacy CLI fixtures into an imported set and prove the conversion lossless.
+`coverage` and `track` keep the phone apps' coverage tables (docs/plans/rca-parity/plan.md
+section 5) and follow the pins of the real servers the sets are recorded from.
 
 This is the separate binary wf-mimic: `wf mimic ...` runs `wf-mimic mimic ...`
 in its place, found beside wf, else on PATH, so a change here rebuilds
@@ -63,6 +65,8 @@ Commands:
   replay [options] <set>      Run the cassette's inputs against a candidate and diff
   diff [options] <a> <b>      Diff two cassette sets
   verify [options] [set...]   Check sets are fresh and intact (offline)
+  coverage [options]          Scan the pinned reference and write, or check, the app's method list and coverage table
+  track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
   trigger [options]           Read the marker of a commit message into the capture jobs it asks for
   provision [options] <set>   Install a set's reference as its [provision] block says
   job [options] <record|replay> <set>  One capture job: chunked record, or replay and diff table

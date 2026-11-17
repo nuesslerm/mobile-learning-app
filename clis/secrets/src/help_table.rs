@@ -11,7 +11,7 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("secret get", false, include_str!("help/wf__secret__get.txt")),
     ("secret list", false, include_str!("help/wf__secret__list.txt")),
     ("secret move", false, include_str!("help/wf__secret__move.txt")),
-    ("secret parity", false, include_str!("help/wf__secret__parity.txt")),
+    ("secret scope-compare", false, include_str!("help/wf__secret__scope-compare.txt")),
     ("secret push-notes", false, include_str!("help/wf__secret__push-notes.txt")),
     ("secret registry", true, include_str!("help/wf__secret__registry.txt")),
     ("secret registry sync", false, include_str!("help/wf__secret__registry__sync.txt")),

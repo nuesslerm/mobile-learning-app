@@ -1616,6 +1616,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "mimic-coverage-core"
+version = "0.1.0"
+dependencies = [
+ "serde_json",
+]
+
+[[package]]
 name = "mimic-script-core"
 version = "0.1.7"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
@@ -1785,27 +1792,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "071dfc062690e90b734c0b2273ce72ad0ffa95f0c74596bc250dcfd960262841"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "offload"
-version = "0.1.0"
-dependencies = [
- "base64 0.22.1",
- "cli-http",
- "exec-testkit",
- "libc",
- "nix",
- "rca-core",
- "rca-ladder",
- "regex",
- "secrets",
- "serde_json",
- "signal-hook",
- "tempfile",
- "wf-kit",
- "wf-testkit",
- "wf-vmops",
 ]
 
 [[package]]
@@ -2113,25 +2099,6 @@ name = "outref"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1a80800c0488c3a21695ea981a54918fbb37abf04f4d0720c453632255e2ff0e"
-
-[[package]]
-name = "parity"
-version = "0.1.0"
-dependencies = [
- "cli-http",
- "parity-core",
- "serde_json",
- "tempfile",
- "tiny_http",
- "wf-kit",
-]
-
-[[package]]
-name = "parity-core"
-version = "0.1.0"
-dependencies = [
- "serde_json",
-]
 
 [[package]]
 name = "parking_lot"
@@ -2475,6 +2442,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "caa0f4137e1c0a72f4c651489402276c8e8e1cf081f3b0ba156d2cbeef09e86a"
 dependencies = [
  "rand_core 0.10.1",
+]
+
+[[package]]
+name = "rca"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "cli-http",
+ "exec-testkit",
+ "libc",
+ "nix",
+ "rca-core",
+ "rca-ladder",
+ "regex",
+ "secrets",
+ "serde_json",
+ "signal-hook",
+ "tempfile",
+ "wf-kit",
+ "wf-testkit",
+ "wf-vmops",
 ]
 
 [[package]]
@@ -3776,9 +3764,8 @@ dependencies = [
  "deploy",
  "harness-flow",
  "knowledge",
- "offload",
- "parity",
  "pipeline",
+ "rca",
  "regex",
  "secrets",
  "serde_json",
@@ -3802,7 +3789,7 @@ dependencies = [
  "flate2",
  "libc",
  "nix",
- "offload",
+ "rca",
  "rca-core",
  "regex",
  "serde_json",
@@ -3917,7 +3904,9 @@ dependencies = [
 name = "wf-mimic"
 version = "0.1.0"
 dependencies = [
+ "cli-http",
  "mimic-core",
+ "mimic-coverage-core",
  "mimic-script-core",
  "mimic-script-host",
  "mimic-script-orca",

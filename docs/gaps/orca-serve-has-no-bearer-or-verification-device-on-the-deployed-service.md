@@ -26,7 +26,7 @@ Both are credentials the owner's vault holds, and no agent invented a value for 
 
 ## What unblocks it
 
-1. `wf offload bearers mint --label orca` (over the tailnet, with the service secret); store the printed token under `ORCA_RCA_BEARER`
+1. `wf rca bearers mint --label orca` (over the tailnet, with the service secret); store the printed token under `ORCA_RCA_BEARER`
    (`wf secret create ORCA_RCA_BEARER`), then push: the `orca-serve` leg deploys.
 2. Run `orca-serve pair --endpoint ws://orca-serve:6768` in the `orca-serve` container and store the printed `url` under
    `ORCA_VERIFY_PAIR_URL`. Step 1 is done and the service deploys (CI run 42147245467). Step 2 is open: `wf vm exec` reaches only agent-shell's own

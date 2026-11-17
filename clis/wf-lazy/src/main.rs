@@ -6,9 +6,8 @@ use std::process::{exit, Command};
 
 /// verb, package, binary: the verbs whose crate ships a thin binary that serves them like the router does.
 pub const TABLE: &[(&str, &str, &str)] = &[
-    ("offload", "offload", "offload"),
+    ("rca", "rca", "rca"),
     ("knowledge", "knowledge", "knowledge"),
-    ("parity", "parity", "wf-parity"),
     ("lib", "wf-lib", "wf-lib"),
     ("bench", "wf-bench", "wf-bench"),
     ("cache", "wf-bucket", "wf-bucket"),

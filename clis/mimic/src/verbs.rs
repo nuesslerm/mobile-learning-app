@@ -1,5 +1,7 @@
 //! `wf mimic record|replay|diff|verify`: parse the line, run the core over the disk and a driver, print one JSON object (schema
 //! `mimic-<verb>/1`). Exit 0 clean, 1 findings, 2 usage or environment; nothing prompts and every failure names its `next` step.
+#[path = "coverage_verb.rs"]
+mod coverage_verb;
 #[path = "crawl_verb.rs"]
 mod crawl_verb;
 #[path = "stabilize_verb.rs"]
@@ -73,6 +75,8 @@ fn finish(schema: &str, done: Done) -> Option<i32> {
 pub fn run(args: &[String]) -> Option<i32> {
     let (verb, rest) = args.split_first()?;
     match verb.as_str() {
+        "coverage" => coverage_verb::coverage(rest),
+        "track" => coverage_verb::track(rest),
         "record" => finish("mimic-record/1", record(&parse_spec(rest, &RECORD)?)),
         "replay" => finish("mimic-replay/1", replay(&parse_spec(rest, &REPLAY)?)),
         "diff" => finish("mimic-diff/1", diff(&parse_spec(rest, &DIFF)?)),
@@ -457,7 +461,7 @@ fn with_server(candidate: &Target, p: &Parsed) -> Result<Target, Fail> {
 }
 
 /// `$WF_TEST_OUTPUT_DIR/<suite>/{report.json, trace.json}`: the harness run record and the method trace (`method-trace/1`) with the
-/// `diff` label and parity `row` of every interaction and the cassette's provenance `kind`, which `wf parity coverage --traces` reads.
+/// `diff` label and parity `row` of every interaction and the cassette's provenance `kind`, which `wf mimic coverage --traces` reads.
 fn write_suite(suite: &str, set: &str, content: &CassetteSet, verdict: &Verdict, started: i64, windows: &[(String, i64, i64)]) -> Result<(PathBuf, PathBuf), String> {
     let base = std::env::var_os("WF_TEST_OUTPUT_DIR").filter(|d| !d.is_empty()).ok_or("--suite needs WF_TEST_OUTPUT_DIR")?;
     let dir = PathBuf::from(base).join(suite);

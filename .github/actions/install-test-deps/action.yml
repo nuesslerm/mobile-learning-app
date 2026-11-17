@@ -14,7 +14,7 @@ inputs:
     description: restic and sqlite3, for the deploy flow tests
     default: "false"
   opencode:
-    description: The opencode binary the offload parity e2e runs
+    description: The opencode binary the rca compare e2e runs
     default: "false"
   bun:
     description: bun
@@ -126,7 +126,7 @@ runs:
       shell: bash
       run: |
         # the pin lives in the fixture the e2e test holds opencode to
-        v=$(jq -r .opencodeVersion clis/offload/tests/flow/fixtures/opencode-run-options.json)
+        v=$(jq -r .opencodeVersion clis/rca/tests/flow/fixtures/opencode-run-options.json)
         [ "$(opencode --version 2>/dev/null)" = "$v" ] || npm install -g "opencode-ai@$v"
     - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
       if: ${{ inputs.java == 'true' }}

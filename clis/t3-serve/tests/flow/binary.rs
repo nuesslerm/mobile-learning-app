@@ -367,7 +367,7 @@ fn serve_against_rca_without_a_device_bearer_or_a_workspace_refuses_to_start_and
     let no_workspace = serve(Some("flow-rca-bearer"), None);
     // Then each exits 1 saying which setting is missing and how to get it, and rca was sent neither the secret nor a request
     assert_eq!((no_bearer.0, no_bearer.1.clone()), (Some(1), json!(false)), "{}", no_bearer.2);
-    assert!(no_bearer.2.contains("T3_RCA_BEARER") && no_bearer.2.contains("wf offload bearers mint"), "{}", no_bearer.2);
+    assert!(no_bearer.2.contains("T3_RCA_BEARER") && no_bearer.2.contains("wf rca bearers mint"), "{}", no_bearer.2);
     assert_eq!((no_workspace.0, no_workspace.1.clone()), (Some(1), json!(false)), "{}", no_workspace.2);
     assert!(no_workspace.2.contains("--rca-workspace"), "{}", no_workspace.2);
     assert_eq!((no_bearer.3, no_workspace.3), ((0, 0), (0, 0)));

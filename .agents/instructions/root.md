@@ -10,7 +10,7 @@ Every URL or deep link shared with the user is a markdown link with a short labe
 
 ## Delegate mechanical work to cheap models
 
-`.claude/rules/delegation.md` has the routing table. Whole workflows go to opencode: `/cheap <task>`, `wf offload ask "<prompt>"`, `wf offload ask --batch`, `wf offload plan <slug>`, or the `delegate` MCP tool. Trivial steps (one known file, at most 10 lines, a single Read or Grep) stay direct. Never delegate through the `Agent` tool.
+`.claude/rules/delegation.md` has the routing table. Whole workflows go to opencode: `/cheap <task>`, `wf rca ask "<prompt>"`, `wf rca ask --batch`, `wf rca plan <slug>`, or the `delegate` MCP tool. Trivial steps (one known file, at most 10 lines, a single Read or Grep) stay direct. Never delegate through the `Agent` tool.
 
 ## Act, don't ask
 
@@ -46,7 +46,7 @@ Work autonomously on the `dev` trunk, never a session branch; never delete a bra
 
 ## Benchmarks: always, and as cheap as still meaningful
 
-Every new or changed skill, hook, harness lever or workflow gets a cheap benchmark before it ships (`wf offload ask --stats`, `--savings`; n=1 first, the mock opencode where the model does not matter); log the numbers and the decision in `docs/audits/2026-09-02-token-diet-decision-log.md`.
+Every new or changed skill, hook, harness lever or workflow gets a cheap benchmark before it ships (`wf rca ask --stats`, `--savings`; n=1 first, the mock opencode where the model does not matter); log the numbers and the decision in `docs/audits/2026-09-02-token-diet-decision-log.md`.
 
 ## Tests: what counts as verification
 

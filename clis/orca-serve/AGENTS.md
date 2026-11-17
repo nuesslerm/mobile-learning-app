@@ -18,4 +18,4 @@ The pin is `tooling/orca-conformance/orca-pin.json`. `map-state/src/defaults.jso
 
 ## Coverage
 
-`wf parity coverage --app orca --traces <dir|bundle>` rewrites the table from the chain's trace; `--check` fails on any problem. A row a trace names that the phone does not reach is either a decision (`orca-decisions.json` `decisions`, with a reason) or `traceNoise` with a reason; a mistyped row is fixed in the test. A `reverify` note holds a row pending until the answer does the work.
+`wf mimic coverage --app orca --traces <dir|bundle>` rewrites the table from the chain's trace; `--check` fails on any problem. A row a trace names that the phone does not reach is either a decision (`orca-decisions.json` `decisions`, with a reason) or `traceNoise` with a reason; a mistyped row is fixed in the test. A `reverify` note holds a row pending until the answer does the work.

@@ -1,5 +1,5 @@
 //! The `RunHost` double: a scripted clock and opencode attempts, the ledger and run log kept in real files under a temp
-//! dir (`FileLedgerStore`, `FileRunLog`, as `wf offload ask` keeps them).
+//! dir (`FileLedgerStore`, `FileRunLog`, as `wf rca ask` keeps them).
 use crate::golden::s;
 use crate::run_log_file::FileRunLog;
 use rca_ladder::file_store::FileLedgerStore;

@@ -27,4 +27,4 @@ Never edit `.claude/settings.json` directly; it is generated.
 
 ## Measuring
 
-`wf offload ask --stats` and `wf offload ask --savings` price delegation; the style itself was measured once against real sessions. Numbers and sources: `docs/audits/2026-09-02-cheap-model-delegation-report.md`, section "Token diet".
+`wf rca ask --stats` and `wf rca ask --savings` price delegation; the style itself was measured once against real sessions. Numbers and sources: `docs/audits/2026-09-02-cheap-model-delegation-report.md`, section "Token diet".

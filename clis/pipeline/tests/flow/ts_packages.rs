@@ -61,7 +61,7 @@ fn node_modules_and_fixture_trees_are_not_packages_and_a_stale_entry_fails() {
     let dir = tempfile::tempdir().unwrap();
     let root = dir.path();
     package(root, "libraries/node_modules/dep");
-    package(root, "clis/parity/tests/fixtures/t3/pkg");
+    package(root, "clis/mimic/tests/fixtures/t3/pkg");
     allow(root, &["libraries/moved"]);
     // When the check runs
     let r = run(root);

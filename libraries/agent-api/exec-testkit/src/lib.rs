@@ -16,8 +16,8 @@
 //! - `RcaService`: the real `rca-service` binary (built from `backend/remote-chat-agent` once per process, or the one `RCA_SERVICE_BIN` names),
 //!   on a free port with a secret and a `PATH` that finds the scripted CLIs.
 //! - `OpencodeServer`: the real `opencode serve` of the `PATH` on a free loopback port, with the provider key in its environment only, for the
-//!   service's `POST /runs` (what `wf offload ask` drives).
-//! - `FakeModel`: the program `fake-model`, an OpenAI-compatible chat-completions server that answers the offload e2e prompts from a script;
+//!   service's `POST /runs` (what `wf rca ask` drives).
+//! - `FakeModel`: the program `fake-model`, an OpenAI-compatible chat-completions server that answers the rca e2e prompts from a script;
 //!   `OpencodeServer::start_scripted` points an opencode at it, so the run needs no network and no key.
 //! - `Tap`: a recording WebSocket proxy between a mapper or an executor and the service, which keeps the agent API calls and executor tools
 //!   that went through it; `trace` turns windows on it into the method-hit trace of a chain run and the run record `wf test publish` takes.
