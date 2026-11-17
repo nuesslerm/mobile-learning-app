@@ -254,6 +254,17 @@ fn given_a_start_point_that_cannot_be_resolved_when_asked_then_the_answer_is_the
 }
 
 #[test]
+fn given_a_repo_no_workspace_owns_when_a_start_point_is_resolved_then_the_answer_is_the_hosts_repo_not_found_result() {
+    // Given a rig, When the phone resolves a pull request and a merge request of a repo the host does not hold
+    let mut rig = Rig::new();
+    let pr = rig.ok("worktree.resolvePrBase", json!({"repo": "nowhere", "prNumber": 1}));
+    let mr = rig.ok("worktree.resolveMrBase", json!({"repo": "nowhere", "mrIid": 1}));
+    // Then each is the host's result with its error code, and rca is asked nothing hosted
+    assert_eq!((pr, mr), (json!({"error": "Repo not found", "errorCode": "repoNotFound"}), json!({"error": "Repo not found", "errorCode": "repoNotFound"})));
+    assert_eq!(rig.asked_hosted(), Vec::<String>::new());
+}
+
+#[test]
 fn given_a_selector_no_workspace_owns_or_a_missing_number_when_a_row_is_called_then_it_is_refused_and_rca_is_asked_nothing_hosted() {
     // Given a rig
     let mut rig = Rig::new();

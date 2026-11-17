@@ -1165,6 +1165,17 @@ fn given_a_native_chat_subscription_when_the_chat_grows_then_the_phone_gets_the_
 }
 
 #[test]
+fn given_a_chat_the_host_does_not_hold_when_its_transcript_is_read_then_the_answer_is_the_recorded_unavailable_result() {
+    // Given a host with no chat, When the phone reads the transcript of an agent and chat it does not hold
+    let mut rig = Rig::new();
+    let read = rig.ok("nativeChat.readSession", json!({"agent": "a", "sessionId": "a"}));
+    // Then the result is the host's own unavailable answer, not a refusal
+    assert_eq!(read, json!({"error": "Transcript unavailable"}));
+    // And a read that names no agent is refused as invalid
+    assert_eq!(rig.err("nativeChat.readSession", json!({"sessionId": "a"})).0, "invalid_argument");
+}
+
+#[test]
 fn given_an_agent_the_host_does_not_run_or_a_chat_rca_lacks_when_subscribed_then_the_first_is_the_recorded_unavailable_snapshot_and_the_second_waits_in_silence() {
     // Given a host with no chat yet
     let mut rig = Rig::new();

@@ -101,6 +101,17 @@ fn given_a_running_terminal_when_text_enter_and_interrupt_are_sent_then_the_shel
 }
 
 #[test]
+fn given_a_send_guarded_on_the_terminal_state_when_no_such_terminal_is_open_then_it_is_not_accepted_and_nothing_is_written() {
+    // Given a rig, When a send that requires a sendable agent names a handle no terminal has, and one with a stale handle and no guard
+    let mut rig = Rig::new();
+    let guarded = rig.ok("terminal.send", json!({"terminal": "a", "text": "x", "requireAgentStatus": "sendable"}));
+    // Then the guarded one is not accepted, writes no bytes and echoes the handle, and the unguarded one is still refused
+    assert_eq!(guarded, json!({"send": {"handle": "a", "accepted": false, "bytesWritten": 0}}));
+    assert_eq!(rig.err("terminal.send", json!({"terminal": "a", "text": "x"})), "terminal_handle_stale");
+    assert!(rig.terminals.written().is_empty());
+}
+
+#[test]
 fn given_a_terminal_when_cleared_renamed_and_closed_then_rca_did_each_and_the_phone_reads_the_host_replies() {
     let mut rig = Rig::new();
     // When the buffer is cleared

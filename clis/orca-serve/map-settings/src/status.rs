@@ -12,7 +12,7 @@ pub(crate) fn get(ctx: &mut Ctx, params: &Value) -> Value {
     out.insert("runtimeId".into(), ctx.runtime_id.into());
     out.insert("rendererGraphEpoch".into(), 0.into());
     out.insert("graphStatus".into(), "ready".into());
-    out.insert("authoritativeWindowId".into(), Value::Null);
+    out.insert("authoritativeWindowId".into(), 0.into());
     out.insert("liveTabCount".into(), 0.into());
     out.insert("liveLeafCount".into(), 0.into());
     out.insert("runtimeProtocolVersion".into(), RUNTIME_PROTOCOL_VERSION.into());
@@ -24,7 +24,7 @@ pub(crate) fn get(ctx: &mut Ctx, params: &Value) -> Value {
     }
     out.insert("hostPlatform".into(), ctx.host.platform.as_str().into());
     out.insert("machineName".into(), ctx.host.machine_name.as_str().into());
-    out.insert("terminalWindowsShell".into(), Value::Null);
+    out.insert("terminalWindowsShell".into(), "powershell.exe".into());
     out.insert("floatingWorkspaceEnabled".into(), true.into());
     out.insert("protocolVersion".into(), RUNTIME_PROTOCOL_VERSION.into());
     out.insert("minCompatibleMobileVersion".into(), MIN_COMPATIBLE_RUNTIME_CLIENT_VERSION.into());

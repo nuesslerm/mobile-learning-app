@@ -1,7 +1,7 @@
 //! Orca's accounts rows over rca's accounts group. Orca keeps any number of logins per provider; rca keeps one per provider CLI, so each signed-in
 //! provider is the one account of its kind: its id is the provider's name (`claudeAgent`, `codex`), and it is the active one when it is the provider
 //! rca's turns use (`provider.select`). rca keeps no email, no time of a login and no rate-limit windows, so the account is labelled by its provider's
-//! name, `updatedAt` is 0 and the limits are null. Streams of account changes, the reset credit and the other rows of Orca's accounts group are
+//! name, `updatedAt` is 0 and the limits are the host's "unavailable" status. Streams of account changes, the reset credit and the other rows of Orca's accounts group are
 //! not mapped and stay pending.
 use agent_api_accounts::{PROVIDER_LIST, PROVIDER_SELECT};
 use agent_api_proto::Method as AgentMethod;
@@ -104,20 +104,29 @@ fn snapshot(agent: &dyn AgentApi) -> Result<Value, Failure> {
     let side = |name: &str, with_time: bool| {
         let found = account(name);
         let accounts: Vec<Value> = found.map(|p| if with_time { json!({"id": p.name, "email": p.name, "updatedAt": 0}) } else { json!({"id": p.name, "email": p.name}) }).into_iter().collect();
-        json!({"accounts": accounts, "activeAccountId": found.filter(|p| p.selected).map(|p| p.name)})
+        let active = found.filter(|p| p.selected).map(|p| p.name);
+        json!({"accounts": accounts, "activeAccountId": active, "activeAccountIdsByRuntime": {"host": active, "wsl": {}}})
     };
+    let none = || json!({"accounts": [], "activeAccountId": null});
     Ok(json!({
         "claude": side(CLAUDE, false),
         "codex": side(CODEX, true),
+        "devin": none(),
+        "opencode": none(),
         "rateLimits": {
-            "claude": null,
-            "codex": null,
+            "claude": unavailable("claude"),
+            "codex": unavailable("codex"),
             "claudeTarget": {"runtime": "host", "wslDistro": null},
             "codexTarget": {"runtime": "host", "wslDistro": null},
             "inactiveClaudeAccounts": [],
             "inactiveCodexAccounts": []
         }
     }))
+}
+
+/// rca reads no usage windows, so a provider's limits are the host's "unavailable" status, never an invented window.
+fn unavailable(provider: &str) -> Value {
+    json!({"provider": provider, "status": "unavailable", "session": null, "weekly": null, "updatedAt": 0, "error": "rca does not read usage limits"})
 }
 
 /// Makes the one account of `provider` the active one, which is selecting the provider rca's turns use.

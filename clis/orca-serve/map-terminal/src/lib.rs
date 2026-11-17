@@ -172,7 +172,17 @@ fn list(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     Ok(json!({"hostScope": {"hostIds": ["local"], "omittedHostIds": []}, "terminals": terminals, "topologyRevisions": {}, "totalCount": total, "truncated": total > limit}))
 }
 
+/// A send that guards on the terminal's state is not accepted, rather than refused, when no such terminal is open: the host's answer, no bytes written.
 fn send(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    match deliver(agent, params) {
+        Err(f) if f.code == "terminal_handle_stale" && ["requireAgentStatus", "requireStartupDialog", "expectedIncarnationId"].iter().any(|k| params.get(*k).is_some_and(|v| !v.is_null())) => {
+            Ok(json!({"send": {"handle": params["terminal"], "accepted": false, "bytesWritten": 0}}))
+        }
+        sent => sent,
+    }
+}
+
+fn deliver(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let (workspace, terminal) = parse(params)?;
     let flag = |k: &str| params.get(k).is_some_and(|v| !v.is_null() && v != &json!(false));
     let mut data = String::new();

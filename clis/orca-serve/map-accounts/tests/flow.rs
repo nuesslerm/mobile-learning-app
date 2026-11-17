@@ -55,10 +55,11 @@ fn given_two_signed_in_providers_when_the_accounts_are_listed_then_each_is_the_o
     rig.ok("accounts.selectClaude", json!({"accountId": "claudeAgent"}));
     // When the phone lists the accounts
     let snapshot = rig.ok("accounts.list", json!({"refreshUsage": true}));
-    // Then each provider has its one account, Claude's is active and Codex's is not, and no limits are claimed
+    // Then each provider has its one account, Claude's is active and Codex's is not, and the limits are the host's unavailable status, not a claimed window
     assert_eq!((ids(&snapshot["claude"]), ids(&snapshot["codex"])), (vec!["claudeAgent".to_string()], vec!["codex".to_string()]));
     assert_eq!((snapshot["claude"]["activeAccountId"].clone(), snapshot["codex"]["activeAccountId"].clone()), (json!("claudeAgent"), Value::Null));
-    assert_eq!((snapshot["rateLimits"]["claude"].clone(), snapshot["rateLimits"]["codex"].clone(), snapshot["rateLimits"]["inactiveCodexAccounts"].clone()), (Value::Null, Value::Null, json!([])));
+    assert_eq!((snapshot["rateLimits"]["claude"]["status"].clone(), snapshot["rateLimits"]["codex"]["status"].clone(), snapshot["rateLimits"]["claude"]["session"].clone(), snapshot["rateLimits"]["inactiveCodexAccounts"].clone()), (json!("unavailable"), json!("unavailable"), Value::Null, json!([])));
+    assert_eq!((snapshot["claude"]["activeAccountIdsByRuntime"].clone(), snapshot["codex"]["activeAccountIdsByRuntime"].clone(), snapshot["devin"].clone()), (json!({"host": "claudeAgent", "wsl": {}}), json!({"host": null, "wsl": {}}), json!({"accounts": [], "activeAccountId": null})));
     // And the fields the phone's decoder requires of an account are there
     assert!(snapshot["claude"]["accounts"][0]["email"].as_str().is_some_and(|e| !e.is_empty()));
     assert!(snapshot["codex"]["accounts"][0]["updatedAt"].is_u64());

@@ -333,8 +333,14 @@ pub(crate) fn current_requests(agent: &dyn AgentApi, params: &Value) -> Result<V
 /// `nativeChat.readSession`: the transcript as the phone's chat rows, newest window first, paged by the row offset (the event's `seq`).
 pub(crate) fn read_session(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     let session = session_id(params)?;
+    if params["agent"].as_str().is_none_or(str::is_empty) {
+        return Err(Failure::invalid("Missing agent"));
+    }
     let limit = params["limit"].as_u64().map_or(journal::DEFAULT_LIMIT, |l| l.max(1) as usize);
-    let (events, _) = journal::events_after(agent, session, 0)?;
+    let (events, _) = match journal::events_after(agent, session, 0) {
+        Err(f) if f.message == "agent_session_not_found" => return Ok(json!({"error": "Transcript unavailable"})),
+        read => read?,
+    };
     view(agent, session)?;
     let folded = fold(&events);
     let all: Vec<&Item> = folded.items.iter().filter(|i| i.body["kind"] == "message" && params["beforeOffset"].as_u64().is_none_or(|b| i.sequence < b)).collect();

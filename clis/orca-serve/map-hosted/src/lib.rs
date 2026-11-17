@@ -55,7 +55,10 @@ impl Area for HostedArea {
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
-        let target = Target::of(ctx.agent, params)?;
+        let target = match Target::of(ctx.agent, params) {
+            Err(f) if f.code == "selector_not_found" && method.starts_with("worktree.resolve") => return Ok(json!({"error": "Repo not found", "errorCode": "repoNotFound"})),
+            other => other?,
+        };
         match method {
             "github.prForBranch" => github::pr_for_branch(&target, params),
             "github.prChecks" => github::pr_checks(&target, params),
