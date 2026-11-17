@@ -133,11 +133,21 @@ fn forward(out: &mut TcpStream, req: &Request) -> Result<(), String> {
 }
 
 fn serve(conn: TcpStream, stubs: &Mutex<Vec<Stub>>, hits: &Mutex<Vec<Value>>) {
+    let peer = conn.peer_addr().map(|a| a.to_string()).unwrap_or_default();
+    // one line per connection and per request: a request that reaches the device's DNAT rule but never the stub is told from one the stub dropped by these
+    eprintln!("stub: accepted {peer}");
     let _ = conn.set_read_timeout(Some(Duration::from_secs(60)));
     let Ok(mut out) = conn.try_clone() else { return };
     let mut r = BufReader::new(conn);
-    let Ok(req) = read_request(&mut r) else { return };
+    let req = match read_request(&mut r) {
+        Ok(req) => req,
+        Err(e) => {
+            eprintln!("stub: {peer} sent no request: {e}");
+            return;
+        }
+    };
     let url = req.url();
+    eprintln!("stub: {peer} {} {url} ({} body bytes)", req.method, req.body.len());
     let stub = stubs.lock().ok().and_then(|s| matching_stub(&s, &req.method, &url));
     match stub {
         Some(stub) => {
