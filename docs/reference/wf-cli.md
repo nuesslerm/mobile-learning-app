@@ -3657,6 +3657,8 @@ Options:
   --workspace <path>          the server's workspace folder, as seen by the server (masked in steps)
   --mint "<command> <arg>..." the command that prints one credential per pairing, split on spaces (its JSON `credential`, `token`, `code`
                               or plain output is used)
+  --cli-dir <dir>             the directory of scripted agent CLIs the server's PATH starts first (a `target = "url"` candidate): a case's
+                              `cli.script` step writes the turns of its agent CLI there
   --suite <name>              write $WF_TEST_OUTPUT_DIR/<name>/report.json and
                               trace.json (method-trace/1 with each call's row and diff, its wall-clock window startMs/endMs, and
                               its test's cassette kind; a session's own setup runs before the first window opens)

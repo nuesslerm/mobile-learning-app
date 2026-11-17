@@ -131,6 +131,35 @@ fn a_url_candidate_with_no_address_in_the_file_plays_against_the_server_the_flag
 }
 
 #[test]
+fn a_cli_dir_flag_fills_a_url_candidate_so_a_cli_script_writes_into_it_and_a_spawn_target_refuses_it() {
+    // Given a set whose one case scripts the agent CLI before it calls the server, recorded against a reference that has a directory of its own
+    let w = world();
+    std::fs::create_dir_all(w.path("ref-cli")).unwrap();
+    let case = json!({"kind": "corpus", "name": "turn", "op": "script", "cases": [{"id": "turn", "row": "http:turn", "input": {"script": [{"cli.script": {"cli": "codex", "turns": [{"hang": true}]}}, {"http": {"path": "/hello"}}], "settle_ms": 20}}]});
+    w.write("corpus.json", &json!({"schema": "mimic-corpus/1", "seed": 1, "generators": [case]}).to_string());
+    w.write("mimic.toml", &w.read("mimic.toml").replace("[reference.script]\n", "[reference.script]\ncli_dir = \"ref-cli\"\n"));
+    w.record();
+    let toml = w.read("mimic.toml");
+    w.write("mimic.toml", &format!("{toml}\n[candidate.flag]\ndriver = \"script\"\n\n[candidate.flag.script]\ntarget = \"url\"\n"));
+    let (addr, cli) = (server(false).to_string(), w.path("cli-of-the-chain"));
+    std::fs::create_dir_all(&cli).unwrap();
+    let set = w.arg();
+
+    // When it is replayed with the directory the server's PATH starts first
+    let run = mimic(&["replay", &set, "--candidate", "flag", "--addr", &addr, "--workspace", "/w", "--cli-dir", cli.to_str().unwrap()], &[]);
+
+    // Then the case replays clean (the step records nothing) and the turns are in that directory with the version line forced
+    assert_eq!((run.code, run.json["severity"].clone()), (0, json!("none")), "{}", run.json);
+    let script: Value = serde_json::from_str(&std::fs::read_to_string(cli.join("codex.script.json")).unwrap()).unwrap();
+    assert_eq!((script["turns"].clone(), script["version"].as_str()), (json!([{"hang": true}]), Some("codex 0.0.0-mimic")));
+
+    // And the flag on a candidate that is not a url target is refused
+    w.write("mimic.toml", &format!("{toml}\n[candidate.stdio]\ncommand = [\"true\"]\n"));
+    let refused = w.run("replay", &["--candidate", "stdio", "--cli-dir", cli.to_str().unwrap()]);
+    assert_eq!(refused.code, 2, "{}", refused.json);
+}
+
+#[test]
 fn a_script_driver_without_its_script_table_is_refused_when_the_file_is_read() {
     // Given a mimic.toml that names the driver and no table
     let w = world();

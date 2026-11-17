@@ -33,7 +33,7 @@ use std::path::{Path, PathBuf};
 use wf_kit::args::{parse_spec, Parsed, Positional, Spec};
 
 const RECORD: Spec = Spec { values: &["target", "seed", "recorded-on", "source", "stand-in", "chunk", "batch", "write-chunk", "stability", "max-minutes"], flags: &["keep-raw", "allow-nondeterministic", "resume", "fresh"], positional: Positional::Exactly(1), ..Spec::NONE };
-const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "rows", "gaps", "allowlist", "suite", "addr", "workspace", "mint"], positional: Positional::Exactly(1), ..Spec::NONE };
+const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "rows", "gaps", "allowlist", "suite", "addr", "workspace", "mint", "cli-dir"], positional: Positional::Exactly(1), ..Spec::NONE };
 const DIFF: Spec = Spec { values: &["allowlist"], positional: Positional::Exactly(2), ..Spec::NONE };
 const IMPORT: Spec = Spec { values: &["out", "root", "allowlist", "pin"], positional: Positional::Exactly(2), ..Spec::NONE };
 const EXPORT: Spec = Spec { values: &["out"], positional: Positional::Exactly(2), ..Spec::NONE };
@@ -436,10 +436,10 @@ impl Driver for Timed<'_> {
     }
 }
 
-/// `--addr`, `--workspace` and `--mint` (a command that prints one credential) fill a `target = "url"` candidate: the server the caller started.
+/// `--addr`, `--workspace`, `--mint` (a command that prints one credential) and `--cli-dir` (the directory of scripted agent CLIs the server's `PATH` starts first, which `cli.script` writes into) fill a `target = "url"` candidate: the server the caller started.
 fn with_server(candidate: &Target, p: &Parsed) -> Result<Target, Fail> {
     let mut target = candidate.clone();
-    if ["addr", "workspace", "mint"].iter().all(|f| p.val(f).is_none()) {
+    if ["addr", "workspace", "mint", "cli-dir"].iter().all(|f| p.val(f).is_none()) {
         return Ok(target);
     }
     match target.script.as_mut() {
@@ -449,9 +449,10 @@ fn with_server(candidate: &Target, p: &Parsed) -> Result<Target, Fail> {
             if let Some(mint) = p.val("mint") {
                 s.mint = mint.split_whitespace().map(String::from).collect();
             }
+            s.cli_dir = p.val("cli-dir").map(PathBuf::from).or(s.cli_dir.take());
             Ok(target)
         }
-        _ => Err(fail("--addr, --workspace and --mint fill a candidate whose script target is \"url\"", "drop the flags, or make the candidate `driver = \"script\"` with `target = \"url\"`")),
+        _ => Err(fail("--addr, --workspace, --mint and --cli-dir fill a candidate whose script target is \"url\"", "drop the flags, or make the candidate `driver = \"script\"` with `target = \"url\"`")),
     }
 }
 

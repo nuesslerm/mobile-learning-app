@@ -1617,9 +1617,9 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-core"
-version = "0.1.6"
+version = "0.1.7"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
-checksum = "72d6c78fe50aab47a02d3f5b344e58184517a50afc8f2bccebffb585bbb8394a"
+checksum = "d5cc31e6beeef4bcabc6075c1844d06e890cfe143b43f8a2040aefba9ef0dfe6"
 dependencies = [
  "base64 0.22.1",
  "mimic-core",
@@ -1628,9 +1628,9 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-host"
-version = "0.1.7"
+version = "0.1.8"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
-checksum = "6b1b4312bf05fcb44c156b990f42d4061d04f1b6b9777633ee851552f8219a3d"
+checksum = "64d46593e47e91c0354a7bfce3c591f9d4f5186a1ed68bc51034520b11458a79"
 dependencies = [
  "mimic-core",
  "mimic-script-core",
