@@ -18,8 +18,6 @@ mod mimic_x6;
 mod recorded_r1;
 #[path = "integration/rig.rs"]
 mod rig;
-#[path = "integration/schedules_m12.rs"]
-mod schedules_m12;
 #[path = "integration/terminal_pty.rs"]
 mod terminal_pty;
 #[path = "integration/transport_m5.rs"]
