@@ -22,8 +22,8 @@ mod rig;
 mod schedules_m12;
 #[path = "integration/settings_m10.rs"]
 mod settings_m10;
-#[path = "integration/terminal_m8.rs"]
-mod terminal_m8;
+#[path = "integration/terminal_pty.rs"]
+mod terminal_pty;
 #[path = "integration/transport_m5.rs"]
 mod transport_m5;
 #[path = "integration/web_m5.rs"]

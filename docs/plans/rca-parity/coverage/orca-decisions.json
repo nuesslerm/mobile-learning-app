@@ -88,7 +88,9 @@
     "rpc:notifications.*": "M12"
   },
   "targets": {},
-  "unrecordableTests": {},
+  "unrecordableTests": {
+    "terminal_pty::a_phone_streams_a_real_shell_over_the_binary_stream_types_into_it_and_resumes_with_only_what_it_missed_and_the_stream_ends_when_it_asks": "a pty's output: the headless orcad has no open app window and answers every terminal row with that refusal, so no recording holds the bytes a shell prints, what typed input runs, a resumed stream or a resize; the recorded replay serves the rows and this test keeps the pty check"
+  },
   "decisions": {
     "rpc:ssh.connect": {
       "state": "not-offered",
