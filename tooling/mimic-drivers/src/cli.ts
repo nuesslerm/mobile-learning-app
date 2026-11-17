@@ -2,7 +2,7 @@
 // node src/cli.ts schema orca <namespace>: derive the phone rows' payloads of a namespace from the pinned zod schemas (the X6 spike);
 // node src/cli.ts crawl <orca|t3> [--runtime <dir>]: the endpoint inventory and request corpus of the pinned source (mimic-crawl-report/1); `wf mimic crawl` runs it.
 // node src/cli.ts refresh-corpus <orca|t3> <set dir...>: the corpus of each shard of an app after a pin move, the cases it holds kept and the new rows dealt to the smallest shard.
-// node src/cli.ts scenarios <orca|t3|t3-agent> [<set dir>]: derive the stateful scenarios of an app from its committed crawl (corpus.json and scenarios.json of the scenario set).
+// node src/cli.ts scenarios <orca|t3|t3-agent|t3-methods> [<set dir>]: derive the stateful scenarios of an app from its committed crawl (corpus.json and scenarios.json of the scenario set).
 // node src/cli.ts capture-runtime t3 <out dir>: the release binary's --help of every subcommand and the descriptor of a server it starts, as `crawl t3 --runtime <out dir>` reads them.
 // node src/cli.ts sidecar orca: the phone's pinned client behind JSON lines on stdio, the transport of the Rust step interpreter for Orca.
 // node src/cli.ts corpus <orca|t3> <set dir>: write corpus.json and coverage.json (every enumerated row and what became of it) of a recording set.
@@ -13,7 +13,7 @@ import { orcaLib } from './orca-lib/index.ts'
 import { cases, spike } from './orca/schema.ts'
 import { refreshCorpus, writeCorpus } from './corpus/index.ts'
 import { crawl } from './crawl/index.ts'
-import { writeAgentTurns, writeScenarios } from './scenarios/index.ts'
+import { writeAgentMethods, writeAgentTurns, writeScenarios } from './scenarios/index.ts'
 import { voiceEditDsl } from './voice-edit-dsl/index.ts'
 
 const TARGETS = { 'orca-lib': orcaLib, 'voice-edit-dsl': voiceEditDsl }
@@ -39,6 +39,10 @@ if (verb === 'refresh-corpus' && (name === 'orca' || name === 't3') && namespace
 }
 if (verb === 'scenarios' && name === 't3-agent') {
   process.stdout.write(`${JSON.stringify(writeAgentTurns(namespace))}\n`)
+  process.exit(0)
+}
+if (verb === 'scenarios' && name === 't3-methods') {
+  process.stdout.write(`${JSON.stringify(writeAgentMethods(namespace))}\n`)
   process.exit(0)
 }
 if (verb === 'scenarios' && (name === 'orca' || name === 't3')) {

@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { repoRoot } from '../lock.ts'
 import { API_DIR, SET_DIR, loadApi } from './api.ts'
 import { orcaScenarios } from './orca.ts'
-import { t3AgentScenarios } from './t3-agent.ts'
+import { t3AgentMethodScenarios, t3AgentScenarios } from './t3-agent.ts'
 import { t3Scenarios } from './t3.ts'
 import type { ScenarioSet, Summary } from './types.ts'
 
@@ -46,6 +46,22 @@ export function agentTurns(): ScenarioSet {
 export function writeAgentTurns(dir: string = join(repoRoot, AGENT_TURNS_DIR)): Summary {
   const set = agentTurns()
   const out = render('t3', set, 't3-agent-turns')
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, 'corpus.json'), out.corpus)
+  writeFileSync(join(dir, 'scenarios.json'), out.scenarios)
+  return { schema: 'mimic-scenarios-summary/1', app: 't3', endpoints: set.coverage.length, scenarios: set.scenarios.length, populated: set.coverage.length, emptyOnly: 0, reasons: {}, wrote: [join(dir, 'corpus.json'), join(dir, 'scenarios.json')] }
+}
+
+/** The T3 cases whose row labels the case that runs its agent method (thread.create, project.create and delete, the branch rows, queued-run.start, fork and merge back): its own set, one hosted `[record t3-v0.1.9-agent-methods]`. */
+export const AGENT_METHODS_DIR = 'clis/t3-serve/cassettes/t3-v0.1.9-agent-methods'
+
+export function agentMethods(): ScenarioSet {
+  return t3AgentMethodScenarios(loadApi('t3'))
+}
+
+export function writeAgentMethods(dir: string = join(repoRoot, AGENT_METHODS_DIR)): Summary {
+  const set = agentMethods()
+  const out = render('t3', set, 't3-agent-methods')
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, 'corpus.json'), out.corpus)
   writeFileSync(join(dir, 'scenarios.json'), out.scenarios)

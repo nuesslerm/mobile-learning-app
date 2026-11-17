@@ -1,0 +1,46 @@
+# R3 U5 agent-method scenarios: the cases whose row must label the case that runs its agent method, in a set of their own because the corpus of a recorded set is frozen with its cassette. Each makes a thread on Claude's instance (or none: a project of its own below the workspace, or the workspace made a repository by vcs.init) and, where a turn is needed, scripts the claude CLI through `cli.script` to hang. Rows: thread.create, project.create, project.delete, vcs.refreshBranch, subscribeVcsBranch, queued-run.start (labelled by itself, not run.interrupt), thread.fork and thread.merge_back (the decoder's latest_stable source point). Inputs: `node tooling/mimic-drivers/src/cli.ts scenarios t3-methods` from the committed crawl (t3-api). Recorded by `[record t3-v0.1.9-agent-methods]`. One fresh server and home per scenario.
+rules = "rules.json"
+corpus = "corpus.json"
+allowlist = "allowlist.json"
+provision_file = "//tooling/mimic-drivers/provision/t3.toml"
+
+[diff]
+ignore_dirs = ["c2s"]
+breaking_paths = ["steps.http:ret:_.payload.status", "steps.ws:open:s2c:_.payload.status"]
+advertised_prefixes = ["capabilities."]
+
+[diff.fold]
+channel = "ws"
+tag = "/_tag"
+chunk = "Chunk"
+values = "/values"
+once = [["/kind", "snapshot"]]
+squash = ["/exit/cause"]
+
+[reference]
+name = "t3"
+driver = "script"
+pin = "../../../../tooling/t3-conformance/t3-pin.json"
+version_pointer = "/version"
+commit_pointer = "/commit"
+timeout_ms = 900000
+live_when_named = "downloads and runs the pinned release: `wf mimic verify <set> --live`, on the VM"
+
+[reference.script]
+target = "spawn"
+prelude = "../t3-prelude.json"
+
+[record]
+# a live reference moves its ids and timestamps between two records; the tagged cases are listed in stability-allowlist.json
+allow_nondeterministic = true
+
+# the chain a test started (t3-serve over rca-service and rca-exec): its address, workspace and pairing come from `wf mimic replay --addr --workspace --mint`
+[candidate.t3-serve]
+driver = "script"
+
+[candidate.t3-serve.script]
+target = "url"
+prelude = "../t3-prelude.json"
+session = true
+# a candidate that answers from memory on loopback: a frame that is coming arrives within this
+quiet_cap_ms = 120
