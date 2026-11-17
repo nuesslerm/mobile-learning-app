@@ -30,7 +30,6 @@
         "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
       ],
       "ids": [
-        "t3-command-thread.metadata.update",
         "t3-rpc-device.configure"
       ]
     },

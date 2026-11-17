@@ -56,7 +56,6 @@
         "steps.ws:s2c:1.[0].payload.exit.cause extra drift"
       ],
       "ids": [
-        "t3-mutation-project.update",
         "t3-rpc-device.list"
       ]
     },

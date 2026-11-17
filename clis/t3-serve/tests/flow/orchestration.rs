@@ -141,8 +141,9 @@ fn a_second_message_is_refused_while_a_run_is_active_and_an_interrupt_ends_the_r
     assert_eq!(h.agent.interrupted.lock().unwrap().as_slice(), ["t1"]);
     let p = projection(&mut rpc);
     assert_eq!((p["runs"][0]["status"].as_str(), p["runs"][0]["stopRequested"].clone()), (Some("interrupted"), json!(true)));
-    // And an interrupt with nothing running is refused
-    assert!(failure(&dispatch(&mut rpc, json!({"type": "thread.stop", "commandId": "c-4", "threadId": "t1"})))["message"].as_str().unwrap().contains("no active run"));
+    // And an interrupt with nothing running is refused, while a stop of an idle thread is a no-op the pin accepts
+    assert!(failure(&dispatch(&mut rpc, json!({"type": "run.interrupt", "commandId": "c-4", "threadId": "t1"})))["message"].as_str().unwrap().contains("no active run"));
+    success(&dispatch(&mut rpc, json!({"type": "thread.stop", "commandId": "c-5", "threadId": "t1"})));
 }
 
 #[test]

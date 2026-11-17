@@ -225,7 +225,7 @@ pub fn decide_thread(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decision
         "thread.metadata.update" => {
             let patch = cmd.rest(&["threadId", "id", "projectId", "createdAt", "updatedAt", "archivedAt"]);
             if patch.is_empty() {
-                return Err("thread.metadata.update carries no field to change".into());
+                return one(draft("thread.command-accepted", Some(id), shell["projectId"].as_str(), now, json!({"commandType": cmd.kind})));
             }
             for (k, v) in patch {
                 if shell.contains_key(&k) {
@@ -309,6 +309,7 @@ pub fn decide_thread(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decision
             touched(&mut shell, &at, vec![("guestShare", share)]);
             event("thread.guest-message-dismissed", &shell)
         }
+        "thread.stop" if active_run(state, id).is_none() => one(draft("thread.command-accepted", Some(id), shell["projectId"].as_str(), now, json!({"commandType": cmd.kind}))),
         "thread.stop" | "run.interrupt" => interrupt(state, id, ctx),
         "message.dispatch" => dispatch_message(state, cmd, &shell, ctx),
         other => Err(format!("command type {other} is not supported by this server")),
@@ -427,9 +428,6 @@ pub fn decide_project(state: &State, cmd: &Command, ctx: &Ctx) -> Result<Decisio
         "update" if cmd.body.get("archived") == Some(&json!(true)) => one(draft("project.archived", None, Some(id), now, json!({"projectId": id, "archivedAt": at}))),
         "update" => {
             let patch = cmd.rest(&["projectId", "id", "createdAt", "updatedAt", "archivedAt"]);
-            if patch.is_empty() {
-                return Err("project.update carries no field to change".into());
-            }
             one(draft("project.updated", None, Some(id), now, json!({"projectId": id, "patch": patch})))
         }
         "archive" => one(draft("project.archived", None, Some(id), now, json!({"projectId": id, "archivedAt": at}))),
