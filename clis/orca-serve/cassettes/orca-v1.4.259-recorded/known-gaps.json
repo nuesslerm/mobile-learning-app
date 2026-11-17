@@ -15,9 +15,7 @@
         "orca-accounts.selectCodexForTarget",
         "orca-agentActivity.clear",
         "orca-agentActivity.setRead",
-        "orca-agentSession.cancelUsageLimitContinue",
         "orca-agentSession.continueInterrupted",
-        "orca-agentSession.createSupport",
         "orca-agentSession.threadGoal",
         "orca-browser.back",
         "orca-browser.dialogAccept",
@@ -186,10 +184,7 @@
         "orca-agentSession.respondToQuestion",
         "orca-agentSession.send",
         "orca-agentSession.setOption",
-        "orca-agentSessionAttachment.read",
-        "orca-agentSessionAttachment.readTextChunk",
         "orca-agentSessionAttachment.uploadAppend",
-        "orca-agentSessionAttachment.uploadCommit",
         "orca-agentSessionAttachment.uploadStart"
       ]
     },
@@ -230,9 +225,10 @@
       ]
     },
     {
-      "class": "changed at steps._:s2c:*.[*].payload.ok",
-      "severity": "drift",
+      "class": "missing at steps._:s2c:*.[*].payload.error",
+      "severity": "breaking",
       "diffs": [
+        "steps._:s2c:0.[0].payload.error missing breaking",
         "steps._:s2c:0.[0].payload.ok changed drift",
         "steps._:s2c:0.[0].payload.result extra drift"
       ],
@@ -240,6 +236,32 @@
         "orca-agentSession.agents",
         "orca-agentSessionAttachment.uploadAbort",
         "orca-runtime.clientCapabilities.update"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error.data",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.data missing breaking",
+        "steps._:s2c:0.[0].payload.error.message changed drift"
+      ],
+      "ids": [
+        "orca-agentSessionAttachment.read",
+        "orca-agentSessionAttachment.readTextChunk",
+        "orca-agentSessionAttachment.uploadCommit"
+      ]
+    },
+    {
+      "class": "missing at steps._:s2c:*.[*].payload.error.data",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.code changed drift",
+        "steps._:s2c:0.[0].payload.error.data missing breaking",
+        "steps._:s2c:0.[0].payload.error.message changed drift"
+      ],
+      "ids": [
+        "orca-agentSession.cancelUsageLimitContinue",
+        "orca-agentSession.createSupport"
       ]
     },
     {
@@ -257,6 +279,21 @@
       ]
     },
     {
+      "class": "missing at steps._:s2c:*.[*].payload.error",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error missing breaking",
+        "steps._:s2c:0.[0].payload.message missing breaking",
+        "steps._:s2c:0.[0].payload.type changed drift",
+        "steps._:s2c:0.[0].payload.sessions extra drift",
+        "steps._:s2c:0.[0].payload.namingActiveSessionIds extra drift",
+        "steps._:s2c:0.[1] extra drift"
+      ],
+      "ids": [
+        "orca-agentSession.subscribeStatus"
+      ]
+    },
+    {
       "class": "changed at steps._:s2c:*.[*].payload.error.code",
       "severity": "drift",
       "diffs": [
@@ -269,6 +306,16 @@
       ]
     },
     {
+      "class": "missing at steps._:s2c:*.[*].payload.error.data",
+      "severity": "breaking",
+      "diffs": [
+        "steps._:s2c:0.[0].payload.error.data missing breaking"
+      ],
+      "ids": [
+        "orca-agentSession.modelCatalog"
+      ]
+    },
+    {
       "class": "changed at steps._:s2c:*.[*].payload.error.message",
       "severity": "drift",
       "diffs": [
@@ -277,20 +324,6 @@
       ],
       "ids": [
         "orca-agentSession.subscribe"
-      ]
-    },
-    {
-      "class": "missing at steps._:s2c:*.[*].payload.message",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.message missing breaking",
-        "steps._:s2c:0.[0].payload.type changed drift",
-        "steps._:s2c:0.[0].payload.sessions extra drift",
-        "steps._:s2c:0.[0].payload.namingActiveSessionIds extra drift",
-        "steps._:s2c:0.[1] extra drift"
-      ],
-      "ids": [
-        "orca-agentSession.subscribeStatus"
       ]
     },
     {

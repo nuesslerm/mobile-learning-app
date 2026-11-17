@@ -2,9 +2,18 @@
   "schema": "mimic-known-gaps/2",
   "groups": [
     {
-      "class": "changed at steps.http:ret:_.[*].payload.body.databaseMigration",
-      "severity": "drift",
+      "class": "missing at steps.http:ret:_.[*].payload.body.capabilities.cloudVoiceTranscription",
+      "severity": "breaking",
       "diffs": [
+        "steps.http:ret:_.[0].payload.body.capabilities.cloudVoiceTranscription missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.freshContext missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.mcpApprovalCodes missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.mcpHostedApproval missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.modelCatalogRefresh missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.oneTimeSchedules missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.scheduledTaskThreadModes missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.vcsBranchStatus missing breaking",
+        "steps.http:ret:_.[0].payload.body.capabilities.voiceTranscription missing breaking",
         "steps.http:ret:_.[0].payload.body.databaseMigration changed drift"
       ],
       "ids": [
