@@ -12,7 +12,7 @@ const CASSETTES: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/cassettes");
 const CRAWL: &str = "t3-v0.1.9-crawl";
 const PIN: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../tooling/t3-conformance/t3-pin.json");
 /// The sets that have a test, in the order `recorded_sets` lists them.
-const SETS: [&str; 4] = [CRAWL, "t3-v0.1.9-recorded-1", "t3-v0.1.9-recorded-2", "t3-v0.1.9-recorded-3"];
+const SETS: [&str; 5] = [CRAWL, "t3-v0.1.9-recorded-1", "t3-v0.1.9-recorded-2", "t3-v0.1.9-recorded-3", "t3-v0.1.9-scenarios"];
 
 fn read(path: &str) -> Value {
     serde_json::from_str(&std::fs::read_to_string(path).unwrap_or_else(|e| panic!("{path}: {e}"))).unwrap()
@@ -26,7 +26,7 @@ fn pin_hash() -> String {
 
 /// The recorded sets, by directory: every `t3-v*-recorded-*` beside the imported one.
 fn recorded_sets() -> Vec<String> {
-    let mut sets: Vec<String> = std::fs::read_dir(CASSETTES).unwrap().filter_map(|e| e.ok()).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.starts_with("t3-v") && n.contains("-recorded-") || n == CRAWL).collect();
+    let mut sets: Vec<String> = std::fs::read_dir(CASSETTES).unwrap().filter_map(|e| e.ok()).map(|e| e.file_name().to_string_lossy().into_owned()).filter(|n| n.starts_with("t3-v") && (n.contains("-recorded-") || n.ends_with("-scenarios")) || n == CRAWL).collect();
     sets.sort();
     assert!(!sets.is_empty(), "no recorded set under {CASSETTES}");
     sets
@@ -145,6 +145,7 @@ set_test!(crawl, 0);
 set_test!(recorded_1, 1);
 set_test!(recorded_2, 2);
 set_test!(recorded_3, 3);
+set_test!(scenarios, 4);
 
 #[test]
 fn every_recorded_set_on_disk_has_a_test_above_and_so_a_task_of_its_own() {

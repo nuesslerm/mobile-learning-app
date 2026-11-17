@@ -91,3 +91,4 @@ crawl = { filter = "recorded_r1::crawl::", files = ["cassettes/t3-v0.1.9-crawl/*
 recorded_1 = { filter = "recorded_r1::recorded_1::", files = ["cassettes/t3-v0.1.9-recorded-1/**"] }
 recorded_2 = { filter = "recorded_r1::recorded_2::", files = ["cassettes/t3-v0.1.9-recorded-2/**"] }
 recorded_3 = { filter = "recorded_r1::recorded_3::", files = ["cassettes/t3-v0.1.9-recorded-3/**"] }
+scenarios = { filter = "recorded_r1::scenarios::", files = ["cassettes/t3-v0.1.9-scenarios/**"] }
