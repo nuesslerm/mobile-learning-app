@@ -87,4 +87,4 @@ type = "cli-crate"
 # The recorded sets replayed by feature (tests/integration/replay_features.rs): t3-core names the rows of each feature and the files that
 # can move them (its own `[package.metadata.integration.replay.<feature>]`), and `wf test plan` makes one Nx task of each, `replay-t3-core-<feature>`.
 [package.metadata.integration.replay]
-sets = ["t3-v0.1.9-agent-methods", "t3-v0.1.9-agent-turns", "t3-v0.1.9-crawl", "t3-v0.1.9-recorded-1", "t3-v0.1.9-recorded-2", "t3-v0.1.9-recorded-3", "t3-v0.1.9-scenarios"]
+sets = ["t3-v0.1.9-agent-methods", "t3-v0.1.9-agent-queries", "t3-v0.1.9-agent-turns", "t3-v0.1.9-crawl", "t3-v0.1.9-recorded-1", "t3-v0.1.9-recorded-2", "t3-v0.1.9-recorded-3", "t3-v0.1.9-scenarios"]
