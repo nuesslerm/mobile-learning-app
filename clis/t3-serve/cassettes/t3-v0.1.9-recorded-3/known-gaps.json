@@ -89,16 +89,6 @@
       ]
     },
     {
-      "class": "extra at steps.ws:s2c:*.[*]",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0] extra drift"
-      ],
-      "ids": [
-        "t3-rpc-pullRequests.subscribeRefreshes"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.values",
       "severity": "breaking",
       "diffs": [

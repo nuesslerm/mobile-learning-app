@@ -41,26 +41,6 @@
       ]
     },
     {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.cause.[*].error.cause",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.cause.[0].error.cause missing breaking"
-      ],
-      "ids": [
-        "t3-mutation-project.delete"
-      ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:*.[*].payload.exit.value",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.exit.value missing breaking"
-      ],
-      "ids": [
-        "t3-rpc-pullRequests.invalidate"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].config.environment.capabilities.cloudVoiceTranscription",
       "severity": "breaking",
       "diffs": [

@@ -199,14 +199,14 @@ impl Connection {
                         self.open(id, Kind::Thread(thread.to_string()), floor, synchronized(frames));
                         vec![]
                     }
-                    Err(_) => vec![rpc::exit_failure(&id, wire::not_found_error("thread", thread))],
+                    Err(_) => vec![rpc::exit_failure(&id, wire::thread_projection_error(thread))],
                 }
             }
             "orchestration.getThreadProjection" => {
                 let thread = payload.get("threadId").and_then(Value::as_str).unwrap_or("");
                 match self.svc.engine().thread_projection(thread) {
                     Some(p) => vec![rpc::exit_success(&id, Some(p))],
-                    None => vec![rpc::exit_failure(&id, wire::not_found_error("thread", thread))],
+                    None => vec![rpc::exit_failure(&id, wire::thread_projection_error(thread))],
                 }
             }
             "orchestration.dispatchCommand" | "projects.mutate" => {
@@ -224,7 +224,12 @@ impl Connection {
                     }
                     Err(Failure::Refused { command_id, command_type, message }) => {
                         self.svc.log("rpc.command.refused", &[("type", command_type.clone()), ("message", message.clone())]);
-                        let error = if project { wire::project_mutation_error(&command_id, wire::PROJECT_MUTATION_FAILED) } else { wire::dispatch_error(&command_id, &command_type, &message) };
+                        let missing = message.strip_prefix("project ").and_then(|m| m.strip_suffix(" does not exist"));
+                        let error = match (project, missing) {
+                            (true, Some(missing)) => wire::project_not_found_error(&command_id, missing),
+                            (true, None) => wire::project_mutation_error(&command_id, wire::PROJECT_MUTATION_FAILED),
+                            (false, _) => wire::dispatch_error(&command_id, &command_type, &message),
+                        };
                         vec![rpc::exit_failure(&id, error)]
                     }
                     Err(Failure::ThreadMissing { command_id, command_type, thread_id }) => {
@@ -237,7 +242,7 @@ impl Connection {
                     }
                     Err(Failure::ProjectNotEmpty { command_id, project_id }) => {
                         self.svc.log("rpc.command.refused", &[("type", "project.delete".into()), ("message", wire::project_not_empty(&project_id))]);
-                        vec![rpc::exit_failure(&id, wire::project_mutation_error(&command_id, &wire::project_not_empty(&project_id)))]
+                        vec![rpc::exit_failure(&id, wire::project_not_empty_error(&command_id, &project_id))]
                     }
                 }
             }
@@ -448,7 +453,7 @@ impl Connection {
                 };
                 vec![self.answered(&id, tag, answer.map(Some))]
             }
-            "pullRequests.comment" | "pullRequests.updateComment" | "pullRequests.replyToThread" | "pullRequests.setThreadResolution" | "pullRequests.setReaction" | "pullRequests.requestReviewers" | "pullRequests.setLabels" | "pullRequests.submitReview" | "pullRequests.update" | "pullRequests.runAction" | "pullRequests.setFilesViewed" | "sourceControl.signInCancel" | "pullRequests.invalidate" | "pullRequests.reportState" => {
+            "pullRequests.comment" | "pullRequests.updateComment" | "pullRequests.replyToThread" | "pullRequests.setThreadResolution" | "pullRequests.setReaction" | "pullRequests.requestReviewers" | "pullRequests.setLabels" | "pullRequests.submitReview" | "pullRequests.update" | "pullRequests.runAction" | "pullRequests.setFilesViewed" | "sourceControl.signInCancel" | "pullRequests.reportState" => {
                 let answer = match tag {
                     "pullRequests.comment" => self.svc.pr_comment(payload),
                     "pullRequests.updateComment" => self.svc.pr_update_comment(payload),
@@ -466,6 +471,7 @@ impl Connection {
                 };
                 vec![self.answered(&id, tag, answer.map(|()| None))]
             }
+            "pullRequests.invalidate" => vec![rpc::exit_success(&id, Some(Value::Null))],
             "pullRequests.stack" => vec![self.answered(&id, tag, self.svc.pr_stack(payload).map(Some))],
             "pullRequests.reviewGuide" => vec![self.answered(&id, tag, self.svc.pr_review_guide(payload).map(Some))],
             "pullRequests.generateReviewGuide" => vec![self.answered(&id, tag, self.svc.pr_generate_review_guide(payload).map(Some))],
@@ -473,8 +479,25 @@ impl Connection {
             "git.preparePullRequestThread" => vec![self.answered(&id, tag, self.svc.git_prepare_pull_request_thread(payload).map(Some))],
             "server.discoverSourceControl" => vec![rpc::exit_success(&id, Some(self.svc.discover_source_control()))],
             "pullRequests.subscribeRefreshes" => {
-                self.open(id, Kind::Idle, 0, vec![json!(0)]);
+                self.open(id, Kind::Idle, 0, vec![]);
                 vec![]
+            }
+            "server.getStorageCleanupReport" => {
+                self.open(id, Kind::Idle, 0, self.svc.storage_cleanup_stream());
+                vec![]
+            }
+            "agentSessions.scan" => vec![rpc::exit_success(&id, Some(self.svc.scan_agent_sessions()))],
+            "cloud.getRelayClientStatus" => vec![rpc::exit_success(&id, Some(self.svc.relay_client_status()))],
+            "server.runStorageCleanup" => vec![rpc::exit_success(&id, Some(self.svc.run_storage_cleanup()))],
+            "server.signalProcess" => vec![rpc::exit_success(&id, Some(self.svc.signal_process(payload)))],
+            "device.close" | "preview.clearProfile" | "preview.reportProfiles" => vec![rpc::exit_success(&id, Some(Value::Null))],
+            "orchestration.getWorktreeThreadIds" | "scheduledTasks.listWebhookDeliveries" | "scheduledTasks.getWebhookDelivery" => {
+                let answer = match tag {
+                    "orchestration.getWorktreeThreadIds" => self.svc.worktree_thread_ids(payload),
+                    "scheduledTasks.listWebhookDeliveries" => self.svc.scheduled_webhook_deliveries(payload),
+                    _ => self.svc.scheduled_webhook_delivery(payload),
+                };
+                vec![self.answered(&id, tag, answer.map(Some))]
             }
             "subscribeProjectClones" => {
                 let (fold, first) = self.svc.open_project_clones();
@@ -486,7 +509,7 @@ impl Connection {
             "attachments.createUploadUrl" | "attachments.delete" | "assets.createUrl" | "assets.persistChatAttachments" => {
                 let answer = match tag {
                     "attachments.createUploadUrl" => self.svc.attachment_upload_url(payload).map(Some),
-                    "attachments.delete" => self.svc.attachment_delete(payload).map(|()| None),
+                    "attachments.delete" => self.svc.attachment_delete(payload).map(|()| Some(Value::Null)),
                     "assets.createUrl" => self.svc.asset_create_url(payload).map(Some),
                     _ => self.svc.persist_chat_attachments(payload).map(Some),
                 };
@@ -497,7 +520,7 @@ impl Connection {
                     "preview.open" => self.svc.preview_open(payload).map(Some),
                     "preview.resize" => self.svc.preview_resize(payload).map(Some),
                     "preview.adjust" => self.svc.preview_adjust(payload).map(Some),
-                    "preview.close" => self.svc.preview_close(payload).map(|()| None),
+                    "preview.close" => self.svc.preview_close(payload).map(|()| Some(Value::Null)),
                     "preview.list" => self.svc.preview_list(payload).map(Some),
                     _ => self.svc.preview_report_status(payload).map(|()| None),
                 };

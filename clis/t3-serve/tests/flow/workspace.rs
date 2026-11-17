@@ -181,16 +181,16 @@ fn the_diff_of_a_thread_is_the_agent_apis_diff_of_its_directory_and_only_the_thr
     assert_eq!(success(&turns), &json!({"threadId": "t1", "fromTurnCount": 0, "toTurnCount": 1, "diff": turn_diff["diff"]}));
     assert_eq!(success(&whole), &json!({"threadId": "t2", "fromTurnCount": 0, "toTurnCount": 1, "diff": thread_diff["diff"]}));
     assert_eq!(ops(&h)[..asked].iter().filter(|o| matches!(o, Op::TurnDiff { .. } | Op::ThreadDiff { .. })).cloned().collect::<Vec<_>>(), [Op::TurnDiff { root: "/workspace/demo".into(), base: "HEAD".into() }, Op::ThreadDiff { root: "/base/wt".into() }]);
-    // And a range that does not start at the thread's start or end at its last finished turn, a request to ignore whitespace and an unknown
-    // thread are the RPC's declared errors saying so, and none asked the agent API; a range that runs backwards is a defect
+    // And a range that does not start at the thread's start or end at its last finished turn and a request to ignore whitespace are the RPC's
+    // declared errors saying so, an unknown thread's whole diff is empty (the pin's answer for a thread it has none of), none asked the agent
+    // API, and a range that runs backwards is a defect
     for refused in [&later, &short] {
         let message = failure(refused)["message"].as_str().unwrap();
         assert!(message.contains("no revision is recorded"), "{message}");
     }
     assert!(failure(&blind)["message"].as_str().unwrap().contains("whitespace"));
-    assert!(failure(&stranger)["message"].as_str().unwrap().contains("not found"));
+    assert_eq!(success(&stranger), &json!({"threadId": "nope", "fromTurnCount": 0, "toTurnCount": 1, "diff": ""}));
     assert_eq!(failure(&later)["_tag"], "OrchestrationGetTurnDiffError");
-    assert_eq!(failure(&stranger)["_tag"], "OrchestrationGetFullThreadDiffError");
     assert_eq!(backwards["cause"][0]["_tag"], "Die");
     assert_eq!(ops(&h).len(), asked);
 }

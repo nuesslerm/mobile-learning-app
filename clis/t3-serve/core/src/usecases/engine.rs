@@ -212,10 +212,11 @@ impl Engine {
     pub fn thread_start(&self, thread_id: &str, after: Option<u64>) -> Result<(Vec<Value>, u64), String> {
         let inner = self.lock();
         let last = inner.state.last_sequence;
-        let Some(projection) = inner.state.thread_projection(thread_id) else {
-            return Err(format!("thread {thread_id} was not found"));
-        };
+        // A subscriber that has the log up to a sequence asks for what follows, whether or not it holds the thread: only a snapshot needs the projection
         let Some(after) = Self::replayable(after, last) else {
+            let Some(projection) = inner.state.thread_projection(thread_id) else {
+                return Err(format!("thread {thread_id} was not found"));
+            };
             return Ok((vec![json!({"kind": "snapshot", "snapshotSequence": last, "projection": projection})], last));
         };
         let events = self.store.read_after(after).map_err(|e| e.0)?;

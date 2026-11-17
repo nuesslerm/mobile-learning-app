@@ -85,14 +85,14 @@ fn a_scheduled_task_is_saved_followed_run_by_hand_and_deleted_and_the_run_is_a_r
         let off = phone.call(case, &chain, &["rpc:scheduledTasks.setEnabled"], "scheduledTasks.setEnabled", json!({"id": id, "enabled": false}));
         asked(case, "schedule.setEnabled");
         assert_eq!((success(&off)["task"]["enabled"].clone(), success(&off)["task"]["nextRunAt"].clone()), (json!(false), Value::Null));
-        // When it is deleted, Then the id comes back, the stream lists none, and a second delete is the declared error
+        // When it is deleted, Then the id comes back, the stream lists none, and a second delete is done again, as the pin has it
         let gone = phone.call(case, &chain, &["rpc:scheduledTasks.delete"], "scheduledTasks.delete", json!({"id": id}));
         asked(case, "schedule.delete");
         assert_eq!(success(&gone), &json!({"id": id}));
         let emptied = std::iter::repeat_with(|| phone.watch.chunk(&stream)).take(3).flatten().any(|c| c["tasks"] == json!([]));
         assert!(emptied, "the stream never listed no task");
         let again = phone.calls.call("scheduledTasks.delete", json!({"id": id}));
-        assert_eq!((failure(&again)["_tag"].clone(), failure(&again)["taskId"].clone()), (json!("ScheduledTaskError"), json!(id)));
+        assert_eq!(success(&again), &json!({"id": id}));
     });
 }
 

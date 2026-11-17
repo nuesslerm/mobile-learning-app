@@ -101,7 +101,7 @@ fn what_rca_does_not_offer_is_refused_by_name_and_nothing_is_sent_and_the_agent_
     // And a refusal of the agent API carries its message and the task it was about
     reply(&h, "schedule.setEnabled", refused("SCHEDULE_NOT_FOUND", "no schedule has the id s9"));
     let exit = rpc.call("scheduledTasks.setEnabled", json!({"id": "s9", "enabled": false}));
-    assert_eq!((failure(&exit)["_tag"].clone(), failure(&exit)["message"].clone(), failure(&exit)["taskId"].clone()), (json!("ScheduledTaskError"), json!("no schedule has the id s9"), json!("s9")));
+    assert_eq!((failure(&exit)["_tag"].clone(), failure(&exit)["message"].clone(), failure(&exit)["taskId"].clone()), (json!("ScheduledTaskError"), json!("Schedule task not found."), json!("s9")));
     // And a request that leaves out a required key is a defect, as the decoder says
     let bare = rpc.call("scheduledTasks.upsert", json!({"title": "x"}));
     assert!(bare.to_string().contains("Missing key"), "{bare}");

@@ -200,7 +200,7 @@ fn archive_unarchive_and_delete_move_the_thread_between_the_shell_lists_and_out(
     assert_eq!(seen, [("thread.removed", Some("active")), ("thread.updated", Some("active")), ("thread.removed", Some("active"))]);
     // And its stream is a declared not-found now
     let thread = rpc.call("orchestration.subscribeThread", json!({"threadId": "t1"}));
-    assert_eq!(tag_of(failure(&thread)), "NotFoundError");
+    assert_eq!(tag_of(failure(&thread)), "OrchestrationV2GetThreadProjectionError");
     let again = rpc.call("orchestration.dispatchCommand", json!({"type": "thread.archive", "commandId": "c-9", "threadId": "t1"}));
     assert_eq!(tag_of(failure(&again)), "OrchestrationV2DispatchCommandError");
 }

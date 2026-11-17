@@ -184,7 +184,8 @@ impl Service {
             return Err(QueryFailure::Defect("fromTurnCount must be less than or equal to toTurnCount".into()));
         }
         if self.engine().read(|s| !s.threads.contains_key(thread)) {
-            return Err(refuse(format!("Thread {thread} was not found.")));
+            // The pin diffs the work of a thread it has none of as nothing; only a single turn's diff names the missing thread
+            return if whole { Ok(json!({"threadId": thread, "fromTurnCount": 0, "toTurnCount": to, "diff": ""})) } else { Err(refuse(format!("Thread {thread} was not found."))) };
         }
         if payload.get("ignoreWhitespace").and_then(Value::as_bool) == Some(true) {
             return Err(refuse("The agent API cannot ignore whitespace in a diff.".into()));
@@ -197,6 +198,13 @@ impl Service {
         let op = if whole { Op::ThreadDiff { root } } else { Op::TurnDiff { root, base: "HEAD".into() } };
         let diff = self.agent().run(&op).map_err(|e| refuse(e.message()))?;
         Ok(json!({"threadId": thread, "fromTurnCount": from, "toTurnCount": to, "diff": diff["diff"].as_str().unwrap_or_default()}))
+    }
+
+    /// `orchestration.getWorktreeThreadIds`: the live threads whose work is in the worktree at that path.
+    pub fn worktree_thread_ids(&self, payload: &Value) -> Result<Value, QueryFailure> {
+        let path = field(payload, "worktreePath")?;
+        let ids: Vec<String> = self.engine().read(|s| s.threads.iter().filter(|(_, row)| row["worktreePath"] == path && row["deletedAt"].is_null()).map(|(id, _)| id.clone()).collect());
+        Ok(json!({"threadIds": ids}))
     }
 
     /// `vcs.createWorktree`: the branch checked out in a worktree of its own (a new branch from `refName` when `newRefName` is given), which the

@@ -253,6 +253,7 @@ impl Service {
     /// `provider.auth.start`: the CLI's login begins and the state names the address (and the code) the person opens.
     pub fn provider_auth_start(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let instance = field(payload, "instanceId")?;
+        self.configured_instance(instance, "start")?;
         let method = payload.get("methodId").and_then(Value::as_str).filter(|m| !m.is_empty()).map(str::to_string);
         let started = self.account(instance, "start", &Op::AuthStart { provider: instance.into(), method })?;
         let (auth, method) = (started["auth"]["auth"].as_str().unwrap_or_default(), started["auth"]["method"].as_str().unwrap_or_default());
@@ -265,6 +266,7 @@ impl Service {
     /// signed in by its own flow.
     pub fn provider_auth_respond(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (instance, flow) = (field(payload, "instanceId")?, field(payload, "flowId")?);
+        self.configured_instance(instance, "respond")?;
         let response = payload.get("response").filter(|r| r.is_object()).ok_or_else(|| QueryFailure::Defect("Missing key\n  at [\"response\"]".into()))?;
         let op = match response["type"].as_str() {
             Some("terminal") => Op::AuthRespond { auth: flow.into(), text: response["data"].as_str().unwrap_or_default().trim_end_matches(['\r', '\n']).to_string() },
@@ -281,6 +283,7 @@ impl Service {
     /// login to end. A device-code login has no address to hand over, so it only waits.
     pub fn provider_auth_complete(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (instance, flow, callback) = (field(payload, "instanceId")?, field(payload, "flowId")?, field(payload, "callbackUrl")?);
+        self.configured_instance(instance, "complete")?;
         let paste = self.held().session(instance).is_some_and(|(auth, method)| auth == flow && method == "paste");
         if paste {
             self.account(instance, "complete", &Op::AuthRespond { auth: flow.into(), text: pasted_code(callback) })?;
@@ -292,6 +295,7 @@ impl Service {
     /// `provider.auth.cancel`: the login stops.
     pub fn provider_auth_cancel(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (instance, flow) = (field(payload, "instanceId")?, field(payload, "flowId")?);
+        self.configured_instance(instance, "cancel")?;
         let cancelled = self.account(instance, "cancel", &Op::AuthCancel { auth: flow.into() })?;
         Ok(self.state_of(instance, &cancelled))
     }
@@ -299,6 +303,7 @@ impl Service {
     /// `provider.auth.logout`: the provider's directory is emptied of its login, and the provider is idle again.
     pub fn provider_auth_logout(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let instance = field(payload, "instanceId")?;
+        self.configured_instance(instance, "logout")?;
         self.account(instance, "logout", &Op::AccountsLogout { provider: instance.into() })?;
         self.held().forget(instance);
         self.log("provider.auth.logout", &[("instance", instance.to_string())]);
@@ -309,6 +314,7 @@ impl Service {
     /// the stream opened.
     pub fn open_auth_stream(&self, payload: &Value) -> Result<(AuthFold, Value), QueryFailure> {
         let instance = field(payload, "instanceId")?;
+        self.configured_instance(instance, "subscribe")?;
         Ok((AuthFold { instance: instance.into() }, self.current_auth_state(instance)))
     }
 
@@ -346,7 +352,7 @@ impl Service {
     /// `provider.chatgpt.reconnect-profile`: a ChatGPT profile is something T3's own desktop keeps; the Codex CLI behind this server keeps its
     /// login in its own directory and offers none to reconnect.
     pub fn chatgpt_reconnect(&self, payload: &Value) -> Result<Value, QueryFailure> {
-        field(payload, "instanceId")?;
+        self.configured_instance(field(payload, "instanceId")?, "export")?;
         Ok(Value::Null)
     }
 
@@ -362,6 +368,9 @@ impl Service {
         let Some(instance) = payload.get("instanceId").and_then(Value::as_str).filter(|i| !i.is_empty()) else {
             return Err(QueryFailure::Error(json!({"_tag": "UsageLimitSourceError", "detail": "This server has no usage limit sources, only providers"})));
         };
+        if self.configured_instance(instance, "consume-reset-credit").is_err() {
+            return Err(QueryFailure::Error(json!({"_tag": "ProviderSetupError", "instanceId": instance, "operation": "consume-reset-credit", "detail": "Provider instance not found."})));
+        }
         self.agent().run(&Op::ResetCredit { provider: instance.into() }).map_err(|e| QueryFailure::Error(json!({"_tag": "UsageLimitSourceError", "detail": e.message()})))?;
         Ok(json!({"outcome": "reset"}))
     }
@@ -374,6 +383,9 @@ impl Service {
     /// out.
     pub fn refresh_providers(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let instance = payload.get("instanceId").and_then(Value::as_str).filter(|i| !i.is_empty());
+        if instance.is_some_and(|i| self.configured_instance(i, "refresh").is_err()) {
+            return Ok(json!({"providers": []}));
+        }
         self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsRefresh { provider: instance.map(str::to_string) })?;
         let listed = self.account(instance.unwrap_or_default(), "refresh", &Op::AccountsList)?;
         let logins: Vec<(String, String)> = listed["providers"].as_array().into_iter().flatten().filter_map(|p| Some((p["provider"].as_str()?.to_string(), p["status"].as_str()?.to_string()))).collect();
@@ -385,7 +397,8 @@ impl Service {
     /// `server.updateProvider`: a provider's CLI is part of the service's image, so a version is updated by shipping the image.
     pub fn update_provider(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let provider = field(payload, "provider")?;
-        Err(QueryFailure::Error(json!({"_tag": "ServerProviderUpdateError", "provider": provider, "reason": "The provider CLIs are part of the service's image; ship a new image to update one"})))
+        let reason = if self.configured_instance(provider, "update").is_ok() { "The provider CLIs are part of the service's image; ship a new image to update one" } else { "This provider does not support one-click updates." };
+        Err(QueryFailure::Error(json!({"_tag": "ServerProviderUpdateError", "provider": provider, "reason": reason})))
     }
 
     /// `server.getUsageSummary`: one source per provider, from what the accounts group knows of each. No token or cost bucket is kept: the CLIs
@@ -440,11 +453,52 @@ impl Service {
     /// `server.getDatabaseStorage`: how big t3 serve's own database is and how much of it a vacuum would give back; null when it cannot be read.
     fn storage_status(&self) -> Value {
         match self.0.storage.sample() {
-            Ok(s) => json!({"databaseBytes": s.database_bytes, "reclaimableBytes": s.reclaimable_bytes, "incrementalVacuumEnabled": s.incremental_vacuum, "compactCommand": format!("sqlite3 {} VACUUM", s.path)}),
+            Ok(s) => json!({"databaseBytes": s.database_bytes, "reclaimableBytes": s.reclaimable_bytes, "canReclaim": s.incremental_vacuum && s.reclaimable_bytes > 0, "incrementalVacuumEnabled": s.incremental_vacuum, "compactCommand": format!("sqlite3 {} VACUUM", s.path)}),
             Err(e) => {
                 self.log("storage.unreadable", &[("message", e)]);
                 Value::Null
             }
+        }
+    }
+
+    /// What a clean-up of the storage t3 keeps outside its database reports: this server keeps none (no archive of attachments, logs or
+    /// worktrees of its own that a sweep could remove), so every clean-up finds nothing to remove, keep or fail.
+    fn storage_cleanup_report(&self, trigger: &str) -> Value {
+        let now = iso(self.now_ms());
+        json!({"trigger": trigger, "startedAt": now, "finishedAt": now, "bytesFreed": 0, "omittedCount": 0, "counts": {"removed": 0, "kept": 0, "failed": 0}, "entries": []})
+    }
+
+    /// `server.runStorageCleanup`: a manual clean-up, which finds nothing.
+    pub fn run_storage_cleanup(&self) -> Value {
+        self.storage_cleanup_report("manual")
+    }
+
+    /// `server.getStorageCleanupReport`: the report of the last clean-up the stream opens with; no sweep ever found anything.
+    pub fn storage_cleanup_stream(&self) -> Vec<Value> {
+        vec![self.storage_cleanup_report("automatic")]
+    }
+
+    /// `agentSessions.scan`: the sessions of other agents' CLIs found on this host to import. rca's host keeps none for t3 to find.
+    pub fn scan_agent_sessions(&self) -> Value {
+        json!({"candidates": [], "scannedAt": iso(self.now_ms())})
+    }
+
+    /// `cloud.getRelayClientStatus`: the relay client is not installed on this server, and `version` is the one the pin installs.
+    pub fn relay_client_status(&self) -> Value {
+        json!({"status": "missing", "version": wire::RELAY_CLIENT_VERSION})
+    }
+
+    /// `server.signalProcess`: no process identity is ever listed by this server, so none the phone selected still matches.
+    pub fn signal_process(&self, payload: &Value) -> Value {
+        let (pid, signal) = (payload["pid"].clone(), payload["signal"].clone());
+        json!({"pid": pid, "signal": signal, "signaled": false, "message": {"_tag": "Some", "value": format!("Process {pid} no longer matches the selected process identity.")}})
+    }
+
+    /// The provider instance's refusal when it is not one of the configured instances (the pin: it was removed since the phone listed it).
+    fn configured_instance(&self, instance: &str, operation: &str) -> Result<(), QueryFailure> {
+        match wire::providers(&[], "").iter().any(|p| p["instanceId"] == instance) {
+            true => Ok(()),
+            false => Err(refusal(instance, operation, "This provider instance is no longer available.")),
         }
     }
 

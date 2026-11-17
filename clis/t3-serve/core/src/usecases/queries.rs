@@ -19,6 +19,8 @@ pub enum QueryFailure {
 /// The most rows of the shelf one request of the agent API asks for.
 const SHELF_PAGE: u32 = 50;
 const SEARCH_DEFAULT: u32 = 20;
+/// 9999-12-31T23:59:59Z, the latest date the shelf can be asked below.
+const LATEST_INSTANT_MS: u64 = 253_402_300_799_000;
 
 pub(super) fn field<'a>(payload: &'a Value, key: &str) -> Result<&'a str, QueryFailure> {
     payload.get(key).and_then(Value::as_str).filter(|s| !s.is_empty()).ok_or_else(|| QueryFailure::Defect(format!("Missing key\n  at [\"{key}\"]")))
@@ -42,14 +44,27 @@ impl Service {
         self.engine().read(|state| state.threads.get(thread).cloned())
     }
 
+    pub(super) fn thread_is_held(&self, thread: &str) -> bool {
+        self.row(thread).is_some()
+    }
+
     fn known_thread(&self, payload: &Value) -> Result<String, QueryFailure> {
         let thread = field(payload, "threadId")?;
         self.row(thread).map(|_| thread.to_string()).ok_or_else(|| QueryFailure::Error(wire::not_found_error("thread", thread)))
     }
 
-    /// `orchestration.getTurnItem`: the row the thread's log made, or null once it is gone.
+    /// The thread of `payload` as the RPC's own error `tag` names its absence, with `extra`'s fields beside the cause.
+    fn thread_or_missing(&self, payload: &Value, tag: &str, extra: Value) -> Result<String, QueryFailure> {
+        let thread = field(payload, "threadId")?;
+        self.row(thread).map(|_| thread.to_string()).ok_or_else(|| QueryFailure::Error(wire::thread_missing_error(tag, thread, extra)))
+    }
+
+    /// `orchestration.getTurnItem`: the row the thread's log made, or null once it is gone (as it is for a thread that never was).
     pub fn turn_item(&self, payload: &Value) -> Result<Value, QueryFailure> {
-        let (thread, item) = (self.known_thread(payload)?, field(payload, "itemId")?);
+        let (thread, item) = (field(payload, "threadId")?.to_string(), field(payload, "itemId")?);
+        if self.row(&thread).is_none() {
+            return Ok(json!({"item": null}));
+        }
         self.sync_thread(&thread);
         Ok(json!({"item": self.engine().read(|state| state.entities.get(&thread).and_then(|e| e.turn_items.iter().find(|i| i["id"] == item).cloned()))}))
     }
@@ -116,8 +131,7 @@ impl Service {
     pub fn native_child_work(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let thread = field(payload, "threadId")?;
         if self.row(thread).is_none() {
-            let cause = json!({"cause": {"message": format!("No orchestration projection exists for thread {thread}."), "name": "ProjectionStoreThreadNotFoundError"}, "message": format!("Failed to load orchestration projection for thread {thread}."), "name": "OrchestratorProjectionError"});
-            return Err(QueryFailure::Error(json!({"_tag": "OrchestrationV2GetNativeChildWorkError", "cause": cause, "threadId": thread})));
+            return Err(QueryFailure::Error(wire::thread_missing_error("OrchestrationV2GetNativeChildWorkError", thread, json!({"threadId": thread}))));
         }
         Ok(json!({"children": []}))
     }
@@ -133,7 +147,9 @@ impl Service {
     /// found, counting across pages; with `limit` 0 only the per-project counts.
     pub fn older_settled(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let before = payload.get("before").filter(|b| b.is_object()).ok_or_else(|| QueryFailure::Defect("Missing key\n  at [\"before\"]".into()))?;
-        let at = before["settledAt"].as_str().and_then(parse_iso).and_then(|ms| u64::try_from(ms).ok()).ok_or_else(|| QueryFailure::Defect("Expected an ISO date at [\"before\"][\"settledAt\"]".into()))?;
+        let settled = before["settledAt"].as_str().ok_or_else(|| QueryFailure::Defect("Expected a string at [\"before\"][\"settledAt\"]".into()))?;
+        // The pin compares the text: what is no date sorts after every date when it starts above the digits, and before them otherwise
+        let at = parse_iso(settled).and_then(|ms| u64::try_from(ms).ok()).unwrap_or(if settled > "9" { LATEST_INSTANT_MS } else { 0 });
         let limit = payload.get("limit").and_then(Value::as_u64).filter(|l| *l <= 50).ok_or_else(|| QueryFailure::Defect("Expected an integer between 0 and 50 at [\"limit\"]".into()))? as usize;
         let projects: Option<Vec<&str>> = payload.get("projectIds").and_then(Value::as_array).map(|p| p.iter().filter_map(Value::as_str).collect());
         let wanted = |row: &Map<String, Value>| projects.as_ref().is_none_or(|p| row["projectId"].as_str().is_some_and(|id| p.contains(&id)));
@@ -172,7 +188,7 @@ impl Service {
 
     /// `orchestration.forceStopThread`: the agent API ends the CLI process now and holds the thread's queue.
     pub fn force_stop(&self, payload: &Value) -> Result<Value, QueryFailure> {
-        let thread = self.known_thread(payload)?;
+        let thread = self.thread_or_missing(payload, "OrchestrationV2ForceStopThreadError", json!({"threadId": field(payload, "threadId")?}))?;
         let turn = payload.get("runId").and_then(Value::as_str).map(|run| self.turn_of_started_run(run).unwrap_or_else(|| run.to_string()));
         let stopped = self.agent().run(&Op::ThreadForceStop { thread, turn }).map_err(failed)?;
         Ok(json!({"outcome": stopped["outcome"], "sharedWithThreadIds": stopped["shared_with"]}))
@@ -180,7 +196,8 @@ impl Service {
 
     /// `orchestration.stopWorkflow`: stops what the thread's running turn runs in the background.
     pub fn stop_workflow(&self, payload: &Value) -> Result<(), QueryFailure> {
-        let (thread, workflow) = (self.known_thread(payload)?, field(payload, "subagentId")?);
+        let (asked, workflow) = (field(payload, "threadId")?, field(payload, "subagentId")?);
+        let thread = self.thread_or_missing(payload, "OrchestrationV2StopWorkflowError", json!({"threadId": asked, "subagentId": workflow, "reason": "unavailable"}))?;
         let turn = self.engine().active_run(&thread).map(|run| self.turn_of_started_run(&run).unwrap_or(run));
         let Some(turn) = turn else { return Err(QueryFailure::Error(json!({"_tag": "OrchestrationV2StopWorkflowError", "threadId": thread, "subagentId": workflow, "reason": "not-running", "message": "This workflow is no longer running."}))) };
         self.agent().run(&Op::WorkflowStop { thread, turn, workflow: Some(workflow.to_string()) }).map(drop).map_err(failed)
@@ -188,10 +205,11 @@ impl Service {
 
     /// `orchestration.getWorkflowScript`: scripts live in the CLI's own projects directory, which no agent API method reaches.
     pub fn workflow_script(&self, payload: &Value) -> Result<Value, QueryFailure> {
-        let (thread, path) = (self.known_thread(payload)?, field(payload, "scriptPath")?);
-        let (reason, message) = if path.starts_with('/') && path.ends_with(".js") { ("root-unavailable", "Script root unavailable.") } else { ("invalid-path", "Workflow scripts must be absolute .js paths.") };
+        let (asked, path) = (field(payload, "threadId")?, field(payload, "scriptPath")?);
+        let (reason, message) = if path.starts_with('/') && path.ends_with(".js") { ("root-unavailable", "Script root unavailable.") } else { ("invalid-path", "Workflow files must be absolute paths with the expected extension.") };
+        let thread = if reason == "invalid-path" { asked.to_string() } else { self.known_thread(payload)? };
         self.log("workflow.script.refused", &[("thread", thread), ("reason", reason.to_string())]);
-        Err(QueryFailure::Error(json!({"_tag": "OrchestrationWorkflowFileError", "reason": reason, "path": path, "message": message})))
+        Err(QueryFailure::Error(json!({"_tag": "OrchestrationGetWorkflowScriptError", "cause": {"message": message, "name": "OrchestrationWorkflowFileError"}, "reason": reason, "scriptPath": path})))
     }
 
     /// `secrets.answerRequest`: the agent API never asks for a secret, so no request exists to answer, and what was sent goes nowhere.
@@ -207,16 +225,24 @@ impl Service {
         if !valid {
             return Err(QueryFailure::Defect("Expected the answer to be save with a secret or decline at [\"answer\"]".into()));
         }
-        self.log("secret.answer.unknown", &[("thread", payload["threadId"].as_str().unwrap_or_default().to_string())]);
+        let thread = field(payload, "threadId")?;
+        self.log("secret.answer.unknown", &[("thread", thread.to_string())]);
+        if self.row(thread).is_none() {
+            return Err(QueryFailure::Error(wire::thread_missing_error("SecretRequestError", thread, json!({"reason": "load_failed"}))));
+        }
         Err(QueryFailure::Error(json!({"_tag": "SecretRequestError", "reason": "not_found", "message": "This secret request no longer exists."})))
     }
 
     /// `orchestration.subscribeCommandOutput`: the frames of a command's output: the whole text as one replace, running only while the command is.
     pub fn command_output(&self, payload: &Value) -> Result<Vec<Value>, QueryFailure> {
-        let (thread, item) = (self.known_thread(payload)?, field(payload, "itemId")?);
+        let (thread, item) = (field(payload, "threadId")?.to_string(), field(payload, "itemId")?);
+        let no_command = || QueryFailure::Error(json!({"_tag": "OrchestrationV2CommandOutputError", "threadId": thread, "message": "No such command."}));
+        if self.row(&thread).is_none() {
+            return Err(no_command());
+        }
         self.sync_thread(&thread);
         let found = self.engine().read(|state| state.entities.get(&thread).and_then(|e| e.turn_items.iter().find(|i| i["id"] == item && i["type"] == "command_execution").cloned()));
-        let Some(found) = found else { return Err(QueryFailure::Error(json!({"_tag": "OrchestrationV2CommandOutputError", "threadId": thread, "message": format!("{item} is not a command of this thread.")}))) };
+        let Some(found) = found else { return Err(no_command()) };
         let running = found["status"] == "running";
         Ok(vec![json!({"kind": "replace", "text": found["output"].as_str().unwrap_or_default(), "truncated": false, "running": running})])
     }

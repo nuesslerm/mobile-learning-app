@@ -265,8 +265,12 @@ fn refreshing_the_providers_asks_the_accounts_group_to_look_again_and_shows_each
     }
     // When the agent API refuses a provider it does not know
     reply(&h, "provider.refresh", Err(refused("provider.refresh", "a provider that is none")));
-    let unknown = rpc.call("server.refreshProviders", json!({"instanceId": "gemini"}));
-    // Then it is a ProviderSetupError with its words
+    let unknown = rpc.call("server.refreshProviders", json!({"instanceId": "claudeAgent"}));
+    // And an instance that is not configured shows no provider, without asking the agent API
+    forget_ops(&h);
+    let removed = rpc.call("server.refreshProviders", json!({"instanceId": "gemini"}));
+    assert_eq!((success(&removed), ops(&h).len()), (&json!({"providers": []}), 0));
+    // Then the refusal is a ProviderSetupError with its words
     assert_eq!((failure(&unknown)["_tag"].as_str(), failure(&unknown)["detail"].as_str().map(|d| d.starts_with("gemini is not a provider"))), (Some("ProviderSetupError"), Some(true)));
 }
 
@@ -313,10 +317,12 @@ fn a_reset_credit_the_model_api_gave_back_is_a_reset_and_a_refusal_is_the_usage_
     // When the agent API refuses, and when the request names a usage limit source this server does not have
     forget_ops(&h);
     reply(&h, "provider.resetCredit", Err(refused("provider.resetCredit", "a provider that is none")));
-    let refused_reset = rpc.call("provider.consumeResetCredit", json!({"instanceId": "gemini"}));
+    let refused_reset = rpc.call("provider.consumeResetCredit", json!({"instanceId": "claudeAgent"}));
+    let gone_instance = rpc.call("provider.consumeResetCredit", json!({"instanceId": "gemini"}));
     let source = rpc.call("provider.consumeResetCredit", json!({"sourceId": "s", "accountId": "a", "creditId": "c"}));
     // Then each is a UsageLimitSourceError, and the source request did not reach the agent API
     assert_eq!((failure(&refused_reset)["_tag"].as_str(), failure(&refused_reset)["detail"].as_str().map(|d| d.starts_with("gemini is not a provider"))), (Some("UsageLimitSourceError"), Some(true)));
+    assert_eq!((failure(&gone_instance)["_tag"].as_str(), failure(&gone_instance)["detail"].as_str(), failure(&gone_instance)["operation"].as_str()), (Some("ProviderSetupError"), Some("Provider instance not found."), Some("consume-reset-credit")));
     assert_eq!(failure(&source)["_tag"], json!("UsageLimitSourceError"));
     assert_eq!(ops(&h).len(), 1);
 }
@@ -385,7 +391,7 @@ fn the_database_storage_stream_says_how_big_the_database_is_and_what_a_vacuum_gi
     let id = watch.send("server.getDatabaseStorage", json!({}));
     let first = watch.chunk(&id);
     // Then the first status is the reading, with the command that compacts that file
-    assert_eq!(first, [json!({"databaseBytes": sample.database_bytes, "reclaimableBytes": sample.reclaimable_bytes, "incrementalVacuumEnabled": sample.incremental_vacuum, "compactCommand": format!("sqlite3 {} VACUUM", sample.path)})]);
+    assert_eq!(first, [json!({"databaseBytes": sample.database_bytes, "reclaimableBytes": sample.reclaimable_bytes, "canReclaim": sample.incremental_vacuum && sample.reclaimable_bytes > 0, "incrementalVacuumEnabled": sample.incremental_vacuum, "compactCommand": format!("sqlite3 {} VACUUM", sample.path)})]);
     // When the database grows
     *h.storage.0.lock().unwrap() = Ok(StorageSample { database_bytes: sample.database_bytes * 2, ..sample.clone() });
     // Then the stream says so, and only once the size changed

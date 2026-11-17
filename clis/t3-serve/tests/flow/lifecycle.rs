@@ -90,7 +90,7 @@ fn every_forwarded_command_asks_the_agent_api_for_its_method_and_an_accepted_one
     let fork = row(&mut rpc, "f1");
     assert_eq!((fork["lineage"]["parentThreadId"].as_str(), fork["lineage"]["relationshipToParent"].as_str()), (Some("t1"), Some("fork")));
     let gone = rpc.call("orchestration.getThreadProjection", json!({"threadId": "t1"}));
-    assert_eq!(failure(&gone)["_tag"], "NotFoundError");
+    assert_eq!((failure(&gone)["_tag"].as_str(), failure(&gone)["threadId"].as_str()), (Some("OrchestrationV2GetThreadProjectionError"), Some("t1")));
 }
 
 #[test]

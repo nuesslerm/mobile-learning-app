@@ -128,11 +128,29 @@ pub fn dispatch_error(command_id: &str, command_type: &str, message: &str) -> Va
     dispatch_failure(command_id, command_type, message, cause)
 }
 
+/// What the pin's projection store fails with for a thread it holds no projection of: the cause every thread-bound error nests.
+pub fn projection_missing_cause(thread_id: &str) -> Value {
+    json!({"cause": {"message": format!("No orchestration projection exists for thread {thread_id}."), "name": "ProjectionStoreThreadNotFoundError"}, "message": projection_load_failed(thread_id), "name": "OrchestratorProjectionError"})
+}
+
+/// The error `tag` declares for a thread that has no projection: the missing cause, with `extra`'s fields beside it.
+pub fn thread_missing_error(tag: &str, thread_id: &str, extra: Value) -> Value {
+    let mut error = json!({"_tag": tag, "cause": projection_missing_cause(thread_id)});
+    if let (Some(into), Some(from)) = (error.as_object_mut(), extra.as_object()) {
+        into.extend(from.clone());
+    }
+    error
+}
+
+/// `OrchestrationV2GetThreadProjectionError`: what reading or subscribing to a thread's projection fails with when it has none.
+pub fn thread_projection_error(thread_id: &str) -> Value {
+    thread_missing_error("OrchestrationV2GetThreadProjectionError", thread_id, json!({"message": format!("Failed to load orchestration V2 thread {thread_id}"), "threadId": thread_id}))
+}
+
 /// What the pin's dispatcher fails with for a command of a thread it holds no projection of.
 pub fn dispatch_thread_missing(command_id: &str, command_type: &str, thread_id: &str) -> Value {
     let message = format!("No orchestration projection exists for thread {thread_id}.");
-    let cause = json!({"cause": {"message": message, "name": "ProjectionStoreThreadNotFoundError"}, "message": projection_load_failed(thread_id), "name": "OrchestratorProjectionError"});
-    dispatch_failure(command_id, command_type, &message, cause)
+    dispatch_failure(command_id, command_type, &message, projection_missing_cause(thread_id))
 }
 
 /// The outer message of `dispatch_thread_missing`'s cause, which a later dispatch of the same command id quotes.
@@ -172,6 +190,17 @@ pub fn project_not_empty(project_id: &str) -> String {
     format!("Project {project_id} is not empty.")
 }
 
+/// The refusal of a delete of a project that holds threads: the message is the cause's, as the pin passes it through.
+pub fn project_not_empty_error(command_id: &str, project_id: &str) -> Value {
+    let message = project_not_empty(project_id);
+    json!({"_tag": "ProjectMutationError", "commandId": command_id, "message": message, "cause": {"message": message, "name": "ProjectNotEmptyError"}})
+}
+
+/// The refusal of a mutation of a project the pin holds none of: the generic message, with the cause that names the project.
+pub fn project_not_found_error(command_id: &str, project_id: &str) -> Value {
+    json!({"_tag": "ProjectMutationError", "commandId": command_id, "message": PROJECT_MUTATION_FAILED, "cause": {"message": format!("Project {project_id} was not found."), "name": "ProjectNotFoundError"}})
+}
+
 /// A file or turn operation the execution host refused or could not do.
 pub fn host_error(message: &str) -> Value {
     json!({"_tag": "ExecutionHostError", "message": message})
@@ -180,6 +209,9 @@ pub fn host_error(message: &str) -> Value {
 pub fn not_found_error(what: &str, id: &str) -> Value {
     json!({"_tag": "NotFoundError", "message": format!("{what} {id} was not found."), "id": id})
 }
+
+/// The version of the relay client the pin installs, which `cloud.getRelayClientStatus` names while none is installed.
+pub const RELAY_CLIENT_VERSION: &str = "2026.10.4";
 
 /// What every RPC this server does not build answers: the method's declared error is not known to us, so one generic tagged error.
 pub fn unsupported_error(tag: &str) -> Value {

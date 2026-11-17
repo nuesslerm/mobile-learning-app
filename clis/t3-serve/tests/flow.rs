@@ -27,6 +27,8 @@ mod lifecycle;
 mod local_m5;
 #[path = "flow/pairing.rs"]
 mod pairing;
+#[path = "flow/pin_constants.rs"]
+mod pin_constants;
 #[path = "flow/projects.rs"]
 mod projects;
 #[path = "flow/pull_requests.rs"]

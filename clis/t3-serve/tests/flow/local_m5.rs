@@ -137,11 +137,14 @@ fn peer_links_are_listed_empty_unlinked_to_nothing_and_a_link_or_an_answer_is_re
     let list = rpc.call("peerLinks.list", json!({}));
     let unlink = rpc.call("peerLinks.unlink", json!({"environmentId": "e1"}));
     let link = rpc.call("peerLinks.link", json!({"url": "https://peer.example", "pairingCode": "ABCDEFGH2345", "access": "read-only"}));
+    let stranger = rpc.call("peerLinks.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "decline"}}));
+    seed(&mut rpc);
     let answer = rpc.call("peerLinks.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "decline"}}));
-    // Then the list is empty, nothing was removed, the link is disabled and the request is unknown
+    // Then the list is empty, nothing was removed, the link is disabled, a thread with no projection fails to load and the request of a thread is unknown
     assert_eq!(success(&list), &json!({"links": []}));
     assert_eq!(success(&unlink), &json!({"removed": false}));
     assert_eq!((failure(&link)["_tag"].clone(), failure(&link)["reason"].clone()), (json!("PeerLinkError"), json!("disabled")));
+    assert_eq!((failure(&stranger)["_tag"].clone(), failure(&stranger)["reason"].clone(), failure(&stranger)["cause"]["cause"]["name"].clone()), (json!("PeerLinkRequestError"), json!("load_failed"), json!("ProjectionStoreThreadNotFoundError")));
     assert_eq!((failure(&answer)["_tag"].clone(), failure(&answer)["reason"].clone()), (json!("PeerLinkRequestError"), json!("not_found")));
     // And a link with no code, a link with a numeric url, an answer with no thread and an answer of no known type are decoder defects
     let defects = [
