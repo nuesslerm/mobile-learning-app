@@ -103,3 +103,58 @@ fn given_a_secret_in_a_message_attribute_when_sent_then_the_ingest_never_sees_it
     let text = body.to_string();
     assert!(!text.contains("hunter2-hunter2") && !text.contains("me@example.com"), "{text}");
 }
+
+/// An HTTPS ingest under a throwaway CA: serves one request with a 200; returns its port and the CA's PEM file.
+fn https_ingest() -> (u16, tempfile::TempDir, std::thread::JoinHandle<()>) {
+    use rcgen::{BasicConstraints, CertificateParams, DnType, ExtendedKeyUsagePurpose, IsCa, Issuer, KeyPair, KeyUsagePurpose};
+    use rustls::pki_types::{pem::PemObject, CertificateDer, PrivateKeyDer};
+    let ca_key = KeyPair::generate().unwrap();
+    let mut ca = CertificateParams::new(Vec::<String>::new()).unwrap();
+    ca.distinguished_name.push(DnType::CommonName, "telemetry-test-ca");
+    ca.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+    ca.key_usages = vec![KeyUsagePurpose::KeyCertSign];
+    let ca_cert = ca.self_signed(&ca_key).unwrap();
+    let leaf_key = KeyPair::generate().unwrap();
+    let mut leaf = CertificateParams::new(vec!["127.0.0.1".to_string()]).unwrap();
+    leaf.extended_key_usages = vec![ExtendedKeyUsagePurpose::ServerAuth];
+    let leaf_cert = leaf.signed_by(&leaf_key, &Issuer::new(ca, ca_key)).unwrap();
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("ca.pem"), ca_cert.pem()).unwrap();
+    let certs = CertificateDer::pem_slice_iter(leaf_cert.pem().as_bytes()).collect::<Result<Vec<_>, _>>().unwrap();
+    let key = PrivateKeyDer::from_pem_slice(leaf_key.serialize_pem().as_bytes()).unwrap();
+    let config = std::sync::Arc::new(
+        rustls::ServerConfig::builder_with_provider(std::sync::Arc::new(rustls::crypto::ring::default_provider())).with_safe_default_protocol_versions().unwrap().with_no_client_auth().with_single_cert(certs, key).unwrap(),
+    );
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let port = listener.local_addr().unwrap().port();
+    let worker = std::thread::spawn(move || {
+        let (stream, _) = listener.accept().unwrap();
+        let mut tls = rustls::StreamOwned::new(rustls::ServerConnection::new(config).unwrap(), stream);
+        let mut raw = Vec::new();
+        let mut chunk = [0u8; 4096];
+        while !raw.windows(4).any(|w| w == b"\r\n\r\n") {
+            match tls.read(&mut chunk) {
+                Ok(0) | Err(_) => return,
+                Ok(n) => raw.extend_from_slice(&chunk[..n]),
+            }
+        }
+        let _ = write!(tls, "HTTP/1.1 200 OK\r\ncontent-length: 2\r\nconnection: close\r\n\r\n{{}}");
+        let _ = tls.flush();
+    });
+    (port, dir, worker)
+}
+
+#[test]
+fn given_an_https_ingest_under_a_custom_ca_in_ssl_cert_file_when_a_record_is_sent_then_it_is_trusted() {
+    // Given an HTTPS ingest whose certificate comes from a throwaway CA, and that CA named by SSL_CERT_FILE
+    let (port, dir, worker) = https_ingest();
+    std::env::set_var("SSL_CERT_FILE", dir.path().join("ca.pem"));
+    let destination = Destination::new(format!("https://127.0.0.1:{port}"), "tok");
+
+    // When a record is sent
+    let result = send(&destination, &source(), &[Record::new("info", "started")]);
+
+    // Then the TLS handshake trusted that root and the ingest received the record
+    assert_eq!(result, Ok(()));
+    worker.join().unwrap();
+}

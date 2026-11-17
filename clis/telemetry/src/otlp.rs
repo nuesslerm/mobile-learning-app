@@ -84,7 +84,9 @@ pub fn gauges_body(resource: Value, scope: &str, at: SystemTime, gauges: Vec<(St
 /// POSTs `body` as JSON to `path` of the ingest with its bearer token: `Ok` only on a 2xx, otherwise `HTTP <status>` or the
 /// transport error.
 pub fn post(destination: &Destination, path: &str, body: &Value) -> Result<(), String> {
-    let agent: ureq::Agent = ureq::Agent::config_builder().timeout_global(Some(TIMEOUT)).http_status_as_error(false).build().into();
+    // The platform verifier honors SSL_CERT_FILE and the system store; ureq's default would be the bundled webpki roots only.
+    let tls = ureq::tls::TlsConfig::builder().root_certs(ureq::tls::RootCerts::PlatformVerifier).build();
+    let agent: ureq::Agent = ureq::Agent::config_builder().timeout_global(Some(TIMEOUT)).http_status_as_error(false).tls_config(tls).build().into();
     let response = agent
         .post(destination.endpoint(path))
         .header("Authorization", format!("Bearer {}", destination.token()))
