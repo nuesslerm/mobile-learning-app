@@ -206,10 +206,13 @@ while true do
     -- the recorder can end by itself once the clip is over: then the review is already coming and Send is gone
     if device:get_element({id='ProblemEditorVoiceToolbar-Send'}) then device:tap_on({id='ProblemEditorVoiceToolbar-Send'}, {optional=true}) end
   end
-  local heard
+  local heard, transcribe_logged
+  local function info_log() return table.concat(device:get_logs{level='info'}, "\n") end
   run_flow("transcribe", function()
     device:assert_visible({id='ProblemEditorVoiceReviewSheet-TranscriptInput'}, {timeout=60000, label='transcribed'}) -- the transcription is a real backend call
     heard = text_of("ProblemEditorVoiceReviewSheet-TranscriptInput")
+    -- read while the line is fresh: on the cold first chunk the app's startup logging fills the device log buffer before the plan answers, and the line is gone by the end of the turn
+    transcribe_logged = device:extended_wait_until{condition=function() return info_log():find("voice_edit.transcribe.response", 1, true) end, timeout=10000, optional=true}
     -- the sheet slides up: its input is in the tree before Send is on screen
     device:assert_visible({id='ProblemEditorVoiceReviewSheet-Send'}, {timeout=30000})
   end)
@@ -232,14 +235,13 @@ while true do
   assert_true(outcome == "applied", ("turn %d: outcome %s"):format(n, outcome))
   assert_true(#w == 0, ("turn %d: JS warning: %s"):format(n, tostring(w[1])))
   -- BetterStack holds these lines for the session: a turn that applied must have logged its transcription and its plan (a rename plans locally)
-  local function info_log() return table.concat(device:get_logs{level='info'}, "\n") end
   local function planned() local t = info_log() return t:find("voice_edit.plan.response", 1, true) or t:find("voice_edit.plan.local", 1, true) end
   -- the strip can go before the planner answers: its line is awaited, not read once. A plan that failed (the banner reads "Server error (500)")
   -- logs voice_edit.plan.error and never the response line: no wait makes it appear, so the wait stays short.
-  device:extended_wait_until{condition=planned, timeout=30000, optional=true}
+  local plan_logged = device:extended_wait_until{condition=planned, timeout=30000, optional=true}
   local info = info_log()
-  assert_true(info:find("voice_edit.transcribe.response", 1, true), ("turn %d: no transcribe.response line in the app log"):format(n))
-  assert_true(planned(), ("turn %d: no plan.response or plan.local line in the app log"):format(n))
+  assert_true(transcribe_logged or info:find("voice_edit.transcribe.response", 1, true), ("turn %d: no transcribe.response line in the app log"):format(n))
+  assert_true(plan_logged or planned(), ("turn %d: no plan.response or plan.local line in the app log"):format(n))
 end
 
 local final = not chunk or last >= #(PLAN[problem] or {})
