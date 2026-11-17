@@ -15,9 +15,9 @@ const MAX_HEAD: usize = 16 * 1024;
 const MAX_BODY: usize = 64 * 1024;
 /// The upload route takes the attachment's bytes: as much as the agent API keeps, with longer to read them in.
 const UPLOAD_TIMEOUT: Duration = Duration::from_secs(120);
-/// `GET /api/orchestration/threads/:threadId/history` and `.../transcript`.
 /// `/api/hooks/:a/:b`, the webhook routes: no webhook is built here, so each is a hook that does not exist.
 const HOOKS: &str = "/api/hooks/";
+/// `GET /api/orchestration/threads/:threadId/history` and `.../transcript`.
 const THREADS: &str = "/api/orchestration/threads/";
 
 pub struct Request {

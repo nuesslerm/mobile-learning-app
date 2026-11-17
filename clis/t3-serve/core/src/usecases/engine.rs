@@ -44,6 +44,9 @@ struct Inner {
     rejected: HashMap<String, String>,
 }
 
+/// Bound on remembered refusals, so a client cannot grow them without end; past it the oldest knowledge is dropped whole.
+const MAX_REJECTED: usize = 10_000;
+
 pub struct Engine {
     store: Arc<dyn EventStore>,
     clock: Arc<dyn Clock>,
@@ -110,6 +113,9 @@ impl Engine {
             Rejection::Refused(m) => refuse(m),
             Rejection::ProjectNotEmpty(project_id) => Failure::ProjectNotEmpty { command_id: cmd.command_id.clone(), project_id },
             Rejection::ThreadMissing(thread_id) => {
+                if inner.rejected.len() >= MAX_REJECTED {
+                    inner.rejected.clear();
+                }
                 inner.rejected.insert(cmd.command_id.clone(), t3_contracts::wire::projection_load_failed(&thread_id));
                 Failure::ThreadMissing { command_id: cmd.command_id.clone(), command_type: cmd.kind.clone(), thread_id }
             }

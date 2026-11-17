@@ -219,3 +219,20 @@ fn every_rpc_of_the_scope_table_this_server_does_not_build_is_a_typed_unsupporte
     }
     assert_eq!(success(&rpc.call("server.probe", json!({}))), &json!({}));
 }
+
+#[test]
+fn an_update_that_changes_nothing_is_accepted_for_a_thread_and_for_a_project_as_the_pin_answers_it() {
+    // Given a project with a thread
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    rpc.call("projects.mutate", project_create("c-p", "p1"));
+    rpc.call("orchestration.dispatchCommand", thread_create("c-t", "t1", "p1"));
+
+    // When each is updated with no field to change
+    let thread = rpc.call("orchestration.dispatchCommand", json!({"type": "thread.metadata.update", "commandId": "c-m", "threadId": "t1"}));
+    let project = rpc.call("projects.mutate", json!({"type": "project.update", "commandId": "c-u", "projectId": "p1"}));
+
+    // Then both succeed instead of being refused
+    success(&thread);
+    success(&project);
+}
