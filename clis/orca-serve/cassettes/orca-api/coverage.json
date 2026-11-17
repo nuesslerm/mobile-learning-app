@@ -9392,16 +9392,6 @@
       "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
     },
     {
-      "row": "http:mobile/src/query/host-query.ts#1",
-      "status": "skipped",
-      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
-    },
-    {
-      "row": "http:mobile/src/query/host-query.ts#2",
-      "status": "skipped",
-      "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
-    },
-    {
       "row": "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1",
       "status": "skipped",
       "reason": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"

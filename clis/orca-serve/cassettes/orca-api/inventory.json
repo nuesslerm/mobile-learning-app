@@ -38,7 +38,7 @@
     {
       "name": "catalog",
       "available": true,
-      "found": 896
+      "found": 894
     },
     {
       "name": "runtime",
@@ -19415,38 +19415,6 @@
       "skipped": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
     },
     {
-      "id": "http:mobile/src/query/host-query.ts#1",
-      "kind": "http",
-      "name": "mobile/src/query/host-query.ts#1",
-      "transport": "http",
-      "streaming": false,
-      "users": [
-        "mobile"
-      ],
-      "sources": [
-        "catalog"
-      ],
-      "input": "empty",
-      "classes": {},
-      "skipped": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
-    },
-    {
-      "id": "http:mobile/src/query/host-query.ts#2",
-      "kind": "http",
-      "name": "mobile/src/query/host-query.ts#2",
-      "transport": "http",
-      "streaming": false,
-      "users": [
-        "mobile"
-      ],
-      "sources": [
-        "catalog"
-      ],
-      "input": "empty",
-      "classes": {},
-      "skipped": "a third-party URL the phone calls (app store, GitHub releases, DNS): not an Orca host endpoint"
-    },
-    {
       "id": "http:mobile/src/transport/relay/mobile-relay-resume-director.ts#1",
       "kind": "http",
       "name": "mobile/src/transport/relay/mobile-relay-resume-director.ts#1",
@@ -22283,26 +22251,26 @@
       "version": "1.4.259",
       "commit": "980c0024741812bd7ae934c0c22144d9926a784e"
     },
-    "endpoints": 896,
+    "endpoints": 894,
     "by_kind": {
-      "http": 9,
+      "http": 7,
       "rpc": 886,
       "transport": 1
     },
     "by_user": {
       "cli": 316,
       "internal": 321,
-      "mobile": 319
+      "mobile": 317
     },
     "by_source": {
-      "catalog": 896,
+      "catalog": 894,
       "cli-source": 316,
       "mobile-calls": 299,
       "registry": 886,
       "schema": 811
     },
     "by_input": {
-      "empty": 237,
+      "empty": 235,
       "schema": 659
     },
     "by_class": {
@@ -22312,7 +22280,7 @@
       "valid": 659
     },
     "cases": 3970,
-    "skipped": 36,
+    "skipped": 34,
     "streaming": 26,
     "cli_commands": 343,
     "sources": [
@@ -22348,7 +22316,7 @@
       {
         "name": "catalog",
         "available": true,
-        "found": 896
+        "found": 894
       },
       {
         "name": "runtime",
