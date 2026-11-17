@@ -13,6 +13,10 @@ local android = device.platform == "android"
 local base = env.base or (not android and "http://127.0.0.1:8800/mla-tamagui" or nil)
 assert_true(base, "pass --env base=<update link>; wf test run does")
 device:add_network_stub("POST", "*/api/leetcode/run", { body_file = "e2e/stubs/leetcode-run-two-sum.json", headers = { ["content-type"] = "application/json" } })
+if android then
+  -- is the path emulator -> DNAT rule -> stub alive at all, before the app is involved? One bare connect from the device shell: the stub logs the connection it accepts
+  log("stub probe", (device:run_shell("echo | nc -w 3 10.0.2.2 8789; echo rc=$?")))
+end
 -- a reused app may still show this screen: a link to it remounts it a moment later, so the first wait would pass on the
 -- old one (18 Oct); the app leaves for Settings first (a link to "/" does not navigate a running Expo Go)
 if android and device:get_element({id='ProblemEditorRunLocalButton'}) then
