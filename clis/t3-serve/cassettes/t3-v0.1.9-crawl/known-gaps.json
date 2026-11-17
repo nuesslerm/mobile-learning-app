@@ -1118,19 +1118,6 @@
       ]
     },
     {
-      "class": "changed at steps.ws:s2c:*.[*].payload.values.[*].compactCommand",
-      "severity": "drift",
-      "diffs": [
-        "steps.ws:s2c:1.[0].payload.values.[0].compactCommand changed drift",
-        "steps.ws:s2c:1.[0].payload.values.[0].databaseBytes changed drift",
-        "steps.ws:s2c:1.[0].payload.values.[0].incrementalVacuumEnabled changed drift"
-      ],
-      "ids": [
-        "t3-rpc-server.getDatabaseStorage-invalid-no-payload",
-        "t3-rpc-server.getDatabaseStorage-valid-min"
-      ]
-    },
-    {
       "class": "missing at steps.ws:s2c:*.[*].payload.values.[*].config.environment.capabilities.cloudVoiceTranscription",
       "severity": "breaking",
       "diffs": [

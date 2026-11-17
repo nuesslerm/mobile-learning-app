@@ -2703,10 +2703,13 @@
       "state": "served",
       "milestone": "M10",
       "evidence": {
-        "suite": "t3-serve-integration",
-        "test": "settings_m10::the_database_storage_stream_measures_the_state_database_serve_keeps_in_its_state_directory",
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-server.getDatabaseStorage-invalid-no-payload",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {

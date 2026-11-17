@@ -141,6 +141,24 @@
       "reason": "the crawl shares one chain between its writes: the pin re-ran the create of a thread whose receipt it no longer saw, which cleared the archive the earlier case set, so the archived state follows time and not the command",
       "phase": "R2a",
       "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "compactCommand",
+      "reason": "the command that compacts the state store is this server's own (sqlite3 VACUUM)",
+      "phase": "3",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "databaseBytes",
+      "reason": "host-dependent size of the state store",
+      "phase": "3",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "incrementalVacuumEnabled",
+      "reason": "this server's sqlite state store sets its own vacuum mode",
+      "phase": "3",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
     }
   ]
 }
