@@ -334,7 +334,11 @@ fn given_a_repository_with_labels_when_they_are_listed_then_the_names_come_back_
     // And a missing selector, a bad ownerRepo and an unknown workspace are the only refusals
     assert_eq!(rig.err("github.listLabels", json!({"repo": ""})).0, "invalid_argument");
     assert_eq!(rig.err("github.listLabels", json!({"ownerRepo": null})).0, "invalid_argument");
-    assert_eq!(rig.err("github.listLabels", json!({"repo": "nowhere"})).0, "selector_not_found");
+    assert_eq!(rig.err("github.listLabels", json!({"repo": "nowhere"})).0, "repo_not_found");
+    // And an account expectation that is not {host, user} is refused before the repository is looked up
+    let (code, message) = rig.err("github.listLabels", json!({"repo": "nowhere", "expectedGhAccount": "a"}));
+    assert_eq!((code.as_str(), message.as_str()), ("invalid_argument", "Invalid GitHub account expectation"));
+    assert_eq!(rig.ok("github.listLabels", json!({"expectedGhAccount": {"host": "GitHub.com", "user": "octocat"}})), json!(["bug", "docs"]));
 }
 
 #[test]

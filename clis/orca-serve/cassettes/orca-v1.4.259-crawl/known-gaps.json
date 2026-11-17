@@ -1207,8 +1207,6 @@
         "orca-github.listIssues-invalid-no-payload",
         "orca-github.listIssues-invalid-wrong-type-repo",
         "orca-github.listIssues-valid-min",
-        "orca-github.listLabels-boundary-full",
-        "orca-github.listLabels-valid-min",
         "orca-github.listWorkItems-boundary-full",
         "orca-github.listWorkItems-boundary-limit-page",
         "orca-github.listWorkItems-invalid-drop-repo",
@@ -2865,7 +2863,6 @@
         "orca-ui.getJiraSavedFilters-empty-empty-object",
         "orca-ui.getJiraSavedFilters-invalid-no-payload",
         "orca-ui.mutateJiraSavedFilters-valid-min",
-        "orca-ui.set-invalid-no-payload",
         "orca-ui.setJiraQuickFilters-boundary-full",
         "orca-ui.setJiraQuickFilters-valid-min",
         "orca-updater.getStatus-empty-empty-object",
@@ -3312,26 +3309,6 @@
       ]
     },
     {
-      "class": "changed at steps._:s2c:*.[*].payload.result.capabilities",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.result.appVersion changed drift",
-        "steps._:s2c:0.[0].payload.result.capabilities changed breaking",
-        "steps._:s2c:0.[0].payload.result.capabilities.[0] changed drift",
-        "steps._:s2c:0.[0].payload.result.capabilities.[1] changed drift",
-        "steps._:s2c:0.[0].payload.result.deviceScope changed drift",
-        "steps._:s2c:0.[0].payload.result.machineName changed drift",
-        "steps._:s2c:0.[0].payload.result.pairedDeviceId changed drift",
-        "steps._:s2c:0.[0].payload.result.worktreeCreateIdempotency missing breaking"
-      ],
-      "ids": [
-        "orca-status.get-boundary-full",
-        "orca-status.get-invalid-no-payload",
-        "orca-status.get-invalid-wrong-type-probe",
-        "orca-status.get-valid-min"
-      ]
-    },
-    {
       "class": "missing at steps._:s2c:*.[*].payload.client_error",
       "severity": "breaking",
       "diffs": [
@@ -3419,67 +3396,14 @@
       ]
     },
     {
-      "class": "changed at steps._:s2c:*.[*].payload.result.ui.contextualToursSeenIds",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.result.ui.combinedDiffFileTreeWidth changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.contextualToursSeenIds changed breaking",
-        "steps._:s2c:0.[0].payload.result.ui.featureTipsSeenIds changed breaking",
-        "steps._:s2c:0.[0].payload.result.ui.jiraSavedFilterState missing breaking",
-        "steps._:s2c:0.[0].payload.result.ui.markdownTocPanelWidth changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.rightSidebarTab changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.visibleWorkspaceHostIds kind breaking",
-        "steps._:s2c:0.[0].payload.result.ui.workspaceBoardColumnWidth changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.workspaceBoardOpacity changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.workspaceCleanup.browse kind breaking",
-        "steps._:s2c:0.[0].payload.result.ui.workspaceHostScope changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.workspaceStatuses.[0].color changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.workspaceStatuses.[0].icon changed drift",
-        "steps._:s2c:0.[0].payload.result.ui.worktreeCardProperties changed breaking",
-        "steps._:s2c:0.[0].payload.result.ui.activityBarPosition extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.activityClearedAtByPaneKey extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.agentsCompactMode extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.agentsFilterRepoIds extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.agentsGroupBy extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.agentsHideAutomationGeneratedWorkspaces extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.agentsHideCliCreatedWorkspaces extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.agentsHideWorkspacesFromOtherDevices extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.agentsReadFilter extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.agentsShowChildAgents extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.agentsShowSearch extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.agentsVisibleHostIds extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.automationHostFilter extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.hideWorkspacesFromOtherDevices extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.manualRepoOrder extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.manuallyUnreadTurnsByPaneKey extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.releaseChannelOverride extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.showAgentModels extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.sidebarOpen extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.taskResumeState extra drift",
-        "steps._:s2c:0.[0].payload.result.ui.workspaceHostOrder extra drift"
-      ],
-      "ids": [
-        "orca-ui.set-boundary-full"
-      ]
-    },
-    {
       "class": "missing at steps._:s2c:*.[*].payload.result.ui.jiraSavedFilterState",
       "severity": "breaking",
       "diffs": [
         "steps._:s2c:0.[0].payload.result.ui.jiraSavedFilterState missing breaking"
       ],
       "ids": [
-        "orca-ui.set-valid-min"
-      ]
-    },
-    {
-      "class": "kind at steps._:s2c:*.[*].payload.result.ui.lastActiveRepoId",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.result.ui.lastActiveRepoId kind breaking"
-      ],
-      "ids": [
-        "orca-ui.set-invalid-wrong-type-lastActiveRepoId"
+        "orca-ui.set-valid-min",
+        "orca-ui.set-boundary-full"
       ]
     }
   ]

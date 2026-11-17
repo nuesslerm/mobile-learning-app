@@ -177,7 +177,7 @@ fn given_a_kept_value_of_the_wrong_shape_when_it_is_read_then_the_call_is_refuse
     rig.agent.set_state("orca", "terminalQuickCommands", json!({"a": 1}));
     // When the phone reads either, or updates over them
     // Then each is refused saying what is wrong
-    for (method, params, says) in [("ui.get", json!({}), "not an object"), ("ui.set", json!({"a": 1}), "not an object"), ("settings.getTerminalQuickCommands", json!({}), "not a list")] {
+    for (method, params, says) in [("ui.get", json!({}), "not an object"), ("ui.set", json!({"sidebarWidth": 1}), "not an object"), ("settings.getTerminalQuickCommands", json!({}), "not a list")] {
         let (code, message) = rig.err(method, params);
         assert_eq!(code, "runtime_error", "{method}");
         assert!(message.contains(says), "{method}: {message}");
@@ -199,4 +199,41 @@ fn given_the_orca_pin_when_the_kept_copy_of_its_defaults_is_checked_then_it_is_t
     assert_eq!(provenance["orcaCommit"], pin["commit"], "the Orca pin moved: src/defaults.json was copied at another commit");
     assert_eq!(provenance["orcaVersion"], pin["version"]);
     assert_eq!(provenance["defaultsSha256"], json!(digest), "src/defaults.json differs from the copy recorded in src/defaults.provenance.json");
+}
+
+#[test]
+fn given_ui_values_of_the_wrong_kind_or_unknown_when_set_then_the_wrong_kind_is_dropped_and_an_unknown_key_refuses_the_call() {
+    let mut rig = Rig::new();
+    // When a wrong-typed value, an unknown tour id and a pairing-local key come with a good one, and params are null
+    let set = rig.ok("ui.set", json!({"lastActiveRepoId": 7, "contextualToursSeenIds": ["nope", "tasks"], "sidebarOpen": true, "sidebarWidth": 320}));
+    let null = rig.ok("ui.set", Value::Null);
+    // Then only the good value and the known tour id are kept, the local key is never answered, and null params answer the state
+    assert_eq!(set["ui"], over_defaults("ui", json!({"contextualToursSeenIds": ["tasks"], "sidebarWidth": 320})));
+    assert_eq!(null, set);
+    // And an unknown key refuses the call without a write
+    let writes = rig.writes();
+    let (code, message) = rig.err("ui.set", json!({"nope": 1}));
+    assert_eq!((code.as_str(), message.as_str()), ("invalid_argument", "Unrecognized key: \"nope\""));
+    assert_eq!(rig.writes(), writes);
+}
+
+#[test]
+fn given_ui_values_outside_their_range_when_set_then_each_is_normalised_as_orca_does() {
+    let mut rig = Rig::new();
+    // When widths, the board opacity, host ids, workspace statuses and card properties are set out of range
+    let set = rig.ok(
+        "ui.set",
+        json!({"combinedDiffFileTreeWidth": 0, "markdownTocPanelWidth": 9000, "workspaceBoardOpacity": 0, "workspaceBoardColumnWidth": 10, "visibleWorkspaceHostIds": ["a", "ssh:x", "ssh:x"],
+               "workspaceStatuses": [{"id": "A b", "label": "  Hello   world "}, {"id": "A b", "label": "x", "color": "rose", "icon": "flag"}], "worktreeCardProperties": ["host", "ci"], "featureTipsSeenIds": ["orca-cli", "x"]}),
+    );
+    // Then the clamps, the host list, the unique ids and the fixed card pair show in the answer; the tips list with an unknown id is dropped whole
+    let ui = &set["ui"];
+    assert_eq!((&ui["combinedDiffFileTreeWidth"], &ui["markdownTocPanelWidth"], &ui["workspaceBoardOpacity"], &ui["workspaceBoardColumnWidth"]), (&json!(200), &json!(600), &json!(0.2), &json!(220)));
+    assert_eq!((&ui["visibleWorkspaceHostIds"], &ui["workspaceHostScope"]), (&json!(["ssh:x"]), &json!("ssh:x")));
+    assert_eq!(
+        ui["workspaceStatuses"],
+        json!([{"id": "a-b", "label": "Hello world", "color": "neutral", "icon": "circle-dot"}, {"id": "x", "label": "x", "color": "rose", "icon": "flag"}])
+    );
+    assert_eq!(ui["worktreeCardProperties"], json!(["status", "unread", "ci", "host"]));
+    assert_eq!(ui["featureTipsSeenIds"], json!([]));
 }

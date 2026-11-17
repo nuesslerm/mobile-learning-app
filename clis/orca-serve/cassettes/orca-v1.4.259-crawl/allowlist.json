@@ -1,5 +1,30 @@
 {
-  "ignored": [],
+  "ignored": [
+    {
+      "path": "result.appVersion",
+      "reason": "the version of the server answering: the recording host is Orca 1.4.259, this server reports its own build",
+      "phase": "R10",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.machineName",
+      "reason": "the name of the machine answering: the recording host is a CI runner, this server reports its own host name",
+      "phase": "R10",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.pairedDeviceId",
+      "reason": "the id minted for the phone at pairing, which differs between any two pairings",
+      "phase": "R10",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.deviceScope",
+      "reason": "the scope of the token the phone paired with: the recording sidecar paired with a runtime-scope token, while this server stamps a paired phone as mobile",
+      "phase": "R10",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    }
+  ],
   "omitted": [
     {
       "path": "ui.featureInteractions.agent-orchestration",
@@ -156,6 +181,12 @@
       "reason": "how the recording host probed Claude's credentials (its sources and failure kind), which rca does not run",
       "phase": "R2a",
       "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.worktreeCreateIdempotency",
+      "reason": "the dedupe window of the recording host's worktree.create; this server keeps no create-result window and so does not claim one",
+      "phase": "R10",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
     }
   ],
   "shapeOnly": [
@@ -187,6 +218,12 @@
       "path": "result.totalCount",
       "reason": "the count of the worktrees or terminals the host holds is its own state: the recording host had none, the chain's has its workspace",
       "phase": "R7",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.capabilities",
+      "reason": "the capability strings this host advertises: this server lists only the capabilities its mapped rows serve, the recording host lists everything it implements",
+      "phase": "R10",
       "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
     }
   ]

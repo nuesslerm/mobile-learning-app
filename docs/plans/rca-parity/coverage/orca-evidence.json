@@ -8,15 +8,155 @@
         "suite": "wf-mimic-orca-crawl",
         "sha": null,
         "complete": true,
-        "tests": 3968,
-        "passed": 722
+        "tests": 1159,
+        "passed": 55
       },
       {
         "suite": "wf-mimic-orca-recorded",
         "sha": null,
         "complete": true,
-        "tests": 311,
+        "tests": 41,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": null,
+        "complete": true,
+        "tests": 163,
+        "passed": 18
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 7,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": null,
+        "complete": true,
+        "tests": 667,
         "passed": 148
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 56,
+        "passed": 33
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": null,
+        "complete": true,
+        "tests": 209,
+        "passed": 116
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 31,
+        "passed": 27
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": null,
+        "complete": true,
+        "tests": 446,
+        "passed": 59
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 62,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": null,
+        "complete": true,
+        "tests": 33,
+        "passed": 13
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 8,
+        "passed": 6
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": null,
+        "complete": true,
+        "tests": 34,
+        "passed": 25
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 7,
+        "passed": 6
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": null,
+        "complete": true,
+        "tests": 416,
+        "passed": 94
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 32,
+        "passed": 23
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": null,
+        "complete": true,
+        "tests": 53,
+        "passed": 16
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 9,
+        "passed": 7
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": null,
+        "complete": true,
+        "tests": 276,
+        "passed": 88
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 21,
+        "passed": 19
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": null,
+        "complete": true,
+        "tests": 535,
+        "passed": 117
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 42,
+        "passed": 21
       }
     ]
   },
@@ -717,6 +857,15 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:github.listLabels": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-github.listLabels-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:github.markPRDraft": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-github.markPRDraft-invalid-drop-repo",
@@ -1167,6 +1316,15 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:status.get": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-status.get-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
     "rpc:terminal.ackOutput": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-terminal.ackOutput-boundary-limit-units",
@@ -1294,10 +1452,13 @@
       "cassette": "recorded"
     },
     "rpc:ui.set": {
-      "suite": "wf-mimic-orca-recorded",
-      "test": "orca-v1.4.259-recorded::orca-ui.set",
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-ui.set-invalid-no-payload",
       "agent": [],
-      "executor": []
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
     },
     "rpc:worktree.create": {
       "suite": "wf-mimic-orca-crawl",

@@ -1291,7 +1291,13 @@
       "oracle": "mimic"
     },
     "rpc:ui.set": {
-      "unrecordable": "blocked, not a recording limit: ui.set answers the pin's sanitised state (strict keys, a wrong-typed value dropped, null params as {}, each key normalised, pairing-local keys stripped, workspaceCleanup.browse and the tour and tip id lists normalised) and map-state stores what it is given; the port needs about 25 helpers of references/orca/src/shared, and the crawl replay also needs jiraSavedFilterState, which the recorded chain sets with ui.mutateJiraSavedFilters, a method not served here; it keeps its replay evidence because pending may not rise"
+      "oracle": "mimic"
+    },
+    "rpc:status.get": {
+      "oracle": "mimic"
+    },
+    "rpc:github.listLabels": {
+      "oracle": "mimic"
     }
   },
   "reverify": {
@@ -1318,7 +1324,6 @@
     "rpc:clipboard.startImageUpload": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the upload would only be held in the mapper",
     "rpc:git.remoteCommitUrl": "reverify when the group reports a remote's address (M9): git.upstreamStatus lists the remotes' names and never their URLs, so the web address of a commit cannot be built, and any other answer would pass without reading the remote",
     "rpc:github.prComments": "reverify when the body image urls the host lists beside a comment (transient, signed links to attachments) can be kept and offered: the mapper answers them as an empty list; the host's noCache option is ignored, rca keeps no read cache to bypass",
-    "rpc:github.listLabels": "reverify when mapped over pr.labelCandidates (M11): it answers the repository's labels with their colors, and the candidates give names; not mapped in this milestone",
     "rpc:notifications.getMissedSince": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no numbered feed to read what a phone missed from",
     "rpc:notifications.registerPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so a push token would be stored for nothing to send to",
     "rpc:notifications.subscribe": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to open",

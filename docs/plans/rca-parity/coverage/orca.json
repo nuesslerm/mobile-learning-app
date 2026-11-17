@@ -9,8 +9,8 @@
   },
   "summary": {
     "rows": 317,
-    "served": 154,
-    "pending": 10,
+    "served": 156,
+    "pending": 8,
     "notOffered": 143,
     "excluded": 7,
     "flagged": 3,
@@ -21,10 +21,10 @@
       "transport": 1
     },
     "pendingByMilestone": {
-      "M5": 3,
+      "M5": 2,
       "M6": 1,
       "M7": 4,
-      "M11": 2
+      "M11": 1
     }
   },
   "rows": [
@@ -1835,9 +1835,17 @@
       "id": "rpc:github.listLabels",
       "kind": "rpc",
       "name": "github.listLabels",
-      "state": "pending",
+      "state": "served",
       "milestone": "M11",
-      "reverify": "reverify when mapped over pr.labelCandidates (M11): it answers the repository's labels with their colors, and the candidates give names; not mapped in this milestone"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.listLabels-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.listWorkItems",
@@ -3457,8 +3465,17 @@
       "id": "rpc:status.get",
       "kind": "rpc",
       "name": "status.get",
-      "state": "pending",
-      "milestone": "M5"
+      "state": "served",
+      "milestone": "M5",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-status.get-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:terminal.ackOutput",
@@ -3710,10 +3727,13 @@
       "state": "served",
       "milestone": "M10",
       "evidence": {
-        "suite": "wf-mimic-orca-recorded",
-        "test": "orca-v1.4.259-recorded::orca-ui.set",
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-ui.set-invalid-no-payload",
         "agent": [],
-        "executor": []
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
       }
     },
     {

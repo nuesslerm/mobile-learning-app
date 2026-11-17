@@ -46,7 +46,6 @@
         "orca-github.countWorkItems",
         "orca-github.createIssue",
         "orca-github.listAssignableUsers",
-        "orca-github.listLabels",
         "orca-github.listWorkItems",
         "orca-github.markPRDraft",
         "orca-github.markPRReadyForReview",

@@ -20,12 +20,38 @@ pub fn pr_checks(t: &Target, params: &Value) -> Result<Value, Failure> {
 
 /// `github.listLabels`: the names of the repository's labels, one page of at most 200 where the host pages through them all. The host answers an empty
 /// list for any repository it cannot read, so a refusal of rca's read is an empty list too; only a repository selector that names no workspace is an error.
-pub fn list_labels(t: &Target, params: &Value) -> Result<Value, Failure> {
+/// The schema order of `github.listLabels`: the repo selector, the repository it names, then the expected GitHub account (`{host, user}`).
+pub(crate) fn check_label_params(params: &Value) -> Result<(), Failure> {
+    if crate::text(params, "repo").is_none() {
+        return Err(Failure::invalid("Missing repo selector"));
+    }
     match params.get("ownerRepo") {
-        None => {}
-        Some(Value::Object(_)) => {}
+        None | Some(Value::Object(_)) => {}
         Some(other) => return Err(Failure::invalid(format!("Invalid input: expected object, received {}", if other.is_null() { "null" } else { "a value of another type" }))),
     }
+    match params.get("expectedGhAccount") {
+        None | Some(Value::Null) => Ok(()),
+        Some(account) if gh_account_binding(account) => Ok(()),
+        Some(_) => Err(Failure::invalid("Invalid GitHub account expectation")),
+    }
+}
+
+/// `{host, user}`: a host name (optionally with a port) and a user of 1 to 255 characters without whitespace or NUL.
+fn gh_account_binding(v: &Value) -> bool {
+    let (Some(host), Some(user)) = (v.get("host").and_then(Value::as_str), v.get("user").and_then(Value::as_str)) else { return false };
+    let host = host.trim().to_lowercase();
+    let user = user.trim();
+    let name = match host.rsplit_once(':') {
+        Some((n, p)) if !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit()) => n,
+        _ => host.as_str(),
+    };
+    let first_ok = name.chars().next().is_some_and(|c| c.is_ascii_alphanumeric());
+    first_ok && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-') && !user.is_empty() && user.chars().count() <= 255 && !user.chars().any(|c| c.is_whitespace() || c == '\0')
+}
+
+/// `github.listLabels`: the names of the repository's labels, one page of at most 200 where the host pages through them all. The host answers an empty
+/// list for any repository it cannot read, so a refusal of rca's read is an empty list too; only a repository selector that names no workspace is an error.
+pub fn list_labels(t: &Target, params: &Value) -> Result<Value, Failure> {
     let args = with_repo(json!({"limit": 200}), params, "ownerRepo")?;
     match t.try_ask(pr::LABEL_CANDIDATES, args) {
         Ok(answer) => Ok(Value::Array(answer["labels"].as_array().into_iter().flatten().filter_map(|l| l["name"].as_str()).filter(|n| !n.is_empty()).map(|n| json!(n)).collect())),

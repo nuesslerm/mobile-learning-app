@@ -14,6 +14,10 @@ mod quick;
 mod settings;
 mod store;
 mod ui;
+mod ui_cleanup;
+mod ui_params;
+mod ui_state;
+mod ui_values;
 
 /// What a mapping crate that keeps a value of its own under the scope `orca` sends.
 pub use agent_api_state::SET as STATE_SET;
@@ -60,7 +64,7 @@ impl Area for StateArea {
             SETTINGS_UPDATE => settings::update(agent, params),
             SETTINGS_GET_QUICK_COMMANDS => Ok(json!({"terminalQuickCommands": quick::list(agent)?})),
             SETTINGS_UPDATE_QUICK_COMMANDS => quick::update(agent, params),
-            UI_GET => Ok(json!({"ui": store::with_defaults(store::UI, store::read_object(agent, store::UI)?)})),
+            UI_GET => ui::get(agent),
             UI_SET => ui::set(agent, params),
             other => Err(Failure::new(METHOD_NOT_FOUND, format!("Unknown method: {other}"))),
         }
