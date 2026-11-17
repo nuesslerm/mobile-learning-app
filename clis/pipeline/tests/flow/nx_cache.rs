@@ -723,10 +723,10 @@ fn t3_serve_files_the_chain_reads(w: &Workspace) -> BTreeSet<String> {
 
 #[test]
 fn nx_reruns_the_t3_serve_chain_exactly_when_a_file_the_chain_builds_or_reads_changed() {
-    // Given this repository's files with the hashes Nx computes for the chain's tasks (the rest and one per recorded set)
+    // Given this repository's files with the hashes Nx computes for the chain's tasks (the rest and one replay per feature)
     let w = Workspace::copy();
     let hash = || {
-        let targets = "cargo-integration,cargo-integration-crawl,cargo-integration-recorded_1,cargo-integration-recorded_2,cargo-integration-recorded_3";
+        let targets = "cargo-integration,replay-t3-core-attachments,replay-t3-core-core,replay-t3-core-preview,replay-t3-core-pull_requests,replay-t3-core-schedules,replay-t3-core-terminal,replay-t3-core-vcs,replay-t3-core-workspace";
         let r = w.wf(&["test", "drift", "--projects", "crate-t3-serve", "--targets", targets], &[]);
         assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
         last_line(&r)["hashes"].clone()
@@ -772,6 +772,59 @@ fn nx_reruns_the_t3_serve_chain_exactly_when_a_file_the_chain_builds_or_reads_ch
         let moved = moved_tasks(file);
         assert!(moved.is_empty(), "{file} must not rerun the chain, but moves {moved:?}");
     }
+}
+
+#[test]
+fn nx_reruns_only_the_replay_of_the_mapping_crate_that_changed() {
+    // Given the hashes Nx computes for every replay task of orca-serve (one per mapping crate) in this repository's files
+    let w = Workspace::copy();
+    let hash = || {
+        let targets = "replay-orca-core,replay-orca-map-accounts,replay-orca-map-git,replay-orca-map-terminal,replay-orca-map-workspace";
+        let r = w.wf(&["test", "drift", "--projects", "crate-orca-serve", "--targets", targets], &[]);
+        assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
+        last_line(&r)["hashes"].clone()
+    };
+    let before = hash();
+    let moved = |file: &str| {
+        let mut after = serde_json::Value::Null;
+        w.with_edit(file, || after = hash());
+        let mut tasks: Vec<String> = before.as_object().unwrap().iter().filter(|(task, h)| after.get(task.as_str()) != Some(h)).map(|(task, _)| task.rsplit(':').next().unwrap().to_string()).collect();
+        tasks.sort();
+        tasks
+    };
+    // When a file of the git mapping crate changes, Then only the git replay hashes differently
+    assert_eq!(moved("clis/orca-serve/map-git/src/lib.rs"), ["replay-orca-map-git"]);
+    // And a file of the workspace mapping crate moves its own replay and those of the crates that depend on it (git and terminal here), and no other
+    assert_eq!(moved("clis/orca-serve/map-workspace/src/lib.rs"), ["replay-orca-map-git", "replay-orca-map-terminal", "replay-orca-map-workspace"]);
+    // And an edit of a cassette moves every replay, and the candidate's wiring does too
+    assert_eq!(moved("clis/orca-serve/cassettes/orca-v1.4.259-recorded/known-gaps.json").len(), 5);
+    assert_eq!(moved("clis/orca-serve/src/wiring.rs").len(), 5);
+    assert_eq!(moved("clis/orca-serve/core/src/lib.rs").len(), 5);
+}
+
+#[test]
+fn nx_reruns_only_the_replays_of_the_t3_features_whose_files_changed() {
+    // Given the hashes of t3-core's replay tasks
+    let w = Workspace::copy();
+    let hash = || {
+        let targets = "replay-t3-core-core,replay-t3-core-terminal,replay-t3-core-vcs,replay-t3-core-pull_requests";
+        let r = w.wf(&["test", "drift", "--projects", "crate-t3-serve", "--targets", targets], &[]);
+        assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
+        last_line(&r)["hashes"].clone()
+    };
+    let before = hash();
+    let moved = |file: &str| {
+        let mut after = serde_json::Value::Null;
+        w.with_edit(file, || after = hash());
+        let mut tasks: Vec<String> = before.as_object().unwrap().iter().filter(|(task, h)| after.get(task.as_str()) != Some(h)).map(|(task, _)| task.rsplit(':').next().unwrap().to_string()).collect();
+        tasks.sort();
+        tasks
+    };
+    // When the terminal usecase changes, Then the terminal replay and the feature without files (core) rerun, and no other
+    assert_eq!(moved("clis/t3-serve/core/src/usecases/terminal.rs"), ["replay-t3-core-core", "replay-t3-core-terminal"]);
+    // And a file two features name moves both, and a file no feature names moves every one
+    assert_eq!(moved("clis/t3-serve/core/src/usecases/pr_checkout.rs"), ["replay-t3-core-core", "replay-t3-core-pull_requests", "replay-t3-core-vcs"]);
+    assert_eq!(moved("clis/t3-serve/core/src/rpc/mod.rs").len(), 4);
 }
 
 #[test]

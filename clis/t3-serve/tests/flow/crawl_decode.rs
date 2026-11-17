@@ -1,6 +1,6 @@
 //! The decode defects of the pinned server (the crawl set's cases of each RPC group below that the real server answered with the decoder's defect) replayed against the router: the
 //! payload that does not decode is a `Die` with the decoder's text, as recorded. The slice of one group at flow tier, in place of the 415 s
-//! chain replay; the chain replay (`recorded_r1`) holds the same ids to `known-gaps.json`.
+//! chain replay; the chain replay (`replay_features`) holds the same ids to `known-gaps.json`.
 //! `CRAWL_PREFIX=<id substring>[,..]` replays that slice and prints what differs; with `CRAWL_WRITE_GAPS=1` it rewrites those ids in the gaps file.
 use super::support::mimic_t3::*;
 use super::support::*;

@@ -58,7 +58,7 @@
   "rows": {
     "command:checkpoint.rollback": {
       "suite": "t3-serve-integration",
-      "test": "rollback_m12::a_rollback_puts_the_files_back_to_how_the_first_dropped_turn_found_them_and_a_rollback_that_drops_nothing_touches_none",
+      "test": "checkpoint_rollback::a_rollback_puts_the_files_back_to_how_the_first_dropped_turn_found_them_and_a_rollback_that_drops_nothing_touches_none",
       "agent": [
         "thread.create",
         "thread.rollback"
@@ -69,7 +69,7 @@
     },
     "command:message.dispatch": {
       "suite": "t3-serve-integration",
-      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "test": "attachments::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
       "agent": [
         "thread.create",
         "thread.subscribe",
@@ -227,7 +227,7 @@
     },
     "command:thread.create": {
       "suite": "t3-serve-integration",
-      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "test": "attachments::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
       "agent": [
         "thread.create"
       ],
@@ -502,7 +502,7 @@
     },
     "http:metadata.descriptor": {
       "suite": "t3-serve-integration",
-      "test": "attachments_m12::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
+      "test": "attachments::a_name_that_climbs_out_is_kept_below_the_attachment_directory_an_id_that_climbs_out_is_refused_and_an_upload_past_what_the_service_keeps_is_refused_at_each_door",
       "agent": [],
       "executor": []
     },
@@ -553,7 +553,7 @@
     },
     "mutation:project.create": {
       "suite": "t3-serve-integration",
-      "test": "projects_m12::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+      "test": "projects::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
       "agent": [
         "file.browse",
         "state.set",
@@ -565,7 +565,7 @@
     },
     "mutation:project.delete": {
       "suite": "t3-serve-integration",
-      "test": "projects_m12::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
+      "test": "projects::a_project_below_the_root_is_a_workspace_of_rca_with_its_settings_in_rcas_state_a_delete_forgets_both_and_a_folder_outside_the_root_or_not_there_is_refused",
       "agent": [
         "file.browse",
         "state.set",

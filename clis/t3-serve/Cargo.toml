@@ -60,6 +60,7 @@ serde_json = { version = "1", features = ["preserve_order"] }
 getrandom = "0.3"
 
 [dev-dependencies]
+toml = { version = "0.8", default-features = false, features = ["parse"] }
 base64 = "0.22"
 t3-serve = { path = ".", features = ["testing"] }
 agent-api-accounts = { path = "../../libraries/agent-api/agent-api-accounts", features = ["testing"] }
@@ -83,12 +84,7 @@ tungstenite = { version = "0.30", default-features = false, features = ["handsha
 [package.metadata.arch]
 type = "cli-crate"
 
-# Each recorded set replays in an Nx task of its own (`cargo-integration-<group>`, tooling/nx/cargo-crates.js), keyed by its set's directory alone:
-# `filter` is the libtest filter of its test (tests/integration/recorded_r1.rs), and `cargo-integration` skips every filter.
-[package.metadata.integration.groups]
-agent_turns = { filter = "recorded_r1::agent_turns::", files = ["cassettes/t3-v0.1.9-agent-turns/**"] }
-crawl = { filter = "recorded_r1::crawl::", files = ["cassettes/t3-v0.1.9-crawl/**"] }
-recorded_1 = { filter = "recorded_r1::recorded_1::", files = ["cassettes/t3-v0.1.9-recorded-1/**"] }
-recorded_2 = { filter = "recorded_r1::recorded_2::", files = ["cassettes/t3-v0.1.9-recorded-2/**"] }
-recorded_3 = { filter = "recorded_r1::recorded_3::", files = ["cassettes/t3-v0.1.9-recorded-3/**"] }
-scenarios = { filter = "recorded_r1::scenarios::", files = ["cassettes/t3-v0.1.9-scenarios/**"] }
+# The recorded sets replayed by feature (tests/integration/replay_features.rs): t3-core names the rows of each feature and the files that
+# can move them (its own `[package.metadata.integration.replay.<feature>]`), and `wf test plan` makes one Nx task of each, `replay-t3-core-<feature>`.
+[package.metadata.integration.replay]
+sets = ["t3-v0.1.9-agent-turns", "t3-v0.1.9-crawl", "t3-v0.1.9-recorded-1", "t3-v0.1.9-recorded-2", "t3-v0.1.9-recorded-3", "t3-v0.1.9-scenarios"]

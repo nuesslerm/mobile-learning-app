@@ -1,6 +1,6 @@
 //! The project rows of M12 through the real router over the agent double: what a project the phone makes asks of the agent API (the folder
 //! checked, made a workspace, kept in `state`, forgotten), what `projects.ensureScratch`, `projects.createNew` and `projects.createFromThread`
-//! ask the executor to make, and what the phone is told. The chain (`tests/integration/projects_m12.rs`) runs the same calls through the real
+//! ask the executor to make, and what the phone is told. The chain (`tests/integration/projects.rs`) runs the same calls through the real
 //! service and executor and looks at the folders themselves.
 use super::support::*;
 use std::collections::HashSet;

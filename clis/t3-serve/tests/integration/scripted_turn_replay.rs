@@ -1,7 +1,7 @@
 //! A replay that scripts the agent CLI: the interaction's `cli.script` step writes a hung turn into the directory the chain's service starts its
 //! CLIs from, so the message the interaction dispatches starts a turn on rca and the interrupt that follows stops it. The two agent methods answer
 //! inside the window of the recorded call, which is what a row whose target is an agent method needs from its recording.
-use crate::recorded_r1::{mimic, CASSETTES};
+use crate::replay_features::{mimic, CASSETTES};
 use crate::rig::*;
 use crate::support::*;
 

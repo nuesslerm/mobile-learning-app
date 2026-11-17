@@ -19,24 +19,24 @@ Found by scanning each test's source for the exec-testkit helpers (comments skip
 
 | Chain test | Tests | Rows served | Scripted agent turn | gh double | Restart | Clock | Service env |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `attachments_m12` | 3 | 3 | 9 | none | none | none | none |
+| `attachments` | 3 | 3 | 9 | none | none | none | none |
 | `chain` | 6 | 3 | 10 | none | none | none | none |
-| `projects_m12` | 5 | 2 | 3 | none | none | none | none |
-| `rollback_m12` | 3 | 1 | 5 | none | none | none | none |
+| `projects` | 5 | 2 | 3 | none | none | none | none |
+| `checkpoint_rollback` | 3 | 1 | 5 | none | none | none | none |
 | `thread_surface` | 10 | 9 | 19 | none | none | none | none |
 
 ## (a) recorded, clean or drift-only gaps: switch the row to `"oracle": "mimic"`
 
 | Row | Served by | Detail |
 | --- | --- | --- |
-| `command:checkpoint.rollback` | chain `rollback_m12` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 0 breaking |
+| `command:checkpoint.rollback` | chain `checkpoint_rollback` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 0 breaking |
 | `command:provider-session.detach` | chain `thread_surface` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x1; 2 gap-listed, 0 breaking |
 | `command:queue.resume` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-2 x1, t3-v0.1.9-scenarios x1; 0 gap-listed, 0 breaking |
 | `command:queued-message.promote-to-steer` | chain `thread_surface` | t3-v0.1.9-agent-turns x1, t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-3 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 0 breaking |
 | `command:runtime-request.respond` | chain `thread_surface` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-2 x1, t3-v0.1.9-scenarios x1; 4 gap-listed, 0 breaking |
 | `command:thread.archive` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-2 x1; 0 gap-listed, 0 breaking |
 | `command:thread.auto-settle.set` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-3 x1, t3-v0.1.9-scenarios x1; 0 gap-listed, 0 breaking |
-| `command:thread.create` | chain `attachments_m12` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-1 x1; 0 gap-listed, 0 breaking |
+| `command:thread.create` | chain `attachments` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-1 x1; 0 gap-listed, 0 breaking |
 | `command:thread.delete` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-2 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 0 breaking |
 | `command:thread.fork` | chain `thread_surface` | t3-v0.1.9-agent-turns x1, t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-3 x1, t3-v0.1.9-scenarios x1; 0 gap-listed, 0 breaking |
 | `command:thread.interaction-mode.set` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-3 x1, t3-v0.1.9-scenarios x1; 0 gap-listed, 0 breaking |
@@ -68,8 +68,8 @@ Found by scanning each test's source for the exec-testkit helpers (comments skip
 | `http:orchestration.threadHistoryPage` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x2, t3-v0.1.9-recorded-3 x1; 0 gap-listed, 0 breaking |
 | `http:orchestration.threadTranscript` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x2, t3-v0.1.9-recorded-1 x1; 0 gap-listed, 0 breaking |
 | `http:pullRequests.diff` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-2 x1; 0 gap-listed, 0 breaking |
-| `mutation:project.create` | chain `projects_m12` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-3 x1; 0 gap-listed, 0 breaking |
-| `mutation:project.delete` | chain `projects_m12` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x1; 0 gap-listed, 0 breaking |
+| `mutation:project.create` | chain `projects` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-3 x1; 0 gap-listed, 0 breaking |
+| `mutation:project.delete` | chain `projects` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x1; 0 gap-listed, 0 breaking |
 | `mutation:project.update` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-2 x1, t3-v0.1.9-scenarios x2; 0 gap-listed, 0 breaking |
 | `rpc:assets.createUrl` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-3 x1; 0 gap-listed, 0 breaking |
 | `rpc:attachments.createUploadUrl` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-2 x1; 0 gap-listed, 0 breaking |
@@ -166,7 +166,7 @@ Found by scanning each test's source for the exec-testkit helpers (comments skip
 
 | Row | Served by | Detail |
 | --- | --- | --- |
-| `command:message.dispatch` | chain `attachments_m12` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-2 x1, t3-v0.1.9-scenarios x1; 3 gap-listed, 1 breaking |
+| `command:message.dispatch` | chain `attachments` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-2 x1, t3-v0.1.9-scenarios x1; 3 gap-listed, 1 breaking |
 | `command:queued-run.cancel` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-agent-turns x1, t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 1 breaking |
 | `command:queued-run.edit` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-agent-turns x1, t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-2 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 1 breaking |
 | `command:queued-run.start` | chain `thread_surface` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-3 x1, t3-v0.1.9-scenarios x1; 2 gap-listed, 1 breaking |
@@ -174,7 +174,7 @@ Found by scanning each test's source for the exec-testkit helpers (comments skip
 | `command:subagent.stop` | chain `thread_surface` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-3 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 1 breaking |
 | `command:thread.active.reorder` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 1 breaking |
 | `command:thread.pin.reorder` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-3 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 1 breaking |
-| `http:metadata.descriptor` | chain `attachments_m12` | t3-v0.1.9-crawl x2, t3-v0.1.9-recorded-3 x1; 3 gap-listed, 3 breaking |
+| `http:metadata.descriptor` | chain `attachments` | t3-v0.1.9-crawl x2, t3-v0.1.9-recorded-3 x1; 3 gap-listed, 3 breaking |
 | `rpc:assets.persistChatAttachments` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 1 breaking |
 | `rpc:git.preparePullRequestThread` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 1 breaking |
 | `rpc:git.runStackedAction` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-2 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 1 breaking |

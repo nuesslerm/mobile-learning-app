@@ -158,6 +158,18 @@ struct Crate {
     integration_uses: Vec<String>,
     /// `[package.metadata.integration.groups]`: the parts of the integration suite that are an Nx task each (`cargo-integration-<group>`), each with its libtest filter.
     integration_groups: Vec<(String, String)>,
+    /// `[package.metadata.integration.replay] sets`: the recorded sets a candidate crate replays by feature.
+    replay_sets: Vec<String>,
+    /// `[package.metadata.integration.replay]` of a mapping crate: `rows` (the crate is one feature) or one table of `rows` and `files` per named feature.
+    replay_features: Vec<ReplayFeature>,
+}
+
+/// The rows of a recorded set one mapping crate answers, and for a named feature of a larger crate the files that can move them (repo-relative globs;
+/// none: the feature replays on every change to the crate).
+struct ReplayFeature {
+    name: Option<String>,
+    rows: Vec<String>,
+    files: Vec<String>,
 }
 
 /// Every crate of the repo's cargo workspaces, with its path dependencies, read from the manifests: the plan job has no
@@ -207,7 +219,20 @@ fn rust_crates(root: &Path) -> Result<Vec<Crate>, String> {
             let grouped_files: Vec<String> = groups_table.into_iter().flat_map(|t| t.values()).filter_map(|spec| spec.get("files")).filter_map(toml::Value::as_array).flatten().filter_map(toml::Value::as_str).map(str::to_string).collect();
             let integration_files = integration_list("inputs").into_iter().chain(grouped_files).map(|g| normalize(&dir.join(g)).to_string_lossy().to_string()).collect();
             let integration_uses = integration_list("uses");
-            out.push(Crate { name: name.to_string(), dir: normalize(&dir).to_string_lossy().to_string(), manifest: manifest.to_string(), deps, e2e_groups, flow_groups, flow_files, flow_uses, integration_files, integration_uses, integration_groups });
+            let replay = integration.and_then(|f| f.get("replay")).and_then(toml::Value::as_table);
+            let strings = |v: Option<&toml::Value>| -> Vec<String> { v.and_then(toml::Value::as_array).into_iter().flatten().filter_map(toml::Value::as_str).map(str::to_string).collect() };
+            let replay_sets = strings(replay.and_then(|r| r.get("sets")));
+            let mut replay_features: Vec<ReplayFeature> = Vec::new();
+            if let Some(r) = replay {
+                if r.contains_key("rows") {
+                    replay_features.push(ReplayFeature { name: None, rows: strings(r.get("rows")), files: vec![] });
+                }
+                for (feature, spec) in r.iter().filter_map(|(k, v)| v.as_table().map(|t| (k, t))) {
+                    let files = strings(spec.get("files")).into_iter().map(|g| normalize(&dir.join(g)).to_string_lossy().to_string()).collect();
+                    replay_features.push(ReplayFeature { name: Some(feature.clone()), rows: strings(spec.get("rows")), files });
+                }
+            }
+            out.push(Crate { name: name.to_string(), dir: normalize(&dir).to_string_lossy().to_string(), manifest: manifest.to_string(), deps, e2e_groups, flow_groups, flow_files, flow_uses, integration_files, integration_uses, integration_groups, replay_sets, replay_features });
         }
     }
     Ok(out)
@@ -314,6 +339,69 @@ fn flow_entries(root: &Path, c: &Crate, reason: &str) -> Vec<(String, Value)> {
     c.flow_groups.iter().map(|g| ("flow-tests".to_string(), json!({ "kind": "flow", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command} {g}::"), "group": g, "target": format!("cargo-flow-{g}"), "why": [reason] }))).collect()
 }
 
+/// The libtest module of a candidate's replay tests (`tests/integration/replay_features.rs`): one submodule per feature, each an Nx task of its own.
+const REPLAY_FILTER: &str = "replay_features::";
+
+/// The recorded sets of `candidate` that hold a row starting with one of `rows` (a row is the `"row":"..."` field of an interaction).
+fn replay_sets(root: &Path, candidate: &Crate, rows: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = candidate
+        .replay_sets
+        .iter()
+        .filter(|set| {
+            let text = std::fs::read_to_string(root.join(&candidate.dir).join("cassettes").join(set).join("interactions.jsonl")).unwrap_or_default();
+            rows.iter().any(|r| text.contains(&format!("\"row\":\"{r}")))
+        })
+        .cloned()
+        .collect();
+    out.sort();
+    out
+}
+
+/// The replay entries of the mapping crates under each candidate crate, one Nx task `replay-<id>` per feature: a mapping crate's rows replay when it
+/// is reached (changed, or a crate it depends on is), and all of them when the candidate's own wiring is (its own files, its cassettes and inputs, the
+/// crates it runs). A feature of a crate that names its files replays alone for a change confined to those files and the features without files.
+fn replay_entries(root: &Path, crates: &[Crate], scope: &Scope, reached: &HashSet<String>) -> Vec<(String, Value)> {
+    let mut out = Vec::new();
+    for candidate in crates.iter().filter(|c| !c.replay_sets.is_empty()) {
+        let nested = |c: &&Crate| c.dir.starts_with(&format!("{}/", candidate.dir)) && !c.replay_features.is_empty();
+        let own_file = |f: &String| f.starts_with(&format!("{}/", candidate.dir)) && !crates.iter().any(|m| f.starts_with(&format!("{}/", m.dir)) && m.dir.len() > candidate.dir.len());
+        let wiring = match scope {
+            Scope::Changed(files) => files.iter().find(|f| own_file(f) || candidate.integration_files.iter().any(|g| glob_matches(g, f))).map(|f| format!("the candidate's wiring changed: {f}")).or_else(|| candidate.integration_uses.iter().find(|u| reached.contains(*u)).map(|u| format!("its chain runs {u}"))),
+            _ => Some("all".to_string()),
+        };
+        for m in crates.iter().filter(nested) {
+            let changed: Vec<&String> = match scope {
+                Scope::Changed(files) => files.iter().filter(|f| f.starts_with(&format!("{}/", m.dir))).collect(),
+                _ => vec![],
+            };
+            let through_dep = m.deps.iter().any(|d| reached.contains(d));
+            // a change confined to the named files of some features replays those and the features without files
+            let confined = m.replay_features.iter().any(|f| !f.files.is_empty()) && !through_dep && !changed.is_empty() && changed.iter().all(|c| m.replay_features.iter().any(|f| f.files.iter().any(|g| glob_matches(g, c))));
+            for f in &m.replay_features {
+                let mine = match scope {
+                    Scope::Changed(_) if !reached.contains(&m.name) => None,
+                    Scope::Changed(_) if confined && f.files.is_empty() => Some(format!("its crate {} changed", m.name)),
+                    Scope::Changed(_) if confined => f.files.iter().find_map(|g| changed.iter().find(|c| glob_matches(g, c))).map(|c| format!("{c} changed")),
+                    Scope::Changed(_) => Some(format!("its crate {} is reached", m.name)),
+                    _ => Some("all".to_string()),
+                };
+                let Some(reason) = mine.or_else(|| wiring.clone()) else { continue };
+                let id = match &f.name {
+                    Some(n) => format!("{}-{n}", m.name),
+                    None => m.name.clone(),
+                };
+                let sets = replay_sets(root, candidate, &f.rows);
+                let rows = f.rows.join(",");
+                let filter = format!("{REPLAY_FILTER}{}::", id.replace('-', "_"));
+                let command = format!("cargo test --locked -p {} --test integration --manifest-path {} -- --test-threads=1 {filter}", candidate.name, candidate.manifest);
+                let verbs: Vec<String> = sets.iter().map(|s| format!("wf mimic replay {}/cassettes/{s} --rows {rows} --gaps check", candidate.dir)).collect();
+                out.push(("integration-tests".to_string(), json!({ "kind": "integration", "crate": candidate.name, "dir": candidate.dir, "manifest": candidate.manifest, "command": command, "group": format!("replay-{id}"), "target": format!("replay-{id}"), "replay": { "crate": m.name, "rows": f.rows, "sets": sets, "verbs": verbs }, "why": [reason] })));
+            }
+        }
+    }
+    out
+}
+
 /// A crate's integration entries: the suite, and for a crate with integration groups the rest of it (its filters skipped) and one entry per group,
 /// each the Nx task `cargo-integration-<group>` replayed on its own inputs.
 fn integration_entry(root: &Path, c: &Crate, reason: &str) -> Vec<(String, Value)> {
@@ -321,7 +409,8 @@ fn integration_entry(root: &Path, c: &Crate, reason: &str) -> Vec<(String, Value
         return vec![];
     }
     let command = format!("cargo test --locked -p {} --test integration --manifest-path {} -- --test-threads=1", c.name, c.manifest);
-    let skips: String = c.integration_groups.iter().map(|(_, filter)| format!(" --skip {filter}")).collect();
+    let replays = if c.replay_sets.is_empty() { String::new() } else { format!(" --skip {REPLAY_FILTER}") };
+    let skips: String = c.integration_groups.iter().map(|(_, filter)| format!(" --skip {filter}")).collect::<String>() + &replays;
     let rest = json!({ "kind": "integration", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command}{skips}"), "why": [reason] });
     let groups = c.integration_groups.iter().map(|(g, filter)| json!({ "kind": "integration", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("{command} {filter}"), "group": g, "target": format!("cargo-integration-{g}"), "why": [reason] }));
     std::iter::once(rest).chain(groups).map(|entry| ("integration-tests".to_string(), entry)).collect()
@@ -429,6 +518,7 @@ fn crate_tests(root: &Path, scope: &Scope, packages: &[Package], every: Vec<Crat
         let Some(c) = crates.iter().find(|c| c.name == name) else { continue };
         out.extend(integration_entry(root, c, &reason));
     }
+    out.extend(replay_entries(root, &crates, scope, &reached));
     for (name, reason) in why {
         let Some(c) = crates.iter().find(|c| c.name == name) else { continue };
         out.push(("typecheck-lint-unit-tests".to_string(), json!({ "kind": "clippy", "crate": c.name, "dir": c.dir, "manifest": c.manifest, "command": format!("cargo clippy --locked -p {} --all-targets --manifest-path {} -- -D warnings", c.name, c.manifest), "why": [reason.clone()] })));
@@ -748,7 +838,7 @@ mod tests {
     use serde_json::json;
 
     fn crate_at(dir: &str) -> Crate {
-        Crate { name: "svc".into(), dir: dir.into(), manifest: format!("{dir}/Cargo.toml"), deps: vec![], e2e_groups: vec![], flow_groups: vec![], flow_files: vec![], flow_uses: vec![], integration_files: vec![], integration_uses: vec![], integration_groups: vec![] }
+        Crate { name: "svc".into(), dir: dir.into(), manifest: format!("{dir}/Cargo.toml"), deps: vec![], e2e_groups: vec![], flow_groups: vec![], flow_files: vec![], flow_uses: vec![], integration_files: vec![], integration_uses: vec![], integration_groups: vec![], replay_sets: vec![], replay_features: vec![] }
     }
 
     #[test]

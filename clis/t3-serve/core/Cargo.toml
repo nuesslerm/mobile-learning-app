@@ -22,3 +22,37 @@ base64 = "0.22"
 [package.metadata.arch]
 type = "rust-flat-core"
 dirs = ["rpc", "usecases"]
+
+# The rows of the recorded sets by feature, and the usecase files that can move them (from the crate dir): a change confined to the files of some
+# features replays those features and `core`, a change to any other file of the crate (or to a crate it depends on) replays every feature.
+# `core` has no files: it holds what the shared router, the decider and the engine answer, so it replays on every change to the crate.
+[package.metadata.integration.replay.terminal]
+rows = ["rpc:terminal.", "rpc:subscribeTerminalMetadata"]
+files = ["src/usecases/terminal.rs"]
+
+[package.metadata.integration.replay.vcs]
+rows = ["rpc:vcs.", "rpc:review.", "rpc:git.", "rpc:subscribeVcsBranch", "rpc:subscribeVcsStatus"]
+files = ["src/usecases/vcs.rs", "src/usecases/pr_checkout.rs"]
+
+[package.metadata.integration.replay.pull_requests]
+rows = ["rpc:pullRequests.", "rpc:sourceControl.", "rpc:projectClone.", "rpc:subscribeProjectClones", "http:pullRequests."]
+files = ["src/usecases/pr.rs", "src/usecases/pr_guide.rs", "src/usecases/pr_checkout.rs", "src/usecases/sourcecontrol.rs"]
+
+[package.metadata.integration.replay.preview]
+rows = ["rpc:preview.", "rpc:subscribePreviewEvents"]
+files = ["src/usecases/preview.rs"]
+
+[package.metadata.integration.replay.schedules]
+rows = ["rpc:scheduledTasks.", "http:webhooks."]
+files = ["src/usecases/schedules.rs"]
+
+[package.metadata.integration.replay.attachments]
+rows = ["rpc:attachments.", "rpc:assets."]
+files = ["src/usecases/attachments.rs"]
+
+[package.metadata.integration.replay.workspace]
+rows = ["rpc:filesystem.", "rpc:worktreeSetup.", "rpc:subscribeWorktreeSetup", "rpc:projects.", "mutation:project.", "http:projects."]
+files = ["src/usecases/workspace.rs", "src/usecases/projects.rs"]
+
+[package.metadata.integration.replay.core]
+rows = ["command:", "rpc:orchestration.", "rpc:server.", "rpc:provider.", "rpc:device.", "rpc:peerLinks.", "rpc:mcpApps.", "rpc:secrets.", "rpc:agentSessions.", "rpc:cloud.", "rpc:guestShare.", "rpc:shell.", "rpc:subscribeAuthAccess", "rpc:subscribeDeviceState", "rpc:subscribeDiscoveredLocalServers", "rpc:subscribeResourceTelemetry", "rpc:subscribeServerConfig", "rpc:subscribeServerLifecycle", "http:auth.", "http:connect.", "http:mcpOAuth.", "http:metadata.", "http:orchestration.", "http:voice."]

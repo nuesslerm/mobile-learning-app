@@ -23,8 +23,8 @@ mod launch;
 mod mimic_t3;
 #[path = "flow/lifecycle.rs"]
 mod lifecycle;
-#[path = "flow/local_m5.rs"]
-mod local_m5;
+#[path = "flow/local_host.rs"]
+mod local_host;
 #[path = "flow/pairing.rs"]
 mod pairing;
 #[path = "flow/pin_constants.rs"]

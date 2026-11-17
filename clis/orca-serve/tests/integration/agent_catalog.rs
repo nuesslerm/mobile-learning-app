@@ -1,7 +1,7 @@
 //! What a chat can run with and what the executor has, through the chain: the models of an agent, the agent CLIs the executor finds on its own
 //! `PATH` (fake ones with fixed versions), the skills in its repository, and a chat's options. A row counts only when the catalog method it maps
 //! to answered in its call's window and the executor ran the action that reads the machine; a refusal is shown to have reached the service.
-use crate::agent_m7::{answered, asked_nothing_of, create_params, executor_ran};
+use crate::agent_sessions::{answered, asked_nothing_of, create_params, executor_ran};
 use crate::rig::*;
 use exec_testkit::script::Script;
 use serde_json::{json, Value};

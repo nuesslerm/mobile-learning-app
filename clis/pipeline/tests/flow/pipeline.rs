@@ -599,6 +599,101 @@ fn a_crate_with_flow_groups_is_planned_one_flow_entry_per_group_and_the_stage_ru
     assert_eq!(w.s.calls("nx"), [format!("run-many -t test:flow,cargo-flow{targets} -p crate-app --parallel=4 --outputStyle=stream")]);
 }
 
+/// A candidate crate `cand` replaying two recorded sets by feature, with the mapping crates `cand/map-a`, `cand/map-b` (which depends on `map-a`) and
+/// `cand/map-big` (two named features, one with the files that can move it, one without files).
+fn replay_workspace(prefix: &str) -> Workspace {
+    let w = Workspace::new(prefix);
+    let ws = "[workspace]\nmembers = [\"cand\", \"cand/map-a\", \"cand/map-b\", \"cand/map-big\"]\nresolver = \"2\"\n";
+    let lib = |name: &str, deps: &str, meta: &str| format!("[package]\nname = \"{name}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n\n[dependencies]\n{deps}\n{meta}");
+    w.write("repo/tools/Cargo.toml", ws);
+    w.write("repo/tools/cand/Cargo.toml", &lib("cand", "map-a = { path = \"map-a\" }\nmap-b = { path = \"map-b\" }\nmap-big = { path = \"map-big\" }\n", "[package.metadata.integration]\ninputs = [\"cassettes/**\"]\n\n[package.metadata.integration.replay]\nsets = [\"set-1\", \"set-2\"]\n"));
+    w.write("repo/tools/cand/map-a/Cargo.toml", &lib("map-a", "", "[package.metadata.integration.replay]\nrows = [\"rpc:a.\"]\n"));
+    w.write("repo/tools/cand/map-b/Cargo.toml", &lib("map-b", "map-a = { path = \"../map-a\" }\n", "[package.metadata.integration.replay]\nrows = [\"rpc:b.\"]\n"));
+    w.write("repo/tools/cand/map-big/Cargo.toml", &lib("map-big", "", "[package.metadata.integration.replay.alpha]\nrows = [\"rpc:alpha.\"]\nfiles = [\"src/alpha.rs\"]\n\n[package.metadata.integration.replay.rest]\nrows = [\"rpc:rest.\"]\n"));
+    for (c, f) in [("cand", "main.rs"), ("cand/map-a", "lib.rs"), ("cand/map-b", "lib.rs"), ("cand/map-big", "lib.rs"), ("cand/map-big", "alpha.rs"), ("cand/map-big", "beta.rs")] {
+        w.write(&format!("repo/tools/{c}/src/{f}"), "\n");
+    }
+    w.write("repo/tools/cand/tests/integration.rs", "\n");
+    w.write("repo/tools/cand/cassettes/set-1/interactions.jsonl", "{\"row\":\"rpc:a.one\"}\n{\"row\":\"rpc:alpha.x\"}\n");
+    w.write("repo/tools/cand/cassettes/set-2/interactions.jsonl", "{\"row\":\"rpc:b.one\"}\n{\"row\":\"rpc:a.two\"}\n{\"row\":\"rpc:rest.y\"}\n");
+    w.commit("a candidate with mapping crates");
+    w
+}
+
+/// The replay entries of a plan: `(target, sets, why)`.
+fn replays(v: &Value) -> Vec<(String, Vec<String>, String)> {
+    let mut out: Vec<(String, Vec<String>, String)> = v["stages"]["integration-tests"].as_array().unwrap().iter().filter(|t| t["replay"].is_object()).map(|t| (t["target"].as_str().unwrap().to_string(), t["replay"]["sets"].as_array().unwrap().iter().map(|s| s.as_str().unwrap().to_string()).collect(), t["why"][0].as_str().unwrap().to_string())).collect();
+    out.sort();
+    out
+}
+
+#[test]
+fn a_change_to_one_mapping_crate_plans_the_replay_of_its_rows_alone_over_the_sets_that_hold_them() {
+    // Given a candidate with three mapping crates, each naming its rows, and a commit that changes one
+    let w = replay_workspace("wf-replay-plan-changed-");
+    w.write("repo/tools/cand/map-b/src/lib.rs", "// changed\n");
+    w.commit("change map-b");
+    // When it is planned
+    let (v, _) = w.plan("HEAD~1");
+    // Then one replay entry is planned, as the Nx task `replay-map-b`, over the one set that holds its rows, and the rest of the suite skips every replay
+    let r = replays(&v);
+    assert_eq!(r.iter().map(|(t, s, _)| (t.as_str(), s.clone())).collect::<Vec<_>>(), [("replay-map-b", vec!["set-2".to_string()])], "{v}");
+    let all = v["stages"]["integration-tests"].as_array().unwrap();
+    let entry = all.iter().find(|t| t["target"] == "replay-map-b").unwrap();
+    assert_eq!(entry["command"], "cargo test --locked -p cand --test integration --manifest-path tools/Cargo.toml -- --test-threads=1 replay_features::map_b::", "{entry}");
+    assert_eq!(entry["replay"]["verbs"][0], "wf mimic replay tools/cand/cassettes/set-2 --rows rpc:b. --gaps check", "{entry}");
+    assert!(all.iter().any(|t| t["group"].is_null() && t["command"].as_str().unwrap().ends_with("--skip replay_features::")), "{v}");
+}
+
+#[test]
+fn a_change_to_a_crate_a_mapping_crate_depends_on_plans_the_replays_of_its_dependents() {
+    // Given a commit that changes map-a, which map-b depends on
+    let w = replay_workspace("wf-replay-plan-dependent-");
+    w.write("repo/tools/cand/map-a/src/lib.rs", "// changed\n");
+    w.commit("change map-a");
+    // When it is planned, Then map-a's and map-b's replays are planned (map-b through its dependency), and map-big's are not
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(replays(&v).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), ["replay-map-a", "replay-map-b"], "{v}");
+}
+
+#[test]
+fn a_change_to_a_cassette_or_the_candidates_own_files_plans_every_replay_and_a_full_plan_does_too() {
+    // Given a commit that changes a cassette
+    let w = replay_workspace("wf-replay-plan-cassette-");
+    w.write("repo/tools/cand/cassettes/set-1/interactions.jsonl", "{\"row\":\"rpc:a.one\"}\n");
+    w.commit("edit a cassette");
+    // When it is planned, Then every feature has its replay
+    let every = ["replay-map-a", "replay-map-b", "replay-map-big-alpha", "replay-map-big-rest"];
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(replays(&v).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), every, "{v}");
+    // And so does a change to the candidate's own sources
+    w.write("repo/tools/cand/src/main.rs", "// changed\n");
+    w.commit("change the candidate");
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(replays(&v).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), every, "{v}");
+    // And a full plan
+    let r = w.wf(&["test", "plan", "--all", "--json"], &[]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let all: Value = serde_json::from_str(r.stdout.trim()).unwrap();
+    assert_eq!(replays(&all).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), every, "{all}");
+}
+
+#[test]
+fn a_change_confined_to_the_files_of_one_named_feature_plans_that_feature_and_the_one_without_files() {
+    // Given a crate with two named features, one naming src/alpha.rs, and a commit that changes that file
+    let w = replay_workspace("wf-replay-plan-files-");
+    w.write("repo/tools/cand/map-big/src/alpha.rs", "// changed\n");
+    w.commit("change alpha");
+    // When it is planned, Then alpha replays, and the feature without files does with it, and no other crate's
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(replays(&v).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), ["replay-map-big-alpha", "replay-map-big-rest"], "{v}");
+    // And a file no feature names replays both
+    w.write("repo/tools/cand/map-big/src/beta.rs", "// changed\n");
+    w.commit("change beta");
+    let (v, _) = w.plan("HEAD~1");
+    assert_eq!(replays(&v).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), ["replay-map-big-alpha", "replay-map-big-rest"], "{v}");
+}
+
 #[test]
 fn a_crate_with_integration_groups_is_planned_the_rest_and_a_group_entry_each_and_the_shards_deal_the_groups_out() {
     // Given a cargo workspace whose crate names two parts of its integration suite as groups, and a commit that changes the crate

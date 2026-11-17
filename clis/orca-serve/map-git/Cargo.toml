@@ -26,3 +26,7 @@ orca-map-git = { path = ".", features = ["testing"] }
 
 [package.metadata.arch]
 type = "cli-crate"
+
+# The rows of the recorded sets this crate answers: a change to it (or a crate it depends on) replays these rows alone, as the Nx task `replay-orca-map-git` of orca-serve (`wf test plan`).
+[package.metadata.integration.replay]
+rows = ["rpc:git."]

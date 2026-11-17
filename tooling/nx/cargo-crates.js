@@ -71,8 +71,21 @@ function crates(root, manifest) {
         sources: integration.sources ?? [],
         groups: integration.groups ?? {},
       },
+      // `[package.metadata.integration.replay]`: `sets` (a candidate's recorded sets, replayed by feature), `rows` (a mapping crate that is one
+      // feature) and one table of `rows` and `files` (from the crate dir) per named feature of a larger crate
+      replay: replayOf(integration.replay ?? {}),
     };
   });
+}
+
+function replayOf(replay) {
+  const features = [
+    ...(replay.rows ? [{ name: null, rows: replay.rows, files: [] }] : []),
+    ...Object.entries(replay)
+      .filter(([, v]) => v && typeof v === 'object' && !Array.isArray(v))
+      .map(([name, v]) => ({ name, rows: v.rows ?? [], files: v.files ?? [] })),
+  ];
+  return { sets: replay.sets ?? [], features };
 }
 
 // the pnpm package a directory sits in, if any
@@ -393,7 +406,7 @@ exports.createNodes = [
       const sourceFiles = narrowed ? ['Cargo.toml', ...c.integration.sources].map(own) : [];
       const integration = testTarget(
         'integration.rs',
-        [integrationCommand, ...integrationGroups.map((g) => `--skip ${c.integration.groups[g].filter}`)].join(' '),
+        [integrationCommand, ...integrationGroups.map((g) => `--skip ${c.integration.groups[g].filter}`), ...(c.replay.sets.length ? ['--skip replay_features::'] : [])].join(' '),
         [...baseInputs, ...tier, ...extra(c, sourceFiles, 'integration'), ...withoutGroups(null)]
       );
       const integrationTargets = integration
@@ -404,6 +417,38 @@ exports.createNodes = [
             ])
           )
         : {};
+      // A candidate's replay by feature (`[package.metadata.integration.replay]`): each mapping crate under it is a task `replay-<crate>` (a named
+      // feature of a larger crate `replay-<crate>-<feature>`) keyed by the candidate's wiring, the cassettes, the deps no mapping crate names and the
+      // crate's own closure, so an edit to one mapping crate reruns its rows alone; a named feature is keyed by its crate's files beside the other
+      // features' (a file of another feature alone does not move it).
+      const mappers = c.replay.sets.length ? [...all.values()].filter((m) => m.dir.startsWith(`${c.dir}/`) && m.replay.features.length) : [];
+      const mapperNames = new Set(mappers.map((m) => m.name));
+      const replayTargets = Object.fromEntries(
+        mappers.flatMap((m) =>
+          m.replay.features.map((f) => {
+            const id = f.name ? `${m.name}-${f.name}` : m.name;
+            const scoped = m.replay.features.some((x) => x.files.length);
+            // a feature without files holds the crate's every file; one with files leaves out the files of the others
+            const others = f.files.length ? m.replay.features.filter((x) => x !== f).flatMap((x) => x.files).filter((g) => !f.files.includes(g)) : [];
+            const closureRoots = [...deps.filter((d) => d.name !== c.name && !mapperNames.has(d.name)), ...(scoped ? m.deps.filter((d) => all.has(d)).map((d) => all.get(d)) : [m])];
+            const reached = closure(closureRoots).filter((d) => d.name !== c.name && !(scoped && d.name === m.name));
+            const mFiles = scoped ? [join(m.dir, 'Cargo.toml'), join(m.dir, 'src/**'), ...others.map((g) => `!${join(m.dir, g)}`)] : [];
+            return [
+              `replay-${id}`,
+              rustTask(
+                [
+                  ...(narrowed ? ['nativeToolchain'] : [OWN[0]]),
+                  { externalDependencies: [] },
+                  ...tier,
+                  { input: 'rustProduction', projects: [...new Set(reached.map(projectOf))] },
+                  ...extra(c, [...sourceFiles, ...mFiles], 'integration'),
+                ],
+                `${integrationCommand} replay_features::${id.replaceAll('-', '_')}::`
+              ),
+            ];
+          })
+        )
+      );
       // a real Chromium or other real dependency the flow tests double: one test at a time, after the services are deployed
       const e2eChecks = [...OWN, ...tier, ...extra(c, [], 'e2e')];
       const e2e = testTarget('e2e.rs', `cargo test --locked -p ${c.name} --test e2e --manifest-path ${c.manifest} -- --test-threads=1`, e2eChecks);
@@ -473,6 +518,7 @@ exports.createNodes = [
         ...flowTargets,
         ...(integration ? { 'cargo-integration': integration } : {}),
         ...integrationTargets,
+        ...(integration ? replayTargets : {}),
         ...(verifyDeployed ? { 'cargo-verify-deployed': verifyDeployed } : {}),
         ...(contract ? { 'cargo-contract': contract } : {}),
         ...(e2e && !groups.length ? { 'cargo-e2e': e2e } : {}),

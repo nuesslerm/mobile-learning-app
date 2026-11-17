@@ -8,23 +8,23 @@
 #[path = "flow/support/mod.rs"]
 mod support;
 
-#[path = "integration/attachments_m12.rs"]
-mod attachments_m12;
+#[path = "integration/attachments.rs"]
+mod attachments;
 #[path = "integration/chain.rs"]
 mod chain;
-#[path = "integration/recorded_r1.rs"]
-mod recorded_r1;
-#[path = "integration/rollback_m12.rs"]
-mod rollback_m12;
-#[path = "integration/projects_m12.rs"]
-mod projects_m12;
+#[path = "integration/replay_features.rs"]
+mod replay_features;
+#[path = "integration/checkpoint_rollback.rs"]
+mod checkpoint_rollback;
+#[path = "integration/projects.rs"]
+mod projects;
 #[path = "integration/rig.rs"]
 mod rig;
 #[path = "integration/scripted_turn_replay.rs"]
 mod scripted_turn_replay;
-#[path = "integration/terminal_m8.rs"]
-mod terminal_m8;
+#[path = "integration/terminal_pty.rs"]
+mod terminal_pty;
 #[path = "integration/thread_surface.rs"]
 mod thread_surface;
-#[path = "integration/vcs_m9.rs"]
-mod vcs_m9;
+#[path = "integration/vcs.rs"]
+mod vcs;

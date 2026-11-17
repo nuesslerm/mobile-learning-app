@@ -1,6 +1,6 @@
 //! `attachments.*` and `assets.*` through the real router and HTTP routes over an agent double that keeps attachments as the agent API does:
 //! what a phone's upload URL and asset URL are, what each route checks before it asks the agent API anything, the bytes that cross, and
-//! the attachments a message or a launch carries into the turn. The chain (`tests/integration/attachments_m12.rs`) runs the same calls through the
+//! the attachments a message or a launch carries into the turn. The chain (`tests/integration/attachments.rs`) runs the same calls through the
 //! real service and executor.
 use super::support::*;
 use base64::engine::general_purpose::STANDARD;

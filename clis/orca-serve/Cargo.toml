@@ -29,6 +29,11 @@ inputs = ["../../docs/plans/rca-parity/coverage/orca-methods.json", "../../docs/
 uses = ["rca-service", "rca-exec", "exec-testkit", "wf-mimic", "mimic-core"]
 inputs = ["../../docs/plans/rca-parity/coverage/orca-methods.json", "map-mobile/fixtures/orca-mobile-bundle/**", "map-mobile/examples/**", "cassettes/**", "../../tooling/mimic-drivers/src/**", "../../tooling/orca-conformance/orca-pin.json", "../../tooling/mimic-drivers/package.json", "../../pnpm-lock.yaml"]
 
+# The recorded sets replayed by feature (tests/integration/replay_features.rs): each mapping crate names its rows in its own
+# `[package.metadata.integration.replay]`, and `wf test plan` makes one Nx task of each, `replay-<crate>`, instead of one replay of everything.
+[package.metadata.integration.replay]
+sets = ["orca-v1.4.259-recorded", "orca-v1.4.259-crawl"]
+
 [features]
 testing = ["orca-core/testing", "orca-crypto/testing", "orca-map-mobile/testing"]
 
@@ -56,6 +61,7 @@ serde_json = { version = "1", features = ["preserve_order"] }
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 
 [dev-dependencies]
+toml = { version = "0.8", default-features = false, features = ["parse"] }
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 orca-serve = { path = ".", features = ["testing"] }
 agent-api-terminal = { path = "../../libraries/agent-api/agent-api-terminal" }

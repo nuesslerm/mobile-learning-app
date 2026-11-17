@@ -2094,6 +2094,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "tempfile",
+ "toml",
  "tungstenite",
  "wf-kit",
 ]
@@ -3187,6 +3188,7 @@ dependencies = [
  "t3-serve",
  "t3-store",
  "tempfile",
+ "toml",
  "tungstenite",
  "wf-kit",
 ]

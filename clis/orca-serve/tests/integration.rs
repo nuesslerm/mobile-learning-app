@@ -4,16 +4,16 @@
 //! reference recorded) and records what each call did on the way (a method-hit trace, `trace.json` beside the run record in
 //! `$WF_TEST_OUTPUT_DIR/orca-serve-integration`): `wf parity coverage --app orca --traces` marks a row served only for a passing test whose trace
 //! shows the call was answered and not merely refused.
-#[path = "integration/agent_m7.rs"]
-mod agent_m7;
-#[path = "integration/agent_catalog_m7b.rs"]
-mod agent_catalog_m7b;
+#[path = "integration/agent_sessions.rs"]
+mod agent_sessions;
+#[path = "integration/agent_catalog.rs"]
+mod agent_catalog;
 #[path = "integration/mimic_x2.rs"]
 mod mimic_x2;
 #[path = "integration/mimic_x6.rs"]
 mod mimic_x6;
-#[path = "integration/recorded_r1.rs"]
-mod recorded_r1;
+#[path = "integration/replay_features.rs"]
+mod replay_features;
 #[path = "integration/rig.rs"]
 mod rig;
 #[path = "integration/terminal_pty.rs"]
