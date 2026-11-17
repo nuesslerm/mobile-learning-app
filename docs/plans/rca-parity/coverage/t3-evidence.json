@@ -5,6 +5,13 @@
   "source": {
     "runs": [
       {
+        "suite": "t3-serve-integration",
+        "sha": "08cb07e0c9e0a65fc9ac17b1e3fa97117dad912f",
+        "complete": false,
+        "tests": 1,
+        "passed": 1
+      },
+      {
         "suite": "wf-mimic-t3-recorded",
         "sha": null,
         "complete": true,
