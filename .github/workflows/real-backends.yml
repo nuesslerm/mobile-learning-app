@@ -1,0 +1,83 @@
+name: Real backends
+
+# R16 of #83: one finished turn of each real agent CLI (claude, codex, opencode) through rca-service and the real rca-exec, the CLI run at the workspace host with its own file
+# tools. One job per backend; every download is checked against tooling/mimic-drivers/provision/real-agents-pin.json before it runs; each job reads its one credential from
+# the vault in memory (`wf secret get`, the vault token is in that step only) and gives it to the test of its own backend alone. Runs when what a turn is made of, or this file, changes on dev.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - .github/workflows/real-backends.yml
+      - tooling/real-backends/**
+      - backend/remote-chat-agent/**
+      - clis/rca-exec/**
+      - libraries/agent-api/**
+
+permissions:
+  contents: read
+
+jobs:
+  wf:
+    name: Build wf
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+      - uses: ./.github/actions/build-wf
+        with:
+          upload: "true"
+  turn:
+    name: turn (${{ matrix.leg }})
+    needs: wf
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        leg: [claude, opencode, codex]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: clis
+          path: ${{ runner.temp }}/wf-bin
+      - name: wf on PATH
+        run: |
+          chmod 755 "$RUNNER_TEMP"/wf-bin/*
+          echo "$RUNNER_TEMP/wf-bin" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/install-test-deps
+        with:
+          rust: "true"
+      - uses: ./.github/actions/install-bws
+      - name: Turn
+        env:
+          SECRETS_BACKEND: bitwarden
+          BWS_SERVER_URL: https://vault.bitwarden.eu
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+          REAL_BACKEND_OUT: ${{ runner.temp }}/real-backend-${{ matrix.leg }}.json
+        run: |
+          set +e
+          python3 -I tooling/real-backends/run_leg.py --leg "${{ matrix.leg }}" > "$RUNNER_TEMP/turn.out" 2>&1
+          code=$?
+          set -e
+          {
+            echo "### Real backend: ${{ matrix.leg }}"
+            echo
+            echo '```'
+            tail -c 3000 "$RUNNER_TEMP/turn.out"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: real-backend-${{ matrix.leg }}
+          path: ${{ runner.temp }}/real-backend-${{ matrix.leg }}.json
+          if-no-files-found: ignore
+          retention-days: 14

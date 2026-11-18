@@ -10,6 +10,8 @@ mod mapper;
 
 #[path = "flow/agent_accounts.rs"]
 mod agent_accounts;
+#[path = "flow/real_backends.rs"]
+mod real_backends;
 #[path = "flow/agent_api.rs"]
 mod agent_api;
 #[path = "flow/agent_git.rs"]

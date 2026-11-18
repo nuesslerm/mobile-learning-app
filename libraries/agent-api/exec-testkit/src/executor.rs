@@ -85,6 +85,12 @@ impl RcaExec {
 
     /// Like `serve_on`, with the executor's `HOME` set to `home` (whose skills directories `skill_scan` then reads).
     pub fn serve_with_home(rca_url: &str, workspace: &str, repo: &TempRepo, bearer: &str, flags: &[&str], path: &std::ffi::OsStr, home: Option<&std::path::Path>) -> RcaExec {
+        RcaExec::serve_with_env(rca_url, workspace, repo, bearer, flags, path, home, &[])
+    }
+
+    /// Like `serve_with_home`, with more environment variables for the executor (the credential a real agent CLI it runs reads).
+    #[allow(clippy::too_many_arguments)]
+    pub fn serve_with_env(rca_url: &str, workspace: &str, repo: &TempRepo, bearer: &str, flags: &[&str], path: &std::ffi::OsStr, home: Option<&std::path::Path>, env: &[(String, String)]) -> RcaExec {
         let mut child = Command::new(binary())
             .args(["serve", "--rca-url", rca_url, "--workspace", workspace, "--root"])
             .arg(repo.path())
@@ -94,6 +100,7 @@ impl RcaExec {
             .envs(repo.git_env())
             .env("PATH", path)
             .envs(home.map(|h| ("HOME", h)))
+            .envs(env.iter().map(|(k, v)| (k, v)))
             .env(BEARER_ENV, bearer)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
