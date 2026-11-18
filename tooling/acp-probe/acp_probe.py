@@ -198,10 +198,14 @@ def run_leg(leg, work, cwd, env, secret, secrets, report):
         os.chmod(binary, 0o755)
         report.update(acp_run([binary], env, cwd, secrets, 90))
     elif leg == "claude":
-        pkg = install(work, "claude-acp")
-        npm = subprocess.run(["npm", "install", "--ignore-scripts", "--omit=dev", "--no-audit", "--no-fund", "--prefix", pkg], capture_output=True, text=True, timeout=600)
+        install(work, "claude-acp")  # the tarball is checked against its pin and stays at work/claude-acp.tgz
+        proj = os.path.join(work, "proj")
+        os.makedirs(proj)
+        open(os.path.join(proj, "package.json"), "w").write('{"name":"acp-probe","private":true}')
+        npm = subprocess.run(["npm", "install", "--ignore-scripts", "--no-audit", "--no-fund", "--prefix", proj, os.path.join(work, "claude-acp.tgz")], capture_output=True, text=True, timeout=600)
         if npm.returncode != 0:
             raise RuntimeError("npm install of the adapter failed: " + npm.stderr[-300:])
+        pkg = os.path.join(proj, "node_modules", "@agentclientprotocol", "claude-agent-acp")
         meta = json.load(open(os.path.join(pkg, "package.json")))
         bin_rel = meta["bin"] if isinstance(meta["bin"], str) else list(meta["bin"].values())[0]
         env["CLAUDE_CODE_OAUTH_TOKEN"] = secret
