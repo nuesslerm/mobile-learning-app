@@ -1,0 +1,81 @@
+name: ACP probe
+
+# One-off probe for R16 of #83: does an agent CLI send its own file and shell calls to the host over the Agent Client Protocol, or run them itself? One job per
+# backend (`claude`, `opencode`, `codex-adapter`) plus `codex-cli`, which runs the pinned Codex against the live API. Every download is checked against a pin before it
+# runs; each job reads its one credential from the vault in memory (`wf secret get`, the vault token is in that step only) and passes it to its own agent alone;
+# the report is method names and counts, scrubbed of every credential value, never reply text. Runs when this file or tooling/acp-probe changes on dev.
+on:
+  push:
+    branches: [dev]
+    paths:
+      - .github/workflows/acp-probe.yml
+      - tooling/acp-probe/**
+
+permissions:
+  contents: read
+
+jobs:
+  wf:
+    name: Build wf
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+      - uses: ./.github/actions/build-wf
+        with:
+          upload: "true"
+  probe:
+    name: probe (${{ matrix.leg }})
+    needs: wf
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        leg: [opencode, claude, codex-adapter, codex-cli]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.22.0
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: clis
+          path: ${{ runner.temp }}/wf-bin
+      - name: wf on PATH
+        run: |
+          chmod 755 "$RUNNER_TEMP"/wf-bin/*
+          echo "$RUNNER_TEMP/wf-bin" >> "$GITHUB_PATH"
+      - uses: ./.github/actions/install-bws
+      - name: Probe
+        env:
+          SECRETS_BACKEND: bitwarden
+          BWS_SERVER_URL: https://vault.bitwarden.eu
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+          ACP_PROBE_OUT: ${{ runner.temp }}/acp-probe-${{ matrix.leg }}.json
+        run: |
+          set +e
+          python3 tooling/acp-probe/acp_probe.py --leg "${{ matrix.leg }}" > "$RUNNER_TEMP/probe.out" 2> "$RUNNER_TEMP/probe.err"
+          code=$?
+          set -e
+          {
+            echo "### ACP probe: ${{ matrix.leg }}"
+            echo
+            echo '```json'
+            if [ -s "$ACP_PROBE_OUT" ]; then cat "$ACP_PROBE_OUT"; else tail -c 2000 "$RUNNER_TEMP/probe.out"; tail -c 2000 "$RUNNER_TEMP/probe.err"; fi
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$code"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: ${{ always() }}
+        with:
+          name: acp-probe-${{ matrix.leg }}
+          path: ${{ runner.temp }}/acp-probe-${{ matrix.leg }}.json
+          if-no-files-found: ignore
+          retention-days: 14
