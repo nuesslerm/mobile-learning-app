@@ -507,6 +507,10 @@ impl Repo {
     fn snapshot(&self, name: &str, head: Option<&str>, real: &Path, private: &Path) -> ExecResult<Checkpointed> {
         if real.is_file() {
             std::fs::copy(real, private).map_err(|e| io("git checkpoint", e))?;
+            // Git trusts an entry's stat data only when it is older than the index file: the copy keeps the original's time, or an edit of the same size made in the
+            // same second as the last index write would look unchanged and be missed.
+            let modified = std::fs::metadata(real).and_then(|m| m.modified()).map_err(|e| io("git checkpoint", e))?;
+            std::fs::OpenOptions::new().write(true).open(private).and_then(|f| f.set_modified(modified)).map_err(|e| io("git checkpoint", e))?;
         }
         let path = private.to_string_lossy().into_owned();
         let env = [("GIT_INDEX_FILE", path.as_str()), ("GIT_AUTHOR_NAME", "rca"), ("GIT_AUTHOR_EMAIL", "rca@localhost"), ("GIT_COMMITTER_NAME", "rca"), ("GIT_COMMITTER_EMAIL", "rca@localhost")];
