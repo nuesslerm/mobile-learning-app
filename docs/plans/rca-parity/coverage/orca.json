@@ -9,8 +9,8 @@
   },
   "summary": {
     "rows": 317,
-    "served": 156,
-    "pending": 8,
+    "served": 158,
+    "pending": 6,
     "notOffered": 143,
     "excluded": 7,
     "flagged": 3,
@@ -21,8 +21,7 @@
       "transport": 1
     },
     "pendingByMilestone": {
-      "M5": 2,
-      "M6": 1,
+      "M5": 1,
       "M7": 4,
       "M11": 1
     }
@@ -2637,8 +2636,17 @@
       "id": "rpc:mobileRelay.projectSections",
       "kind": "rpc",
       "name": "mobileRelay.projectSections",
-      "state": "pending",
-      "milestone": "M6"
+      "state": "served",
+      "milestone": "M6",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-mobileRelay.projectSections-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:mobileWeb.bundle.brotliRange",
@@ -2692,8 +2700,17 @@
       "id": "rpc:mobileWeb.bundle.manifest",
       "kind": "rpc",
       "name": "mobileWeb.bundle.manifest",
-      "state": "pending",
-      "milestone": "M5"
+      "state": "served",
+      "milestone": "M5",
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-mobileWeb.bundle.manifest-empty-empty-object",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:mobileWeb.bundle.range",
