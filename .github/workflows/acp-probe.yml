@@ -71,6 +71,7 @@ jobs:
             if [ -s "$ACP_PROBE_OUT" ]; then cat "$ACP_PROBE_OUT"; else tail -c 2000 "$RUNNER_TEMP/probe.out"; tail -c 2000 "$RUNNER_TEMP/probe.err"; fi
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+          if [ "$code" != 0 ]; then tail -c 1500 "$RUNNER_TEMP/probe.out"; tail -c 1500 "$RUNNER_TEMP/probe.err"; fi
           exit "$code"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: ${{ always() }}

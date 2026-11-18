@@ -167,6 +167,22 @@ def main():
     home = tempfile.mkdtemp(prefix="acp-home-")
     env["HOME"] = home
     report = {"leg": leg}
+    try:
+        run_leg(leg, work, cwd, env, secret, secrets, report)
+    except SystemExit:
+        raise
+    except Exception as e:  # a failing leg reports itself, scrubbed, instead of dying silently
+        import traceback
+        report["leg_error"] = scrub("".join(traceback.format_exception_only(type(e), e)).strip()[:600], secrets)
+        report["trace_tail"] = scrub("".join(traceback.format_tb(e.__traceback__)[-2:])[:600], secrets)
+    text = scrub(json.dumps(report, indent=2), secrets)
+    print(text)
+    out = os.environ.get("ACP_PROBE_OUT")
+    if out:
+        open(out, "w").write(text)
+
+
+def run_leg(leg, work, cwd, env, secret, secrets, report):
     if leg.startswith("codex"):
         codex_home = tempfile.mkdtemp(prefix="codex-home-", dir="/dev/shm" if os.path.isdir("/dev/shm") else None)
         os.chmod(codex_home, 0o700)
@@ -183,7 +199,9 @@ def main():
         report.update(acp_run([binary], env, cwd, secrets, 90))
     elif leg == "claude":
         pkg = install(work, "claude-acp")
-        subprocess.run(["npm", "install", "--ignore-scripts", "--omit=dev", "--no-audit", "--no-fund", "--prefix", pkg], check=True, capture_output=True, timeout=600)
+        npm = subprocess.run(["npm", "install", "--ignore-scripts", "--omit=dev", "--no-audit", "--no-fund", "--prefix", pkg], capture_output=True, text=True, timeout=600)
+        if npm.returncode != 0:
+            raise RuntimeError("npm install of the adapter failed: " + npm.stderr[-300:])
         meta = json.load(open(os.path.join(pkg, "package.json")))
         bin_rel = meta["bin"] if isinstance(meta["bin"], str) else list(meta["bin"].values())[0]
         env["CLAUDE_CODE_OAUTH_TOKEN"] = secret
@@ -213,11 +231,6 @@ def main():
         tail = scrub(re.sub(r"\x1b\[[0-9;]*m", "", r.stderr + r.stdout), secrets)
         report.update({"version": v.stdout.strip(), "exit": r.returncode, "answered_ok": "OK" in r.stdout,
                        "errors": [l[:300] for l in tail.splitlines() if re.search(r"ERROR|error|unknown variant|denied", l)][-5:]})
-    text = scrub(json.dumps(report, indent=2), secrets)
-    print(text)
-    out = os.environ.get("ACP_PROBE_OUT")
-    if out:
-        open(out, "w").write(text)
 
 
 main()
