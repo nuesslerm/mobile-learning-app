@@ -412,6 +412,28 @@ fn given_a_codex_login_when_codex_runs_through_the_host_then_it_reads_a_private_
     assert!(!Path::new(home).exists(), "the login directory {home} outlived the process");
 }
 
+#[test]
+fn given_a_codex_that_rewrites_its_login_when_it_runs_with_an_output_file_named_then_the_rewritten_login_is_copied_there_owner_only_and_the_home_is_still_gone() {
+    let root = tempfile::tempdir().unwrap();
+    let real = tempfile::tempdir().unwrap();
+    let out = root.path().join("kept-login.json");
+    std::fs::write(real.path().join("codex"), "#!/bin/sh\nprintf '{\"tokens\":{\"refresh_token\":\"rt-refreshed\"}}' > \"$CODEX_HOME/auth.json\"\necho \"home=$CODEX_HOME\"\n").unwrap();
+    set_exec(&real.path().join("codex"));
+    let mut host = Host::prepare(root.path(), None, Some(real.path())).unwrap();
+    host.env.push(("MIMIC_CRED_CODEX__CODEX_OAUTH_JSON_B64".into(), base64_of("{\"tokens\":{\"refresh_token\":\"rt-old\"}}")));
+    std::env::set_var("MIMIC_CODEX_LOGIN_OUT", &out);
+    host.wrap_credentials().unwrap();
+    std::env::remove_var("MIMIC_CODEX_LOGIN_OUT");
+
+    let seen = seen_by(&host, "codex");
+
+    use std::os::unix::fs::PermissionsExt;
+    assert_eq!(std::fs::read_to_string(&out).unwrap(), "{\"tokens\":{\"refresh_token\":\"rt-refreshed\"}}");
+    assert_eq!(std::fs::metadata(&out).unwrap().permissions().mode() & 0o777, 0o600);
+    let home = seen.lines().find_map(|l| l.strip_prefix("home=")).unwrap();
+    assert!(!Path::new(home).exists(), "the login directory {home} outlived the process");
+}
+
 fn base64_of(text: &str) -> String {
     let out = std::process::Command::new("sh").arg("-c").arg(format!("printf %s '{text}' | base64 -w0")).output().unwrap();
     String::from_utf8(out.stdout).unwrap()

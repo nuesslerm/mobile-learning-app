@@ -98,7 +98,8 @@ impl Host {
             let mut script = String::from("#!/bin/sh\n");
             if let Some((carrier, _)) = vars.iter().find(|(_, var)| var == CODEX_LOGIN) {
                 // Codex reads a login file, not a key: it gets a CODEX_HOME of its own (a private tmpfs directory when there is one) holding the decoded login for the life of
-                // the process only; the directory is removed when it exits or is stopped. A login Codex rotates is not written back anywhere.
+                // the process only; the directory is removed when it exits or is stopped. When `MIMIC_CODEX_LOGIN_OUT` names a file, the login the process leaves
+                // is copied there first (owner-only), for the job that writes a refreshed login back to the vault; this wrapper writes nothing else anywhere.
                 script.push_str(&format!(
                     "umask 077\nbase=/dev/shm; [ -d \"$base\" ] && [ -w \"$base\" ] || base=\"${{TMPDIR:-/tmp}}\"\nCODEX_HOME=$(mktemp -d \"$base/mimic-codex.XXXXXX\") || exit 1\nexport CODEX_HOME\nprintf %s \"${carrier}\" | base64 -d > \"$CODEX_HOME/auth.json\" || {{ rm -rf \"$CODEX_HOME\"; exit 1; }}\n"
                 ));
@@ -106,7 +107,11 @@ impl Host {
                     script.push_str(&format!("{var}=\"${carrier}\"\nexport {var}\n"));
                 }
                 script.push_str(unset_all);
-                script.push_str(&format!("'{program}' \"$@\" &\nchild=$!\ntrap 'kill $child 2>/dev/null; wait $child 2>/dev/null; rm -rf \"$CODEX_HOME\"; exit 143' TERM INT HUP\nwait $child\nstatus=$?\nrm -rf \"$CODEX_HOME\"\nexit $status\n"));
+                let keep = match std::env::var("MIMIC_CODEX_LOGIN_OUT") {
+                    Ok(out) if !out.is_empty() && !out.contains('\'') => format!("[ -s \"$CODEX_HOME/auth.json\" ] && cp \"$CODEX_HOME/auth.json\" '{out}' 2>/dev/null\n"),
+                    _ => String::new(),
+                };
+                script.push_str(&format!("'{program}' \"$@\" &\nchild=$!\ntrap 'kill $child 2>/dev/null; wait $child 2>/dev/null; rm -rf \"$CODEX_HOME\"; exit 143' TERM INT HUP\nwait $child\nstatus=$?\n{keep}rm -rf \"$CODEX_HOME\"\nexit $status\n"));
             } else {
                 for (carrier, var) in &vars {
                     script.push_str(&format!("{var}=\"${carrier}\"\nexport {var}\n"));
