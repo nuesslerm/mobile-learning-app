@@ -1309,7 +1309,7 @@
     "rpc:skills.discover": {
       "state": "not-offered",
       "reason": "decided 18 Nov: rca reads skills only from an executor through `skills.list {workspace}` and never from the service's own disk, so a workspace-less discovery has no process directory or home to scan; the call answers `Skill discovery needs a workspace` (the pinned host scans its own process directory and user home, which rca has no equivalent of). Reversible by a workspace-less `skills.list` once an executor-less scan means something",
-      "decidedBy": "M7"
+      "decidedBy": "M11"
     },
     "rpc:github.prComments": {
       "state": "not-offered",
