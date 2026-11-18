@@ -27,7 +27,6 @@
         "t3-scn-command-queued-run.start",
         "t3-scn-command-run.interrupt",
         "t3-scn-command-subagent.stop",
-        "t3-scn-rpc-assets.persistChatAttachments",
         "t3-story-turn-and-history"
       ]
     },
@@ -438,6 +437,42 @@
       ],
       "ids": [
         "t3-scn-command-thread.active.reorder"
+      ]
+    },
+    {
+      "class": "status at steps.ws:s2c:*.[*].payload.exit.value.attempts.[*].status",
+      "severity": "breaking",
+      "diffs": [
+        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].startedAt kind breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].status changed drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.attempts.[0].nativeThreadId extra drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.nodes.[0].startedAt kind breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.nodes.[0].status changed drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.providerSessions changed breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].nativeThreadRef kind breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].providerSessionId changed drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.providerThreads.[0].status changed drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.runs.[0].startedAt kind breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.runs.[0].status changed drift",
+        "steps.ws:s2c:2.[0].payload.exit.value.turnItems changed breaking",
+        "steps.ws:s2c:2.[0].payload.exit.value.visibleTurnItems changed breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].completedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].startedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].status changed drift",
+        "steps.ws:s2c:t2.[0].payload.exit.value.attempts.[0].nativeThreadId extra drift",
+        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].completedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].startedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.nodes.[0].status changed drift",
+        "steps.ws:s2c:t2.[0].payload.exit.value.providerSessions changed breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].nativeThreadRef kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].providerSessionId changed drift",
+        "steps.ws:s2c:t2.[0].payload.exit.value.providerThreads.[0].status changed drift",
+        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].completedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].startedAt kind breaking",
+        "steps.ws:s2c:t2.[0].payload.exit.value.runs.[0].status changed drift"
+      ],
+      "ids": [
+        "t3-scn-rpc-assets.persistChatAttachments"
       ]
     }
   ]

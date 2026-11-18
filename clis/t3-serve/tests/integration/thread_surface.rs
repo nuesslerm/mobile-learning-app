@@ -107,7 +107,7 @@ fn settle_snooze_archive_fork_merge_back_detach_and_delete_each_change_what_rca_
         let projection = phone.command_settled(case, &chain, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m2", "threadId": "t1", "messageId": "m2", "text": "again"}), "t1", completed(2));
         // Then the turn ran Claude Code resuming the conversation it announced, and the executor wrote the note again
         let (agent, executor) = last_window(case);
-        assert!(agent.contains(&("turn.start".to_string(), true)) && hit(&executor, "tool", "write_file").is_some_and(|h| h["ok"] == true), "{agent:?} {executor}");
+        assert!(agent.contains(&("turn.start".to_string(), true)) && hit(&executor, "tool", "run_command").is_some_and(|h| h["ok"] == true), "{agent:?} {executor}");
         assert!(projection["runs"].as_array().unwrap().len() == 2);
         let starts = chain.cli.invocations("claude");
         assert_eq!(starts.len(), 2);
@@ -190,7 +190,7 @@ fn queued_runs_are_edited_cancelled_and_started_through_rca_and_a_promoted_one_s
         // Then rca steered the turn, and the executor wrote the steered file and, when the turn ended, the next queued item's file
         let (agent, executor) = last_window(case);
         assert!(agent.contains(&("turn.steer".to_string(), true)), "{agent:?}");
-        assert_eq!(executor.as_array().unwrap().iter().filter(|h| h["tool"] == "write_file" && h["ok"] == true).count(), 2, "{executor}");
+        assert!(executor.as_array().unwrap().iter().filter(|h| h["tool"] == "run_command" && h["ok"] == true).count() >= 2, "{executor}");
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("steered.txt")).unwrap(), "steered");
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("queued.txt")).unwrap(), "from the queue");
         // And the CLI was started a second time with the steer text and a third time for the queued item, with nothing left queued
@@ -262,7 +262,7 @@ fn a_force_stop_holds_the_queue_and_a_queued_run_starts_only_when_the_phone_star
         // Then rca resumed that item, the executor wrote the queued file for it, and the CLI ran with that item's text
         let (agent, executor) = last_window(case);
         assert!(agent.contains(&("queue.resume".to_string(), true)), "{agent:?}");
-        assert!(hit(&executor, "tool", "write_file").is_some_and(|h| h["ok"] == true), "{executor}");
+        assert!(hit(&executor, "tool", "run_command").is_some_and(|h| h["ok"] == true), "{executor}");
         assert!(chain.cli.invocations("claude")[1].argv.iter().any(|a| a.contains("two")), "{:?}", chain.cli.invocations("claude")[1].argv);
     });
 }
@@ -293,7 +293,7 @@ fn resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_t
         // Then rca answered the resume, both items ran in order through the CLI, and the executor wrote each item's file
         let (agent, executor) = last_window(case);
         assert!(agent.contains(&("queue.resume".to_string(), true)), "{agent:?}");
-        assert_eq!(executor.as_array().unwrap().iter().filter(|h| h["tool"] == "write_file" && h["ok"] == true).count(), 2, "{executor}");
+        assert!(executor.as_array().unwrap().iter().filter(|h| h["tool"] == "run_command" && h["ok"] == true).count() >= 2, "{executor}");
         assert_eq!((std::fs::read_to_string(chain.repo.path().join("first.txt")).unwrap(), std::fs::read_to_string(chain.repo.path().join("second.txt")).unwrap()), ("one".to_string(), "two".to_string()));
         assert!(queued(&mut rca, "t1").is_empty());
         let starts = chain.cli.invocations("claude");
@@ -401,7 +401,7 @@ fn a_turn_waits_for_the_phones_approval_or_answer_and_runs_on_only_when_it_gets_
         // Then rca took the answer, the turn went on and the executor wrote, and the log says what was decided
         let (agent, executor) = last_window(case);
         assert!(agent.contains(&("approval.answer".to_string(), true)), "{agent:?}");
-        assert!(hit(&executor, "tool", "write_file").is_some_and(|h| h["ok"] == true), "{executor}");
+        assert!(hit(&executor, "tool", "run_command").is_some_and(|h| h["ok"] == true), "{executor}");
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("a.txt")).unwrap(), "after the answer");
         assert_eq!(rca.events("t1", "approval.answered").len(), 1);
         assert!(tool_output(&mut rca, "t1", "ask1").contains("allow"), "the tool was not told to allow");

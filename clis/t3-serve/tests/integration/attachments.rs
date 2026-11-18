@@ -119,7 +119,7 @@ fn an_image_and_a_note_uploaded_to_their_urls_are_written_into_the_workspace_by_
         let (agent, executor) = last_window(case);
         assert!(agent.iter().any(|(m, ok)| m == "turn.start" && *ok), "{agent:?}");
         assert_eq!(executor.as_array().unwrap().iter().filter(|h| h["tool"] == "put_blob" && h["ok"] == true).count(), 3, "{executor}");
-        assert_eq!(hit(&executor, "tool", "read_file"), Some(&json!({"tool": "read_file", "ok": true})), "{executor}");
+        assert_eq!(hit(&executor, "tool", "run_command"), Some(&json!({"tool": "run_command", "ok": true})), "{executor}");
         // And the repository's status shows none of them, the CLI was started with the prompt and then both paths, and the CLI read the note
         assert_eq!(chain.repo.git(&["status", "--porcelain"]), "");
         let prompt = chain.cli.invocations("claude").iter().flat_map(|start| start.argv.clone()).find(|a| a.contains("look at these")).expect("the prompt reached the CLI");

@@ -47,15 +47,15 @@ fn a_message_runs_a_turn_whose_file_is_written_by_rca_exec_and_the_phone_sees_th
         let (thread_stream, _) = phone.stream(case, &chain, &["rpc:orchestration.subscribeThread"], "orchestration.subscribeThread", json!({"threadId": "t1"}));
         // When the phone sends a message and the run it starts ends
         let projection = phone.message(case, &chain, "t1", "c-m1", "make a note");
-        // Then the file is in the repository, written by the executor, and not in the directory the service runs from
+        // Then the file is in the repository, written by the CLI running at the workspace host, and not in the directory the service runs from
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("notes/a.txt")).unwrap(), "hello from the model");
         assert_eq!(chain.repo.git(&["status", "--porcelain"]), "?? notes/");
         assert!(!chain.service.home().join("notes").exists());
-        // And the message's window shows where it went: the agent API calls in order, each answered, and the tool the executor ran
+        // And the message's window shows where it went: the agent API calls in order, each answered, and the command the executor ran for the CLI
         let (agent, executor) = last_window(case);
         assert_eq!(agent, [("thread.create".to_string(), true), ("turn.start".to_string(), true), ("thread.subscribe".to_string(), true)]);
-        assert_eq!(hit(&executor, "tool", "write_file"), Some(&json!({"tool": "write_file", "ok": true})), "the write did not go through rca-exec: {executor}");
-        // And the CLI was started once, in the service's directory, and the thread holds both sides of the turn with a completed run
+        assert_eq!(hit(&executor, "tool", "run_command"), Some(&json!({"tool": "run_command", "ok": true})), "the CLI did not run through rca-exec: {executor}");
+        // And the CLI was started once, at the workspace host's root, and the thread holds both sides of the turn with a completed run
         assert_eq!(chain.cli.invocations("claude").len(), 1);
         let texts: Vec<(&str, &str)> = projection["messages"].as_array().unwrap().iter().map(|m| (m["role"].as_str().unwrap(), m["text"].as_str().unwrap())).collect();
         assert_eq!(texts.first(), Some(&("user", "make a note")));
@@ -125,10 +125,10 @@ fn a_launch_creates_the_thread_runs_its_first_message_through_rca_and_answers_wi
         // Then the answer names the new thread and it is not a resumption, and the executor wrote the first message's file in the repository
         assert_eq!((success(&answer.0)["threadId"].as_str(), success(&answer.0)["resumed"].as_bool()), (Some("t-new"), Some(false)));
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("launched.txt")).unwrap(), "from a launch");
-        // And the launch's window holds the agent API calls of the turn and the executor's write
+        // And the launch's window holds the agent API calls of the turn and the executor's run of the CLI
         let (agent, executor) = last_window(case);
         assert_eq!(agent.iter().map(|(m, ok)| (m.as_str(), *ok)).collect::<Vec<_>>(), [("thread.create", true), ("turn.start", true), ("thread.subscribe", true)]);
-        assert!(hit(&executor, "tool", "write_file").is_some_and(|h| h["ok"] == true), "{executor}");
+        assert!(hit(&executor, "tool", "run_command").is_some_and(|h| h["ok"] == true), "{executor}");
         // And the thread holds the message and a completed run
         assert_eq!((answer.1["thread"]["id"].as_str(), answer.1["runs"][0]["status"].as_str()), (Some("t-new"), Some("completed")));
     });
