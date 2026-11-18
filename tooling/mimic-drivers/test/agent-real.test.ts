@@ -39,7 +39,9 @@ test('Given every case, When it is read, Then a real opencode turn with the triv
     const script = scriptOf(c)
     assert.ok(!script.some((s) => s['cli.script']), `${c.id} scripts a CLI`)
     assert.ok(c.tags.includes('needs:real-agent') && !c.tags.includes('needs:cli-script'), c.id)
-    const [create, dispatch] = sends(script)
+    const [settings, create, dispatch] = sends(script)
+    assert.equal((settings!['ws-send'] as { tag: string }).tag, 'server.updateSettings', `${c.id} must enable the opencode provider first`)
+    assert.deepEqual(payloadOf(settings!).providerInstanceMutation, { operation: 'create', instanceId: 'opencode', instance: { driver: 'opencode', enabled: true } }, c.id)
     assert.equal((payloadOf(create!).modelSelection as { instanceId: string }).instanceId, 'opencode', c.id)
     assert.equal(payloadOf(dispatch!).text, 'reply with OK', c.id)
     assert.equal(create!.await, 'exit')
@@ -49,22 +51,22 @@ test('Given every case, When it is read, Then a real opencode turn with the triv
 
 test('Given the rollback case, When it is read, Then the rollback follows a projection read that keeps the checkpoint of the finished turn', () => {
   const script = scriptOf(cases().get('t3-real-checkpoint.rollback')!)
-  assert.deepEqual(types(script), ['thread.create', 'message.dispatch', 'orchestration.getThreadProjection', 'checkpoint.rollback', 'orchestration.getThreadProjection'])
+  assert.deepEqual(types(script), ['server.updateSettings', 'thread.create', 'message.dispatch', 'orchestration.getThreadProjection', 'checkpoint.rollback', 'orchestration.getThreadProjection'])
   const read = script.find((s) => s.capture)!
   assert.ok(Object.keys(read.capture as object).includes('checkpointId'))
-  assert.equal(payloadOf(sends(script)[3]!).checkpointId, '{checkpointId}')
+  assert.equal(payloadOf(sends(script)[4]!).checkpointId, '{checkpointId}')
 })
 
 test('Given the merge case, When it is read, Then the fork is answered before the merge back on a thread that has a finished turn', () => {
   const script = scriptOf(cases().get('t3-real-thread.merge_back')!)
-  assert.deepEqual(types(script), ['thread.create', 'message.dispatch', 'orchestration.getThreadProjection', 'thread.fork', 'thread.merge_back', 'orchestration.getThreadProjection'])
-  assert.equal(sends(script)[3]!.await, 'exit')
+  assert.deepEqual(types(script), ['server.updateSettings', 'thread.create', 'message.dispatch', 'orchestration.getThreadProjection', 'thread.fork', 'thread.merge_back', 'orchestration.getThreadProjection'])
+  assert.equal(sends(script)[4]!.await, 'exit')
 })
 
 test('Given the steer case, When it is read, Then a second message is queued behind the first and the promote names both runs from the projection', () => {
   const script = scriptOf(cases().get('t3-real-queued-message.promote-to-steer')!)
-  assert.deepEqual(types(script), ['thread.create', 'message.dispatch', 'message.dispatch', 'orchestration.getThreadProjection', 'queued-message.promote-to-steer', 'orchestration.getThreadProjection'])
-  const promote = payloadOf(sends(script)[4]!)
+  assert.deepEqual(types(script), ['server.updateSettings', 'thread.create', 'message.dispatch', 'message.dispatch', 'orchestration.getThreadProjection', 'queued-message.promote-to-steer', 'orchestration.getThreadProjection'])
+  const promote = payloadOf(sends(script)[5]!)
   assert.deepEqual([promote.queuedRunId, promote.targetRunId], ['{q1}', '{runId}'])
 })
 

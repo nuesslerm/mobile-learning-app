@@ -80,6 +80,7 @@ const CUES: Agent[] = [
 
 const OPENCODE = { instanceId: 'opencode', model: 'opencode-go/deepseek-v4.1-flash' }
 const PROMPT = 'reply with OK'
+// T3 0.1.9 keeps its opencode provider instance disabled until the settings enable it (the first hosted record answered every message with ThreadManagementProviderInstanceDisabledError).
 /** What the projection of a thread with a finished turn names, whichever of these paths this T3 uses (a probe of the first hosted record settles it). */
 const FINISHED: Capture = {
   checkpointId: { from: ['/exit/value/checkpoints/0/checkpointId', '/exit/value/checkpoints/0/id', '/exit/value/checkpoints/0/turnId'] },
@@ -115,6 +116,7 @@ const CLAUDE = { instanceId: 'claudeAgent', model: 'sonnet' }
 function steps(api: Api, agent: Agent): Entry[] {
   const out: Entry[] = []
   if (agent.hung) out.push({ 'cli.script': { cli: 'claude', turns: [{ hang: true }] } as unknown as Json })
+  if (agent.real) out.push(send(api, 'server.updateSettings', 'e1', { patch: {}, providerInstanceMutation: { operation: 'create', instanceId: OPENCODE.instanceId, instance: { driver: 'opencode', enabled: true } } } as unknown as Record<string, Json>, { await: 'exit' }))
   if (agent.thread !== false) out.push(send(api, 'thread.create', 'c1', { threadId: AGENT_THREAD, projectId: PROJECT, title: 'Agent thread', modelSelection: (agent.real ? OPENCODE : CLAUDE) as unknown as Json, branch: null, worktreePath: null }, { await: 'exit' }))
   if (agent.hung || agent.real) {
     out.push(send(api, 'message.dispatch', 't1', { threadId: AGENT_THREAD, messageId: FIRST, text: agent.real ? PROMPT : 'hello', dispatchMode: { type: 'start_immediately' } }, { await: 'exit' }))
