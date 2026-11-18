@@ -56,6 +56,8 @@ pub struct Chain {
     /// The executor's own home: its user-level skills are read from here.
     pub home: tempfile::TempDir,
     _exec: RcaExec,
+    /// The bundle directory `start_recorded` made, kept on disk while the chain runs.
+    _bundle: Option<tempfile::TempDir>,
 }
 
 impl Chain {
@@ -64,6 +66,20 @@ impl Chain {
     /// it listens.
     pub fn start(web: Option<&Path>) -> Chain {
         Chain::start_with_env(web, &[])
+    }
+
+    /// `start` with the bundle the real host held, as far as the recorded manifest call shows it: that call reads no asset, and no recorded call asks for a window.
+    /// The one provision of it, for the replay tests and the chain launcher alike.
+    pub fn start_recorded() -> Chain {
+        let recorded = Path::new(env!("CARGO_MANIFEST_DIR")).join("cassettes/orca-v1.4.259-recorded/interactions.jsonl");
+        let held = std::fs::read_to_string(&recorded).unwrap_or_else(|e| panic!("{}: {e}", recorded.display()));
+        let line = held.lines().find(|l| l.contains(r#""row":"rpc:mobileWeb.bundle.manifest""#)).expect("the recorded set holds the manifest call");
+        let manifest = serde_json::from_str::<Value>(line).unwrap()["steps"][1]["payload"]["result"]["manifest"].to_string();
+        let bundle = tempfile::tempdir().expect("a directory for the bundle");
+        std::fs::write(bundle.path().join("manifest.json"), manifest).expect("the manifest is written");
+        let mut chain = Chain::start(Some(bundle.path()));
+        chain._bundle = Some(bundle);
+        chain
     }
 
     /// `start`, with `env` also in the service's environment.
@@ -84,7 +100,7 @@ impl Chain {
         let state = tempfile::Builder::new().prefix("orca-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");
         let (server, addr) = spawn_serve(state.path(), &errlog, &tap.url(), &bearer, web);
-        Chain { tap, service, addr, state, errlog, server, cli, repo, _base: base_dir, home, _exec: exec }
+        Chain { tap, service, addr, state, errlog, server, cli, repo, _base: base_dir, home, _exec: exec, _bundle: None }
     }
 
     /// A pairing link minted by a separate `orca-serve pair` on the server's state directory, as an operator hands one to a phone.

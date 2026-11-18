@@ -96,7 +96,7 @@ fn replay(id: &str) {
         let (mut new, mut stale): (Vec<String>, Vec<String>) = (Vec::new(), Vec::new());
         // When wf-mimic replays them against orca-serve, the phone's transport driven by the link orca-serve pair printed
         for group in groups.iter().filter(|g| !g.is_empty()) {
-            let chain = Chain::start(None);
+            let chain = Chain::start_recorded();
             for ids in group.chunks(IDS_PER_CALL) {
                 let only = ids.join(",");
                 let mut args = vec!["replay", set.to_str().unwrap(), "--candidate", "orca-serve", "--only", &only, "--gaps", "check"];
