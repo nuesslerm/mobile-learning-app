@@ -311,3 +311,39 @@ mod phone_server {
         assert_eq!(payloads, [json!({"method": "repo.add", "params": {"path": "<scratch>/main"}}), json!({"ok": true, "result": {"seen": 1}})]);
     }
 }
+
+#[test]
+fn given_a_credential_named_variable_in_the_caller_when_a_url_target_mints_then_the_helper_prints_only_allowed_names() {
+    // Given a caller holding a fake credential and a url target whose mint command prints its environment
+    std::env::set_var("MIMIC_FLOW_FAKE_API_KEY", "must-not-leak");
+    let mut launch = mimic_script_host::target::UrlLaunch {
+        addr: "127.0.0.1:1".parse().unwrap(),
+        workspace: "w".into(),
+        mint: vec!["env".into()],
+        cli_dir: None,
+    };
+    let server = mimic_script_host::Launch::start(&mut launch).unwrap();
+
+    // When it mints
+    let printed = server.mint().unwrap();
+
+    // Then every name printed is allowed and the credential is not among them
+    assert!(!printed.contains("MIMIC_FLOW_FAKE_API_KEY") && !printed.contains("must-not-leak"), "{printed}");
+    let allowed = ["PATH", "HOME", "USER", "LOGNAME", "TERM", "TZ", "LANG", "LANGUAGE", "TMPDIR", "TEMP", "TMP", "SSL_CERT_FILE", "SSL_CERT_DIR", "CURL_CA_BUNDLE", "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy", "_", "PWD", "SHLVL", "OLDPWD"];
+    for line in printed.lines() {
+        let name = line.split('=').next().unwrap();
+        assert!(allowed.contains(&name) || name.starts_with("LC_"), "unexpected {name}");
+    }
+}
+
+#[test]
+fn given_a_curl_and_a_tar_helper_when_started_then_they_get_the_allowed_part_of_the_environment_only() {
+    // Given an environment with a credential, a path and a proxy
+    let vars = [("PATH", "/bin"), ("OPENCODE_API_KEY", "x"), ("BWS_ACCESS_TOKEN", "y"), ("HTTPS_PROXY", "p"), ("LC_ALL", "C")].map(|(k, v)| (k.to_string(), v.to_string()));
+
+    // When the helper environment is built
+    let got: Vec<String> = mimic_script_host::child_env::minimal_from(vars).into_iter().map(|(k, _)| k).collect();
+
+    // Then only the allowed names remain
+    assert_eq!(got, ["PATH", "HTTPS_PROXY", "LC_ALL"]);
+}

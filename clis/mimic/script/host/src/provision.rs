@@ -2,7 +2,6 @@
 //! `SHA256SUMS` give the hash of its bytes, then unpacked once per cache.
 use crate::pin::{parse_sha256_sums, sha256_hex, Pin};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 /// How bytes are fetched; the adapter is `curl`, which honours the proxy and CA settings of the environment.
 pub trait Get {
@@ -13,7 +12,7 @@ pub struct CurlGet;
 
 impl Get for CurlGet {
     fn get(&self, url: &str) -> Result<Vec<u8>, String> {
-        let out = Command::new("curl").args(["-fsSL", "--retry", "3", url]).output().map_err(|e| format!("curl: {e}"))?;
+        let out = crate::child_env::command("curl").args(["-fsSL", "--retry", "3", url]).output().map_err(|e| format!("curl: {e}"))?;
         if out.status.success() { Ok(out.stdout) } else { Err(format!("GET {url}: {}", String::from_utf8_lossy(&out.stderr).trim())) }
     }
 }
@@ -47,7 +46,7 @@ pub fn ensure_runtime(pin: &Pin, platform: &str, cache: &Path, get: &dyn Get) ->
     let dir = cache.join(format!("runtime-{}-{platform}", pin.version));
     if !dir.exists() {
         let scratch = tempfile_in(cache)?;
-        let status = Command::new("tar").arg("xzf").arg(&tarball).arg("-C").arg(&scratch).arg("--strip-components=1").output().map_err(|e| format!("tar: {e}"))?;
+        let status = crate::child_env::command("tar").arg("xzf").arg(&tarball).arg("-C").arg(&scratch).arg("--strip-components=1").output().map_err(|e| format!("tar: {e}"))?;
         if !status.status.success() {
             let _ = std::fs::remove_dir_all(&scratch);
             return Err(format!("tar failed: {}", String::from_utf8_lossy(&status.stderr).trim()));

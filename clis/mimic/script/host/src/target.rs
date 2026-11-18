@@ -176,7 +176,7 @@ impl Server for Remote {
 
     fn mint(&self) -> Result<String, String> {
         let (program, args) = self.mint.split_first().ok_or("the target names no mint command")?;
-        let out = Command::new(program).args(args).output().map_err(|e| format!("{program}: {e}"))?;
+        let out = crate::child_env::command(program).args(args).output().map_err(|e| format!("{program}: {e}"))?;
         if !out.status.success() {
             return Err(format!("{program} failed: {}", String::from_utf8_lossy(&out.stderr).trim()));
         }
