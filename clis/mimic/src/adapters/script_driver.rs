@@ -26,6 +26,10 @@ fn sidecar_env(spec: &ScriptSpec) -> Vec<(String, String)> {
     let fixed = [("TZ", "UTC".to_string()), ("LANG", "C.UTF-8".to_string())];
     let inherited = ["PATH", "HOME", "MIMIC_FIXED_PORT"].into_iter().chain(spec.env_pass.iter().map(String::as_str)).filter_map(|n| Some((n.to_string(), std::env::var(n).ok()?)));
     let mut env: Vec<(String, String)> = fixed.into_iter().map(|(k, v)| (k.to_string(), v)).chain(inherited).collect();
+    for (name, value) in &spec.env_set {
+        env.retain(|(k, _)| k != name);
+        env.push((name.clone(), value.clone()));
+    }
     if let Some(dir) = &spec.cli_dir {
         match env.iter_mut().find(|(k, _)| k == "PATH") {
             Some((_, path)) => *path = format!("{}:{path}", dir.display()),

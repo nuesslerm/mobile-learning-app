@@ -95,8 +95,8 @@ struct ScriptFile {
     /// `orca`: the sidecar command, relative paths as the file's directory sees them.
     #[serde(default)]
     sidecar: Vec<String>,
-    /// `chain`: the command that starts the candidate (`{work}` and `{repo}` of the provision block are filled in). It prints one JSON line
-    /// `{"ok":true,"event":"listening","addr","workspace","mint","cli_dir"}`, serves until its stdin closes, and is started by the replay verb itself.
+    /// `chain` (or `orca`): the command that starts the candidate (`{work}` and `{repo}` of the provision block are filled in). It prints one JSON line
+    /// `{"ok":true,"event":"listening","addr","workspace","mint","cli_dir"}` (an `orca` launcher prints `"pairing"` instead of `mint`), serves until its stdin closes, and is started by the replay verb itself.
     #[serde(default)]
     launch: Vec<String>,
     /// `orca`: names of the environment variables the sidecar gets besides `PATH`, `HOME`, `TZ` and `LANG` (the host to pair with, e.g.
@@ -131,6 +131,8 @@ pub struct ScriptSpec {
     pub sidecar: Vec<String>,
     /// `target = "chain"`: the command the replay starts the candidate with; empty for any other target.
     pub launch: Vec<String>,
+    /// Variables the sidecar gets besides `env_pass`, set by the replay from what a started chain printed (the pairing link of an `orca` candidate with a `launch`).
+    pub env_set: Vec<(String, String)>,
     pub env_pass: Vec<String>,
     pub dir: PathBuf,
     pub cache: Option<PathBuf>,
@@ -164,6 +166,7 @@ fn script_spec(dir: &Path, name: &str, s: ScriptFile) -> Result<ScriptSpec, Stri
         orca,
         sidecar: s.sidecar,
         launch: s.launch,
+        env_set: Vec::new(),
         env_pass: s.env_pass,
         dir: dir.to_path_buf(),
         cache: s.cache.map(|c| dir.join(c)),

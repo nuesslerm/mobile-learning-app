@@ -63,3 +63,69 @@ run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/codex"]
 name = "scripted-cli-opencode"
 cwd = "{work}"
 run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/opencode"]
+
+# A replay's candidate is the chain the integration tests replay against (orca-serve over rca-service and rca-exec, with the scripted CLIs): the `launch` of
+# the sets' [candidate.orca-serve] starts `chain-bin/chain` (clis/orca-serve/examples/chain.rs, the same rig as tests/integration) over these binaries.
+[[step]]
+name = "build-chain"
+when = "replay"
+cwd = "{repo}"
+run = ["cargo", "build", "--locked", "--manifest-path", "clis/Cargo.toml", "--target-dir", "{work}/chain-target", "-p", "orca-serve", "--bin", "orca-serve", "--example", "chain"]
+timeout_minutes = 60
+
+[[step]]
+name = "build-chain-exec"
+when = "replay"
+cwd = "{repo}"
+run = ["cargo", "build", "--locked", "--manifest-path", "clis/Cargo.toml", "--target-dir", "{work}/chain-target", "-p", "rca-exec", "--bin", "rca-exec"]
+timeout_minutes = 45
+
+[[step]]
+name = "build-chain-service"
+when = "replay"
+cwd = "{repo}"
+run = ["cargo", "build", "--locked", "--manifest-path", "backend/remote-chat-agent/Cargo.toml", "--target-dir", "{work}/service-target", "-p", "rca-service", "--bin", "rca-service"]
+timeout_minutes = 90
+
+[[step]]
+name = "build-chain-cli"
+when = "replay"
+cwd = "{repo}"
+run = ["cargo", "build", "--locked", "--manifest-path", "libraries/agent-api/Cargo.toml", "--target-dir", "{work}/scripted-target", "-p", "exec-testkit", "--bin", "scripted-cli"]
+timeout_minutes = 45
+
+[[step]]
+name = "chain-bin-dir"
+when = "replay"
+cwd = "{work}"
+run = ["mkdir", "-p", "chain-bin"]
+
+[[step]]
+name = "chain-bin-chain"
+when = "replay"
+cwd = "{work}"
+run = ["cp", "chain-target/debug/examples/chain", "chain-bin/chain"]
+
+[[step]]
+name = "chain-bin-orca-serve"
+when = "replay"
+cwd = "{work}"
+run = ["cp", "chain-target/debug/orca-serve", "chain-bin/orca-serve"]
+
+[[step]]
+name = "chain-bin-rca-exec"
+when = "replay"
+cwd = "{work}"
+run = ["cp", "chain-target/debug/rca-exec", "chain-bin/rca-exec"]
+
+[[step]]
+name = "chain-bin-rca-service"
+when = "replay"
+cwd = "{work}"
+run = ["cp", "service-target/debug/rca-service", "chain-bin/rca-service"]
+
+[[step]]
+name = "chain-bin-scripted-cli"
+when = "replay"
+cwd = "{work}"
+run = ["cp", "scripted-target/debug/scripted-cli", "chain-bin/scripted-cli"]

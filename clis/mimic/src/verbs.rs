@@ -451,6 +451,12 @@ fn start_chain(candidate: &Target, p: &Parsed, cfg: &Config, set: &SetRef, conte
     let launched = chain_launch::launch(&argv, &spec.dir, std::time::Duration::from_millis(spec.ready_ms)).map_err(|e| fail(e, "build what the launch command starts (the set's provision steps, `when = \"replay\"`) and fix [candidate.<n>.script] launch"))?;
     let scope = content.cassette.interactions.iter().flat_map(|i| i.steps.iter()).find_map(|s| s.payload["body"]["scope"].as_str().map(|v| v.replace(' ', ",")));
     let mut target = candidate.clone();
+    if let Some(s) = target.script.as_mut().filter(|s| s.orca) {
+        let pairing = launched.pairing.clone().ok_or_else(|| fail("the chain launcher of an orca candidate printed no pairing link", "make the launch command print {\"pairing\": <link>} in its listening line"))?;
+        s.env_set = vec![("ORCA_PAIRING_URI".to_string(), pairing)];
+        s.cli_dir = launched.cli_dir.clone().or(s.cli_dir.take());
+        return Ok(Some((target, launched)));
+    }
     if let Some(s) = target.script.as_mut() {
         s.addr = Some(launched.addr.clone());
         s.workspace = Some(launched.workspace.clone());

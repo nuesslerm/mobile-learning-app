@@ -128,7 +128,7 @@ impl Area for WorkspaceArea {
             FILES_PATHS_EXIST => files::paths_exist(agent, params),
             FILES_CREATE_FILE => files::create_file(agent, params),
             FOLDER_WORKSPACE_LIST => catalog::folder_workspaces(agent),
-            PROJECT_SECTIONS => catalog::project_sections(agent),
+            PROJECT_SECTIONS => Ok(catalog::project_sections()),
             REPO_LIST_ROW => repos::list(agent, params),
             REPO_UPDATE => repos::update(agent, params),
             REPO_HOOKS => repos::hooks(agent, params),

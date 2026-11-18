@@ -15,7 +15,10 @@ pub static SUITE: Suite = Suite::new("orca-serve-integration", "orca");
 
 /// The service's secret: the executor channel's, and the operator's who mints the mapper's bearer.
 pub const SECRET: &str = "chain-service-secret";
-const BIN: &str = env!("CARGO_BIN_EXE_orca-serve");
+/// The `orca-serve` binary: the one `ORCA_SERVE_BIN` names (the chain launcher's `--orca-serve`), else the one cargo built beside the test.
+fn bin() -> String {
+    std::env::var("ORCA_SERVE_BIN").unwrap_or_else(|_| option_env!("CARGO_BIN_EXE_orca-serve").expect("no orca-serve beside this program: pass --orca-serve").to_string())
+}
 const METHODS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/plans/rca-parity/coverage/orca-methods.json");
 
 fn known_rows() -> &'static BTreeSet<String> {
@@ -88,7 +91,7 @@ impl Chain {
 
     /// The link itself, for a client that takes it from its environment (the scripted phone of the mimic driver).
     pub fn pair_url(&self) -> String {
-        let out = Command::new(BIN).args(["pair", "--endpoint", &format!("ws://{}", self.addr), "--state-dir"]).arg(self.state.path()).stdin(Stdio::null()).output().unwrap();
+        let out = Command::new(bin()).args(["pair", "--endpoint", &format!("ws://{}", self.addr), "--state-dir"]).arg(self.state.path()).stdin(Stdio::null()).output().unwrap();
         assert!(out.status.success(), "{}{}", String::from_utf8_lossy(&out.stdout), String::from_utf8_lossy(&out.stderr));
         let printed: Value = serde_json::from_slice(&out.stdout).unwrap();
         printed["url"].as_str().expect("pair prints the link").to_string()
@@ -115,7 +118,7 @@ impl Drop for Chain {
 }
 
 fn spawn_serve(state: &Path, errlog: &Path, tap_url: &str, bearer: &str, web: Option<&Path>) -> (Child, SocketAddr) {
-    let mut command = Command::new(BIN);
+    let mut command = Command::new(bin());
     command.args(["serve", "--port", "0", "--state-dir"]).arg(state).args(["--rca-url", tap_url, "--label", "chain host"]).env("ORCA_RCA_BEARER", bearer);
     if let Some(dir) = web {
         command.arg("--mobile-web-dir").arg(dir);

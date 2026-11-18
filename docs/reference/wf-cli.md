@@ -4068,7 +4068,8 @@ The capture of one set on a runner, in three phases, in one call.
    replay: replays the set against each of its [candidate.<name>] (or --candidate) and
    tabulates severity, counts and the first difference of every non-clean interaction;
    exit 1 when any candidate differs. A candidate of target "chain" is started by its replay
-   from the launch command of the set (build it with a `when = "replay"` step).
+   from the launch command of the set (build it with a `when = "replay"` step); a target "orca"
+   candidate with a launch command gets the pairing link the launcher prints, in its sidecar only.
 3. candidate stop: a chain candidate stops when its replay ends.
 Both actions append a markdown summary to --summary (default $GITHUB_STEP_SUMMARY).
 

@@ -14,6 +14,8 @@ pub struct Launched {
     pub addr: String,
     pub workspace: String,
     pub mint: String,
+    /// The link an `orca` sidecar pairs with, when the launcher printed one.
+    pub pairing: Option<String>,
     pub cli_dir: Option<PathBuf>,
 }
 
@@ -28,15 +30,18 @@ pub fn launch(argv: &[String], dir: &std::path::Path, wait: Duration) -> Result<
         let _ = BufReader::new(stdout).read_line(&mut line);
         let _ = tx.send(line);
     });
-    let mut launched = Launched { child, addr: String::new(), workspace: String::new(), mint: String::new(), cli_dir: None };
+    let mut launched = Launched { child, addr: String::new(), workspace: String::new(), mint: String::new(), pairing: None, cli_dir: None };
     let line = rx.recv_timeout(wait).map_err(|_| format!("the chain launcher {} did not say it listens within {} s", program.display(), wait.as_secs()))?;
     let said: Value = serde_json::from_str(line.trim()).map_err(|e| format!("the chain launcher printed {line:?}, not a JSON line ({e})"))?;
     if said["ok"] != true || said["event"] != "listening" {
         return Err(format!("the chain launcher did not listen: {said}"));
     }
     let text = |k: &str| said[k].as_str().map(String::from).ok_or_else(|| format!("the chain launcher's line has no {k}: {said}"));
-    launched.addr = text("addr")?;
-    launched.workspace = text("workspace")?;
+    launched.pairing = said["pairing"].as_str().map(String::from);
+    if launched.pairing.is_none() {
+        launched.addr = text("addr")?;
+        launched.workspace = text("workspace")?;
+    }
     launched.mint = said["mint"].as_str().unwrap_or_default().to_string();
     launched.cli_dir = said["cli_dir"].as_str().map(PathBuf::from);
     Ok(launched)

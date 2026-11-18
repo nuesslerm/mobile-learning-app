@@ -258,20 +258,18 @@ fn given_an_image_a_text_file_and_a_binary_when_previewed_then_each_is_answered_
 }
 
 #[test]
-fn given_projects_when_the_catalog_is_read_then_roots_and_directories_are_listed_named_as_stored_and_worktrees_are_not() {
+fn given_projects_when_the_catalog_and_folder_workspaces_are_read_then_the_catalog_is_null_as_with_no_desktop_window_and_folders_are_the_stored_rows() {
     // Given workspaces of the three kinds and a stored name for one
     let mut rig = Rig::new();
     rig.agent.set_state("orca", "orca.repo.docs", json!({"displayName": "Docs site", "badgeColor": "#ff0000"}));
     // When the phone reads the catalog and the folder workspaces
     let sections = rig.ok("mobileRelay.projectSections", json!({}));
     let folders = rig.ok("folderWorkspace.list", json!({}));
-    // Then the repos are the root and the directory, the directory carries its stored name and colour, and the worktree is no project
-    let repos = sections["catalog"]["repos"].as_array().unwrap();
-    let ids: Vec<&str> = repos.iter().map(|r| r["id"].as_str().unwrap()).collect();
+    // Then the catalog is null (the pinned host answers so when no desktop window published one), and the repos are still listed by repo.list
+    assert_eq!(sections, json!({"catalog": null}));
+    let listed = rig.ok("repo.list", json!({}));
+    let ids: Vec<&str> = listed["repos"].as_array().unwrap().iter().map(|r| r["id"].as_str().unwrap()).collect();
     assert_eq!(ids, ["docs", "main"]);
-    assert_eq!((repos[0]["displayName"].clone(), repos[0]["badgeColor"].clone(), repos[0]["path"].clone()), (json!("Docs site"), json!("#ff0000"), json!("/srv/docs")));
-    assert_eq!(sections["catalog"]["projects"], json!([{"id": "docs", "displayName": "Docs site"}, {"id": "main", "displayName": "main"}]));
-    assert_eq!(sections["catalog"]["projectOrderBy"], "manual");
     // And no folder workspace is listed until one is stored, and then it is the stored row
     assert_eq!(folders, json!({"folderWorkspaces": []}));
     rig.agent.set_state("orca", "orca.folder-workspaces", json!([{"id": "f1", "name": "Scratch"}]));

@@ -24,8 +24,12 @@ session = false
 [candidate.orca-serve]
 driver = "script"
 
+# the chain the integration tests replay against (orca-serve over rca-service and rca-exec, the scripted CLIs), started by the replay itself from the
+# binaries the provision steps of `when = "replay"` built: `examples/chain.rs` of orca-serve prints its pairing link, which only the sidecar is given
 [candidate.orca-serve.script]
 target = "orca"
+launch = ["{work}/chain-bin/chain", "--orca-serve", "{work}/chain-bin/orca-serve", "--rca-service", "{work}/chain-bin/rca-service", "--rca-exec", "{work}/chain-bin/rca-exec", "--scripted-cli", "{work}/chain-bin/scripted-cli"]
+ready_ms = 120000
 sidecar = ["node", "../../../../tooling/mimic-drivers/src/cli.ts", "sidecar", "orca"]
 env_pass = ["ORCA_PAIRING_URI", "MIMIC_ORCA_ROOT"]
 session = false

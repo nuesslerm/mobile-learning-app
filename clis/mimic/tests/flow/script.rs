@@ -303,6 +303,32 @@ done"#;
     }
 
     #[test]
+    fn an_orca_candidate_with_a_launch_command_gets_the_pairing_link_the_launcher_printed_in_its_sidecar_only_and_the_launcher_stops_after() {
+        // Given a recorded set whose reference answers with the link, a launcher that prints that link and a candidate sidecar that answers with the link it is given
+        let w = world();
+        w.write("reference.sh", &sidecar("orca://launched-chain"));
+        w.record();
+        let log = w.path("launcher.log");
+        w.write("launcher.sh", &format!("echo started >> {log}\necho '{{\"ok\":true,\"event\":\"listening\",\"pairing\":\"orca://launched-chain\"}}'\ncat > /dev/null\necho stopped >> {log}\n", log = log.display()));
+        w.write("echo-link.sh", &sidecar("$ORCA_PAIRING_URI"));
+        let toml = w.read("mimic.toml");
+        w.write("mimic.toml", &format!("{toml}\n[candidate.chain]\ndriver = \"script\"\n\n[candidate.chain.script]\ntarget = \"orca\"\nsidecar = [\"sh\", \"echo-link.sh\"]\nlaunch = [\"sh\", \"{}\"]\nready_ms = 5000\n", w.path("launcher.sh").display()));
+
+        // When it is replayed with the link in nobody's environment
+        let run = w.run("replay", &["--candidate", "chain"]);
+
+        // Then the sidecar paired with the launched chain (clean against the reference), and the launcher was stopped when the replay ended
+        assert_eq!((run.code, run.json["severity"].clone()), (0, json!("none")), "{}\n{}", run.json, run.stderr);
+        assert_eq!(std::fs::read_to_string(&log).unwrap_or_default(), "started\nstopped\n");
+
+        // And a launcher that prints no pairing link is refused, naming it
+        w.write("launcher.sh", "echo '{\"ok\":true,\"event\":\"listening\",\"addr\":\"127.0.0.1:1\",\"workspace\":\"/w\"}'\ncat > /dev/null\n");
+        let refused = w.run("replay", &["--candidate", "chain"]);
+        assert_eq!(refused.code, 2, "{}", refused.json);
+        assert!(refused.json["error"].as_str().unwrap().contains("pairing link"), "{}", refused.json);
+    }
+
+    #[test]
     fn a_record_where_every_case_fails_to_connect_writes_nothing_and_says_the_reference_was_not_reached() {
         // Given a sidecar whose host never pairs
         let w = world();
