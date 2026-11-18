@@ -160,6 +160,10 @@ impl ServiceTools for Runner {
             other => content(format!("this service answers no tool {other}"), true),
         }
     }
+
+    fn admits(&self, thread: &str, token: &str) -> bool {
+        self.admits_mcp(thread, token)
+    }
 }
 
 pub struct AgentRequestsGroup {

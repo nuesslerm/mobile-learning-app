@@ -187,7 +187,7 @@ pub fn agent_api_with(env: &Env, config: &Config, launcher: Arc<dyn CliLauncher>
 /// The groups the service registers, for the flows that read the table and answer nothing.
 pub fn agent_api(env: &Env) -> AgentApi {
     let home = env.home.to_string_lossy().into_owned();
-    let config = Config { port: 0, allowed_origins: Vec::new(), api_secret: Some(SECRET.into()), commit: "flow-sha".into(), default_cwd: home.clone(), hard_timeout_ms: 1_500, state_dir: None, exec_root: home, heartbeat: Duration::from_secs(15), requests_per_minute: 120, edit_stats_flush: Duration::from_millis(50), state_seq_base: 0 };
+    let config = Config { port: 0, allowed_origins: Vec::new(), api_secret: Some(SECRET.into()), commit: "flow-sha".into(), default_cwd: home.clone(), hard_timeout_ms: 1_500, state_dir: None, exec_root: home, heartbeat: Duration::from_secs(15), requests_per_minute: 120, edit_stats_flush: Duration::from_millis(50), state_seq_base: 0, agent_public_url: None };
     agent_api_for(env, &config, ScriptedSpawner::new())
 }
 
@@ -232,6 +232,7 @@ fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Ar
         requests_per_minute: options.requests_per_minute,
         edit_stats_flush: Duration::from_millis(50),
         state_seq_base: 0,
+        agent_public_url: None,
     };
     let models = ScriptedModelApi::from_fixture();
     let clock = Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS));

@@ -82,7 +82,7 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         None => Registry::default(),
     });
     let threads = Arc::new(EngineThreads::new(thread_engine(config)));
-    let mcp = Arc::new(LoopbackMcp::new(config.port));
+    let mcp = Arc::new(LoopbackMcp::new(config.port).with_public(config.agent_public_url.clone()));
     let runner = Runner::new(threads.clone(), executors.clone(), launcher, mcp.clone());
     let hub = Arc::new(StateHub::from_base(state, config.state_seq_base));
     let attachments = Attachments::new(attachment_parts.store, attachment_parts.clock, attachment_parts.ids, executors.clone());

@@ -14,7 +14,7 @@ links: []
 
 A turn runs its CLI at the workspace host through the executor's `run_command` (owner direction, 18 Nov, `docs/plans/rca-client/architecture.md`). Not done yet:
 
-- **The service's tool server is unreachable from a remote host.** `/mcp/<thread>` answers loopback callers only and `LoopbackMcp` names `127.0.0.1`, so `approval_prompt` and `ask_user` work only when the executor runs on the service's own host. A remote host needs a public base URL and a per-turn token on the route.
+- **The service's tool server needs `AGENT_PUBLIC_URL` for a remote host.** `/mcp/<thread>` answers a loopback caller or the bearer token of the thread's running turn (which the CLI is told in its tool-server config), and `LoopbackMcp` names `AGENT_PUBLIC_URL` when set; with it unset a remote host is told the loopback address and cannot reach it.
 - **Provider credentials still live at the service.** The accounts group (`provider.auth.*`, usage), `provider_env` and the providers' root assume the service holds the logins; the host's own logins are what a turn now uses. Moving them is plan item 3 of `docs/plans/rca-parity/plan.md`.
 - **Two executor actions have no caller.** `edit_file` and `search` were reached only as model tools; the contract keeps them until they are retired with their fixtures and `rca-exec` code.
 - **No real CLI has run through it.** The tests use scripted CLIs; R16 of #83 is the check with the real ones, one hosted job per backend.

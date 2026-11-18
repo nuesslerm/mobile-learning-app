@@ -178,7 +178,7 @@ impl TurnTask {
         if session.is_some() {
             self.request.resume = session.clone();
         }
-        let command = command_for_host(self.driver, &self.request, &self.runner.mcp_url(&self.thread));
+        let command = command_for_host(self.driver, &self.request, &self.runner.mcp_url(&self.thread), &self.runner.mcp_token(&self.thread));
         let spawner = self.runner.launcher().spawner(&self.channel);
         self.runner.turns().launch(spawner.as_ref(), self.driver, &self.thread, command).await
     }

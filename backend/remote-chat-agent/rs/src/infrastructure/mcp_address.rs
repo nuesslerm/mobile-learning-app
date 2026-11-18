@@ -7,11 +7,18 @@ use std::sync::atomic::{AtomicU16, Ordering};
 pub struct LoopbackMcp {
     configured: u16,
     bound: AtomicU16,
+    /// The service's address as a workspace host reaches it (`AGENT_PUBLIC_URL`); the loopback address when unset.
+    public: Option<String>,
 }
 
 impl LoopbackMcp {
     pub fn new(configured: u16) -> LoopbackMcp {
-        LoopbackMcp { configured, bound: AtomicU16::new(0) }
+        LoopbackMcp { configured, bound: AtomicU16::new(0), public: None }
+    }
+
+    pub fn with_public(mut self, base: Option<String>) -> LoopbackMcp {
+        self.public = base.map(|b| b.trim_end_matches('/').to_string()).filter(|b| !b.is_empty());
+        self
     }
 
     /// Records the port the listener bound.
@@ -25,7 +32,10 @@ impl LoopbackMcp {
             bound => bound,
         };
         let thread = percent_encoding::utf8_percent_encode(thread, percent_encoding::NON_ALPHANUMERIC);
-        format!("http://127.0.0.1:{port}/mcp/{thread}")
+        match &self.public {
+            Some(base) => format!("{base}/mcp/{thread}"),
+            None => format!("http://127.0.0.1:{port}/mcp/{thread}"),
+        }
     }
 }
 

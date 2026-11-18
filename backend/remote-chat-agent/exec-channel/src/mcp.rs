@@ -21,6 +21,11 @@ pub trait ServiceTools: Send + Sync {
     /// The MCP `tools/call` result (`{content, isError}`) of `tool` called with `args` by the model of `thread`: it comes when the person has
     /// answered, or when the question can no longer be answered.
     async fn call(&self, thread: &str, tool: &str, args: &Value) -> Value;
+
+    /// Whether `token` is the one issued for a turn of `thread` that still runs: what lets a caller on another host reach the thread's tool server.
+    fn admits(&self, _thread: &str, _token: &str) -> bool {
+        false
+    }
 }
 
 fn service_tool_definition(name: &str) -> Option<Value> {

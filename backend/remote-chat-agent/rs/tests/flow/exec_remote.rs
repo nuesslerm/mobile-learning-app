@@ -366,6 +366,32 @@ async fn given_a_non_loopback_caller_when_it_posts_to_the_mcp_server_then_it_is_
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn given_a_cli_on_another_host_when_it_presents_the_turns_token_then_the_tool_server_answers_it_and_a_wrong_token_or_a_finished_turn_is_refused() {
+    // Given a running turn whose CLI was told the tool server's token, as one on the workspace host is
+    let env = Env::new(&[]);
+    let idle = idle_cli();
+    let (svc, port) = listening(&env, idle.clone()).await;
+    let _executor = Executor::connect(port, "w1").await;
+    let mut agent = running_turn(&svc, port, &idle, "t1").await;
+    let args = idle.spawned.lock().unwrap()[0].1.clone();
+    let config: Value = serde_json::from_str(&args[args.iter().position(|a| a == "--mcp-config").unwrap() + 1]).unwrap();
+    let bearer = config["mcpServers"]["executor"]["headers"]["Authorization"].as_str().unwrap().to_string();
+    let call = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}});
+    let remote = |auth: &str| svc.send(post("/mcp/t1").from([10, 1, 2, 3]).header("authorization", auth).json(call.clone()));
+    // When the same caller from another address presents that token, a wrong one, and the token for another thread's route
+    let served = remote(&bearer).await;
+    let wrong = remote("Bearer not-the-token").await;
+    let elsewhere = svc.send(post("/mcp/t2").from([10, 1, 2, 3]).header("authorization", &bearer).json(call.clone())).await;
+    // Then only the right token on its own thread's route is served
+    assert_eq!(served.status, StatusCode::OK, "{}", served.json());
+    assert_eq!((wrong.status, elsewhere.status), (StatusCode::FORBIDDEN, StatusCode::FORBIDDEN));
+    // And once the turn is over the token no longer opens the route
+    agent.ask("turn.interrupt", json!({"thread": "t1"})).await;
+    agent.events_through("turn.finished").await;
+    assert_eq!(remote(&bearer).await.status, StatusCode::FORBIDDEN);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn given_a_channel_for_a_workspace_when_a_second_opens_then_the_first_closes_with_4001() {
     // Given two channels opened for one workspace, one after the other
     let env = Env::new(&[]);

@@ -83,7 +83,7 @@ impl Prepared {
     /// failed, in the log, as one that fails after it began does.
     pub async fn launch(self) -> Result<String, Refusal> {
         let Prepared { runner, thread, turn, driver, channel, workspace, claim, request, said, merge } = self;
-        let command = command_for_host(driver, &request, &runner.mcp.url(&thread));
+        let command = command_for_host(driver, &request, &runner.mcp.url(&thread), &runner.mcp_token(&thread));
         for event in [ThreadEvent::TurnStarted {}, ThreadEvent::MessageDelta { role: Role::User, text: said }] {
             runner.engine.record(&thread, Some(&turn), event)?;
         }
@@ -125,6 +125,8 @@ pub struct Runner {
     turns: Arc<Turns>,
     mcp: Arc<dyn McpEndpoint>,
     launcher: Arc<dyn CliLauncher>,
+    /// The token each running turn gave its CLI for the service's tool server: the CLI may run on another host than the service.
+    mcp_tokens: std::sync::Mutex<std::collections::HashMap<String, String>>,
     in_flight: Arc<InFlight>,
     waiting: Waiting,
     me: Weak<Runner>,
@@ -132,7 +134,7 @@ pub struct Runner {
 
 impl Runner {
     pub fn new(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, launcher: Arc<dyn CliLauncher>, mcp: Arc<dyn McpEndpoint>) -> Arc<Runner> {
-        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::default()), mcp, launcher, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
+        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::default()), mcp, launcher, mcp_tokens: Default::default(), in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
         let me = Arc::downgrade(&runner);
         runner.engine.on_settled(Arc::new(move |thread| {
             if let Some(runner) = me.upgrade() {
@@ -160,6 +162,17 @@ impl Runner {
 
     pub fn mcp_url(&self, thread: &str) -> String {
         self.mcp.url(thread)
+    }
+
+    /// The token the thread's turn gives its CLI for the tool server, made when the turn first asks and gone when the turn is over.
+    pub fn mcp_token(&self, thread: &str) -> String {
+        let mut tokens = self.mcp_tokens.lock().unwrap_or_else(|p| p.into_inner());
+        tokens.entry(thread.to_string()).or_insert_with(|| uuid::Uuid::new_v4().simple().to_string()).clone()
+    }
+
+    /// Whether `presented` is the token of the thread's running turn.
+    pub fn admits_mcp(&self, thread: &str, presented: &str) -> bool {
+        self.mcp_tokens.lock().unwrap_or_else(|p| p.into_inner()).get(thread).is_some_and(|t| t == presented)
     }
 
     pub fn waiting(&self) -> &Waiting {
@@ -257,6 +270,7 @@ impl Runner {
 
     /// The thread's requests that wait are answered as unanswerable: its turn is over.
     pub fn release_requests(&self, thread: &str) {
+        self.mcp_tokens.lock().unwrap_or_else(|p| p.into_inner()).remove(thread);
         self.waiting.release(thread);
     }
 
