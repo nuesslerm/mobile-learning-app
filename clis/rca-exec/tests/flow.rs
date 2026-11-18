@@ -21,7 +21,7 @@ use std::os::unix::fs::symlink;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use exec_fs::{EditFile, EntryKind, ListDir, ReadFile, Search, SearchKind, WriteFile};
+use exec_fs::{EntryKind, ListDir, ReadFile, WriteFile};
 use exec_proc::{RunCommand, RunResult};
 use exec_proto::{Code, ExecResult, Stream};
 use rca_exec::domain::{execute, ToolExecutor};
@@ -60,48 +60,22 @@ fn wait_for(what: &str, mut ok: impl FnMut() -> bool) {
 }
 
 #[test]
-fn write_read_edit_list_and_search_do_the_thing_on_disk() {
+fn write_read_and_list_do_the_thing_on_disk() {
     // Given an executor rooted at a real directory
     let dir = tempfile::tempdir().unwrap();
     let ex = executor(dir.path());
-    // When a file is written (with its parent created), read in a window, edited and listed
+    // When a file is written (with its parent created), read in a window and listed
     assert_eq!(ex.write_file(&WriteFile { path: "src/a.txt".into(), content: "one\ntwo\nthree\nfour\n".into(), create_dirs: true }).unwrap(), 19);
     let window = ex.read_file(&ReadFile { path: "src/a.txt".into(), offset: 1, limit: Some(2) }).unwrap();
-    assert_eq!(ex.edit_file(&EditFile { path: "src/a.txt".into(), old: "three".into(), new: "3".into(), replace_all: false }).unwrap(), 1);
-    // Then the bytes on disk are the edited ones and the reads and listings report them
-    assert_eq!(std::fs::read_to_string(dir.path().join("src/a.txt")).unwrap(), "one\ntwo\n3\nfour\n");
+    // Then the bytes on disk are the written ones and the reads and listings report them
+    assert_eq!(std::fs::read_to_string(dir.path().join("src/a.txt")).unwrap(), "one\ntwo\nthree\nfour\n");
     assert_eq!((window.content.as_str(), window.total_lines), ("two\nthree\n", 4));
     let top = ex.list_dir(&ListDir { path: ".".into(), depth: 1 }).unwrap();
     assert_eq!(top.iter().map(|e| (e.name.as_str(), e.kind)).collect::<Vec<_>>(), [("src", EntryKind::Dir)]);
     let deep = ex.list_dir(&ListDir { path: ".".into(), depth: 2 }).unwrap();
-    assert_eq!(deep.iter().map(|e| (e.name.as_str(), e.size)).collect::<Vec<_>>(), [("src", deep[0].size), ("src/a.txt", 15)]);
-    // And both searches find it, content with its line
-    ex.write_file(&WriteFile { path: "b.rs".into(), content: "fn main() {}\n".into(), create_dirs: false }).unwrap();
-    let content = ex.search(&Search { pattern: "^f.u.$".into(), path: ".".into(), glob: None, kind: SearchKind::Content }).unwrap();
-    assert_eq!(content.matches.iter().map(|m| (m.path.as_str(), m.line)).collect::<Vec<_>>(), [("src/a.txt", Some(4))]);
-    let files = ex.search(&Search { pattern: "**/*.txt".into(), path: ".".into(), glob: None, kind: SearchKind::Files }).unwrap();
-    assert_eq!(files.matches.iter().map(|m| m.path.as_str()).collect::<Vec<_>>(), ["src/a.txt"]);
-    let globbed = ex.search(&Search { pattern: "main".into(), path: ".".into(), glob: Some("*.rs".into()), kind: SearchKind::Content }).unwrap();
-    assert_eq!(globbed.matches.len(), 1);
+    assert_eq!(deep.iter().map(|e| (e.name.as_str(), e.size)).collect::<Vec<_>>(), [("src", deep[0].size), ("src/a.txt", 19)]);
     // And a missing file is NOT_FOUND
     assert_eq!(ex.read_file(&ReadFile { path: "nope".into(), offset: 0, limit: None }).unwrap_err().code, Code::NotFound);
-}
-
-#[test]
-fn an_edit_that_matches_twice_is_ambiguous_until_replace_all_and_a_missing_old_is_not_found() {
-    // Given a file where "x" occurs twice
-    let dir = tempfile::tempdir().unwrap();
-    let ex = executor(dir.path());
-    write(&ex, "f", "x and x").unwrap();
-    let edit = |old: &str, replace_all| ex.edit_file(&EditFile { path: "f".into(), old: old.into(), new: "y".into(), replace_all });
-    // When the edit is made without replace_all, Then it is refused and the file is untouched
-    assert_eq!(edit("x", false).unwrap_err().code, Code::EditAmbiguous);
-    assert_eq!(std::fs::read_to_string(dir.path().join("f")).unwrap(), "x and x");
-    // And an absent `old` is a different code
-    assert_eq!(edit("zzz", false).unwrap_err().code, Code::EditNotFound);
-    // And with replace_all both are replaced
-    assert_eq!(edit("x", true).unwrap(), 2);
-    assert_eq!(std::fs::read_to_string(dir.path().join("f")).unwrap(), "y and y");
 }
 
 #[test]

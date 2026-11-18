@@ -141,7 +141,7 @@ The M1 baseline lists all 36 command types, each with a target (agent method, `s
 
 | Family | Actions |
 | --- | --- |
-| fs | existing `read_file`, `write_file`, `edit_file`, `list_dir`, `search`; new `stat`, `read_chunk`, `create_file`, `browse` (outside the root, behind an allowlist), `put_blob` (an attachment written into the workspace) |
+| fs | existing `read_file`, `write_file`, `list_dir` (`edit_file` and `search` were retired with the model tools); new `stat`, `read_chunk`, `create_file`, `browse` (outside the root, behind an allowlist), `put_blob` (an attachment written into the workspace) |
 | proc | existing `run_command`, `cancel` |
 | git | existing `git_diff`; new `git_status`, `git_refs`, `git_log`, `git_compare`, `git_upstream`, `git_stage`, `git_unstage`, `git_discard`, `git_commit`, `git_checkout`, `git_create_ref`, `git_fetch/pull/push`, `git_fast_forward`, `git_merge`/`git_rebase` with abort and continue, `git_conflict_resolve`, `git_sparse`, `git_worktree_add/remove/list`, `git_blob`, `git_clone`, `worktree_setup` (runs hook scripts, streams progress) |
 | pty | new `pty_open`, `pty_write`, `pty_resize`, `pty_close`, `pty_attach {after_offset}`; output as binary frames |

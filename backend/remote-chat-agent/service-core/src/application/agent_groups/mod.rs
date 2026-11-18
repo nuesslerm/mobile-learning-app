@@ -45,9 +45,8 @@ mod tests {
     use rca_exec_channel::testing::ScriptedChannel;
     use rca_exec_channel::{contract_actions, Registry};
 
-    /// The actions no method row calls: a turn's CLI runs through `run_command` and stops through `cancel` (`HostSpawner`), and `edit_file` and
-    /// `search` stay in the contract with no caller until they are retired (`docs/known-gaps.md`).
-    const TOOLS: [&str; 4] = ["run_command", "cancel", "edit_file", "search"];
+    /// The actions no method row calls: a turn's CLI runs through `run_command` and stops through `cancel` (`HostSpawner`).
+    const TOOLS: [&str; 2] = ["run_command", "cancel"];
     use serde_json::{json, Value};
     use std::sync::Arc;
 
@@ -232,7 +231,7 @@ mod tests {
         only_a_tool_reaches.sort_unstable();
         reported_sorted.sort_unstable();
         assert_eq!(reported_sorted, only_a_tool_reaches);
-        assert!(reported.contains(&"edit_file") && reported.contains(&"run_command") && !reported.contains(&"read_file") && !reported.contains(&"write_file"), "{reported:?}");
+        assert!(reported.contains(&"cancel") && reported.contains(&"run_command") && !reported.contains(&"read_file") && !reported.contains(&"write_file"), "{reported:?}");
     }
 
     #[test]

@@ -182,7 +182,7 @@ async fn given_decisions_other_than_accept_when_a_tool_is_asked_about_then_sessi
     assert_eq!((denied["behavior"].clone(), denied.get("interrupt").cloned()), (json!("deny"), None));
     assert!(rig.engine.get("t").unwrap().unwrap().turn.is_some());
     // And a cancel is denied with the turn's end, which stops the CLI and finishes the turn as interrupted
-    let cancelled = ask("edit_file");
+    let cancelled = ask("Edit");
     let id = rig.open_request("t", "approval.requested", 3).await.data["approval"].as_str().unwrap().to_string();
     rig.ok("approval.answer", json!({"thread": "t", "approval": id, "decision": "cancel"})).await;
     assert_eq!(text_of(&cancelled.await.unwrap())["interrupt"], json!(true));

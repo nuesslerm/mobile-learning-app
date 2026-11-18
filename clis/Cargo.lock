@@ -2086,7 +2086,6 @@ dependencies = [
  "exec-pty",
  "exec-testkit",
  "libc",
- "regex",
  "serde_json",
  "tempfile",
  "tungstenite",

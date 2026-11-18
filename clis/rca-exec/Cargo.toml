@@ -34,7 +34,6 @@ exec-preview = { path = "../../libraries/agent-api/exec-preview" }
 serde_json = { version = "1", features = ["preserve_order"] }
 base64 = "0.22"
 libc = "0.2"
-regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 
 [dev-dependencies]

@@ -13,9 +13,7 @@ Every action is `{id, tool, args}` and is answered by `{id, ok, result}` or `{id
 | `run_command` | `command` (shell string), `cwd?` (relative), `timeout_ms?` (default 120000), `env?` (extra vars) | `{exit_code, timed_out, truncated}`; output arrives as stream frames |
 | `read_file` | `path`, `offset?`, `limit?` (lines) | `{content, total_lines}` |
 | `write_file` | `path`, `content`, `create_dirs?` | `{bytes}` |
-| `edit_file` | `path`, `old`, `new`, `replace_all?` | `{replacements}`; `EDIT_NOT_FOUND` when `old` is absent, `EDIT_AMBIGUOUS` when it occurs more than once and `replace_all` is not set |
 | `list_dir` | `path`, `depth?` (default 1) | `{entries:[{name, kind:"file"|"dir", size}]}` |
-| `search` | `pattern`, `path?`, `glob?`, `kind:"content"|"files"` | `{matches:[{path, line?, text?}], truncated}` |
 | `cancel` | `id` of a running action | `{cancelled}`; kills the process group of a `run_command` or stops a `worktree_setup` |
 | `stat` | `path` | `{kind:"file"|"dir", size, modified_ms}` |
 | `read_chunk` | `path`, `offset?` (bytes), `length?` (at most 1 MiB, the default) | `{data (base64), offset, bytes, total_bytes, eof}` |
@@ -43,7 +41,7 @@ The set is the working set of the first adapter; further tools (for example per-
 
 ## Functional tests (no contract-only tests)
 
-- Executor (host side, real temp directory): each tool does the thing; confinement refuses `..` and a symlink out; `run_command` streams, times out and cancels; `edit_file` ambiguity.
+- Executor (host side, real temp directory): each tool does the thing; confinement refuses `..` and a symlink out; `run_command` streams, times out and cancels.
 - Bridge (rca side, real service process): a scripted MCP client calls `tools/call` and the effect lands on the **executor's** directory and not rca's; no channel gives `NO_EXECUTOR`; closing the channel mid-command gives `EXECUTOR_GONE`. The turns of these flows start with `turn.start` on the agent socket (`backend/remote-chat-agent/rs/tests/flow/exec_remote.rs`, and `agent_threads.rs` with the real `rca-exec`).
 - End to end: a real `claude` or `opencode` with a live model, in the CI cli-e2e tier, asked to create a file and run a command, ends with the file in the `t3 serve` directory and T3 events for each step. A flow-tier stand-in uses a scripted CLI that speaks MCP.
 

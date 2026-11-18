@@ -3,7 +3,7 @@ name = "exec-fs"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "The executor's file actions (read_file, write_file, edit_file, list_dir, search): their arguments and results, and how a request's args are read"
+description = "The executor's file actions (read_file, write_file, list_dir and the rest): their arguments and results, and how a request's args are read"
 
 [lib]
 doctest = false

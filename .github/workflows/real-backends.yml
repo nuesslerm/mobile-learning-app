@@ -66,6 +66,7 @@ jobs:
           python3 -I tooling/real-backends/run_leg.py --leg "${{ matrix.leg }}" > "$RUNNER_TEMP/turn.out" 2>&1
           code=$?
           set -e
+          tail -c 6000 "$RUNNER_TEMP/turn.out"
           {
             echo "### Real backend: ${{ matrix.leg }}"
             echo

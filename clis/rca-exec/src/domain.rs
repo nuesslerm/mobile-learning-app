@@ -1,7 +1,7 @@
 //! The pure core of `rca-exec`: the executor port with the actions every model uses (`docs/plans/rca-client/protocol.md`), and the one function
 //! that maps a wire request `{tool, args}` onto it. The arguments and results are the contract crates' (`libraries/agent-api`). No I/O;
 //! paths are relative to the executor's root.
-use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EditFile, EditResult, EntriesResult, Entry, Found, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, ReadChunk, ReadFile, ReadResult, Search, SearchEntries, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
+use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, ReadChunk, ReadFile, ReadResult, SearchEntries, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
 use exec_hosted::HostedOp;
 use exec_preview::PreviewOp;
 use exec_git::{DiffResult, GitDiff, GitOp, SetupEvent, SetupResult, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeListed, WorktreeRemove, WorktreeRemoved, WorktreeSetup};
@@ -18,9 +18,7 @@ pub trait ToolExecutor: Send + Sync {
     /// Returns the bytes written.
     fn write_file(&self, args: &WriteFile) -> ExecResult<usize>;
     /// Returns the replacements made.
-    fn edit_file(&self, args: &EditFile) -> ExecResult<usize>;
     fn list_dir(&self, args: &ListDir) -> ExecResult<Vec<Entry>>;
-    fn search(&self, args: &Search) -> ExecResult<Found>;
     /// Kills the process group of the running `run_command` `id`; false when none is running under that id.
     fn cancel(&self, id: &str) -> bool;
     /// The working tree's `git diff` against `base` (the index when none), limited to `path` when given.
@@ -76,9 +74,7 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
         exec_proc::RUN_COMMAND => Ok(to_value(&ex.run_command(id, &RunCommand::parse(args)?, stream)?)),
         exec_fs::READ_FILE => Ok(to_value(&ex.read_file(&ReadFile::parse(args)?)?)),
         exec_fs::WRITE_FILE => Ok(to_value(&WriteResult { bytes: ex.write_file(&WriteFile::parse(args)?)? })),
-        exec_fs::EDIT_FILE => Ok(to_value(&EditResult { replacements: ex.edit_file(&EditFile::parse(args)?)? })),
         exec_fs::LIST_DIR => Ok(to_value(&ListResult { entries: ex.list_dir(&ListDir::parse(args)?)? })),
-        exec_fs::SEARCH => Ok(to_value(&ex.search(&Search::parse(args)?)?)),
         exec_proc::CANCEL => Ok(to_value(&CancelResult { cancelled: Cancel::parse(args).id.is_some_and(|target| ex.cancel(&target)) })),
         exec_git::GIT_DIFF => Ok(to_value(&DiffResult { diff: ex.git_diff(&GitDiff::parse(args)?)? })),
         exec_fs::STAT => Ok(to_value(&ex.stat(&Stat::parse(args)?)?)),
@@ -153,17 +149,9 @@ mod tests {
             self.note(exec_fs::WRITE_FILE);
             Ok(0)
         }
-        fn edit_file(&self, _: &EditFile) -> ExecResult<usize> {
-            self.note(exec_fs::EDIT_FILE);
-            Ok(0)
-        }
         fn list_dir(&self, _: &ListDir) -> ExecResult<Vec<Entry>> {
             self.note(exec_fs::LIST_DIR);
             Ok(Vec::new())
-        }
-        fn search(&self, _: &Search) -> ExecResult<Found> {
-            self.note(exec_fs::SEARCH);
-            Ok(Found { matches: Vec::new(), truncated: false })
         }
         fn cancel(&self, id: &str) -> bool {
             self.note(exec_proc::CANCEL);

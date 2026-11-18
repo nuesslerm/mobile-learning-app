@@ -1,7 +1,6 @@
 //! `ToolExecutor` on the local disk, rooted at the served directory and, when one is set, its worktree base. A path is relative to the
 //! root or absolute under the root or the base; it is confined to that one directory: no `..`, symlinks resolved component by component (a
 //! link that leaves it, or dangles, is `PATH_OUTSIDE_ROOT`). Only `browse` reads elsewhere, and only inside its allowlist.
-use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
 use std::io::{Read, Seek, SeekFrom};
@@ -14,7 +13,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use crate::domain::ToolExecutor;
 use base64::Engine;
-use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EditFile, EntriesResult, Entry, EntryKind, Found, FoundEntry, ListDir, MakeDir, Match, PutBlob, ReadChunk, ReadFile, ReadResult, Search, SearchEntries, SearchKind, Skill, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
+use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, ReadChunk, ReadFile, ReadResult, SearchEntries, Skill, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
 use exec_git::{GitCall, GitDiff, GitOp, Resolution, SetupEvent, SetupResult, SetupStep, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeRemove, WorktreeSetup};
 use exec_proc::{CliDetect, CliFound, RunCommand, RunResult};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyOpen, PtyOpened, PtyResize, PtyWrite};
@@ -31,8 +30,6 @@ use exec_proto::{Code, ExecError, ExecResult, Stream};
 pub const OUTPUT_CAP: usize = 1 << 20;
 pub const READ_CAP: usize = 1 << 20;
 pub const LIST_CAP: usize = 5000;
-pub const MATCH_CAP: usize = 500;
-const SEARCH_FILE_CAP: u64 = 2 << 20;
 const SCAN_CAP: usize = 200_000;
 /// What an entry search does not descend into.
 const PRUNED: [&str; 2] = [".git", "node_modules"];
@@ -373,23 +370,6 @@ impl ToolExecutor for LocalExecutor {
         Ok(args.content.len())
     }
 
-    fn edit_file(&self, args: &EditFile) -> ExecResult<usize> {
-        if args.old.is_empty() {
-            return Err(ExecError::new(Code::InvalidArgs, "`old` must not be empty"));
-        }
-        let path = self.resolve(&args.path)?;
-        let text = fs::read_to_string(&path).map_err(|e| io_at(&args.path, e))?;
-        let count = text.matches(&args.old).count();
-        if count == 0 {
-            return Err(ExecError::new(Code::EditNotFound, format!("`old` does not occur in {}", args.path)));
-        }
-        if count > 1 && !args.replace_all {
-            return Err(ExecError::new(Code::EditAmbiguous, format!("`old` occurs {count} times in {}; add context or set replace_all", args.path)));
-        }
-        fs::write(&path, text.replace(&args.old, &args.new)).map_err(|e| io_at(&args.path, e))?;
-        Ok(count)
-    }
-
     fn git_diff(&self, args: &GitDiff) -> ExecResult<String> {
         let (path, base) = (args.path.as_deref(), args.base.as_deref());
         let dir = match &args.worktree {
@@ -431,56 +411,6 @@ impl ToolExecutor for LocalExecutor {
         })
         .map_err(|e| io_at(&args.path, e))?;
         Ok(out)
-    }
-
-    fn search(&self, args: &Search) -> ExecResult<Found> {
-        let base = self.resolve(&args.path)?;
-        let glob = args.glob.as_deref().map(glob_regex).transpose()?;
-        let mut matches = Vec::new();
-        let mut truncated = false;
-        let mut files = Vec::new();
-        self.walk(&base, &base, usize::MAX, &[".git"], &mut |p, m| {
-            if m.is_file() {
-                files.push(p.to_path_buf());
-            }
-            true
-        })
-        .map_err(|e| io_at(&args.path, e))?;
-        let wanted = |p: &Path| glob.as_ref().is_none_or(|g| g.is_match(&p.strip_prefix(&base).unwrap_or(p).to_string_lossy()) || p.file_name().is_some_and(|n| g.is_match(&n.to_string_lossy())));
-        match args.kind {
-            SearchKind::Files => {
-                let pattern = glob_regex(&args.pattern)?;
-                for p in files {
-                    let shown = p.strip_prefix(&base).unwrap_or(&p).to_string_lossy().into_owned();
-                    if (pattern.is_match(&shown) || p.file_name().is_some_and(|n| pattern.is_match(&n.to_string_lossy()))) && wanted(&p) {
-                        if matches.len() >= MATCH_CAP {
-                            truncated = true;
-                            break;
-                        }
-                        matches.push(Match { path: self.rel(&p), line: None, text: None });
-                    }
-                }
-            }
-            SearchKind::Content => {
-                let re = Regex::new(&args.pattern).map_err(|e| ExecError::new(Code::InvalidArgs, format!("bad pattern: {e}")))?;
-                'files: for p in files.into_iter().filter(|p| wanted(p)) {
-                    if fs::metadata(&p).map_or(true, |m| m.len() > SEARCH_FILE_CAP) {
-                        continue;
-                    }
-                    let Ok(text) = fs::read_to_string(&p) else { continue };
-                    for (i, line) in text.lines().enumerate() {
-                        if re.is_match(line) {
-                            if matches.len() >= MATCH_CAP {
-                                truncated = true;
-                                break 'files;
-                            }
-                            matches.push(Match { path: self.rel(&p), line: Some(i + 1), text: Some(line.chars().take(500).collect()) });
-                        }
-                    }
-                }
-            }
-        }
-        Ok(Found { matches, truncated })
     }
 
     fn stat(&self, args: &Stat) -> ExecResult<StatResult> {
@@ -912,28 +842,4 @@ impl LocalExecutor {
         }
         Ok(true)
     }
-}
-
-/// `*` within a segment, `**` across segments, `?` one character; everything else literal.
-fn glob_regex(glob: &str) -> ExecResult<Regex> {
-    let mut re = String::from("^");
-    let mut chars = glob.chars().peekable();
-    while let Some(c) = chars.next() {
-        match c {
-            '*' if chars.peek() == Some(&'*') => {
-                chars.next();
-                if chars.peek() == Some(&'/') {
-                    chars.next();
-                    re.push_str("(?:.*/)?");
-                } else {
-                    re.push_str(".*");
-                }
-            }
-            '*' => re.push_str("[^/]*"),
-            '?' => re.push_str("[^/]"),
-            c => re.push_str(&regex::escape(&c.to_string())),
-        }
-    }
-    re.push('$');
-    Regex::new(&re).map_err(|e| ExecError::new(Code::InvalidArgs, format!("bad glob: {e}")))
 }

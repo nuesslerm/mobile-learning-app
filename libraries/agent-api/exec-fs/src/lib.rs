@@ -10,9 +10,7 @@ pub mod testing;
 
 pub const READ_FILE: &str = "read_file";
 pub const WRITE_FILE: &str = "write_file";
-pub const EDIT_FILE: &str = "edit_file";
 pub const LIST_DIR: &str = "list_dir";
-pub const SEARCH: &str = "search";
 pub const STAT: &str = "stat";
 pub const READ_CHUNK: &str = "read_chunk";
 pub const CREATE_FILE: &str = "create_file";
@@ -58,24 +56,7 @@ pub const ACTIONS: &[Action] = &[
         properties: &[PATH, Property { name: "content", kind: "string", about: "The whole new content" }, Property { name: "create_dirs", kind: "boolean", about: "Create missing parent directories" }],
         required: &["path", "content"],
     },
-    Action {
-        name: EDIT_FILE,
-        about: "Replace text in a file in the workspace.",
-        properties: &[PATH, Property { name: "old", kind: "string", about: "Text to replace" }, Property { name: "new", kind: "string", about: "Replacement text" }, Property { name: "replace_all", kind: "boolean", about: "Replace every occurrence" }],
-        required: &["path", "old", "new"],
-    },
     Action { name: LIST_DIR, about: "List a directory in the workspace.", properties: &[PATH, Property { name: "depth", kind: "integer", about: "How many levels to list (default 1)" }], required: &["path"] },
-    Action {
-        name: SEARCH,
-        about: "Search file contents or file names in the workspace.",
-        properties: &[
-            Property { name: "pattern", kind: "string", about: "Pattern to look for" },
-            Property { name: "path", kind: "string", about: "Directory to search in" },
-            Property { name: "glob", kind: "string", about: "Only files matching this glob" },
-            Property { name: "kind", kind: "string", about: "\"content\" or \"files\"" },
-        ],
-        required: &["pattern", "kind"],
-    },
     Action { name: STAT, about: "Kind, size and modification time of a path in the workspace.", properties: &[PATH], required: &["path"] },
     Action {
         name: READ_CHUNK,
@@ -168,25 +149,6 @@ pub struct WriteResult {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct EditFile {
-    pub path: String,
-    pub old: String,
-    pub new: String,
-    pub replace_all: bool,
-}
-
-impl EditFile {
-    pub fn parse(args: &Value) -> ExecResult<EditFile> {
-        Ok(EditFile { path: string(args, "path")?, old: string(args, "old")?, new: string(args, "new")?, replace_all: flag(args, "replace_all") })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct EditResult {
-    pub replacements: usize,
-}
-
-#[derive(Debug, Clone, PartialEq)]
 pub struct ListDir {
     pub path: String,
     pub depth: usize,
@@ -215,46 +177,6 @@ pub struct Entry {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ListResult {
     pub entries: Vec<Entry>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SearchKind {
-    Content,
-    Files,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct Search {
-    pub pattern: String,
-    pub path: String,
-    pub glob: Option<String>,
-    pub kind: SearchKind,
-}
-
-impl Search {
-    pub fn parse(args: &Value) -> ExecResult<Search> {
-        let kind = match args["kind"].as_str() {
-            Some("content") => SearchKind::Content,
-            Some("files") => SearchKind::Files,
-            _ => return Err(ExecError::invalid_args("`kind` must be \"content\" or \"files\"")),
-        };
-        Ok(Search { pattern: string(args, "pattern")?, path: opt_string(args, "path")?.unwrap_or_else(|| ".".into()), glob: opt_string(args, "glob")?, kind })
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Match {
-    pub path: String,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub line: Option<usize>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub text: Option<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Found {
-    pub matches: Vec<Match>,
-    pub truncated: bool,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -520,14 +442,11 @@ mod tests {
         // When they are parsed
         let read = ReadFile::parse(&json!({"path": "a"})).unwrap();
         let write = WriteFile::parse(&json!({"path": "a", "content": "c"})).unwrap();
-        let edit = EditFile::parse(&json!({"path": "a", "old": "x", "new": "y"})).unwrap();
         let list = ListDir::parse(&json!({"path": "."})).unwrap();
-        let search = Search::parse(&json!({"pattern": "p", "kind": "files"})).unwrap();
-        // Then a read starts at line 0 with no limit, a write and an edit do not create or replace all, a listing is one level, a search starts at "."
+        // Then a read starts at line 0 with no limit, a write does not create, a listing is one level
         assert_eq!((read.offset, read.limit), (0, None));
-        assert_eq!((write.create_dirs, edit.replace_all), (false, false));
+        assert_eq!(write.create_dirs, false);
         assert_eq!(list.depth, 1);
-        assert_eq!((search.path.as_str(), search.glob, search.kind), (".", None, SearchKind::Files));
     }
 
     #[test]
@@ -538,9 +457,7 @@ mod tests {
             let parse = |args: &Value| match action.name {
                 READ_FILE => ReadFile::parse(args).map(drop),
                 WRITE_FILE => WriteFile::parse(args).map(drop),
-                EDIT_FILE => EditFile::parse(args).map(drop),
                 LIST_DIR => ListDir::parse(args).map(drop),
-                SEARCH => Search::parse(args).map(drop),
                 STAT => Stat::parse(args).map(drop),
                 READ_CHUNK => ReadChunk::parse(args).map(drop),
                 CREATE_FILE => CreateFile::parse(args).map(drop),
@@ -563,25 +480,15 @@ mod tests {
     }
 
     #[test]
-    fn given_a_search_kind_that_is_neither_content_nor_files_when_parsed_then_it_is_refused_before_the_pattern() {
-        // Given a search with no pattern and a wrong kind
-        let e = Search::parse(&json!({"kind": "names"})).unwrap_err();
-        // Then the kind is what is refused
-        assert!(e.message.contains("`kind`"), "{e:?}");
-    }
-
-    #[test]
     fn given_the_results_when_encoded_then_the_fields_keep_the_contract_names_and_order() {
         // Given one result of each shape
         // When they are encoded
         let read = to_value(&ReadResult { content: "x".into(), total_lines: 1, truncated: false }).to_string();
         let list = to_value(&ListResult { entries: vec![Entry { name: "src".into(), kind: EntryKind::Dir, size: 4096 }] }).to_string();
-        let found = to_value(&Found { matches: vec![Match { path: "a".into(), line: Some(2), text: Some("t".into()) }, Match { path: "b".into(), line: None, text: None }], truncated: true }).to_string();
-        // Then the keys are the contract's, a match carries only the parts it has, and the order is declaration order
+        // Then the keys are the contract's and the order is declaration order
         assert_eq!(read, r#"{"content":"x","total_lines":1,"truncated":false}"#);
         assert_eq!(list, r#"{"entries":[{"name":"src","kind":"dir","size":4096}]}"#);
-        assert_eq!(found, r#"{"matches":[{"path":"a","line":2,"text":"t"},{"path":"b"}],"truncated":true}"#);
-        assert_eq!((to_value(&WriteResult { bytes: 2 }).to_string(), to_value(&EditResult { replacements: 1 }).to_string()), (r#"{"bytes":2}"#.to_string(), r#"{"replacements":1}"#.to_string()));
+        assert_eq!(to_value(&WriteResult { bytes: 2 }).to_string(), r#"{"bytes":2}"#);
     }
     #[test]
     fn given_a_chunk_or_entry_request_with_limits_out_of_range_when_parsed_then_they_are_cut_to_the_contract_maxima() {

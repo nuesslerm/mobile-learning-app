@@ -19,7 +19,7 @@ pub fn action_of(tool: &str) -> &str {
 fn file_op(action: &str) -> Option<FileOp> {
     match action {
         "write_file" | "Write" | "write" => Some(FileOp::Write),
-        "edit_file" | "Edit" | "MultiEdit" | "edit" => Some(FileOp::Edit),
+        "Edit" | "MultiEdit" | "edit" => Some(FileOp::Edit),
         "create_file" => Some(FileOp::Create),
         _ => None,
     }
@@ -130,7 +130,7 @@ mod tests {
             calls.events(ExecEvent::ToolStarted { id: name.into(), name: name.into(), input: json!({"path": path}) });
             calls.events(ExecEvent::ToolFinished { id: name.into(), output: String::new(), ok: true })
         };
-        assert_eq!(run("edit_file", "e.rs").last(), Some(&ThreadEvent::FileChanged { path: "e.rs".into(), op: FileOp::Edit }));
+        assert_eq!(run("Edit", "e.rs").last(), Some(&ThreadEvent::FileChanged { path: "e.rs".into(), op: FileOp::Edit }));
         assert_eq!(run("create_file", "c.rs").last(), Some(&ThreadEvent::FileChanged { path: "c.rs".into(), op: FileOp::Create }));
         assert_eq!(calls.events(ExecEvent::Error("rate limited".into())), vec![ThreadEvent::Error { code: "CLI_ERROR".into(), message: "rate limited".into() }]);
         assert!(calls.events(ExecEvent::Done).is_empty());
