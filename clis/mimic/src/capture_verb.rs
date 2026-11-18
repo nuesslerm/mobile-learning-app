@@ -276,7 +276,7 @@ fn replay(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
             listed.push(json!({"id": r["id"], "label": r["label"], "severity": r["severity"], "first": {"kind": d["kind"], "path": d["path"]}, "open": open, "error": r["error"]}));
             diffs.push(format!("| {name} | {} | {} | {} {} |", r["id"].as_str().unwrap_or(""), r["severity"].as_str().unwrap_or(""), d["kind"].as_str().unwrap_or(""), d["path"].as_str().unwrap_or(r["error"].as_str().unwrap_or(""))));
         }
-        rows.push(json!({"candidate": name, "severity": c.json["severity"], "summary": s, "differences": listed}));
+        rows.push(json!({"candidate": name, "severity": c.json["severity"], "summary": s, "differences": listed, "gaps": c.json["gaps"]}));
     }
     let mut md = format!("### Replay `{}`\n\n| candidate | severity | total | clean | allowlisted | drift | breaking |\n|---|---|---|---|---|---|---|\n", set.name);
     for r in &rows {

@@ -501,6 +501,8 @@ fn a_replay_capture_tabulates_every_candidate_and_is_red_only_when_one_differs()
     assert!(!listed.is_empty() && listed.iter().all(|d| d["id"].is_string() && d["first"]["path"].is_string() && d["label"].is_string()), "{}", r.json);
     // And each lists the differences no allowlist entry covers (the breaking one), not only the first
     assert!(listed.iter().filter(|d| d["severity"] != "none").all(|d| d["open"].as_array().is_some_and(|o| !o.is_empty() && o.iter().all(|x| x["path"].is_string() && x["kind"].is_string()))), "{}", r.json);
+    // And a replay of a slice carries the verb's own gaps result, so the exact lines of a known-gaps file can be taken from the report
+    assert!(by("change").get("gaps").is_some(), "{}", r.json);
     // When only the candidate that behaves is replayed
     let clean = mimic(&["capture", "replay", &set, "--candidate", "same"], &[]);
     // Then the run is green
