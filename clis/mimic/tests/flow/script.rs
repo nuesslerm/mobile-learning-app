@@ -329,6 +329,27 @@ done"#;
     }
 
     #[test]
+    fn an_orca_candidate_with_a_launch_command_plays_against_the_server_whose_pairing_link_the_caller_holds_and_starts_nothing() {
+        // Given a recorded set, a launcher that would log its start, and a candidate sidecar that answers with the link its environment gives it
+        let w = world();
+        w.write("reference.sh", &sidecar("orca://held-server"));
+        w.record();
+        let log = w.path("launcher.log");
+        w.write("launcher.sh", &format!("echo started >> {log}\necho '{{\"ok\":true,\"event\":\"listening\",\"pairing\":\"orca://launched-chain\"}}'\ncat > /dev/null\n", log = log.display()));
+        w.write("echo-link.sh", &sidecar("$ORCA_PAIRING_URI"));
+        let toml = w.read("mimic.toml");
+        w.write("mimic.toml", &format!("{toml}\n[candidate.chain]\ndriver = \"script\"\n\n[candidate.chain.script]\ntarget = \"orca\"\nsidecar = [\"sh\", \"echo-link.sh\"]\nenv_pass = [\"ORCA_PAIRING_URI\"]\nlaunch = [\"sh\", \"{}\"]\nready_ms = 5000\n", w.path("launcher.sh").display()));
+
+        // When it is replayed with the link of a server the caller started in its environment
+        let set = w.arg();
+        let run = mimic(&["replay", set.as_str(), "--candidate", "chain"], &[("ORCA_PAIRING_URI", std::path::Path::new("orca://held-server"))]);
+
+        // Then the sidecar paired with that server (clean against the reference) and the launcher never ran
+        assert_eq!((run.code, run.json["severity"].clone()), (0, json!("none")), "{}\n{}", run.json, run.stderr);
+        assert!(!log.exists(), "the launcher ran");
+    }
+
+    #[test]
     fn a_record_where_every_case_fails_to_connect_writes_nothing_and_says_the_reference_was_not_reached() {
         // Given a sidecar whose host never pairs
         let w = world();

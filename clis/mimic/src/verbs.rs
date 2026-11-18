@@ -439,7 +439,9 @@ impl Driver for Timed<'_> {
 /// A `chain` candidate: the launch command started, and the target it makes (a url target on the address it printed, paired with the scopes the
 /// recorded session was granted). The chain stops when the returned launcher drops.
 fn start_chain(candidate: &Target, p: &Parsed, cfg: &Config, set: &SetRef, content: &CassetteSet) -> Result<Option<(Target, chain_launch::Launched)>, Fail> {
-    let Some(spec) = candidate.script.as_ref().filter(|s| !s.launch.is_empty() && p.val("addr").is_none()) else { return Ok(None) };
+    // an orca candidate whose caller already holds a pairing link (ORCA_PAIRING_URI) plays against that server, like --addr for a url target
+    let paired = |s: &crate::config::ScriptSpec| s.orca && std::env::var_os("ORCA_PAIRING_URI").is_some_and(|v| !v.is_empty());
+    let Some(spec) = candidate.script.as_ref().filter(|s| !s.launch.is_empty() && p.val("addr").is_none() && !paired(s)) else { return Ok(None) };
     let vars = cfg.provision.as_ref().map(|prov| provision_phase::vars(p, &set.name, &set.dir, prov));
     let argv: Vec<String> = spec.launch.iter().map(|a| vars.as_ref().map_or_else(|| a.clone(), |v| crate::provision::expand(a, v))).collect();
     let launched = chain_launch::launch(&argv, &spec.dir, &crate::child_env::ChildEnv::base().pass(&cfg.declared_pass()), std::time::Duration::from_millis(spec.ready_ms)).map_err(|e| fail(e, "build what the launch command starts (the set's provision steps, `when = \"replay\"`) and fix [candidate.<n>.script] launch"))?;
