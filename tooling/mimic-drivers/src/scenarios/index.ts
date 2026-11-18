@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { repoRoot } from '../lock.ts'
 import { API_DIR, SET_DIR, loadApi } from './api.ts'
 import { orcaScenarios } from './orca.ts'
-import { t3AgentCueScenarios, t3AgentMethodScenarios, t3AgentQueryScenarios, t3AgentScenarios } from './t3-agent.ts'
+import { t3AgentCueScenarios, t3AgentMethodScenarios, t3AgentQueryScenarios, t3AgentRealScenarios, t3AgentScenarios } from './t3-agent.ts'
 import { t3Scenarios } from './t3.ts'
 import type { ScenarioSet, Summary } from './types.ts'
 
@@ -94,6 +94,22 @@ export function agentCues(): ScenarioSet {
 export function writeAgentCues(dir: string = join(repoRoot, AGENT_CUES_DIR)): Summary {
   const set = agentCues()
   const out = render('t3', set, 't3-agent-cues')
+  mkdirSync(dir, { recursive: true })
+  writeFileSync(join(dir, 'corpus.json'), out.corpus)
+  writeFileSync(join(dir, 'scenarios.json'), out.scenarios)
+  return { schema: 'mimic-scenarios-summary/1', app: 't3', endpoints: set.coverage.length, scenarios: set.scenarios.length, populated: set.coverage.length, emptyOnly: 0, reasons: {}, wrote: [join(dir, 'corpus.json'), join(dir, 'scenarios.json')] }
+}
+
+/** The T3 rows that need a finished or really running turn of a real opencode (checkpoint.rollback, fork then merge back, promote-to-steer): its own set, one hosted `[record t3-v0.1.9-agent-real]`. */
+export const AGENT_REAL_DIR = 'clis/t3-serve/cassettes/t3-v0.1.9-agent-real'
+
+export function agentReal(): ScenarioSet {
+  return t3AgentRealScenarios(loadApi('t3'))
+}
+
+export function writeAgentReal(dir: string = join(repoRoot, AGENT_REAL_DIR)): Summary {
+  const set = agentReal()
+  const out = render('t3', set, 't3-agent-real')
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, 'corpus.json'), out.corpus)
   writeFileSync(join(dir, 'scenarios.json'), out.scenarios)

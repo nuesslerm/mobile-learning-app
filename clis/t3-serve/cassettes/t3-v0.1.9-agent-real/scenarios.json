@@ -1,0 +1,68 @@
+{
+ "schema": "mimic-scenarios/1",
+ "app": "t3",
+ "source": "clis/t3-serve/cassettes/t3-api",
+ "counts": {
+  "endpoints": 4,
+  "scenarios": 3,
+  "populated": 4,
+  "emptyOnly": 0
+ },
+ "scenarios": [
+  {
+   "id": "t3-real-checkpoint.rollback",
+   "kind": "story",
+   "rows": [
+    "command:checkpoint.rollback"
+   ],
+   "note": "roll a thread back to the checkpoint of a finished real turn"
+  },
+  {
+   "id": "t3-real-thread.merge_back",
+   "kind": "story",
+   "rows": [
+    "command:thread.fork",
+    "command:thread.merge_back"
+   ],
+   "note": "fork a thread with a finished real turn and merge the fork back"
+  },
+  {
+   "id": "t3-real-queued-message.promote-to-steer",
+   "kind": "story",
+   "rows": [
+    "command:queued-message.promote-to-steer"
+   ],
+   "note": "promote a message queued behind a really running turn to steer it"
+  }
+ ],
+ "coverage": [
+  {
+   "row": "command:checkpoint.rollback",
+   "state": "populated",
+   "via": [
+    "t3-real-checkpoint.rollback"
+   ]
+  },
+  {
+   "row": "command:thread.fork",
+   "state": "populated",
+   "via": [
+    "t3-real-thread.merge_back"
+   ]
+  },
+  {
+   "row": "command:thread.merge_back",
+   "state": "populated",
+   "via": [
+    "t3-real-thread.merge_back"
+   ]
+  },
+  {
+   "row": "command:queued-message.promote-to-steer",
+   "state": "populated",
+   "via": [
+    "t3-real-queued-message.promote-to-steer"
+   ]
+  }
+ ]
+}

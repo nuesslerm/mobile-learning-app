@@ -7,6 +7,8 @@
 // is frozen with its cassette, so these are not edits of the first. checkpoint.rollback is not in it: it needs a finished turn of a real agent.
 // A third set, `t3-v0.1.9-agent-queries`, holds one case per query row the first two sets never ask of a thread the server knows.
 // A fourth set, `t3-v0.1.9-agent-cues`, holds the rows whose agent method needs a state an earlier answered command makes (an archived thread, a running turn).
+// A fifth set, `t3-v0.1.9-agent-real`, runs a real opencode turn ('reply with OK', the cheap model, the key reaching the reference alone: R11) for the rows that need a
+// finished or really running turn. Nothing in it is scripted.
 import type { Capture } from '../capture.ts'
 import type { Case } from '../corpus/types.ts'
 import type { Json } from '../protocol.ts'
@@ -31,7 +33,7 @@ const QUEUED: Capture = {
 
 type Entry = Record<string, Json>
 type Step = { m: string; set?: Record<string, Json>; capture?: Capture; wait?: boolean }
-type Agent = { id: string; rows: string[]; note: string; hung: boolean; queue: number; steps: Step[]; /** `false`: the case makes no thread of its own. */ thread?: false }
+type Agent = { id: string; rows: string[]; note: string; hung: boolean; queue: number; steps: Step[]; /** `false`: the case makes no thread of its own. */ thread?: false; /** A real opencode turn instead of a scripted claude one; `capture` is what its projection read keeps for the steps. */ real?: { capture: Capture } }
 
 const THIS = { threadId: AGENT_THREAD }
 const stop = { ...THIS, reason: 'user' }
@@ -76,6 +78,22 @@ const CUES: Agent[] = [
   { id: 'subagent.stop', rows: ['subagent.stop'], note: 'stop a subagent of the turn that is still running', hung: true, queue: 0, steps: [{ m: 'subagent.stop', set: { ...THIS, runId: '{runId}', subagentId: 'n1' } }, { m: PROJECTION, set: THIS }] }
 ]
 
+const OPENCODE = { instanceId: 'opencode', model: 'opencode-go/deepseek-v4.1-flash' }
+const PROMPT = 'reply with OK'
+/** What the projection of a thread with a finished turn names, whichever of these paths this T3 uses (a probe of the first hosted record settles it). */
+const FINISHED: Capture = {
+  checkpointId: { from: ['/exit/value/checkpoints/0/checkpointId', '/exit/value/checkpoints/0/id', '/exit/value/checkpoints/0/turnId'] },
+  scopeId: { from: ['/exit/value/checkpoints/0/scopeId', '/exit/value/runs/0/runId', '/exit/value/runs/0/id'] }
+}
+const ROLLBACK = { checkpointId: '{checkpointId}', scopeId: '{scopeId}' }
+
+/** The label of a case is its last row. Each runs the real opencode turn first, so the call window of the row holds its agent method answered by a real agent. */
+const REAL: Agent[] = [
+  { id: 'checkpoint.rollback', rows: ['checkpoint.rollback'], note: 'roll a thread back to the checkpoint of a finished real turn', hung: false, queue: 0, real: { capture: FINISHED }, steps: [{ m: 'checkpoint.rollback', set: { ...THIS, ...ROLLBACK } }, { m: PROJECTION, set: THIS }] },
+  { id: 'thread.merge_back', rows: ['thread.fork', 'thread.merge_back'], note: 'fork a thread with a finished real turn and merge the fork back', hung: false, queue: 0, real: { capture: FINISHED }, steps: [{ m: 'thread.fork', set: { sourceThreadId: AGENT_THREAD, targetThreadId: FORK_THREAD, sourcePoint: LATEST_STABLE }, wait: true }, { m: 'thread.merge_back', set: { sourceThreadId: FORK_THREAD, targetThreadId: AGENT_THREAD, sourcePoint: LATEST_STABLE } }, { m: PROJECTION, set: THIS }] },
+  { id: 'queued-message.promote-to-steer', rows: ['queued-message.promote-to-steer'], note: 'promote a message queued behind a really running turn to steer it', hung: false, queue: 1, real: { capture: QUEUED }, steps: [{ m: 'queued-message.promote-to-steer', set: { ...THIS, queuedRunId: '{q1}', targetRunId: '{runId}' } }, { m: PROJECTION, set: THIS }] }
+]
+
 function frameOf(api: Api, name: string): Entry {
   const matches = api.endpoints.filter((e) => e.name === name)
   if (matches.length !== 1) return fail(`${name} is ${matches.length} endpoints of the crawl, expected one`)
@@ -97,11 +115,11 @@ const CLAUDE = { instanceId: 'claudeAgent', model: 'sonnet' }
 function steps(api: Api, agent: Agent): Entry[] {
   const out: Entry[] = []
   if (agent.hung) out.push({ 'cli.script': { cli: 'claude', turns: [{ hang: true }] } as unknown as Json })
-  if (agent.thread !== false) out.push(send(api, 'thread.create', 'c1', { threadId: AGENT_THREAD, projectId: PROJECT, title: 'Agent thread', modelSelection: CLAUDE as unknown as Json, branch: null, worktreePath: null }, { await: 'exit' }))
-  if (agent.hung) {
-    out.push(send(api, 'message.dispatch', 't1', { threadId: AGENT_THREAD, messageId: FIRST, text: 'hello', dispatchMode: { type: 'start_immediately' } }, { await: 'exit' }))
-    for (let i = 1; i <= agent.queue; i++) out.push(send(api, 'message.dispatch', `t${i + 1}`, { threadId: AGENT_THREAD, messageId: `m-queued-${i}`, text: `queued ${i}`, dispatchMode: { type: 'queue_after_active' } }, { await: 'exit' }))
-    out.push({ ...send(api, PROJECTION, 'r1', THIS), capture: (agent.queue ? QUEUED : RUN) as unknown as Json })
+  if (agent.thread !== false) out.push(send(api, 'thread.create', 'c1', { threadId: AGENT_THREAD, projectId: PROJECT, title: 'Agent thread', modelSelection: (agent.real ? OPENCODE : CLAUDE) as unknown as Json, branch: null, worktreePath: null }, { await: 'exit' }))
+  if (agent.hung || agent.real) {
+    out.push(send(api, 'message.dispatch', 't1', { threadId: AGENT_THREAD, messageId: FIRST, text: agent.real ? PROMPT : 'hello', dispatchMode: { type: 'start_immediately' } }, { await: 'exit' }))
+    for (let i = 1; i <= agent.queue; i++) out.push(send(api, 'message.dispatch', `t${i + 1}`, { threadId: AGENT_THREAD, messageId: `m-queued-${i}`, text: agent.real ? PROMPT : `queued ${i}`, dispatchMode: { type: 'queue_after_active' } }, { await: 'exit' }))
+    out.push({ ...send(api, PROJECTION, 'r1', THIS), capture: (agent.real?.capture ?? (agent.queue ? QUEUED : RUN)) as unknown as Json })
   }
   agent.steps.forEach((s, i) => out.push(send(api, s.m, `s${i + 1}`, s.set, s.wait ? { await: 'exit' } : {})))
   return out
@@ -113,9 +131,9 @@ function derive(api: Api, agents: Agent[], prefix: string): ScenarioSet {
   const via = new Map<string, string[]>()
   for (const a of agents) {
     const id = `${prefix}-${a.id}`
-    const script = { prelude: 'session', script: [...steps(api, a), { 'ws-close': {} }], settle_ms: a.hung ? 1500 : 400 } as unknown as Json
+    const script = { prelude: 'session', script: [...steps(api, a), { 'ws-close': {} }], settle_ms: a.hung ? 1500 : a.real ? 5000 : 400 } as unknown as Json
     const rows = [...new Set(a.rows.map((m) => frameOfRow(api, m)))]
-    cases.push({ id, row: frameOfRow(api, a.rows.at(-1)!), op: 'script', input: script, tags: ['input:scenario', 'state:fresh', 'kind:story', ...(a.hung ? ['needs:cli-script'] : [])] })
+    cases.push({ id, row: frameOfRow(api, a.rows.at(-1)!), op: 'script', input: script, tags: ['input:scenario', 'state:fresh', 'kind:story', ...(a.hung ? ['needs:cli-script'] : []), ...(a.real ? ['needs:real-agent'] : [])] })
     scenarios.push({ id, kind: 'story', rows, note: a.note })
     for (const r of rows) via.set(r, [...(via.get(r) ?? []), id])
   }
@@ -126,6 +144,7 @@ function derive(api: Api, agents: Agent[], prefix: string): ScenarioSet {
 export const t3AgentScenarios = (api: Api): ScenarioSet => derive(api, TURNS, 't3-agent')
 export const t3AgentMethodScenarios = (api: Api): ScenarioSet => derive(api, METHODS, 't3-method')
 export const t3AgentQueryScenarios = (api: Api): ScenarioSet => derive(api, QUERIES, 't3-query')
+export const t3AgentRealScenarios = (api: Api): ScenarioSet => derive(api, REAL, 't3-real')
 export const t3AgentCueScenarios = (api: Api): ScenarioSet => derive(api, CUES, 't3-cue')
 
 function frameOfRow(api: Api, name: string): string {
