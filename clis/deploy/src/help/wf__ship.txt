@@ -25,20 +25,6 @@ Options:
                    `wf ship promote <app> --tag <tag>`, which needs no route.
   --wipe-state     Also wipe the tailscale-state volume
   --recreate-all   Recreate every container of the service, sidecars included
-  --changed        Print which services a push must deploy, each with why, and
-                   whether it publishes an EAS Update: {"legs":[{"app","why":[...]}],
-                   "easUpdate":{"publish","why":[...]}}. A service is planned when the hash of its
-                   images and compose project differs between the commit it runs and HEAD
-                   (or that commit is unknown or not in the checkout). The update is published when the
-                   app's package graph (and the lockfile entries it reaches) changed since
-                   the commit of the branch's latest-dev.json pointer (eas/ in refs/wf/state), when a tailnet name
-                   that update baked in has moved, or when that commit cannot be read or
-                   the changed packages cannot be listed; a rotated backend token is not
-                   seen, publish it with --force (--force: all legs and the update; --also <a,b>: those services too, changed or not;
-                   --since <sha>: compare with that commit instead of what
-                   each service runs and the pointer names, asking vm-ops-api and the
-                   state ref nothing, so no tailnet name is checked either; --github-output:
-                   append legs= and eas_update= to $GITHUB_OUTPUT)
   --status         Deployer state: vm-ops-api /health and the container status
                    of each service
   -h, --help       display help for command

@@ -13,7 +13,7 @@ Commands:
   check [options] [sha]       Verify a change: --staged, --budget, --deployed
                               <sha>, --health, --visual, --drift
   ship [options] [service...] Build, push and redeploy a service on the VM;
-                              --changed, --status; `ship eas`, `ship retire`,
+                              --status; `ship eas`, `ship retire`,
                               `ship build`
   rca                         Work on the cheap-model ladder: ask, stats, plan,
                               worker, ladder

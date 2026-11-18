@@ -22,7 +22,7 @@ git commit --allow-empty -m "[record orca-v1.4.259-recorded chunk=15 fresh]" && 
 git commit --allow-empty -m "[replay t3-v0.1.9-recorded-1]" && git push origin dev                  # replay against the candidates, diff table in the summary
 ```
 
-Grammar, one marker per message on a line of its own that begins with `[` (a mention of the text mid-line in prose starts nothing), parsed by `wf mimic trigger` (`--help` is the one place it is written down): `[record <set>... [chunk=<minutes>] [fresh]]` or
+Grammar, one marker per message on a line of its own that begins with `[` (a mention of the text mid-line in prose starts nothing), parsed by `wf ci plan mimic` (`--help` is the one place it is written down): `[record <set>... [chunk=<minutes>] [fresh]]` or
 `[replay <set>...]`. A `<set>` is a cassette set directory with a `mimic.toml`, by its name or by its path from the repository root when two share a name. A malformed
 marker, an unknown set (the error lists the known ones), a record of a set with no `[reference]`, corpus or `[provision]`, or a replay of a set with no cassette or candidate,
 fails the first job with the reason in the run summary.

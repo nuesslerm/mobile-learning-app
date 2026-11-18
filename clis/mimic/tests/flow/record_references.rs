@@ -1,9 +1,30 @@
-//! The record-references trigger of `wf mimic`: the commit marker that asks the VM runner for a capture job (`trigger`), how a set's reference is
+//! The record-references verbs of `wf mimic`: how a set's reference is
 //! installed from data (the provision phase of `capture`), the chunked capture itself (`capture record`, over a double of the checkpointed `record`) and the transport of a
 //! recorded set to another checkout (the publish phase of `capture`, `fetch`, over a bare repository standing in for origin).
 use crate::support::*;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+
+/// Every directory under `root` that holds a mimic.toml, from `root`.
+fn set_dirs(root: &Path) -> Vec<PathBuf> {
+    fn walk(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) {
+        let Ok(entries) = std::fs::read_dir(dir) else { return };
+        let mut entries: Vec<_> = entries.flatten().collect();
+        entries.sort_by_key(|e| e.file_name());
+        for e in entries {
+            let name = e.file_name();
+            let Ok(kind) = e.file_type() else { continue };
+            if kind.is_dir() && !["node_modules", "target", ".git", "references", "dist", "tmp", ".nx"].iter().any(|s| name == *s) {
+                walk(root, &e.path(), out);
+            } else if kind.is_file() && name == "mimic.toml" {
+                out.push(dir.strip_prefix(root).unwrap_or(dir).to_path_buf());
+            }
+        }
+    }
+    let mut out = Vec::new();
+    walk(root, root, &mut out);
+    out
+}
 
 fn reporoot() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -11,16 +32,6 @@ fn reporoot() -> PathBuf {
 
 /// A block with one step that counts its runs, and no toolchain: the capture tests provision it (phase one) before the double records.
 const JOB_BLOCK: &str = "[provision]\ndrivers = false\n[[provision.step]]\nname = \"count\"\nrun = [\"sh\", \"-c\", \"echo run >> {work}/runs.txt\"]\n";
-const PROVISION: &str = "[provision]\n[provision.toolchain]\nnode = \"24\"\n[[provision.step]]\nname = \"build\"\nrun = [\"true\"]\n";
-
-/// A checkout with sets of the given names: each a directory with a mimic.toml, a corpus and a provision block.
-fn checkout(sets: &[&str]) -> tempfile::TempDir {
-    let dir = tempfile::tempdir().unwrap();
-    for s in sets {
-        add_set(dir.path(), s, PROVISION);
-    }
-    dir
-}
 
 fn add_set(root: &Path, rel: &str, extra: &str) {
     let set = root.join(rel);
@@ -30,101 +41,11 @@ fn add_set(root: &Path, rel: &str, extra: &str) {
     std::fs::write(set.join("mimic.toml"), format!("[reference]\ncommand = [\"true\"]\npin = \"pin.json\"\n[candidate.main]\ncommand = [\"true\"]\n{extra}")).unwrap();
 }
 
-fn trigger(root: &Path, message: &str) -> Run {
-    mimic(&["trigger", "--root", &root.display().to_string(), "--message", message], &[])
-}
-
-fn names(r: &Run) -> Vec<String> {
-    r.json["sets"].as_array().unwrap().iter().map(|s| s.as_str().unwrap().to_string()).collect()
-}
-
-#[test]
-fn a_record_marker_names_its_sets_chunk_and_fresh_and_a_replay_marker_only_its_sets() {
-    // Given a checkout with three sets, one of them reachable by path only because two directories share its name
-    let root = checkout(&["a/alpha", "b/beta", "c/gamma"]);
-    add_set(root.path(), "d/beta", PROVISION);
-    // When the head commit of a push carries a record marker with several sets, a chunk and fresh
-    let r = trigger(root.path(), "re-record\n\n[record alpha b/beta gamma chunk=15 fresh]\n");
-    // Then every set is a job, in order, with the chunk and fresh the marker gave and the node its provision block pins
-    assert_eq!((r.code, r.json["go"].clone(), r.json["action"].clone()), (0, json!(true), json!("record")), "{}", r.json);
-    assert_eq!((names(&r), r.json["chunk"].clone(), r.json["fresh"].clone()), (vec!["alpha".into(), "beta".into(), "gamma".into()], json!(15), json!(true)));
-    let jobs = r.json["matrix"]["include"].as_array().unwrap();
-    assert_eq!((jobs[1]["dir"].clone(), jobs[0]["node"].clone()), (json!("b/beta"), json!("24")));
-    // When a record marker gives neither, and a replay marker names a recorded set
-    let defaults = trigger(root.path(), "[record alpha]");
-    std::fs::write(root.path().join("a/alpha/cassette.json"), "{}").unwrap();
-    let replay = trigger(root.path(), "[replay alpha]");
-    // Then the chunk is ten minutes and nothing starts over, and the replay is a job for the candidates of the set
-    assert_eq!((defaults.json["chunk"].clone(), defaults.json["fresh"].clone()), (json!(10), json!(false)));
-    assert_eq!((replay.code, replay.json["action"].clone(), replay.json["matrix"]["include"][0]["candidates"].clone()), (0, json!("replay"), json!(["main"])), "{}", replay.json);
-}
-
-#[test]
-fn a_replay_marker_with_rows_hands_the_prefixes_to_the_job_and_one_without_hands_none() {
-    // Given a recorded set
-    let root = checkout(&["a/alpha"]);
-    std::fs::write(root.path().join("a/alpha/cassette.json"), "{}").unwrap();
-    // When a replay marker names two row prefixes, and another names none
-    let sliced = trigger(root.path(), "[replay alpha rows=orca.settings.,orca.state.get]");
-    let whole = trigger(root.path(), "[replay alpha]");
-    // Then the plan carries the prefixes as one comma-joined value, and the whole replay carries an empty one
-    assert_eq!((sliced.code, sliced.json["rows"].clone()), (0, json!("orca.settings.,orca.state.get")), "{}", sliced.json);
-    assert_eq!((whole.code, whole.json["rows"].clone()), (0, json!("")));
-}
-
-#[test]
-fn a_message_without_a_marker_starts_nothing() {
-    // Given a checkout
-    let root = checkout(&["a/alpha"]);
-    for message in ["fix the recorder", "mention [recording] and [records alpha] in prose", "", "notes [record alpha", "we write [record alpha] or [replay alpha] after the subject", "subject\n\n  [record alpha]\n"] {
-        // When a commit message that is not a marker is read
-        let r = trigger(root.path(), message);
-        // Then it succeeds and asks for no job
-        assert_eq!((r.code, r.json["ok"].clone(), r.json["go"].clone(), r.json["matrix"]["include"].clone()), (0, json!(true), json!(false), json!([])), "{message:?}: {}", r.json);
-    }
-}
-
-#[test]
-fn a_malformed_marker_or_an_unknown_set_fails_with_the_reason() {
-    // Given a checkout whose sets are alpha and gamma, gamma without a provision block, and a twin directory name
-    let root = checkout(&["a/alpha", "x/twin", "y/twin"]);
-    add_set(root.path(), "c/gamma", "");
-    let cases = [
-        ("[record]", "names no set"),
-        ("[record alpha", "not closed"),
-        ("[record alpha chunk=0]", "outside 1..="),
-        ("[record alpha chunk=x]", "not a number"),
-        ("[record alpha chunk=5 chunk=6]", "twice"),
-        ("[record alpha]\n[replay alpha]", "more than one"),
-        ("[replay alpha chunk=5]", "takes sets and rows= only"),
-        ("[replay alpha fresh]", "takes sets and rows= only"),
-        ("[record alpha rows=M5]", "rows= belongs to [replay"),
-        ("[replay alpha rows=M5 rows=M6]", "rows= is given twice"),
-        ("[replay alpha rows=M5,]", "not a row prefix"),
-        ("[replay alpha rows=a;b]", "not a row prefix"),
-        ("[record ../etc]", "neither a set name"),
-        ("[record nope]", "unknown set \"nope\""),
-        ("[record twin]", "names 2 sets"),
-        ("[record gamma]", "no [provision]"),
-        ("[replay alpha]", "no cassette.json"),
-    ];
-    for (message, reason) in cases {
-        // When the message is read
-        let r = trigger(root.path(), message);
-        // Then it is refused, the error says why (and an unknown set lists the known ones), and no job is planned
-        assert_eq!((r.code, r.json["ok"].clone()), (2, json!(false)), "{message}: {}", r.json);
-        assert!(r.json["error"].as_str().unwrap().contains(reason), "{message}: {}", r.json["error"]);
-        assert!(r.json["next"].as_str().is_some_and(|n| !n.is_empty()));
-    }
-    let unknown = trigger(root.path(), "[record nope]");
-    assert!(unknown.json["error"].as_str().unwrap().contains("alpha"), "{}", unknown.json["error"]);
-}
-
 #[test]
 fn every_set_of_the_repository_that_declares_provisioning_validates() {
     // Given every set of this repository whose loaded config has a provisioning block (inline or in a file), as the loader sees it
     let root = reporoot();
-    let declared: Vec<PathBuf> = wf_mimic::marker::all_sets(&root).into_iter().filter(|d| wf_mimic::config::Config::load(&root.join(d).join("mimic.toml")).is_ok_and(|c| c.provision.is_some())).collect();
+    let declared: Vec<PathBuf> = set_dirs(&root).into_iter().filter(|d| wf_mimic::config::Config::load(&root.join(d).join("mimic.toml")).is_ok_and(|c| c.provision.is_some())).collect();
     // Then the T3 and Orca recording sets are among them, so the loop below cannot pass on a subset
     for app in ["clis/t3-serve/cassettes", "clis/orca-serve/cassettes"] {
         assert!(declared.iter().any(|d| d.starts_with(app)), "no set under {app} declares provisioning: {declared:?}");
@@ -725,52 +646,6 @@ fn a_run_a_newer_one_replaced_keeps_no_files_and_the_fetch_names_the_newest() {
     assert!(old.json["error"].as_str().unwrap().contains("no longer the newest"), "{}", old.json["error"]);
     let newest = mimic_in(Some(&agent), &["fetch", "latest", "--set", "s", "--root", &other.path().display().to_string()], &[]);
     assert_eq!((newest.code, newest.json["run"].clone()), (0, json!("2")), "{}", newest.json);
-}
-
-fn workflow() -> String {
-    std::fs::read_to_string(reporoot().join(".github/workflows/mimic-record.yml")).expect("the record-references workflow")
-}
-
-/// Every `<prefix>.<key>` the workflow text reads.
-fn keys_read(text: &str, prefix: &str) -> std::collections::BTreeSet<String> {
-    regex::Regex::new(&format!(r"{}\.([A-Za-z_]+)", regex::escape(prefix))).unwrap().captures_iter(text).map(|c| c[1].to_string()).collect()
-}
-
-#[test]
-fn every_key_the_workflow_reads_from_the_plan_is_emitted_by_the_trigger_for_a_record_and_a_replay_plan() {
-    // Given the workflow file and a checkout with a recorded set that has a provision block
-    let text = workflow();
-    let root = checkout(&["a/alpha"]);
-    std::fs::write(root.path().join("a/alpha/cassette.json"), "{}").unwrap();
-    for message in ["[record alpha]", "[replay alpha]"] {
-        // When the trigger plans the marker
-        let r = trigger(root.path(), message);
-        assert_eq!(r.code, 0, "{message}: {}", r.json);
-        // Then every needs.plan.outputs.<x> is a top-level field of the plan, and every matrix.<x> a key of each job
-        for key in keys_read(&text, "needs.plan.outputs") {
-            assert!(r.json.get(&key).is_some(), "{message}: the workflow reads needs.plan.outputs.{key}, the trigger does not emit it: {}", r.json);
-        }
-        let job = r.json["matrix"]["include"][0].as_object().unwrap();
-        for key in keys_read(&text, "matrix") {
-            assert!(job.contains_key(&key), "{message}: the workflow reads matrix.{key}, the trigger does not emit it: {job:?}");
-        }
-    }
-    // And the workflow's plan step reads those top-level fields through jq under the same names
-    for key in ["action", "chunk", "fresh", "matrix"] {
-        assert!(text.contains(&format!("jq -c .{key} ")) || text.contains(&format!("jq -r .{key} ")), "the plan step does not read .{key}");
-    }
-}
-
-#[test]
-fn the_workflow_gate_starts_only_on_the_marker_forms_the_parser_accepts() {
-    // Given the gate condition of the workflow that starts it: the router of the commit-tag triggers
-    let text = std::fs::read_to_string(reporoot().join(".github/workflows/scheduled-triggers.yml")).expect("the scheduled-triggers workflow");
-    for word in ["record", "replay"] {
-        // Then it matches a marker at the start of the message and at the start of a later line, as the parser does, and not anywhere in a line
-        assert!(text.contains(&format!("startsWith(github.event.head_commit.message, '[{word} ')")), "{word}: no start-of-message form");
-        assert!(text.contains(&format!("format('{{0}}[{word} ', fromJSON('\"\\n\"'))")), "{word}: no start-of-line form");
-        assert!(!text.contains(&format!("contains(github.event.head_commit.message, '[{word} ')")), "{word}: a mid-line match would start the run for prose");
-    }
 }
 
 #[test]

@@ -212,32 +212,10 @@ jobs:
           INPUT_FRESH: ${{ inputs.fresh }}
           INPUT_SERVICES: ${{ inputs.services }}
         run: |
-          tag() { git log -1 --format=%B "$GITHUB_SHA" | grep -oiE "\[$1:[^]]*\]" | tail -1 | cut -d: -f2- | tr -d '[]' | tr ',' ' '; }
-          ci=$(tag ci)
-          for job in flow unit service browser android; do
-            run=true
-            if [ -n "$ci" ]; then run=false; for w in $ci; do [ "$w" = "$job" ] && run=true; done; fi
-            echo "run_$job=$run" >> "$GITHUB_OUTPUT"
-          done
-          echo "test jobs: ${ci:-every planned one}"
-          # [services:changed] (default) plans what the push changed; [services:all] every test and every service; [services:a,b] also the tests and the
-          # deploy legs of the named packages, crates and services. [cache:no] runs every test and builds every image without the Nx and layer caches.
-          read -ra words <<< "$(tag services) ${INPUT_SERVICES//,/ }"
-          names=""
-          for w in "${words[@]}"; do
-            if printf '%s' "$w" | grep -Eq '^[A-Za-z0-9_@][A-Za-z0-9_@/.:-]*$'; then names="${names:+$names,}$w"; else echo "::warning::[services:] ignores the name '$w'"; fi
-          done
-          force_tests=""; force_ship=""
-          case ",$names," in
-            *,all,*) force_tests=all; force_ship="--force" ;;
-            ,,|,changed,) ;;
-            *) force_tests=${names//changed,/}; force_tests=${force_tests%,changed}; force_ship="--also $force_tests" ;;
-          esac
-          fresh=false
-          case "$(tag cache)" in no|false|off) fresh=true ;; esac
-          [ "$INPUT_FRESH" != true ] || fresh=true
-          { echo "force_tests=$force_tests"; echo "force_ship=$force_ship"; echo "fresh=$fresh"; } >> "$GITHUB_OUTPUT"
-          echo "services: ${names:-changed}, cache: $([ $fresh = true ] && echo no || echo yes)"
+          args=(--sha "$GITHUB_SHA" --github-output)
+          [ -z "$INPUT_SERVICES" ] || args+=(--services "$INPUT_SERVICES")
+          [ "$INPUT_FRESH" != true ] || args+=(--fresh)
+          wf ci plan tags "${args[@]}"
       # Changed since the newest commit whose CI passed, not since the push before: GitHub cancels a run that is still
       # queued when the next push comes, and a red run's tests must run again.
       - name: Which tests, by stage
@@ -248,7 +226,7 @@ jobs:
         run: |
           args=(--changed --base last-green --sha "$GITHUB_SHA" --github-output)
           [ -z "$FORCE_TESTS" ] || args+=(--force "$FORCE_TESTS")
-          wf test plan "${args[@]}" > "$RUNNER_TEMP/plan.json"
+          wf ci plan tests "${args[@]}" > "$RUNNER_TEMP/plan.json"
           jq -r '.stages | to_entries[] | "\(.key): \(.value | length) test(s)"' "$RUNNER_TEMP/plan.json"
       # Each test stage runs as this many machines side by side (1 to 6): a package and all its kinds on one of them
       - name: How many machines per test stage
@@ -273,7 +251,7 @@ jobs:
           args=(--github-output)
           read -ra extra <<< "$FORCE_SHIP"
           args+=("${extra[@]}")
-          wf ship --changed "${args[@]}"
+          wf ci plan legs "${args[@]}"
       - name: Collect the storage guard
         if: ${{ always() }}
         continue-on-error: true

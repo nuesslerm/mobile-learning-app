@@ -85,7 +85,7 @@ impl Ship {
         }
         // a build names its images' hashes in the script a golden holds, so it takes a fixed one; a plan hashes the real tree
         let fixed = [("STUB_HASH", "0123456789abcdef01234567")];
-        let env: Vec<(&str, &str)> = env.iter().copied().chain(fixed.into_iter().filter(|_| !args.contains(&"--changed"))).collect();
+        let env: Vec<(&str, &str)> = env.iter().copied().chain(fixed.into_iter().filter(|_| !args.contains(&"legs"))).collect();
         run_wf(args, &self.opts(&env))
     }
 
@@ -158,13 +158,13 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     let s = Ship::new();
 
     // Given --force, When the plan is made, Then every service is planned (no Metro server) without asking anything
-    let r = s.wf(&["ship", "--changed", "--force"], &[]);
+    let r = s.wf(&["ci", "plan", "legs", "--force"], &[]);
     assert_eq!((r.exit_code, apps(&r.stdout)), (0, ALL_APPS.map(String::from).to_vec()));
     assert_eq!(why(&r.stdout, "vnc-auth-session"), ["--force"]);
     assert!(s.vm.requests().is_empty());
     // and with --github-output the legs and the update's publish flag are appended to the workflow's output file
     let gh_output = s.dir.path().join("gh-output");
-    let r = s.wf(&["ship", "--changed", "--force", "--github-output"], &[("GITHUB_OUTPUT", &gh_output.display().to_string())]);
+    let r = s.wf(&["ci", "plan", "legs", "--force", "--github-output"], &[("GITHUB_OUTPUT", &gh_output.display().to_string())]);
     let plan: Value = serde_json::from_str(&r.stdout).unwrap();
     assert_eq!(std::fs::read_to_string(&gh_output).unwrap(), format!("legs={}\neas_update=true\n", plan["legs"]));
     assert_eq!(plan["easUpdate"], json!({ "publish": true, "why": ["--force"] }));
@@ -175,7 +175,7 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     replies.push(ps("agent-shell", "reg/agent-shell:sha-abc123"));
     s.vm.replies(&replies);
     s.latest_update("abc123");
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[{\"name\":\"@app/unrelated\"}]")]);
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[{\"name\":\"@app/unrelated\"}]")]);
     // Then nothing is scheduled and no update is published, only the latest update's commit is asked of pnpm, and the dev Metro's bridge is not asked
     assert_eq!((r.exit_code, r.stdout.as_str()), (0, "{\"legs\":[],\"easUpdate\":{\"publish\":false,\"why\":[]}}\n"));
     assert_eq!(s.log("pnpm.log"), ["--filter ...[abc123] --changed-files-ignore-pattern=**/__tests__/** --changed-files-ignore-pattern=**/*.test.* --changed-files-ignore-pattern=**/*.md list --depth -1 --json"]);
@@ -188,7 +188,7 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     let mut replies = running("abc123");
     replies[2] = answers::reply(502, &answers::engine_down());
     s.vm.replies(&replies);
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[]"), ("GIT_AS", "4b825dc642cb6eb9a060e54bf8d69288fbee4904")]);
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]"), ("GIT_AS", "4b825dc642cb6eb9a060e54bf8d69288fbee4904")]);
     // Then each is planned with why, the unreachable one with a warning
     assert_eq!(apps(&r.stdout), ALL_APPS.map(String::from).to_vec());
     assert!(why(&r.stdout, "leetcode-backend")[0].starts_with("its image inputs at abc123 cannot be hashed:"), "{}", r.stdout);
@@ -200,7 +200,7 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
 
     // Given running commits the checkout does not know, Then every service is planned as changed without hashing or asking pnpm
     s.vm.replies(&running("abc123"));
-    let r = s.wf(&["ship", "--changed"], &[("GIT_KNOWN", "1"), ("PNPM_OUT", "[]")]);
+    let r = s.wf(&["ci", "plan", "legs"], &[("GIT_KNOWN", "1"), ("PNPM_OUT", "[]")]);
     assert_eq!(apps(&r.stdout), ALL_APPS.map(String::from).to_vec());
     assert_eq!(why(&r.stdout, "leetcode-backend"), ["its running commit abc123 is not in this checkout"]);
     assert!(s.log("pnpm.log").is_empty() && !s.log("git.log").iter().any(|l| l.starts_with("ls-tree")), "{:?}", s.log("git.log"));
@@ -220,20 +220,20 @@ fn the_ship_plan_deploys_the_services_whose_image_inputs_changed_since_each_one_
     show("aaaaaaa", "pnpm-lock.yaml", &pnpm_lock("aaa", "3.0.0"));
     s.latest_update("aaaaaaa");
     s.vm.replies(&running("aaaaaaa"));
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[]"), ("GIT_CHANGED", "pnpm-lock.yaml")]);
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]"), ("GIT_CHANGED", "pnpm-lock.yaml")]);
     let plan: Value = serde_json::from_str(&r.stdout).unwrap();
     assert_eq!((r.exit_code, plan["legs"].clone(), plan["easUpdate"].clone()), (0, json!([]), json!({ "publish": false, "why": [] })), "{}{}", r.stdout, r.stderr);
 
     // Given it re-patched a package the app bundles, Then the update is published with the dependency that moved
     show("aaaaaaa", "pnpm-lock.yaml", &pnpm_lock("bbb", "3.1.0"));
     s.vm.replies(&running("aaaaaaa"));
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[]"), ("GIT_CHANGED", "pnpm-lock.yaml")]);
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]"), ("GIT_CHANGED", "pnpm-lock.yaml")]);
     let plan: Value = serde_json::from_str(&r.stdout).unwrap();
     assert_eq!(plan["easUpdate"], json!({ "publish": true, "why": ["1 of its locked dependencies moved: sonner-native"] }), "{plan}");
 
     // Given --since, When the plan is made, Then that commit stands in for every running one and vm-ops-api is not asked
     s.vm.replies::<&str>(&[]);
-    let r = s.wf(&["ship", "--changed", "--since", "abc123"], &[("PNPM_OUT", "[]")]);
+    let r = s.wf(&["ci", "plan", "legs", "--since", "abc123"], &[("PNPM_OUT", "[]")]);
     assert_eq!((r.exit_code, apps(&r.stdout)), (0, Vec::<String>::new()), "{}", r.stderr);
     assert_eq!(s.log("pnpm.log"), ["--filter ...[abc123] --changed-files-ignore-pattern=**/__tests__/** --changed-files-ignore-pattern=**/*.test.* --changed-files-ignore-pattern=**/*.md list --depth -1 --json"]);
     assert!(s.vm.requests().is_empty(), "{:?}", s.vm.requests().iter().map(|r| r.url.clone()).collect::<Vec<_>>());
@@ -250,7 +250,7 @@ fn a_service_with_no_running_container_is_planned_whatever_changed() {
     replies[0] = answers::reply(200, &answers::ps("remote-chat-agent", &created));
     s.vm.replies(&replies);
     // When the plan is made with nothing changed
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[]")]);
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]")]);
     // Then only that service ships, because its tag names an image nothing runs
     assert_eq!((r.exit_code, apps(&r.stdout)), (0, vec!["remote-chat-agent".to_string()]), "{}{}", r.stdout, r.stderr);
     assert_eq!(why(&r.stdout, "remote-chat-agent"), ["its running commit is unknown"]);
@@ -259,7 +259,7 @@ fn a_service_with_no_running_container_is_planned_whatever_changed() {
     // and once its own container runs again at that commit, nothing ships
     replies[0] = ps("remote-chat-agent", "reg/remote-chat-agent:sha-abc123");
     s.vm.replies(&replies);
-    let r = s.wf(&["ship", "--changed"], &[("PNPM_OUT", "[]")]);
+    let r = s.wf(&["ci", "plan", "legs"], &[("PNPM_OUT", "[]")]);
     assert_eq!((r.exit_code, apps(&r.stdout)), (0, Vec::<String>::new()), "{}{}", r.stdout, r.stderr);
 }
 
@@ -268,7 +268,7 @@ fn the_update_is_published_whenever_the_app_moved_since_the_pointer_whatever_the
     let s = Ship::new();
     let plan = |s: &Ship, env: &[(&str, &str)]| -> (RunResult, Value) {
         s.vm.replies(&running("aaaaaaa"));
-        let r = s.wf(&["ship", "--changed"], env);
+        let r = s.wf(&["ci", "plan", "legs"], env);
         let v = serde_json::from_str(r.stdout.trim()).unwrap_or(Value::Null);
         (r, v)
     };
@@ -317,7 +317,7 @@ fn the_update_is_published_whenever_the_app_moved_since_the_pointer_whatever_the
     // and --since stands in for the pointer: with no pointer stored and a tailnet name that moved, nothing is published
     s.latest_pointer(None);
     s.vm.replies::<&str>(&[]);
-    let r = s.wf(&["ship", "--changed", "--since", "abc123"], &[("PNPM_OUT", "[]"), ("WF_TEST_TAILNET_NAMES", "leetcode-backend-prod")]);
+    let r = s.wf(&["ci", "plan", "legs", "--since", "abc123"], &[("PNPM_OUT", "[]"), ("WF_TEST_TAILNET_NAMES", "leetcode-backend-prod")]);
     assert_eq!((r.exit_code, serde_json::from_str::<Value>(&r.stdout).unwrap()["easUpdate"]["publish"].clone()), (0, json!(false)), "{}{}", r.stdout, r.stderr);
 }
 

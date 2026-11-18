@@ -9,6 +9,7 @@ files:
   - "**/libraries/rca-core/src/**/*.rs"
   - "**/mimic/core/src/**/*.rs"
   - "**/mimic/coverage/src/**/*.rs"
+  - "**/mimic/plan/src/**/*.rs"
   - "**/mimic/script/core/src/**/*.rs"
   - "**/orca-serve/core/src/**/*.rs"
   - "**/t3-serve/core/src/**/*.rs"

@@ -136,7 +136,7 @@ of the repo, passes with both.
 ## What was not run
 
 - The musl deploy binary `install-wf` builds, the persistent-incremental deploy build of CI, and the loaded VM (no musl target here).
-- CI, the plan job's real `wf test plan` for a push, the `flow-tests` stage wall time of a docs-only, `ci_comment`-only and `wf-plan`-only
+- CI, the plan job's real `wf ci plan tests` for a push, the `flow-tests` stage wall time of a docs-only, `ci_comment`-only and `wf-plan`-only
   commit (plan W6 and W13 asked for it; it needs the VM runner), and the Docker image of the listener.
 - Any integration, deployment verification, browser e2e, Android or runbook test; `terraform plan`; the flow suites of the backend crates that
   depend on `rca-core` and `telemetry` (the path-dependency edge is in the table above).

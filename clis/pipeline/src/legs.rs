@@ -1,4 +1,4 @@
-//! The deploy legs and the planning step CI runs behind `wf ship --changed`: which services a push deploys and whether it publishes
+//! The deploy legs and the planning step CI runs behind `wf ci plan legs`: which services a push deploys and whether it publishes
 //! an EAS Update, and the commit a service's deployment verification test should find. A service ships when the hash of what its images are
 //! built from (`image_hash`) differs between the commit it runs and HEAD; the app's update when its package graph moved.
 use wf_vmops::services::{running_commit, VM_OPS_API};

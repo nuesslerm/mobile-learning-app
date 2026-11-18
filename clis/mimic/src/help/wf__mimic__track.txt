@@ -23,7 +23,7 @@ plan    Read the [track <app>... [chunk=<minutes>] [fresh]] marker of a commit
         it names and print {schema, ok, go, apps, chunk, fresh, drifted,
         verdicts: [the check verdicts], record_marker, next}. record_marker is
         the [record <set>...] marker of the sets of the drifted apps, for
-        `wf mimic trigger --message`, or null when no pin is behind. sets lists
+        `wf ci plan mimic --message`, or null when no pin is behind. sets lists
         the sets it names.
 report  Fold a tracker run into one drift report. --inputs holds the capture
         outputs (<set>.record.json and <set>.replay.json of `wf mimic capture`,

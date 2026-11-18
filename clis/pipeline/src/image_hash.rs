@@ -1,6 +1,6 @@
 //! The content hash of a service image: its Dockerfile, every file the Dockerfile COPYs from the build context, and for a Rust image
 //! the locked dependencies of the crates it builds (not the whole lockfile, and not the workspace crates it only needs on disk). The
-//! hash tags the image `nx-<hash>`: an image with that tag in the registry is never rebuilt, and `wf ship --changed` compares the hash
+//! hash tags the image `nx-<hash>`: an image with that tag in the registry is never rebuilt, and `wf ci plan legs` compares the hash
 //! of the commit a service runs with the hash of HEAD. The base image tag is part of the Dockerfile.
 use crate::copy_closure::{copy_sources, path_closure_by};
 use crate::docker_ignore::DockerIgnore;

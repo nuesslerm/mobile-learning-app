@@ -1445,6 +1445,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "mimic-plan-core"
+version = "0.1.0"
+
+[[package]]
 name = "mimic-script-core"
 version = "0.1.7"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
@@ -1900,6 +1904,7 @@ dependencies = [
  "harness-flow",
  "hex",
  "libc",
+ "mimic-plan-core",
  "nix",
  "png",
  "rca-core",
@@ -3263,6 +3268,7 @@ dependencies = [
  "cli-http",
  "mimic-core",
  "mimic-coverage-core",
+ "mimic-plan-core",
  "mimic-script-core",
  "mimic-script-host",
  "mimic-script-orca",

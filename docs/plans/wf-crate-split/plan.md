@@ -35,7 +35,7 @@ Deviations from this plan, each with its reason:
    pre-split binary (the 19 bare-noun captures were not re-run); `wf android list-devices --help` and `-h` print the catalog path
    `clis/wf-harness/src/android_features.json`, because the file moved with its crate.
 7. Not run, although a done-when names them (nothing here may reach CI, the VM or a cloud): the `terraform plan` of W3, the
-   `vnc-auth-session` and backend image builds, the musl `install-wf` build, `wf test plan --changed` on a real push, and the
+   `vnc-auth-session` and backend image builds, the musl `install-wf` build, `wf ci plan tests --changed` on a real push, and the
    `flow-tests` stage time of a docs-only, a `ci_comment`-only and a `wf-plan`-only commit (W6, W13). The `deploy.yml` timing
    comment says the stage times of the split are not measured yet.
 
@@ -363,7 +363,7 @@ planner special-cases `wf`), so W6 lands with a no-op follow-up push to publish 
 
 Each wave is one or more commits on the `dev` trunk (rebase on `origin/dev`, lefthook suite, push; CI is the proof). Inside a
 wave, the seam commit builds as one crate and passes the unchanged suite before the move commit. Every wave's done-when also
-holds: `wf test plan --changed` for the push plans exactly the crates in its rerun-table row; the `flow-tests` stage is green;
+holds: `wf ci plan tests --changed` for the push plans exactly the crates in its rerun-table row; the `flow-tests` stage is green;
 `wf check --dead-refs` reports 0; the sum of tests across all crates equals the W0 census; `wf` builds as one musl deploy
 binary (`install-wf`).
 

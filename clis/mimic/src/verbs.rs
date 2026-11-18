@@ -14,8 +14,6 @@ mod bundle_verb;
 mod capture_verb;
 #[path = "provision_phase.rs"]
 mod provision_phase;
-#[path = "trigger_verb.rs"]
-mod trigger_verb;
 
 use crate::adapters::{open_driver, FsCheckpoint, FsStore};
 use crate::config::{relative, Config, Target};
@@ -44,7 +42,6 @@ const EXPORT: Spec = Spec { values: &["out"], positional: Positional::Exactly(2)
 const CRAWL: Spec = Spec { values: &["root"], flags: &["all", "check", "fresh"], positional: Positional::Any, ..Spec::NONE };
 const STABILIZE: Spec = Spec { values: &["allowlist", "min-pct", "report"], flags: &["write"], positional: Positional::Any, ..Spec::NONE };
 const REMASK: Spec = Spec { positional: Positional::Exactly(1), ..Spec::NONE };
-const TRIGGER: Spec = Spec { values: &["message", "file", "root"], positional: Positional::None, ..Spec::NONE };
 const CAPTURE: Spec = Spec { values: &["provision", "chunk", "budget", "out", "summary", "run", "candidate", "rows", "work-root", "root"], flags: &["fresh", "check", "force", "publish"], positional: Positional::Exactly(2), ..Spec::NONE };
 const FETCH: Spec = Spec { values: &["set", "root"], positional: Positional::Exactly(1), ..Spec::NONE };
 const VERIFY: Spec = Spec { values: &["root", "fixtures", "rules"], flags: &["all", "live", "files"], positional: Positional::Any, ..Spec::NONE };
@@ -90,7 +87,6 @@ pub fn run(args: &[String]) -> Option<i32> {
         "crawl" => finish("mimic-crawl/1", crawl_verb::crawl_verb(&parse_spec(rest, &CRAWL)?)),
         "stabilize" => finish("mimic-stability/1", stabilize_verb::stabilize_verb(&parse_spec(rest, &STABILIZE)?)),
         "remask" => finish("mimic-remask/1", stabilize_verb::remask_verb(&parse_spec(rest, &REMASK)?)),
-        "trigger" => finish("mimic-trigger/1", trigger_verb::trigger_verb(&parse_spec(rest, &TRIGGER)?)),
         "capture" => finish("mimic-capture/1", capture_verb::capture_verb(&parse_spec(rest, &CAPTURE)?)),
         "fetch" => finish("mimic-fetch/1", bundle_verb::fetch_verb(&parse_spec(rest, &FETCH)?)),
         "import" => finish("mimic-import/1", import(&parse_spec(rest, &IMPORT)?)),

@@ -16,7 +16,7 @@ jobs:
     permissions:
       actions: write
       contents: read
-    # a marker is the start of the message or of a line, like the parsers of `wf mimic trigger` and `wf mimic track plan` read it; fromJSON gives the newline
+    # a marker is the start of the message or of a line, like the parsers of `wf ci plan mimic` and `wf mimic track plan` read it; fromJSON gives the newline
     if: >-
       ${{
         contains(github.event.head_commit.message, '[ci-audit]') ||

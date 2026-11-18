@@ -103,13 +103,8 @@ jobs:
             echo "record=$([ -n "$record_marker" ] && echo true || echo false)"
           } >> "$GITHUB_OUTPUT"
           if [ -n "$record_marker" ]; then
-            # the capture matrix is the one `wf mimic trigger` builds for the same sets: provisioning, toolchains and checkpoints are its data
-            printf '%s' "$record_marker" | wf mimic trigger --file - > "$RUNNER_TEMP/matrix.json" || { cat "$RUNNER_TEMP/matrix.json"; fail "$RUNNER_TEMP/matrix.json"; }
-            {
-              echo "chunk=$(jq -r .chunk "$RUNNER_TEMP/matrix.json")"
-              echo "fresh=$(jq -r .fresh "$RUNNER_TEMP/matrix.json")"
-              echo "matrix=$(jq -c .matrix "$RUNNER_TEMP/matrix.json")"
-            } >> "$GITHUB_OUTPUT"
+            # the capture matrix is the one `wf ci plan mimic` builds for the same sets: provisioning, toolchains and checkpoints are its data
+            printf '%s' "$record_marker" | wf ci plan mimic --file - --github-output > "$RUNNER_TEMP/matrix.json" || { cat "$RUNNER_TEMP/matrix.json"; fail "$RUNNER_TEMP/matrix.json"; }
           fi
       - name: Keep the plan for the report
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
@@ -145,7 +140,7 @@ jobs:
           persist-credentials: false
           ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 1
-      # One setup step per toolchain a [provision] block can pin (TOOLCHAINS in clis/mimic/src/provision.rs); `wf mimic trigger` emits each as a matrix key.
+      # One setup step per toolchain a [provision] block can pin (TOOLCHAINS in clis/mimic/src/provision.rs); `wf ci plan mimic` emits each as a matrix key.
       - name: Node of the set's provision block
         if: ${{ matrix.node != '' }}
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

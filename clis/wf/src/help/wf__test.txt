@@ -1,24 +1,11 @@
-Usage: wf test [options] <plan|run|prepare|backends|drift|publish|results|goldens> [args]
+Usage: wf test [options] <run|prepare|backends|drift|publish|results|goldens> [args]
 
 The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`).
-A runbook is something else: plain text an agent drives. There is no queue: CI's plan job writes the plan once and
+A runbook is something else: plain text an agent drives. There is no queue: CI's plan job (`wf ci plan`) writes the plan once and
 each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deployment-verification-tests, browser-e2e-tests, android-e2e-tests) runs its part
 with `wf test run --stage`.
 
 Actions:
-  plan                   every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
-                         HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
-                         test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's
-                         dependency graph from the changed files; flow and integration run in the flow-tests stage. The
-                         workspace root gets a typecheck when a file outside every package changed. Every focused e2e test is
-                         planned, whatever changed (`platform: android, browser` makes it a test on each harness);
-                         --platform android|browser keeps one harness's. --force all|<a,b>: also plans every test (all), or
-                         the tests of the named packages, crates and e2e tests, whatever changed (why: forced). --json
-                         prints {sha, base, stages: {<stage>: [{kind: flow|integration|typecheck|lint|unit|deployment-verification,
-                         package, dir, script, command, why[]} | {kind: flow, crate, dir, manifest, command, why[]} | {kind: e2e,
-                         platform, name, script, against, units[], why[]}]}, tests[]}; `why` says what picked it ("focused",
-                         "changed", "depends on lib (pnpm)"). --github-output also appends
-                         plan=<json> and <stage_with_underscores>=<count> to $GITHUB_OUTPUT
   run --stage <stage> [--plan <file>] [--parallel <n>] [--shard <i>/<n>] [--probe] [--fresh]
                          run one stage of a plan (default: plan HEAD~1..HEAD) through the workspace's Nx cache: a task whose
                          inputs hash the same as an earlier pass is replayed, the rest run. A package stage runs each kind's
@@ -28,7 +15,7 @@ Actions:
                          durationS}], expectedRevisions}; the deployment-verification-tests stage also hands its tests WF_EXPECTED_REVISIONS
                          ({service: commit}) and lists them as expectedRevisions [{app, commit, why}]: the pushed commit, or the
                          commit the service's running image was built from while the push left its package graph alone (the rule
-                         of `wf ship --changed`), and the pushed one when the service cannot be asked. An e2e stage hands its
+                         of `wf ci plan legs`), and the pushed one when the service cannot be asked. An e2e stage hands its
                          focused tests to `nx run-many -t e2e-<platform>`: a test runs
                          when its script, goldens, features (header `features:`, their libraries), the app shell,
                          lockfile or patches changed (a service has its own deployment verification), and otherwise replays its last pass with that
@@ -50,7 +37,7 @@ Actions:
                          WF_EAS_UPDATE_RESULT
                          (how this push's eas-update job ended) says failure or cancelled, when the pointer does not name this
                          push's commit after a success, or, when this push published none (skipped, or empty on a dispatch), when the
-                         app's package graph changed since the pointer's commit (the rule `wf ship --changed` decides to publish by), or
+                         app's package graph changed since the pointer's commit (the rule `wf ci plan legs` decides to publish by), or
                          when the update has no Android build, does not open on /, or lacks the baked lab flag, backend and agent
                          hosts and backend token, or when EAS does not serve its group to an Android device (the manifest is asked
                          when the pointer saw no 200), or when a tailnet name it baked in is no longer what `wf vm net resolve`
@@ -160,8 +147,7 @@ An e2e test is a Lua file whose first lines are a header:
 A Lua file without one is a helper. Focus alone decides what CI runs: every focused test runs on every push (--changed),
 and only focused tests run at all (--all, or by name); focus the tests you work on and unfocus the rest.
 
-JSON: plan {"sha","tests":[{"name","script","platform","against","focus","selected"}]};
-run: one {"unit","verdict","durationS","bundle","note"} per run, then {"ok","sha","out","units":[{test, args, verdict,
+JSON: run: one {"unit","verdict","durationS","bundle","note"} per run, then {"ok","sha","out","units":[{test, args, verdict,
 note, next?, durationS, timing {wallS, byVerb}, report, recording[], bundle, base,
 updateGroup, updateCommit (update units), export {dir, sha, inputs, builtAt, buildS, baked} (browser units), attempt, dir,
 logTail}], "warms":[{the cold starts, one run each, with the same target fields}]}

@@ -558,7 +558,7 @@ jobs:
           if [ "${{ matrix.variant }}" = sccache ]; then
             { echo "RUSTC_WRAPPER=sccache"; echo "SCCACHE_DIR=$base/bench-sccache"; echo "SCCACHE_CACHE_SIZE=3G"; } >> "$GITHUB_ENV"
           fi
-          wf test plan --all --json | jq -c '.stages |= {"flow-tests": [.["flow-tests"][] | select(.crate != null)]}' > "$RUNNER_TEMP/plan.json"
+          wf ci plan tests --all --json | jq -c '.stages |= {"flow-tests": [.["flow-tests"][] | select(.crate != null)]}' > "$RUNNER_TEMP/plan.json"
           crates=$(jq -r '[.stages["flow-tests"][] | "crate-" + .crate] | unique | to_entries | map(select(.key % 6 == 4)) | .[].value[6:]' "$RUNNER_TEMP/plan.json")
           # shellcheck disable=SC2086
           echo "shard 5/6 of the crate plan:" $crates
@@ -749,7 +749,7 @@ jobs:
         run: |
           # shellcheck source=/dev/null
           . "$BENCH_LIB"
-          wf test plan --all --json | jq -c --argjson pk '["@lib/logging","@lib/app-config","@lib/gesture-geometry"]' '
+          wf ci plan tests --all --json | jq -c --argjson pk '["@lib/logging","@lib/app-config","@lib/gesture-geometry"]' '
             .stages |= {
               "typecheck-lint-unit-tests": [.["typecheck-lint-unit-tests"][] | select(.package != null and (.package | IN($pk[])))],
               "flow-tests": [.["flow-tests"][] | select(.crate == "telemetry")]

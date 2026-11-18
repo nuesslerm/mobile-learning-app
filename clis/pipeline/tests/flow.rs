@@ -1,4 +1,4 @@
-//! The flow tests of `wf test plan`, `wf test run --stage`, `wf test drift`, `wf test publish`, `wf ci`, `wf check --staged`,
+//! The flow tests of `wf ci plan` (tests, tags, mimic), `wf test run --stage`, `wf test drift`, `wf test publish`, `wf ci`, `wf check --staged`,
 //! `wf check --budget`: they enter through the thin `pipeline` binary's argv, with pnpm, nx, git and gh replaced by stubs, vm-ops-api by a
 //! fake. The Nx cache's contract, proved against the real Nx on a copy of this repository, is its own test binary (`nx_contract.rs`): it
 //! takes minutes, and only a change that can move the contract runs it.
@@ -17,6 +17,8 @@ mod cargo_inputs;
 mod check;
 #[path = "flow/ci_comment.rs"]
 mod ci_comment;
+#[path = "flow/ci_plan.rs"]
+mod ci_plan;
 #[path = "flow/e2e_backends.rs"]
 mod e2e_backends;
 #[path = "flow/expected_revisions.rs"]

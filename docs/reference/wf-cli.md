@@ -138,7 +138,7 @@ vm                           The VM: run a script in agent-shell, read logs, rec
 | `wf test metrics` | wf test publish (it posts the row) |
 | `wf test record` | nothing: bundles are the record |
 | `wf test enqueue / queue verbs` | the e2e-tests job in CI, or wf test run |
-| `wf test plan --latest` | `wf test results --query "<terms>"` |
+| `wf ci plan tests --latest` | `wf test results --query "<terms>"` |
 | the top-level `ask`, `plan` and `worker` | wf rca ask, wf rca plan, wf rca worker |
 | the old `worker visual` | wf check --visual |
 | the `repo` group's `bench` verbs | wf bench ... |
@@ -1808,7 +1808,7 @@ wf ci
 ```text
 Usage: wf ci [options] [command]
 
-What a workflow tells people about its own run: `wf ci comment` posts what
+What a workflow decides and tells people about its own run: `wf ci plan` plans the tests, deploy legs and capture jobs of a push, `wf ci comment` posts what
 failed in a red CI run on the pushed commit, `wf ci live` keeps the run's one pull
 request comment up to date, `wf ci tidy` frees the runner's disk, `wf ci preflight` checks first that
 everything the run needs is live, `wf ci audit` is the nightly audit of CI on dev
@@ -1818,6 +1818,7 @@ Options:
   -h, --help           display help for command
 
 Commands:
+  plan <what> [options] Plan a push: tags, tests, legs, mimic.
   live [start]         Update the run's one comment on the pull request.
   tidy [options]       Free the runner's disk when it is filling.
   preflight [options]  Check at the start that the cache, secrets, services and
@@ -1830,6 +1831,96 @@ Commands:
   comment [options]    Comment on the pushed commit what failed in this CI run,
                        with the cause from each failed job's log.
   help [command]       display help for command
+```
+
+</details>
+
+### `wf ci plan`
+
+Everything the pipeline decides before its jobs run, in one place: the commit tags, the tests by stage, the deploy legs and the capture jobs of a marker.
+
+Usage: `wf ci plan <tags|tests|legs|mimic> [options]`
+
+Examples:
+
+```sh
+wf ci plan tags --sha "$GITHUB_SHA" --github-output
+wf ci plan tests --changed --base last-green --github-output
+wf ci plan legs --github-output
+wf ci plan mimic --file - --github-output < message.txt
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci plan <tags|tests|legs|mimic> [options]
+
+Everything the pipeline decides before its jobs run, in one place; the plan job of
+pipeline.yml and the mimic-record and track-contracts workflows call it. Each
+subcommand prints one JSON object (exit 0) or {schema: "ci-plan/1", ok: false, error,
+next} (exit 2 for a refusal); with --github-output it also appends the step outputs
+its jobs read to $GITHUB_OUTPUT.
+
+  tests [options]        every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
+                         HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
+                         test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's
+                         dependency graph from the changed files; flow and integration run in the flow-tests stage. The
+                         workspace root gets a typecheck when a file outside every package changed. Every focused e2e test is
+                         planned, whatever changed (`platform: android, browser` makes it a test on each harness);
+                         --platform android|browser keeps one harness's. --force all|<a,b>: also plans every test (all), or
+                         the tests of the named packages, crates and e2e tests, whatever changed (why: forced). --json
+                         prints {sha, base, stages: {<stage>: [{kind: flow|integration|typecheck|lint|unit|deployment-verification,
+                         package, dir, script, command, why[]} | {kind: flow, crate, dir, manifest, command, why[]} | {kind: e2e,
+                         platform, name, script, against, units[], why[]}]}, tests[]}; `why` says what picked it ("focused",
+                         "changed", "depends on lib (pnpm)"). --github-output also appends
+                         plan=<json> and <stage_with_underscores>=<count> to $GITHUB_OUTPUT
+  legs [--force] [--also <a,b>] [--since <sha>] [--github-output]
+                         print which services a push must deploy, each with why, and
+                         whether it publishes an EAS Update: {"legs":[{"app","why":[...]}],
+                         "easUpdate":{"publish","why":[...]}}. A service is planned when the hash of its
+                         images and compose project differs between the commit it runs and HEAD
+                         (or that commit is unknown or not in the checkout). The update is published when the
+                         app's package graph (and the lockfile entries it reaches) changed since
+                         the commit of the branch's latest-dev.json pointer (eas/ in refs/wf/state), when a tailnet name
+                         that update baked in has moved, or when that commit cannot be read or
+                         the changed packages cannot be listed; a rotated backend token is not
+                         seen, publish it with --force (--force: all legs and the update; --also <a,b>: those services too, changed or not;
+                         --since <sha>: compare with that commit instead of what
+                         each service runs and the pointer names, asking vm-ops-api and the
+                         state ref nothing, so no tailnet name is checked either; --github-output:
+                         append legs= and eas_update= to $GITHUB_OUTPUT)
+  tags [--sha <commit>] [--services <a,b>] [--fresh] [--github-output]
+                         the tags of the commit message (default HEAD): [ci:flow,unit,service,browser,android]
+                         limits the test jobs, [services:changed] (default) plans what the push changed,
+                         [services:all] every test and service, [services:a,b] also the tests and legs of those
+                         names (--services adds names), [cache:no] or --fresh runs everything without the caches.
+                         Prints {ci, run: {flow, unit, service, browser, android}, services, force_tests,
+                         force_ship, fresh, warnings}; --github-output appends run_<job>=, force_tests=,
+                         force_ship= and fresh=
+  mimic [--message <text> | --file <path|-> | --sha <commit>] [--root <dir>] [--github-output]
+                         the capture jobs of the marker in a commit message (default: HEAD), one per set; the
+                         grammar and the checks are those of mimic-plan-core. A message without a marker plans
+                         nothing ({go: false}).
+                         Marker grammar (one marker per message, on a line of its own that begins with `[`;
+                         prose that mentions it mid-line starts nothing):
+                           [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on a hosted runner
+                           [replay <set>... [rows=<prefix,...>]]          replay each set against its candidates, publish
+                                                                          the diff; rows= limits it to the rows that start
+                                                                          with a prefix and checks the known gaps of that slice
+                           <set>      a cassette set: its directory name, or its path from the repository root;
+                                      the directory holds a mimic.toml (a bare name that matches two is refused)
+                           chunk=<n>  minutes per `wf mimic record --max-minutes` call, 1 to 60 (default 10)
+                           fresh      drop the checkpoint of an earlier run: the record starts over
+                         At most 8 sets. A malformed marker, an unknown set, a record of a set without a
+                         [reference], a corpus and a [provision] block, or a replay of a set without a
+                         cassette and a [candidate] fails with the rule it breaks (exit 2).
+                         Prints {go, action: record|replay|null, chunk?, fresh?, rows?, sets: [names],
+                         matrix: {include: [{name, dir, provision, drivers, node, python, go, rust, checkpoint,
+                         candidates}]}, warnings, next}; --github-output appends go=, action=, chunk=, rows=,
+                         fresh= and matrix=
+
+Options:
+  -h, --help           display help for command
 ```
 
 </details>
@@ -3535,7 +3626,7 @@ mimic.toml (paths relative to the file):
   [record]                         allow_nondeterministic (default false), args: what `wf mimic capture record`
                                    adds to the record call of the set
   [provision] / provision_file     how a runner installs the reference (wf mimic capture --help); the
-                                   VM runs it for a [record <set>] commit marker (wf mimic trigger --help)
+                                   VM runs it for a [record <set>] commit marker (`wf ci plan mimic --help`)
 
 Every verb prints one JSON object on stdout with "schema": "mimic-<verb>/1",
 "ok", "warnings" and "next" (the one command to run next), never prompts, and
@@ -3552,7 +3643,6 @@ Commands:
   verify [options] [set...]   Check sets are fresh and intact (offline)
   coverage [options]          Scan the pinned reference and write, or check, the app's method list and coverage table
   track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
-  trigger [options]           Read the marker of a commit message into the capture jobs it asks for
   capture [options] <record|replay> <set>  Provision a set's reference, then run its chunked record or replay and diff table
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
@@ -3979,49 +4069,6 @@ Output (schema mimic-export/1):
 
 </details>
 
-### `wf mimic trigger`
-
-Read the marker of a commit message and say which capture jobs it asks for. The
-
-Usage: `wf mimic trigger [options]`
-
-<details><summary>Full help</summary>
-
-```text
-Usage: wf mimic trigger [options]
-
-Read the marker of a commit message and say which capture jobs it asks for. The
-mimic-record workflow runs this on the head commit of every push to dev
-whose message carries a marker; it is the one place the marker is parsed.
-
-Marker grammar (one marker per message, on a line of its own that begins with `[`;
-prose that mentions it mid-line, and a message without one, start nothing):
-  [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on a hosted runner
-  [replay <set>... [rows=<prefix,...>]]          replay each set against its candidates, publish the diff;
-                                                 rows= limits it to the rows that start with a prefix and
-                                                 checks the known gaps of that slice
-  <set>      a cassette set: its directory name, or its path from the repository root;
-             the directory holds a mimic.toml (a bare name that matches two is refused)
-  chunk=<n>  minutes per `wf mimic record --max-minutes` call, 1 to 60 (default 10)
-  fresh      drop the checkpoint of an earlier run: the record starts over
-  At most 8 sets. A malformed marker, an unknown set, a record of a set without a
-  [reference], a corpus and a [provision] block, or a replay of a set without a
-  cassette and a [candidate] fails with the reason (exit 2).
-
-Options:
-  --message <text>            the commit message
-  --file <path>               read it from a file, or - for stdin
-  --root <dir>                the repository root the sets are searched under (default: this checkout)
-  -h, --help                  display help for command
-
-Output (schema mimic-trigger/1):
-  {schema, ok, go, action: record|replay|null, chunk?, fresh?, sets: [names],
-  matrix: {include: [{name, dir, provision, drivers, node, python, go, rust, checkpoint,
-  candidates}]}, warnings, next}   (the workflow reads each matrix key by name)
-```
-
-</details>
-
 ### `wf mimic capture`
 
 The capture of one set on a runner, in four phases, in one call.
@@ -4333,7 +4380,7 @@ plan    Read the [track <app>... [chunk=<minutes>] [fresh]] marker of a commit
         it names and print {schema, ok, go, apps, chunk, fresh, drifted,
         verdicts: [the check verdicts], record_marker, next}. record_marker is
         the [record <set>...] marker of the sets of the drifted apps, for
-        `wf mimic trigger --message`, or null when no pin is behind. sets lists
+        `wf ci plan mimic --message`, or null when no pin is behind. sets lists
         the sets it names.
 report  Fold a tracker run into one drift report. --inputs holds the capture
         outputs (<set>.record.json and <set>.replay.json of `wf mimic capture`,
@@ -5356,7 +5403,6 @@ Usage: `wf ship [options] [service...]`
 | `--smoke` | With --redeploy-only: first run the pushed tag as a throwaway container and probe it (nothing is swapped on a failure); CI's deploy legs use it after `wf ship build`. vm-ops-api always proves its own image first |
 | `--wipe-state` | Also wipe the tailscale-state volume |
 | `--recreate-all` | Recreate every container of the service, sidecars included |
-| `--changed` | Print which services a push must deploy, each with why, and whether it publishes an EAS Update: {"legs":[{"app","why":[...]}],"easUpdate":{"publish","why":[...]}}. A service is planned when the hash of its images and compose project differs between the commit it runs and HEAD (or that commit is unknown or not in the checkout). The update is published when the app's package graph (and the lockfile entries it reaches) changed since the commit of the branch's latest-dev.json pointer (eas/ in refs/wf/state), when a tailnet name that update baked in has moved, or when that commit cannot be read or the changed packages cannot be listed; a rotated backend token is not seen, publish it with --force (--force: all legs and the update; --also <a,b>: those services too, changed or not; --since <sha>: compare with that commit instead of what each service runs and the pointer names, asking vm-ops-api and the state ref nothing, so no tailnet name is checked either; --github-output: append legs= and eas_update= to $GITHUB_OUTPUT) |
 | `--status` | Deployer state: vm-ops-api /health and the container status of each service |
 
 Examples:
@@ -5395,20 +5441,6 @@ Options:
                    `wf ship promote <app> --tag <tag>`, which needs no route.
   --wipe-state     Also wipe the tailscale-state volume
   --recreate-all   Recreate every container of the service, sidecars included
-  --changed        Print which services a push must deploy, each with why, and
-                   whether it publishes an EAS Update: {"legs":[{"app","why":[...]}],
-                   "easUpdate":{"publish","why":[...]}}. A service is planned when the hash of its
-                   images and compose project differs between the commit it runs and HEAD
-                   (or that commit is unknown or not in the checkout). The update is published when the
-                   app's package graph (and the lockfile entries it reaches) changed since
-                   the commit of the branch's latest-dev.json pointer (eas/ in refs/wf/state), when a tailnet name
-                   that update baked in has moved, or when that commit cannot be read or
-                   the changed packages cannot be listed; a rotated backend token is not
-                   seen, publish it with --force (--force: all legs and the update;
-                   --since <sha>: compare with that commit instead of what
-                   each service runs and the pointer names, asking vm-ops-api and the
-                   bucket nothing, so no tailnet name is checked either; --github-output:
-                   append legs= and eas_update= to $GITHUB_OUTPUT)
   --status         Deployer state: vm-ops-api /health and the container status
                    of each service
   -h, --help       display help for command
@@ -5797,14 +5829,13 @@ Options:
 
 ### `wf test`
 
-The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`). A runbook is something else: plain text an agent drives. There is no queue: CI's plan job writes the plan once and each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deployment-verification-tests, browser-e2e-tests, android-e2e-tests) runs its part with `wf test run --stage`.
+The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`). A runbook is something else: plain text an agent drives. There is no queue: CI's plan job (`wf ci plan`) writes the plan once and each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deployment-verification-tests, browser-e2e-tests, android-e2e-tests) runs its part with `wf test run --stage`.
 
-Usage: `wf test [options] <plan|run|prepare|backends|publish|results|goldens> [args]`
+Usage: `wf test [options] <run|prepare|backends|publish|results|goldens> [args]`
 
 Examples:
 
 ```sh
-wf test plan --changed --json
 wf test prepare --web
 wf test run --all
 wf test run editor-typing --platform browser
@@ -5816,27 +5847,14 @@ wf test backends up
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf test [options] <plan|run|prepare|backends|drift|publish|results|goldens> [args]
+Usage: wf test [options] <run|prepare|backends|drift|publish|results|goldens> [args]
 
 The e2e tests: scripted Lua tests in e2e/<name>.lua, each run through its harness (`wf android test` / `wf browser test`).
-A runbook is something else: plain text an agent drives. There is no queue: CI's plan job writes the plan once and
+A runbook is something else: plain text an agent drives. There is no queue: CI's plan job (`wf ci plan`) writes the plan once and
 each stage job (flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deployment-verification-tests, browser-e2e-tests, android-e2e-tests) runs its part
 with `wf test run --stage`.
 
 Actions:
-  plan                   every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
-                         HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
-                         test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's
-                         dependency graph from the changed files; flow and integration run in the flow-tests stage. The
-                         workspace root gets a typecheck when a file outside every package changed. Every focused e2e test is
-                         planned, whatever changed (`platform: android, browser` makes it a test on each harness);
-                         --platform android|browser keeps one harness's. --force all|<a,b>: also plans every test (all), or
-                         the tests of the named packages, crates and e2e tests, whatever changed (why: forced). --json
-                         prints {sha, base, stages: {<stage>: [{kind: flow|integration|typecheck|lint|unit|deployment-verification,
-                         package, dir, script, command, why[]} | {kind: flow, crate, dir, manifest, command, why[]} | {kind: e2e,
-                         platform, name, script, against, units[], why[]}]}, tests[]}; `why` says what picked it ("focused",
-                         "changed", "depends on lib (pnpm)"). --github-output also appends
-                         plan=<json> and <stage_with_underscores>=<count> to $GITHUB_OUTPUT
   run --stage <stage> [--plan <file>] [--parallel <n>] [--shard <i>/<n>] [--probe] [--fresh]
                          run one stage of a plan (default: plan HEAD~1..HEAD) through the workspace's Nx cache: a task whose
                          inputs hash the same as an earlier pass is replayed, the rest run. A package stage runs each kind's
@@ -5846,7 +5864,7 @@ Actions:
                          durationS}], expectedRevisions}; the deployment-verification-tests stage also hands its tests WF_EXPECTED_REVISIONS
                          ({service: commit}) and lists them as expectedRevisions [{app, commit, why}]: the pushed commit, or the
                          commit the service's running image was built from while the push left its package graph alone (the rule
-                         of `wf ship --changed`), and the pushed one when the service cannot be asked. An e2e stage hands its
+                         of `wf ci plan legs`), and the pushed one when the service cannot be asked. An e2e stage hands its
                          focused tests to `nx run-many -t e2e-<platform>`: a test runs
                          when its script, goldens, features (header `features:`, their libraries), the app shell, backends
                          (header `backends:`), lockfile or patches changed, and otherwise replays its last pass with that
@@ -5868,7 +5886,7 @@ Actions:
                          WF_EAS_UPDATE_RESULT
                          (how this push's eas-update job ended) says failure or cancelled, when the pointer does not name this
                          push's commit after a success, or, when this push published none (skipped, or empty on a dispatch), when the
-                         app's package graph changed since the pointer's commit (the rule `wf ship --changed` decides to publish by), or
+                         app's package graph changed since the pointer's commit (the rule `wf ci plan legs` decides to publish by), or
                          when the update has no Android build, does not open on /, or lacks the baked lab flag, backend and agent
                          hosts and backend token, or when EAS does not serve its group to an Android device (the manifest is asked
                          when the pointer saw no 200), or when a tailnet name it baked in is no longer what `wf vm net resolve`

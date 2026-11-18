@@ -22,6 +22,13 @@ pub enum Action {
     Replay,
 }
 
+impl Marker {
+    /// The marker of a commit message: `Ok(None)` when it has none, an error that names the rule it breaks when it has a malformed one.
+    pub fn parse(message: &str) -> Result<Option<Marker>, String> {
+        parse(message)
+    }
+}
+
 impl Action {
     pub fn word(self) -> &'static str {
         match self {
@@ -118,47 +125,22 @@ pub fn parse(message: &str) -> Result<Option<Marker>, String> {
     Ok(Some(Marker { action, sets, chunk: chunk.unwrap_or(DEFAULT_CHUNK_MINUTES), fresh, rows }))
 }
 
-const SKIP: [&str; 7] = ["node_modules", "target", ".git", "references", "dist", "tmp", ".nx"];
-
-/// Every directory under `root` that holds a mimic.toml, as a path from `root`, sorted.
-pub fn all_sets(root: &Path) -> Vec<PathBuf> {
-    fn walk(root: &Path, dir: &Path, out: &mut Vec<PathBuf>) {
-        let Ok(entries) = std::fs::read_dir(dir) else { return };
-        let mut entries: Vec<_> = entries.flatten().collect();
-        entries.sort_by_key(|e| e.file_name());
-        for e in entries {
-            let Ok(kind) = e.file_type() else { continue };
-            let name = e.file_name();
-            if kind.is_dir() && !SKIP.iter().any(|s| name == *s) {
-                walk(root, &e.path(), out);
-            } else if kind.is_file() && name == "mimic.toml" {
-                out.push(dir.strip_prefix(root).unwrap_or(dir).to_path_buf());
-            }
-        }
-    }
-    let mut out = Vec::new();
-    walk(root, root, &mut out);
-    out.sort();
-    out
-}
-
 /// The set a marker word names, as a path from `root`: a path names it exactly, a bare name must match one directory.
-pub fn resolve(root: &Path, name: &str) -> Result<PathBuf, String> {
-    let all = all_sets(root);
+pub(crate) fn resolve(all: &[PathBuf], name: &str) -> Result<PathBuf, String> {
     if name.contains('/') {
         let want = Path::new(name.trim_end_matches('/'));
-        return all.into_iter().find(|p| p == want).ok_or_else(|| unknown(name, &all_names(root)));
+        return all.iter().find(|p| *p == want).cloned().ok_or_else(|| unknown(name, &all_names(all)));
     }
     let hits: Vec<PathBuf> = all.iter().filter(|p| p.file_name().is_some_and(|n| n == name)).cloned().collect();
     match hits.as_slice() {
         [one] => Ok(one.clone()),
-        [] => Err(unknown(name, &all_names(root))),
+        [] => Err(unknown(name, &all_names(all))),
         many => Err(format!("{name:?} names {} sets ({}): write the path from the repository root", many.len(), many.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", "))),
     }
 }
 
-fn all_names(root: &Path) -> Vec<String> {
-    all_sets(root).iter().filter_map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned())).collect()
+fn all_names(all: &[PathBuf]) -> Vec<String> {
+    all.iter().filter_map(|p| p.file_name().map(|n| n.to_string_lossy().into_owned())).collect()
 }
 
 fn unknown(name: &str, known: &[String]) -> String {

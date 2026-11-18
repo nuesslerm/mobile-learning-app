@@ -1,4 +1,4 @@
-//! The CI plan as `wf test plan` and `wf test run --stage` serve it: `plan` picks what a change reaches, `run --stage` runs a planned
+//! The CI plan as `wf ci plan tests` and `wf test run --stage` serve it: `plan` picks what a change reaches, `run --stage` runs a planned
 //! stage through Nx, and `drift --pins` checks the pinned tools. `pnpm`, `nx` and `gh` are stubs (what Nx itself runs and replays is
 //! `nx_cache.rs`); the repository's own `e2e` scripts, workflows and `mise.toml` are read as they are.
 use crate::support::otlp::gauges;
@@ -110,11 +110,11 @@ impl Workspace {
         self.s.run(args, &refs)
     }
 
-    /// `wf test plan --changed --base <base> --json --github-output`: the plan (also saved as plan.json) and the GITHUB_OUTPUT text.
+    /// `wf ci plan tests --changed --base <base> --json --github-output`: the plan (also saved as plan.json) and the GITHUB_OUTPUT text.
     fn plan(&self, base: &str) -> (Value, String) {
         let out = self.path("gh-output");
         let _ = std::fs::remove_file(&out);
-        let r = self.wf(&["test", "plan", "--changed", "--base", base, "--json", "--github-output"], &[("GITHUB_OUTPUT", out.clone())]);
+        let r = self.wf(&["ci", "plan", "tests", "--changed", "--base", base, "--json", "--github-output"], &[("GITHUB_OUTPUT", out.clone())]);
         assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
         let v: Value = serde_json::from_str(r.stdout.trim()).unwrap_or_else(|_| panic!("{}{}", r.stdout, r.stderr));
         std::fs::write(self.path("plan.json"), v.to_string()).unwrap();
@@ -216,9 +216,9 @@ fn ci_plans_the_stages_a_change_reaches_and_runs_each_planned_stage() {
     let first = w.git(&["rev-parse", "HEAD~2"]);
     w.s.stub("gh", &format!("echo 0123456789abcdef0123456789abcdef01234567\necho {first}"));
     let repo = [("GITHUB_REPOSITORY", "o/r".to_string())];
-    let green = w.wf(&["test", "plan", "--changed", "--base", "last-green", "--json"], &repo);
+    let green = w.wf(&["ci", "plan", "tests", "--changed", "--base", "last-green", "--json"], &repo);
     w.s.stub("gh", "exit 1");
-    let no_gh = w.wf(&["test", "plan", "--changed", "--base", "last-green", "--json"], &repo);
+    let no_gh = w.wf(&["ci", "plan", "tests", "--changed", "--base", "last-green", "--json"], &repo);
     // Then the base is the newest green ancestor, and without gh it is the commit before
     let v: Value = serde_json::from_str(green.stdout.trim()).unwrap_or_else(|_| panic!("{}{}", green.stdout, green.stderr));
     assert_eq!(v["base"], first.as_str());
@@ -286,7 +286,7 @@ fn the_repos_android_tests_run_against_the_update_and_the_browser_ones_against_t
     // Given the repository's own e2e tests
     let s = SlotSandbox::new("wf-flow-headers-");
     let e2e = crate::support::repo_root().join("e2e").display().to_string();
-    let r = s.run(&["test", "plan", "--all", "--json"], &[("WF_TEST_E2E_DIR", e2e.as_str()), ("WF_TEST_REPO", s.repo.display().to_string().as_str())]);
+    let r = s.run(&["ci", "plan", "tests", "--all", "--json"], &[("WF_TEST_E2E_DIR", e2e.as_str()), ("WF_TEST_REPO", s.repo.display().to_string().as_str())]);
     // When they are planned
     let v: Value = serde_json::from_str(r.stdout.trim()).unwrap_or_else(|_| panic!("{}{}", r.stdout, r.stderr));
     let rows: Vec<(&str, &str, &str, bool)> = v["tests"].as_array().unwrap().iter().map(|t| (t["name"].as_str().unwrap(), t["platform"].as_str().unwrap(), t["against"].as_str().unwrap(), t["focus"] == true)).collect();
@@ -672,7 +672,7 @@ fn a_change_to_a_cassette_or_the_candidates_own_files_plans_every_replay_and_a_f
     let (v, _) = w.plan("HEAD~1");
     assert_eq!(replays(&v).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), every, "{v}");
     // And a full plan
-    let r = w.wf(&["test", "plan", "--all", "--json"], &[]);
+    let r = w.wf(&["ci", "plan", "tests", "--all", "--json"], &[]);
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     let all: Value = serde_json::from_str(r.stdout.trim()).unwrap();
     assert_eq!(replays(&all).iter().map(|(t, _, _)| t.as_str()).collect::<Vec<_>>(), every, "{all}");

@@ -1,5 +1,5 @@
-//! The pipeline: which tests, deploy legs and gates a change needs (`wf test plan` and `wf test run --stage` through the Nx cache,
-//! `wf test drift`, `wf check --staged` and `--budget`, the legs `wf ship --changed` plans, the pnpm workspace graph tier 3 plans by),
+//! The pipeline: which tests, deploy legs and gates a change needs (`wf ci plan tests` and `wf test run --stage` through the Nx cache,
+//! `wf test drift`, `wf check --staged` and `--budget`, the legs `wf ci plan legs` plans, the pnpm workspace graph tier 3 plans by),
 //! and what a run leaves for people to read (`wf ci comment` on the pushed commit, the run bundles `wf test publish` uploads with the
 //! metrics row it posts, which `wf test results` reads back).
 //! A change here reruns the crates that plan or ship from it.
@@ -8,6 +8,7 @@ mod ci_cache_health;
 mod ci_comment;
 mod ci_ledger;
 mod ci_live;
+mod ci_plan;
 mod ci_preflight;
 mod ci_tidy;
 mod ci_insights;
@@ -55,13 +56,10 @@ pub use help_table::HELP;
 /// through the executable.
 pub const COMMANDS: &[(&str, wf_kit::cli::Handler)] = &[("check", check), ("ci", ci), ("test", run_test)];
 
-/// What `wf test plan` takes.
-const PLAN: Spec = Spec { values: &["sha", "base", "platform", "force"], flags: &["json", "changed", "all", "github-output"], positional: Positional::Any, ..Spec::NONE };
-
 /// What `wf test publish` takes.
 const PUBLISH: Spec = Spec { values: &["ran-on", "out"], flags: &["no-record"], positional: Positional::Any, ..Spec::NONE };
 
-/// `wf test plan`, `wf test run --stage`, `wf test drift` and `wf test publish <dir>`: the words after `test`, for the router of `wf`
+/// `wf test run --stage`, `wf test drift` and `wf test publish <dir>`: the words after `test`, for the router of `wf`
 /// and the thin binary.
 pub fn run_test(rest: &[String]) -> Option<i32> {
     match rest.first().map(String::as_str)? {
@@ -69,7 +67,6 @@ pub fn run_test(rest: &[String]) -> Option<i32> {
         "drift" => nx_drift::run(&rest[1..]),
         "backends" => Some(e2e_backends::run(&rest[1..])),
         "run" if rest.iter().any(|a| a == "--stage") => Some(e2e_tests::run_stage(&rest[1..])),
-        "plan" => Some(e2e_tests::plan(&parse_spec(rest, &PLAN)?)),
         _ => None,
     }
 }

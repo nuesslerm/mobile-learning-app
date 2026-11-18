@@ -468,7 +468,7 @@ exports.createNodes = [
       const verifyDeployed = testTarget('deployed_verification.rs', `cargo test --locked -p ${c.name} --test deployed_verification --manifest-path ${c.manifest} -- --ignored --test-threads=1`, checks);
       if (verifyDeployed) verifyDeployed.cache = false;
       // the Nx cache's contract, proved against the real Nx on a copy of the repository: minutes of work, so a task of its own that
-      // `wf test plan` selects only when a file that can move the contract changed. What decides a task's inputs is an input of it.
+      // `wf ci plan tests` selects only when a file that can move the contract changed. What decides a task's inputs is an input of it.
       const contract = testTarget('nx_contract.rs', `cargo test --locked -p ${c.name} --test nx_contract --manifest-path ${c.manifest}`, [
         ...checks,
         { fileset: '{workspaceRoot}/nx.json' },

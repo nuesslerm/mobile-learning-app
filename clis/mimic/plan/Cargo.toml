@@ -1,0 +1,12 @@
+[package]
+name = "mimic-plan-core"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "The pure core of the capture marker: `Marker::parse` for [record <set>] and [replay <set> rows=...], and the plan a marker and the sets of a checkout make (what `wf ci plan mimic` reads a commit with)"
+
+[lib]
+doctest = false
+
+[package.metadata.arch]
+type = "rust-flat-core"

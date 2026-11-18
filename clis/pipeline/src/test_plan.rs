@@ -1,4 +1,4 @@
-//! `wf test plan`: every test a push needs, by CI stage, decided in one place. Package tests (flow, integration, typecheck,
+//! `wf ci plan tests`: every test a push needs, by CI stage, decided in one place. Package tests (flow, integration, typecheck,
 //! lint, unit, deployment verification) follow pnpm's dependency graph from the changed files, and the crate graph for a package whose crates are
 //! projects of their own; the `e2e/*.lua` tests are the focused ones. Each
 //! entry says why it was picked. CI writes the plan once and every stage job runs its part with `wf test run --stage

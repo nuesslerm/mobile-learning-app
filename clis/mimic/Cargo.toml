@@ -42,6 +42,7 @@ wf-bucket = { path = "../wf-bucket" }
 secrets = { path = "../secrets" }
 cli-http = { path = "../http" }
 mimic-coverage-core = { path = "coverage" }
+mimic-plan-core = { path = "plan" }
 mimic-core = { version = "0.1.2", registry = "mla" }
 mimic-script-core = { version = "0.1.7", registry = "mla" }
 mimic-script-host = { version = "0.1.8", registry = "mla" }

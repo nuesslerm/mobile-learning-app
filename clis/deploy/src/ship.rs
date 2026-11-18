@@ -1,19 +1,12 @@
 //! `wf ship`: redeploy a service at a tag CI pushed, `ship build` builds in CI; `ship eas` publishes the app to Expo; `ship retire <service>`
-//! takes a removed service down; `--changed` prints what a push must deploy; `--status` reports the deployer.
+//! takes a removed service down; `--status` reports the deployer.
 use wf_kit::args::parse;
 use crate::deploy;
 use std::time::{Duration, Instant};
 use pipeline::legs;
 
-const VALUES: &[&str] = &["ref", "tag", "since", "also"];
-const FLAGS: &[&str] = &["redeploy-only", "smoke", "wipe-state", "recreate-all", "changed", "status", "force", "github-output", "wait-serving", "promote-latest"];
-
-/// The commit the latest EAS Update was published from, and the backend hosts it dials that have moved.
-fn latest_update() -> Result<(String, Vec<String>), String> {
-    let pointer = pipeline::eas::latest_pointer("dev")?;
-    let commit = pointer["commit"].as_str().ok_or_else(|| "it names no commit".to_string())?;
-    Ok((commit.to_string(), pipeline::eas::moved_hosts(&pointer)))
-}
+const VALUES: &[&str] = &["ref", "tag"];
+const FLAGS: &[&str] = &["redeploy-only", "smoke", "wipe-state", "recreate-all", "status", "wait-serving", "promote-latest"];
 
 fn fail(message: &str) -> Option<i32> {
     wf_kit::wf_err!("wf: {message}");
@@ -48,9 +41,6 @@ pub fn run(args: &[String]) -> Option<i32> {
     }
     let p = parse(args, VALUES, FLAGS)?;
     let flag = |name: &str| p.flags.iter().any(|f| f == name);
-    if flag("changed") {
-        return if p.positional.is_empty() { code(legs::plan(flag("force"), &p.val("also").map(|a| a.split(',').map(|n| n.trim().to_string()).filter(|n| !n.is_empty()).collect::<Vec<_>>()).unwrap_or_default(), p.val("since"), flag("github-output"), latest_update)) } else { None };
-    }
     if flag("status") {
         return code(deploy::status(&p.positional));
     }

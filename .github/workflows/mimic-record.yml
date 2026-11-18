@@ -2,7 +2,7 @@ name: Mimic record
 
 # Long reference-capture jobs on GitHub-hosted runners: record a pinned reference server or CLI into a cassette set, or replay a recorded set against its
 # candidates and publish the diff. They run one set at a time, niced, on a runner that never joins the tailnet (the reference's code reaches nothing of ours), and open no
-# inbound port. The grammar of the marker is `wf mimic trigger`; the provisioning of a set's reference and the chunked record or replay (with the publish) are `wf mimic capture`, and the
+# inbound port. The grammar of the marker and the plan of its jobs are `wf ci plan mimic`; the provisioning of a set's reference and the chunked record or replay (with the publish) are `wf mimic capture`, and the
 # `[provision]` block of the set's mimic.toml (docs/runbooks/record-reference-servers-on-the-vm.md): a new clone of a CLI or server is data in
 # its set, never a change here.
 #
@@ -83,7 +83,7 @@ jobs:
           COMMIT_MESSAGE: ${{ inputs.message }}
         run: |
           set +e
-          printf '%s' "$COMMIT_MESSAGE" | wf mimic trigger --file - > "$RUNNER_TEMP/plan.json"
+          printf '%s' "$COMMIT_MESSAGE" | wf ci plan mimic --file - --github-output > "$RUNNER_TEMP/plan.json"
           code=$?
           set -e
           cat "$RUNNER_TEMP/plan.json"
@@ -91,17 +91,10 @@ jobs:
             {
               echo "### The marker was refused"
               echo
-              jq -r '"`" + (.error // "wf mimic trigger failed") + "`\n\nNext: " + (.next // "")' "$RUNNER_TEMP/plan.json"
+              jq -r '"`" + (.error // "wf ci plan mimic failed") + "`\n\nNext: " + (.next // "")' "$RUNNER_TEMP/plan.json"
             } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
-          {
-            echo "action=$(jq -r .action "$RUNNER_TEMP/plan.json")"
-            echo "chunk=$(jq -r .chunk "$RUNNER_TEMP/plan.json")"
-            echo "rows=$(jq -r '.rows // ""' "$RUNNER_TEMP/plan.json")"
-            echo "fresh=$(jq -r .fresh "$RUNNER_TEMP/plan.json")"
-            echo "matrix=$(jq -c .matrix "$RUNNER_TEMP/plan.json")"
-          } >> "$GITHUB_OUTPUT"
 
   capture:
     name: ${{ needs.plan.outputs.action }} ${{ matrix.name }}
@@ -132,7 +125,7 @@ jobs:
           clean: false
           ref: ${{ inputs.sha || github.sha }}
           fetch-depth: 1
-      # One setup step per toolchain a [provision] block can pin (TOOLCHAINS in clis/mimic/src/provision.rs); `wf mimic trigger` emits each as a matrix key.
+      # One setup step per toolchain a [provision] block can pin (TOOLCHAINS in clis/mimic/src/provision.rs); `wf ci plan mimic` emits each as a matrix key.
       - name: Node of the set's provision block
         if: ${{ matrix.node != '' }}
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4

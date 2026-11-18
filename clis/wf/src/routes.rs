@@ -129,7 +129,7 @@ fn test(rest: &[String]) -> Option<i32> {
             println!("wf test export is now `wf test prepare --web`: it prepares what the browser e2e tests run against, which is not a test");
             return Some(2);
         }
-        Some("plan" | "drift" | "backends") => return pipeline::run_test(rest),
+        Some("drift" | "backends") => return pipeline::run_test(rest),
         Some("publish") => return pipeline::run_test(rest),
         Some("goldens") => return wf_harness::run_test(rest),
         Some("run") if rest.iter().any(|a| a == "--stage") => return pipeline::run_test(rest),

@@ -38,7 +38,7 @@ on:
       flags:
         type: string
         required: false
-      # `wf test plan --json` from the CI plan job: when given, this job runs its <platform>-e2e-tests stage
+      # `wf ci plan tests --json` from the CI plan job: when given, this job runs its <platform>-e2e-tests stage
       plan:
         type: string
         required: false
@@ -162,7 +162,7 @@ jobs:
           else
             if [ -n "$TESTS" ]; then select="$TESTS"; elif [ "$ALL" = "true" ]; then select=--all; else select="--changed --base ${BASE:-$SHA~1}"; fi
             # shellcheck disable=SC2086
-            n=$(wf test plan $select --platform "$PLATFORM" --sha "$SHA" --json | jq '[.tests[] | select(.selected)] | length')
+            n=$(wf ci plan tests $select --platform "$PLATFORM" --sha "$SHA" --json | jq '[.tests[] | select(.selected)] | length')
             select="$select --platform $PLATFORM"
           fi
           echo "select=$select" >> "$GITHUB_OUTPUT"

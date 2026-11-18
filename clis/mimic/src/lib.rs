@@ -5,7 +5,6 @@ pub mod adapters;
 pub mod child_env;
 pub mod leak_scan;
 pub mod config;
-pub mod marker;
 pub mod provision;
 mod help_table;
 mod verbs;

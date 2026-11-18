@@ -186,7 +186,7 @@ fn focused_e2e_tests_run_unit_by_unit_through_their_harness() {
     };
 
     // When everything is listed
-    let listed = w.wf(&["test", "plan", "--all", "--json"], &[]);
+    let listed = w.wf(&["ci", "plan", "tests", "--all", "--json"], &[]);
     // Then every e2e test is there (the helper without a header is none) and only the focused ones are selected
     let v: Value = serde_json::from_str(listed.stdout.trim()).unwrap_or_else(|_| panic!("{}{}", listed.stdout, listed.stderr));
     let names: Vec<&str> = v["tests"].as_array().unwrap().iter().map(|b| b["name"].as_str().unwrap()).collect();
@@ -282,7 +282,7 @@ fn focused_e2e_tests_run_unit_by_unit_through_their_harness() {
     let v = Workspace::summary(&both);
     assert_eq!(v["units"].as_array().unwrap().iter().map(|u| (u["test"].as_str().unwrap(), u["platform"].as_str().unwrap())).collect::<Vec<_>>(), [("both", "browser")], "{v}");
     // and each harness's entry has its own target
-    let planned: Value = serde_json::from_str(w.wf(&["test", "plan", "--all", "--json"], &[]).stdout.trim()).unwrap();
+    let planned: Value = serde_json::from_str(w.wf(&["ci", "plan", "tests", "--all", "--json"], &[]).stdout.trim()).unwrap();
     let targets: Vec<(&str, &str)> = planned["tests"].as_array().unwrap().iter().filter(|b| b["name"] == "both").map(|b| (b["platform"].as_str().unwrap(), b["against"].as_str().unwrap())).collect();
     assert_eq!(targets, [("android", "update"), ("browser", "export")], "{planned}");
     std::fs::remove_file(w.path("e2e/both.lua")).unwrap();
@@ -481,7 +481,7 @@ fn browser_units_run_against_the_export_wf_serves_and_that_export_must_be_curren
 
     // When Android tests say no `against:` at all
     w.write("e2e/plain.lua", "--[[---\nplatform: android\nfocus: true\n---]]\nlog(1)\n");
-    let planned: Value = serde_json::from_str(w.wf(&["test", "plan", "--all", "--json"], &[]).stdout.trim()).unwrap();
+    let planned: Value = serde_json::from_str(w.wf(&["ci", "plan", "tests", "--all", "--json"], &[]).stdout.trim()).unwrap();
     // Then theirs is the update CI published
     assert_eq!(planned["tests"].as_array().unwrap().iter().find(|b| b["name"] == "plain").map(|b| b["against"].clone()), Some(json!("update")), "{planned}");
     std::fs::remove_file(w.path("e2e/plain.lua")).unwrap();
@@ -677,7 +677,7 @@ fn android_units_load_the_update_ci_published() {
     assert_eq!((warms[0]["updateGroup"].as_str(), warms[0].get("metroBundle").is_none()), (Some("g-1"), true), "{v}");
 
     // When the same test is planned, and when its browser entry runs
-    let planned: Value = serde_json::from_str(w.wf(&["test", "plan", "--all", "--json"], &[]).stdout.trim()).unwrap();
+    let planned: Value = serde_json::from_str(w.wf(&["ci", "plan", "tests", "--all", "--json"], &[]).stdout.trim()).unwrap();
     let targets: Vec<(&str, &str)> = planned["tests"].as_array().unwrap().iter().filter(|b| b["name"] == "upd").map(|b| (b["platform"].as_str().unwrap(), b["against"].as_str().unwrap())).collect();
     // Then each harness has its own target: an update has no web build
     assert_eq!(targets, [("android", "update"), ("browser", "export")], "{planned}");

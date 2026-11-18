@@ -130,7 +130,7 @@ jobs:
         run: |
           out="$RUNNER_TEMP/audit"
           date +%s > "$out/started"
-          wf test plan --all --sha "$(git rev-parse HEAD)" --json > "$out/plan.json"
+          wf ci plan tests --all --sha "$(git rev-parse HEAD)" --json > "$out/plan.json"
           jq -r '.stages | to_entries[] | select(.key == "flow-tests" or .key == "typecheck-lint-unit-tests") | "\(.key): \(.value | length) test(s)"' "$out/plan.json"
       # Once through the cache (a replay where an entry exists), once with --fresh. Each prints {ok, stage, kinds:[{kind, projects, verdict}]}.
       - name: Both stages, cached and fresh

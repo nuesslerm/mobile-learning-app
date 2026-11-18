@@ -1105,6 +1105,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "cache-health" => return crate::ci_cache_health::run(rest),
         "preflight" => return crate::ci_preflight::run(rest),
         "live" => return crate::ci_live::run(rest),
+        "plan" => return crate::ci_plan::run(rest),
         "tidy" => return crate::ci_tidy::run(rest),
         _ => {}
     }

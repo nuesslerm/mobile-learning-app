@@ -1,0 +1,68 @@
+Usage: wf ci plan <tags|tests|legs|mimic> [options]
+
+Everything the pipeline decides before its jobs run, in one place; the plan job of
+pipeline.yml and the mimic-record and track-contracts workflows call it. Each
+subcommand prints one JSON object (exit 0) or {schema: "ci-plan/1", ok: false, error,
+next} (exit 2 for a refusal); with --github-output it also appends the step outputs
+its jobs read to $GITHUB_OUTPUT.
+
+  tests [options]        every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
+                         HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
+                         test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's
+                         dependency graph from the changed files; flow and integration run in the flow-tests stage. The
+                         workspace root gets a typecheck when a file outside every package changed. Every focused e2e test is
+                         planned, whatever changed (`platform: android, browser` makes it a test on each harness);
+                         --platform android|browser keeps one harness's. --force all|<a,b>: also plans every test (all), or
+                         the tests of the named packages, crates and e2e tests, whatever changed (why: forced). --json
+                         prints {sha, base, stages: {<stage>: [{kind: flow|integration|typecheck|lint|unit|deployment-verification,
+                         package, dir, script, command, why[]} | {kind: flow, crate, dir, manifest, command, why[]} | {kind: e2e,
+                         platform, name, script, against, units[], why[]}]}, tests[]}; `why` says what picked it ("focused",
+                         "changed", "depends on lib (pnpm)"). --github-output also appends
+                         plan=<json> and <stage_with_underscores>=<count> to $GITHUB_OUTPUT
+  legs [--force] [--also <a,b>] [--since <sha>] [--github-output]
+                         print which services a push must deploy, each with why, and
+                         whether it publishes an EAS Update: {"legs":[{"app","why":[...]}],
+                         "easUpdate":{"publish","why":[...]}}. A service is planned when the hash of its
+                         images and compose project differs between the commit it runs and HEAD
+                         (or that commit is unknown or not in the checkout). The update is published when the
+                         app's package graph (and the lockfile entries it reaches) changed since
+                         the commit of the branch's latest-dev.json pointer (eas/ in refs/wf/state), when a tailnet name
+                         that update baked in has moved, or when that commit cannot be read or
+                         the changed packages cannot be listed; a rotated backend token is not
+                         seen, publish it with --force (--force: all legs and the update; --also <a,b>: those services too, changed or not;
+                         --since <sha>: compare with that commit instead of what
+                         each service runs and the pointer names, asking vm-ops-api and the
+                         state ref nothing, so no tailnet name is checked either; --github-output:
+                         append legs= and eas_update= to $GITHUB_OUTPUT)
+  tags [--sha <commit>] [--services <a,b>] [--fresh] [--github-output]
+                         the tags of the commit message (default HEAD): [ci:flow,unit,service,browser,android]
+                         limits the test jobs, [services:changed] (default) plans what the push changed,
+                         [services:all] every test and service, [services:a,b] also the tests and legs of those
+                         names (--services adds names), [cache:no] or --fresh runs everything without the caches.
+                         Prints {ci, run: {flow, unit, service, browser, android}, services, force_tests,
+                         force_ship, fresh, warnings}; --github-output appends run_<job>=, force_tests=,
+                         force_ship= and fresh=
+  mimic [--message <text> | --file <path|-> | --sha <commit>] [--root <dir>] [--github-output]
+                         the capture jobs of the marker in a commit message (default: HEAD), one per set; the
+                         grammar and the checks are those of mimic-plan-core. A message without a marker plans
+                         nothing ({go: false}).
+                         Marker grammar (one marker per message, on a line of its own that begins with `[`;
+                         prose that mentions it mid-line starts nothing):
+                           [record <set>... [chunk=<minutes>] [fresh]]    record each set's reference on a hosted runner
+                           [replay <set>... [rows=<prefix,...>]]          replay each set against its candidates, publish
+                                                                          the diff; rows= limits it to the rows that start
+                                                                          with a prefix and checks the known gaps of that slice
+                           <set>      a cassette set: its directory name, or its path from the repository root;
+                                      the directory holds a mimic.toml (a bare name that matches two is refused)
+                           chunk=<n>  minutes per `wf mimic record --max-minutes` call, 1 to 60 (default 10)
+                           fresh      drop the checkpoint of an earlier run: the record starts over
+                         At most 8 sets. A malformed marker, an unknown set, a record of a set without a
+                         [reference], a corpus and a [provision] block, or a replay of a set without a
+                         cassette and a [candidate] fails with the rule it breaks (exit 2).
+                         Prints {go, action: record|replay|null, chunk?, fresh?, rows?, sets: [names],
+                         matrix: {include: [{name, dir, provision, drivers, node, python, go, rust, checkpoint,
+                         candidates}]}, warnings, next}; --github-output appends go=, action=, chunk=, rows=,
+                         fresh= and matrix=
+
+Options:
+  -h, --help           display help for command

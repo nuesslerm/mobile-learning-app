@@ -402,7 +402,7 @@ fn the_program_options_mean_the_same_wherever_the_caller_puts_them() {
         assert_eq!(r.exit_code, 0, "{args:?}: {}", r.stderr);
         assert!(!r.stderr.contains("unknown command"), "{args:?}");
     }
-    for command in [vec!["android", "adb", "devices"], vec!["test", "plan"], vec!["check", "--health", "--list-unit-targets"]] {
+    for command in [vec!["android", "adb", "devices"], vec!["ci", "plan", "tests"], vec!["check", "--health", "--list-unit-targets"]] {
         let expected = wf_in(s, &command);
         for args in [
             [vec!["--frontend", "mla-tamagui"], command.clone()].concat(),

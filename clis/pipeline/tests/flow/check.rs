@@ -752,7 +752,7 @@ fn the_pushed_gate_plans_the_push_runs_every_sandbox_stage_and_stops_the_push_on
     executable(
         &stub,
         &format!(
-            "#!/bin/sh\necho \"$* | nx=${{NX_CACHE_DIRECTORY:-shared}} push=${{WF_PUSH_TO_DEV:-no}}\" >> {}\n[ -z \"$STUB_UNSEEDED\" ] || case \"$*\" in *\"--stage flow-tests\"*) echo 'wf: build cache reads only for this run, dirty: 1 file' >&2;; esac\ncase \"$*\" in\n  *\"secret get OPENCODE_GO_API_KEY\"*) [ -z \"$STUB_NOKEY\" ] && echo model-key || exit 1;;\n  *\"test plan\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';;\n  *\"--stage flow-tests\"*) [ -n \"$STUB_PASS\" ] || exit 1;;\nesac\n",
+            "#!/bin/sh\necho \"$* | nx=${{NX_CACHE_DIRECTORY:-shared}} push=${{WF_PUSH_TO_DEV:-no}}\" >> {}\n[ -z \"$STUB_UNSEEDED\" ] || case \"$*\" in *\"--stage flow-tests\"*) echo 'wf: build cache reads only for this run, dirty: 1 file' >&2;; esac\ncase \"$*\" in\n  *\"secret get OPENCODE_GO_API_KEY\"*) [ -z \"$STUB_NOKEY\" ] && echo model-key || exit 1;;\n  *\"ci plan tests\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';;\n  *\"--stage flow-tests\"*) [ -n \"$STUB_PASS\" ] || exit 1;;\nesac\n",
             log.display()
         ),
     );
@@ -772,7 +772,7 @@ fn the_pushed_gate_plans_the_push_runs_every_sandbox_stage_and_stops_the_push_on
     // Then the push is planned against origin/dev, the four stages run in CI's order (the red one does not skip the rest), nothing is
     // written to the shared cache, a browser stage that is all replays asks for no export, and the gate exits 1 naming the stage
     let lines: Vec<&str> = calls.lines().collect();
-    assert!(lines[0].starts_with("test plan --changed --base origin/dev --json"), "{calls}");
+    assert!(lines[0].starts_with("ci plan tests --changed --base origin/dev --json"), "{calls}");
     let stages: Vec<&str> = lines.iter().filter(|l| l.contains("test run --stage") && !l.contains("--probe")).map(|l| l.split_whitespace().nth(3).unwrap()).collect();
     assert_eq!(stages, ["typecheck-lint-unit-tests", "flow-tests", "integration-tests", "browser-e2e-tests", "cli-e2e-tests"], "{calls}");
     assert!(lines.iter().all(|l| l.ends_with("push=no")) && !calls.contains("vm net"), "{calls}");
@@ -864,7 +864,7 @@ fn the_pushed_gate_refuses_a_push_to_dev_that_lacks_a_main_commit_and_proceeds_o
     git(root, &["checkout", "-q", "dev"]);
     let log = root.join("calls.log");
     let stub = root.join("stub-wf");
-    executable(&stub, &format!("#!/bin/sh\necho \"$*\" >> {}\ncase \"$*\" in *\"test plan\"*) echo '{{\"stages\":{{}}}}';; *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';; esac\n", log.display()));
+    executable(&stub, &format!("#!/bin/sh\necho \"$*\" >> {}\ncase \"$*\" in *\"ci plan tests\"*) echo '{{\"stages\":{{}}}}';; *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';; esac\n", log.display()));
     let run = |lines: &str| {
         let _ = std::fs::write(&log, "");
         let opts = RunOpts::default().cwd(root).clean_env().env("WF_PUSHED_EXE", stub.to_str().unwrap()).env("WF_PUSH_CLI_E2E", "0").input(lines);
@@ -895,14 +895,14 @@ fn the_pushed_gate_refuses_a_push_to_dev_that_lacks_a_main_commit_and_proceeds_o
     let (_, calls) = run("refs/heads/x aaa refs/heads/claude/x bbb\n");
 
     // Then the rule is for dev only: the push is planned
-    assert!(calls.contains("test plan"), "{calls}");
+    assert!(calls.contains("ci plan tests"), "{calls}");
 
     // When dev merges main and the gate runs again for a push to dev
     git(root, &["merge", "-q", "--no-edit", "main"]);
     let (r, calls) = run(&format!("refs/heads/dev {} refs/heads/dev bbb\n", rev("dev")));
 
     // Then the gate proceeds to plan and run its stages
-    assert!(calls.contains("test plan") && calls.contains("test run --stage"), "{calls}");
+    assert!(calls.contains("ci plan tests") && calls.contains("test run --stage"), "{calls}");
     assert!(!r.stderr.contains("does not contain origin/main"), "{}", r.stderr);
 }
 
@@ -918,7 +918,7 @@ fn the_pushed_gate_prepares_the_export_for_a_browser_stage_that_would_run_even_w
     executable(
         &stub,
         &format!(
-            "#!/bin/sh\necho \"$* | api=${{EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL:-none}}\" >> {}\ncase \"$*\" in\n  *\"test plan\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[\"editor-typing\"],\"cached\":[]}}';;\n  *\"vm ops probe\"*|*\"vm net resolve\"*) exit 1;;\n  *\"secret get VM_GATEWAY_AUTH_SEED\"*) echo token-value;;\n  *\"secret get\"*) exit 1;;\nesac\n",
+            "#!/bin/sh\necho \"$* | api=${{EXPO_PUBLIC_LEETCODE_BACKEND_BASE_URL:-none}}\" >> {}\ncase \"$*\" in\n  *\"ci plan tests\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[\"editor-typing\"],\"cached\":[]}}';;\n  *\"vm ops probe\"*|*\"vm net resolve\"*) exit 1;;\n  *\"secret get VM_GATEWAY_AUTH_SEED\"*) echo token-value;;\n  *\"secret get\"*) exit 1;;\nesac\n",
             log.display()
         ),
     );
@@ -1067,7 +1067,7 @@ fn the_pushed_gate_reports_per_stage_whether_the_run_seeded_the_shared_cache() {
     let stub = root.join("stub-wf");
     executable(
         &stub,
-        "#!/bin/sh\ncase \"$*\" in *\"--stage flow-tests\"*) echo 'wf: build cache reads only for this run, dirty: 1 file' >&2;; esac\ncase \"$*\" in\n  *\"test plan\"*) echo '{\"stages\":{}}';;\n  *--probe*) echo '{\"ok\":true,\"ran\":[],\"cached\":[]}';;\nesac\n",
+        "#!/bin/sh\ncase \"$*\" in *\"--stage flow-tests\"*) echo 'wf: build cache reads only for this run, dirty: 1 file' >&2;; esac\ncase \"$*\" in\n  *\"ci plan tests\"*) echo '{\"stages\":{}}';;\n  *--probe*) echo '{\"ok\":true,\"ran\":[],\"cached\":[]}';;\nesac\n",
     );
     let source = MockServer::start(None);
 
@@ -1102,7 +1102,7 @@ fn the_pushed_gate_refuses_a_stage_whose_acknowledged_writes_the_store_does_not_
     let stub = root.join("stub-wf");
     executable(
         &stub,
-        "#!/bin/sh\ncase \"$*\" in\n  *\"--stage flow-tests\"*) echo 'wf: build cache {\"seeded\":{\"checked\":10,\"present\":7}}' >&2;;\n  *\"--stage integration-tests\"*) echo 'wf: build cache {\"seeded\":{\"checked\":4,\"present\":4}}' >&2;;\nesac\ncase \"$*\" in\n  *\"test plan\"*) echo '{\"stages\":{}}';;\n  *--probe*) echo '{\"ok\":true,\"ran\":[],\"cached\":[]}';;\nesac\n",
+        "#!/bin/sh\ncase \"$*\" in\n  *\"--stage flow-tests\"*) echo 'wf: build cache {\"seeded\":{\"checked\":10,\"present\":7}}' >&2;;\n  *\"--stage integration-tests\"*) echo 'wf: build cache {\"seeded\":{\"checked\":4,\"present\":4}}' >&2;;\nesac\ncase \"$*\" in\n  *\"ci plan tests\"*) echo '{\"stages\":{}}';;\n  *--probe*) echo '{\"ok\":true,\"ran\":[],\"cached\":[]}';;\nesac\n",
     );
 
     // When a push to dev runs every stage
@@ -1129,7 +1129,7 @@ fn the_pushed_gate_deletes_a_passed_stages_test_executables_and_keeps_a_failed_s
     executable(
         &stub,
         &format!(
-            "#!/bin/sh\ncase \"$*\" in\n  *\"test plan\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';;\n  *\"test run --stage\"*) s=$4; printf '#!/bin/sh\\n' > {d}/$s-0123456789abcdef; chmod +x {d}/$s-0123456789abcdef; echo lib > {d}/lib$s-0123456789abcdef.rlib; [ \"$s\" = flow-tests ] && [ -n \"$STUB_FAIL\" ] && exit 1;;\nesac\nexit 0\n",
+            "#!/bin/sh\ncase \"$*\" in\n  *\"ci plan tests\"*) echo '{{\"stages\":{{}}}}';;\n  *--probe*) echo '{{\"ok\":true,\"ran\":[],\"cached\":[]}}';;\n  *\"test run --stage\"*) s=$4; printf '#!/bin/sh\\n' > {d}/$s-0123456789abcdef; chmod +x {d}/$s-0123456789abcdef; echo lib > {d}/lib$s-0123456789abcdef.rlib; [ \"$s\" = flow-tests ] && [ -n \"$STUB_FAIL\" ] && exit 1;;\nesac\nexit 0\n",
             d = deps.display()
         ),
     );

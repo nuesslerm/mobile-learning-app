@@ -1,4 +1,4 @@
-//! The e2e tests (`e2e/*.lua`, each a scripted Lua test with a metadata header) and how a change picks them: `wf test plan` lists
+//! The e2e tests (`e2e/*.lua`, each a scripted Lua test with a metadata header) and how a change picks them: `wf ci plan tests` lists
 //! them with every other test a push needs, marking the focused ones a change reaches (or all focused ones, or named focused ones), and
 //! `wf test run --stage` runs one stage of such a plan (`test_plan.rs`).
 use wf_kit::args::Parsed;
@@ -167,7 +167,7 @@ fn last_green(sha: &str) -> Option<String> {
         .map(str::to_string)
 }
 
-/// `wf test plan`: every stage's tests as JSON, or the e2e tests with the picked ones marked.
+/// `wf ci plan tests`: every stage's tests as JSON, or the e2e tests with the picked ones marked.
 pub(crate) fn plan(p: &Parsed) -> i32 {
     let sha = p.val("sha").map(str::to_string).unwrap_or_else(head_sha);
     let books = e2e_tests();
@@ -267,7 +267,7 @@ pub(crate) fn run_stage(args: &[String]) -> i32 {
         Some(f) => match std::fs::read_to_string(&f).ok().and_then(|t| serde_json::from_str(&t).ok()) {
             Some(v) => v,
             None => {
-                println!("{}", json!({ "error": format!("cannot read the plan {f}"), "next": "wf test plan --changed --base <ref> --json > plan.json" }));
+                println!("{}", json!({ "error": format!("cannot read the plan {f}"), "next": "wf ci plan tests --changed --base <ref> --json > plan.json" }));
                 return 1;
             }
         },

@@ -289,7 +289,7 @@ pub fn plan(message: &str, tree: &dyn Tree, up: &dyn Upstream, src: &Sources) ->
         format!("[{}]", words.join(" "))
     });
     let report = json!({"schema": SCHEMA, "ok": true, "go": true, "apps": marker.apps.iter().map(|a| a.name()).collect::<Vec<_>>(), "chunk": marker.chunk, "fresh": marker.fresh, "drifted": drifted, "verdicts": verdicts, "sets": sets_named, "record_marker": record_marker,
-        "next": if record_marker.is_some() { "wf mimic trigger --message <record_marker> gives the capture matrix" } else { "every pin is at the newest release: nothing to record" }});
+        "next": if record_marker.is_some() { "wf ci plan mimic --message <record_marker> gives the capture matrix" } else { "every pin is at the newest release: nothing to record" }});
     Outcome { ok: true, report, writes: vec![] }
 }
 

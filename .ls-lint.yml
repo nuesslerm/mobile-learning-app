@@ -196,6 +196,12 @@ ls:
   clis/mimic/coverage/src/*:
     .dir: snake_case
     .rs: snake_case
+  clis/mimic/plan/src:
+    .dir: snake_case
+    .rs: snake_case
+  clis/mimic/plan/src/*:
+    .dir: snake_case
+    .rs: snake_case
   clis/mimic/script/core/src:
     .dir: snake_case
     .rs: snake_case

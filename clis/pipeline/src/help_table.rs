@@ -2,6 +2,7 @@
 //! `(command path, bare invocation prints the help to stderr and exits 1, help text)`.
 pub const HELP: &[(&str, bool, &str)] = &[
     ("ci", true, include_str!("help/wf__ci.txt")),
+    ("ci plan", false, include_str!("help/wf__ci__plan.txt")),
     ("ci tidy", false, include_str!("help/wf__ci__tidy.txt")),
     ("ci live", false, include_str!("help/wf__ci__live.txt")),
     ("ci preflight", false, include_str!("help/wf__ci__preflight.txt")),

@@ -102,7 +102,7 @@ fn mins(d: Duration) -> String {
 
 fn record(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done {
     super::reference(cfg)?;
-    let chunk = minutes(p, "chunk", u64::from(crate::marker::DEFAULT_CHUNK_MINUTES), u64::from(crate::marker::MAX_CHUNK_MINUTES))?;
+    let chunk = minutes(p, "chunk", u64::from(mimic_plan_core::DEFAULT_CHUNK_MINUTES), u64::from(mimic_plan_core::MAX_CHUNK_MINUTES))?;
     let budget = Duration::from_secs(minutes(p, "budget", DEFAULT_BUDGET_MINUTES, 600)? * 60);
     let run = run_id(p);
     let dir = set.dir.display().to_string();

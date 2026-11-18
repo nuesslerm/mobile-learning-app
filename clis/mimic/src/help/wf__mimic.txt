@@ -50,7 +50,7 @@ mimic.toml (paths relative to the file):
   [record]                         allow_nondeterministic (default false), args: what `wf mimic capture record`
                                    adds to the record call of the set
   [provision] / provision_file     how a runner installs the reference (wf mimic capture --help); the
-                                   VM runs it for a [record <set>] commit marker (wf mimic trigger --help)
+                                   VM runs it for a [record <set>] commit marker (`wf ci plan mimic --help`)
 
 Every verb prints one JSON object on stdout with "schema": "mimic-<verb>/1",
 "ok", "warnings" and "next" (the one command to run next), never prompts, and
@@ -67,7 +67,6 @@ Commands:
   verify [options] [set...]   Check sets are fresh and intact (offline)
   coverage [options]          Scan the pinned reference and write, or check, the app's method list and coverage table
   track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
-  trigger [options]           Read the marker of a commit message into the capture jobs it asks for
   capture [options] <record|replay> <set>  Provision a set's reference, then run its chunked record or replay and diff table
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set

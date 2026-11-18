@@ -351,7 +351,7 @@ fn integration_scripts_are_planned_in_the_integration_stage_run_through_nx_and_r
         // When a file of that package changes in a commit
         assert!(crate::support::git_command().args(["add", &source]).current_dir(w.dir.path()).status().unwrap().success());
         let sha = w.commit("Change the service");
-        let r = w.wf(&["test", "plan", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
+        let r = w.wf(&["ci", "plan", "tests", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
         assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
         let plan = last_line(&r);
         // Then the plan lists one integration entry, in integration-tests (after the deploy), for that package's script
@@ -393,7 +393,7 @@ fn a_crate_with_an_e2e_binary_is_planned_in_the_cli_e2e_stage_and_its_flow_binar
         assert!(crate::support::git_command().args(["add", source]).current_dir(w.dir.path()).status().unwrap().success());
         let sha = w.commit("Change the bench");
         // When the changed tests are planned
-        let r = w.wf(&["test", "plan", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
+        let r = w.wf(&["ci", "plan", "tests", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
         assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
         let plan = last_line(&r);
         // Then its e2e test is a cli-e2e-tests entry and its flow test a flow-tests entry, both by crate
@@ -559,7 +559,7 @@ fn a_change_in_a_wf_crate_plans_the_flow_tests_of_exactly_the_crates_that_build_
         w.with_edit(file, || {
             assert!(git(&["add", file]).status.success());
             let sha = w.commit("Change one file");
-            let r = w.wf(&["test", "plan", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
+            let r = w.wf(&["ci", "plan", "tests", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
             assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
             planned = last_line(&r);
         });
@@ -636,7 +636,7 @@ fn a_crate_with_e2e_groups_plans_one_entry_per_group_for_a_change_of_its_own_and
         w.with_edit(file, || {
             assert!(git(&["add", file]).status.success());
             let sha = w.commit("Change one file");
-            let r = w.wf(&["test", "plan", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
+            let r = w.wf(&["ci", "plan", "tests", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
             assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
             entries = last_line(&r)["stages"]["cli-e2e-tests"].as_array().unwrap().iter().filter(|t| t["crate"] == "rca").map(|t| format!("{} {}", t["group"].as_str().unwrap_or("-"), t["target"].as_str().unwrap_or("-"))).collect();
         });
@@ -1206,7 +1206,7 @@ fn a_change_two_crates_down_reruns_the_dependant_and_leaves_an_unrelated_crate_r
     put_file(ws, "clis/fx-c/src/lib.rs", "pub fn one() -> u8 {\n    2\n}\n");
     let sha = commit("Change C");
     // Then the plan lists A, B and C and not D
-    let r = site.wf(&["test", "plan", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
+    let r = site.wf(&["ci", "plan", "tests", "--changed", "--base", &base, "--sha", &sha, "--json"], &[]);
     assert_eq!(r.exit_code, 0, "{}\n{}", r.stdout, r.stderr);
     let planned: BTreeSet<String> = last_line(&r)["stages"]["flow-tests"].as_array().unwrap().iter().map(|t| format!("{} {}", t["crate"].as_str().unwrap(), t["why"][0].as_str().unwrap())).collect();
     assert_eq!(planned, set(&["fx-a depends on fx-b (cargo)", "fx-b depends on fx-c (cargo)", "fx-c changed"]));
