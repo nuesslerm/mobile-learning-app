@@ -303,7 +303,7 @@ fn resuming_a_held_queue_starts_its_items_one_after_the_other_through_rca_with_t
 }
 
 #[test]
-fn a_workflow_stop_and_a_subagent_stop_each_end_the_running_turn_through_rca_and_a_stop_with_nothing_running_is_not_asked_of_rca() {
+fn a_workflow_stop_ends_the_running_turn_through_rca_a_stop_with_nothing_running_is_not_asked_of_rca_and_a_subagent_stop_is_refused_with_the_turn_still_running() {
     exec_testkit::case!(SUITE, |case| {
         // Given a thread whose CLI starts a turn and stays, each time
         let chain = Chain::start();
@@ -327,14 +327,16 @@ fn a_workflow_stop_and_a_subagent_stop_each_end_the_running_turn_through_rca_and
         // Then rca was asked to stop the turn's workflow and answered, and the run is no longer running
         assert!(answered(case, "workflow.stop"), "{:?}", asked(case));
         assert!(stopped["_tag"] == "Success" && !first.is_empty());
-        // When another turn starts and the phone stops it with the subagent command
+        // When another turn starts and the phone stops a subagent of it
         success(&phone.command(case, &chain, message("m2", "t1", "work again")));
         wait_started(&chain, "claude", 2);
         let second = nth_run(&mut phone, "t1", 2);
-        phone.command_settled(case, &chain, cmd("subagent.stop", "t1", json!({"runId": second, "subagentId": "n1"})), "t1", none_running);
-        // Then rca stopped that turn's workflow too, and the CLI of each turn is gone
-        assert!(answered(case, "workflow.stop"), "{:?}", asked(case));
-        assert_eq!(chain.cli.invocations("claude").len(), 2);
+        let refused = phone.command(case, &chain, cmd("subagent.stop", "t1", json!({"runId": second, "subagentId": "n1"})));
+        // Then T3's refusal is the answer, rca was not asked to stop anything, and the turn keeps running
+        assert_eq!(failure(&refused)["message"], "The requested native subagent cannot be stopped on this run.");
+        assert!(!answered(case, "workflow.stop"), "{:?}", asked(case));
+        let projection = success(&phone.calls.call("orchestration.getThreadProjection", json!({"threadId": "t1"}))).clone();
+        assert!(!none_running(&projection), "{projection}");
     });
 }
 

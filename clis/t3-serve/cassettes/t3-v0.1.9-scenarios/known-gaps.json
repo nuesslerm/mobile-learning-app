@@ -439,17 +439,6 @@
       "ids": [
         "t3-scn-command-thread.active.reorder"
       ]
-    },
-    {
-      "class": "missing at steps.ws:s2c:s10.[*].payload.exit.value.thread.guestShare",
-      "severity": "breaking",
-      "diffs": [
-        "steps.ws:s2c:s10.[0].payload.exit.value.thread.guestShare missing breaking",
-        "steps.ws:s2c:s3.[0].payload.exit.value.thread.titleRegeneration missing breaking"
-      ],
-      "ids": [
-        "t3-story-thread-lifecycle"
-      ]
     }
   ]
 }

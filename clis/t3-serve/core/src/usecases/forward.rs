@@ -122,10 +122,8 @@ impl Service {
             "thread.unsnooze" => vec![Op::ThreadSettle { thread, state: "awake", until_ms: None, at_ms: None }],
             "thread.fork" => vec![Op::ThreadFork { thread: run("sourceThreadId")?, fork: run("targetThreadId")?, turn: None, title: item("title") }],
             "thread.merge_back" => vec![Op::ThreadMergeBack { thread: run("sourceThreadId")?, into: run("targetThreadId")?, turn: None }],
-            "subagent.stop" => {
-                let run_id = run("runId")?;
-                vec![Op::WorkflowStop { thread, turn: self.turn_of(&run_id).unwrap_or(run_id), workflow: item("subagentId") }]
-            }
+            // the projection lists no subagent (rca runs no provider-native ones), so the real server refuses every stop and leaves the run running
+            "subagent.stop" => return Err("The requested native subagent cannot be stopped on this run.".into()),
             "prepared-run.retry" => return Err(format!("Run {} has no failed workspace preparation to retry.", run("runId")?)),
             "provider-session.detach" => vec![Op::ThreadDetach { thread, session: run("providerSessionId")? }],
             "queue.resume" => vec![Op::QueueResume { thread, item: None }],
@@ -181,7 +179,7 @@ impl Service {
         }
         let mut kept = false;
         for op in &ops {
-            let answer = self.ask(op).map_err(|message| if cmd.kind == "subagent.stop" { "The requested native subagent cannot be stopped on this run.".to_string() } else { message })?;
+            let answer = self.ask(op)?;
             kept |= matches!(op, Op::ThreadDelete { .. }) && answer["deleted"] == json!(false);
         }
         Ok(if kept { Forwarded::Kept } else { Forwarded::Apply })

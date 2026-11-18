@@ -72,7 +72,6 @@ fn every_forwarded_command_asks_the_agent_api_for_its_method_and_an_accepted_one
         (cmd("thread.user-input.dismiss", json!({"requestId": "i1"})), Op::InputDismiss { thread: t(), request: "i1".into() }),
         (cmd("checkpoint.rollback", json!({"checkpointId": "r1", "scopeId": "s", "restoreFiles": false})), Op::ThreadRollback { thread: t(), turn: "r1".into(), restore_files: false }),
         (cmd("provider-session.detach", json!({"providerSessionId": "s1"})), Op::ThreadDetach { thread: t(), session: "s1".into() }),
-        (cmd("subagent.stop", json!({"runId": "r1", "subagentId": "n1"})), Op::WorkflowStop { thread: t(), turn: "r1".into(), workflow: Some("n1".into()) }),
         (json!({"type": "thread.fork", "createdBy": "user", "creationSource": "mobile", "commandId": "c-fork", "sourceThreadId": "t1", "targetThreadId": "f1", "sourcePoint": {"type": "latest_stable"}}), Op::ThreadFork { thread: t(), fork: "f1".into(), turn: None, title: None }),
         (json!({"type": "thread.merge_back", "createdBy": "user", "creationSource": "mobile", "commandId": "c-merge", "sourceThreadId": "f1", "targetThreadId": "t1", "sourcePoint": {"type": "latest_stable"}}), Op::ThreadMergeBack { thread: "f1".into(), into: t(), turn: None }),
         (cmd("thread.delete", json!({"onlyIfUnused": true})), Op::ThreadDelete { thread: t(), only_if_unused: true }),
@@ -407,7 +406,7 @@ fn the_archived_shell_and_the_two_snapshots_a_phone_fetches_over_http_read_the_r
 }
 
 #[test]
-fn a_stop_that_arrives_before_the_run_is_linked_to_its_turn_waits_for_the_link_instead_of_naming_the_run() {
+fn a_rollback_that_arrives_before_the_run_is_linked_to_its_turn_waits_for_the_link_instead_of_naming_the_run() {
     // Given a thread, and a run whose link to the agent's turn is written a moment after the phone names the run
     let (h, mut rpc) = started();
     let store = h.store.clone();
@@ -416,10 +415,26 @@ fn a_stop_that_arrives_before_the_run_is_linked_to_its_turn_waits_for_the_link_i
         store.set("agent-run:r7", "turn-7").unwrap();
     });
 
-    // When the phone stops a subagent of that run
-    success(&dispatch(&mut rpc, cmd("subagent.stop", json!({"runId": "r7", "subagentId": "n1"}))));
+    // When the phone rolls the thread back to a checkpoint of that run
+    success(&dispatch(&mut rpc, cmd("checkpoint.rollback", json!({"checkpointId": "r7", "scopeId": "s"}))));
     writer.join().unwrap();
 
-    // Then the agent API was asked to stop the workflow of the turn, not of the run id
-    assert_eq!(ops(&h).last(), Some(&Op::WorkflowStop { thread: "t1".into(), turn: "turn-7".into(), workflow: Some("n1".into()) }));
+    // Then the agent API was asked to roll back the turn of the run, not the run id
+    assert_eq!(ops(&h).last(), Some(&Op::ThreadRollback { thread: "t1".into(), turn: "turn-7".into(), restore_files: true }));
+}
+
+#[test]
+fn a_subagent_stop_is_refused_as_the_real_server_does_and_the_agent_api_is_not_asked() {
+    // Given a thread with a turn that runs until it is stopped
+    let (h, mut rpc) = started();
+    h.agent.hold.store(true, std::sync::atomic::Ordering::SeqCst);
+    success(&dispatch(&mut rpc, json!({"type": "message.dispatch", "createdBy": "user", "creationSource": "web", "commandId": "c-m", "threadId": "t1", "messageId": "m1", "text": "go"})));
+    let before = ops(&h).len();
+
+    // When the phone stops a subagent of the running run
+    let stop = dispatch(&mut rpc, cmd("subagent.stop", json!({"runId": "r1", "subagentId": "n1"})));
+
+    // Then the refusal is T3's and the agent API was asked nothing
+    assert_eq!(failure(&stop)["detail"], "The requested native subagent cannot be stopped on this run.");
+    assert_eq!(ops(&h).len(), before);
 }
