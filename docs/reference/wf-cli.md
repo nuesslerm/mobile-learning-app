@@ -85,6 +85,7 @@ secret                       Manage secrets (macOS Keychain locally; Bitwarden i
   registry                   Secrets registry maintenance
     sync                     Rebuild wf after editing registry.json (the registry is compiled into it), then 
   rename                     Rename a vault secret in place, preserving its id (so UUID-addressed consumers k
+  rotate-login               Write the login a CI run refreshed back to the vault (codex)
   set                        Store secret (reads from stdin if value omitted) — macOS backend only
   sync-env                   Resolve keys (or --for <app>) through the active backend and write a .env — the 
   update                     Replace an EXISTING vault secret's value in place, keeping its key, note, projec
@@ -4520,6 +4521,8 @@ Commands:
   set <KEY> [value]                     Store secret (reads from stdin if value
                                         omitted) — macOS backend only
   delete <KEY>                          Remove secret — macOS backend only
+  rotate-login [options] <provider>     Write the login a CI run refreshed back to
+                                        the vault (codex)
   env [options]                         Print KEY=value lines for all available
                                         secrets (eval-safe)
   sync-env [options] [keys...]          Resolve keys (or --for <app>) through
@@ -5240,6 +5243,39 @@ Options:
                     random one for this run, printed in the output)
   --backend <name>  override the active backend (macos | bitwarden)
   -h, --help        display help for command
+```
+
+</details>
+
+### `wf secret rotate-login`
+
+Write the Codex login a CI run left back to the vault (CODEX_OAUTH_JSON_B64), with the CI deploy credential, and only that key. The file must be a ChatGPT login (tokens.access_token and tokens.refresh_token) of the account the vault holds; an unchanged refresh token writes nothing, and no value is ever printed.
+
+Usage: `wf secret rotate-login [options] codex`
+
+| Option | Meaning |
+|---|---|
+| `--from <path>` | the auth.json the run left |
+
+Examples:
+
+```sh
+wf secret rotate-login codex --from "$f"
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf secret rotate-login [options] codex
+
+Write the Codex login a CI run left back to the vault (CODEX_OAUTH_JSON_B64),
+with the CI deploy credential, and only that key. The file must be a ChatGPT
+login (tokens.access_token and tokens.refresh_token); an unchanged refresh
+token writes nothing, and no value is ever printed.
+
+Options:
+  --from <path>  the auth.json the run left
+  -h, --help     display help for command
 ```
 
 </details>
