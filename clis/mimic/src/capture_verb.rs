@@ -271,7 +271,9 @@ fn replay(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
         let mut listed = Vec::<Value>::new();
         for r in c.json["results"].as_array().into_iter().flatten().take(40) {
             let d = &r["diffs"][0];
-            listed.push(json!({"id": r["id"], "label": r["label"], "severity": r["severity"], "first": {"kind": d["kind"], "path": d["path"]}, "error": r["error"]}));
+            // The first difference is often an allowlisted one (a transport header): the ones no allowlist entry covers are what makes the case breaking, so they are listed beside it.
+            let open: Vec<Value> = r["diffs"].as_array().into_iter().flatten().filter(|x| x["allowlisted"].is_null()).take(5).map(|x| json!({"kind": x["kind"], "path": x["path"], "expected": clip(&x["expected"]), "actual": clip(&x["actual"])})).collect();
+            listed.push(json!({"id": r["id"], "label": r["label"], "severity": r["severity"], "first": {"kind": d["kind"], "path": d["path"]}, "open": open, "error": r["error"]}));
             diffs.push(format!("| {name} | {} | {} | {} {} |", r["id"].as_str().unwrap_or(""), r["severity"].as_str().unwrap_or(""), d["kind"].as_str().unwrap_or(""), d["path"].as_str().unwrap_or(r["error"].as_str().unwrap_or(""))));
         }
         rows.push(json!({"candidate": name, "severity": c.json["severity"], "summary": s, "differences": listed}));
@@ -293,4 +295,13 @@ fn replay(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
         std::fs::create_dir_all(o).and_then(|()| std::fs::write(&path, serde_json::to_string_pretty(&out).unwrap_or_default() + "\n")).map_err(|e| fail(format!("{}: {e}", path.display()), "name a writable --out"))?;
     }
     Ok((out, i32::from(!ok)))
+}
+
+/// A value for a report: its JSON, cut at 160 characters.
+fn clip(v: &Value) -> Value {
+    if v.is_null() {
+        return Value::Null;
+    }
+    let text = v.to_string();
+    Value::String(if text.chars().count() > 160 { format!("{}…", text.chars().take(160).collect::<String>()) } else { text })
 }
