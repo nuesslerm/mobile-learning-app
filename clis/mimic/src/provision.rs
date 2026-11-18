@@ -20,7 +20,7 @@ pub struct Raw {
     pub env: BTreeMap<String, String>,
     #[serde(default)]
     pub step: Vec<RawStep>,
-    /// Agent CLIs the reference runs for real instead of the scripted ones (`opencode`; `claude` and `codex` stay scripted): the record installs each at the
+    /// Agent CLIs the reference runs for real instead of the scripted ones (`claude`, `codex`, `opencode`): the record installs each at the
     /// version and sha256 the pin file names into `{work}/real-clis`, and the host stops scripting and stubbing it.
     #[serde(default)]
     pub real_agents: Vec<String>,
@@ -84,6 +84,14 @@ pub struct RealAgent {
     pub release: String,
     /// The sha256 (lowercase hex) of the asset of each platform.
     pub sha256: BTreeMap<String, String>,
+    /// A package-registry agent (`claude`, `codex`): the https URL of each platform's tarball and the program's path inside it. Empty for a release-asset agent.
+    pub packages: BTreeMap<String, Package>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct Package {
+    pub url: String,
+    pub bin: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -98,7 +106,7 @@ pub struct Provision {
 }
 
 /// The agent CLIs a set may run for real, and the platforms each is pinned for.
-pub const REAL_AGENTS: [&str; 1] = ["opencode"];
+pub const REAL_AGENTS: [&str; 3] = ["claude", "codex", "opencode"];
 pub const REAL_PLATFORMS: [&str; 2] = ["linux-x64", "linux-arm64"];
 
 pub const DEFAULT_TIMEOUT_MINUTES: u64 = 30;
@@ -232,9 +240,6 @@ fn real_agents(dir: &Path, names: &[String], pin: Option<&str>) -> Result<Vec<Re
         };
     }
     for (i, name) in names.iter().enumerate() {
-        if matches!(name.as_str(), "claude" | "codex") {
-            return Err(format!("real_agents names {name:?}: claude and codex stay scripted (their login is a file, not a key); the agents that can run for real are {}", REAL_AGENTS.join(", ")));
-        }
         if !REAL_AGENTS.contains(&name.as_str()) {
             return Err(format!("real_agents names {name:?}, which is not an agent CLI a set can run for real ({})", REAL_AGENTS.join(", ")));
         }
@@ -252,11 +257,29 @@ fn real_agents(dir: &Path, names: &[String], pin: Option<&str>) -> Result<Vec<Re
         let version = entry["version"].as_str().filter(|v| is_version(v) && v.split('.').count() == 3).ok_or_else(|| at("has no full version (1.19.0)"))?;
         let release = entry["release"].as_str().filter(|r| r.starts_with("https://") && !r.contains(['@', ' ']) && !r.ends_with('/')).ok_or_else(|| at("has no https release URL without credentials"))?;
         let mut sha256 = BTreeMap::new();
+        let mut packages = BTreeMap::new();
         for platform in REAL_PLATFORMS {
             let sum = entry["platforms"][platform]["sha256"].as_str().filter(|s| is_sha256(s)).ok_or_else(|| at(&format!("has no 64-hex sha256 for {platform}")))?;
             sha256.insert(platform.to_string(), sum.to_string());
+            let (url, bin) = (entry["platforms"][platform]["url"].as_str(), entry["platforms"][platform]["bin"].as_str());
+            match (url, bin) {
+                (None, None) => {}
+                (Some(url), Some(bin)) => {
+                    if !url.starts_with("https://") || url.contains(['@', ' ']) || url.ends_with('/') {
+                        return Err(at(&format!("{platform} url is not an https URL without credentials")));
+                    }
+                    if bin.is_empty() || bin.starts_with('/') || bin.split('/').any(|c| c == ".." || c.is_empty()) {
+                        return Err(at(&format!("{platform} bin must be a relative path inside the archive")));
+                    }
+                    packages.insert(platform.to_string(), Package { url: url.to_string(), bin: bin.to_string() });
+                }
+                _ => return Err(at(&format!("{platform} names a url without a bin, or a bin without a url"))),
+            }
         }
-        Ok(RealAgent { name: name.clone(), version: version.to_string(), release: release.to_string(), sha256 })
+        if !packages.is_empty() && packages.len() != REAL_PLATFORMS.len() {
+            return Err(at("pins a package for one platform but not the others"));
+        }
+        Ok(RealAgent { name: name.clone(), version: version.to_string(), release: release.to_string(), sha256, packages })
     }).collect()
 }
 

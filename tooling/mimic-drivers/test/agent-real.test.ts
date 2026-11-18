@@ -79,7 +79,7 @@ test('Given the set rules, When they are read, Then the reply text and every id 
 
 test('Given the set config, When mimic.toml is read, Then the key is declared by names alone and the provision runs the pinned real opencode', () => {
   const toml = read('mimic.toml')
-  assert.match(toml, /^env_from_vault = \{ OPENCODE_API_KEY = "OPENCODE_GO_API_KEY" \}$/m)
+  assert.match(toml, /^env_from_vault = \{ MIMIC_CRED_OPENCODE__OPENCODE_API_KEY = "OPENCODE_GO_API_KEY" \}$/m)
   assert.match(toml, /provision_file = "\/\/tooling\/mimic-drivers\/provision\/t3-real\.toml"/)
   assert.doesNotMatch(toml, /sk-|Bearer /)
   const provision = readFileSync(join(repoRoot, 'tooling/mimic-drivers/provision/t3-real.toml'), 'utf8')

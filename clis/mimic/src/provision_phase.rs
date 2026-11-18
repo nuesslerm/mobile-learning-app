@@ -110,11 +110,13 @@ fn install_real_agents(agents: &[RealAgent], work: &Path, cache: Option<&Path>) 
     for a in agents {
         let asset = format!("{}-{platform}.tar.gz", a.name);
         let archive = dir.join(format!(".{asset}"));
+        let package = a.packages.get(platform);
         match cache.map(|c| c.join(&asset)).filter(|p| p.is_file()) {
             Some(cached) => drop(std::fs::copy(&cached, &archive).map_err(|e| format!("{}: {e}", cached.display()))?),
             None => {
                 let mut curl = Command::new("curl");
-                curl.args(["-fsSL", "--retry", "3", "--connect-timeout", "30", "--max-time", "900", "-o"]).arg(&archive).arg(format!("{}/{asset}", a.release));
+                let from = package.map_or_else(|| format!("{}/{asset}", a.release), |p| p.url.clone());
+                curl.args(["-fsSL", "--retry", "3", "--connect-timeout", "30", "--max-time", "900", "-o"]).arg(&archive).arg(from);
                 run(curl, &env, Duration::from_secs(16 * 60), &format!("the download of {asset}"))?;
             }
         }
@@ -125,11 +127,23 @@ fn install_real_agents(agents: &[RealAgent], work: &Path, cache: Option<&Path>) 
             let _ = std::fs::remove_file(&archive);
             return Err(format!("{asset} of {} {} hashes to {got} and the pin says {want}: nothing was unpacked", a.name, a.version));
         }
+        let unpack = match package {
+            Some(_) => dir.join(format!(".{}-package", a.name)),
+            None => dir.clone(),
+        };
+        std::fs::create_dir_all(&unpack).map_err(|e| format!("{}: {e}", unpack.display()))?;
         let mut tar = Command::new("tar");
-        tar.arg("xzf").arg(&archive).arg("-C").arg(&dir);
+        tar.arg("xzf").arg(&archive).arg("-C").arg(&unpack);
         run(tar, &env, Duration::from_secs(5 * 60), &format!("the unpacking of {asset}"))?;
         let _ = std::fs::remove_file(&archive);
         let program = dir.join(&a.name);
+        if let Some(p) = package {
+            let inside = unpack.join(&p.bin);
+            if !inside.is_file() {
+                return Err(format!("{asset} of {} {} holds no {} (the pin's bin)", a.name, a.version, p.bin));
+            }
+            std::os::unix::fs::symlink(&inside, &program).map_err(|e| format!("{}: {e}", program.display()))?;
+        }
         let out = env.command(&program).arg("--version").output().map_err(|e| format!("{} --version: {e}", program.display()))?;
         let said = String::from_utf8_lossy(&out.stdout).trim().to_string();
         if !said.split_whitespace().any(|w| w == a.version) {

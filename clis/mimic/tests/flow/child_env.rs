@@ -338,7 +338,6 @@ fn a_provision_block_with_real_agents_and_a_pin_is_accepted_and_names_what_it_in
     assert_eq!(provision["real_agents"][0]["name"], json!("opencode"));
     assert_eq!(provision["real_agents"][0]["version"], json!("1.19.0"));
     assert!(provision["env"]["MIMIC_REAL_CLI_DIR"].as_str().is_some_and(|d| d.ends_with("/real-clis")), "{provision}");
-    // And claude and codex are not in it: they stay scripted
     assert_eq!(provision["real_agents"].as_array().unwrap().len(), 1);
 }
 
@@ -350,8 +349,6 @@ fn a_real_agents_block_that_is_unknown_unpinned_or_pinned_loosely_is_refused_nam
     let good = json!({"version": "1.19.0", "release": "https://example.org/r", "platforms": platforms});
     let cases = [
         ("real_agents = [\"gemini\"]\nreal_agents_pin = \"p.json\"\n", pin(good.clone()), "is not an agent CLI a set can run for real"),
-        ("real_agents = [\"claude\"]\nreal_agents_pin = \"p.json\"\n", pin(good.clone()), "claude and codex stay scripted"),
-        ("real_agents = [\"codex\"]\nreal_agents_pin = \"p.json\"\n", pin(good.clone()), "claude and codex stay scripted"),
         ("real_agents = [\"opencode\"]\n", pin(good.clone()), "needs real_agents_pin"),
         ("real_agents_pin = \"p.json\"\n", pin(good.clone()), "real_agents_pin without real_agents"),
         ("real_agents = [\"opencode\", \"opencode\"]\nreal_agents_pin = \"p.json\"\n", pin(good.clone()), "twice"),
@@ -461,4 +458,64 @@ fn a_url_reference_that_declares_a_key_is_recorded_and_its_mint_command_is_left_
     assert_eq!(r.code, 0, "{}\n{}", r.json, r.stderr);
     assert!(names(&rig.dump("record.env")).contains(ENV_NAME));
     assert!(!r.json.to_string().contains(VALUE) && !r.stderr.contains(VALUE));
+}
+
+/// A fake registry tarball of `name` (the program at `package/<name>`, as an npm package lays it out) reporting `version`, and the pin entry that names it.
+fn package_asset(dir: &Path, name: &str, version: &str) -> serde_json::Value {
+    let stage = dir.join("stage/package");
+    std::fs::create_dir_all(&stage).unwrap();
+    write_script(&stage.join(name), &format!("#!/bin/sh\necho {name}-cli {version}\n"));
+    let asset = dir.join(format!("{name}-{platform}.tar.gz", platform = platform()));
+    assert!(std::process::Command::new("tar").arg("czf").arg(&asset).arg("-C").arg(dir.join("stage")).arg("package").status().unwrap().success());
+    let bytes = std::fs::read(&asset).unwrap();
+    let sum = mimic_core::json::sha256_label(&bytes).trim_start_matches("sha256:").to_string();
+    let platforms: serde_json::Map<String, Value> = ["linux-x64", "linux-arm64"]
+        .iter()
+        .map(|p| (p.to_string(), json!({"bytes": bytes.len(), "sha256": sum, "url": format!("https://registry.example.org/{name}/-/{name}-{p}.tgz"), "bin": format!("package/{name}")})))
+        .collect();
+    json!({"version": version, "release": format!("https://registry.example.org/{name}"), "platforms": platforms})
+}
+
+#[test]
+fn a_pinned_package_agent_is_installed_from_its_tarball_and_its_program_runs_by_the_name_of_the_agent() {
+    // Given a set whose block runs claude and codex for real, each pinned as a registry tarball with the program's path inside it
+    let rig = Rig::orca();
+    let cache = rig.dir.path().join("agents-cache");
+    let pins = json!({"claude": package_asset(&cache, "claude", "2.1.327"), "codex": package_asset(&cache, "codex", "0.170.0")});
+    std::fs::write(rig.set.join("real-agents.json"), pins.to_string()).unwrap();
+    rig.with_provision("real_agents = [\"claude\", \"codex\"]\nreal_agents_pin = \"real-agents.json\"\n");
+    // When the provision runs with the tarballs in the cache
+    let ok = rig.capture("record", &["--provision", "only", "--agents-cache", &rig.cache()], false);
+    // Then each program is in real-clis under the agent's name and reports the pinned version
+    assert_eq!(ok.code, 0, "{}\n{}", ok.json, ok.stderr);
+    for (name, version) in [("claude", "2.1.327"), ("codex", "0.170.0")] {
+        let said = std::process::Command::new(rig.work(&format!("real-clis/{name}"))).arg("--version").output().unwrap().stdout;
+        assert_eq!(String::from_utf8_lossy(&said).trim(), format!("{name}-cli {version}"));
+        assert!(!rig.work(&format!("real-clis/.{name}-linux-x64.tar.gz")).exists());
+    }
+}
+
+#[test]
+fn a_package_pin_with_a_loose_url_or_a_bin_outside_the_archive_is_refused_naming_the_rule() {
+    let sum = "0".repeat(64);
+    let entry = |platform: Value| json!({"claude": {"version": "2.1.327", "release": "https://example.org/r", "platforms": {"linux-x64": platform.clone(), "linux-arm64": platform}}}).to_string();
+    let cases = [
+        (entry(json!({"sha256": sum, "url": "https://example.org/a.tgz"})), "names a url without a bin"),
+        (entry(json!({"sha256": sum, "bin": "package/claude"})), "names a url without a bin"),
+        (entry(json!({"sha256": sum, "url": "http://example.org/a.tgz", "bin": "package/claude"})), "not an https URL"),
+        (entry(json!({"sha256": sum, "url": "https://user@example.org/a.tgz", "bin": "package/claude"})), "not an https URL"),
+        (entry(json!({"sha256": sum, "url": "https://example.org/a.tgz", "bin": "../claude"})), "relative path inside the archive"),
+        (entry(json!({"sha256": sum, "url": "https://example.org/a.tgz", "bin": "/usr/bin/claude"})), "relative path inside the archive"),
+    ];
+    for (pin_file, reason) in cases {
+        // Given a package pin that breaks a rule
+        let rig = Rig::orca();
+        std::fs::write(rig.set.join("p.json"), &pin_file).unwrap();
+        rig.with_provision("real_agents = [\"claude\"]\nreal_agents_pin = \"p.json\"\n");
+        // When the set is checked
+        let r = rig.capture("record", &["--check"], true);
+        // Then it is refused for that rule
+        assert_eq!(r.code, 2, "{pin_file}: {}", r.json);
+        assert!(r.json["error"].as_str().unwrap().contains(reason), "{pin_file} wants {reason:?}: {}", r.json["error"]);
+    }
 }
