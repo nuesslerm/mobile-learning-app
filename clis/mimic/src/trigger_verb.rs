@@ -77,7 +77,7 @@ pub fn trigger_verb(p: &Parsed) -> Done {
         json!({
             "ok": true, "go": true, "action": m.action.word(), "chunk": m.chunk, "fresh": m.fresh, "rows": m.rows.join(","), "sets": sets,
             "matrix": {"include": include}, "warnings": [],
-            "next": format!("wf mimic job {} <set>, once per set, on the runner", m.action.word()),
+            "next": format!("wf mimic capture {} <set>, once per set, on the runner", m.action.word()),
         }),
         0,
     ))

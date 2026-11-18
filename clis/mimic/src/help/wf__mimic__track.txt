@@ -26,7 +26,7 @@ plan    Read the [track <app>... [chunk=<minutes>] [fresh]] marker of a commit
         `wf mimic trigger --message`, or null when no pin is behind. sets lists
         the sets it names.
 report  Fold a tracker run into one drift report. --inputs holds the capture
-        outputs (<set>.record.json and <set>.replay.json of `wf mimic job`,
+        outputs (<set>.record.json and <set>.replay.json of `wf mimic capture`,
         coverage-<app>.json of `wf mimic coverage`); --out gets
         drift-report.json {schema mimic-track-report/1, ok, run, sha, apps:
         [{app, pinned, latest, drifted, status: current|incomplete|

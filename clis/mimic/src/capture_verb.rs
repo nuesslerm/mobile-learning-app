@@ -1,10 +1,16 @@
-//! `wf mimic job record|replay <set>`: one capture job of the record-references workflow, for one set that is already provisioned.
+//! `wf mimic capture <record|replay> <set>`: the capture of one set on a runner, in three phases.
 //!
-//! `record` runs `wf mimic record <set> --resume --max-minutes <chunk>` again and again (each call is a bounded chunk that leaves its
-//! checkpoint under `<set>/raw/checkpoint`) until the record is complete or the job's budget is spent; a complete record has its raw captures
-//! deleted, is verified offline and is scanned for token-shaped values, because the masked set goes to a bucket anyone can read.
-//! `replay` replays the recorded set against each of its candidates and tabulates the diff. Both append a summary to `--summary`
-//! (default `$GITHUB_STEP_SUMMARY`) and print one JSON object (schema `mimic-job/1`).
+//! 1. provision (`--provision auto|only|skip`, default auto): the `[provision]` block installs the reference (`provision_phase.rs`); a work
+//!    directory whose marker key matches is reused. Provisioning builds third-party code, so every child of it runs without a credential.
+//! 2. capture, with the environment of the caller plus the `[env]` of the block and nothing else of the block:
+//!    `record` runs `wf mimic record <set> --resume --max-minutes <chunk>` again and again (each call is a bounded chunk that leaves its
+//!    checkpoint under `<set>/raw/checkpoint`) until the record is complete or the budget is spent; a complete record has its raw captures
+//!    deleted, is verified offline and is scanned for token-shaped values, because the masked set goes to a bucket anyone can read.
+//!    `replay` replays the recorded set against each of its candidates and tabulates the diff.
+//! 3. candidate stop: a `chain` candidate the replay started is stopped when its replay ends (`chain_launch.rs`).
+//!
+//! It appends a summary to `--summary` (default `$GITHUB_STEP_SUMMARY`) and prints one JSON object (schema `mimic-capture/1`).
+use super::provision_phase::{self, Mode};
 use super::{fail, set_ref, Done, Fail};
 use serde_json::{json, Value};
 use std::io::Write;
@@ -38,7 +44,7 @@ fn call(args: &[&str], env: &[(String, String)]) -> Result<Call, Fail> {
 
 fn minutes(p: &Parsed, name: &str, default: u64, max: u64) -> Result<u64, Fail> {
     let Some(v) = p.val(name) else { return Ok(default) };
-    v.parse::<u64>().ok().filter(|n| (1..=max).contains(n)).ok_or_else(|| fail(format!("--{name} {v} is not a number of minutes in 1..={max}"), "wf mimic job --help"))
+    v.parse::<u64>().ok().filter(|n| (1..=max).contains(n)).ok_or_else(|| fail(format!("--{name} {v} is not a number of minutes in 1..={max}"), "wf mimic capture --help"))
 }
 
 /// A token-shaped value in masked output: what the runbook's grep looks for.
@@ -70,23 +76,32 @@ fn run_id(p: &Parsed) -> String {
     p.val("run").map(String::from).or_else(|| std::env::var("GITHUB_RUN_ID").ok().filter(|v| !v.is_empty())).unwrap_or_else(|| "local".into())
 }
 
-pub fn job_verb(p: &Parsed) -> Done {
+pub fn capture_verb(p: &Parsed) -> Done {
     let (action, set_arg) = (p.positional[0].as_str(), p.positional[1].as_str());
-    match action {
-        "record" => record(p, set_arg),
-        "replay" => replay(p, set_arg),
-        other => Err(fail(format!("job {other}: the actions are record and replay"), "wf mimic job --help")),
+    if !matches!(action, "record" | "replay") {
+        return Err(fail(format!("capture {action}: the actions are record and replay"), "wf mimic capture --help"));
     }
+    let mode = Mode::parse(p)?;
+    let set = set_ref(set_arg);
+    let cfg = super::load_config(&set.dir.join("mimic.toml"))?;
+    let provisioned = provision_phase::phase(p, &set, &cfg, action, mode)?;
+    let dir = set.dir.display().to_string();
+    if p.flag("check") || mode == Mode::Only {
+        let next = if p.flag("check") { format!("wf mimic capture {action} {dir}") } else { format!("wf mimic capture {action} {dir} --provision skip") };
+        let out = json!({"ok": true, "action": action, "set": set.name, "dir": dir, "captured": false, "provision": provisioned, "warnings": [], "next": next});
+        return Ok((out, 0));
+    }
+    let (mut out, code) = if action == "record" { record(p, &set, &cfg)? } else { replay(p, &set, &cfg)? };
+    out["provision"] = provisioned;
+    Ok((out, code))
 }
 
 fn mins(d: Duration) -> String {
     format!("{}m{:02}s", d.as_secs() / 60, d.as_secs() % 60)
 }
 
-fn record(p: &Parsed, set_arg: &str) -> Done {
-    let set = set_ref(set_arg);
-    let cfg = super::load_config(&set.dir.join("mimic.toml"))?;
-    super::reference(&cfg)?;
+fn record(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done {
+    super::reference(cfg)?;
     let chunk = minutes(p, "chunk", u64::from(crate::marker::DEFAULT_CHUNK_MINUTES), u64::from(crate::marker::MAX_CHUNK_MINUTES))?;
     let budget = Duration::from_secs(minutes(p, "budget", DEFAULT_BUDGET_MINUTES, 600)? * 60);
     let run = run_id(p);
@@ -96,8 +111,8 @@ fn record(p: &Parsed, set_arg: &str) -> Done {
         return Err(fail(MISSING, "land the checkpointed `wf mimic record`, then push the marker again"));
     }
     let checkpoint = set.dir.join("raw/checkpoint");
-    let env = cfg.provision.as_ref().map(|prov| super::provision_verb::block_env(p, &set.name, &set.dir, prov)).unwrap_or_default();
-    let key = binding_key(&cfg)?;
+    let env = cfg.provision.as_ref().map(|prov| provision_phase::block_env(p, &set.name, &set.dir, prov)).unwrap_or_default();
+    let key = binding_key(cfg)?;
     let mut warnings: Vec<String> = Vec::new();
     if checkpoint.exists() && (p.flag("fresh") || !bound_to(&checkpoint, &key)) {
         if !p.flag("fresh") {
@@ -139,7 +154,7 @@ fn record(p: &Parsed, set_arg: &str) -> Done {
     let unstable = last["nondeterministic"].as_array().map_or(0, Vec::len) as u64;
     let stable_pct = if n == 0 { 0.0 } else { ((n - unstable.min(n)) as f64 * 10000.0 / n as f64).round() / 100.0 };
     let mut out = json!({
-        "ok": complete, "action": "record", "set": set.name, "dir": dir, "run": run, "complete": complete, "chunks": chunks, "chunk_minutes": chunk,
+        "captured": true, "ok": complete, "action": "record", "set": set.name, "dir": dir, "run": run, "complete": complete, "chunks": chunks, "chunk_minutes": chunk,
         "interactions": n, "nondeterministic": unstable, "stable_pct": stable_pct, "wall_seconds": wall.as_secs(), "warnings": warnings,
         "differences": last["differences"].clone(),
     });
@@ -225,11 +240,9 @@ fn scan(dir: &Path) -> Vec<String> {
     hits
 }
 
-fn replay(p: &Parsed, set_arg: &str) -> Done {
-    let set = set_ref(set_arg);
-    let cfg = super::load_config(&set.dir.join("mimic.toml"))?;
+fn replay(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done {
     let dir = set.dir.display().to_string();
-    let env = cfg.provision.as_ref().map(|prov| super::provision_verb::block_env(p, &set.name, &set.dir, prov)).unwrap_or_default();
+    let env = cfg.provision.as_ref().map(|prov| provision_phase::block_env(p, &set.name, &set.dir, prov)).unwrap_or_default();
     let wanted: Vec<String> = match p.val("candidate") {
         Some(c) => vec![c.to_string()],
         None => cfg.candidates.keys().cloned().collect(),
@@ -274,7 +287,7 @@ fn replay(p: &Parsed, set_arg: &str) -> Done {
     }
     md += &format!("\nWall time {}.\n\n", mins(started.elapsed()));
     append_summary(p, &md);
-    let out = json!({"ok": ok, "action": "replay", "set": set.name, "dir": dir, "run": run_id(p), "candidates": rows, "differences": diffs.len(), "wall_seconds": started.elapsed().as_secs(), "warnings": [],
+    let out = json!({"captured": true, "ok": ok, "action": "replay", "set": set.name, "dir": dir, "run": run_id(p), "candidates": rows, "differences": diffs.len(), "wall_seconds": started.elapsed().as_secs(), "warnings": [],
         "next": if ok { "nothing to do".to_string() } else { format!("wf mimic replay {dir} --candidate {}", wanted[0]) }});
     if let Some(o) = p.val("out") {
         let path = Path::new(o).join(format!("{}.replay.json", set.name));

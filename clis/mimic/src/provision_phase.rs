@@ -1,7 +1,9 @@
-//! `wf mimic provision <set>`: install the reference of a set on this machine as its `[provision]` block says (`provision.rs`): the pinned
-//! source fetched at its commit, then the steps in order, each bounded. A work directory that already holds the same provisioning is reused.
-//! Steps run with the environment of the caller minus every credential-looking variable, and their output goes to stderr.
-use super::{fail, set_ref, Done, Fail};
+//! The provision phase of `wf mimic capture <record|replay> <set>`: install the reference of a set on this machine as its `[provision]` block
+//! says (`provision.rs`): the pinned source fetched at its commit, then the steps in order, each bounded. A work directory that already holds
+//! the same provisioning (its marker key) is reused. Provisioning builds third-party code: every child runs with the environment of the caller
+//! minus every credential-looking variable, and its output goes to stderr.
+use super::{fail, Fail, SetRef};
+use crate::config::Config;
 use crate::provision::{expand, Provision, When};
 use mimic_core::json::sha256_label;
 use serde_json::{json, Value};
@@ -114,35 +116,71 @@ pub fn block_env(p: &Parsed, set_name: &str, set_dir: &Path, prov: &Provision) -
     prov.env.iter().map(|(k, v)| (k.clone(), expand(v, &vars))).collect()
 }
 
-pub fn provision_verb(p: &Parsed) -> Done {
-    let set = set_ref(&p.positional[0]);
-    let cfg = super::load_config(&set.dir.join("mimic.toml"))?;
-    let prov = cfg.provision.as_ref().ok_or_else(|| fail(format!("{}/mimic.toml has no [provision] block or provision_file", set.dir.display()), "add one (schema: docs/runbooks/record-reference-servers-on-the-vm.md)"))?;
-    let when = match p.val("when").unwrap_or("record") {
-        "record" => When::Record,
-        "replay" => When::Replay,
-        other => return Err(fail(format!("--when {other} is record or replay"), "wf mimic provision --help")),
+/// Whether the capture runs the phase, and what it does with an existing work directory.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum Mode {
+    Auto,
+    Only,
+    Skip,
+}
+
+impl Mode {
+    pub fn parse(p: &Parsed) -> Result<Mode, Fail> {
+        match p.val("provision").unwrap_or("auto") {
+            "auto" => Ok(Mode::Auto),
+            "only" => Ok(Mode::Only),
+            "skip" => Ok(Mode::Skip),
+            other => Err(fail(format!("--provision {other} is auto, only or skip"), "wf mimic capture --help")),
+        }
+    }
+}
+
+pub fn when_of(action: &str) -> When {
+    if action == "record" {
+        When::Record
+    } else {
+        When::Replay
+    }
+}
+
+/// The phase for one set: `{state: ran|cached|skipped|none|checked, ...}`. `none` is a set without a `[provision]` block.
+pub fn phase(p: &Parsed, set: &SetRef, cfg: &Config, action: &str, mode: Mode) -> Result<Value, Fail> {
+    let command = format!("wf mimic capture {action} {}", set.dir.display());
+    let Some(prov) = cfg.provision.as_ref() else {
+        if mode == Mode::Only {
+            return Err(fail(format!("{}/mimic.toml has no [provision] block or provision_file: --provision only has nothing to do", set.dir.display()), "add one (schema: docs/runbooks/record-reference-servers-on-the-vm.md) or drop --provision only"));
+        }
+        return Ok(json!({"state": "none"}));
     };
+    let when = when_of(action);
     let steps: Vec<_> = prov.steps_for(when).collect();
     let work = work_dir(p, &set.name, prov);
     let source_dir = work.join("source");
     let vars = vars(p, &set.name, &set.dir, prov);
     let env: Value = block_env(p, &set.name, &set.dir, prov).into_iter().map(|(k, v)| (k, json!(v))).collect::<serde_json::Map<_, _>>().into();
     let drivers = prov.drivers && matches!(when, When::Record);
-    let key = sha256_label(&serde_json::to_vec(&(prov, p.val("when").unwrap_or("record"))).expect("provision serialises"));
+    let key = sha256_label(&serde_json::to_vec(&(prov, action)).expect("provision serialises"));
+    let marked = std::fs::read_to_string(work.join(MARKER)).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).is_some_and(|v| v["key"] == json!(key));
     let mut out = json!({
-        "ok": true, "set": set.name, "when": p.val("when").unwrap_or("record"), "work": work.display().to_string(), "source": prov.source.as_ref().map(|s| json!({"repo": s.repo, "commit": s.commit, "dir": source_dir.display().to_string()})),
-        "toolchain": prov.toolchain, "env": env, "key": key, "steps": drivers.then_some("drivers").into_iter().chain(steps.iter().map(|s| s.name.as_str())).collect::<Vec<_>>(), "warnings": [],
+        "state": "ran", "work": work.display().to_string(), "source": prov.source.as_ref().map(|s| json!({"repo": s.repo, "commit": s.commit, "dir": source_dir.display().to_string()})),
+        "toolchain": prov.toolchain, "env": env, "key": key, "steps": drivers.then_some("drivers").into_iter().chain(steps.iter().map(|s| s.name.as_str())).collect::<Vec<_>>(),
     });
     if p.flag("check") {
-        out["checked"] = json!(true);
-        out["next"] = json!(format!("wf mimic provision {}", set.dir.display()));
-        return Ok((out, 0));
+        out["state"] = json!("checked");
+        return Ok(out);
+    }
+    if mode == Mode::Skip {
+        if !marked || p.flag("force") {
+            let why = if p.flag("force") { "--force starts the work directory over, which --provision skip does not do".to_string() } else { format!("{} holds no provisioning of this block (its marker is missing or names another block or commit)", work.display()) };
+            return Err(fail(format!("--provision skip: {why}"), format!("{command} --provision only")));
+        }
+        out["state"] = json!("skipped");
+        return Ok(out);
     }
     for (tool, want) in &prov.toolchain {
-        toolchain_ok(tool, want).map_err(|e| fail(e, "wf mimic provision --help"))?;
+        toolchain_ok(tool, want).map_err(|e| fail(e, "wf mimic capture --help"))?;
     }
-    let cached = !p.flag("force") && std::fs::read_to_string(work.join(MARKER)).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).is_some_and(|v| v["key"] == json!(key));
+    let cached = !p.flag("force") && marked;
     let mut ran: Vec<Value> = Vec::new();
     if !cached {
         if work.exists() {
@@ -174,10 +212,9 @@ pub fn provision_verb(p: &Parsed) -> Done {
         }
         std::fs::write(work.join(MARKER), json!({"key": key}).to_string()).map_err(|e| fail(format!("{}: {e}", work.display()), "free the work directory"))?;
     }
-    out["cached"] = json!(cached);
+    out["state"] = json!(if cached { "cached" } else { "ran" });
     out["ran"] = json!(ran);
-    out["next"] = json!(format!("wf mimic job {} {}", if matches!(when, When::Record) { "record" } else { "replay" }, set.dir.display()));
-    Ok((out, 0))
+    Ok(out)
 }
 
 fn failed(out: &Value, step: &str, error: &str) -> Fail {

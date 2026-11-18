@@ -3532,9 +3532,9 @@ mimic.toml (paths relative to the file):
                                    channel, tag, chunk, values, once, squash (see wf mimic diff)
   [record]                         batch, write_chunk, stability_pct (the flags of wf mimic record)
   live_when_named = "why"          in [reference]: `verify --all --live` skips it, `verify <set> --live` runs it
-  [record]                         allow_nondeterministic (default false), args: what `wf mimic job record`
+  [record]                         allow_nondeterministic (default false), args: what `wf mimic capture record`
                                    adds to the record call of the set
-  [provision] / provision_file     how a runner installs the reference (wf mimic provision --help); the
+  [provision] / provision_file     how a runner installs the reference (wf mimic capture --help); the
                                    VM runs it for a [record <set>] commit marker (wf mimic trigger --help)
 
 Every verb prints one JSON object on stdout with "schema": "mimic-<verb>/1",
@@ -3553,8 +3553,7 @@ Commands:
   coverage [options]          Scan the pinned reference and write, or check, the app's method list and coverage table
   track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
   trigger [options]           Read the marker of a commit message into the capture jobs it asks for
-  provision [options] <set>   Install a set's reference as its [provision] block says
-  job [options] <record|replay> <set>  One capture job: chunked record, or replay and diff table
+  capture [options] <record|replay> <set>  Provision a set's reference, then run its chunked record or replay and diff table
   publish [options] <set>...  Upload recorded sets to the bucket as one run
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
@@ -4024,23 +4023,54 @@ Output (schema mimic-trigger/1):
 
 </details>
 
-### `wf mimic provision`
+### `wf mimic capture`
 
-Install the reference of a set on this machine as the [provision] block of its
+The capture of one set on a runner, in three phases, in one call.
 
-Usage: `wf mimic provision [options] <set>`
+Usage: `wf mimic capture [options] <record|replay> <set>`
 
 <details><summary>Full help</summary>
 
 ```text
-Usage: wf mimic provision [options] <set>
+Usage: wf mimic capture [options] <record|replay> <set>
 
-Install the reference of a set on this machine as the [provision] block of its
-mimic.toml says (or the file its provision_file names, which sets of one app
-share: `//path` is from the repository root, any other path from the mimic.toml): the pinned source fetched at its commit, then each [[step]] in order,
-each bounded by its timeout. Programs run with this environment minus every
-variable that looks like a credential; their output goes to stderr. A work
-directory that holds the same provisioning (same block, same commit) is reused.
+The capture of one set on a runner, in three phases, in one call.
+
+1. provision (--provision auto|only|skip, default auto): install the reference of the set
+   as the [provision] block of its mimic.toml says (or the file its provision_file names,
+   which sets of one app share: `//path` is from the repository root, any other path from
+   the mimic.toml): the pinned source fetched at its commit, then each [[step]] of the
+   action in order, each bounded by its timeout. Everything provisioning runs is third-party
+   code, so it runs with this environment minus every variable that looks like a credential
+   (the secret boundary is this phase); its output goes to stderr. A work directory whose
+   marker key matches (same block, same commit, same action) is reused: auto skips it.
+   only provisions and stops (no capture); skip never provisions and refuses, naming the
+   command to run, a work directory with no marker or another one. A set without a
+   [provision] block has nothing to provision (only refuses it).
+2. capture, with the environment of the caller plus the [env] of the [provision] block and
+   nothing else of it. record: runs `wf mimic record <set> --resume --max-minutes <chunk>`
+   again and again (each call is a bounded chunk that leaves its checkpoint under
+   <set>/raw/checkpoint) until the record is complete or --budget is spent. A complete
+   record has raw/ deleted, is verified offline and is scanned for token-shaped values (a
+   Bearer token, a JWT): any of them holds the set back (exit 1), because it is published
+   to a bucket anyone can read. For a set that allows nondeterminism, a verify that fails
+   only on stability accounting (the tags against stability-allowlist.json) does not hold
+   the set back: it is reported as `verify.accounting_deferred`, and `wf mimic verify` at the
+   commit is the check that the allowlist names the tagged ids. An incomplete one exits 1
+   with the checkpoint kept and "incomplete": true; push the marker again to resume. The
+   checkpoint is bound to the provision block (with its source commit), the corpus and the
+   reference pin: one bound to anything else, or to nothing, is dropped and the record
+   starts over (--fresh does so on purpose). A checkpoint with a token-shaped value in it is
+   not uploaded ("checkpoint_upload": false). A wf-mimic whose `record` lacks --resume or
+   --max-minutes fails at once with that message (exit 2). The [record] table of the set's
+   mimic.toml sets allow_nondeterministic (default false: a stability check is kept) and
+   extra `record` args.
+   replay: replays the set against each of its [candidate.<name>] (or --candidate) and
+   tabulates severity, counts and the first difference of every non-clean interaction;
+   exit 1 when any candidate differs. A candidate of target "chain" is started by its replay
+   from the launch command of the set (build it with a `when = "replay"` step).
+3. candidate stop: a chain candidate stops when its replay ends.
+Both actions append a markdown summary to --summary (default $GITHUB_STEP_SUMMARY).
 
 Block (paths relative to the file that declares them):
   [toolchain]                     what the runner sets up first, each checked against the tool:
@@ -4052,7 +4082,7 @@ Block (paths relative to the file that declares them):
   [source]                        optional: the reference's own repository
     repo = "https://..."          https, no credentials
     commit = "<40 hex>"           or: pin = "<pin file>", commit_pointer = "/commit"
-  [env]                           NAME = "value" the record sees; no credentials
+  [env]                           NAME = "value" the capture sees; no credentials
   [[step]]                        name, run = ["program", "arg"...] (no shell),
     cwd, when, timeout_minutes    cwd defaults to {source} (else {work}); when is record
                                   (default), replay (builds the candidate) or always;
@@ -4061,76 +4091,29 @@ Block (paths relative to the file that declares them):
   Placeholders in env values, run and cwd: {repo} (the checkout), {work}, {source}, {set}.
 
 Options:
-  --when <record|replay>      which steps run (default record)
-  --work-root <dir>           where work directories live (default $MIMIC_WORK_ROOT, else ~/.cache/mimic-work)
-  --root <dir>                the checkout {repo} names (default: this one)
-  --check                     validate the block and print what would run; install nothing
-  --force                     start the work directory over
-  -h, --help                  display help for command
-
-Output (schema mimic-provision/1):
-  {schema, ok, set, when, work, source?: {repo, commit, dir}, toolchain, env, key,
-  steps: [names], cached?, ran?: [{name, seconds}], checked?, warnings, next}
-```
-
-</details>
-
-### `wf mimic job`
-
-One capture job of the mimic-record workflow, for a set that is already
-
-Usage: `wf mimic job [options] <record|replay> <set>`
-
-<details><summary>Full help</summary>
-
-```text
-Usage: wf mimic job [options] <record|replay> <set>
-
-One capture job of the mimic-record workflow, for a set that is already
-provisioned (wf mimic provision).
-
-record: runs `wf mimic record <set> --resume --max-minutes <chunk>` again and again
-(each call is a bounded chunk that leaves its checkpoint under <set>/raw/checkpoint)
-until the record is complete or --budget is spent. A complete record has raw/
-deleted, is verified offline and is scanned for token-shaped values (a Bearer
-token, a JWT): any of them holds the set back (exit 1), because it is published
-to a bucket anyone can read. For a set that allows nondeterminism, a verify that fails
-only on stability accounting (the tags against stability-allowlist.json) does not hold
-the set back: it is reported as `verify.accounting_deferred`, and `wf mimic verify` at the
-commit is the check that the allowlist names the tagged ids. An incomplete one exits 1 with the checkpoint kept
-and "incomplete": true; push the marker again to resume. The checkpoint is bound to
-the provision block (with its source commit), the corpus and the reference pin: one
-bound to anything else, or to nothing, is dropped and the record starts over (--fresh
-does so on purpose). A checkpoint with a token-shaped value in it is not uploaded
-("checkpoint_upload": false). A wf-mimic whose `record` lacks --resume or
---max-minutes fails at once with that message (exit 2). The [record] table of
-the set's mimic.toml sets allow_nondeterministic (default false: a stability check is
-kept) and extra `record` args; the [env] of the [provision] block reaches the record
-(and replay) through this job alone.
-replay: replays the set against each of its [candidate.<name>] (or --candidate) and
-tabulates severity, counts and the first difference of every non-clean interaction;
-exit 1 when any candidate differs.
-Both append a markdown summary to --summary (default $GITHUB_STEP_SUMMARY).
-
-Options:
+  --provision <auto|only|skip>  phase 1 (default auto)
+  --check                     validate the block and print what would run; install and capture nothing
+  --force                     provision: start the work directory over
   --chunk <minutes>           record: minutes per call, 1 to 60 (default 10)
   --budget <minutes>          record: stop starting chunks after this long (default 100)
   --fresh                     record: delete the checkpoint first
   --candidate <name>          replay: only this candidate
   --rows <prefix,...>         replay: only the rows that start with a prefix, and check the known gaps of that slice
   --out <dir>                 replay: write <set>.replay.json here
-  --work-root <dir>           where the provisioned work directories are ({work}, default $MIMIC_WORK_ROOT)
+  --work-root <dir>           where work directories live (default $MIMIC_WORK_ROOT, else ~/.cache/mimic-work)
   --root <dir>                the checkout {repo} names (default: this one)
   --summary <file>            where the markdown summary is appended
   --run <id>                  the run id to name (default $GITHUB_RUN_ID, else local)
   -h, --help                  display help for command
 
-Output (schema mimic-job/1):
-  record: {schema, ok, action, set, dir, run, complete, incomplete?, checkpoint_upload?, checkpoint_leaks?, chunks: [{n, seconds, complete,
+Output (schema mimic-capture/1):
+  provision: {state: ran|cached|skipped|checked|none, work, source?: {repo, commit, dir}, toolchain, env, key, steps: [names], ran?: [{name, seconds}]}
+  record: {schema, ok, action, set, dir, run, captured, provision, complete, incomplete?, checkpoint_upload?, checkpoint_leaks?, chunks: [{n, seconds, complete,
   interactions}], chunk_minutes, interactions, nondeterministic, stable_pct, wall_seconds,
   raw_removed?, verify?: {ok, exit}, leaks?: [text], error?, warnings, next}
-  replay: {schema, ok, action, set, dir, run, candidates: [{candidate, severity, summary}],
+  replay: {schema, ok, action, set, dir, run, captured, provision, candidates: [{candidate, severity, summary}],
   differences, wall_seconds, warnings, next}
+  --check and --provision only: {schema, ok, action, set, dir, captured: false, provision, warnings, next}
 ```
 
 </details>
@@ -4363,7 +4346,7 @@ plan    Read the [track <app>... [chunk=<minutes>] [fresh]] marker of a commit
         `wf mimic trigger --message`, or null when no pin is behind. sets lists
         the sets it names.
 report  Fold a tracker run into one drift report. --inputs holds the capture
-        outputs (<set>.record.json and <set>.replay.json of `wf mimic job`,
+        outputs (<set>.record.json and <set>.replay.json of `wf mimic capture`,
         coverage-<app>.json of `wf mimic coverage`); --out gets
         drift-report.json {schema mimic-track-report/1, ok, run, sha, apps:
         [{app, pinned, latest, drifted, status: current|incomplete|

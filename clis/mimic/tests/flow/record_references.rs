@@ -1,5 +1,5 @@
 //! The record-references trigger of `wf mimic`: the commit marker that asks the VM runner for a capture job (`trigger`), how a set's reference is
-//! installed from data (`provision`), the chunked job itself (`job`, over a double of the checkpointed `record`) and the transport of a
+//! installed from data (the provision phase of `capture`), the chunked capture itself (`capture record`, over a double of the checkpointed `record`) and the transport of a
 //! recorded set to another checkout (`publish`, `fetch`, over a bare repository standing in for origin).
 use crate::support::*;
 use std::path::{Path, PathBuf};
@@ -9,6 +9,8 @@ fn reporoot() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
 }
 
+/// A block with one step that counts its runs, and no toolchain: the capture tests provision it (phase one) before the double records.
+const JOB_BLOCK: &str = "[provision]\ndrivers = false\n[[provision.step]]\nname = \"count\"\nrun = [\"sh\", \"-c\", \"echo run >> {work}/runs.txt\"]\n";
 const PROVISION: &str = "[provision]\n[provision.toolchain]\nnode = \"24\"\n[[provision.step]]\nname = \"build\"\nrun = [\"true\"]\n";
 
 /// A checkout with sets of the given names: each a directory with a mimic.toml, a corpus and a provision block.
@@ -129,17 +131,17 @@ fn every_set_of_the_repository_that_declares_provisioning_validates() {
     }
     for dir in declared {
         // When its block is checked
-        let r = mimic(&["provision", &root.join(&dir).display().to_string(), "--check", "--root", &root.display().to_string()], &[]);
+        let r = mimic(&["capture", "record", &root.join(&dir).display().to_string(), "--check", "--root", &root.display().to_string()], &[]);
         // Then it loads: the schema, the pin it reads the commit from and the placeholders it uses are all valid
         assert_eq!((r.code, r.json["ok"].clone()), (0, json!(true)), "{}: {}", dir.display(), r.json);
-        assert!(!r.json["steps"].as_array().unwrap().is_empty(), "{}", dir.display());
+        assert!(!r.json["provision"]["steps"].as_array().unwrap().is_empty(), "{}", dir.display());
     }
 }
 
 fn bad_block(block: &str) -> Run {
     let root = tempfile::tempdir().unwrap();
     add_set(root.path(), "s", block);
-    mimic(&["provision", &root.path().join("s").display().to_string(), "--check"], &[])
+    mimic(&["capture", "record", &root.path().join("s").display().to_string(), "--check"], &[])
 }
 
 #[test]
@@ -203,7 +205,7 @@ fn provision_with_source(src: &Source, work: &Path, steps: &str, extra_env: &[(&
     let (k, v) = (Path::new(key), Path::new(value));
     let mut env = vec![("GIT_CONFIG_COUNT", Path::new("1")), ("GIT_CONFIG_KEY_0", k), ("GIT_CONFIG_VALUE_0", v)];
     env.extend_from_slice(extra_env);
-    let r = mimic(&["provision", &root.path().join("s").display().to_string(), "--work-root", &work.display().to_string()], &env);
+    let r = mimic(&["capture", "record", &root.path().join("s").display().to_string(), "--provision", "only", "--work-root", &work.display().to_string()], &env);
     (root, r)
 }
 
@@ -221,16 +223,16 @@ fn provisioning_fetches_the_pinned_commit_runs_the_steps_without_credentials_and
     // When it is provisioned with a credential in the caller's environment
     let (root, r) = provision_with_source(&src, work.path(), steps, &[("DEPLOY_TOKEN", Path::new("hunter2"))]);
     // Then the step ran in the source at the pinned commit and never saw the credential, and the block's env comes back resolved
-    assert_eq!((r.code, r.json["cached"].clone()), (0, json!(false)), "{}\n{}", r.json, r.stderr);
+    assert_eq!((r.code, r.json["provision"]["state"].clone()), (0, json!("ran")), "{}\n{}", r.json, r.stderr);
     let dir = work.path().join("s");
     assert_eq!(std::fs::read_to_string(dir.join("seen.txt")).unwrap().trim(), "pinned");
     assert_eq!(std::fs::read_to_string(dir.join("token.txt")).unwrap().trim(), "t=");
-    assert_eq!(r.json["env"]["REF_ROOT"], json!(dir.join("source").display().to_string()));
+    assert_eq!(r.json["provision"]["env"]["REF_ROOT"], json!(dir.join("source").display().to_string()));
     assert!(!r.json.to_string().contains("hunter2") && !r.stderr.contains("hunter2"));
     // When the same block is provisioned again
-    let again = mimic(&["provision", &root.path().join("s").display().to_string(), "--work-root", &work.path().display().to_string()], &[("GIT_CONFIG_COUNT", Path::new("1")), ("GIT_CONFIG_KEY_0", Path::new(&src.url_rewrite.0)), ("GIT_CONFIG_VALUE_0", Path::new(&src.url_rewrite.1))]);
+    let again = mimic(&["capture", "record", &root.path().join("s").display().to_string(), "--provision", "only", "--work-root", &work.path().display().to_string()], &[("GIT_CONFIG_COUNT", Path::new("1")), ("GIT_CONFIG_KEY_0", Path::new(&src.url_rewrite.0)), ("GIT_CONFIG_VALUE_0", Path::new(&src.url_rewrite.1))]);
     // Then nothing runs a second time
-    assert_eq!((again.code, again.json["cached"].clone()), (0, json!(true)), "{}", again.json);
+    assert_eq!((again.code, again.json["provision"]["state"].clone()), (0, json!("cached")), "{}", again.json);
     assert_eq!(std::fs::read_to_string(dir.join("runs.txt")).unwrap().lines().count(), 1);
 }
 
@@ -250,7 +252,7 @@ fn a_failing_step_stops_provisioning_and_names_the_step_and_a_wrong_node_is_refu
     // When the set pins a Node that is not the one on PATH
     let root = tempfile::tempdir().unwrap();
     add_set(root.path(), "s", "[provision]\ndrivers = false\n[provision.toolchain]\nnode = \"1\"\n[[provision.step]]\nname = \"s\"\nrun = [\"touch\", \"{work}/ran\"]\n");
-    let wrong = mimic(&["provision", &root.path().join("s").display().to_string(), "--work-root", &work.path().display().to_string()], &[]);
+    let wrong = mimic(&["capture", "record", &root.path().join("s").display().to_string(), "--provision", "only", "--work-root", &work.path().display().to_string()], &[]);
     // Then it is refused and nothing ran
     assert_eq!(wrong.code, 2);
     assert!(wrong.json["error"].as_str().unwrap().contains("pins node 1") || wrong.json["error"].as_str().unwrap().contains("node --version"), "{}", wrong.json["error"]);
@@ -306,7 +308,7 @@ struct Job {
 
 fn job() -> Job {
     let dir = tempfile::tempdir().unwrap();
-    add_set(dir.path(), "s", PROVISION);
+    add_set(dir.path(), "s", JOB_BLOCK);
     let bin = fake(dir.path());
     Job { set: dir.path().join("s"), bin, dir }
 }
@@ -314,11 +316,18 @@ fn job() -> Job {
 impl Job {
     fn run(&self, args: &[&str], env: &[(&str, &str)]) -> Run {
         let set = self.set.display().to_string();
-        let mut all = vec!["job", "record", set.as_str()];
+        let work = self.dir.path().join("work").display().to_string();
+        let mut all = vec!["capture", "record", set.as_str()];
+        if !args.contains(&"--work-root") {
+            all.extend(["--work-root", work.as_str()]);
+        }
         all.extend_from_slice(args);
         let mut e: Vec<(&str, &Path)> = vec![("WF_MIMIC_BIN", &self.bin)];
         e.extend(env.iter().map(|(k, v)| (*k, Path::new(*v))));
         mimic(&all, &e)
+    }
+    fn work(&self) -> PathBuf {
+        self.dir.path().join("work/s")
     }
     fn summary(&self) -> PathBuf {
         self.dir.path().join("summary.md")
@@ -326,7 +335,7 @@ impl Job {
 }
 
 #[test]
-fn a_record_job_runs_chunks_until_the_record_is_complete_then_drops_the_raw_capture_and_reports_counts_and_stability() {
+fn a_record_capture_runs_chunks_until_the_record_is_complete_then_drops_the_raw_capture_and_reports_counts_and_stability() {
     // Given a record that needs three bounded chunks
     let j = job();
     let summary = j.summary();
@@ -343,7 +352,7 @@ fn a_record_job_runs_chunks_until_the_record_is_complete_then_drops_the_raw_capt
 }
 
 #[test]
-fn a_record_job_that_runs_out_of_budget_keeps_its_checkpoint_and_says_how_to_resume() {
+fn a_record_capture_that_runs_out_of_budget_keeps_its_checkpoint_and_says_how_to_resume() {
     // Given a record that never finishes
     let j = job();
     let summary = j.summary();
@@ -378,7 +387,7 @@ fn a_masked_set_with_a_token_shaped_value_is_held_back_and_a_record_without_resu
 }
 
 #[test]
-fn a_record_job_passes_the_provision_env_to_the_record_alone_and_keeps_the_stability_check_unless_the_set_opts_out() {
+fn a_record_capture_passes_the_provision_env_to_the_record_alone_and_keeps_the_stability_check_unless_the_set_opts_out() {
     // Given a set whose provision block has an env, and the default of no opt-out
     let j = job();
     let work = j.dir.path().join("work");
@@ -404,6 +413,79 @@ fn a_record_job_passes_the_provision_env_to_the_record_alone_and_keeps_the_stabi
     // Then the config is refused
     assert_eq!(refused.code, 2, "{}", refused.json);
     assert!(refused.json["error"].as_str().unwrap().contains("sets itself"), "{}", refused.json["error"]);
+}
+
+#[test]
+fn the_provision_phase_is_skipped_on_a_matching_marker_and_only_provisions_without_capturing() {
+    // Given a set whose provision step counts its runs, and a capture that provisions on the way (the default, auto)
+    let j = job();
+    let first = j.run(&[], &[]);
+    // Then the step ran once, the record followed, and the output names both phases
+    assert_eq!((first.code, first.json["provision"]["state"].clone(), first.json["captured"].clone(), first.json["schema"].clone()), (0, json!("ran"), json!(true), json!("mimic-capture/1")), "{}\n{}", first.json, first.stderr);
+    assert_eq!(std::fs::read_to_string(j.work().join("runs.txt")).unwrap().lines().count(), 1);
+    // When the same capture runs again
+    let again = j.run(&["--fresh"], &[]);
+    // Then the marker matched: the phase was skipped and only the capture ran
+    assert_eq!((again.code, again.json["provision"]["state"].clone()), (0, json!("cached")), "{}", again.json);
+    assert_eq!(std::fs::read_to_string(j.work().join("runs.txt")).unwrap().lines().count(), 1);
+    // When --provision only runs on a fresh work root
+    let other = job();
+    let only = other.run(&["--provision", "only"], &[]);
+    // Then the reference is provisioned and nothing is captured: the double of `record` was never called
+    assert_eq!((only.code, only.json["provision"]["state"].clone(), only.json["captured"].clone()), (0, json!("ran"), json!(false)), "{}\n{}", only.json, only.stderr);
+    assert!(other.work().join("runs.txt").is_file() && !other.set.join("args.txt").exists());
+    assert!(only.json["next"].as_str().unwrap().contains("--provision skip"), "{}", only.json["next"]);
+    // When --provision skip then captures on that marker
+    let skipped = other.run(&["--provision", "skip"], &[]);
+    // Then the phase is skipped, the record ran, and the step did not run again
+    assert_eq!((skipped.code, skipped.json["provision"]["state"].clone(), skipped.json["captured"].clone()), (0, json!("skipped"), json!(true)), "{}\n{}", skipped.json, skipped.stderr);
+    assert_eq!(std::fs::read_to_string(other.work().join("runs.txt")).unwrap().lines().count(), 1);
+}
+
+#[test]
+fn provision_skip_refuses_a_missing_or_stale_marker_and_names_the_command_that_provisions() {
+    // Given a set that was never provisioned
+    let j = job();
+    // When a capture is told to skip the phase
+    let missing = j.run(&["--provision", "skip"], &[]);
+    // Then it is refused before any capture, naming the command
+    assert_eq!(missing.code, 2, "{}", missing.json);
+    let (error, next) = (missing.json["error"].as_str().unwrap(), missing.json["next"].as_str().unwrap());
+    assert!(error.contains("--provision skip") && error.contains("marker"), "{error}");
+    assert!(next.starts_with("wf mimic capture record ") && next.ends_with("--provision only"), "{next}");
+    assert!(!j.set.join("args.txt").exists());
+    // Given the set provisioned, and then its block changed
+    assert_eq!(j.run(&["--provision", "only"], &[]).code, 0);
+    assert_eq!(j.run(&["--provision", "skip"], &[]).code, 0);
+    let toml = j.set.join("mimic.toml");
+    std::fs::write(&toml, format!("{}[[provision.step]]\nname = \"more\"\nrun = [\"true\"]\n", std::fs::read_to_string(&toml).unwrap())).unwrap();
+    // When a capture skips the phase against the changed block
+    let stale = j.run(&["--provision", "skip"], &[]);
+    // Then the marker is stale and the capture is refused the same way
+    assert_eq!(stale.code, 2, "{}", stale.json);
+    assert!(stale.json["next"].as_str().unwrap().ends_with("--provision only"), "{}", stale.json["next"]);
+    // And an unknown mode is refused
+    assert_eq!(j.run(&["--provision", "maybe"], &[]).code, 2);
+}
+
+#[test]
+fn the_provisioning_children_hold_no_key_shaped_variable_and_the_capture_holds_the_blocks_env() {
+    // Given a set whose block has an env and a step that dumps its environment, and a caller that holds credentials
+    let j = job();
+    let toml = j.set.join("mimic.toml");
+    std::fs::write(&toml, std::fs::read_to_string(&toml).unwrap().replace("run = [\"sh\", \"-c\", \"echo run >> {work}/runs.txt\"]", "run = [\"sh\", \"-c\", \"env > {work}/step-env.txt\"]") + "[provision.env]\nREF_HOME = \"{work}/home\"\n").unwrap();
+    // When the capture runs
+    let r = j.run(&[], &[("DEPLOY_TOKEN", "hunter2"), ("MODEL_API_KEY", "k-1"), ("BWS_ACCESS_TOKEN", "b-1")]);
+    assert_eq!(r.code, 0, "{}\n{}", r.json, r.stderr);
+    // Then what provisioning ran saw the block's env and no variable named like a credential
+    let seen = std::fs::read_to_string(j.work().join("step-env.txt")).unwrap();
+    let names: Vec<&str> = seen.lines().filter_map(|l| l.split_once('=')).map(|(k, _)| k).collect();
+    assert!(names.contains(&"REF_HOME"), "{names:?}");
+    let keyed: Vec<&&str> = names.iter().filter(|n| ["TOKEN", "SECRET", "PASSWORD", "CREDENTIAL", "API_KEY"].iter().any(|k| n.contains(k)) || n.ends_with("_KEY") || n.starts_with("BWS_")).collect();
+    assert!(keyed.is_empty(), "{keyed:?}");
+    assert!(!seen.contains("hunter2") && !seen.contains("k-1"));
+    // And the capture saw the block's [env] resolved
+    assert_eq!(std::fs::read_to_string(j.set.join("seen-env.txt")).unwrap().trim(), format!("REF_HOME={}/home PATH_KEPT=yes", j.work().display()));
 }
 
 #[test]
@@ -465,13 +547,13 @@ fn a_provision_file_named_from_the_repository_root_is_found_from_any_depth() {
     let toml = root.path().join("a/b/c/d/deep/mimic.toml");
     std::fs::write(&toml, format!("provision_file = \"//shared/p.toml\"\n{}", std::fs::read_to_string(&toml).unwrap())).unwrap();
     // When the set's provisioning is checked
-    let r = mimic(&["provision", &root.path().join("a/b/c/d/deep").display().to_string(), "--check"], &[]);
+    let r = mimic(&["capture", "record", &root.path().join("a/b/c/d/deep").display().to_string(), "--check"], &[]);
     // Then the shared block is found, and a node toolchain brings the repository's drivers with it
-    assert_eq!((r.code, r.json["steps"].clone()), (0, json!(["drivers", "s"])), "{}", r.json);
+    assert_eq!((r.code, r.json["provision"]["steps"].clone()), (0, json!(["drivers", "s"])), "{}", r.json);
 }
 
 #[test]
-fn a_replay_job_tabulates_every_candidate_and_is_red_only_when_one_differs() {
+fn a_replay_capture_tabulates_every_candidate_and_is_red_only_when_one_differs() {
     // Given the toy set, recorded, with a candidate that behaves and one that changes a value
     let w = World::new();
     w.record();
@@ -480,14 +562,14 @@ fn a_replay_job_tabulates_every_candidate_and_is_red_only_when_one_differs() {
     let summary = w.dir.path().join("summary.md");
     // When every candidate is replayed
     let set = w.arg();
-    let r = mimic(&["job", "replay", &set, "--summary", &summary.display().to_string(), "--out", &w.dir.path().join("out").display().to_string()], &[]);
+    let r = mimic(&["capture", "replay", &set, "--summary", &summary.display().to_string(), "--out", &w.dir.path().join("out").display().to_string()], &[]);
     // Then the table has a row per candidate, the differing one with its first difference, and the run is red
     assert_eq!((r.code, r.json["ok"].clone()), (1, json!(false)), "{}\n{}", r.json, r.stderr);
     let md = std::fs::read_to_string(&summary).unwrap();
     assert!(md.contains("| same | none |") && md.contains("| change | drift |") && md.contains("| change |"), "{md}");
     assert!(w.dir.path().join("out/toy-set.replay.json").is_file());
     // When only the candidate that behaves is replayed
-    let clean = mimic(&["job", "replay", &set, "--candidate", "same"], &[]);
+    let clean = mimic(&["capture", "replay", &set, "--candidate", "same"], &[]);
     // Then the run is green
     assert_eq!((clean.code, clean.json["ok"].clone()), (0, json!(true)), "{}", clean.json);
 }
@@ -660,13 +742,13 @@ fn the_workflow_gate_starts_only_on_the_marker_forms_the_parser_accepts() {
 }
 
 #[test]
-fn a_record_job_names_the_path_that_differed_between_the_two_stability_passes_of_a_nondeterministic_interaction() {
+fn a_record_capture_names_the_path_that_differed_between_the_two_stability_passes_of_a_nondeterministic_interaction() {
     // Given a set whose reference answers a case with a number that changes on every run, and that tolerates nondeterminism
     let w = World::with_corpus(&[json!({"kind": "corpus", "name": "wobble", "op": "wobble", "cases": [{"id": "wobble-1", "input": {}}]})]);
     w.write("mimic.toml", &format!("{}[record]\nallow_nondeterministic = true\n", std::fs::read_to_string(w.path("mimic.toml")).unwrap()));
     let bin = PathBuf::from(std::env::var_os("WF_BIN").unwrap_or_else(|| env!("CARGO_BIN_EXE_wf-mimic").into()));
     // When the record job runs against the real wf-mimic
-    let r = mimic(&["job", "record", &w.set.display().to_string()], &[("WF_MIMIC_BIN", &bin)]);
+    let r = mimic(&["capture", "record", &w.set.display().to_string()], &[("WF_MIMIC_BIN", &bin)]);
     // Then its output names the interaction and the path, with the kind of each side and no value
     let d = r.json["differences"]["wobble-1"].as_array().unwrap_or_else(|| panic!("{}\n{}", r.json, r.stderr));
     assert_eq!(d.len(), 1, "{}", r.json["differences"]);

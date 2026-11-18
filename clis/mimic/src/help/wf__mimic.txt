@@ -47,9 +47,9 @@ mimic.toml (paths relative to the file):
                                    channel, tag, chunk, values, once, squash (see wf mimic diff)
   [record]                         batch, write_chunk, stability_pct (the flags of wf mimic record)
   live_when_named = "why"          in [reference]: `verify --all --live` skips it, `verify <set> --live` runs it
-  [record]                         allow_nondeterministic (default false), args: what `wf mimic job record`
+  [record]                         allow_nondeterministic (default false), args: what `wf mimic capture record`
                                    adds to the record call of the set
-  [provision] / provision_file     how a runner installs the reference (wf mimic provision --help); the
+  [provision] / provision_file     how a runner installs the reference (wf mimic capture --help); the
                                    VM runs it for a [record <set>] commit marker (wf mimic trigger --help)
 
 Every verb prints one JSON object on stdout with "schema": "mimic-<verb>/1",
@@ -68,8 +68,7 @@ Commands:
   coverage [options]          Scan the pinned reference and write, or check, the app's method list and coverage table
   track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
   trigger [options]           Read the marker of a commit message into the capture jobs it asks for
-  provision [options] <set>   Install a set's reference as its [provision] block says
-  job [options] <record|replay> <set>  One capture job: chunked record, or replay and diff table
+  capture [options] <record|replay> <set>  Provision a set's reference, then run its chunked record or replay and diff table
   publish [options] <set>...  Upload recorded sets to the bucket as one run
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set

@@ -10,10 +10,10 @@ mod crawl_verb;
 mod stabilize_verb;
 #[path = "bundle_verb.rs"]
 mod bundle_verb;
-#[path = "job_verb.rs"]
-mod job_verb;
-#[path = "provision_verb.rs"]
-mod provision_verb;
+#[path = "capture_verb.rs"]
+mod capture_verb;
+#[path = "provision_phase.rs"]
+mod provision_phase;
 #[path = "trigger_verb.rs"]
 mod trigger_verb;
 
@@ -45,8 +45,7 @@ const CRAWL: Spec = Spec { values: &["root"], flags: &["all", "check", "fresh"],
 const STABILIZE: Spec = Spec { values: &["allowlist", "min-pct", "report"], flags: &["write"], positional: Positional::Any, ..Spec::NONE };
 const REMASK: Spec = Spec { positional: Positional::Exactly(1), ..Spec::NONE };
 const TRIGGER: Spec = Spec { values: &["message", "file", "root"], positional: Positional::None, ..Spec::NONE };
-const PROVISION: Spec = Spec { values: &["work-root", "root", "when"], flags: &["check", "force"], positional: Positional::Exactly(1), ..Spec::NONE };
-const JOB: Spec = Spec { values: &["chunk", "budget", "out", "summary", "run", "candidate", "rows", "work-root", "root"], flags: &["fresh"], positional: Positional::Exactly(2), ..Spec::NONE };
+const CAPTURE: Spec = Spec { values: &["provision", "chunk", "budget", "out", "summary", "run", "candidate", "rows", "work-root", "root"], flags: &["fresh", "check", "force"], positional: Positional::Exactly(2), ..Spec::NONE };
 const PUBLISH: Spec = Spec { values: &["run", "root", "summary"], positional: Positional::Any, ..Spec::NONE };
 const FETCH: Spec = Spec { values: &["set", "root"], positional: Positional::Exactly(1), ..Spec::NONE };
 const VERIFY: Spec = Spec { values: &["root", "fixtures", "rules"], flags: &["all", "live", "files"], positional: Positional::Any, ..Spec::NONE };
@@ -93,8 +92,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "stabilize" => finish("mimic-stability/1", stabilize_verb::stabilize_verb(&parse_spec(rest, &STABILIZE)?)),
         "remask" => finish("mimic-remask/1", stabilize_verb::remask_verb(&parse_spec(rest, &REMASK)?)),
         "trigger" => finish("mimic-trigger/1", trigger_verb::trigger_verb(&parse_spec(rest, &TRIGGER)?)),
-        "provision" => finish("mimic-provision/1", provision_verb::provision_verb(&parse_spec(rest, &PROVISION)?)),
-        "job" => finish("mimic-job/1", job_verb::job_verb(&parse_spec(rest, &JOB)?)),
+        "capture" => finish("mimic-capture/1", capture_verb::capture_verb(&parse_spec(rest, &CAPTURE)?)),
         "publish" => finish("mimic-publish/1", bundle_verb::publish_verb(&parse_spec(rest, &PUBLISH)?)),
         "fetch" => finish("mimic-fetch/1", bundle_verb::fetch_verb(&parse_spec(rest, &FETCH)?)),
         "import" => finish("mimic-import/1", import(&parse_spec(rest, &IMPORT)?)),
@@ -448,7 +446,7 @@ impl Driver for Timed<'_> {
 /// recorded session was granted). The chain stops when the returned launcher drops.
 fn start_chain(candidate: &Target, p: &Parsed, cfg: &Config, set: &SetRef, content: &CassetteSet) -> Result<Option<(Target, chain_launch::Launched)>, Fail> {
     let Some(spec) = candidate.script.as_ref().filter(|s| !s.launch.is_empty() && p.val("addr").is_none()) else { return Ok(None) };
-    let vars = cfg.provision.as_ref().map(|prov| provision_verb::vars(p, &set.name, &set.dir, prov));
+    let vars = cfg.provision.as_ref().map(|prov| provision_phase::vars(p, &set.name, &set.dir, prov));
     let argv: Vec<String> = spec.launch.iter().map(|a| vars.as_ref().map_or_else(|| a.clone(), |v| crate::provision::expand(a, v))).collect();
     let launched = chain_launch::launch(&argv, &spec.dir, std::time::Duration::from_millis(spec.ready_ms)).map_err(|e| fail(e, "build what the launch command starts (the set's provision steps, `when = \"replay\"`) and fix [candidate.<n>.script] launch"))?;
     let scope = content.cassette.interactions.iter().flat_map(|i| i.steps.iter()).find_map(|s| s.payload["body"]["scope"].as_str().map(|v| v.replace(' ', ",")));

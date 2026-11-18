@@ -52,7 +52,7 @@ struct RecordFile {
     stability_pct: Option<u8>,
 }
 
-/// What `wf mimic job record` adds to the `wf mimic record` call of this set.
+/// What `wf mimic capture record` adds to the `wf mimic record` call of this set.
 #[derive(Debug, Clone, Default)]
 pub struct RecordOptions {
     pub allow_nondeterministic: bool,
@@ -62,13 +62,13 @@ pub struct RecordOptions {
     pub stability_pct: Option<u8>,
 }
 
-/// Flags the job sets itself: a `[record] args` entry cannot override them.
-const JOB_FLAGS: [&str; 5] = ["--resume", "--max-minutes", "--recorded-on", "--source", "--allow-nondeterministic"];
+/// Flags the capture sets itself: a `[record] args` entry cannot override them.
+const CAPTURE_FLAGS: [&str; 5] = ["--resume", "--max-minutes", "--recorded-on", "--source", "--allow-nondeterministic"];
 
 fn record_options(file: &Path, r: Option<RecordFile>) -> Result<RecordOptions, String> {
     let r = r.unwrap_or_default();
-    if let Some(bad) = r.args.iter().find(|a| JOB_FLAGS.contains(&a.split('=').next().unwrap_or("")) || a.is_empty()) {
-        return Err(format!("{}: [record] args has {bad:?}, which the job sets itself ({}); use allow_nondeterministic for that one", file.display(), JOB_FLAGS.join(", ")));
+    if let Some(bad) = r.args.iter().find(|a| CAPTURE_FLAGS.contains(&a.split('=').next().unwrap_or("")) || a.is_empty()) {
+        return Err(format!("{}: [record] args has {bad:?}, which the capture sets itself ({}); use allow_nondeterministic for that one", file.display(), CAPTURE_FLAGS.join(", ")));
     }
     Ok(RecordOptions { allow_nondeterministic: r.allow_nondeterministic, args: r.args, batch: r.batch, write_chunk: r.write_chunk, stability_pct: r.stability_pct })
 }

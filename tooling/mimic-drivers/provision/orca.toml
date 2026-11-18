@@ -1,4 +1,4 @@
-# How a runner provisions the Orca reference for `wf mimic record` (`wf mimic provision --help` documents the schema): the commit the pin names,
+# How a runner provisions the Orca reference for `wf mimic record` (`wf mimic capture --help` documents the schema): the commit the pin names,
 # built the way docs/runbooks/record-reference-servers-on-the-vm.md section 1 says. The Orca Provisioner (src/orca/orcad.ts) refuses a checkout
 # that is not at the pin.
 workdir = "orca"
