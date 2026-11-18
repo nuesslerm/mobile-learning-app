@@ -27,10 +27,10 @@ Grammar, one marker per message on a line of its own that begins with `[` (a men
 marker, an unknown set (the error lists the known ones), a record of a set with no `[reference]`, corpus or `[provision]`, or a replay of a set with no cassette or candidate,
 fails the first job with the reason in the run summary.
 
-What a run does per set, one at a time (`max-parallel: 1`): sets up the toolchains the set pins (node, python, go, rust), runs `wf mimic provision` (the pinned source and the install and build steps of its
-`[provision]` block, reused while that block and commit are unchanged), then `wf mimic job record` (`wf mimic record <set> --resume --max-minutes <chunk>` in a loop,
-default 10 minutes a chunk, 120 minutes of chunks, hard job timeout 240) or `wf mimic job replay`. A record that runs out of its budget uploads its checkpoint (`<set>/raw/checkpoint`) as an
-artifact kept 3 days and exits red (a failed leg uploads nothing, and neither does a checkpoint with a token-shaped value in it); the same marker again restores the newest checkpoint of `dev` and goes on, but only when it was recorded against the same provision block (with its source commit), corpus and reference pin: `wf mimic job` drops any other and starts over, and `fresh` is the only way to drop a checkpoint on purpose. A published record deletes its checkpoint artifacts. A finished record has `raw/` deleted, is verified, is scanned for token-shaped values (a hit holds it
+What a run does per set, one at a time (`max-parallel: 1`): sets up the toolchains the set pins (node, python, go, rust), runs `wf mimic capture record` or `wf mimic capture replay`, one verb in three phases: provision (the pinned source and the install and build steps of the set's
+`[provision]` block, reused while that block and commit are unchanged, with no credential in the environment), the capture (`wf mimic record <set> --resume --max-minutes <chunk>` in a loop,
+default 10 minutes a chunk, 120 minutes of chunks, hard job timeout 240, or the replay against the candidates) and the stop of a chain candidate. `--provision only|skip` runs the first phase alone or leaves it out (a missing or stale marker is refused, naming the command). A record that runs out of its budget uploads its checkpoint (`<set>/raw/checkpoint`) as an
+artifact kept 3 days and exits red (a failed leg uploads nothing, and neither does a checkpoint with a token-shaped value in it); the same marker again restores the newest checkpoint of `dev` and goes on, but only when it was recorded against the same provision block (with its source commit), corpus and reference pin: `wf mimic capture` drops any other and starts over, and `fresh` is the only way to drop a checkpoint on purpose. A published record deletes its checkpoint artifacts. A finished record has `raw/` deleted, is verified, is scanned for token-shaped values (a hit holds it
 back) and is published twice: as the workflow artifact `mimic-set-<set>` (14 days), and to the verification-artifacts bucket as a run, which works from an agent session whose
 proxy refuses the Actions API. The run summary has the counts, the stability (`1 - nondeterministic / interactions`), the wall time and the commands:
 
@@ -48,7 +48,7 @@ A `wf-mimic` without it fails a `[record ...]` at once with a message naming bot
 
 A replay needs the candidate running. `[candidate.<n>.script] target = "chain"` with a `launch` command (`{work}` and `{repo}` of the provision block are filled in) makes `wf mimic replay` start it itself: the command prints one JSON line `{"ok":true,"event":"listening","addr","workspace","mint","cli_dir"}`, serves until its stdin closes, and the replay plays it as a `url` target (the `mint` command gets `--scope` of the scopes the recorded session was granted) and closes its stdin afterwards. `--addr` on the verb still plays against a server the caller started, and starts nothing (the integration tests do that).
 
-T3 (every `t3-v0.1.9-*` set): the launch command is `chain-bin/chain`, `clis/t3-serve/examples/chain.rs`, the same `Chain::start` rig as `tests/integration` (`t3-serve serve` over the real `rca-service` and `rca-exec` with the scripted CLIs). Its flags `--t3-serve --rca-service --rca-exec --scripted-cli` name the binaries; the `when = "replay"` steps of `tooling/mimic-drivers/provision/t3.toml` build them into `{work}/chain-bin` (debug builds, about 20 to 40 minutes cold on a hosted runner, rca-service being the long one). `wf mimic job replay` forwards `--work-root` and `--root`, and with `rows=` runs the slice with `--gaps check` and prints the diff table in the run summary.
+T3 (every `t3-v0.1.9-*` set): the launch command is `chain-bin/chain`, `clis/t3-serve/examples/chain.rs`, the same `Chain::start` rig as `tests/integration` (`t3-serve serve` over the real `rca-service` and `rca-exec` with the scripted CLIs). Its flags `--t3-serve --rca-service --rca-exec --scripted-cli` name the binaries; the `when = "replay"` steps of `tooling/mimic-drivers/provision/t3.toml` build them into `{work}/chain-bin` (debug builds, about 20 to 40 minutes cold on a hosted runner, rca-service being the long one). `wf mimic capture replay` forwards `--work-root` and `--root`, and with `rows=` runs the slice with `--gaps check` and prints the diff table in the run summary.
 
 Orca (`orca-v1.4.259-*`): not wired. Its candidate is the sidecar paired with an `orca-serve` over `rca-service`, which needs `ORCA_PAIRING_URI` of a running one; `clis/orca-serve/tests/integration/rig.rs` starts that chain only inside a test and there is no launcher program for it yet (a `chain` target with an `orca-serve` example, as for T3, is the way). Until then an Orca marker fails in the capture step with `orca sidecar: connect failed: no Orca host`, and the replay of Orca rows is `cargo test -p orca-serve --test integration`.
 
@@ -60,7 +60,7 @@ A new reference (another CLI or server) is a cassette set whose `mimic.toml` say
 ```toml
 workdir = "orca"                    # under the work root, default the set's name
 
-[toolchain]                         # set up first by the workflow, checked again by `wf mimic provision`: node, python, go (24, 22.14, 22.14.0) and rust (those or stable)
+[toolchain]                         # set up first by the workflow, checked again by `wf mimic capture`: node, python, go (24, 22.14, 22.14.0) and rust (those or stable)
 node = "24"
 # drivers = false                   # default true with node: the repository's own mimic drivers are installed before a record's steps
 
@@ -79,10 +79,10 @@ when = "record"                     # record (default), replay (builds the candi
 timeout_minutes = 45                # 1 to 180, default 30
 ```
 
-Check it offline with `wf mimic provision <set> --check`; the flow test `every_set_of_the_repository_that_declares_provisioning_validates` does so for every set in the repository.
-Steps run with the caller's environment minus every credential-looking variable and write to stderr. A set's `[env]` is refused when it names a variable that changes how programs are found or loaded (`PATH`, `HOME`, `LD_*`, `NODE_OPTIONS`, `*_PROXY`, ...), and it reaches the record through `wf mimic job` only, never `$GITHUB_ENV`; provision and capture run before the vault is set up. A clone of a Rust, Go or Python program pins its toolchain in `[toolchain]` and needs no YAML. `provision_file` is relative to the `mimic.toml`, or to the repository root when it starts with `//` (`//tooling/mimic-drivers/provision/t3.toml`).
+Check it offline with `wf mimic capture record <set> --check` (`replay` for the replay steps); the flow test `every_set_of_the_repository_that_declares_provisioning_validates` does so for every set in the repository.
+Steps run with the caller's environment minus every credential-looking variable and write to stderr. A set's `[env]` is refused when it names a variable that changes how programs are found or loaded (`PATH`, `HOME`, `LD_*`, `NODE_OPTIONS`, `*_PROXY`, ...), and it reaches the capture phase of `wf mimic capture` only (the provisioning children get the `[env]` of the block and the step but never a credential), never `$GITHUB_ENV`; the verb runs before the vault is set up. A clone of a Rust, Go or Python program pins its toolchain in `[toolchain]` and needs no YAML. `provision_file` is relative to the `mimic.toml`, or to the repository root when it starts with `//` (`//tooling/mimic-drivers/provision/t3.toml`).
 
-`wf mimic job record` runs the record with `--recorded-on ci` and the stability check on. A set whose reference is not deterministic says so, and adds flags, in its `mimic.toml`:
+`wf mimic capture record` runs the record with `--recorded-on ci` and the stability check on. A set whose reference is not deterministic says so, and adds flags, in its `mimic.toml`:
 
 ```toml
 [record]
