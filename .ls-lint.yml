@@ -69,7 +69,7 @@ ls:
     .rs: snake_case
   backend/remote-chat-agent/group-agent/src:
     .dir: regex:src
-    .rs: regex:(lib|checkpoint|group|lifecycle|neutral|port|queue|refusal|requests|runner|staging|testing|turns)
+    .rs: regex:(lib|checkpoint|group|host|lifecycle|neutral|port|queue|refusal|requests|runner|staging|testing|turns)
   backend/remote-chat-agent/group-attachments/src:
     .dir: regex:src
     .rs: snake_case

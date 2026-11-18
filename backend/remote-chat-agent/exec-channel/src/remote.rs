@@ -51,6 +51,8 @@ pub struct ActionOutput {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Streamed {
     Event(Value),
+    /// A chunk of a running command's output as it arrives (`stdout` or `stderr`); the whole text is still in the action's `output`.
+    Output { stream: String, data: String },
     Bytes { offset: u64, data: Vec<u8> },
 }
 
@@ -85,7 +87,7 @@ pub trait FrameSink: Send + Sync {
 }
 
 enum Incoming {
-    Stream(String),
+    Stream(String, String),
     Event(Value),
     Bytes(u64, Vec<u8>),
     Done(Result<Value, RemoteError>),
@@ -116,7 +118,7 @@ impl Channel {
     /// A frame the executor sent: a stream chunk or the result of a pending action. Anything else is ignored.
     pub fn on_frame(&self, text: &str) {
         let (id, incoming) = match Reply::parse(text) {
-            Some(Reply::Output(frame)) => (frame.id, Incoming::Stream(frame.data)),
+            Some(Reply::Output(frame)) => (frame.id, Incoming::Stream(frame.stream, frame.data)),
             Some(Reply::Done { id, outcome }) => (id, Incoming::Done(outcome.map_err(|e| RemoteError::Action { code: e.code, message: e.message }))),
             Some(Reply::Event(frame)) => (frame.id, Incoming::Event(frame.event)),
             None => return,
@@ -188,7 +190,12 @@ impl Channel {
         let mut output = String::new();
         loop {
             match rx.recv().await {
-                Some(Incoming::Stream(data)) => output.push_str(&data),
+                Some(Incoming::Stream(stream, data)) => {
+                    output.push_str(&data);
+                    if let Some(events) = &events {
+                        let _ = events.send(Streamed::Output { stream, data });
+                    }
+                }
                 Some(Incoming::Event(event)) => {
                     if let Some(events) = &events {
                         let _ = events.send(Streamed::Event(event));

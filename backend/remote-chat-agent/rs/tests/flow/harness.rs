@@ -2,6 +2,7 @@
 //! ports, driven through the router: an HTTP request goes in with `oneshot`, a WebSocket over an in-memory duplex pipe that the
 //! router serves as `axum::serve` serves a socket. The environment the service reads is a map of the flow's own (`Env`).
 
+use rca_group_agent::host::{AtWorkspace, CliLauncher, Fixed};
 use super::doubles::{CommandsPort, FakeCommands, FakeOpencode, FakeOutbound, OpencodePort, OutboundPort};
 use axum::body::Body;
 use axum::extract::ConnectInfo;
@@ -124,11 +125,13 @@ pub struct Options {
     pub ledger_error: Option<&'static str>,
     /// The workspace files the routes read; the host's own files when none.
     pub files: Option<Arc<dyn remote_chat_agent_core::application::ports::WorkspaceFiles>>,
+    /// The CLI of a turn runs at the workspace host through the executor, as in production; otherwise the flow's spawner starts it.
+    pub at_workspace: bool,
 }
 
 impl Default for Options {
     fn default() -> Self {
-        Self { secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None }
+        Self { secret: Some(SECRET), state_dir: None, hard_timeout_ms: 1_500, heartbeat: Duration::from_secs(15), default_cwd: None, requests_per_minute: rca_service::api::routes::REQUESTS_PER_MINUTE, ledger_error: None, files: None, at_workspace: false }
     }
 }
 
@@ -143,7 +146,6 @@ pub struct Service {
     pub models: Arc<ScriptedModelApi>,
     /// The time the schedules read: a Tuesday evening, still until a flow moves it.
     pub clock: Arc<FakeClock>,
-    pub default_cwd: String,
 }
 
 /// The instant the schedules' flow clock starts at (2023-11-14 22:13:20 UTC).
@@ -168,18 +170,18 @@ impl Ledgers for FileLedgers {
 /// The agent API `main` serves (`rca_service::agent_api`) for `config`, its CLIs started by `spawner`, its per-device state and its device
 /// bearers kept in the flow's home as the service keeps them.
 pub fn agent_api_for(env: &Env, config: &Config, spawner: Arc<dyn Spawner>) -> AgentApi {
-    agent_api_with(env, config, spawner, ScriptedModelApi::from_fixture(), Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS)))
+    agent_api_with(env, config, Arc::new(Fixed(spawner)), ScriptedModelApi::from_fixture(), Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS)))
 }
 
 /// `agent_api_for` with the model the `git.ai` group asks: the providers' directories and logins are the real adapters under the flow's home.
-pub fn agent_api_with(env: &Env, config: &Config, spawner: Arc<dyn Spawner>, models: Arc<ScriptedModelApi>, clock: Arc<FakeClock>) -> AgentApi {
+pub fn agent_api_with(env: &Env, config: &Config, launcher: Arc<dyn CliLauncher>, models: Arc<ScriptedModelApi>, clock: Arc<FakeClock>) -> AgentApi {
     let root = env.home.join("providers").to_string_lossy().into_owned();
     let accounts = Accounts { dirs: Arc::new(ProviderFiles::at(&root)), login: Arc::new(CliLogin::with_inherited(&root, env.inherited())), models };
     let state = Arc::new(rca_service::infrastructure::agent_state::StateFile::at(env.home.join(".local/state/rca/agent-state.json")));
     let bearers = Arc::new(rca_service::infrastructure::device_bearers::BearerFile::at(env.home.join(".local/state/rca/device-bearers.json")));
     let schedules = rca_service::ScheduleParts { store: Arc::new(rca_service::infrastructure::schedules::ScheduleFile::at(env.home.join(".local/state/rca/schedules.json"))), clock, ids: Arc::new(CountingIds::default()) };
     let attachments = rca_service::AttachmentParts::real(env.home.join(".local/state/rca/attachments"));
-    rca_service::agent_api(config, spawner, state, bearers, accounts, schedules, attachments)
+    rca_service::agent_api(config, launcher, state, bearers, accounts, schedules, attachments)
 }
 
 /// The groups the service registers, for the flows that read the table and answer nothing.
@@ -233,7 +235,8 @@ fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Ar
     };
     let models = ScriptedModelApi::from_fixture();
     let clock = Arc::new(FakeClock::at(SCHEDULE_EPOCH_MS));
-    let agent_api = agent_api_with(env, &config, spawn.clone(), models.clone(), clock.clone());
+    let launcher: Arc<dyn CliLauncher> = if options.at_workspace { Arc::new(AtWorkspace) } else { Arc::new(Fixed(spawn.clone())) };
+    let agent_api = agent_api_with(env, &config, launcher, models.clone(), clock.clone());
     let commands_port = Arc::new(CommandsPort(Arc::clone(&commands)));
     let outbound_port = Arc::new(OutboundPort(Arc::clone(&outbound)));
     let settings = env.source().settings();
@@ -242,7 +245,7 @@ fn build(env: &Env, options: Options, opencode: Arc<FakeOpencode>, transport: Ar
     let ports = Ports { documents: Arc::new(remote_chat_agent_host::Documents::new(commands_port.clone(), &settings)), speech: Arc::new(remote_chat_agent_speech::Speech::new(outbound_port.clone(), commands_port.clone(), env.source())), spawner: spawn, client, orch, gateway, commands: commands_port, outbound: outbound_port, ledgers: Arc::new(FileLedgers { error: options.ledger_error, env: env.source() }), files: options.files.unwrap_or_else(|| Arc::new(remote_chat_agent_host::HostFiles)), hosts: Arc::new(remote_chat_agent_host::Hosts), env: env.source() };
     let app = Arc::new(App::new(config, ports, agent_api));
     app.start();
-    Service { router: router(Arc::clone(&app)), app, opencode, commands, outbound, spawner, models, clock, default_cwd }
+    Service { router: router(Arc::clone(&app)), app, opencode, commands, outbound, spawner, models, clock }
 }
 
 pub struct Answer {

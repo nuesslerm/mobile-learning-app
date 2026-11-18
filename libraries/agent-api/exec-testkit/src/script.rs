@@ -11,7 +11,7 @@ pub enum Step {
     /// Prints one line of the CLI's stream-json to stdout.
     Line { text: String },
     Sleep { ms: u64 },
-    /// Calls an executor tool through the MCP server the CLI was started with (`--mcp-config` of Claude Code, `OPENCODE_CONFIG_CONTENT` of
+    /// Calls a tool: a file or shell tool the CLI runs itself in its directory, or a tool of the service's MCP server (`--mcp-config` of Claude Code, `OPENCODE_CONFIG_CONTENT` of
     /// opencode), and prints what the driver's CLI prints for a tool call: the call, then its result as the service answered it.
     McpCall { id: String, tool: String, args: Value },
     /// Reads one line of stdin, the code a person pastes into a login, and keeps it for `Credential` steps.

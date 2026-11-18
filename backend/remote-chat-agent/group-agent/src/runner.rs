@@ -9,12 +9,11 @@ use agent_api_agent::lifecycle::LifecycleEvent;
 use agent_api_agent::queue::QueueItem;
 use agent_api_agent::{code, message, FinishReason, Role, Status, ThreadEvent, ThreadView};
 use agent_api_proto::Event;
-use rca_cli_driver::application::ports::Spawner;
+use crate::host::CliLauncher;
 use rca_cli_driver::application::turns::Turns;
-use rca_cli_driver::domain::{command_for_remote, Driver, TurnRequest};
+use rca_cli_driver::domain::{command_for_host, Driver, TurnRequest};
 use rca_exec_channel::remote::ExecutorChannel;
 use rca_exec_channel::Executors;
-use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 
 /// Where a CLI of this host reaches the tool server of a thread: the service's own `/mcp/<thread>` on its loopback port, which is known only
@@ -84,7 +83,7 @@ impl Prepared {
     /// failed, in the log, as one that fails after it began does.
     pub async fn launch(self) -> Result<String, Refusal> {
         let Prepared { runner, thread, turn, driver, channel, workspace, claim, request, said, merge } = self;
-        let command = command_for_remote(driver, &request, &runner.mcp.url(&thread)).map_err(|why| Refusal::new(code::UNKNOWN_DRIVER, format!("{}: {}", message::unknown_driver(driver.id()), why.0)))?;
+        let command = command_for_host(driver, &request, &runner.mcp.url(&thread));
         for event in [ThreadEvent::TurnStarted {}, ThreadEvent::MessageDelta { role: Role::User, text: said }] {
             runner.engine.record(&thread, Some(&turn), event)?;
         }
@@ -94,7 +93,8 @@ impl Prepared {
         runner.executors.bind(&thread, &workspace);
         let task = TurnTask { runner: Arc::clone(&runner), channel, claim, thread: thread.clone(), turn: turn.clone(), driver, request };
         crate::checkpoint::take(runner.executors.as_ref(), &task.channel, &workspace, &thread, &turn).await;
-        match runner.turns.launch(driver, &thread, command, &runner.cli_cwd).await {
+        let spawner = runner.launcher.spawner(&task.channel);
+        match runner.turns.launch(spawner.as_ref(), driver, &thread, command).await {
             Ok(events) => {
                 tokio::spawn(task.follow(events));
             }
@@ -124,16 +124,15 @@ pub struct Runner {
     executors: Arc<dyn Executors>,
     turns: Arc<Turns>,
     mcp: Arc<dyn McpEndpoint>,
-    /// The directory the CLI of every turn starts in: the service's own, not the workspace's (the CLI has no file tool of its own).
-    cli_cwd: PathBuf,
+    launcher: Arc<dyn CliLauncher>,
     in_flight: Arc<InFlight>,
     waiting: Waiting,
     me: Weak<Runner>,
 }
 
 impl Runner {
-    pub fn new(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, spawner: Arc<dyn Spawner>, mcp: Arc<dyn McpEndpoint>, cli_cwd: PathBuf) -> Arc<Runner> {
-        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::new(spawner)), mcp, cli_cwd, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
+    pub fn new(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, launcher: Arc<dyn CliLauncher>, mcp: Arc<dyn McpEndpoint>) -> Arc<Runner> {
+        let runner = Arc::new_cyclic(|me| Runner { engine, executors, turns: Arc::new(Turns::default()), mcp, launcher, in_flight: Arc::new(InFlight::default()), waiting: Waiting::default(), me: me.clone() });
         let me = Arc::downgrade(&runner);
         runner.engine.on_settled(Arc::new(move |thread| {
             if let Some(runner) = me.upgrade() {
@@ -155,8 +154,8 @@ impl Runner {
         &self.turns
     }
 
-    pub fn cli_cwd(&self) -> &Path {
-        &self.cli_cwd
+    pub fn launcher(&self) -> &Arc<dyn CliLauncher> {
+        &self.launcher
     }
 
     pub fn mcp_url(&self, thread: &str) -> String {
@@ -210,13 +209,12 @@ impl Runner {
             run_id: turn.clone(),
             instance_id: driver.id().into(),
             model: input.model.clone().or_else(|| known.model.clone()),
-            cwd: self.cli_cwd.display().to_string(),
+            cwd: ".".into(),
             prompt: with_context(merge.as_ref(), &input.prompt),
             runtime_mode: input.runtime_mode.clone().unwrap_or_else(|| "full-access".into()),
             interaction_mode: input.interaction_mode.clone().unwrap_or_else(|| "default".into()),
             resume: self.engine.provider_session(thread, driver.id()).unwrap_or(None),
         };
-        command_for_remote(driver, &request, &self.mcp.url(thread)).map_err(|why| Refusal::new(code::UNKNOWN_DRIVER, format!("{}: {}", message::unknown_driver(&input.driver), why.0)))?;
         let claim = self.in_flight.claim(thread, &turn).ok_or_else(running)?;
         Ok(Prepared { runner: Arc::clone(self), thread: thread.to_string(), turn, driver, channel, workspace: input.workspace, claim, request, said: input.prompt, merge })
     }

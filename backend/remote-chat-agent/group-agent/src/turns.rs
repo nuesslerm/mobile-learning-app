@@ -3,7 +3,7 @@
 use crate::neutral::{Calls, CLI_START_FAILED, EXECUTOR_GONE};
 use crate::runner::Runner;
 use agent_api_agent::{FinishReason, ThreadEvent};
-use rca_cli_driver::domain::{command_for_remote, Driver, ExecEvent, TurnRequest};
+use rca_cli_driver::domain::{command_for_host, Driver, ExecEvent, TurnRequest};
 use rca_exec_channel::remote::{ExecutorChannel, RemoteError};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -178,8 +178,9 @@ impl TurnTask {
         if session.is_some() {
             self.request.resume = session.clone();
         }
-        let command = command_for_remote(self.driver, &self.request, &self.runner.mcp_url(&self.thread)).map_err(|why| why.0)?;
-        self.runner.turns().launch(self.driver, &self.thread, command, self.runner.cli_cwd()).await
+        let command = command_for_host(self.driver, &self.request, &self.runner.mcp_url(&self.thread));
+        let spawner = self.runner.launcher().spawner(&self.channel);
+        self.runner.turns().launch(spawner.as_ref(), self.driver, &self.thread, command).await
     }
 
     /// Follows the CLI into the log until the turn ends (a steer starts another CLI in the same turn), records `interrupted`, `failed` or

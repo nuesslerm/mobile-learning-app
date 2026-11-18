@@ -1,7 +1,8 @@
 //! The groups that run and keep a thread (plan section 3): `agent.threads` and the M4 sub-groups `agent.requests`, `agent.queue` and `agent.lifecycle`.
-//! The crate owns its port (`ThreadEngine`, double `testing::MemoryThreads`); the composition root gives it the engine, executors, spawner and MCP address.
+//! The crate owns its port (`ThreadEngine`, double `testing::MemoryThreads`); the composition root gives it the engine, executors, the CLI launcher and MCP address.
 pub mod checkpoint;
 pub mod group;
+pub mod host;
 pub mod lifecycle;
 pub mod neutral;
 pub mod port;

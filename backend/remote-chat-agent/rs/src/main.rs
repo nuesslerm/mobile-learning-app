@@ -57,7 +57,7 @@ async fn main() -> ExitCode {
     let bearers = Arc::new(BearerFile::at(ProcessEnv.home_dir().join(".local/state/rca/device-bearers.json")));
     let schedule_parts = ScheduleParts::real(ProcessEnv.home_dir().join(".local/state/rca/schedules.json"));
     let attachment_parts = AttachmentParts::real(ProcessEnv.home_dir().join(".local/state/rca/attachments"));
-    let agent_api = agent_api(&config, spawner, state, bearers, Accounts::real(&settings, outbound), schedule_parts, attachment_parts);
+    let agent_api = agent_api(&config, Arc::new(rca_group_agent::host::AtWorkspace), state, bearers, Accounts::real(&settings, outbound), schedule_parts, attachment_parts);
     let app = Arc::new(App::new(config, ports, agent_api));
     app.start();
     heartbeat::spawn("remote-chat-agent.heartbeat");

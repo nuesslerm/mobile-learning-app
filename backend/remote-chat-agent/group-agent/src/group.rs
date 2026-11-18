@@ -1,6 +1,6 @@
 //! The `agent.threads` group (`agent-api-agent`): the eight methods over the thread engine. `thread.*` read and write the engine's log through
 //! its port, `thread.subscribe` follows it, and `turn.start` runs an agent CLI whose file and shell tools are off and whose only tool server
-//! is the thread's workspace executor (`command_for_remote`), recording what the CLI does as the thread's events.
+//! runs at the thread's workspace host (`command_for_host`), recording what the CLI does as the thread's events.
 use crate::port::{NewThread, ThreadEngine};
 use crate::staging::AttachmentStaging;
 use crate::refusal::{respond, to_value, Answer, Refusal};
@@ -9,10 +9,9 @@ use agent_api_agent::{self as threads, message, CreateParams, GetParams, History
 use agent_api_proto::{thread_topic, GroupName, Response};
 use async_trait::async_trait;
 use rca_agent_core::{Call, Group, Served};
-use rca_cli_driver::application::ports::Spawner;
+use crate::host::CliLauncher;
 use rca_exec_channel::Executors;
 use serde_json::Value;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 pub const SERVED: [Served; 8] = [
@@ -36,8 +35,8 @@ pub struct AgentThreadsGroup {
 }
 
 impl AgentThreadsGroup {
-    pub fn new(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, spawner: Arc<dyn Spawner>, mcp: Arc<dyn McpEndpoint>, cli_cwd: PathBuf) -> AgentThreadsGroup {
-        AgentThreadsGroup { runner: Runner::new(engine, executors, spawner, mcp, cli_cwd), staging: None }
+    pub fn new(engine: Arc<dyn ThreadEngine>, executors: Arc<dyn Executors>, launcher: Arc<dyn CliLauncher>, mcp: Arc<dyn McpEndpoint>) -> AgentThreadsGroup {
+        AgentThreadsGroup { runner: Runner::new(engine, executors, launcher, mcp), staging: None }
     }
 
     /// The group over a runner the other groups of the thread surface share, so a turn it starts is one they can steer, stop and queue after.
@@ -219,7 +218,7 @@ mod tests {
         let (engine, spawner, executors) = (Arc::new(MemoryThreads::default()), ScriptedSpawner::new(), Arc::new(Registry::default()));
         let channel = ScriptedChannel::new(|_, _| Ok(ActionOutput { result: json!({}), output: String::new() }));
         executors.open("w1", channel.clone() as Arc<dyn ExecutorChannel>).unwrap();
-        let group = AgentThreadsGroup::new(engine.clone(), executors.clone(), spawner.clone(), Arc::new(Mcp), PathBuf::from("/srv/rca"));
+        let group = AgentThreadsGroup::new(engine.clone(), executors.clone(), Arc::new(crate::host::Fixed(spawner.clone())), Arc::new(Mcp));
         Rig { api: AgentApi::new(vec![Arc::new(group)]).unwrap(), engine, spawner, executors, channel }
     }
 
@@ -323,15 +322,13 @@ mod tests {
             params.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
             params
         };
-        // When a turn names a driver nobody runs, Codex (which cannot use the executor yet), a workspace with no executor, and an attachment
+        // When a turn names a driver nobody runs, a workspace with no executor, and an attachment
         let unknown = rig.ask("turn.start", turn("nobody", "w1", json!({}))).await;
-        let codex = rig.ask("turn.start", turn("codex", "w1", json!({}))).await;
         let away = rig.ask("turn.start", turn("claudeAgent", "w9", json!({}))).await;
         let attached = rig.ask("turn.start", turn("claudeAgent", "w1", json!({"attachments": ["a1"]}))).await;
-        // Then the codes are UNKNOWN_DRIVER (twice), NO_EXECUTOR and INVALID_PARAMS, with the contract's messages where it has them
-        assert_eq!([code_of(&unknown), code_of(&codex), code_of(&away), code_of(&attached)], [json!("UNKNOWN_DRIVER"), json!("UNKNOWN_DRIVER"), json!("NO_EXECUTOR"), json!("INVALID_PARAMS")]);
+        // Then the codes are UNKNOWN_DRIVER, NO_EXECUTOR and INVALID_PARAMS, with the contract's messages where it has them
+        assert_eq!([code_of(&unknown), code_of(&away), code_of(&attached)], [json!("UNKNOWN_DRIVER"), json!("NO_EXECUTOR"), json!("INVALID_PARAMS")]);
         assert_eq!(unknown["error"]["message"], json!("no driver named nobody"));
-        assert!(codex["error"]["message"].as_str().unwrap().starts_with("no driver named codex: codex cannot use the executor channel"), "{codex}");
         assert_eq!(away["error"]["message"], json!("no executor is attached for workspace w9"));
         // And nothing ran and nothing was recorded
         assert!(rig.spawner.spawned().is_empty());
@@ -355,7 +352,7 @@ mod tests {
         let (engine, spawner, executors) = (Arc::new(MemoryThreads::default()), ScriptedSpawner::new(), Arc::new(Registry::default()));
         let channel = ScriptedChannel::new(|_, _| Ok(ActionOutput { result: json!({}), output: String::new() }));
         executors.open("w1", channel.clone() as Arc<dyn ExecutorChannel>).unwrap();
-        let group = AgentThreadsGroup::new(engine.clone(), executors.clone(), spawner.clone(), Arc::new(Mcp), PathBuf::from("/srv/rca")).with_staging(staging);
+        let group = AgentThreadsGroup::new(engine.clone(), executors.clone(), Arc::new(crate::host::Fixed(spawner.clone())), Arc::new(Mcp)).with_staging(staging);
         Rig { api: AgentApi::new(vec![Arc::new(group)]).unwrap(), engine, spawner, executors, channel }
     }
 
@@ -416,7 +413,7 @@ mod tests {
         assert_eq!(events[8].data["reason"], json!("completed"));
         // And the CLI was started in the service's directory with the thread's own tool server and the thread's default model
         let spawned = rig.spawner.spawned();
-        assert_eq!((spawned.len(), spawned[0].cwd.clone()), (1, PathBuf::from("/srv/rca")));
+        assert_eq!(spawned.len(), 1);
         let args = &spawned[0].args;
         assert!(args.iter().any(|a| a.contains("http://127.0.0.1:1/mcp/t")) && args.windows(2).any(|w| w == ["--model", "default-model"]), "{args:?}");
         // And the thread is no longer bound to the executor, so its tool server resolves to none

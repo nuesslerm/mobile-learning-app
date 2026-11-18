@@ -1,5 +1,5 @@
 //! The drivers, the request of one turn, and the CLI invocation each driver runs for it.
-use serde_json::{json, Value};
+use serde_json::json;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Driver {
@@ -98,43 +98,36 @@ pub fn command_for(driver: Driver, req: &TurnRequest) -> Command {
     Command { program: driver.program().into(), args: a }
 }
 
-/// The built-in file and shell tools of Claude Code that the executor replaces.
-const CLAUDE_BUILTINS: &str = "Bash,BashOutput,KillShell,Read,Write,Edit,MultiEdit,NotebookEdit,Glob,Grep,LS";
-/// The same for opencode's `tools` map.
-const OPENCODE_BUILTINS: [&str; 9] = ["bash", "read", "write", "edit", "patch", "glob", "grep", "list", "todoread"];
-/// The tool of the executor's MCP server that Claude Code asks whether a tool may run, in the permission mode that asks (`approval-required`).
+/// The tool of the service's MCP server that Claude Code asks whether a tool may run, in the permission mode that asks (`approval-required`).
 pub const CLAUDE_PERMISSION_PROMPT_TOOL: &str = "mcp__executor__approval_prompt";
 
-/// Why a driver cannot run against the executor channel.
-#[derive(Debug, Clone, PartialEq)]
-pub struct RemoteUnsupported(pub String);
-
-/// The invocation of one turn whose file and shell tools are the executor's: the CLI's built-ins off and the MCP server at `mcp_url` the only
-/// tool source. Claude Code takes the config inline (`--strict-mcp-config` ignores every other server); opencode takes it as per-turn config
-/// content through `env`, since a spawn carries no environment. Codex is not wired (its flags are unconfirmed, see the plan's spike).
-pub fn command_for_remote(driver: Driver, req: &TurnRequest, mcp_url: &str) -> Result<Command, RemoteUnsupported> {
+/// The invocation of one turn at the workspace host: the CLI keeps its own tools and credentials. The only addition is the service's tool server at
+/// `mcp_url` (`approval_prompt` and `ask_user`, which wait for the person), which Claude Code and opencode are told about; Codex runs as `command_for` has it.
+pub fn command_for_host(driver: Driver, req: &TurnRequest, mcp_url: &str) -> Command {
     let mut command = command_for(driver, req);
     let prompt = command.args.pop().unwrap_or_default();
     match driver {
         Driver::ClaudeAgent => {
             let config = json!({"mcpServers": {"executor": {"type": "http", "url": mcp_url}}});
-            // `--mcp-config` and `--disallowedTools` take lists, so the prompt goes right after `-p` rather than last.
+            // `--mcp-config` takes a list, so the prompt goes right after `-p` rather than last.
             command.args.insert(1, prompt);
-            command.args.extend(args(&["--mcp-config", &config.to_string(), "--strict-mcp-config", "--disallowedTools", CLAUDE_BUILTINS]));
+            command.args.extend(args(&["--mcp-config", &config.to_string()]));
             if req.runtime_mode == "approval-required" && req.interaction_mode != "plan" {
                 command.args.extend(args(&["--permission-prompt-tool", CLAUDE_PERMISSION_PROMPT_TOOL]));
             }
-            Ok(command)
+            command
         }
         Driver::Opencode => {
-            let tools: serde_json::Map<String, Value> = OPENCODE_BUILTINS.iter().map(|t| (t.to_string(), json!(false))).collect();
-            let config = json!({"mcp": {"executor": {"type": "remote", "url": mcp_url, "enabled": true}}, "tools": tools});
+            let config = json!({"mcp": {"executor": {"type": "remote", "url": mcp_url, "enabled": true}}});
             command.args.push(prompt);
             let mut wrapped = args(&[&format!("OPENCODE_CONFIG_CONTENT={config}"), &command.program]);
             wrapped.extend(command.args);
-            Ok(Command { program: "env".into(), args: wrapped })
+            Command { program: "env".into(), args: wrapped }
         }
-        Driver::Codex => Err(RemoteUnsupported("codex cannot use the executor channel yet: its MCP and shell-tool flags are not confirmed".into())),
+        Driver::Codex => {
+            command.args.push(prompt);
+            command
+        }
     }
 }
 
@@ -151,9 +144,9 @@ mod tests {
         // Given a thread whose CLI conversation is s-1, a turn in the mode that asks before each tool, and one in the mode that never does
         let asking = TurnRequest { runtime_mode: "approval-required".into(), resume: Some("s-1".into()), ..req(None) };
         // When the turn is built for the executor channel, and with the mode that never asks
-        let asks = command_for_remote(Driver::ClaudeAgent, &asking, "http://x/mcp/t").unwrap();
-        let never = command_for_remote(Driver::ClaudeAgent, &req(None), "http://x/mcp/t").unwrap();
-        let plan = command_for_remote(Driver::ClaudeAgent, &TurnRequest { interaction_mode: "plan".into(), ..asking.clone() }, "http://x/mcp/t").unwrap();
+        let asks = command_for_host(Driver::ClaudeAgent, &asking, "http://x/mcp/t");
+        let never = command_for_host(Driver::ClaudeAgent, &req(None), "http://x/mcp/t");
+        let plan = command_for_host(Driver::ClaudeAgent, &TurnRequest { interaction_mode: "plan".into(), ..asking.clone() }, "http://x/mcp/t");
         // Then the first resumes the conversation and names the executor's approval tool for permission prompts, the others name none, and a plan never asks
         assert!(asks.args.windows(2).any(|w| w == ["--resume", "s-1"]), "{:?}", asks.args);
         assert!(asks.args.windows(2).any(|w| w == ["--permission-prompt-tool", "mcp__executor__approval_prompt"]), "{:?}", asks.args);
@@ -180,16 +173,18 @@ mod tests {
     }
 
     #[test]
-    fn a_remote_turn_disables_the_builtin_tools_and_names_the_executor_as_the_only_tool_server() {
-        let claude = command_for_remote(Driver::ClaudeAgent, &req(None), "http://127.0.0.1:1/mcp/t").unwrap();
+    fn a_host_turn_keeps_the_cli_s_own_tools_and_only_names_the_service_s_tool_server() {
+        let claude = command_for_host(Driver::ClaudeAgent, &req(None), "http://127.0.0.1:1/mcp/t");
         assert_eq!((claude.program.as_str(), claude.args[1].as_str()), ("claude", "hi there"));
         let at = |flag: &str| claude.args.iter().position(|a| a == flag).unwrap_or_else(|| panic!("{flag}"));
-        assert!(claude.args[at("--mcp-config") + 1].contains("http://127.0.0.1:1/mcp/t") && claude.args[at("--disallowedTools") + 1].contains("Bash"));
-        assert!(claude.args.contains(&"--strict-mcp-config".to_string()));
-        let opencode = command_for_remote(Driver::Opencode, &TurnRequest { instance_id: "opencode".into(), ..req(None) }, "http://x/mcp/t").unwrap();
+        assert!(claude.args[at("--mcp-config") + 1].contains("http://127.0.0.1:1/mcp/t"));
+        // nothing is switched off, and the CLI's other tool servers stay
+        assert!(!claude.args.iter().any(|a| a == "--disallowedTools" || a == "--strict-mcp-config"), "{:?}", claude.args);
+        let opencode = command_for_host(Driver::Opencode, &TurnRequest { instance_id: "opencode".into(), ..req(None) }, "http://x/mcp/t");
         assert_eq!((opencode.program.as_str(), opencode.args[1].as_str(), opencode.args.last().map(String::as_str)), ("env", "opencode", Some("hi there")));
-        assert!(opencode.args[0].starts_with("OPENCODE_CONFIG_CONTENT=") && opencode.args[0].contains(r#""bash":false"#));
-        assert!(command_for_remote(Driver::Codex, &req(None), "u").is_err());
+        assert!(opencode.args[0].starts_with("OPENCODE_CONFIG_CONTENT=") && !opencode.args[0].contains(r#""bash":false"#));
+        let codex = command_for_host(Driver::Codex, &req(None), "u");
+        assert_eq!(codex, command_for(Driver::Codex, &req(None)));
     }
 
     #[test]

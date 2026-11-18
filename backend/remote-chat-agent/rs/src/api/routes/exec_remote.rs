@@ -45,7 +45,7 @@ pub async fn mcp_server(State(app): State<Arc<App>>, ConnectInfo(peer): ConnectI
     let Ok(message) = serde_json::from_slice::<Value>(&body) else {
         return respond(400, &json!({"jsonrpc": "2.0", "id": null, "error": {"code": -32700, "message": "parse error"}}));
     };
-    match mcp::handle(&thread, app.executors.for_thread(&thread), Some(app.service_tools.as_ref()), &message).await {
+    match mcp::handle(&thread, Some(app.service_tools.as_ref()), &message).await {
         Some(reply) => respond(200, &reply),
         None => super::empty(202),
     }

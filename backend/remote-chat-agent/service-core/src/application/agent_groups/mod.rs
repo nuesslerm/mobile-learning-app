@@ -41,10 +41,13 @@ mod tests {
     use rca_agent_core::{AgentApi, Build, Group, Served, Uses};
     use rca_cli_driver::testing::ScriptedSpawner;
     use rca_group_state::testing::MemoryStore;
-    use rca_exec_channel::mcp::TOOLS;
     use rca_exec_channel::remote::{ActionOutput, ExecutorChannel, RemoteError};
     use rca_exec_channel::testing::ScriptedChannel;
     use rca_exec_channel::{contract_actions, Registry};
+
+    /// The actions no method row calls: a turn's CLI runs through `run_command` and stops through `cancel` (`HostSpawner`), and `edit_file` and
+    /// `search` stay in the contract with no caller until they are retired (`docs/known-gaps.md`).
+    const TOOLS: [&str; 4] = ["run_command", "cancel", "edit_file", "search"];
     use serde_json::{json, Value};
     use std::sync::Arc;
 
@@ -71,7 +74,7 @@ mod tests {
     }
 
     fn groups(executors: &Arc<Registry>) -> Vec<Arc<dyn Group>> {
-        let runner = rca_group_agent::Runner::new(Arc::new(rca_group_agent::testing::MemoryThreads::default()), executors.clone(), ScriptedSpawner::new(), Arc::new(NoMcp), std::path::PathBuf::from("/srv/rca"));
+        let runner = rca_group_agent::Runner::new(Arc::new(rca_group_agent::testing::MemoryThreads::default()), executors.clone(), Arc::new(rca_group_agent::host::Fixed(ScriptedSpawner::new())), Arc::new(NoMcp));
         let hub = Arc::new(StateHub::new(Arc::new(MemoryStore::default())));
         let previews = Previews::new(Arc::new(rca_group_preview::testing::FakeClock::at(1)), Arc::new(rca_group_preview::testing::CountingIds::default()), 0);
         vec![

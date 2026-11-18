@@ -39,11 +39,6 @@ fn claude_login() -> Turn {
     Turn::default().then_line(PASTE_LINE).then_reading_a_line().then_writing_credential("CLAUDE_CONFIG_DIR", ".credentials.json", "{\"access_token\":\"{paste}\"}").logging_env(&WATCHED).listing_env(&["CLAUDE_CONFIG_DIR"])
 }
 
-/// opencode's paste login: keeps the pasted code as its token below its XDG data home, where opencode keeps `auth.json`.
-fn opencode_login() -> Turn {
-    Turn::default().then_line(PASTE_LINE).then_reading_a_line().then_writing_credential("XDG_DATA_HOME", "opencode/auth.json", "{\"access_token\":\"{paste}\"}").logging_env(&WATCHED).listing_env(&["XDG_DATA_HOME", "XDG_CONFIG_HOME"])
-}
-
 /// A turn that says one thing and keeps what it could see: the provider variables and the files of the directories it was told of.
 fn watching(turn: Turn, dirs: &[&str]) -> Turn {
     turn.logging_env(&WATCHED).listing_env(dirs)
@@ -111,10 +106,8 @@ async fn given_a_fake_device_flow_when_a_provider_signs_in_and_a_turn_runs_then_
     let (login, turn) = (start(&chain, "claude", 0), start(&chain, "claude", 1));
     assert_eq!(login.argv, ["auth", "login"]);
     assert_eq!(login.env["CLAUDE_CONFIG_DIR"], Some(root.join("claude").to_string_lossy().into_owned()));
-    // And the turn ran with the same directory as its config, and that directory held the login when it started
-    assert_eq!(turn.env["CLAUDE_CONFIG_DIR"], login.env["CLAUDE_CONFIG_DIR"]);
-    assert_eq!(turn.listing["CLAUDE_CONFIG_DIR"], [".credentials.json"]);
-    assert_eq!(turn.cwd, env.home.to_string_lossy());
+    // And the turn ran at the workspace host's root, with the host's own environment
+    assert_eq!(turn.cwd, chain.repo.path().to_string_lossy());
     // And the provider reads signed in and selected, the turn finished, and no frame the mapper saw holds the pasted code or any key
     let listed = seen.ask(&mut agent, "provider.list", json!({})).await;
     assert_eq!(listed["result"]["selected"], json!("claudeAgent"));
@@ -123,60 +116,6 @@ async fn given_a_fake_device_flow_when_a_provider_signs_in_and_a_turn_runs_then_
         assert!(!seen.mentions(secret), "a reply holds {secret}");
         assert!(events.iter().all(|e| !e.to_value().to_string().contains(secret)), "an event holds {secret}");
     }
-}
-
-#[tokio::test(flavor = "multi_thread", worker_threads = 3)]
-async fn given_two_providers_signed_in_when_each_runs_a_turn_then_neither_sees_the_others_login_variables_or_files_nor_the_services_secrets() {
-    // Given every provider's credentials and the service's secrets in the service's environment, Claude signed in by a pasted code and opencode
-    // by another (Codex runs no remote turn yet, so the second provider that can is opencode)
-    let env = Env::new(&[]);
-    service_env(&env);
-    let chain = chain(&env).await;
-    let root = env.providers_root();
-    chain.cli.script("opencode", &Script::of(vec![opencode_login(), watching(Turn::replaying(&exec_testkit::recordings::named("opencode-text").lines), &["XDG_DATA_HOME", "XDG_CONFIG_HOME"])]));
-    chain.cli.script("claude", &Script::of(vec![claude_login(), watching(Turn::replaying(&[said("hello")]), &["CLAUDE_CONFIG_DIR"])]));
-    let (mut agent, mut seen) = (chain.agent().await, Seen::default());
-    for (provider, code) in [("opencode", "opencode-paste-token-5"), ("claudeAgent", "claude-paste-token-7")] {
-        let started = auth(&seen.ask(&mut agent, "provider.auth.start", json!({"provider": provider, "method": "paste"})).await);
-        seen.ask(&mut agent, "provider.auth.respond", json!({"auth": started["auth"], "text": code})).await;
-        let done = auth(&seen.ask(&mut agent, "provider.auth.complete", json!({"auth": started["auth"]})).await);
-        assert_eq!(done["status"], json!("succeeded"), "{provider}: {done}");
-    }
-    // When a turn runs on each provider
-    for (thread, driver) in [("to", "opencode"), ("tl", "claudeAgent")] {
-        let made = agent.ask("thread.create", json!({"thread": thread, "title": "T", "workspace": "w1", "driver": driver})).await;
-        assert!(made.get("result").is_some(), "{made}");
-        agent.ask("thread.subscribe", json!({"thread": thread})).await;
-        let started = agent.ask("turn.start", json!({"thread": thread, "workspace": "w1", "driver": driver, "prompt": "hi"})).await;
-        assert!(started.get("result").is_some(), "{driver}: {started}");
-        let events = agent.events_through("turn.finished").await;
-        assert_eq!(events.last().unwrap().data["reason"], json!("completed"), "{driver}");
-    }
-    let (opencode, claude) = (start(&chain, "opencode", 1), start(&chain, "claude", 1));
-    let (opencode_dir, claude_dir) = (root.join("opencode").to_string_lossy().into_owned(), root.join("claude").to_string_lossy().into_owned());
-    // Then opencode's process was told only its own data and config directories, and listed only its own login file
-    assert_eq!((opencode.env["XDG_DATA_HOME"].clone(), opencode.env["XDG_CONFIG_HOME"].clone()), (Some(format!("{opencode_dir}/data")), Some(format!("{opencode_dir}/config"))));
-    assert_eq!((opencode.env["CLAUDE_CONFIG_DIR"].clone(), opencode.env["CODEX_HOME"].clone()), (None, None));
-    assert_eq!((opencode.listing["XDG_DATA_HOME"].clone(), opencode.listing["XDG_CONFIG_HOME"].clone()), (vec!["opencode/auth.json".to_string()], Vec::new()));
-    // And Claude's process only its own directory, with its own login file in it
-    assert_eq!((claude.env["CLAUDE_CONFIG_DIR"].clone(), claude.env["CODEX_HOME"].clone()), (Some(claude_dir.clone()), None));
-    assert_eq!((claude.env["XDG_DATA_HOME"].clone(), claude.env["XDG_CONFIG_HOME"].clone()), (None, None));
-    assert_eq!(claude.listing["CLAUDE_CONFIG_DIR"], [".credentials.json"]);
-    // And neither environment names the other's directory or holds the other provider's key
-    let values = |run: &exec_testkit::Invocation| run.env.values().flatten().cloned().collect::<Vec<String>>();
-    assert!(values(&opencode).iter().all(|v| !v.contains(&claude_dir) && v != "anthropic-key-value" && v != "openai-key-value"), "{:?}", opencode.env);
-    assert!(values(&claude).iter().all(|v| !v.contains(&opencode_dir) && v != "openai-key-value" && v != "kimi-key-value"), "{:?}", claude.env);
-    // And neither holds the service's secret or a GitHub token, each keeps its own provider's key (opencode the model API key it reads) and no other
-    for run in [&opencode, &claude] {
-        for name in ["CHAT_AGENT_API_SECRET", "GH_TOKEN"] {
-            assert_eq!(run.env[name], None, "{} holds {name}", run.program);
-        }
-    }
-    assert_eq!((opencode.env["KIMI_API_KEY"].clone(), opencode.env["ANTHROPIC_API_KEY"].clone()), (Some("kimi-key-value".into()), None));
-    assert_eq!((claude.env["ANTHROPIC_API_KEY"].clone(), claude.env["KIMI_API_KEY"].clone()), (Some("anthropic-key-value".into()), None));
-    // And the two logins are in files of their own, and neither pasted code is in any reply
-    assert!(credential_text(&root, "opencode", "data/opencode/auth.json").contains("opencode-paste-token-5") && !credential_text(&root, "claude", ".credentials.json").contains("opencode-paste-token-5"));
-    assert!(!seen.mentions("opencode-paste-token-5") && !seen.mentions("claude-paste-token-7"));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]

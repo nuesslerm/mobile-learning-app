@@ -13,7 +13,6 @@ use remote_chat_agent_core::application::engine::Engine;
 use remote_chat_agent_core::application::store::MemoryStore;
 use remote_chat_agent_core::testing::{CountingIds, FixedClock};
 use serde_json::{json, Value};
-use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -47,7 +46,7 @@ fn rig() -> Rig {
         Ok(ActionOutput { result: json!({}), output: String::new() })
     });
     executors.open("w1", channel as Arc<dyn ExecutorChannel>).unwrap();
-    let runner = Runner::new(engine.clone(), executors, spawner.clone(), Arc::new(Mcp), PathBuf::from("/srv/rca"));
+    let runner = Runner::new(engine.clone(), executors, Arc::new(rca_group_agent::host::Fixed(spawner.clone())), Arc::new(Mcp));
     let groups: Vec<Arc<dyn Group>> = vec![
         Arc::new(AgentThreadsGroup::with_runner(runner.clone())),
         Arc::new(AgentRequestsGroup::new(runner.clone())),

@@ -10,7 +10,7 @@ use agent_api_proto::Event;
 use exec_testkit::script::{Script, Turn};
 use exec_testkit::{RcaExec, ScriptedCli, TempRepo};
 use rca_service::infrastructure::agent_socket::QUEUE;
-use remote_chat_agent_host::Processes;
+use rca_cli_driver::testing::ScriptedSpawner;
 use serde_json::{json, Value};
 use std::sync::Arc;
 use std::time::Duration;
@@ -45,7 +45,7 @@ async fn chain_with(env: &Env, options: Options) -> Chain {
     let cli = ScriptedCli::install();
     env.use_path(&cli.path());
     let repo = TempRepo::new();
-    let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
+    let svc = service_spawning(env, Options { at_workspace: true, ..options }, ScriptedSpawner::new());
     let port = svc.listen().await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path()));
     let token = svc.mint("flow mapper").await;
@@ -108,14 +108,14 @@ async fn given_a_scripted_cli_that_writes_a_file_through_its_tool_when_a_turn_ru
     assert_eq!((events[3].data["tool"].clone(), events[3].data["args"].clone()), (json!("write_file"), write));
     assert_eq!((events[5].data["ok"].clone(), events[6].data["path"].clone(), events[6].data["op"].clone()), (json!(true), json!("notes/a.txt"), json!("write")));
     assert_eq!(events[8].data["reason"], json!("completed"));
-    // And the CLI was started once, in the service's directory, with its own tools off and the thread's executor as its only tool server
+    // And the CLI was started once, at the workspace host's root, with its own tools on and the thread's tool server added
     let starts = chain.cli.invocations("claude");
     assert_eq!(starts.len(), 1);
-    assert_eq!(starts[0].cwd, env.home.to_string_lossy());
+    assert_eq!(starts[0].cwd, chain.repo.path().to_string_lossy());
     let argv = &starts[0].argv;
     let after = |flag: &str| argv[argv.iter().position(|a| a == flag).unwrap_or_else(|| panic!("{flag} is not in {argv:?}")) + 1].clone();
-    assert!(after("--mcp-config").contains(&format!("http://127.0.0.1:{}/mcp/t1", chain.port)) && after("--disallowedTools").contains("Bash"), "{argv:?}");
-    assert!(argv.contains(&"--strict-mcp-config".to_string()) && argv.contains(&"make a note".to_string()));
+    assert!(after("--mcp-config").contains(&format!("http://127.0.0.1:{}/mcp/t1", chain.port)), "{argv:?}");
+    assert!(!argv.contains(&"--disallowedTools".to_string()) && !argv.contains(&"--strict-mcp-config".to_string()) && argv.contains(&"make a note".to_string()));
     // And the thread is idle again with the newest seq, and its history and transcript read the same events from the engine
     let thread = agent.ask("thread.get", json!({"thread": "t1"})).await;
     assert_eq!((thread["result"]["thread"]["status"].clone(), thread["result"]["thread"]["last_seq"].clone()), (json!("idle"), json!(events.last().unwrap().seq)));
@@ -378,7 +378,7 @@ async fn restarted(old: Chain, env: &Env, options: Options) -> Chain {
     let Chain { _svc, cli, repo, exec, token, .. } = old;
     drop(exec);
     drop(_svc);
-    let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
+    let svc = service_spawning(env, Options { at_workspace: true, ..options }, ScriptedSpawner::new());
     let port = svc.listen().await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path()));
     Chain { _svc: svc, port, cli, repo, exec: Some(exec), token }
@@ -507,7 +507,7 @@ async fn restarted_with_a_late_executor(old: Chain, env: &Env, options: Options,
     let Chain { _svc, cli, repo, exec, token, .. } = old;
     drop(exec);
     drop(_svc);
-    let svc = service_spawning(env, options, Arc::new(Processes::with_inherited(env.providers_root().to_string_lossy(), env.inherited())));
+    let svc = service_spawning(env, Options { at_workspace: true, ..options }, ScriptedSpawner::new());
     let port = svc.listen().await;
     tokio::time::sleep(delay).await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path()));
@@ -557,7 +557,7 @@ async fn given_an_executor_that_dies_during_a_tool_call_when_it_is_served_again_
     drop(chain.exec.take());
     let end = agent.events_through("turn.finished").await;
     let port = chain.port;
-    chain.exec = Some(tokio::task::block_in_place(|| RcaExec::serve(&format!("http://127.0.0.1:{port}"), "w1", &chain.repo, SECRET)));
+    chain.exec = Some(tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &chain.repo, SECRET, &[], &chain.cli.path())));
     // Then the turn ended failed with the executor gone
     let error = end.iter().find(|e| e.kind == "error").unwrap_or_else(|| panic!("no error event in {:?}", kinds(&end)));
     assert_eq!(error.data["code"], json!("EXECUTOR_GONE"));

@@ -18,7 +18,7 @@ use infrastructure::mcp_address::LoopbackMcp;
 use infrastructure::system::SystemClock;
 use infrastructure::ws_channel::ExecutorSockets;
 use rca_agent_core::{DeviceBearers, Group};
-use rca_cli_driver::application::ports::Spawner;
+use rca_group_agent::host::CliLauncher;
 use rca_exec_channel::Registry;
 use rca_group_accounts::{AccountsGroup, GitAiGroup, ModelApi, ProviderDirs, ProviderLogin, Sessions};
 use rca_group_agent::{AgentLifecycleGroup, AgentQueueGroup, AgentRequestsGroup, AgentThreadsGroup, Runner};
@@ -75,15 +75,15 @@ impl AttachmentParts {
 /// The agent API `/agent/v1` answers: the one list of groups, built here for `main` and for the flow tests alike so a registration cannot differ
 /// between them. the `service.activity` sub-group keeps client leases; `state` and `state.watch` share one hub, so a watcher sees every write; `service.status` lists each group once it serves all of its methods; `workspace` answers what it serves but stays unlisted
 /// until the rest of its owner set (`workspace.activate`, `repo.hooks`) is served. `accounts` (provider logins, usage) and `git.ai` (commit messages) stand on `accounts`: directories of the providers, their login commands and a model API. `agent.threads` and its three sub-groups, `agent.requests`, `agent.queue` and `agent.lifecycle`, share one
-/// runner of the CLIs `spawner` starts, in the executor root, against a thread engine of its own; the runner also answers the MCP tools that wait for a person.
-pub fn agent_api(config: &Config, spawner: Arc<dyn Spawner>, state: Arc<dyn StateStore>, bearers: Arc<dyn DeviceBearers>, accounts: Accounts, schedule_parts: ScheduleParts, attachment_parts: AttachmentParts) -> AgentApi {
+/// runner of the CLIs `launcher` starts (at the workspace host), against a thread engine of its own; the runner also answers the MCP tools that wait for a person.
+pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn StateStore>, bearers: Arc<dyn DeviceBearers>, accounts: Accounts, schedule_parts: ScheduleParts, attachment_parts: AttachmentParts) -> AgentApi {
     let executors: Arc<Registry> = Arc::new(match &config.state_dir {
         Some(dir) => Registry::with_ledger(Arc::new(infrastructure::workspace_ledger::WorkspaceFile::at(std::path::Path::new(dir).join("agent-api").join("workspaces.json")))),
         None => Registry::default(),
     });
     let threads = Arc::new(EngineThreads::new(thread_engine(config)));
     let mcp = Arc::new(LoopbackMcp::new(config.port));
-    let runner = Runner::new(threads.clone(), executors.clone(), spawner, mcp.clone(), std::path::PathBuf::from(&config.exec_root));
+    let runner = Runner::new(threads.clone(), executors.clone(), launcher, mcp.clone());
     let hub = Arc::new(StateHub::from_base(state, config.state_seq_base));
     let attachments = Attachments::new(attachment_parts.store, attachment_parts.clock, attachment_parts.ids, executors.clone());
     let agent_threads = Arc::new(AgentThreadsGroup::with_runner(runner.clone()).with_staging(Arc::new(StagesAttachments::new(attachments.clone()))));
