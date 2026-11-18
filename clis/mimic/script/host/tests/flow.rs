@@ -349,7 +349,7 @@ fn given_a_curl_and_a_tar_helper_when_started_then_they_get_the_allowed_part_of_
 }
 
 fn seen_by(host: &Host, cli: &str) -> String {
-    let out = std::process::Command::new("sh").arg("-c").arg(format!("{cli}")).env_clear().envs(host.env.iter().cloned()).output().unwrap();
+    let out = std::process::Command::new("sh").arg("-c").arg(cli).env_clear().envs(host.env.iter().cloned()).output().unwrap();
     String::from_utf8_lossy(&out.stdout).into_owned()
 }
 
