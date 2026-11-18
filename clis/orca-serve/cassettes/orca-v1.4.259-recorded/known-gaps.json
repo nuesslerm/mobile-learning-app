@@ -137,7 +137,6 @@
         "orca-github.project.workItemDetailsBySlug",
         "orca-hostedReview.create",
         "orca-linear.connect",
-        "orca-mobileWeb.bundle.manifest",
         "orca-orchestration.partyLocation",
         "orca-orchestration.partyOpen",
         "orca-preflight.check",
@@ -302,16 +301,6 @@
       ],
       "ids": [
         "orca-preflight.refreshAgents"
-      ]
-    },
-    {
-      "class": "kind at steps._:s2c:*.[*].payload.result.catalog",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.result.catalog kind breaking"
-      ],
-      "ids": [
-        "orca-mobileRelay.projectSections"
       ]
     },
     {

@@ -2735,8 +2735,6 @@
         "orca-linear.testConnection-invalid-wrong-type-workspaceId",
         "orca-linear.testConnection-valid-min",
         "orca-linkPreview.get-valid-min",
-        "orca-mobileWeb.bundle.manifest-empty-empty-object",
-        "orca-mobileWeb.bundle.manifest-invalid-no-payload",
         "orca-notifications.reportDesktopPresence-valid-min",
         "orca-orcad.terminalCensus-boundary-full",
         "orca-orcad.terminalCensus-boundary-limit-activatedAt",
@@ -3357,17 +3355,6 @@
       "ids": [
         "orca-preflight.refreshAgents-invalid-no-payload",
         "orca-preflight.refreshAgents-valid-min"
-      ]
-    },
-    {
-      "class": "kind at steps._:s2c:*.[*].payload.result.catalog",
-      "severity": "breaking",
-      "diffs": [
-        "steps._:s2c:0.[0].payload.result.catalog kind breaking"
-      ],
-      "ids": [
-        "orca-mobileRelay.projectSections-empty-empty-object",
-        "orca-mobileRelay.projectSections-invalid-no-payload"
       ]
     },
     {
