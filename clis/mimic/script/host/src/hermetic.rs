@@ -60,6 +60,9 @@ impl Host {
 /// A credential for one real agent CLI travels in the server's environment as `MIMIC_CRED_<CLI>__<VAR>` and reaches only that CLI, as `VAR`.
 pub const CREDENTIAL_PREFIX: &str = "MIMIC_CRED_";
 
+/// The credential variable that carries Codex's base64 login file (`MIMIC_CRED_CODEX__CODEX_OAUTH_JSON_B64`).
+pub const CODEX_LOGIN: &str = "CODEX_OAUTH_JSON_B64";
+
 /// `("opencode", "OPENCODE_API_KEY")` for `MIMIC_CRED_OPENCODE__OPENCODE_API_KEY`; none for any other name.
 pub fn credential_of(name: &str) -> Option<(String, String)> {
     let (cli, var) = name.strip_prefix(CREDENTIAL_PREFIX)?.split_once("__")?;
@@ -87,12 +90,27 @@ impl Host {
             if !held.contains(&cli) {
                 return Err(format!("a credential is declared for {cli:?}, which is not a real agent CLI of this host (a stub or a scripted program never holds one)"));
             }
+            let program = real.join(&cli).display().to_string();
+            let unset_all = "for n in $(env | sed -n 's/^\\(MIMIC_CRED_[A-Za-z0-9_]*\\)=.*/\\1/p'); do unset \"$n\"; done\n";
             let mut script = String::from("#!/bin/sh\n");
-            for (carrier, var) in &vars {
-                script.push_str(&format!("{var}=\"${carrier}\"\nexport {var}\n"));
+            if let Some((carrier, _)) = vars.iter().find(|(_, var)| var == CODEX_LOGIN) {
+                // Codex reads a login file, not a key: it gets a CODEX_HOME of its own (a private tmpfs directory when there is one) holding the decoded login for the life of
+                // the process only; the directory is removed when it exits or is stopped. A login Codex rotates is not written back anywhere.
+                script.push_str(&format!(
+                    "umask 077\nbase=/dev/shm; [ -d \"$base\" ] && [ -w \"$base\" ] || base=\"${{TMPDIR:-/tmp}}\"\nCODEX_HOME=$(mktemp -d \"$base/mimic-codex.XXXXXX\") || exit 1\nexport CODEX_HOME\nprintf %s \"${carrier}\" | base64 -d > \"$CODEX_HOME/auth.json\" || {{ rm -rf \"$CODEX_HOME\"; exit 1; }}\n"
+                ));
+                for (carrier, var) in vars.iter().filter(|(_, var)| var != CODEX_LOGIN) {
+                    script.push_str(&format!("{var}=\"${carrier}\"\nexport {var}\n"));
+                }
+                script.push_str(unset_all);
+                script.push_str(&format!("'{program}' \"$@\" &\nchild=$!\ntrap 'kill $child 2>/dev/null; wait $child 2>/dev/null; rm -rf \"$CODEX_HOME\"; exit 143' TERM INT HUP\nwait $child\nstatus=$?\nrm -rf \"$CODEX_HOME\"\nexit $status\n"));
+            } else {
+                for (carrier, var) in &vars {
+                    script.push_str(&format!("{var}=\"${carrier}\"\nexport {var}\n"));
+                }
+                script.push_str(unset_all);
+                script.push_str(&format!("exec '{program}' \"$@\"\n"));
             }
-            script.push_str("for n in $(env | sed -n 's/^\\(MIMIC_CRED_[A-Za-z0-9_]*\\)=.*/\\1/p'); do unset \"$n\"; done\n");
-            script.push_str(&format!("exec '{}' \"$@\"\n", real.join(&cli).display()));
             let path = wrap.join(&cli);
             std::fs::write(&path, script).map_err(|e| format!("{}: {e}", path.display()))?;
             set_executable(&path)?;

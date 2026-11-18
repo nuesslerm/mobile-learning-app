@@ -391,3 +391,28 @@ fn set_exec(path: &Path) {
     use std::os::unix::fs::PermissionsExt;
     std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
 }
+
+#[test]
+fn given_a_codex_login_when_codex_runs_through_the_host_then_it_reads_a_private_codex_home_that_is_gone_afterwards_and_no_credential_variable() {
+    let root = tempfile::tempdir().unwrap();
+    let real = tempfile::tempdir().unwrap();
+    std::fs::write(real.path().join("codex"), "#!/bin/sh\necho \"home=$CODEX_HOME\"\necho \"login=$(cat \"$CODEX_HOME/auth.json\")\"\nstat -c 'mode=%a' \"$CODEX_HOME/auth.json\"\nenv | sort\n").unwrap();
+    set_exec(&real.path().join("codex"));
+    let mut host = Host::prepare(root.path(), None, Some(real.path())).unwrap();
+    let login = base64_of("{\"tokens\":{\"refresh_token\":\"rt-secret-value\"}}");
+    host.env.push(("MIMIC_CRED_CODEX__CODEX_OAUTH_JSON_B64".into(), login.clone()));
+    host.wrap_credentials().unwrap();
+
+    let seen = seen_by(&host, "codex");
+
+    assert!(seen.contains("login={\"tokens\":{\"refresh_token\":\"rt-secret-value\"}}"), "{seen}");
+    assert!(seen.contains("mode=600"), "{seen}");
+    assert!(!seen.contains("MIMIC_CRED_") && !seen.contains("CODEX_OAUTH_JSON_B64"), "codex kept the carrier variable");
+    let home = seen.lines().find_map(|l| l.strip_prefix("home=")).unwrap();
+    assert!(!Path::new(home).exists(), "the login directory {home} outlived the process");
+}
+
+fn base64_of(text: &str) -> String {
+    let out = std::process::Command::new("sh").arg("-c").arg(format!("printf %s '{text}' | base64 -w0")).output().unwrap();
+    String::from_utf8(out.stdout).unwrap()
+}
