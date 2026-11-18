@@ -28,6 +28,10 @@ runs:
             echo "apt: falling back to archive.ubuntu.com"
             echo "http://archive.ubuntu.com/ubuntu/ priority:1" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
           fi
+          if [ "$attempt" = 3 ] && [ -f /etc/apt/apt-mirrors.txt ]; then
+            echo "apt: falling back to mirrors.edge.kernel.org (archive.ubuntu.com answered 400)"
+            echo "http://mirrors.edge.kernel.org/ubuntu/ priority:1" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+          fi
           sleep $((attempt * 15))
         done
         [ "$ok" = true ] || { echo "::error::apt could not install:$missing"; exit 1; }
