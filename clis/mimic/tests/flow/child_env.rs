@@ -446,3 +446,17 @@ fn a_spawned_reference_that_needs_real_agents_or_a_key_is_refused_before_anythin
     assert!(r.json["error"].as_str().unwrap().contains("mimic-script-host") && r.json["error"].as_str().unwrap().contains("0.1.9"), "{}", r.json);
     assert!(!rig.dump("record.env").exists() && rig.vault_calls().is_empty());
 }
+
+#[test]
+fn a_url_reference_that_declares_a_key_is_refused_because_its_mint_command_would_inherit_the_record_childs_environment() {
+    // Given a set whose reference is a url script target and declares the key
+    let rig = Rig::real();
+    let toml = std::fs::read_to_string(rig.set.join("mimic.toml")).unwrap();
+    std::fs::write(rig.set.join("mimic.toml"), toml.replace("target = \"orca\"\nsidecar = [\"sh\", \"reference.sh\"", "target = \"url\"\naddr = \"127.0.0.1:1\"\nworkspace = \"/w\"\nmint = [\"true\"]\nsidecar = [\"sh\", \"reference.sh\"")).unwrap();
+    // When it is recorded
+    let r = rig.capture("record", &["--agents-cache", &rig.cache()], true);
+    // Then it is refused naming the mint command, the vault was not read and no record child ran
+    assert_eq!(r.code, 2, "{}\n{}", r.json, r.stderr);
+    assert!(r.json["error"].as_str().unwrap().contains("mint"), "{}", r.json);
+    assert!(!rig.dump("record.env").exists() && rig.vault_calls().is_empty());
+}

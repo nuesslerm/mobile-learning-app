@@ -104,6 +104,10 @@ fn refuse_unwired_spawn(cfg: &crate::config::Config, declared: &std::collections
     if spawned && (real || !declared.is_empty()) && !crate::adapters::script_driver::SPAWN_TAKES_REAL_AGENTS {
         return Err(fail("the reference is a spawned server and this build's mimic-script-host cannot give it real agent CLIs or a key (it needs 0.1.9, released with `wf lib release`, then adopted here)", "release mimic-script-host 0.1.9, raise the version in clis/mimic/Cargo.toml, wire SpawnLaunch.real_clis and SpawnLaunch.env in adapters/script_driver.rs, and record again"));
     }
+    let url_target = cfg.reference.as_ref().and_then(|r| r.script.as_ref()).is_some_and(|s| !s.spawn && !s.orca);
+    if url_target && !declared.is_empty() {
+        return Err(fail("the reference is a url script target: its mint command is started by the host library with the record child's whole environment, which would hold the declared key", "declare the key on an orca sidecar or a stdio reference, or drop env_from_vault"));
+    }
     Ok(())
 }
 
