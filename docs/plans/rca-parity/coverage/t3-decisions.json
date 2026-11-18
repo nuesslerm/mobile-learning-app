@@ -837,13 +837,13 @@
       "oracle": "mimic"
     },
     "command:thread.fork": {
-      "unrecordable": "no recording shows it: the recorded fork (t3-v0.1.9-agent-methods, on a thread with no finished turn) was refused by T3 and the replay's call window holds agent method thread.fork answered NO_STABLE_TURN, never an answered fork; the behaviour test thread_surface is the only check of it"
+      "unrecordable": "a real opencode turn is recorded for it (t3-v0.1.9-agent-real, hosted Mimic run 44285191911), but the chain candidate differs from that recording in known-gaps.json of the set (it captures no checkpoints, has no provider-instance create and its scripted opencode answers differently), so no replay of it is clean or allowlisted; the behaviour test thread_surface is the check of it"
     },
     "command:thread.merge_back": {
-      "unrecordable": "no recording shows it: the recorded merge back follows a fork T3 refused (no finished turn), so its call window holds thread.fork answered NO_STABLE_TURN and no agent method thread.mergeBack; the behaviour test thread_surface is the only check of it"
+      "unrecordable": "a real opencode turn is recorded for it (t3-v0.1.9-agent-real, hosted Mimic run 44285191911), but the chain candidate differs from that recording in known-gaps.json of the set (it captures no checkpoints, has no provider-instance create and its scripted opencode answers differently), so no replay of it is clean or allowlisted; the behaviour test thread_surface is the check of it"
     },
     "command:queued-message.promote-to-steer": {
-      "unrecordable": "no recording shows it: the recorded T3 refused the promotion and never asked turn.steer, so the steer of a running turn is in no replay; the behaviour test thread_surface is the only check of it"
+      "unrecordable": "a real opencode turn is recorded for it (t3-v0.1.9-agent-real), but the progress events of the running turn it promotes against differ between two runs of the same server (stability-allowlist.json, cause volatile), so no replay can decide it; the behaviour test thread_surface is the check of it"
     },
     "command:queued-run.start": {
       "oracle": "mimic"
@@ -873,7 +873,7 @@
       "unrecordable": "no recording shows it: the recorded replay differs on breaking gaps listed in known-gaps.json (the descriptor waits for the 0.1.9 version split); the behaviour test attachments is the only check of it"
     },
     "command:checkpoint.rollback": {
-      "unrecordable": "no recording shows it: the recorded rollback was answered TURN_NOT_FOUND, so no recorded call window holds agent method thread.rollback answering a rollback after a real turn; the behaviour test checkpoint_rollback is the only check of it"
+      "unrecordable": "a real opencode turn is recorded for it (t3-v0.1.9-agent-real, hosted Mimic run 44285191911), but the chain candidate differs from that recording in known-gaps.json of the set (it captures no checkpoints, has no provider-instance create and its scripted opencode answers differently), so no replay of it is clean or allowlisted; the behaviour test checkpoint_rollback is the check of it"
     },
     "mutation:project.create": {
       "oracle": "mimic"
