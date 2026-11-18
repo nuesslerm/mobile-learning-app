@@ -855,13 +855,13 @@
       "unrecordable": "no recording shows it: the recorded interactions never reach agent method input.dismiss (a dismissed question needs a scripted turn that asks one, which no recorded set holds); the behaviour test thread_surface is the only check of it. Not stageable yet (R12): the real T3 raises an approval or a question only when claude sends a control_request over the Claude SDK protocol, which the scripted CLI never prints (its steps are Line, Sleep, McpCall, ReadLine, Credential) and the reference host refuses McpCall, while the candidate raises one only through the executor MCP tool approval_prompt or ask_user: one case cannot hold the same cue on both sides."
     },
     "command:subagent.stop": {
-      "unrecordable": "no recording shows it: the scenarios call runs on a thread whose provider (codex) rca cannot drive, so turn.start fails before a subagent exists, and one breaking gap is listed; the behaviour test thread_surface is the only check of it. The set t3-v0.1.9-agent-cues stages the case; the row switches to mimic when its record is on dev and the replay is clean."
+      "unrecordable": "no recording shows it: the set t3-v0.1.9-agent-cues records the call, and the reference refused it (The requested native subagent cannot be stopped on this run: the scripted hanging turn raised no native subagent n1, so no agent method answered OK), and its hosted slice replay (run 44226420138, rows=command:subagent.stop) is breaking with one difference; the behaviour test thread_surface is the only check of it"
     },
     "command:thread.unarchive": {
-      "unrecordable": "no recording shows it: the recorded call window of the row does not hold agent method thread.archive answering; the behaviour test thread_surface is the only check of it. The set t3-v0.1.9-agent-cues stages the case; the row switches to mimic when its record is on dev and the replay is clean."
+      "unrecordable": "no recording shows it: the set t3-v0.1.9-agent-cues records it (archive then unarchive, both answered Success, hosted run 44215259574), but its hosted slice replay (run 44224411126, rows=command:thread.unarchive) is breaking with one difference whose detail the replay artifact does not carry; the behaviour test thread_surface is the only check of it"
     },
     "command:provider-session.detach": {
-      "unrecordable": "no recording shows it: the recorded call window of the row does not hold agent method thread.detach answering; the behaviour test thread_surface is the only check of it. The set t3-v0.1.9-agent-cues stages the case; the row switches to mimic when its record is on dev and the replay is clean."
+      "unrecordable": "no recording shows it as an answered agent method: the set t3-v0.1.9-agent-cues records the call and the reference refused it (Provider session sess-1 does not belong to thread agent-thread, so no agent method answered OK); its hosted slice replay (run 44225611671, rows=command:provider-session.detach) is allowlisted, but a refusal is not an answer of thread.detach and no run-bundle trace evidence of it exists yet, so the row stays served by the behaviour test thread_surface"
     },
     "command:thread.create": {
       "oracle": "mimic"
