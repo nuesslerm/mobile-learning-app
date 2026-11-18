@@ -188,7 +188,7 @@ registry keys):
 ```jsonc
 { "id": "codex", "loginCmd": "codex login", "copy": ["~/.codex/auth.json"],
   // The base64 of one of the `copy` files; `--clear` empties it.
-  "vault": { "key": "CODEX_AUTH_JSON_B64", "file": "~/.codex/auth.json" } }
+  "vault": { "key": "CODEX_OAUTH_JSON_B64", "file": "~/.codex/auth.json" } }
 ```
 
 `outputSecret` in detail:

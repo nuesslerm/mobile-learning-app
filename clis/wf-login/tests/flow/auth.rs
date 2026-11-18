@@ -85,7 +85,7 @@ fn wf_lists_the_tools_with_a_login_names_them_for_an_unknown_one_and_refuses_the
     // Then every tool with an auth descriptor is printed in registry order with the vault key it lands in, the unknown one names them, and the flag is refused
     assert_eq!(
         (list.exit_code, list.stdout.as_str()),
-        (0, "claude: vault CLAUDE_CODE_OAUTH_TOKEN\ncodex: vault CODEX_AUTH_JSON_B64\nopencode\ngemini\ngcloud: vault GCLOUD_DRIVE_CREDENTIALS_DB_B64\nleetcode\n")
+        (0, "claude: vault CLAUDE_CODE_OAUTH_TOKEN\ncodex: vault CODEX_OAUTH_JSON_B64\nopencode\ngemini\ngcloud: vault GCLOUD_DRIVE_CREDENTIALS_DB_B64\nleetcode\n")
     );
     assert_eq!((unknown.exit_code, unknown.stderr.as_str()), (1, "Unknown tool: nope\nKnown tools: claude, codex, opencode, gemini, gcloud, leetcode\n"));
     assert!(retired.exit_code == 2 && retired.stderr.contains("--remote was removed") && d.server.requests().is_empty(), "{}", retired.stderr);
@@ -670,7 +670,7 @@ fn a_gcloud_login_mirrors_its_credential_into_the_vault_and_clear_empties_that_s
 const TOKEN: &str = "sk-ant-oat01-FAKEfakeFAKE_0123456789-abcdefghijklmnop";
 
 const TWO_KEYS_VAULT_STUB: &str = r#"echo "$*" >> "$HOME/bws.log"
-if [ "$1 $2" = "secret list" ]; then echo '[{"id":"c1","key":"CLAUDE_CODE_OAUTH_TOKEN","value":"old"},{"id":"x1","key":"CODEX_AUTH_JSON_B64","value":"old"},{"id":"v2","key":"VNC_AUTH_TRIGGER_SECRET","value":"trigger-secret"},{"id":"v3","key":"VNC_AUTH_OWNER_CHAT_ID","value":"4242"}]'; exit 0; fi
+if [ "$1 $2" = "secret list" ]; then echo '[{"id":"c1","key":"CLAUDE_CODE_OAUTH_TOKEN","value":"old"},{"id":"x1","key":"CODEX_OAUTH_JSON_B64","value":"old"},{"id":"v2","key":"VNC_AUTH_TRIGGER_SECRET","value":"trigger-secret"},{"id":"v3","key":"VNC_AUTH_OWNER_CHAT_ID","value":"4242"}]'; exit 0; fi
 if [ -n "$BWS_EDIT_FAILS" ] && [ "$1 $2" = "secret edit" ]; then echo "rejected: $*" >&2; exit 1; fi
 exit 0"#;
 
@@ -736,9 +736,9 @@ fn a_login_stores_the_printed_token_as_a_plain_string_and_the_codex_file_as_base
     ]);
     std::fs::remove_file(d.home.join("bws.log")).unwrap();
     let codex = d.login(&["codex"], &edit);
-    // Then CODEX_AUTH_JSON_B64 holds the base64 of the file, and nothing is copied here
+    // Then CODEX_OAUTH_JSON_B64 holds the base64 of the file, and nothing is copied here
     assert_eq!(codex.exit_code, 0, "{}", codex.stderr);
-    assert!(codex.stdout.contains("codex: vault secret CODEX_AUTH_JSON_B64 updated"), "{}", codex.stdout);
+    assert!(codex.stdout.contains("codex: vault secret CODEX_OAUTH_JSON_B64 updated"), "{}", codex.stdout);
     let log = std::fs::read_to_string(d.home.join("bws.log")).unwrap();
     assert!(log.contains(&format!("--value {file_b64}")) && log.contains(" x1"), "{log}");
     assert!(!d.home.join(".codex/auth.json").exists());
