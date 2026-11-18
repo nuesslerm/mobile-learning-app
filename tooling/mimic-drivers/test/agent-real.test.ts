@@ -60,7 +60,7 @@ test('Given the rollback case, When it is read, Then the rollback follows a proj
 
 test('Given the merge case, When it is read, Then the fork is answered before the merge back on a thread that has a finished turn', () => {
   const script = scriptOf(cases().get('t3-real-thread.merge_back')!)
-  assert.deepEqual(types(script), ['server.updateSettings', 'thread.create', 'message.dispatch', 'orchestration.getThreadProjection', 'thread.fork', 'thread.merge_back', 'orchestration.getThreadProjection'])
+  assert.deepEqual(types(script), ['server.updateSettings', 'thread.create', 'message.dispatch', 'orchestration.getThreadProjection', 'thread.fork', 'message.dispatch', 'thread.merge_back', 'orchestration.getThreadProjection'])
   assert.equal(sends(script)[4]!.await, 'exit')
 })
 

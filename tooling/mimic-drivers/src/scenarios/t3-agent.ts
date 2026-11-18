@@ -82,10 +82,12 @@ const OPENCODE = { instanceId: 'opencode', model: 'opencode-go/deepseek-v4.1-fla
 const PROMPT = 'reply with OK'
 const LONG_PROMPT = 'write the numbers from 1 to 400, one per line, with no other text'
 const TURN_WAIT_MS = 20000
+/** Not a request: the script's own wait step. */
+const LISTEN = 'listen'
 // T3 0.1.9 keeps its opencode provider instance disabled until the settings enable it (the first hosted record answered every message with ThreadManagementProviderInstanceDisabledError).
 /** What the projection of a thread with a finished turn names, whichever of these paths this T3 uses (a probe of the first hosted record settles it). */
 const FINISHED: Capture = {
-  checkpointId: { from: ['/exit/value/checkpoints/0/checkpointId', '/exit/value/checkpoints/0/id', '/exit/value/checkpoints/0/turnId'] },
+  checkpointId: { from: ['/exit/value/checkpoints/1/id', '/exit/value/checkpoints/1/checkpointId', '/exit/value/checkpoints/0/id'] },
   scopeId: { from: ['/exit/value/checkpoints/0/scopeId', '/exit/value/runs/0/runId', '/exit/value/runs/0/id'] }
 }
 const ROLLBACK = { checkpointId: '{checkpointId}', scopeId: '{scopeId}' }
@@ -93,7 +95,7 @@ const ROLLBACK = { checkpointId: '{checkpointId}', scopeId: '{scopeId}' }
 /** The label of a case is its last row. Each runs the real opencode turn first, so the call window of the row holds its agent method answered by a real agent. */
 const REAL: Agent[] = [
   { id: 'checkpoint.rollback', rows: ['checkpoint.rollback'], note: 'roll a thread back to the checkpoint of a finished real turn', hung: false, queue: 0, real: { capture: FINISHED }, steps: [{ m: 'checkpoint.rollback', set: { ...THIS, ...ROLLBACK } }, { m: PROJECTION, set: THIS }] },
-  { id: 'thread.merge_back', rows: ['thread.fork', 'thread.merge_back'], note: 'fork a thread with a finished real turn and merge the fork back', hung: false, queue: 0, real: { capture: FINISHED }, steps: [{ m: 'thread.fork', set: { sourceThreadId: AGENT_THREAD, targetThreadId: FORK_THREAD, sourcePoint: LATEST_STABLE }, wait: true }, { m: 'thread.merge_back', set: { sourceThreadId: FORK_THREAD, targetThreadId: AGENT_THREAD, sourcePoint: LATEST_STABLE } }, { m: PROJECTION, set: THIS }] },
+  { id: 'thread.merge_back', rows: ['thread.fork', 'thread.merge_back'], note: 'fork a thread with a finished real turn and merge the fork back', hung: false, queue: 0, real: { capture: FINISHED }, steps: [{ m: 'thread.fork', set: { sourceThreadId: AGENT_THREAD, targetThreadId: FORK_THREAD, sourcePoint: LATEST_STABLE }, wait: true }, { m: 'message.dispatch', set: { threadId: FORK_THREAD, messageId: 'm-fork', text: PROMPT, dispatchMode: { type: 'start_immediately' } }, wait: true }, { m: LISTEN, set: { ms: TURN_WAIT_MS } }, { m: 'thread.merge_back', set: { sourceThreadId: FORK_THREAD, targetThreadId: AGENT_THREAD, sourcePoint: LATEST_STABLE } }, { m: PROJECTION, set: THIS }] },
   { id: 'queued-message.promote-to-steer', rows: ['queued-message.promote-to-steer'], note: 'promote a message queued behind a really running turn to steer it', hung: false, queue: 1, real: { capture: QUEUED }, steps: [{ m: 'queued-message.promote-to-steer', set: { ...THIS, queuedRunId: '{q1}', targetRunId: '{runId}' } }, { m: PROJECTION, set: THIS }] }
 ]
 
@@ -127,7 +129,7 @@ function steps(api: Api, agent: Agent): Entry[] {
     for (let i = 1; i <= agent.queue; i++) out.push(send(api, 'message.dispatch', `t${i + 1}`, { threadId: AGENT_THREAD, messageId: `m-queued-${i}`, text: agent.real ? PROMPT : `queued ${i}`, dispatchMode: { type: 'queue_after_active' } }, { await: 'exit' }))
     out.push({ ...send(api, PROJECTION, 'r1', THIS), capture: (agent.real?.capture ?? (agent.queue ? QUEUED : RUN)) as unknown as Json })
   }
-  agent.steps.forEach((s, i) => out.push(send(api, s.m, `s${i + 1}`, s.set, s.wait ? { await: 'exit' } : {})))
+  agent.steps.forEach((s, i) => out.push(s.m === LISTEN ? ({ listen: { ms: s.set?.ms ?? 0 } } as unknown as Entry) : send(api, s.m, `s${i + 1}`, s.set, s.wait ? { await: 'exit' } : {})))
   return out
 }
 

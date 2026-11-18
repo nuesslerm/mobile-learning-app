@@ -43,6 +43,9 @@ impl Host {
             std::fs::write(&path, stub(name)).map_err(|e| e.to_string())?;
             set_executable(&path)?;
         }
+        if real_clis.is_some() {
+            init_workspace_repo(&workspace, &home)?;
+        }
         let cli = cli_dir.map(|from| own_copy(from, &root.join("cli"), &real_names)).transpose()?;
         let real = real_clis.map(Path::to_path_buf);
         let lead: Vec<String> = cli.iter().chain(std::iter::once(&bin)).chain(real.iter()).map(|d| d.display().to_string()).collect();
@@ -124,6 +127,27 @@ impl Host {
         }
         Ok(())
     }
+}
+
+/// A server that runs a real agent checkpoints its threads as git refs of the project, so the workspace of such a host is a repository with one commit (the hosts of scripted agents stay as they were).
+fn init_workspace_repo(workspace: &Path, home: &Path) -> Result<(), String> {
+    std::fs::create_dir_all(workspace).map_err(|e| format!("{}: {e}", workspace.display()))?;
+    std::fs::write(workspace.join("README.md"), "mimic workspace\n").map_err(|e| e.to_string())?;
+    for args in [&["init", "-q", "-b", "main"][..], &["add", "README.md"], &["commit", "-q", "-m", "workspace"]] {
+        let out = std::process::Command::new("git")
+            .args(["-c", "user.name=mimic", "-c", "user.email=mimic@example.invalid", "-c", "commit.gpgsign=false"])
+            .args(args)
+            .current_dir(workspace)
+            .env_clear()
+            .env("PATH", "/usr/bin:/bin")
+            .env("HOME", home)
+            .output()
+            .map_err(|e| format!("git {}: {e}", args[0]))?;
+        if !out.status.success() {
+            return Err(format!("git {} in {}: {}", args[0], workspace.display(), String::from_utf8_lossy(&out.stderr).trim()));
+        }
+    }
+    Ok(())
 }
 
 /// The names of the programs in `dir`.

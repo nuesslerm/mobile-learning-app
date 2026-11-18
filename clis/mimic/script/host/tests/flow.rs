@@ -416,3 +416,17 @@ fn base64_of(text: &str) -> String {
     let out = std::process::Command::new("sh").arg("-c").arg(format!("printf %s '{text}' | base64 -w0")).output().unwrap();
     String::from_utf8(out.stdout).unwrap()
 }
+
+#[test]
+fn given_a_real_cli_when_the_host_is_prepared_then_its_workspace_is_a_repository_with_one_commit_and_a_scripted_host_keeps_an_empty_workspace() {
+    let real = real_dir();
+    let real_root = tempfile::tempdir().unwrap();
+    let scripted_root = tempfile::tempdir().unwrap();
+
+    let real_host = Host::prepare(real_root.path(), None, Some(real.path())).unwrap();
+    let scripted_host = Host::prepare(scripted_root.path(), None, None).unwrap();
+
+    let log = std::process::Command::new("git").args(["log", "--oneline"]).current_dir(&real_host.workspace).output().unwrap();
+    assert_eq!(String::from_utf8_lossy(&log.stdout).lines().count(), 1, "{}", String::from_utf8_lossy(&log.stderr));
+    assert!(std::fs::read_dir(&scripted_host.workspace).unwrap().next().is_none(), "a scripted host's workspace must stay empty");
+}
