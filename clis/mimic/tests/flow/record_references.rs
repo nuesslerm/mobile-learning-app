@@ -494,6 +494,11 @@ fn a_replay_capture_tabulates_every_candidate_and_is_red_only_when_one_differs()
     let md = std::fs::read_to_string(&summary).unwrap();
     assert!(md.contains("| same | none |") && md.contains("| change | drift |") && md.contains("| change |"), "{md}");
     assert!(w.dir.path().join("out/toy-set.replay.json").is_file());
+    // And the JSON names each differing interaction of a candidate with its first difference, and lists none for the one that behaves
+    let by = |name: &str| r.json["candidates"].as_array().unwrap().iter().find(|c| c["candidate"] == name).unwrap_or_else(|| panic!("{}", r.json)).clone();
+    assert_eq!(by("same")["differences"], json!([]), "{}", r.json);
+    let listed = by("change")["differences"].as_array().unwrap().clone();
+    assert!(!listed.is_empty() && listed.iter().all(|d| d["id"].is_string() && d["first"]["path"].is_string() && d["label"].is_string()), "{}", r.json);
     // When only the candidate that behaves is replayed
     let clean = mimic(&["capture", "replay", &set, "--candidate", "same"], &[]);
     // Then the run is green

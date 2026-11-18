@@ -268,11 +268,13 @@ fn replay(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
         }
         ok &= c.code == 0;
         let s = &c.json["summary"];
-        rows.push(json!({"candidate": name, "severity": c.json["severity"], "summary": s}));
+        let mut listed = Vec::<Value>::new();
         for r in c.json["results"].as_array().into_iter().flatten().take(40) {
             let d = &r["diffs"][0];
+            listed.push(json!({"id": r["id"], "label": r["label"], "severity": r["severity"], "first": {"kind": d["kind"], "path": d["path"]}, "error": r["error"]}));
             diffs.push(format!("| {name} | {} | {} | {} {} |", r["id"].as_str().unwrap_or(""), r["severity"].as_str().unwrap_or(""), d["kind"].as_str().unwrap_or(""), d["path"].as_str().unwrap_or(r["error"].as_str().unwrap_or(""))));
         }
+        rows.push(json!({"candidate": name, "severity": c.json["severity"], "summary": s, "differences": listed}));
     }
     let mut md = format!("### Replay `{}`\n\n| candidate | severity | total | clean | allowlisted | drift | breaking |\n|---|---|---|---|---|---|---|\n", set.name);
     for r in &rows {
