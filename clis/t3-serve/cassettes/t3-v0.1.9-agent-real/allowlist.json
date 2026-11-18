@@ -71,6 +71,12 @@
       "reason": "this server does not trace locally",
       "phase": "1",
       "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
+    },
+    {
+      "path": "nativeThreadId",
+      "reason": "the provider's own session id: a real opencode names its sessions differently from the scripted CLI the chain runs",
+      "phase": "R11",
+      "pin_hash": "sha256:79fee495aa396c9071a5c25120292b5e3c86dc095c66bea999feb90d1e5d0ae1"
     }
   ],
   "omitted": [

@@ -272,7 +272,7 @@ fn replay(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
         for r in c.json["results"].as_array().into_iter().flatten().take(40) {
             let d = &r["diffs"][0];
             // The first difference is often an allowlisted one (a transport header): the ones no allowlist entry covers are what makes the case breaking, so they are listed beside it.
-            let open: Vec<Value> = r["diffs"].as_array().into_iter().flatten().filter(|x| x["allowlisted"].is_null()).take(5).map(|x| json!({"kind": x["kind"], "path": x["path"], "expected": clip(&x["expected"]), "actual": clip(&x["actual"])})).collect();
+            let open: Vec<Value> = r["diffs"].as_array().into_iter().flatten().filter(|x| x["allowlisted"].is_null()).take(40).map(|x| json!({"kind": x["kind"], "path": x["path"], "expected": clip(&x["expected"]), "actual": clip(&x["actual"])})).collect();
             listed.push(json!({"id": r["id"], "label": r["label"], "severity": r["severity"], "first": {"kind": d["kind"], "path": d["path"]}, "open": open, "error": r["error"]}));
             diffs.push(format!("| {name} | {} | {} | {} {} |", r["id"].as_str().unwrap_or(""), r["severity"].as_str().unwrap_or(""), d["kind"].as_str().unwrap_or(""), d["path"].as_str().unwrap_or(r["error"].as_str().unwrap_or(""))));
         }
