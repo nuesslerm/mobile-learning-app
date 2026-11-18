@@ -80,7 +80,7 @@ const CUES: Agent[] = [
 
 const OPENCODE = { instanceId: 'opencode', model: 'opencode-go/deepseek-v4.1-flash' }
 const PROMPT = 'reply with OK'
-const LONG_PROMPT = 'write the numbers from 1 to 400, one per line, with no other text'
+const LONG_PROMPT = 'run the shell command sleep 90 and then reply with OK'
 const TURN_WAIT_MS = 20000
 /** Not a request: the script's own wait step. */
 const LISTEN = 'listen'
@@ -90,7 +90,8 @@ const FINISHED: Capture = {
   checkpointId: { from: ['/exit/value/checkpoints/1/id', '/exit/value/checkpoints/1/checkpointId', '/exit/value/checkpoints/0/id'] },
   scopeId: { from: ['/exit/value/checkpoints/0/scopeId', '/exit/value/runs/0/runId', '/exit/value/runs/0/id'] }
 }
-const ROLLBACK = { checkpointId: '{checkpointId}', scopeId: '{scopeId}' }
+// Restoring files needs an isolated worktree; the case rewinds the conversation only.
+const ROLLBACK = { checkpointId: '{checkpointId}', scopeId: '{scopeId}', restoreFiles: false }
 
 /** The label of a case is its last row. Each runs the real opencode turn first, so the call window of the row holds its agent method answered by a real agent. */
 const REAL: Agent[] = [

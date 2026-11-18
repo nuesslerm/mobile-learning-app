@@ -43,7 +43,7 @@ test('Given every case, When it is read, Then a real opencode turn with the triv
     assert.equal((settings!['ws-send'] as { tag: string }).tag, 'server.updateSettings', `${c.id} must enable the opencode provider first`)
     assert.deepEqual(payloadOf(settings!).providerInstanceMutation, { operation: 'create', instanceId: 'opencode', instance: { driver: 'opencode', enabled: true } }, c.id)
     assert.equal((payloadOf(create!).modelSelection as { instanceId: string }).instanceId, 'opencode', c.id)
-    assert.equal(payloadOf(dispatch!).text, c.id.includes('queued') ? 'write the numbers from 1 to 400, one per line, with no other text' : 'reply with OK', c.id)
+    assert.equal(payloadOf(dispatch!).text, c.id.includes('queued') ? 'run the shell command sleep 90 and then reply with OK' : 'reply with OK', c.id)
     if (!c.id.includes('queued')) assert.ok(script.some((s) => (s.listen as { ms?: number } | undefined)?.ms), `${c.id} must wait for the turn to finish`)
     assert.equal(create!.await, 'exit')
     assert.equal(dispatch!.await, 'exit')
