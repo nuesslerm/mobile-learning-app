@@ -170,12 +170,13 @@ fn login(tool: &Descriptor, copy: bool, clear: bool) -> Result<(), i32> {
                             return Err(1);
                         }
                     }
-                    let _ = listener.post("/auth/done", &json!({ "sessionId": session_id }), " ");
-                    println!("{}: authenticated ✓ ({})", tool.id, if copy { "credential copied to this machine" } else { "the login stays on the VM; agent-shell has its credential" });
-                    publish_to_vault(tool, &reply["files"]);
+                    // Stored before /auth/done: done deletes the login log, the printed token's only other copy, so a failed store keeps it for a retry.
                     if publish_output_secret(tool, &reply["outputSecret"]).is_err() {
                         return Err(1);
                     }
+                    let _ = listener.post("/auth/done", &json!({ "sessionId": session_id }), " ");
+                    println!("{}: authenticated ✓ ({})", tool.id, if copy { "credential copied to this machine" } else { "the login stays on the VM; agent-shell has its credential" });
+                    publish_to_vault(tool, &reply["files"]);
                     return if copy { finish_gcloud(tool) } else { Ok(()) };
                 }
             }

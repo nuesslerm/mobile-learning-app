@@ -107,7 +107,7 @@ fn a_person_logs_a_tool_in_through_the_shared_desktop_and_drives_its_capture() {
     assert_eq!(finished.exit_code, 0, "{}", finished.stderr);
     assert_eq!(
         finished.stdout,
-        "Open this link on any device to complete claude login in the shared desktop:\nhttps://link.example/abc\nThis link is reusable across devices and expires in 12 hours.\n\nWaiting for the login to finish...\nclaude: authenticated ✓ (the login stays on the VM; agent-shell has its credential)\nclaude: vault secret CLAUDE_CODE_OAUTH_TOKEN updated\n"
+        "Open this link on any device to complete claude login in the shared desktop:\nhttps://link.example/abc\nThis link is reusable across devices and expires in 12 hours.\n\nWaiting for the login to finish...\nclaude: vault secret CLAUDE_CODE_OAUTH_TOKEN updated\nclaude: authenticated ✓ (the login stays on the VM; agent-shell has its credential)\n"
     );
     assert_eq!((requests[0].url.as_str(), serde_json::from_str::<Value>(&requests[0].body).unwrap()), ("/auth/start", json!({ "tool": "claude" })));
     assert_eq!((requests[1].url.as_str(), serde_json::from_str::<Value>(&requests[1].body).unwrap()), ("/auth/credential", json!({ "sessionId": "s1", "copy": false })));
