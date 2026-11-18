@@ -43,6 +43,8 @@ the listener's cargo closure equal. Run the listener flow tests against this bui
 The flow tests are the `the_listener_*` journeys of `clis/wf-login/tests/flow/auth.rs` (the real binary,
 the real Chromium).
 
+The agent sandbox joins the tailnet with `wf vm net up` (userspace tailscaled, socks5 `localhost:1055`, device `sandbox-agent`); the owner's phone is on the same tailnet.
+
 ## Security — operator checklist (defense in depth)
 
 The threat model treats the VNC frame, the credential, and the tokened link as
