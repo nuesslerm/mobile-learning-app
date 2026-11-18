@@ -17,6 +17,7 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("secret registry sync", false, include_str!("help/wf__secret__registry__sync.txt")),
     ("secret rename", false, include_str!("help/wf__secret__rename.txt")),
     ("secret scope-check", false, include_str!("help/wf__secret__scope-check.txt")),
+    ("secret rotate-login", false, include_str!("help/wf__secret__rotate-login.txt")),
     ("secret set", false, include_str!("help/wf__secret__set.txt")),
     ("secret sync-env", false, include_str!("help/wf__secret__sync-env.txt")),
     ("secret verify", false, include_str!("help/wf__secret__verify.txt")),

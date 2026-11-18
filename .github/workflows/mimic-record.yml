@@ -203,6 +203,8 @@ jobs:
           SECRETS_BACKEND: bitwarden
           BWS_SERVER_URL: https://vault.bitwarden.eu
           BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+          # the login a Codex that ran leaves behind is copied here by its wrapper (nothing else is), for the writer job below
+          MIMIC_CODEX_LOGIN_OUT: ${{ runner.temp }}/codex-login/auth.json
         # One verb, four phases: provision the reference as the set's [provision] block says, the record or replay, the stop of a chain candidate, and
         # (a record with --publish) the publish of the masked set to the state ref once the reference is gone. Niced like the job. Nothing is written to
         # GITHUB_ENV and no step before this one holds a secret. What isolates a credential from the reference and from everything it builds is not the
@@ -216,7 +218,7 @@ jobs:
             if [ "$FRESH" = true ]; then flags="$flags --fresh"; fi
           fi
           if [ "$ACTION" = replay ] && [ -n "$ROWS" ]; then flags="--rows $ROWS"; fi
-          mkdir -p "$OUT_DIR"
+          mkdir -p "$OUT_DIR" "$RUNNER_TEMP/codex-login"
           set +e
           # shellcheck disable=SC2086
           nice -n 19 wf mimic capture "$ACTION" "$SET_DIR" $flags --run "$GITHUB_RUN_ID" --out "$OUT_DIR" > "$OUT_DIR/capture.json"
@@ -229,6 +231,15 @@ jobs:
             echo "checkpoint_upload=$(jq -r '.checkpoint_upload // false' "$OUT_DIR/capture.json")"
           } >> "$GITHUB_OUTPUT"
           exit "$code"
+      - name: Keep the Codex login a record refreshed
+        # one day, owner-only on the runner; the writer job checks its shape before the vault is touched
+        if: ${{ always() && env.ACTION == 'record' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: codex-login-${{ matrix.name }}
+          path: ${{ runner.temp }}/codex-login/auth.json
+          retention-days: 1
+          if-no-files-found: ignore
       - name: Keep the checkpoint of an unfinished record
         # Only a record that ran out of its budget (the job says so), never a failed leg, and only when the unmasked checkpoint holds no token-shaped value
         if: ${{ always() && env.ACTION == 'record' && steps.job.outputs.incomplete == 'true' && steps.job.outputs.checkpoint_upload == 'true' }}
@@ -268,3 +279,47 @@ jobs:
             curl -fsS -X DELETE -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/actions/artifacts/$id" > /dev/null
             echo "dropped checkpoint artifact $id"
           done
+
+  codex-login-writeback:
+    # Codex refreshes its login while it runs and the refresh token is single-use, so the vault copy goes stale. This job runs no reference code and no
+    # Codex: it takes the file a record left, checks it is a ChatGPT login of the same account, and writes only CODEX_OAUTH_JSON_B64 (`wf secret rotate-login`).
+    name: write a refreshed Codex login back
+    needs: capture
+    if: ${{ always() && needs.capture.result != 'skipped' && github.ref == 'refs/heads/dev' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.sha || github.sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: clis
+          path: ${{ runner.temp }}/wf-bin
+      - name: wf on PATH
+        run: |
+          chmod 755 "$RUNNER_TEMP"/wf-bin/*
+          echo "$RUNNER_TEMP/wf-bin" >> "$GITHUB_PATH"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        continue-on-error: true
+        with:
+          pattern: codex-login-*
+          path: ${{ runner.temp }}/codex-logins
+      - uses: ./.github/actions/install-bws
+      - name: Write the refreshed login back
+        env:
+          SECRETS_BACKEND: bitwarden
+          BWS_SERVER_URL: https://vault.bitwarden.eu
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
+        run: |
+          found=0
+          for f in "$RUNNER_TEMP"/codex-logins/*/auth.json; do
+            [ -s "$f" ] || continue
+            found=1
+            wf secret rotate-login codex --from "$f"
+          done
+          [ "$found" = 1 ] || echo "no record left a Codex login: nothing to write back"

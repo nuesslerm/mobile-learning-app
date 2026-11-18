@@ -114,6 +114,34 @@ impl VaultWriter {
     }
 }
 
+/* ---------- one key, with the CI deploy credential ---------- */
+
+/// The CI deploy credential (`BWS_CI_DEPLOY_ACCESS_TOKEN`, 'Can read, write' on the CI project) as the writer of one login a CI job refreshed.
+pub struct CiVault {
+    token: String,
+    server: Option<String>,
+}
+
+pub fn ci_vault() -> Result<CiVault, String> {
+    let token = resolve_backend_config(super::ci::DEPLOY_TOKEN_VAR, "bws-ci-deploy-access-token")?
+        .ok_or_else(|| format!("{} is not set: the CI deploy credential reads and writes the CI vault project", super::ci::DEPLOY_TOKEN_VAR))?;
+    Ok(CiVault { token, server: resolve_backend_config("BWS_SERVER_URL", "bws-server-url")? })
+}
+
+impl CiVault {
+    /// The id and the current value of the secret named `key`, when the vault has it.
+    pub fn find(&self, key: &str) -> Result<Option<(String, String)>, String> {
+        let listed = run_bws(&["secret", "list", "--output", "json"], &self.token, self.server.as_deref()).map_err(|d| format!("Bitwarden secret list failed: {d}"))?;
+        let items: Vec<Value> = serde_json::from_str(&listed).map_err(|_| "Bitwarden secret list answered something that is not a list".to_string())?;
+        Ok(items.iter().find(|s| s["key"] == key).and_then(|s| Some((s["id"].as_str()?.to_string(), s["value"].as_str().unwrap_or_default().to_string()))))
+    }
+
+    pub fn set_value(&self, id: &str, value: &str) -> Result<(), String> {
+        let writer = VaultWriter { edit: Some(self.token.clone()), server: self.server.clone() };
+        writer.update_value(id, value)
+    }
+}
+
 /* ---------- notes ---------- */
 
 pub struct VaultNote {

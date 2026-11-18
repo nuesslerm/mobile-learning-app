@@ -543,6 +543,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         "cache" => parse(rest, &[], &[]).filter(|p| p.positional == ["clear"]),
         "set" => parse(rest, &[], &[]).filter(|p| (1..=2).contains(&p.positional.len())),
         "delete" => parse(rest, &[], &[]).filter(|p| p.positional.len() == 1),
+        "rotate-login" => parse(rest, &["from"], &[]).filter(|p| p.positional == ["codex"]),
         "push-notes" => parse_none(rest, &[], &["apply", "verbose"]),
         "create" => parse(rest, &["value", "value-from"], &["value-stdin", "placeholder", "apply"]).filter(|p| p.positional.len() == 2),
         "update" => parse(rest, &["value"], &["value-stdin", "apply"]).filter(|p| p.positional.len() == 1),
@@ -565,6 +566,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         }
         "set" => writers::cmd_set(parsed),
         "delete" => writers::cmd_delete(parsed),
+        "rotate-login" => writers::cmd_rotate_login(parsed),
         "push-notes" => writers::cmd_push_notes(parsed),
         "create" => writers::cmd_create(parsed),
         "update" => writers::cmd_update(parsed),

@@ -918,3 +918,50 @@ fn the_vault_holds_no_github_token_key_and_no_compose_file_hands_one_to_a_contai
     assert!(passed.is_empty(), "{passed:?}");
     assert!(registry().contains_key("VM_PROVISION_GITHUB_TOKEN"));
 }
+
+fn b64(text: &str) -> String {
+    let out = std::process::Command::new("sh").arg("-c").arg(format!("printf %s '{text}' | base64 -w0")).output().unwrap();
+    String::from_utf8(out.stdout).unwrap()
+}
+
+#[test]
+fn given_a_login_codex_refreshed_in_ci_when_it_is_rotated_then_only_a_changed_refresh_token_is_written_to_the_one_key_and_no_value_is_printed() {
+    // Given a vault whose CI deploy credential reads the Codex login, and the file a CI run left
+    let v = Vault::new();
+    let old = r#"{"tokens":{"access_token":"at-old","refresh_token":"rt-old","account_id":"acct-1"}}"#;
+    let fresh = r#"{"tokens":{"access_token":"at-new","refresh_token":"rt-new","account_id":"acct-1"}}"#;
+    let foreign = r#"{"tokens":{"access_token":"at-x","refresh_token":"rt-x","account_id":"acct-2"}}"#;
+    v.holds("ci-token", json!([{ "id": "cx", "key": "CODEX_OAUTH_JSON_B64", "value": b64(old) }, groq()]));
+    let (left, same, junk) = (v.dir.path().join("left.json"), v.dir.path().join("same.json"), v.dir.path().join("junk.json"));
+    std::fs::write(&left, fresh).unwrap();
+    std::fs::write(&same, old).unwrap();
+    std::fs::write(&junk, r#"{"tokens":{"access_token":"","refresh_token":"x"}}"#).unwrap();
+    let other = v.dir.path().join("other.json");
+    std::fs::write(&other, foreign).unwrap();
+    let ci = [("BWS_CI_DEPLOY_ACCESS_TOKEN", "ci-token")];
+    let rotate = |file: &std::path::Path| v.wf(&["rotate-login", "codex", "--from", &file.display().to_string()], &ci, None);
+
+    // When the refreshed login, the unchanged one and a file that is no login are rotated
+    let changed = rotate(&left);
+    let written = v.writes();
+    v.forget();
+    let unchanged = rotate(&same);
+    let untouched = v.writes();
+    v.forget();
+    let refused = rotate(&junk);
+    v.forget();
+    let stranger = rotate(&other);
+    let stranger_writes = v.writes();
+
+    // Then the changed refresh token is written as base64 to that one secret by id with the CI credential, saying neither value; the same one writes nothing; the junk file is refused before the vault is asked
+    assert_eq!((changed.exit_code, changed.stdout.as_str()), (0, "CODEX_OAUTH_JSON_B64: updated\n"), "{}", changed.stderr);
+    assert_eq!(written, [format!("secret edit --value {} --output none -- cx | token=ci-token url=", b64(fresh))]);
+    assert!(!changed.stdout.contains("rt-new") && !changed.stderr.contains("rt-new"));
+    assert_eq!((unchanged.exit_code, unchanged.stdout.as_str()), (0, "CODEX_OAUTH_JSON_B64: unchanged\n"));
+    assert!(untouched.is_empty(), "{untouched:?}");
+    assert_eq!(refused.exit_code, 1);
+    assert!(refused.stderr.contains("is not a ChatGPT login"), "{}", refused.stderr);
+    // And a login of another account is refused after the vault was read, and nothing was written
+    assert_eq!(stranger.exit_code, 1);
+    assert!(stranger.stderr.contains("another account") && stranger_writes.is_empty(), "{}", stranger.stderr);
+}
