@@ -6,6 +6,7 @@
 // A second set, `t3-v0.1.9-agent-methods`, holds the cases whose row has to be the label of the case that runs its agent method: a recorded set's corpus
 // is frozen with its cassette, so these are not edits of the first. checkpoint.rollback is not in it: it needs a finished turn of a real agent.
 // A third set, `t3-v0.1.9-agent-queries`, holds one case per query row the first two sets never ask of a thread the server knows.
+// A fourth set, `t3-v0.1.9-agent-cues`, holds the rows whose agent method needs a state an earlier answered command makes (an archived thread, a running turn).
 import type { Capture } from '../capture.ts'
 import type { Case } from '../corpus/types.ts'
 import type { Json } from '../protocol.ts'
@@ -68,6 +69,13 @@ const QUERIES: Agent[] = [
   { id: 'subscribePromptSuggestion', rows: ['orchestration.subscribePromptSuggestion'], note: 'subscribe to the predicted next prompt of a thread that has none', hung: false, queue: 0, steps: [{ m: 'orchestration.subscribePromptSuggestion', set: THIS }] }
 ]
 
+/** The label of a case is its last row: the state the row needs is made by answered commands before it (an archive, a running turn), so its call window holds the agent method answered. */
+const CUES: Agent[] = [
+  { id: 'thread.unarchive', rows: ['thread.archive', 'thread.unarchive'], note: 'archive a thread of Claude and answer it, then unarchive it', hung: false, queue: 0, steps: [{ m: 'thread.archive', set: THIS, wait: true }, { m: 'thread.unarchive', set: THIS }, { m: PROJECTION, set: THIS }] },
+  { id: 'provider-session.detach', rows: ['provider-session.detach'], note: 'detach the provider session of a thread of Claude', hung: false, queue: 0, steps: [{ m: 'provider-session.detach', set: { ...THIS, providerSessionId: 'sess-1' } }, { m: PROJECTION, set: THIS }] },
+  { id: 'subagent.stop', rows: ['subagent.stop'], note: 'stop a subagent of the turn that is still running', hung: true, queue: 0, steps: [{ m: 'subagent.stop', set: { ...THIS, runId: '{runId}', subagentId: 'n1' } }, { m: PROJECTION, set: THIS }] }
+]
+
 function frameOf(api: Api, name: string): Entry {
   const matches = api.endpoints.filter((e) => e.name === name)
   if (matches.length !== 1) return fail(`${name} is ${matches.length} endpoints of the crawl, expected one`)
@@ -118,6 +126,7 @@ function derive(api: Api, agents: Agent[], prefix: string): ScenarioSet {
 export const t3AgentScenarios = (api: Api): ScenarioSet => derive(api, TURNS, 't3-agent')
 export const t3AgentMethodScenarios = (api: Api): ScenarioSet => derive(api, METHODS, 't3-method')
 export const t3AgentQueryScenarios = (api: Api): ScenarioSet => derive(api, QUERIES, 't3-query')
+export const t3AgentCueScenarios = (api: Api): ScenarioSet => derive(api, CUES, 't3-cue')
 
 function frameOfRow(api: Api, name: string): string {
   const row = api.endpoints.find((e) => e.name === name)

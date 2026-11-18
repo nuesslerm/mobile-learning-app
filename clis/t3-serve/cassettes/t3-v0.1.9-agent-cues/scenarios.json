@@ -1,0 +1,68 @@
+{
+ "schema": "mimic-scenarios/1",
+ "app": "t3",
+ "source": "clis/t3-serve/cassettes/t3-api",
+ "counts": {
+  "endpoints": 4,
+  "scenarios": 3,
+  "populated": 4,
+  "emptyOnly": 0
+ },
+ "scenarios": [
+  {
+   "id": "t3-cue-thread.unarchive",
+   "kind": "story",
+   "rows": [
+    "command:thread.archive",
+    "command:thread.unarchive"
+   ],
+   "note": "archive a thread of Claude and answer it, then unarchive it"
+  },
+  {
+   "id": "t3-cue-provider-session.detach",
+   "kind": "story",
+   "rows": [
+    "command:provider-session.detach"
+   ],
+   "note": "detach the provider session of a thread of Claude"
+  },
+  {
+   "id": "t3-cue-subagent.stop",
+   "kind": "story",
+   "rows": [
+    "command:subagent.stop"
+   ],
+   "note": "stop a subagent of the turn that is still running"
+  }
+ ],
+ "coverage": [
+  {
+   "row": "command:thread.archive",
+   "state": "populated",
+   "via": [
+    "t3-cue-thread.unarchive"
+   ]
+  },
+  {
+   "row": "command:thread.unarchive",
+   "state": "populated",
+   "via": [
+    "t3-cue-thread.unarchive"
+   ]
+  },
+  {
+   "row": "command:provider-session.detach",
+   "state": "populated",
+   "via": [
+    "t3-cue-provider-session.detach"
+   ]
+  },
+  {
+   "row": "command:subagent.stop",
+   "state": "populated",
+   "via": [
+    "t3-cue-subagent.stop"
+   ]
+  }
+ ]
+}
