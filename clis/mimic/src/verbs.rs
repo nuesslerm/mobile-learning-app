@@ -1,5 +1,7 @@
 //! `wf mimic record|replay|diff|verify`: parse the line, run the core over the disk and a driver, print one JSON object (schema
 //! `mimic-<verb>/1`). Exit 0 clean, 1 findings, 2 usage or environment; nothing prompts and every failure names its `next` step.
+#[path = "chain_launch.rs"]
+mod chain_launch;
 #[path = "coverage_verb.rs"]
 mod coverage_verb;
 #[path = "crawl_verb.rs"]
@@ -35,7 +37,7 @@ use std::path::{Path, PathBuf};
 use wf_kit::args::{parse_spec, Parsed, Positional, Spec};
 
 const RECORD: Spec = Spec { values: &["target", "seed", "recorded-on", "source", "stand-in", "chunk", "batch", "write-chunk", "stability", "max-minutes"], flags: &["keep-raw", "allow-nondeterministic", "resume", "fresh"], positional: Positional::Exactly(1), ..Spec::NONE };
-const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "rows", "gaps", "allowlist", "suite", "addr", "workspace", "mint", "cli-dir"], positional: Positional::Exactly(1), ..Spec::NONE };
+const REPLAY: Spec = Spec { values: &["target", "candidate", "only", "rows", "gaps", "allowlist", "suite", "addr", "workspace", "mint", "cli-dir", "work-root", "root"], positional: Positional::Exactly(1), ..Spec::NONE };
 const DIFF: Spec = Spec { values: &["allowlist"], positional: Positional::Exactly(2), ..Spec::NONE };
 const IMPORT: Spec = Spec { values: &["out", "root", "allowlist", "pin"], positional: Positional::Exactly(2), ..Spec::NONE };
 const EXPORT: Spec = Spec { values: &["out"], positional: Positional::Exactly(2), ..Spec::NONE };
@@ -337,7 +339,8 @@ fn replay(p: &Parsed) -> Done {
         Some(other) => return Err(fail(format!("--gaps takes check or write, not {other:?}"), format!("wf mimic replay {} --gaps check", set.dir.display()))),
     };
     let started = wf_kit::time::now_ms();
-    let candidate = &with_server(candidate, p)?;
+    let chain = start_chain(candidate, p, &cfg, &set, &content)?;
+    let candidate = &with_server(chain.as_ref().map_or(candidate, |(target, _)| target), p)?;
     let mut driver = open_driver(candidate, candidate.spec.clone()).map_err(|e| fail(e, "fix [candidate] in mimic.toml"))?;
     // a session's own setup (the pairing, its first project and thread) is not an interaction: it runs before the first window opens
     if candidate.script.as_ref().is_some_and(|s| s.session && s.prelude.is_some()) {
@@ -441,6 +444,24 @@ impl Driver for Timed<'_> {
 }
 
 /// `--addr`, `--workspace`, `--mint` (a command that prints one credential) and `--cli-dir` (the directory of scripted agent CLIs the server's `PATH` starts first, which `cli.script` writes into) fill a `target = "url"` candidate: the server the caller started.
+/// A `chain` candidate: the launch command started, and the target it makes (a url target on the address it printed, paired with the scopes the
+/// recorded session was granted). The chain stops when the returned launcher drops.
+fn start_chain(candidate: &Target, p: &Parsed, cfg: &Config, set: &SetRef, content: &CassetteSet) -> Result<Option<(Target, chain_launch::Launched)>, Fail> {
+    let Some(spec) = candidate.script.as_ref().filter(|s| !s.launch.is_empty() && p.val("addr").is_none()) else { return Ok(None) };
+    let vars = cfg.provision.as_ref().map(|prov| provision_verb::vars(p, &set.name, &set.dir, prov));
+    let argv: Vec<String> = spec.launch.iter().map(|a| vars.as_ref().map_or_else(|| a.clone(), |v| crate::provision::expand(a, v))).collect();
+    let launched = chain_launch::launch(&argv, &spec.dir, std::time::Duration::from_millis(spec.ready_ms)).map_err(|e| fail(e, "build what the launch command starts (the set's provision steps, `when = \"replay\"`) and fix [candidate.<n>.script] launch"))?;
+    let scope = content.cassette.interactions.iter().flat_map(|i| i.steps.iter()).find_map(|s| s.payload["body"]["scope"].as_str().map(|v| v.replace(' ', ",")));
+    let mut target = candidate.clone();
+    if let Some(s) = target.script.as_mut() {
+        s.addr = Some(launched.addr.clone());
+        s.workspace = Some(launched.workspace.clone());
+        s.mint = launched.mint.split_whitespace().map(String::from).chain(scope.into_iter().flat_map(|v| ["--scope".to_string(), v])).collect();
+        s.cli_dir = launched.cli_dir.clone().or(s.cli_dir.take());
+    }
+    Ok(Some((target, launched)))
+}
+
 fn with_server(candidate: &Target, p: &Parsed) -> Result<Target, Fail> {
     let mut target = candidate.clone();
     if ["addr", "workspace", "mint", "cli-dir"].iter().all(|f| p.val(f).is_none()) {

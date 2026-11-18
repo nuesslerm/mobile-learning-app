@@ -44,6 +44,14 @@ git add clis/t3-serve/cassettes/t3-v0.1.9-recorded-1 && git commit -m "mimic: re
 A `wf-mimic` without it fails a `[record ...]` at once with a message naming both flags; `[replay ...]` does not need it. Why a dispatch is not used:
 `docs/gaps/record-trigger-without-dispatch.md`.
 
+### What a replay marker runs as the candidate
+
+A replay needs the candidate running. `[candidate.<n>.script] target = "chain"` with a `launch` command (`{work}` and `{repo}` of the provision block are filled in) makes `wf mimic replay` start it itself: the command prints one JSON line `{"ok":true,"event":"listening","addr","workspace","mint","cli_dir"}`, serves until its stdin closes, and the replay plays it as a `url` target (the `mint` command gets `--scope` of the scopes the recorded session was granted) and closes its stdin afterwards. `--addr` on the verb still plays against a server the caller started, and starts nothing (the integration tests do that).
+
+T3 (every `t3-v0.1.9-*` set): the launch command is `chain-bin/chain`, `clis/t3-serve/examples/chain.rs`, the same `Chain::start` rig as `tests/integration` (`t3-serve serve` over the real `rca-service` and `rca-exec` with the scripted CLIs). Its flags `--t3-serve --rca-service --rca-exec --scripted-cli` name the binaries; the `when = "replay"` steps of `tooling/mimic-drivers/provision/t3.toml` build them into `{work}/chain-bin` (debug builds, about 20 to 40 minutes cold on a hosted runner, rca-service being the long one). `wf mimic job replay` forwards `--work-root` and `--root`, and with `rows=` runs the slice with `--gaps check` and prints the diff table in the run summary.
+
+Orca (`orca-v1.4.259-*`): not wired. Its candidate is the sidecar paired with an `orca-serve` over `rca-service`, which needs `ORCA_PAIRING_URI` of a running one; `clis/orca-serve/tests/integration/rig.rs` starts that chain only inside a test and there is no launcher program for it yet (a `chain` target with an `orca-serve` example, as for T3, is the way). Until then an Orca marker fails in the capture step with `orca sidecar: connect failed: no Orca host`, and the replay of Orca rows is `cargo test -p orca-serve --test integration`.
+
 ### Add a new clone: data, not workflow YAML
 
 A new reference (another CLI or server) is a cassette set whose `mimic.toml` says how a runner installs it, next to a `[reference]` driver that speaks `mimic-driver/1`. Either an inline

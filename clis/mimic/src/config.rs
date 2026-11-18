@@ -89,12 +89,16 @@ struct DiffFile {
 #[derive(Deserialize, Debug)]
 #[serde(deny_unknown_fields)]
 struct ScriptFile {
-    /// `spawn`: start the release the pin names; `url`: a server that is already running; `orca`: the phone's own client in the sidecar
+    /// `spawn`: start the release the pin names; `url`: a server that is already running; `chain`: a server the `launch` command starts and stops (then a `url` target); `orca`: the phone's own client in the sidecar
     /// below, paired with the host the environment names.
     target: String,
     /// `orca`: the sidecar command, relative paths as the file's directory sees them.
     #[serde(default)]
     sidecar: Vec<String>,
+    /// `chain`: the command that starts the candidate (`{work}` and `{repo}` of the provision block are filled in). It prints one JSON line
+    /// `{"ok":true,"event":"listening","addr","workspace","mint","cli_dir"}`, serves until its stdin closes, and is started by the replay verb itself.
+    #[serde(default)]
+    launch: Vec<String>,
     /// `orca`: names of the environment variables the sidecar gets besides `PATH`, `HOME`, `TZ` and `LANG` (the host to pair with, e.g.
     /// `ORCA_ORCAD_CHECKOUT` or `ORCA_PAIRING_URI`): names only, a value never appears in a set.
     #[serde(default)]
@@ -125,6 +129,8 @@ pub struct ScriptSpec {
     /// `target = "orca"`: the sidecar and what it is given; `dir` is the working directory it runs in.
     pub orca: bool,
     pub sidecar: Vec<String>,
+    /// `target = "chain"`: the command the replay starts the candidate with; empty for any other target.
+    pub launch: Vec<String>,
     pub env_pass: Vec<String>,
     pub dir: PathBuf,
     pub cache: Option<PathBuf>,
@@ -144,9 +150,12 @@ fn script_spec(dir: &Path, name: &str, s: ScriptFile) -> Result<ScriptSpec, Stri
     let orca = s.target == "orca";
     let spawn = match s.target.as_str() {
         "spawn" => true,
-        "url" | "orca" => false,
-        other => return Err(format!("[{name}.script] target {other:?}: spawn, url or orca")),
+        "url" | "orca" | "chain" => false,
+        other => return Err(format!("[{name}.script] target {other:?}: spawn, url, chain or orca")),
     };
+    if s.target == "chain" && s.launch.is_empty() {
+        return Err(format!("[{name}.script] target \"chain\" needs a launch command"));
+    }
     if orca && s.sidecar.is_empty() {
         return Err(format!("[{name}.script] target \"orca\" needs a sidecar command"));
     }
@@ -154,6 +163,7 @@ fn script_spec(dir: &Path, name: &str, s: ScriptFile) -> Result<ScriptSpec, Stri
         spawn,
         orca,
         sidecar: s.sidecar,
+        launch: s.launch,
         env_pass: s.env_pass,
         dir: dir.to_path_buf(),
         cache: s.cache.map(|c| dir.join(c)),

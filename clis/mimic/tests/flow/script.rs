@@ -159,6 +159,64 @@ fn a_cli_dir_flag_fills_a_url_candidate_so_a_cli_script_writes_into_it_and_a_spa
     assert_eq!(refused.code, 2, "{}", refused.json);
 }
 
+const LAUNCHER: &str = r#"
+import http.server, json, os, sys, threading
+class H(http.server.BaseHTTPRequestHandler):
+    n = 0
+    def log_message(self, *a): pass
+    def do_GET(self):
+        H.n += 1
+        ok = self.path == "/hello"
+        body = ('{"greeting":"hello","session":"%08x-0000-4000-8000-%012x"}' % (H.n, H.n)).encode() if ok else b""
+        self.send_response_only(200 if ok else 404)
+        self.send_header("Content-Type", "application/json"); self.send_header("Content-Length", str(len(body))); self.send_header("Connection", "close")
+        self.end_headers(); self.wfile.write(body)
+open(sys.argv[1], "a").write("started\n")
+srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
+threading.Thread(target=srv.serve_forever, daemon=True).start()
+print(json.dumps({"ok": True, "event": "listening", "addr": "127.0.0.1:%d" % srv.server_port, "workspace": "/w", "mint": "", "cli_dir": None}), flush=True)
+sys.stdin.read()
+open(sys.argv[1], "a").write("stopped\n")
+"#;
+
+#[test]
+fn a_chain_candidate_is_started_by_the_replay_played_as_a_url_target_and_stopped_after_and_a_launcher_that_never_listens_is_refused() {
+    // Given a recorded set and a candidate whose launch command starts its server, which says where it listens and serves until its stdin closes
+    let w = world();
+    w.record();
+    let (launcher, log) = (w.path("launcher.py"), w.path("launcher.log"));
+    std::fs::write(&launcher, LAUNCHER).unwrap();
+    let toml = w.read("mimic.toml");
+    let candidate = |command: &str| format!("{toml}\n[candidate.chain]\ndriver = \"script\"\n\n[candidate.chain.script]\ntarget = \"chain\"\nlaunch = {command}\nready_ms = 5000\n");
+    let started = || std::fs::read_to_string(&log).unwrap_or_default();
+    w.write("mimic.toml", &candidate(&format!("[\"python3\", \"{}\", \"{}\"]", launcher.display(), log.display())));
+
+    // When it is replayed with no address anywhere
+    let run = w.run("replay", &["--candidate", "chain"]);
+
+    // Then every interaction is clean against the server the launcher started, and the launcher was stopped when the replay ended
+    assert_eq!((run.code, run.json["severity"].clone()), (0, json!("none")), "{}\n{}", run.json, run.stderr);
+    assert_eq!(started(), "started\nstopped\n");
+
+    // And a replay given an address plays against that server and starts nothing
+    let addr = server(false).to_string();
+    let given = w.run("replay", &["--candidate", "chain", "--addr", &addr, "--workspace", "/w"]);
+    assert_eq!((given.code, given.json["severity"].clone()), (0, json!("none")), "{}", given.json);
+    assert_eq!(started(), "started\nstopped\n");
+
+    // And a launch command that prints no listening line is refused, naming the launcher
+    w.write("mimic.toml", &candidate("[\"true\"]"));
+    let refused = w.run("replay", &["--candidate", "chain"]);
+    assert_eq!(refused.code, 2, "{}", refused.json);
+    assert!(refused.json["error"].as_str().unwrap().contains("chain launcher"), "{}", refused.json);
+
+    // And a chain target with no launch command is refused when the file is read
+    w.write("mimic.toml", &format!("{toml}\n[candidate.chain]\ndriver = \"script\"\n\n[candidate.chain.script]\ntarget = \"chain\"\n"));
+    let bare = w.run("replay", &["--candidate", "chain"]);
+    assert_eq!(bare.code, 2, "{}", bare.json);
+    assert!(bare.json["error"].as_str().unwrap().contains("launch"), "{}", bare.json);
+}
+
 #[test]
 fn a_script_driver_without_its_script_table_is_refused_when_the_file_is_read() {
     // Given a mimic.toml that names the driver and no table

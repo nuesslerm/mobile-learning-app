@@ -14,7 +14,10 @@ pub static SUITE: Suite = Suite::new("t3-serve-integration", "t3");
 
 /// The service's secret: the executor channel's, and the operator's who mints the mapper's bearer.
 pub const SECRET: &str = "chain-service-secret";
-const BIN: &str = env!("CARGO_BIN_EXE_t3-serve");
+/// The `t3-serve` binary: the one `T3_SERVE_BIN` names (the chain launcher's `--t3-serve`), else the one cargo built beside the test.
+fn bin() -> String {
+    std::env::var("T3_SERVE_BIN").unwrap_or_else(|_| option_env!("CARGO_BIN_EXE_t3-serve").expect("no t3-serve beside this program: pass --t3-serve").to_string())
+}
 const METHODS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/plans/rca-parity/coverage/t3-methods.json");
 
 /// How long a turn of the scripted CLI may take to settle.
@@ -120,7 +123,7 @@ impl Chain {
     /// A pairing code minted by a separate `t3-serve pair` on the server's state directory, as an operator hands one to a phone, with the scopes the
     /// phone is to get.
     pub fn pair_with(&self, scopes: &[String]) -> String {
-        let mut command = Command::new(BIN);
+        let mut command = Command::new(bin());
         command.args(["t3", "pair", "--state-dir"]).arg(self.state.path());
         if !scopes.is_empty() {
             command.args(["--scope", &scopes.join(",")]);
@@ -132,7 +135,7 @@ impl Chain {
 
     /// The command `pair_with` runs, for a `wf mimic replay --mint` that pairs the phone it plays: the scopes it is to get, on this server's state directory.
     pub fn pair_command(&self, scopes: &[String]) -> String {
-        let mut command = format!("{BIN} t3 pair --state-dir {}", self.state.path().display());
+        let mut command = format!("{} t3 pair --state-dir {}", bin(), self.state.path().display());
         if !scopes.is_empty() {
             command.push_str(&format!(" --scope {}", scopes.join(",")));
         }
@@ -159,7 +162,7 @@ impl Drop for Chain {
 
 /// `t3-serve serve` on `state` pointed at the service through the tap, listening once it says so.
 fn spawn_serve(state: &std::path::Path, errlog: &std::path::Path, tap_url: &str, bearer: &str) -> (Child, SocketAddr) {
-    let mut server = Command::new(BIN)
+    let mut server = Command::new(bin())
         .args(["t3", "serve", "--port", "0", "--state-dir"])
         .arg(state)
         .args(["--rca-url", tap_url, "--rca-workspace", "w1"])

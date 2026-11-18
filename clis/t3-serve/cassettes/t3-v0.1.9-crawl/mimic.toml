@@ -36,12 +36,14 @@ allow_nondeterministic = true
 write_chunk = 40
 stability_pct = 8
 
-# the chain a test started (t3-serve over rca-service and rca-exec): its address, workspace and pairing come from `wf mimic replay --addr --workspace --mint`
+# the chain the integration tests replay against, started by the replay itself (`examples/chain.rs` of t3-serve, built by the provision steps of `when = "replay"`); the tests pass --addr and start their own
 [candidate.t3-serve]
 driver = "script"
 
 [candidate.t3-serve.script]
-target = "url"
+target = "chain"
+launch = ["{work}/chain-bin/chain", "--t3-serve", "{work}/chain-bin/t3-serve", "--rca-service", "{work}/chain-bin/rca-service", "--rca-exec", "{work}/chain-bin/rca-exec", "--scripted-cli", "{work}/chain-bin/scripted-cli"]
+ready_ms = 120000
 prelude = "../t3-prelude.json"
 session = true
 # a candidate that answers from memory on loopback: a frame that is coming arrives within this

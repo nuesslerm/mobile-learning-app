@@ -244,6 +244,11 @@ fn replay(p: &Parsed, set_arg: &str) -> Done {
         if let Some(rows) = p.val("rows").filter(|r| !r.is_empty()) {
             argv.extend(["--rows", rows, "--gaps", "check"]);
         }
+        for flag in ["work-root", "root"] {
+            if let Some(v) = p.val(flag) {
+                argv.extend([if flag == "root" { "--root" } else { "--work-root" }, v]);
+            }
+        }
         let c = call(&argv, &env)?;
         if c.code >= 2 || c.json.is_null() {
             let mut f = fail(format!("wf mimic replay {name} could not run: {}", c.json["error"].as_str().unwrap_or("no JSON in its output")), c.json["next"].as_str().unwrap_or("fix the candidate command in mimic.toml").to_string());
