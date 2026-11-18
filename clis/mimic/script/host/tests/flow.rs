@@ -77,7 +77,7 @@ fn given_bytes_or_sums_that_disagree_with_the_pin_when_provisioned_then_nothing_
 fn given_a_prepared_host_when_the_agent_clis_are_asked_their_version_then_they_answer_the_same_everywhere_and_nothing_else() {
     let root = tempfile::tempdir().unwrap();
 
-    let host = Host::prepare(root.path(), None).unwrap();
+    let host = Host::prepare(root.path(), None, None).unwrap();
 
     for name in ["claude", "codex", "opencode"] {
         let out = Command::new(host.bin.join(name)).arg("--version").output().unwrap();
@@ -90,7 +90,7 @@ fn given_a_prepared_host_when_the_agent_clis_are_asked_their_version_then_they_a
 }
 
 fn driver(runtime: &Path) -> ScriptDriver {
-    ScriptDriver::new(Box::new(SpawnLaunch { runtime: runtime.to_path_buf(), ready_ms: 20_000, cli_dir: None }), Policy { settle_ms: 20, ..Policy::default() }, vec![], false, Some("0.1.9".into()))
+    ScriptDriver::new(Box::new(SpawnLaunch { runtime: runtime.to_path_buf(), ready_ms: 20_000, cli_dir: None, real_clis: None, env: vec![] }), Policy { settle_ms: 20, ..Policy::default() }, vec![], false, Some("0.1.9".into()))
 }
 
 fn ask(driver: &mut ScriptDriver, id: &str, script: Value) -> Vec<Value> {
@@ -112,7 +112,7 @@ fn given_scripted_clis_when_the_host_is_prepared_then_its_own_copy_comes_before_
     let root = tempfile::tempdir().unwrap();
     let scripted = scripted_dir();
 
-    let host = Host::prepare(root.path(), Some(scripted.path())).unwrap();
+    let host = Host::prepare(root.path(), Some(scripted.path()), None).unwrap();
 
     let cli = host.cli.clone().unwrap();
     let path = host.env.iter().find(|(k, _)| k == "PATH").unwrap().1.clone();
@@ -122,11 +122,43 @@ fn given_scripted_clis_when_the_host_is_prepared_then_its_own_copy_comes_before_
     assert_eq!(files, ["codex"]);
 }
 
+/// A directory of real agent CLIs as an install leaves it: one program, `opencode`.
+fn real_dir() -> tempfile::TempDir {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("opencode"), "#!/bin/sh\necho real-opencode\n").unwrap();
+    dir
+}
+
+#[test]
+fn given_a_real_opencode_when_the_host_is_prepared_then_opencode_is_neither_stubbed_nor_scripted_and_claude_and_codex_still_are() {
+    let root = tempfile::tempdir().unwrap();
+    let scripted = scripted_dir();
+    std::fs::write(scripted.path().join("opencode"), "#!/bin/sh\necho scripted\n").unwrap();
+    let real = real_dir();
+
+    let host = Host::prepare(root.path(), Some(scripted.path()), Some(real.path())).unwrap();
+
+    let path = host.env.iter().find(|(k, _)| k == "PATH").unwrap().1.clone();
+    assert!(path.starts_with(&format!("{}:{}:{}:", host.cli.as_ref().unwrap().display(), host.bin.display(), real.path().display())), "{path}");
+    assert!(!host.bin.join("opencode").exists() && !host.cli.as_ref().unwrap().join("opencode").exists());
+    assert!(host.bin.join("claude").exists() && host.bin.join("codex").exists());
+    assert!(host.cli.as_ref().unwrap().join("codex").exists());
+}
+
+#[test]
+fn given_a_real_clis_directory_that_is_missing_when_the_host_is_prepared_then_it_fails_naming_the_directory() {
+    let root = tempfile::tempdir().unwrap();
+
+    let err = Host::prepare(root.path(), None, Some(Path::new("/nonexistent/real-clis"))).unwrap_err();
+
+    assert!(err.contains("/nonexistent/real-clis"), "{err}");
+}
+
 #[test]
 fn given_two_hosts_from_one_directory_when_one_is_scripted_then_the_other_does_not_see_the_script_and_the_version_line_is_forced() {
     let (a, b) = (tempfile::tempdir().unwrap(), tempfile::tempdir().unwrap());
     let scripted = scripted_dir();
-    let (first, second) = (Host::prepare(a.path(), Some(scripted.path())).unwrap(), Host::prepare(b.path(), Some(scripted.path())).unwrap());
+    let (first, second) = (Host::prepare(a.path(), Some(scripted.path()), None).unwrap(), Host::prepare(b.path(), Some(scripted.path()), None).unwrap());
 
     write_cli_script(first.cli.as_ref().unwrap(), "codex", &json!([{"hang": true}])).unwrap();
 
@@ -171,13 +203,34 @@ fn given_a_driver_when_cases_run_then_one_server_serves_them_in_a_hermetic_envir
 }
 
 #[test]
+fn given_an_agent_key_when_a_server_is_spawned_then_the_server_holds_it_and_a_server_without_one_does_not() {
+    let work = tempfile::tempdir().unwrap();
+    let runtime = work.path().join("runtime");
+    std::fs::create_dir_all(&runtime).unwrap();
+    std::os::unix::fs::symlink(fake_t3(), runtime.join("t3")).unwrap();
+    let real = real_dir();
+    let show = json!([{"http": {"path": "/environment-of-server"}}]);
+    let spawn = |env: Vec<(String, String)>| {
+        let launch = SpawnLaunch { runtime: runtime.clone(), ready_ms: 20_000, cli_dir: None, real_clis: Some(real.path().to_path_buf()), env };
+        ScriptDriver::new(Box::new(launch), Policy { settle_ms: 20, ..Policy::default() }, vec![], false, None)
+    };
+
+    let with = ask(&mut spawn(vec![("OPENCODE_API_KEY".into(), "k-1234567".into())]), "a", show.clone());
+    let without = ask(&mut spawn(vec![]), "b", show);
+
+    let body = |steps: &[Value]| steps[1]["body"].as_str().unwrap().to_string();
+    assert!(body(&with).contains("AGENT_KEY=k-1234567") && body(&with).contains(&real.path().display().to_string()), "{}", body(&with));
+    assert!(body(&without).contains("AGENT_KEY=unset"), "{}", body(&without));
+}
+
+#[test]
 fn given_a_cli_script_when_a_case_runs_on_a_spawned_server_then_the_script_is_written_into_its_host_and_no_step_is_recorded() {
     let work = tempfile::tempdir().unwrap();
     let runtime = work.path().join("runtime");
     std::fs::create_dir_all(&runtime).unwrap();
     std::os::unix::fs::symlink(fake_t3(), runtime.join("t3")).unwrap();
     let scripted = scripted_dir();
-    let launch = SpawnLaunch { runtime, ready_ms: 20_000, cli_dir: Some(scripted.path().to_path_buf()) };
+    let launch = SpawnLaunch { runtime, ready_ms: 20_000, cli_dir: Some(scripted.path().to_path_buf()), real_clis: None, env: vec![] };
     let mut driver = ScriptDriver::new(Box::new(launch), Policy { settle_ms: 20, ..Policy::default() }, vec![], false, None);
 
     let steps = ask(&mut driver, "a", json!([{"cli.script": {"cli": "codex", "turns": [{"hang": true}]}}, {"http": {"path": "/environment-of-server"}}]));

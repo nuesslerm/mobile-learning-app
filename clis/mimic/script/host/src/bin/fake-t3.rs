@@ -23,7 +23,7 @@ fn answer(mut stream: TcpStream) {
     let (status, text) = match path.as_str() {
         "/.well-known/t3/environment" => ("200 OK", r#"{"environmentId":"fake"}"#.to_string()),
         "/oauth/token" => ("200 OK", format!(r#"{{"access_token":"tok-for-{}"}}"#, String::from_utf8_lossy(&body).replace(['"', '\\'], ""))),
-        "/environment-of-server" => ("200 OK", format!("HOME={} PATH={} TZ={} ARGS={}", std::env::var("HOME").unwrap_or_default(), std::env::var("PATH").unwrap_or_default(), std::env::var("TZ").unwrap_or_default(), std::env::args().skip(1).collect::<Vec<_>>().join(" "))),
+        "/environment-of-server" => ("200 OK", format!("HOME={} PATH={} TZ={} AGENT_KEY={} ARGS={}", std::env::var("HOME").unwrap_or_default(), std::env::var("PATH").unwrap_or_default(), std::env::var("TZ").unwrap_or_default(), std::env::var("OPENCODE_API_KEY").unwrap_or_else(|_| "unset".into()), std::env::args().skip(1).collect::<Vec<_>>().join(" "))),
         _ => ("404 Not Found", String::new()),
     };
     let _ = stream.write_all(format!("HTTP/1.1 {status}\r\nConnection: close\r\nContent-Type: text/plain\r\nContent-Length: {}\r\n\r\n{text}", text.len()).as_bytes());

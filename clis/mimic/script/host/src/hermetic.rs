@@ -1,6 +1,7 @@
 //! The environment a server runs in: empty but for what it needs, so no local configuration reaches an answer. A home and a workspace of its
 //! own, a fixed `PATH` whose first directory holds stub `claude`, `codex` and `opencode` that answer a version query and nothing else (the
-//! agent CLIs a server looks for at start are then the same on every host), `TZ` and `LANG` pinned.
+//! agent CLIs a server looks for at start are then the same on every host), `TZ` and `LANG` pinned. A directory of real agent CLIs
+//! (`real_clis`) replaces the stub and the scripted program of each CLI it holds, and is on the `PATH` too.
 use std::path::{Path, PathBuf};
 
 /// The stub agent CLIs, by name; each prints a fixed version line and exits.
@@ -13,6 +14,8 @@ pub struct Host {
     pub home: PathBuf,
     pub workspace: PathBuf,
     pub bin: PathBuf,
+    /// The directory of real agent CLIs on this host's `PATH`, when it was given one.
+    pub real: Option<PathBuf>,
     /// This host's own copy of the scripted agent CLIs, when it was given a `cli_dir`: its scripts and invocation logs belong to it alone.
     pub cli: Option<PathBuf>,
     pub env: Vec<(String, String)>,
@@ -26,35 +29,47 @@ impl Host {
     /// A fresh host under `root`: its directories exist and the stubs are in place and executable. `cli_dir` is a directory of scripted agent
     /// CLIs (`exec-testkit`): its programs are linked (else copied) into `<root>/cli`, which comes before the stubs on `PATH`, so a script and an
     /// invocation log belong to one host and a case never inherits another's turn.
-    pub fn prepare(root: &Path, cli_dir: Option<&Path>) -> Result<Host, String> {
+    ///
+    /// `real_clis` is a directory of real agent CLIs: each program in it is the CLI of its name, so that name gets no stub and no scripted copy
+    /// (the others stay scripted or stubbed), and the directory comes after the stubs on `PATH`.
+    pub fn prepare(root: &Path, cli_dir: Option<&Path>, real_clis: Option<&Path>) -> Result<Host, String> {
+        let real_names = real_clis.map(programs_of).transpose()?.unwrap_or_default();
         let (home, workspace, bin) = (root.join("home"), root.join("workspace"), root.join("bin"));
         for dir in [&home, &workspace, &bin] {
             std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
         }
-        for name in STUB_CLIS {
+        for name in STUB_CLIS.into_iter().filter(|n| !real_names.iter().any(|r| r == n)) {
             let path = bin.join(name);
             std::fs::write(&path, stub(name)).map_err(|e| e.to_string())?;
             set_executable(&path)?;
         }
-        let cli = cli_dir.map(|from| own_copy(from, &root.join("cli"))).transpose()?;
+        let cli = cli_dir.map(|from| own_copy(from, &root.join("cli"), &real_names)).transpose()?;
+        let real = real_clis.map(Path::to_path_buf);
+        let lead: Vec<String> = cli.iter().chain(std::iter::once(&bin)).chain(real.iter()).map(|d| d.display().to_string()).collect();
         let env = vec![
-            ("PATH".to_string(), cli.as_ref().map_or_else(|| format!("{}:/usr/bin:/bin", bin.display()), |c| format!("{}:{}:/usr/bin:/bin", c.display(), bin.display()))),
+            ("PATH".to_string(), format!("{}:/usr/bin:/bin", lead.join(":"))),
             ("HOME".to_string(), home.display().to_string()),
             ("T3CODE_HOME".to_string(), home.display().to_string()),
             ("TZ".to_string(), "UTC".to_string()),
             ("LANG".to_string(), "C.UTF-8".to_string()),
         ];
-        Ok(Host { root: root.to_path_buf(), home, workspace, bin, cli, env })
+        Ok(Host { root: root.to_path_buf(), home, workspace, bin, real, cli, env })
     }
 }
 
-/// The programs of `from` linked (else copied) into `to`; a script or a log a test left there is not carried over.
-fn own_copy(from: &Path, to: &Path) -> Result<PathBuf, String> {
+/// The names of the programs in `dir`.
+fn programs_of(dir: &Path) -> Result<Vec<String>, String> {
+    let entries = std::fs::read_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    Ok(entries.flatten().filter(|e| e.path().is_file()).map(|e| e.file_name().to_string_lossy().into_owned()).collect())
+}
+
+/// The programs of `from` linked (else copied) into `to`, but the ones a real CLI stands in for; a script or a log a test left there is not carried over.
+fn own_copy(from: &Path, to: &Path, skip: &[String]) -> Result<PathBuf, String> {
     std::fs::create_dir_all(to).map_err(|e| format!("{}: {e}", to.display()))?;
     for entry in std::fs::read_dir(from).map_err(|e| format!("{}: {e}", from.display()))? {
         let path = entry.map_err(|e| e.to_string())?.path();
         let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
-        if !path.is_file() || name.ends_with(".script.json") || name.ends_with(".invocations.jsonl") {
+        if !path.is_file() || name.ends_with(".script.json") || name.ends_with(".invocations.jsonl") || skip.contains(&name) {
             continue;
         }
         let target = to.join(&name);

@@ -34,6 +34,10 @@ pub struct SpawnLaunch {
     pub ready_ms: u64,
     /// Scripted agent CLIs that come before the stubs on the server's `PATH`.
     pub cli_dir: Option<PathBuf>,
+    /// Real agent CLIs (see `Host::prepare`): the ones in this directory are not scripted or stubbed.
+    pub real_clis: Option<PathBuf>,
+    /// Variables the server starts with besides the hermetic ones (the key a real agent CLI needs), given by the caller from memory: never logged here.
+    pub env: Vec<(String, String)>,
 }
 
 struct Spawned {
@@ -119,7 +123,8 @@ fn ready(addr: SocketAddr, child: &mut Child, ms: u64) -> Result<(), String> {
 impl Launch for SpawnLaunch {
     fn start(&mut self) -> Result<std::rc::Rc<dyn Server>, String> {
         let root = std::env::temp_dir().join(format!("mimic-host-{}-{}", std::process::id(), HOSTS.fetch_add(1, Ordering::Relaxed)));
-        let host = Host::prepare(&root, self.cli_dir.as_deref())?;
+        let mut host = Host::prepare(&root, self.cli_dir.as_deref(), self.real_clis.as_deref())?;
+        host.env.extend(self.env.iter().cloned());
         let port = free_port()?;
         let binary = self.runtime.join("t3");
         let mut child = Command::new(&binary)
