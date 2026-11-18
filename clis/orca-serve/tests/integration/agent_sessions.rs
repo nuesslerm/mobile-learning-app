@@ -119,7 +119,7 @@ fn a_message_runs_a_turn_whose_file_rca_exec_writes_and_the_phone_reads_the_run_
         // Then rca started the turn, the executor wrote the file the CLI named, and the phone was told the send went through
         assert_eq!(sent["result"]["ok"], true, "{sent}");
         answered(case, "turn.start");
-        assert!(executor_ran(case, "write_file"), "{:?}", case.calls().last());
+        assert!(executor_ran(case, "run_command"), "{:?}", case.calls().last());
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("notes/a.txt")).unwrap(), "hello from the model", "{}", chain.evidence());
         // And the stream delivered a batch whose items are the run (the turn finished) under the request id the phone opened it with
         let mut finished = false;
@@ -181,7 +181,7 @@ fn a_chat_created_with_a_message_and_a_launch_each_run_a_turn_once_and_a_retry_o
         // Then the turn ran in the executor's repository and the file is there
         assert_eq!(created["result"]["ok"], true, "{created}");
         answered(case, "turn.start");
-        assert!(executor_ran(case, "write_file"));
+        assert!(executor_ran(case, "run_command"));
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("created.txt")).unwrap(), "from a create");
         let again = phone.call(case, &chain, &["rpc:agentSession.create"], "agentSession.create", params);
         asked_nothing_of(case, "turn.start");
@@ -240,7 +240,7 @@ fn a_turn_that_asks_for_approval_and_a_question_waits_until_the_phone_answers_an
         // Then rca took the answer, the turn went on and the executor wrote, and the log says what was decided
         assert_eq!(accepted["result"]["value"]["resolution"]["state"], "resolved", "{accepted}");
         answered(case, "approval.answer");
-        assert!(executor_ran(case, "write_file"));
+        assert!(executor_ran(case, "run_command"));
         assert_eq!(std::fs::read_to_string(chain.repo.path().join("a.txt")).unwrap(), "after the answer");
         assert_eq!(rca.events("claude_p1", "approval.answered").len(), 1);
         assert!(tool_output(&mut rca, "claude_p1", "ask1").contains("allow"), "the tool was not told to allow");
