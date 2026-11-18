@@ -100,7 +100,7 @@ pub struct Phone {
 }
 
 impl Chain {
-    /// The service with the scripted CLIs first on its `PATH`, the executor attached for workspace `w1` through the tap on a new repository, and
+    /// The service, and the executor with the scripted CLIs first on its `PATH` (a turn's CLI runs where the workspace is), attached for workspace `w1` through the tap on a new repository, and
     /// `t3-serve serve` pointed at the tap with a bearer the operator minted. It returns once serve says it listens.
     pub fn start() -> Chain {
         let cli = ScriptedCli::install();
@@ -115,7 +115,7 @@ impl Chain {
         }
         std::fs::write(shared.join("notes.txt"), "not a directory").unwrap();
         let flags = ["--worktree-base", base.to_str().unwrap(), "--browse-allow", shared.to_str().unwrap()];
-        let exec = RcaExec::serve_with(&tap.url(), "w1", &repo, SECRET, &flags);
+        let exec = RcaExec::serve_on(&tap.url(), "w1", &repo, SECRET, &flags, &cli.path());
         let bearer = service.mint("t3 chain");
         let state = tempfile::Builder::new().prefix("t3-serve-chain-").tempdir().unwrap();
         let errlog = state.path().join("serve.err");

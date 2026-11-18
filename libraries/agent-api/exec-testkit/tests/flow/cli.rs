@@ -127,15 +127,15 @@ fn a_program_told_to_hang_prints_its_lines_and_stays_until_it_is_killed_and_was_
 }
 
 #[test]
-fn a_tool_call_goes_through_the_mcp_server_the_cli_was_started_with_and_is_printed_as_that_cli_prints_it() {
+fn a_tool_only_the_service_answers_goes_through_the_mcp_server_the_cli_was_started_with_and_is_printed_as_that_cli_prints_it() {
     let cwd = tempfile::tempdir().unwrap();
-    let args = json!({"path": "notes.txt", "content": "hello\n"});
+    let args = json!({"question": "Which?"});
     for (is_error, chunked) in [(false, false), (true, true)] {
-        // Given an MCP server that answers a call with text (a failure when is_error), and both programs scripted to call write_file
+        // Given an MCP server that answers a call with text (a failure when is_error), and both programs scripted to call ask_user
         let cli = ScriptedCli::install();
-        let (url, bodies) = mcp_server(mcp_result("wrote 6 bytes", is_error), chunked);
+        let (url, bodies) = mcp_server(mcp_result("an answer", is_error), chunked);
         for program in ["claude", "opencode"] {
-            cli.script(program, &Script::of(vec![Turn::default().then_calling("call_1", "write_file", args.clone())]));
+            cli.script(program, &Script::of(vec![Turn::default().then_calling("call_1", "ask_user", args.clone())]));
         }
         // When claude is started with the server in --mcp-config, and opencode with it in OPENCODE_CONFIG_CONTENT, as the driver starts them
         let config = json!({"mcpServers": {"executor": {"type": "http", "url": url}}}).to_string();
@@ -143,35 +143,46 @@ fn a_tool_call_goes_through_the_mcp_server_the_cli_was_started_with_and_is_print
         let opencode = run(&cli, "opencode", &["run"], cwd.path(), &[("OPENCODE_CONFIG_CONTENT", &json!({"mcp": {"executor": {"type": "remote", "url": url}}}).to_string())]);
         // Then the server was sent a tools/call for the tool with the arguments, once by each
         let calls: Vec<Value> = bodies.lock().unwrap().iter().map(|b| json!([b["method"], b["params"]["name"], b["params"]["arguments"]])).collect();
-        assert_eq!(calls, [json!(["tools/call", "write_file", args]), json!(["tools/call", "write_file", args])]);
+        assert_eq!(calls, [json!(["tools/call", "ask_user", args]), json!(["tools/call", "ask_user", args])]);
         // And claude printed the call and then its result, in the lines the driver reads
         assert_eq!(claude.code, Some(0), "{}", claude.stderr);
         let lines: Vec<Value> = claude.stdout.iter().map(|l| serde_json::from_str(l).unwrap()).collect();
-        assert_eq!(lines[0]["message"]["content"][0], json!({"type": "tool_use", "id": "call_1", "name": "mcp__executor__write_file", "input": args}));
-        assert_eq!(lines[1]["message"]["content"][0], json!({"type": "tool_result", "tool_use_id": "call_1", "content": "wrote 6 bytes", "is_error": is_error}));
+        assert_eq!(lines[0]["message"]["content"][0], json!({"type": "tool_use", "id": "call_1", "name": "mcp__executor__ask_user", "input": args}));
+        assert_eq!(lines[1]["message"]["content"][0], json!({"type": "tool_result", "tool_use_id": "call_1", "content": "an answer", "is_error": is_error}));
         // And opencode printed one line with the tool's state
         let line: Value = serde_json::from_str(&opencode.stdout[0]).unwrap();
-        let state = if is_error { json!({"status": "error", "input": args, "error": "wrote 6 bytes"}) } else { json!({"status": "completed", "input": args, "output": "wrote 6 bytes"}) };
+        let state = if is_error { json!({"status": "error", "input": args, "error": "an answer"}) } else { json!({"status": "completed", "input": args, "output": "an answer"}) };
         assert_eq!((opencode.stdout.len(), line["type"].clone(), line["part"]["callID"].clone(), line["part"]["state"].clone()), (1, json!("tool_use"), json!("call_1"), state));
     }
 }
 
 #[test]
-fn a_tool_call_the_program_cannot_make_ends_it_with_a_code_and_the_reason_on_stderr() {
-    // Given programs scripted to call a tool
+fn a_tool_only_the_service_answers_ends_the_program_with_a_code_and_the_reason_on_stderr_when_it_has_no_mcp_server() {
+    // Given claude scripted to call a tool the service answers
     let (cli, cwd) = (ScriptedCli::install(), tempfile::tempdir().unwrap());
-    for program in ["claude", "codex"] {
-        cli.script(program, &Script::of(vec![Turn::default().then_calling("c", "read_file", json!({"path": "a"}))]));
-    }
-    // When claude is started with no MCP config, and codex with one
-    let config = json!({"mcpServers": {"executor": {"url": "http://127.0.0.1:1/mcp/t"}}}).to_string();
+    cli.script("claude", &Script::of(vec![Turn::default().then_calling("c", "ask_user", json!({"question": "x"}))]));
+    // When it is started with no MCP config
     let no_config = run(&cli, "claude", &["-p", "x"], cwd.path(), &[]);
-    let codex = run(&cli, "codex", &["exec", "--mcp-config", &config], cwd.path(), &[]);
-    // Then claude ends with 3, saying it has no MCP server, and codex with 2, saying it cannot use the channel
+    // Then it ends with 3, saying it has no MCP server
     assert_eq!(no_config.code, Some(3));
     assert!(no_config.stderr.contains("no MCP server"), "{}", no_config.stderr);
-    assert_eq!(codex.code, Some(2));
-    assert!(codex.stderr.contains("codex cannot use the executor channel"), "{}", codex.stderr);
+}
+
+#[test]
+fn a_file_or_shell_tool_runs_in_the_directory_the_program_was_started_in_and_is_printed_with_its_result_without_any_mcp_server() {
+    // Given claude scripted to write a file, read it back and run a failing command, and started with no MCP config
+    let (cli, cwd) = (ScriptedCli::install(), tempfile::tempdir().unwrap());
+    cli.script("claude", &Script::of(vec![Turn::default()
+        .then_calling("w", "write_file", json!({"path": "notes/a.txt", "content": "hi"}))
+        .then_calling("r", "read_file", json!({"path": "notes/a.txt"}))
+        .then_calling("c", "run_command", json!({"command": "echo out; exit 3"}))]));
+    // When it runs
+    let ran = run(&cli, "claude", &["-p", "x"], cwd.path(), &[]);
+    // Then the file is in its directory, and each call is printed with the result a CLI's own tool gives
+    assert_eq!(ran.code, Some(0), "{}", ran.stderr);
+    assert_eq!(std::fs::read_to_string(cwd.path().join("notes/a.txt")).unwrap(), "hi");
+    let results: Vec<(Value, Value)> = ran.stdout.iter().map(|l| serde_json::from_str::<Value>(l).unwrap()).filter(|l| l["type"] == "user").map(|l| (l["message"]["content"][0]["content"].clone(), l["message"]["content"][0]["is_error"].clone())).collect();
+    assert_eq!(results, [(json!("wrote 2 bytes"), json!(false)), (json!("hi"), json!(false)), (json!("out\n\n[exit code 3]"), json!(true))]);
 }
 
 #[test]

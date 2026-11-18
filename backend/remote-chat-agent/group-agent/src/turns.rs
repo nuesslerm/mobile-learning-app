@@ -157,6 +157,13 @@ impl TurnTask {
                         *session = Some(id);
                         self.keep_session(session.as_deref());
                     }
+                    // The CLI ran at the executor, so its process ending in error while the channel is gone is the executor going away, however the two news race
+                    Some(ExecEvent::Error(_)) if self.channel.is_closed() => {
+                        self.runner.turns().interrupt(&self.thread);
+                        self.record([ThreadEvent::Error { code: EXECUTOR_GONE.into(), message: RemoteError::ExecutorGone.message() }]);
+                        *failed = true;
+                        return false;
+                    }
                     Some(event) => {
                         *failed |= matches!(event, ExecEvent::Error(_));
                         self.record(calls.events(event));
