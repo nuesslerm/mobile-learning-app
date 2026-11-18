@@ -124,7 +124,10 @@ fn a_metrics_source_that_hangs_or_is_gone_costs_the_run_its_budget_and_nothing_e
     assert_eq!(r.exit_code, 0, "{r:?}");
     let dropped = event(&r, "ci.metrics.timeout").or_else(|| event(&r, "ci.metrics.refused")).unwrap_or_else(|| panic!("no drop event: {r:?}"));
     assert!(dropped.contains("level=warn") && dropped.contains("readings=8"), "{dropped}");
-    assert!(started.elapsed() < Duration::from_secs(9), "waited {:?}", started.elapsed());
+    // (the store's own retries of its 503 are the verb's work, which the run reports as `seconds`; what is left is the wait on the metrics source, the 6 s budget)
+    let own: f64 = event(&r, "cache.restore").and_then(|l| l.split("seconds=").nth(1)?.split_whitespace().next()?.parse().ok()).unwrap_or_else(|| panic!("no cache.restore seconds: {r:?}"));
+    let waited = started.elapsed().as_secs_f64() - own;
+    assert!(waited < 8.0, "waited {waited:.1} s on the metrics source ({:?} in all, {own} s of it the verb's own)", started.elapsed());
 
     // And a source that is not listening at all changes nothing about the verb's answer
     let closed = std::net::TcpListener::bind("127.0.0.1:0").unwrap().local_addr().unwrap().port();
