@@ -2,6 +2,8 @@
 
 Owner direction, 2 Nov. Supersedes the placement in `protocol.md` where the executor sat inside `t3 serve`; the executor wire contract in `protocol.md` still holds.
 
+Owner direction, 18 Nov: **the agent CLIs (Claude Code, Codex, opencode) must be installed on the workspace host with their credentials; a turn runs the CLI there with its own native tools.** Nothing intercepts, proxies or replaces a tool call: no tool swap (`command_for_remote`), no MCP bridge of file and shell tools, no hook, no mirror. This supersedes the service-hosted placement and the executor-forwarded tool calls of the bullets below, which stay until the change lands (`docs/plans/rca-parity/plan.md`): `rca-exec` spawns the CLI for a turn and streams its events to the service, which keeps the thread, the neutral events and the agent API. Research behind it: Codex has an experimental remote exec-server and opencode overrides built-ins by name, but Claude Code has no remote tool backend, so one rule for all three is simpler than three seams.
+
 ## Parts
 
 - **rca service** (`backend/remote-chat-agent`): hosts the agent CLIs (Claude Code, Codex, opencode) and their credentials, and the extra model APIs. Exposes the **rca agent API** (below). Invokes the executor to act on a workspace.
