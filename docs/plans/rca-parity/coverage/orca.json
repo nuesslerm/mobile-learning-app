@@ -10,8 +10,8 @@
   "summary": {
     "rows": 317,
     "served": 158,
-    "pending": 6,
-    "notOffered": 143,
+    "pending": 4,
+    "notOffered": 145,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -22,8 +22,7 @@
     },
     "pendingByMilestone": {
       "M5": 1,
-      "M7": 4,
-      "M11": 1
+      "M7": 3
     }
   },
   "rows": [
@@ -1932,9 +1931,10 @@
       "id": "rpc:github.prComments",
       "kind": "rpc",
       "name": "github.prComments",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M11",
-      "reverify": "reverify when the body image urls the host lists beside a comment (transient, signed links to attachments) can be kept and offered: the mapper answers them as an empty list; the host's noCache option is ignored, rca keeps no read cache to bypass; the recorded and crawl cases only reach the host's repo_not_found and schema words (no repository is held there), so a clean replay shows nothing of the links"
+      "reason": "decided 18 Nov: the host lists the transient, signed links of a comment's body images and honours a noCache option; rca keeps no read cache and cannot keep signed links beyond their short life, so the call answers the comments with an empty image list and the replay shows only the repo_not_found and schema cases. Reversible by keeping the links through the hosted group",
+      "decidedBy": "M11"
     },
     {
       "id": "rpc:github.prFileContents",
@@ -3363,9 +3363,10 @@
       "id": "rpc:skills.discover",
       "kind": "rpc",
       "name": "skills.discover",
-      "state": "pending",
+      "state": "not-offered",
       "milestone": "M7",
-      "reverify": "reverify when the pinned host's workspace-less call can be answered from what rca knows: with no worktree or cwd the real host scans ITS OWN process directory as a repo (the id of each repo source is a hash of that path) and the home of its own user (twenty-odd agent homes under `<userdata>/home`), and answers every source as missing; rca reads skills only from an executor through `skills.list {workspace}` and never from the service's own disk, so there is no process directory or home to scan and no workspace-less `skills.list` is added (it would scan nothing the answer names); the call answers `Skill discovery needs a workspace` and the recorded set's three crawl cases and one recorded case stay listed breaking gaps"
+      "reason": "decided 18 Nov: rca reads skills only from an executor through `skills.list {workspace}` and never from the service's own disk, so a workspace-less discovery has no process directory or home to scan; the call answers `Skill discovery needs a workspace` (the pinned host scans its own process directory and user home, which rca has no equivalent of). Reversible by a workspace-less `skills.list` once an executor-less scan means something",
+      "decidedBy": "M7"
     },
     {
       "id": "rpc:speech.dictation.cancel",

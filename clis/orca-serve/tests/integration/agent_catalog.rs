@@ -109,6 +109,10 @@ fn the_executors_agent_clis_are_found_on_its_path_and_a_missing_one_is_reported_
             let found = seen.iter().find(|(driver, ..)| driver.to_lowercase().starts_with(program)).unwrap_or_else(|| panic!("{program} is not reported: {seen:?}"));
             assert_eq!((found.1, found.2.as_deref()), (true, Some(version)), "{seen:?}");
         }
+        // And the agents the host runs are the three drivers, whatever the executor holds
+        let agents = phone.call(case, &chain, &["rpc:agentSession.agents"], "agentSession.agents", json!({}));
+        let names: Vec<&str> = agents["result"]["agents"].as_array().unwrap_or_else(|| panic!("{agents}")).iter().filter_map(|a| a["agent"].as_str()).collect();
+        assert_eq!(names, ["claude", "codex", "opencode"], "{agents}");
         // And a chat can be created for an agent whose CLI is there
         let supported = phone.call(case, &chain, &["rpc:agentSession.createSupport"], "agentSession.createSupport", json!({"worktree": WS_SELECTOR, "agent": "opencode"}));
         assert_eq!(supported["result"], json!({"supported": true}), "{supported}");
