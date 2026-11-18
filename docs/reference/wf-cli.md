@@ -78,7 +78,7 @@ secret                       Manage secrets (macOS Keychain locally; Bitwarden i
     capture                  Run an ARBITRARY interactive login on the shared VNC desktop from a JSON spec: o
     done                     Signal that an interactive login is finished
     launch-url               Navigate the shared VNC desktop's browser to <url> (e.g. a magic-link URL copied
-    list                     List tools with a known auth descriptor
+    list                     List tools with a known auth descriptor, each with the vault secret its login lands in
     listener                 Run the auth-session listener (inside the shared desktop container): mints the t
   move                       Move a vault secret to another project in place, keeping its key, value, note an
   push-notes                 Sync each secret's registry description into its Bitwarden note (one-way: regist
@@ -3554,7 +3554,6 @@ Commands:
   track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
   trigger [options]           Read the marker of a commit message into the capture jobs it asks for
   capture [options] <record|replay> <set>  Provision a set's reference, then run its chunked record or replay and diff table
-  publish [options] <set>...  Upload recorded sets to the bucket as one run
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
   export [options] <format> <set>  Rebuild the legacy files of an imported set and check their hashes
@@ -4025,7 +4024,7 @@ Output (schema mimic-trigger/1):
 
 ### `wf mimic capture`
 
-The capture of one set on a runner, in three phases, in one call.
+The capture of one set on a runner, in four phases, in one call.
 
 Usage: `wf mimic capture [options] <record|replay> <set>`
 
@@ -4034,21 +4033,20 @@ Usage: `wf mimic capture [options] <record|replay> <set>`
 ```text
 Usage: wf mimic capture [options] <record|replay> <set>
 
-The capture of one set on a runner, in three phases, in one call.
+The capture of one set on a runner, in four phases, in one call.
 
 1. provision (--provision auto|only|skip, default auto): install the reference of the set
    as the [provision] block of its mimic.toml says (or the file its provision_file names,
    which sets of one app share: `//path` is from the repository root, any other path from
    the mimic.toml): the pinned source fetched at its commit, then each [[step]] of the
    action in order, each bounded by its timeout. Everything provisioning runs is third-party
-   code, so it runs with this environment minus every variable that looks like a credential
-   (the secret boundary is this phase); its output goes to stderr. A work directory whose
+   code, so it runs in a child environment (see below) and its output goes to stderr. A work directory whose
    marker key matches (same block, same commit, same action) is reused: auto skips it.
    only provisions and stops (no capture); skip never provisions and refuses, naming the
    command to run, a work directory with no marker or another one. A set without a
    [provision] block has nothing to provision (only refuses it).
-2. capture, with the environment of the caller plus the [env] of the [provision] block and
-   nothing else of it. record: runs `wf mimic record <set> --resume --max-minutes <chunk>`
+2. capture, every child in the child environment below, plus the [env] of the [provision]
+   block and the variables the set names (env_pass). record: runs `wf mimic record <set> --resume --max-minutes <chunk>`
    again and again (each call is a bounded chunk that leaves its checkpoint under
    <set>/raw/checkpoint) until the record is complete or --budget is spent. A complete
    record has raw/ deleted, is verified offline and is scanned for token-shaped values (a
@@ -4071,7 +4069,31 @@ The capture of one set on a runner, in three phases, in one call.
    from the launch command of the set (build it with a `when = "replay"` step); a target "orca"
    candidate with a launch command gets the pairing link the launcher prints, in its sidecar only.
 3. candidate stop: a chain candidate stops when its replay ends.
+4. publish (--publish, a record that is complete and was not held back): after the reference is
+   gone, the masked set (the json, jsonl, toml, txt and md files, never raw/ or a dot file) is
+   committed to the state ref (refs/wf/state of origin) as one run, so another checkout can
+   `wf mimic fetch` it with git alone: records/sets/<set>/, the manifest (every file's size and
+   sha256) at records/runs/<run>.json and the run at records/latest/<set>.json. Only the newest
+   run of a set keeps its files; caps 60 MB a file, 200 MB a run. The push needs a token that
+   may write refs (contents: write in a workflow); a refused push is a warning (`publish.ok`
+   false), not a red record, because the set is also a workflow artifact.
 Both actions append a markdown summary to --summary (default $GITHUB_STEP_SUMMARY).
+
+Child environment (one allowlist, no inheritance): every program this verb starts (a provisioning
+step, git, the record, verify and replay children, the reference and its sidecar, a candidate
+launcher) gets PATH, HOME, locale, temp and CA settings, toolchain homes (CARGO_*, RUSTUP_*,
+PNPM_*, NODE_*, GO*), and the MIMIC_*, WF_*, T3_* and GIT_CONFIG_* variables, minus any name that
+looks like a credential (TOKEN, SECRET, PASSWORD, *_KEY, ...), plus what the set declares by
+name: env_pass of a script target (the variables its sidecar gets) and `[reference]
+env_from_vault = ["KEY"]`, a registry key the verb reads in memory from the vault (and so from no
+other source) for a record only and puts in the environment of the reference's launcher and the
+reference alone; a replay never reads one. BWS_* and GITHUB_* enter no child, declared or not. A
+declared key that the vault does not hold fails the record naming the key. Before anything is
+uploaded the raw recording and the masked set are scanned for the exact value of every declared
+key as well as for token shapes; a value found holds the set back (exit 1) naming the key and the
+file, never the value, and the output of every child has the value replaced by the key's name.
+`env_from_vault` is for `[reference]` only, an UPPER_SNAKE registry name, and a spawned script
+target (its host environment is fixed) refuses it.
 
 Block (paths relative to the file that declares them):
   [toolchain]                     what the runner sets up first, each checked against the tool:
@@ -4098,6 +4120,7 @@ Options:
   --chunk <minutes>           record: minutes per call, 1 to 60 (default 10)
   --budget <minutes>          record: stop starting chunks after this long (default 100)
   --fresh                     record: delete the checkpoint first
+  --publish                   record: publish the complete, clean set to the state ref (phase 4)
   --candidate <name>          replay: only this candidate
   --rows <prefix,...>         replay: only the rows that start with a prefix, and check the known gaps of that slice
   --out <dir>                 replay: write <set>.replay.json here
@@ -4111,7 +4134,7 @@ Output (schema mimic-capture/1):
   provision: {state: ran|cached|skipped|checked|none, work, source?: {repo, commit, dir}, toolchain, env, key, steps: [names], ran?: [{name, seconds}]}
   record: {schema, ok, action, set, dir, run, captured, provision, complete, incomplete?, checkpoint_upload?, checkpoint_leaks?, chunks: [{n, seconds, complete,
   interactions}], chunk_minutes, interactions, nondeterministic, stable_pct, wall_seconds,
-  raw_removed?, verify?: {ok, exit}, leaks?: [text], error?, warnings, next}
+  raw_removed?, verify?: {ok, exit}, leaks?: [text], publish?: {ok, run?, sets?, files?, bytes?, fetch?, error?, next?}, error?, warnings, next}
   replay: {schema, ok, action, set, dir, run, captured, provision, candidates: [{candidate, severity, summary}],
   differences, wall_seconds, warnings, next}
   --check and --provision only: {schema, ok, action, set, dir, captured: false, provision, warnings, next}
@@ -4119,43 +4142,9 @@ Output (schema mimic-capture/1):
 
 </details>
 
-### `wf mimic publish`
-
-Upload recorded sets to the verification-artifacts bucket as one run, so another
-
-Usage: `wf mimic publish [options] <set>...`
-
-<details><summary>Full help</summary>
-
-```text
-Usage: wf mimic publish [options] <set>...
-
-Commit recorded sets to the state ref (refs/wf/state of origin) as one run, so
-another checkout can fetch them with git alone (an agent session cannot reach the
-GitHub Actions API, and an Actions artifact needs a login to download). Writes
-the json, jsonl, toml, txt and md files of each set, never raw/ or a dot file, to
-records/sets/<set>/, the manifest (every file's size and sha256) to
-records/runs/<run>.json and the run to records/latest/<set>.json, all in one
-commit. Only the newest run of a set keeps its files. A set without a
-cassette.json is refused. The push needs a token that may write refs (contents:
-write in a workflow). Caps: 60 MB a file, 200 MB a run.
-
-Options:
-  --run <id>                  the run id (default $GITHUB_RUN_ID, else local)
-  --root <dir>                the checkout the sets' paths are recorded against (default: this one)
-  --summary <file>            append the fetch and commit commands here (default $GITHUB_STEP_SUMMARY)
-  -h, --help                  display help for command
-
-Output (schema mimic-publish/1):
-  {schema, ok, run, sets: [{name, dir, files: [{path, bytes, sha256}]}], files, bytes,
-  fetch, warnings, next}
-```
-
-</details>
-
 ### `wf mimic fetch`
 
-Download a published run (wf mimic publish) into this checkout: every file of
+Download a published run (wf mimic capture record --publish) into this checkout: every file of
 
 Usage: `wf mimic fetch [options] <run-id|latest>`
 
@@ -4164,7 +4153,7 @@ Usage: `wf mimic fetch [options] <run-id|latest>`
 ```text
 Usage: wf mimic fetch [options] <run-id|latest>
 
-Download a published run (wf mimic publish) into this checkout: every file of
+Download a published run (wf mimic capture record --publish) into this checkout: every file of
 every set is read from the state ref (git fetch of refs/wf/state), its sha256 is
 checked against the manifest, and it is written to the set's directory (paths from
 the checkout root, never outside it). A run that a newer one replaced is refused. A file that does not match writes nothing more. `latest` takes
@@ -4807,7 +4796,7 @@ Options:
 
 ### `wf secret login`
 
-Capture interactive tool logins (claude, codex, gcloud, ...): `wf secret login <tool>` starts the login in the shared VNC desktop's browser, prints the link to open on any device (a phone is enough) and waits until the login finished. The login stays on the VM and agent-shell gets its credential; `--copy` also writes the files the tool's config declares copyable to this machine's home. A tool whose config names a vault secret (gcloud) also has it set when the login finishes, and emptied by `--clear` (both need the vault write token).
+Capture interactive tool logins (claude, codex, gcloud, ...): `wf secret login <tool>` starts the login in the shared VNC desktop's browser, prints the link to open on any device (a phone is enough) and waits until the login finished. The login stays on the VM and agent-shell gets its credential; `--copy` also writes the files the tool's config declares copyable to this machine's home. A tool whose config names a vault secret (gcloud, codex: the credential file's base64; claude: the token `claude setup-token` prints, matched out of the command's output and stored as the plain string) also has it set when the login finishes, and emptied by `--clear` (both need the vault write token; a printed token that cannot be stored fails the login, naming the key and never the value).
 
 Usage: `wf secret login [options] [command]`
 
@@ -4833,8 +4822,11 @@ Capture interactive tool logins (claude, codex, gcloud, ...): `wf secret login
 open on any device (a phone is enough) and waits until the login finished. The
 login stays on the VM and agent-shell gets its credential; `--copy` also writes
 the files the tool's config declares copyable to this machine's home. A tool
-whose config names a vault secret (gcloud) also has it set when the login
-finishes, and emptied by --clear (both need the vault write token).
+whose config names a vault secret (gcloud, codex: the credential file's base64;
+claude: the token `claude setup-token` prints, matched out of the command's
+output and stored as the plain string) also has it set when the login finishes,
+and emptied by --clear (both need the vault write token; a printed token that
+cannot be stored fails the login, naming the key and never the value).
 
 Options:
   --copy      also copy the finished login's credential files to this machine
@@ -4844,7 +4836,7 @@ Options:
   -h, --help  display help for command
 
 Commands:
-  list        List tools with a known auth descriptor
+  list        List tools with a known auth descriptor, each with the vault secret its login lands in
   capture     Run an ARBITRARY interactive login on the shared VNC desktop from a
               JSON spec and capture the credential out of the browser
   done        Signal that an interactive login is finished (what actually
@@ -4949,7 +4941,7 @@ Options:
 
 #### `wf secret login list`
 
-List tools with a known auth descriptor
+List tools with a known auth descriptor, each with the vault secret its login lands in
 
 Usage: `wf secret login list [options]`
 
@@ -4964,7 +4956,7 @@ wf secret login list
 ```text
 Usage: wf secret login list [options]
 
-List tools with a known auth descriptor
+List tools with a known auth descriptor, each with the vault secret its login lands in
 
 Options:
   -h, --help  display help for command

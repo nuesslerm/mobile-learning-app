@@ -1,6 +1,6 @@
 //! The record-references trigger of `wf mimic`: the commit marker that asks the VM runner for a capture job (`trigger`), how a set's reference is
 //! installed from data (the provision phase of `capture`), the chunked capture itself (`capture record`, over a double of the checkpointed `record`) and the transport of a
-//! recorded set to another checkout (`publish`, `fetch`, over a bare repository standing in for origin).
+//! recorded set to another checkout (the publish phase of `capture`, `fetch`, over a bare repository standing in for origin).
 use crate::support::*;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -259,34 +259,34 @@ fn a_failing_step_stops_provisioning_and_names_the_step_and_a_wrong_node_is_refu
     assert!(!work.path().join("s/ran").exists());
 }
 
-/// A stand-in for `wf-mimic`: its `record --help` lists the flags the checkpointed record has (or not, with `FAKE_NO_RESUME`), and each
-/// `record <set> --resume --max-minutes n` call leaves a checkpoint, reports complete:false until `FAKE_DONE_AT` calls were made, then writes the set.
+/// A stand-in for `wf-mimic`: its `record --help` lists the flags the checkpointed record has (or not, with `MIMIC_FAKE_NO_RESUME`), and each
+/// `record <set> --resume --max-minutes n` call leaves a checkpoint, reports complete:false until `MIMIC_FAKE_DONE_AT` calls were made, then writes the set.
 const FAKE: &str = r#"#!/bin/sh
 [ "$1" = mimic ] || exit 2
 case "$2" in
   record)
     if [ "$3" = --help ]; then
-      [ -n "$FAKE_NO_RESUME" ] && echo "  --keep-raw" || echo "  --resume  --max-minutes <n>"
+      [ -n "$MIMIC_FAKE_NO_RESUME" ] && echo "  --keep-raw" || echo "  --resume  --max-minutes <n>"
       exit 0
     fi
     set="$3"
     mkdir -p "$set/raw/checkpoint"
     echo "REF_HOME=$REF_HOME PATH_KEPT=$([ -n "$PATH" ] && echo yes)" > "$set/seen-env.txt"
     echo "$@" > "$set/args.txt"
-    [ -n "$FAKE_FAIL" ] && { echo '{"ok":false,"error":"boom"}'; exit 3; }
-    [ -n "$FAKE_CKPT_LEAK" ] && echo "Bearer abcdefgh12345" > "$set/raw/checkpoint/cap.jsonl"
+    [ -n "$MIMIC_FAKE_FAIL" ] && { echo '{"ok":false,"error":"boom"}'; exit 3; }
+    [ -n "$MIMIC_FAKE_CKPT_LEAK" ] && echo "Bearer abcdefgh12345" > "$set/raw/checkpoint/cap.jsonl"
     n=$(cat "$set/raw/count" 2>/dev/null || echo 0); n=$((n+1)); echo $n > "$set/raw/count"
-    if [ "$n" -lt "${FAKE_DONE_AT:-1}" ]; then
+    if [ "$n" -lt "${MIMIC_FAKE_DONE_AT:-1}" ]; then
       echo '{"ok":true,"set":"s","interactions":4,"complete":false,"nondeterministic":[],"warnings":[]}'
       exit 0
     fi
     echo '{"schema":"mimic-cassette/1"}' > "$set/cassette.json"
-    echo "{\"id\":\"a\",\"output\":\"${FAKE_LEAK:-fine}\"}" > "$set/interactions.jsonl"
+    echo "{\"id\":\"a\",\"output\":\"${MIMIC_FAKE_LEAK:-fine}\"}" > "$set/interactions.jsonl"
     echo '{"ok":true,"set":"s","interactions":8,"complete":true,"nondeterministic":["x"],"warnings":[]}'
     ;;
   verify)
-    [ -n "$FAKE_ACCOUNTING" ] && { echo '{"ok":false,"sets":[{"checks":[],"problems":[{"field":"stability","message":"x is tagged nondeterministic but not listed"}]}]}'; exit 1; }
-    [ -n "$FAKE_STALE" ] && { echo '{"ok":false,"sets":[{"checks":[{"name":"rules_hash","status":"stale"}],"problems":[{"field":"stability","message":"x"}]}]}'; exit 1; }
+    [ -n "$MIMIC_FAKE_ACCOUNTING" ] && { echo '{"ok":false,"sets":[{"checks":[],"problems":[{"field":"stability","message":"x is tagged nondeterministic but not listed"}]}]}'; exit 1; }
+    [ -n "$MIMIC_FAKE_STALE" ] && { echo '{"ok":false,"sets":[{"checks":[{"name":"rules_hash","status":"stale"}],"problems":[{"field":"stability","message":"x"}]}]}'; exit 1; }
     echo '{"ok":true,"warnings":[]}' ;;
   *) exit 2 ;;
 esac
@@ -329,6 +329,11 @@ impl Job {
     fn work(&self) -> PathBuf {
         self.dir.path().join("work/s")
     }
+    /// The record with the publish phase, run inside a checkout whose `origin` is the remote the state ref is pushed to.
+    fn publish_from(&self, cwd: &Path, run: &str) -> Run {
+        let (set, work, root) = (self.set.display().to_string(), self.dir.path().join("work").display().to_string(), self.dir.path().display().to_string());
+        mimic_in(Some(cwd), &["capture", "record", &set, "--work-root", &work, "--publish", "--run", run, "--root", &root], &[("WF_MIMIC_BIN", &self.bin)])
+    }
     fn summary(&self) -> PathBuf {
         self.dir.path().join("summary.md")
     }
@@ -340,7 +345,7 @@ fn a_record_capture_runs_chunks_until_the_record_is_complete_then_drops_the_raw_
     let j = job();
     let summary = j.summary();
     // When the job runs with a ten minute chunk
-    let r = j.run(&["--chunk", "10", "--summary", &summary.display().to_string(), "--run", "77"], &[("FAKE_DONE_AT", "3")]);
+    let r = j.run(&["--chunk", "10", "--summary", &summary.display().to_string(), "--run", "77"], &[("MIMIC_FAKE_DONE_AT", "3")]);
     // Then three chunks ran, the set is complete with its counts and stability, raw/ is gone and the set was verified
     assert_eq!((r.code, r.json["ok"].clone(), r.json["complete"].clone()), (0, json!(true), json!(true)), "{}\n{}", r.json, r.stderr);
     assert_eq!(r.json["chunks"].as_array().unwrap().len(), 3);
@@ -357,14 +362,14 @@ fn a_record_capture_that_runs_out_of_budget_keeps_its_checkpoint_and_says_how_to
     let j = job();
     let summary = j.summary();
     // When the job has room for one one-minute chunk only
-    let r = j.run(&["--chunk", "1", "--budget", "1", "--summary", &summary.display().to_string()], &[("FAKE_DONE_AT", "99")]);
+    let r = j.run(&["--chunk", "1", "--budget", "1", "--summary", &summary.display().to_string()], &[("MIMIC_FAKE_DONE_AT", "99")]);
     // Then it stops after that chunk, red, the checkpoint stays and the summary names the marker that resumes it
     assert_eq!((r.code, r.json["complete"].clone(), r.json["chunks"].as_array().map(Vec::len)), (1, json!(false), Some(1)), "{}", r.json);
     assert!(j.set.join("raw/checkpoint").is_dir());
     assert!(r.json["next"].as_str().unwrap().contains("[record s]"));
     assert!(std::fs::read_to_string(&summary).unwrap().contains("INCOMPLETE"));
     // When the job is told to start fresh
-    let fresh = j.run(&["--chunk", "1", "--budget", "1", "--fresh"], &[("FAKE_DONE_AT", "1")]);
+    let fresh = j.run(&["--chunk", "1", "--budget", "1", "--fresh"], &[("MIMIC_FAKE_DONE_AT", "1")]);
     // Then the checkpoint of the earlier run is gone and the record completes in one chunk
     assert_eq!((fresh.code, fresh.json["chunks"].as_array().map(Vec::len)), (0, Some(1)), "{}", fresh.json);
 }
@@ -374,12 +379,12 @@ fn a_masked_set_with_a_token_shaped_value_is_held_back_and_a_record_without_resu
     // Given a record whose masked output still holds a bearer token
     let j = job();
     // When the job completes it
-    let r = j.run(&[], &[("FAKE_LEAK", "Bearer abcdefgh12345")]);
+    let r = j.run(&[], &[("MIMIC_FAKE_LEAK", "Bearer abcdefgh12345")]);
     // Then the set is held back with the file and line, so it is never published
     assert_eq!((r.code, r.json["ok"].clone()), (1, json!(false)), "{}", r.json);
     assert!(r.json["leaks"][0].as_str().unwrap().contains("interactions.jsonl:1 has a Bearer token"), "{}", r.json["leaks"]);
     // Given a wf-mimic whose record has no --resume yet
-    let old = j.run(&[], &[("FAKE_NO_RESUME", "1")]);
+    let old = j.run(&[], &[("MIMIC_FAKE_NO_RESUME", "1")]);
     // Then the job fails at once and the message names the missing flags
     assert_eq!(old.code, 2);
     let error = old.json["error"].as_str().unwrap();
@@ -494,16 +499,16 @@ fn a_set_that_allows_nondeterminism_is_published_when_only_its_stability_account
     let j = job();
     std::fs::write(j.set.join("mimic.toml"), format!("{}[record]\nallow_nondeterministic = true\n", std::fs::read_to_string(j.set.join("mimic.toml")).unwrap())).unwrap();
     // When the job completes the record
-    let r = j.run(&[], &[("FAKE_ACCOUNTING", "1")]);
+    let r = j.run(&[], &[("MIMIC_FAKE_ACCOUNTING", "1")]);
     // Then it is not held back, and says the allowlist is for the commit to settle
     assert_eq!((r.code, r.json["ok"].clone(), r.json["verify"]["accounting_deferred"].clone()), (0, json!(true), json!(true)), "{}", r.json);
     // When a freshness check fails as well
-    let stale = j.run(&["--fresh"], &[("FAKE_STALE", "1")]);
+    let stale = j.run(&["--fresh"], &[("MIMIC_FAKE_STALE", "1")]);
     // Then the set is held back
     assert_eq!((stale.code, stale.json["ok"].clone(), stale.json["verify"]["accounting_deferred"].clone()), (1, json!(false), json!(false)), "{}", stale.json);
     // and a set that does not allow nondeterminism is held back on the accounting too
     let strict = job();
-    let held = strict.run(&[], &[("FAKE_ACCOUNTING", "1")]);
+    let held = strict.run(&[], &[("MIMIC_FAKE_ACCOUNTING", "1")]);
     assert_eq!((held.code, held.json["ok"].clone()), (1, json!(false)), "{}", held.json);
 }
 
@@ -511,26 +516,26 @@ fn a_set_that_allows_nondeterminism_is_published_when_only_its_stability_account
 fn a_checkpoint_is_resumed_only_by_the_record_it_belongs_to_and_is_kept_for_upload_only_when_the_run_ran_out_of_budget_cleanly() {
     // Given a record that ran out of budget and left a checkpoint with state in it
     let j = job();
-    let first = j.run(&["--chunk", "1", "--budget", "1"], &[("FAKE_DONE_AT", "99")]);
+    let first = j.run(&["--chunk", "1", "--budget", "1"], &[("MIMIC_FAKE_DONE_AT", "99")]);
     assert_eq!((first.code, first.json["incomplete"].clone(), first.json["checkpoint_upload"].clone()), (1, json!(true), json!(true)), "{}", first.json);
     std::fs::write(j.set.join("raw/checkpoint/state.txt"), "mine").unwrap();
     // When the same record runs again with nothing changed
-    let again = j.run(&["--chunk", "1", "--budget", "1"], &[("FAKE_DONE_AT", "99")]);
+    let again = j.run(&["--chunk", "1", "--budget", "1"], &[("MIMIC_FAKE_DONE_AT", "99")]);
     // Then the checkpoint is resumed: its state is still there and nothing warns
     assert!(j.set.join("raw/checkpoint/state.txt").is_file());
     assert_eq!(again.json["warnings"], json!([]), "{}", again.json);
     // When the corpus changed since that checkpoint
     std::fs::write(j.set.join("corpus.json"), r#"{"changed":true}"#).unwrap();
-    let stale = j.run(&["--chunk", "1", "--budget", "1"], &[("FAKE_DONE_AT", "99")]);
+    let stale = j.run(&["--chunk", "1", "--budget", "1"], &[("MIMIC_FAKE_DONE_AT", "99")]);
     // Then the checkpoint is dropped and the record starts over, and the job says so
     assert!(!j.set.join("raw/checkpoint/state.txt").exists());
     assert!(stale.json["warnings"][0].as_str().unwrap().contains("dropped"), "{}", stale.json);
     // When a leg fails, the job does not call it incomplete, so no checkpoint is uploaded
-    let failed = j.run(&[], &[("FAKE_FAIL", "1")]);
+    let failed = j.run(&[], &[("MIMIC_FAKE_FAIL", "1")]);
     assert_eq!(failed.code, 2, "{}", failed.json);
     assert!(failed.json["incomplete"].is_null(), "{}", failed.json);
     // When an unfinished record's checkpoint holds a token-shaped value
-    let leaky = j.run(&["--fresh", "--chunk", "1", "--budget", "1"], &[("FAKE_DONE_AT", "99"), ("FAKE_CKPT_LEAK", "1")]);
+    let leaky = j.run(&["--fresh", "--chunk", "1", "--budget", "1"], &[("MIMIC_FAKE_DONE_AT", "99"), ("MIMIC_FAKE_CKPT_LEAK", "1")]);
     // Then it is incomplete but must not be uploaded, and the file is named
     assert_eq!((leaky.json["incomplete"].clone(), leaky.json["checkpoint_upload"].clone()), (json!(true), json!(false)), "{}", leaky.json);
     assert!(leaky.json["checkpoint_leaks"][0].as_str().unwrap().contains("cap.jsonl:1 has a Bearer token"), "{}", leaky.json);
@@ -606,41 +611,69 @@ impl Remote {
 }
 
 #[test]
-fn a_recorded_set_published_from_one_checkout_is_fetched_whole_into_another_without_its_raw_capture() {
-    // Given a recorded toy set with a raw capture beside it, and a runner and an agent checkout sharing one origin
-    let w = World::new();
-    w.record();
-    std::fs::create_dir_all(w.path("raw")).unwrap();
-    w.write("raw/capture.jsonl", "{\"secret\":\"unmasked\"}\n");
+fn a_recorded_set_published_by_the_capture_is_fetched_whole_into_another_checkout_without_its_raw_capture() {
+    // Given a record that leaves a raw capture beside the set, and a runner and an agent checkout sharing one origin
+    let j = job();
     let remote = Remote::new();
     let (runner, agent) = (remote.clone_named("runner"), remote.clone_named("agent"));
-    // When the set is published as run 42
-    let p = mimic_in(Some(&runner), &["publish", &w.arg(), "--run", "42", "--root", &w.dir.path().display().to_string()], &[]);
+    // When the capture records it as run 42 and publishes it in the same call
+    let p = j.publish_from(&runner, "42");
     // Then every kept file is on the state ref of origin and raw/ is not
-    assert_eq!((p.code, p.json["ok"].clone()), (0, json!(true)), "{}\n{}", p.json, p.stderr);
+    assert_eq!((p.code, p.json["ok"].clone(), p.json["publish"]["ok"].clone()), (0, json!(true), json!(true)), "{}\n{}", p.json, p.stderr);
+    assert!(p.json["next"].as_str().unwrap().starts_with("wf mimic fetch 42"), "{}", p.json["next"]);
     let files = git(&remote.bare(), &["ls-tree", "-r", "--name-only", "refs/wf/state"]);
-    assert!(files.contains("records/sets/toy-set/cassette.json") && files.contains("records/runs/42.json") && files.contains("records/latest/toy-set.json"), "{files}");
+    assert!(files.contains("records/sets/s/cassette.json") && files.contains("records/runs/42.json") && files.contains("records/latest/s.json"), "{files}");
     assert!(!files.contains("raw"), "{files}");
     // When another checkout fetches the run, by id and as latest
     let other = tempfile::tempdir().unwrap();
     let f = mimic_in(Some(&agent), &["fetch", "42", "--root", &other.path().display().to_string()], &[]);
-    let latest = mimic_in(Some(&agent), &["fetch", "latest", "--set", "toy-set", "--root", &other.path().display().to_string()], &[]);
+    let latest = mimic_in(Some(&agent), &["fetch", "latest", "--set", "s", "--root", &other.path().display().to_string()], &[]);
     // Then the set is there byte for byte, without raw/
     assert_eq!((f.code, f.json["ok"].clone(), latest.code), (0, json!(true), 0), "{}\n{}", f.json, f.stderr);
-    for file in ["cassette.json", "interactions.jsonl", "rules.json", "corpus.json", "mimic.toml"] {
-        assert_eq!(std::fs::read(other.path().join("toy-set").join(file)).unwrap(), std::fs::read(w.path(file)).unwrap(), "{file}");
+    for file in ["cassette.json", "interactions.jsonl", "corpus.json", "mimic.toml", "pin.json"] {
+        assert_eq!(std::fs::read(other.path().join("s").join(file)).unwrap(), std::fs::read(j.set.join(file)).unwrap(), "{file}");
     }
-    assert!(!other.path().join("toy-set/raw").exists());
+    assert!(!other.path().join("s/raw").exists());
+}
+
+#[test]
+fn a_record_held_back_or_without_the_publish_flag_publishes_nothing_and_a_refused_push_is_a_warning() {
+    // Given a record whose masked output holds a bearer token, a clean record run without --publish, and a checkout whose origin refuses the push
+    let held = job();
+    let plain = job();
+    let remote = Remote::new();
+    let runner = remote.clone_named("runner");
+    let broken = job();
+    let lone = tempfile::tempdir().unwrap();
+    git(lone.path(), &["init", "--quiet"]);
+    git(lone.path(), &["remote", "add", "origin", "/nonexistent/origin.git"]);
+    // When each is captured with or without the phase
+    let leak = {
+        let (set, work, root) = (held.set.display().to_string(), held.dir.path().join("work").display().to_string(), held.dir.path().display().to_string());
+        mimic_in(Some(&runner), &["capture", "record", &set, "--work-root", &work, "--publish", "--run", "1", "--root", &root], &[("WF_MIMIC_BIN", &held.bin), ("MIMIC_FAKE_LEAK", Path::new("Bearer abcdefgh12345"))])
+    };
+    let unflagged = plain.run(&["--run", "2"], &[]);
+    let refused = broken.publish_from(lone.path(), "3");
+    // Then the held-back record is red and publishes nothing, the unflagged one has no publish phase, and the refused push leaves the record green with the reason
+    assert_eq!((leak.code, leak.json["ok"].clone(), leak.json["publish"].clone()), (1, json!(false), Value::Null), "{}", leak.json);
+    assert_eq!(git(&remote.bare(), &["for-each-ref", "refs/wf"]), "");
+    assert_eq!((unflagged.code, unflagged.json["publish"].clone()), (0, Value::Null), "{}", unflagged.json);
+    assert_eq!((refused.code, refused.json["ok"].clone(), refused.json["publish"]["ok"].clone()), (0, json!(true), json!(false)), "{}\n{}", refused.json, refused.stderr);
+    assert!(refused.json["warnings"][0].as_str().unwrap().contains("not published"), "{}", refused.json["warnings"]);
+    // And --publish with a replay is refused, naming the phase it goes with
+    let w = World::new();
+    let bad = mimic(&["capture", "replay", &w.arg(), "--publish"], &[]);
+    assert_eq!(bad.code, 2, "{}", bad.json);
+    assert!(bad.json["error"].as_str().unwrap().contains("--publish"), "{}", bad.json["error"]);
 }
 
 #[test]
 fn a_fetched_file_that_does_not_match_its_manifest_hash_is_refused_and_an_unknown_run_says_so() {
     // Given a published run whose interactions file was altered on the ref after the manifest was written
-    let w = World::new();
-    w.record();
+    let j = job();
     let remote = Remote::new();
     let (runner, agent) = (remote.clone_named("runner"), remote.clone_named("agent"));
-    let p = mimic_in(Some(&runner), &["publish", &w.arg(), "--run", "7", "--root", &w.dir.path().display().to_string()], &[]);
+    let p = j.publish_from(&runner, "7");
     assert_eq!(p.code, 0, "{}", p.json);
     git(&runner, &["fetch", "--quiet", "origin", "refs/wf/state:refs/wf/state"]);
     let tip = git(&runner, &["rev-parse", "refs/wf/state"]);
@@ -656,7 +689,7 @@ fn a_fetched_file_that_does_not_match_its_manifest_hash_is_refused_and_an_unknow
         std::io::Write::write_all(child.stdin.as_mut().unwrap(), b"altered\n").unwrap();
         String::from_utf8_lossy(&child.wait_with_output().unwrap().stdout).trim().to_string()
     };
-    tamper(&["update-index", "--cacheinfo", &format!("100644,{blob},records/sets/toy-set/interactions.jsonl")]);
+    tamper(&["update-index", "--cacheinfo", &format!("100644,{blob},records/sets/s/interactions.jsonl")]);
     let tree = tamper(&["write-tree"]);
     let commit = tamper(&["commit-tree", &tree, "-p", &tip, "-m", "altered"]);
     git(&runner, &["push", "--quiet", "origin", &format!("{commit}:refs/wf/state")]);
@@ -666,7 +699,7 @@ fn a_fetched_file_that_does_not_match_its_manifest_hash_is_refused_and_an_unknow
     // Then the hash mismatch stops it, and the altered file is not written
     assert_eq!(f.code, 2, "{}", f.json);
     assert!(f.json["error"].as_str().unwrap().contains("does not match the hash"), "{}", f.json["error"]);
-    assert!(!other.path().join("toy-set/interactions.jsonl").exists());
+    assert!(!other.path().join("s/interactions.jsonl").exists());
     // When a run that was never published is fetched
     let none = mimic_in(Some(&agent), &["fetch", "404", "--root", &other.path().display().to_string()], &[]);
     // Then it says the run does not exist
@@ -677,12 +710,11 @@ fn a_fetched_file_that_does_not_match_its_manifest_hash_is_refused_and_an_unknow
 #[test]
 fn a_run_a_newer_one_replaced_keeps_no_files_and_the_fetch_names_the_newest() {
     // Given two runs of the same set published one after the other
-    let w = World::new();
-    w.record();
+    let j = job();
     let remote = Remote::new();
     let (runner, agent) = (remote.clone_named("runner"), remote.clone_named("agent"));
     for run in ["1", "2"] {
-        let p = mimic_in(Some(&runner), &["publish", &w.arg(), "--run", run, "--root", &w.dir.path().display().to_string()], &[]);
+        let p = j.publish_from(&runner, run);
         assert_eq!(p.code, 0, "{}", p.json);
     }
     // When the older run is fetched
@@ -691,7 +723,7 @@ fn a_run_a_newer_one_replaced_keeps_no_files_and_the_fetch_names_the_newest() {
     // Then it is refused and points at the newest run, which fetches
     assert_eq!(old.code, 2, "{}", old.json);
     assert!(old.json["error"].as_str().unwrap().contains("no longer the newest"), "{}", old.json["error"]);
-    let newest = mimic_in(Some(&agent), &["fetch", "latest", "--set", "toy-set", "--root", &other.path().display().to_string()], &[]);
+    let newest = mimic_in(Some(&agent), &["fetch", "latest", "--set", "s", "--root", &other.path().display().to_string()], &[]);
     assert_eq!((newest.code, newest.json["run"].clone()), (0, json!("2")), "{}", newest.json);
 }
 

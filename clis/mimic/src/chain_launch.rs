@@ -1,9 +1,10 @@
 //! `target = "chain"`: the candidate is a set of processes a `launch` command starts (t3-serve over rca-service and rca-exec). The command prints
 //! one JSON line when the chain listens and serves until its stdin closes; the replay then plays it as a `url` target and closes the stdin after.
+use crate::child_env::ChildEnv;
 use serde_json::Value;
 use std::io::{BufRead, BufReader};
 use std::path::PathBuf;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Stdio};
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
@@ -19,10 +20,10 @@ pub struct Launched {
     pub cli_dir: Option<PathBuf>,
 }
 
-/// Starts `argv` (its program resolved from `dir` when it has a slash) and waits up to `wait` for its listening line.
-pub fn launch(argv: &[String], dir: &std::path::Path, wait: Duration) -> Result<Launched, String> {
+/// Starts `argv` (its program resolved from `dir` when it has a slash) in `env` and waits up to `wait` for its listening line.
+pub fn launch(argv: &[String], dir: &std::path::Path, env: &ChildEnv, wait: Duration) -> Result<Launched, String> {
     let program = if argv[0].contains('/') { dir.join(&argv[0]) } else { PathBuf::from(&argv[0]) };
-    let mut child = Command::new(&program).args(&argv[1..]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::inherit()).spawn().map_err(|e| format!("the chain launcher {}: {e}", program.display()))?;
+    let mut child = env.command(&program).args(&argv[1..]).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::inherit()).spawn().map_err(|e| format!("the chain launcher {}: {e}", program.display()))?;
     let stdout = child.stdout.take().ok_or("the chain launcher has no stdout")?;
     let (tx, rx) = mpsc::channel();
     std::thread::spawn(move || {

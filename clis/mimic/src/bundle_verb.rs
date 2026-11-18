@@ -1,9 +1,10 @@
-//! `wf mimic publish` and `wf mimic fetch`: the transport of a recorded set from the runner to wherever it is committed. `publish` commits the
+//! The transport of a recorded set from the runner to wherever it is committed: `publish` (the last phase of `wf mimic capture --publish`) and `wf mimic fetch`. `publish` commits the
 //! masked files of sets (never `raw/`) to the state ref (`refs/wf/state`) in one commit: `records/sets/<set>/<file>`, the run's manifest at
 //! `records/runs/<run>.json` and `records/latest/<set>.json`. Only the newest run of a set keeps its files. `fetch` reads them back with
 //! git, every hash checked, and writes them where they belong in a checkout, so it works from an agent session whose proxy refuses the
 //! GitHub Actions API.
-use super::{fail, set_ref, Done, Fail};
+use super::{fail, Done, Fail, SetRef};
+use crate::child_env::ChildEnv;
 use mimic_core::json::sha256_label;
 use serde_json::{json, Value};
 use std::io::Write;
@@ -44,23 +45,19 @@ fn files_of(dir: &Path, base: &Path, out: &mut Vec<String>, skipped: &mut Vec<St
     }
 }
 
-pub fn publish_verb(p: &Parsed) -> Done {
-    if p.positional.is_empty() {
-        return Err(fail("name at least one set", "wf mimic publish <set>... --run <id>"));
+/// The publish phase of `wf mimic capture --publish`: the masked files of the recorded `sets` committed to the state ref as run `run`, with git
+/// running in `env` alone.
+pub fn publish(sets: &[SetRef], run: &str, root: &Path, summary: Option<PathBuf>, env: &ChildEnv) -> Result<Value, Fail> {
+    if !plain(run) {
+        return Err(fail(format!("--run {run:?} is not a plain id (letters, digits, . _ -)"), "wf mimic capture --help"));
     }
-    let run = p.val("run").map(String::from).or_else(|| std::env::var("GITHUB_RUN_ID").ok().filter(|v| !v.is_empty())).unwrap_or_else(|| "local".into());
-    if !plain(&run) {
-        return Err(fail(format!("--run {run:?} is not a plain id (letters, digits, . _ -)"), "wf mimic publish --help"));
-    }
-    let root = p.val("root").map_or_else(wf_kit::root::repo_root, PathBuf::from);
-    let (mut sets, mut uploads, mut total, mut warnings) = (Vec::<Value>::new(), Vec::<(String, Vec<u8>)>::new(), 0u64, Vec::<String>::new());
-    for arg in &p.positional {
-        let set = set_ref(arg);
+    let (mut described, mut uploads, mut total, mut warnings) = (Vec::<Value>::new(), Vec::<(String, Vec<u8>)>::new(), 0u64, Vec::<String>::new());
+    for set in sets {
         if !plain(&set.name) {
             return Err(fail(format!("set name {:?} is not a plain directory name", set.name), "rename the set directory"));
         }
         if !set.dir.join("cassette.json").is_file() {
-            return Err(fail(format!("{} has no cassette.json: only a recorded set is published", set.dir.display()), "wf mimic record <set> first"));
+            return Err(fail(format!("{} has no cassette.json: only a recorded set is published", set.dir.display()), "wf mimic capture record <set> first"));
         }
         let (mut rels, mut skipped) = (Vec::new(), Vec::new());
         files_of(&set.dir, &set.dir, &mut rels, &mut skipped);
@@ -75,25 +72,26 @@ pub fn publish_verb(p: &Parsed) -> Done {
             files.push(json!({"path": rel, "bytes": bytes.len(), "sha256": sha256_label(&bytes)}));
             uploads.push((format!("{PREFIX}/sets/{}/{rel}", set.name), bytes));
         }
-        sets.push(json!({"name": set.name, "dir": crate::config::relative(&root, &set.dir), "files": files}));
+        described.push(json!({"name": set.name, "dir": crate::config::relative(root, &set.dir), "files": files}));
     }
-    let manifest = json!({"schema": "mimic-bundle/1", "run": run, "created": wf_kit::time::iso(wf_kit::time::now_ms()), "sets": sets});
+    let manifest = json!({"schema": "mimic-bundle/1", "run": run, "created": wf_kit::time::iso(wf_kit::time::now_ms()), "sets": described});
     let mut writes: Vec<(String, Vec<u8>)> = uploads.clone();
     writes.push((format!("{PREFIX}/runs/{run}.json"), serde_json::to_string_pretty(&manifest).unwrap_or_default().into_bytes()));
-    for s in &sets {
+    for s in &described {
         writes.push((format!("{PREFIX}/latest/{}.json", s["name"].as_str().unwrap_or_default()), json!({"run": run}).to_string().into_bytes()));
     }
     let files: Vec<(&str, &[u8])> = writes.iter().map(|(k, b)| (k.as_str(), b.as_slice())).collect();
-    state::write(&files, &format!("mimic: run {run}")).map_err(|e| fail(format!("write to {}: {e}", state::REF), "check the checkout has an origin it may push refs/wf/state to, then publish again"))?;
-    let names: Vec<&str> = sets.iter().filter_map(|s| s["name"].as_str()).collect();
+    let base = env.pairs();
+    state::write_in(Some(&base), &files, &format!("mimic: run {run}")).map_err(|e| fail(format!("write to {}: {e}", state::REF), "check the checkout has an origin it may push refs/wf/state to (contents: write in a workflow), then publish again"))?;
+    let names: Vec<&str> = described.iter().filter_map(|s| s["name"].as_str()).collect();
     let fetch = format!("wf mimic fetch {run}");
-    if let Some(path) = p.val("summary").map(PathBuf::from).or_else(|| std::env::var_os("GITHUB_STEP_SUMMARY").map(PathBuf::from)) {
+    if let Some(path) = summary {
         if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) {
-            let dirs: Vec<&str> = sets.iter().filter_map(|s| s["dir"].as_str()).collect();
+            let dirs: Vec<&str> = described.iter().filter_map(|s| s["dir"].as_str()).collect();
             let _ = write!(f, "Published {} file(s), {total} bytes, as run `{run}`. In a checkout of `dev`:\n\n```sh\n{fetch}\nwf mimic verify {}\ngit add {} && git commit -m \"mimic: re-record {}\"\n```\n\nThe same files are in the workflow artifact `{}`.\n\n", uploads.len(), dirs.join(" "), dirs.join(" "), names.join(" "), names.join("`, `"));
         }
     }
-    Ok((json!({"ok": true, "run": run, "sets": sets, "files": uploads.len(), "bytes": total, "fetch": fetch, "warnings": warnings, "next": fetch}), 0))
+    Ok(json!({"ok": true, "run": run, "sets": described, "files": uploads.len(), "bytes": total, "fetch": fetch}))
 }
 
 fn get(path: &str) -> Result<String, Fail> {

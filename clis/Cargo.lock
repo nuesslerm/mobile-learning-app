@@ -3267,6 +3267,7 @@ dependencies = [
  "mimic-script-host",
  "mimic-script-orca",
  "regex",
+ "secrets",
  "serde",
  "serde_json",
  "tempfile",

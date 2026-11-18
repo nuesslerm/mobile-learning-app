@@ -5,6 +5,8 @@ mod support;
 #[path = "flow/coverage_support/mod.rs"]
 mod coverage_support;
 
+#[path = "flow/child_env.rs"]
+mod child_env;
 #[path = "flow/coverage_orca.rs"]
 mod coverage_orca;
 #[path = "flow/coverage_oracle.rs"]

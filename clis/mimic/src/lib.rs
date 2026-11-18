@@ -2,6 +2,8 @@
 //! verify a set's freshness. The behaviour is `mimic-core`; `adapters` implement its ports over the disk, a child process and a closure,
 //! `config` reads `mimic.toml`, `verbs` is the command line.
 pub mod adapters;
+pub mod child_env;
+pub mod leak_scan;
 pub mod config;
 pub mod marker;
 pub mod provision;

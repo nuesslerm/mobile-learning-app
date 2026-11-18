@@ -39,6 +39,7 @@ testing = ["mimic-core/testing"]
 [dependencies]
 wf-kit = { path = "../wf-kit" }
 wf-bucket = { path = "../wf-bucket" }
+secrets = { path = "../secrets" }
 cli-http = { path = "../http" }
 mimic-coverage-core = { path = "coverage" }
 mimic-core = { version = "0.1.2", registry = "mla" }

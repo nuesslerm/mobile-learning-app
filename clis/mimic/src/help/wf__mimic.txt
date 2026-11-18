@@ -69,7 +69,6 @@ Commands:
   track <verb> [options]      Is the pinned reference the newest release of the real server: check, bump, plan, report
   trigger [options]           Read the marker of a commit message into the capture jobs it asks for
   capture [options] <record|replay> <set>  Provision a set's reference, then run its chunked record or replay and diff table
-  publish [options] <set>...  Upload recorded sets to the bucket as one run
   fetch [options] <run-id|latest>  Download a published run into this checkout
   import [options] <format> <legacy-dir>  Convert legacy CLI fixtures into an imported set
   export [options] <format> <set>  Rebuild the legacy files of an imported set and check their hashes

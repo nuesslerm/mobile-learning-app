@@ -45,8 +45,7 @@ const CRAWL: Spec = Spec { values: &["root"], flags: &["all", "check", "fresh"],
 const STABILIZE: Spec = Spec { values: &["allowlist", "min-pct", "report"], flags: &["write"], positional: Positional::Any, ..Spec::NONE };
 const REMASK: Spec = Spec { positional: Positional::Exactly(1), ..Spec::NONE };
 const TRIGGER: Spec = Spec { values: &["message", "file", "root"], positional: Positional::None, ..Spec::NONE };
-const CAPTURE: Spec = Spec { values: &["provision", "chunk", "budget", "out", "summary", "run", "candidate", "rows", "work-root", "root"], flags: &["fresh", "check", "force"], positional: Positional::Exactly(2), ..Spec::NONE };
-const PUBLISH: Spec = Spec { values: &["run", "root", "summary"], positional: Positional::Any, ..Spec::NONE };
+const CAPTURE: Spec = Spec { values: &["provision", "chunk", "budget", "out", "summary", "run", "candidate", "rows", "work-root", "root"], flags: &["fresh", "check", "force", "publish"], positional: Positional::Exactly(2), ..Spec::NONE };
 const FETCH: Spec = Spec { values: &["set", "root"], positional: Positional::Exactly(1), ..Spec::NONE };
 const VERIFY: Spec = Spec { values: &["root", "fixtures", "rules"], flags: &["all", "live", "files"], positional: Positional::Any, ..Spec::NONE };
 
@@ -93,7 +92,6 @@ pub fn run(args: &[String]) -> Option<i32> {
         "remask" => finish("mimic-remask/1", stabilize_verb::remask_verb(&parse_spec(rest, &REMASK)?)),
         "trigger" => finish("mimic-trigger/1", trigger_verb::trigger_verb(&parse_spec(rest, &TRIGGER)?)),
         "capture" => finish("mimic-capture/1", capture_verb::capture_verb(&parse_spec(rest, &CAPTURE)?)),
-        "publish" => finish("mimic-publish/1", bundle_verb::publish_verb(&parse_spec(rest, &PUBLISH)?)),
         "fetch" => finish("mimic-fetch/1", bundle_verb::fetch_verb(&parse_spec(rest, &FETCH)?)),
         "import" => finish("mimic-import/1", import(&parse_spec(rest, &IMPORT)?)),
         "export" => finish("mimic-export/1", export(&parse_spec(rest, &EXPORT)?)),
@@ -448,7 +446,7 @@ fn start_chain(candidate: &Target, p: &Parsed, cfg: &Config, set: &SetRef, conte
     let Some(spec) = candidate.script.as_ref().filter(|s| !s.launch.is_empty() && p.val("addr").is_none()) else { return Ok(None) };
     let vars = cfg.provision.as_ref().map(|prov| provision_phase::vars(p, &set.name, &set.dir, prov));
     let argv: Vec<String> = spec.launch.iter().map(|a| vars.as_ref().map_or_else(|| a.clone(), |v| crate::provision::expand(a, v))).collect();
-    let launched = chain_launch::launch(&argv, &spec.dir, std::time::Duration::from_millis(spec.ready_ms)).map_err(|e| fail(e, "build what the launch command starts (the set's provision steps, `when = \"replay\"`) and fix [candidate.<n>.script] launch"))?;
+    let launched = chain_launch::launch(&argv, &spec.dir, &crate::child_env::ChildEnv::base().pass(&cfg.declared_pass()), std::time::Duration::from_millis(spec.ready_ms)).map_err(|e| fail(e, "build what the launch command starts (the set's provision steps, `when = \"replay\"`) and fix [candidate.<n>.script] launch"))?;
     let scope = content.cassette.interactions.iter().flat_map(|i| i.steps.iter()).find_map(|s| s.payload["body"]["scope"].as_str().map(|v| v.replace(' ', ",")));
     let mut target = candidate.clone();
     if let Some(s) = target.script.as_mut().filter(|s| s.orca) {

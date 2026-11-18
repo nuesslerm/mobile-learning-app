@@ -1,28 +1,31 @@
-//! `wf mimic capture <record|replay> <set>`: the capture of one set on a runner, in three phases.
+//! `wf mimic capture <record|replay> <set>`: the capture of one set on a runner, in four phases.
 //!
 //! 1. provision (`--provision auto|only|skip`, default auto): the `[provision]` block installs the reference (`provision_phase.rs`); a work
 //!    directory whose marker key matches is reused. Provisioning builds third-party code, so every child of it runs without a credential.
-//! 2. capture, with the environment of the caller plus the `[env]` of the block and nothing else of the block:
+//! 2. capture, every child in a `ChildEnv` (`child_env.rs`: an allowlist of the caller's environment, the `[env]` of the block, the variables the set
+//!    names; `BWS_*` and `GITHUB_*` never) and the keys a record's reference declares (`[reference] env_from_vault`) in the reference's alone:
 //!    `record` runs `wf mimic record <set> --resume --max-minutes <chunk>` again and again (each call is a bounded chunk that leaves its
 //!    checkpoint under `<set>/raw/checkpoint`) until the record is complete or the budget is spent; a complete record has its raw captures
-//!    deleted, is verified offline and is scanned for token-shaped values, because the masked set goes to a bucket anyone can read.
+//!    deleted, is verified offline and is scanned for token-shaped values and for the exact value of every declared key, because the masked set goes to a bucket anyone can read.
 //!    `replay` replays the recorded set against each of its candidates and tabulates the diff.
 //! 3. candidate stop: a `chain` candidate the replay started is stopped when its replay ends (`chain_launch.rs`).
+//! 4. publish (`--publish`, a record that is complete and clean): the masked set committed to the state ref, after the reference is gone.
 //!
 //! It appends a summary to `--summary` (default `$GITHUB_STEP_SUMMARY`) and prints one JSON object (schema `mimic-capture/1`).
 use super::provision_phase::{self, Mode};
+use crate::child_env::{self, ChildEnv};
+use crate::leak_scan::{scan_set, scan_tree};
 use super::{fail, set_ref, Done, Fail};
 use serde_json::{json, Value};
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::time::{Duration, Instant};
 use wf_kit::args::Parsed;
 
 const DEFAULT_BUDGET_MINUTES: u64 = 100;
 const MISSING: &str = "`wf mimic record` has no --resume and --max-minutes: the checkpointed record that chunked jobs need is not in this build. The interface this job calls is `wf mimic record <set> --resume --max-minutes <n>`: it stops after n minutes with its state under <set>/raw/checkpoint and prints complete:false in its JSON, and a later call resumes it.";
-const BINDING: &str = "mimic-job-binding.json";
-const MAX_SCANNED_BYTES: u64 = 8 * 1024 * 1024;
+const BINDING: &str = "mimic-capture-binding.json";
 
 /// The binary that answers `mimic ...`: `WF_MIMIC_BIN` (a test double, or a build elsewhere), else this one.
 fn bin() -> PathBuf {
@@ -35,9 +38,21 @@ struct Call {
     stdout: String,
 }
 
-fn call(args: &[&str], env: &[(String, String)]) -> Result<Call, Fail> {
-    let out = Command::new(bin()).arg("mimic").args(args).envs(env.iter().map(|(k, v)| (k, v))).stdin(Stdio::null()).stderr(Stdio::inherit()).output().map_err(|e| fail(format!("wf mimic {}: {e}", args.first().unwrap_or(&"")), "check wf-mimic is installed beside wf"))?;
-    let stdout = String::from_utf8_lossy(&out.stdout).into_owned();
+/// One `wf mimic <args>` child in `env`. The values of `secrets` are replaced by their names in everything it prints, so a log line of the reference
+/// never carries one to the runner's log or to the JSON this verb prints.
+fn call(args: &[&str], env: &ChildEnv, secrets: &[(String, String)]) -> Result<Call, Fail> {
+    let started = |e: std::io::Error| fail(format!("wf mimic {}: {e}", args.first().unwrap_or(&"")), "check wf-mimic is installed beside wf");
+    let mut child = env.command(bin()).arg("mimic").args(args).stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().map_err(started)?;
+    let stderr = child.stderr.take().map(BufReader::new);
+    let values = secrets.to_vec();
+    let relay = std::thread::spawn(move || {
+        for line in stderr.into_iter().flat_map(|r| r.split(b'\n').map_while(Result::ok)) {
+            eprintln!("{}", child_env::redact(&String::from_utf8_lossy(&line), &values));
+        }
+    });
+    let out = child.wait_with_output().map_err(started)?;
+    let _ = relay.join();
+    let stdout = child_env::redact(&String::from_utf8_lossy(&out.stdout), secrets);
     let json = stdout.lines().rev().find(|l| l.starts_with('{')).and_then(|l| serde_json::from_str(l).ok()).unwrap_or(Value::Null);
     Ok(Call { code: out.status.code().unwrap_or(-1), json, stdout })
 }
@@ -45,24 +60,6 @@ fn call(args: &[&str], env: &[(String, String)]) -> Result<Call, Fail> {
 fn minutes(p: &Parsed, name: &str, default: u64, max: u64) -> Result<u64, Fail> {
     let Some(v) = p.val(name) else { return Ok(default) };
     v.parse::<u64>().ok().filter(|n| (1..=max).contains(n)).ok_or_else(|| fail(format!("--{name} {v} is not a number of minutes in 1..={max}"), "wf mimic capture --help"))
-}
-
-/// A token-shaped value in masked output: what the runbook's grep looks for.
-pub fn token_like(line: &str) -> Option<&'static str> {
-    if let Some(i) = line.find("Bearer ") {
-        if line[i + 7..].bytes().take(8).filter(u8::is_ascii_alphanumeric).count() == 8 {
-            return Some("a Bearer token");
-        }
-    }
-    let mut rest = line;
-    while let Some(i) = rest.find("eyJ") {
-        let tail = &rest[i + 3..];
-        if tail.bytes().take(10).filter(|b| b.is_ascii_alphanumeric() || *b == b'_' || *b == b'-').count() == 10 {
-            return Some("a JWT");
-        }
-        rest = tail;
-    }
-    None
 }
 
 fn append_summary(p: &Parsed, text: &str) {
@@ -82,6 +79,9 @@ pub fn capture_verb(p: &Parsed) -> Done {
         return Err(fail(format!("capture {action}: the actions are record and replay"), "wf mimic capture --help"));
     }
     let mode = Mode::parse(p)?;
+    if p.flag("publish") && (action != "record" || p.flag("check") || mode == Mode::Only) {
+        return Err(fail("--publish publishes the set a record just completed: it goes with `record` and a capture (not --check, not --provision only)", "wf mimic capture record <set> --publish"));
+    }
     let set = set_ref(set_arg);
     let cfg = super::load_config(&set.dir.join("mimic.toml"))?;
     let provisioned = provision_phase::phase(p, &set, &cfg, action, mode)?;
@@ -106,12 +106,16 @@ fn record(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
     let budget = Duration::from_secs(minutes(p, "budget", DEFAULT_BUDGET_MINUTES, 600)? * 60);
     let run = run_id(p);
     let dir = set.dir.display().to_string();
-    let help = call(&["record", "--help"], &[])?;
+    let plain = ChildEnv::base();
+    let help = call(&["record", "--help"], &plain, &[])?;
     if !help.stdout.contains("--resume") || !help.stdout.contains("--max-minutes") {
         return Err(fail(MISSING, "land the checkpointed `wf mimic record`, then push the marker again"));
     }
     let checkpoint = set.dir.join("raw/checkpoint");
-    let env = cfg.provision.as_ref().map(|prov| provision_phase::block_env(p, &set.name, &set.dir, prov)).unwrap_or_default();
+    let declared = cfg.reference.as_ref().map(|r| r.env_from_vault.clone()).unwrap_or_default();
+    let secrets = child_env::resolve_declared(&declared).map_err(|e| fail(e, "put the key in the vault (`wf secret`) or the environment of the capture step, and run again"))?;
+    let block = cfg.provision.as_ref().map(|prov| provision_phase::block_env(p, &set.name, &set.dir, prov)).unwrap_or_default();
+    let env = ChildEnv::base().pass(&cfg.declared_pass()).with(block).with(secrets.clone());
     let key = binding_key(cfg)?;
     let mut warnings: Vec<String> = Vec::new();
     if checkpoint.exists() && (p.flag("fresh") || !bound_to(&checkpoint, &key)) {
@@ -131,7 +135,7 @@ fn record(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
             args.push("--allow-nondeterministic");
         }
         args.extend(cfg.record.args.iter().map(String::as_str));
-        let c = call(&args, &env)?;
+        let c = call(&args, &env, &secrets)?;
         if c.code != 0 || c.json["ok"] == json!(false) {
             let mut f = fail(format!("wf mimic record failed (exit {}): {}", c.code, c.json["error"].as_str().unwrap_or("no error in its output")), c.json["next"].as_str().unwrap_or("fix the reference and push the marker again").to_string());
             f.evidence = json!({"chunks": chunks, "record": c.json});
@@ -159,7 +163,7 @@ fn record(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
         "differences": last["differences"].clone(),
     });
     if !complete {
-        let held = scan_tree(&checkpoint, &checkpoint);
+        let held = scan_tree(&checkpoint, &checkpoint, &secrets);
         out["incomplete"] = json!(true);
         out["checkpoint_upload"] = json!(held.is_empty());
         out["checkpoint_leaks"] = json!(held);
@@ -169,11 +173,13 @@ fn record(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
         return Ok((out, 1));
     }
     let raw = set.dir.join("raw");
+    let raw_leaks = scan_tree(&raw, &raw, &secrets).into_iter().filter(|h| h.contains(" holds the value of ")).map(|h| format!("raw/{h}")).collect::<Vec<_>>();
     if raw.exists() {
         std::fs::remove_dir_all(&raw).map_err(|e| fail(format!("{}: {e}", raw.display()), "make the set directory writable"))?;
     }
-    let verify = call(&["verify", &dir], &[])?;
-    let leaks = scan(&set.dir);
+    let verify = call(&["verify", &dir], &plain, &[])?;
+    let mut leaks = raw_leaks;
+    leaks.extend(scan_set(&set.dir, &secrets));
     out["raw_removed"] = json!(true);
     let failed: Vec<Value> = verify.json["checks"].as_array().into_iter().flatten().chain(verify.json["sets"].as_array().into_iter().flatten().flat_map(|s| s["checks"].as_array().into_iter().flatten())).filter(|c| c["status"] != "ok").cloned().collect();
     let problems: Vec<Value> = verify.json["sets"].as_array().into_iter().flatten().flat_map(|s| s["problems"].as_array().into_iter().flatten()).cloned().collect();
@@ -182,15 +188,38 @@ fn record(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
     out["leaks"] = json!(leaks);
     let verified = verify.code == 0 || accounting_only;
     out["ok"] = json!(verified && leaks.is_empty());
-    out["next"] = json!(format!("wf mimic publish {dir} --run {run}"));
+    out["next"] = json!(format!("wf mimic capture record {dir} --provision skip --publish --run {run}"));
     let state = if out["ok"] == json!(true) { "complete" } else { "complete, held back" };
     append_summary(p, &format!(
         "### Record `{}`: {state}\n\n| interactions | nondeterministic | stability | chunks | wall time | verify |\n|---|---|---|---|---|---|\n| {n} | {unstable} | {stable_pct}% | {} x {chunk} min | {} | {} |\n\n{}",
         set.name, chunks.len(), mins(wall), if verify.code == 0 { "ok" } else if accounting_only { "ok, stability allowlist to regenerate" } else { "FAILED" },
-        if leaks.is_empty() { String::new() } else { format!("Token-shaped values in the masked set (nothing is published; add a mask rule to rules.json): {}\n\n", leaks.join(", ")) }
+        if leaks.is_empty() { String::new() } else { format!("Token-shaped values or a declared key in the recording or the masked set (nothing is published; add a mask rule to rules.json): {}\n\n", leaks.join(", ")) }
     ));
+    if out["ok"] == json!(true) && p.flag("publish") {
+        publish_phase(p, set, &run, &mut out);
+    }
     let code = if out["ok"] == json!(true) { 0 } else { 1 };
     Ok((out, code))
+}
+
+/// Phase four: the reference is gone and its keys are not held by anything that is still running. The masked set goes to the state ref with git in a
+/// `ChildEnv` of its own (no vault token, no `GITHUB_*`). A refused push is a warning, not a red record: the set is also a workflow artifact.
+fn publish_phase(p: &Parsed, set: &super::SetRef, run: &str, out: &mut Value) {
+    let root = p.val("root").map_or_else(wf_kit::root::repo_root, PathBuf::from);
+    let summary = p.val("summary").map(PathBuf::from).or_else(|| std::env::var_os("GITHUB_STEP_SUMMARY").map(PathBuf::from));
+    match super::bundle_verb::publish(std::slice::from_ref(set), run, &root, summary, &ChildEnv::base()) {
+        Ok(published) => {
+            out["next"] = published["fetch"].clone();
+            out["publish"] = published;
+        }
+        Err(f) => {
+            out["publish"] = json!({"ok": false, "error": f.error, "next": f.next});
+            if let Some(w) = out["warnings"].as_array_mut() {
+                w.push(json!(format!("the set was not published: {}", f.error)));
+            }
+            append_summary(p, &format!("### Publish `{}`: refused\n\n{}\n\n", set.name, f.error));
+        }
+    }
 }
 
 /// What a checkpoint is bound to: the provision block (with the pinned source commit), the corpus and the reference's pin. Resuming a checkpoint
@@ -206,43 +235,10 @@ fn bound_to(checkpoint: &Path, key: &str) -> bool {
     std::fs::read_to_string(checkpoint.join(BINDING)).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).is_some_and(|v| v["key"] == json!(key))
 }
 
-/// Token-shaped values anywhere under `dir` (the checkpoint is unmasked, so it only travels when none are found).
-fn scan_tree(dir: &Path, root: &Path) -> Vec<String> {
-    let mut hits = Vec::new();
-    let Ok(entries) = std::fs::read_dir(dir) else { return hits };
-    for e in entries.flatten() {
-        let path = e.path();
-        if path.is_dir() {
-            hits.extend(scan_tree(&path, root));
-        } else if e.metadata().is_ok_and(|m| m.len() <= MAX_SCANNED_BYTES) {
-            let text = String::from_utf8_lossy(&std::fs::read(&path).unwrap_or_default()).into_owned();
-            if let Some((i, what)) = text.lines().enumerate().find_map(|(i, l)| token_like(l).map(|w| (i + 1, w))) {
-                hits.push(format!("{}:{i} has {what}", path.strip_prefix(root).unwrap_or(&path).display()));
-            }
-        }
-    }
-    hits
-}
-
-fn scan(dir: &Path) -> Vec<String> {
-    let mut hits = Vec::new();
-    let Ok(entries) = std::fs::read_dir(dir) else { return hits };
-    for e in entries.flatten() {
-        let path = e.path();
-        if !path.is_file() || !matches!(path.extension().and_then(|x| x.to_str()), Some("json" | "jsonl" | "toml")) {
-            continue;
-        }
-        let text = std::fs::read_to_string(&path).unwrap_or_default();
-        if let Some((i, what)) = text.lines().enumerate().find_map(|(i, l)| token_like(l).map(|w| (i + 1, w))) {
-            hits.push(format!("{}:{i} has {what}", path.file_name().map_or_else(String::new, |n| n.to_string_lossy().into_owned())));
-        }
-    }
-    hits
-}
-
 fn replay(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done {
     let dir = set.dir.display().to_string();
-    let env = cfg.provision.as_ref().map(|prov| provision_phase::block_env(p, &set.name, &set.dir, prov)).unwrap_or_default();
+    let block = cfg.provision.as_ref().map(|prov| provision_phase::block_env(p, &set.name, &set.dir, prov)).unwrap_or_default();
+    let env = ChildEnv::base().pass(&cfg.declared_pass()).with(block);
     let wanted: Vec<String> = match p.val("candidate") {
         Some(c) => vec![c.to_string()],
         None => cfg.candidates.keys().cloned().collect(),
@@ -262,7 +258,7 @@ fn replay(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
                 argv.extend([if flag == "root" { "--root" } else { "--work-root" }, v]);
             }
         }
-        let c = call(&argv, &env)?;
+        let c = call(&argv, &env, &[])?;
         if c.code >= 2 || c.json.is_null() {
             let mut f = fail(format!("wf mimic replay {name} could not run: {}", c.json["error"].as_str().unwrap_or("no JSON in its output")), c.json["next"].as_str().unwrap_or("fix the candidate command in mimic.toml").to_string());
             f.evidence = json!({"candidate": name, "replay": c.json});

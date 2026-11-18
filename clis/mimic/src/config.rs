@@ -195,6 +195,10 @@ struct TargetFile {
     cwd: Option<String>,
     #[serde(default)]
     env: BTreeMap<String, String>,
+    /// `[reference]` only: registry keys the vault (or the caller's environment) holds that this program needs (a model API key). The verb reads them in
+    /// memory for a record and puts them in the environment of this program alone; names only, a value never appears in a set.
+    #[serde(default)]
+    env_from_vault: Vec<String>,
     timeout_ms: Option<u64>,
     name: Option<String>,
     version: Option<String>,
@@ -216,6 +220,8 @@ pub struct Target {
     pub spec: StdioSpec,
     /// Set for `driver = "script"`: the step interpreter instead of a child process speaking `mimic-driver/1`.
     pub script: Option<ScriptSpec>,
+    /// The vault keys the set declares for this program (`[reference]` only).
+    pub env_from_vault: Vec<String>,
     pub pin: Option<PathBuf>,
     pin_as_written: Option<String>,
     pin_tree: Option<PathBuf>,
@@ -225,6 +231,15 @@ pub struct Target {
     version_pointer: Option<String>,
     commit_pointer: Option<String>,
     pub live_when_named: Option<String>,
+}
+
+impl Config {
+    /// The variables of the caller's environment the set names for its programs (`env_pass`), whose values a capture child may hold. A vault key (`env_from_vault`) is not one of them: only a record's reference gets it.
+    pub fn declared_pass(&self) -> Vec<String> {
+        let vault: Vec<&String> = self.reference.iter().flat_map(|r| &r.env_from_vault).collect();
+        let targets = self.reference.iter().chain(self.candidates.values());
+        targets.flat_map(|t| t.script.iter().flat_map(|s| s.env_pass.iter())).filter(|n| !vault.contains(n)).cloned().collect()
+    }
 }
 
 pub struct Config {
@@ -267,6 +282,14 @@ fn target(dir: &Path, name: &str, t: TargetFile) -> Result<Target, String> {
     if !matches!(t.driver.as_str(), "stdio" | "script") {
         return Err(format!("[{name}] driver {:?}: this build runs drivers of kind \"stdio\" and \"script\" (a Rust closure is the SDK's InProcessDriver)", t.driver));
     }
+    for declared in t.env_from_vault.iter().chain(t.script.iter().flat_map(|s| &s.env_pass)) {
+        if crate::child_env::never(declared) || !declared.bytes().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_') {
+            return Err(format!("[{name}] declares {declared:?}: an UPPER_SNAKE name, and never a BWS_* or GITHUB_* one (no child gets those)"));
+        }
+    }
+    if !t.env_from_vault.is_empty() && name != "reference" {
+        return Err(format!("[{name}] env_from_vault: only [reference] may declare a vault key, so a replay or a candidate never holds one"));
+    }
     let script = match (t.driver.as_str(), t.script) {
         ("script", Some(s)) => Some(script_spec(dir, name, s)?),
         ("script", None) => return Err(format!("[{name}] driver \"script\" needs a [{name}.script] table")),
@@ -284,16 +307,27 @@ fn target(dir: &Path, name: &str, t: TargetFile) -> Result<Target, String> {
     if command.first().is_some_and(|c| c.contains('/') && Path::new(c).is_relative()) {
         command[0] = dir.join(&command[0]).display().to_string();
     }
+    let mut script = script;
+    if let Some(s) = script.as_mut() {
+        if !t.env_from_vault.is_empty() {
+            if s.spawn {
+                return Err(format!("[{name}] env_from_vault on a spawned script target: the host environment of the server is fixed by mimic-script-host and cannot carry a key yet; use an orca sidecar or a stdio driver"));
+            }
+            s.env_pass.extend(t.env_from_vault.iter().cloned());
+        }
+    }
     let spec = StdioSpec {
         command,
         cwd: Some(t.cwd.map_or_else(|| dir.to_path_buf(), |c| dir.join(c))),
         env: t.env.into_iter().collect(),
+        pass: t.env_from_vault.clone(),
         timeout: Duration::from_millis(t.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS)),
     };
     Ok(Target {
         name: t.name.unwrap_or_else(|| name.to_string()),
         spec,
         script,
+        env_from_vault: t.env_from_vault,
         pin: t.pin.as_ref().map(|p| dir.join(p)),
         pin_as_written: t.pin,
         pin_tree: t.pin_tree.as_ref().map(|p| dir.join(p)),
@@ -375,7 +409,7 @@ impl Target {
 /// tree once committed, so an edit to the reference's code moves the pin before it is committed.
 pub fn git_tree(dir: &Path) -> Result<String, String> {
     let git = |args: &[&str], index: Option<&Path>| -> Result<String, String> {
-        let mut cmd = std::process::Command::new("git");
+        let mut cmd = crate::child_env::command("git");
         cmd.arg("-C").arg(dir).args(args);
         if let Some(index) = index {
             cmd.env("GIT_INDEX_FILE", index);
@@ -443,7 +477,7 @@ impl CrawlConfig {
             return Err(format!("{}: command is empty", file.display()));
         }
         let dir = file.parent().filter(|p| !p.as_os_str().is_empty()).unwrap_or_else(|| Path::new(".")).to_path_buf();
-        let spec = StdioSpec { command: parsed.command, cwd: Some(parsed.cwd.map_or_else(|| dir.clone(), |c| dir.join(c))), env: parsed.env.into_iter().collect(), timeout: Duration::from_millis(DEFAULT_TIMEOUT_MS) };
+        let spec = StdioSpec { command: parsed.command, cwd: Some(parsed.cwd.map_or_else(|| dir.clone(), |c| dir.join(c))), env: parsed.env.into_iter().collect(), pass: Vec::new(), timeout: Duration::from_millis(DEFAULT_TIMEOUT_MS) };
         let pin = match (parsed.pin, parsed.commit_pointer) {
             (Some(p), pointer) => Some((dir.join(p), pointer.unwrap_or_else(|| "/commit".into()))),
             (None, Some(_)) => return Err(format!("{}: commit_pointer needs a pin", file.display())),
