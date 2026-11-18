@@ -434,29 +434,31 @@ fn a_real_agents_record_puts_the_real_clis_first_on_the_references_path_with_the
 }
 
 #[test]
-fn a_spawned_reference_that_needs_real_agents_or_a_key_is_refused_before_anything_starts_until_the_host_release_is_adopted() {
+fn a_spawned_reference_that_needs_real_agents_and_a_key_is_recorded_with_the_key_in_the_record_child_alone() {
     // Given a set whose reference is a spawned server and whose provision runs opencode for real and declares the key
     let rig = Rig::real();
     let toml = std::fs::read_to_string(rig.set.join("mimic.toml")).unwrap();
     std::fs::write(rig.set.join("mimic.toml"), toml.replace("target = \"orca\"\nsidecar = [\"sh\", \"reference.sh\"", "target = \"spawn\"\nsidecar = [\"sh\", \"reference.sh\"")).unwrap();
     // When it is recorded
     let r = rig.capture("record", &["--agents-cache", &rig.cache()], true);
-    // Then it is refused naming the host release, and the vault was not read and no record child ran
-    assert_eq!(r.code, 2, "{}\n{}", r.json, r.stderr);
-    assert!(r.json["error"].as_str().unwrap().contains("mimic-script-host") && r.json["error"].as_str().unwrap().contains("0.1.9"), "{}", r.json);
-    assert!(!rig.dump("record.env").exists() && rig.vault_calls().is_empty());
+    // Then it is not refused: the record child ran holding the key, the provisioning steps did not
+    assert_eq!(r.code, 0, "{}\n{}", r.json, r.stderr);
+    assert!(names(&rig.dump("record.env")).contains(ENV_NAME));
+    let (seen, raw) = snap(&rig.work("provision.env"));
+    assert!(!seen.contains(ENV_NAME) && !raw.contains(VALUE), "{seen:?}");
+    assert!(!r.json.to_string().contains(VALUE) && !r.stderr.contains(VALUE));
 }
 
 #[test]
-fn a_url_reference_that_declares_a_key_is_refused_because_its_mint_command_would_inherit_the_record_childs_environment() {
+fn a_url_reference_that_declares_a_key_is_recorded_and_its_mint_command_is_left_to_the_host_which_starts_it_without_the_key() {
     // Given a set whose reference is a url script target and declares the key
     let rig = Rig::real();
     let toml = std::fs::read_to_string(rig.set.join("mimic.toml")).unwrap();
     std::fs::write(rig.set.join("mimic.toml"), toml.replace("target = \"orca\"\nsidecar = [\"sh\", \"reference.sh\"", "target = \"url\"\naddr = \"127.0.0.1:1\"\nworkspace = \"/w\"\nmint = [\"true\"]\nsidecar = [\"sh\", \"reference.sh\"")).unwrap();
     // When it is recorded
     let r = rig.capture("record", &["--agents-cache", &rig.cache()], true);
-    // Then it is refused naming the mint command, the vault was not read and no record child ran
-    assert_eq!(r.code, 2, "{}\n{}", r.json, r.stderr);
-    assert!(r.json["error"].as_str().unwrap().contains("mint"), "{}", r.json);
-    assert!(!rig.dump("record.env").exists() && rig.vault_calls().is_empty());
+    // Then it is not refused: the record child ran holding the key, and the value is nowhere in what the capture printed
+    assert_eq!(r.code, 0, "{}\n{}", r.json, r.stderr);
+    assert!(names(&rig.dump("record.env")).contains(ENV_NAME));
+    assert!(!r.json.to_string().contains(VALUE) && !r.stderr.contains(VALUE));
 }

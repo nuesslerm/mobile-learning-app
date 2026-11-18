@@ -96,28 +96,12 @@ pub fn capture_verb(p: &Parsed) -> Done {
     Ok((out, code))
 }
 
-/// A reference the host starts itself (a spawned T3) is launched by mimic-script-host, whose release before 0.1.9 gives the server a fixed environment and
-/// no directory of real agent CLIs: a record that needs either is refused before anything starts, rather than run with the key silently missing.
-fn refuse_unwired_spawn(cfg: &crate::config::Config, declared: &std::collections::BTreeMap<String, String>) -> Result<(), Fail> {
-    let spawned = cfg.reference.as_ref().and_then(|r| r.script.as_ref()).is_some_and(|s| s.spawn);
-    let real = cfg.provision.as_ref().is_some_and(|p| !p.real_agents.is_empty());
-    if spawned && (real || !declared.is_empty()) && !crate::adapters::script_driver::SPAWN_TAKES_REAL_AGENTS {
-        return Err(fail("the reference is a spawned server and this build's mimic-script-host cannot give it real agent CLIs or a key (it needs 0.1.9, released with `wf lib release`, then adopted here)", "release mimic-script-host 0.1.9, raise the version in clis/mimic/Cargo.toml, wire SpawnLaunch.real_clis and SpawnLaunch.env in adapters/script_driver.rs, and record again"));
-    }
-    let url_target = cfg.reference.as_ref().and_then(|r| r.script.as_ref()).is_some_and(|s| !s.spawn && !s.orca);
-    if url_target && !declared.is_empty() {
-        return Err(fail("the reference is a url script target: its mint command is started by the host library with the record child's whole environment, which would hold the declared key", "declare the key on an orca sidecar or a stdio reference, or drop env_from_vault"));
-    }
-    Ok(())
-}
-
 fn mins(d: Duration) -> String {
     format!("{}m{:02}s", d.as_secs() / 60, d.as_secs() % 60)
 }
 
 fn record(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done {
     super::reference(cfg)?;
-    refuse_unwired_spawn(cfg, &cfg.reference.as_ref().map(|r| r.env_from_vault.clone()).unwrap_or_default())?;
     let chunk = minutes(p, "chunk", u64::from(mimic_plan_core::DEFAULT_CHUNK_MINUTES), u64::from(mimic_plan_core::MAX_CHUNK_MINUTES))?;
     let budget = Duration::from_secs(minutes(p, "budget", DEFAULT_BUDGET_MINUTES, 600)? * 60);
     let run = run_id(p);

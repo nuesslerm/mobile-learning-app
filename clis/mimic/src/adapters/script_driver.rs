@@ -13,9 +13,6 @@ use mimic_script_orca::OrcaLaunch;
 use mimic_script_host::{Launch, ScriptDriver};
 use std::path::PathBuf;
 
-/// Whether the host this build links starts a spawned server with real agent CLIs and extra variables (mimic-script-host 0.1.9 and later).
-pub const SPAWN_TAKES_REAL_AGENTS: bool = false;
-
 fn platform() -> String {
     format!("linux-{}", if std::env::consts::ARCH == "aarch64" { "arm64" } else { "x64" })
 }
@@ -46,7 +43,7 @@ fn launch(target: &Target, spec: &ScriptSpec) -> Result<Box<dyn Launch>, String>
         let pin_path = target.pin.as_ref().ok_or("a spawned script target needs a pin file (the release it runs)")?;
         let pin = Pin::parse(&std::fs::read_to_string(pin_path).map_err(|e| format!("{}: {e}", pin_path.display()))?)?;
         let runtime = ensure_runtime(&pin, &platform(), &cache(spec), &CurlGet)?;
-        Ok(Box::new(SpawnLaunch { runtime: runtime.dir, ready_ms: spec.ready_ms, cli_dir: spec.cli_dir.clone() }))
+        Ok(Box::new(SpawnLaunch { runtime: runtime.dir, ready_ms: spec.ready_ms, cli_dir: spec.cli_dir.clone(), real_clis: spec.real_clis.clone(), env: ChildEnv::default().pass(&spec.env_pass).pairs() }))
     } else {
         let addr = spec.addr.as_deref().ok_or("a url target needs addr and workspace (mimic.toml, or --addr and --workspace of the verb)")?.parse().map_err(|e| format!("script addr: {e}"))?;
         let workspace = spec.workspace.clone().ok_or("a url target needs addr and workspace (mimic.toml, or --addr and --workspace of the verb)")?;

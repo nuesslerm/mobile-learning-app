@@ -1461,9 +1461,9 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-host"
-version = "0.1.8"
+version = "0.1.10"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
-checksum = "64d46593e47e91c0354a7bfce3c591f9d4f5186a1ed68bc51034520b11458a79"
+checksum = "6806ec9c049e263c456179d03ba6b03a33fc486c701f16a649b1cf20f275ffb3"
 dependencies = [
  "mimic-core",
  "mimic-script-core",
@@ -2731,7 +2731,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "32497e9a4c7b38532efcdebeef879707aa9f794296a4f0244f6f69e9bc8574bd"
 dependencies = [
  "fastrand",
- "getrandom 0.4.3",
+ "getrandom 0.3.4",
  "once_cell",
  "rustix",
  "windows-sys 0.61.2",
