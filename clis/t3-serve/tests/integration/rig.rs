@@ -16,7 +16,10 @@ pub static SUITE: Suite = Suite::new("t3-serve-integration", "t3");
 pub const SECRET: &str = "chain-service-secret";
 /// The `t3-serve` binary: the one `T3_SERVE_BIN` names (the chain launcher's `--t3-serve`), else the one cargo built beside the test.
 fn bin() -> String {
-    std::env::var("T3_SERVE_BIN").unwrap_or_else(|_| option_env!("CARGO_BIN_EXE_t3-serve").expect("no t3-serve beside this program: pass --t3-serve").to_string())
+    std::env::var("T3_SERVE_BIN").unwrap_or_else(|_| match option_env!("CARGO_BIN_EXE_t3-serve") {
+        Some(path) => path.to_string(),
+        None => panic!("no t3-serve beside this program: pass --t3-serve"),
+    })
 }
 const METHODS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/plans/rca-parity/coverage/t3-methods.json");
 

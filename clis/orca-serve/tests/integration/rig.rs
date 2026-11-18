@@ -17,7 +17,10 @@ pub static SUITE: Suite = Suite::new("orca-serve-integration", "orca");
 pub const SECRET: &str = "chain-service-secret";
 /// The `orca-serve` binary: the one `ORCA_SERVE_BIN` names (the chain launcher's `--orca-serve`), else the one cargo built beside the test.
 fn bin() -> String {
-    std::env::var("ORCA_SERVE_BIN").unwrap_or_else(|_| option_env!("CARGO_BIN_EXE_orca-serve").expect("no orca-serve beside this program: pass --orca-serve").to_string())
+    std::env::var("ORCA_SERVE_BIN").unwrap_or_else(|_| match option_env!("CARGO_BIN_EXE_orca-serve") {
+        Some(path) => path.to_string(),
+        None => panic!("no orca-serve beside this program: pass --orca-serve"),
+    })
 }
 const METHODS: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/plans/rca-parity/coverage/orca-methods.json");
 
