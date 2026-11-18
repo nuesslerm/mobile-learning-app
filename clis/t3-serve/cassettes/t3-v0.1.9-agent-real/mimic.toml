@@ -25,8 +25,8 @@ version_pointer = "/version"
 commit_pointer = "/commit"
 timeout_ms = 900000
 live_when_named = "downloads and runs the pinned release: `wf mimic verify <set> --live`, on the VM"
-# the key the pinned opencode reads (OPENCODE_API_KEY) and the registry key that holds its value; names only, read in memory for a record, to this reference alone
-env_from_vault = { OPENCODE_API_KEY = "OPENCODE_GO_API_KEY" }
+# the key the pinned opencode reads (OPENCODE_API_KEY) and the registry key that holds its value, as MIMIC_CRED_<CLI>__<VAR>: the host hands it to that CLI alone; names only, read in memory for a record
+env_from_vault = { MIMIC_CRED_OPENCODE__OPENCODE_API_KEY = "OPENCODE_GO_API_KEY" }
 
 [reference.script]
 target = "spawn"

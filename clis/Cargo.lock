@@ -1461,9 +1461,9 @@ dependencies = [
 
 [[package]]
 name = "mimic-script-host"
-version = "0.1.10"
+version = "0.1.11"
 source = "sparse+https://raw.githubusercontent.com/nuesslerm/mobile-learning-app/dev/registry/index/"
-checksum = "6806ec9c049e263c456179d03ba6b03a33fc486c701f16a649b1cf20f275ffb3"
+checksum = "50d0eec2853f920a8e203c95cc01fc3c6a1f59e328c07e8cb98102d5b09844c2"
 dependencies = [
  "mimic-core",
  "mimic-script-core",

@@ -104,7 +104,7 @@ real_agents_pin = "real-agents-pin.json"   # required: version and the sha256 of
 
 # mimic.toml
 [reference]
-env_from_vault = { OPENCODE_API_KEY = "OPENCODE_GO_API_KEY" }   # names only: the variable the program reads, the registry key that holds its value
+env_from_vault = { MIMIC_CRED_OPENCODE__OPENCODE_API_KEY = "OPENCODE_GO_API_KEY" }   # names only: MIMIC_CRED_<cli>__<variable the cli reads>, the registry key that holds its value; the host hands it to that CLI alone
 ```
 
 `wf mimic capture record` installs the pinned asset (`<release>/opencode-<platform>.tar.gz`, refused unless it hashes to the pin, then `opencode --version` must print the pinned version) into `{work}/real-clis`, exports `MIMIC_REAL_CLI_DIR` to the capture, and the host puts that directory on the reference's `PATH` without the stub or the scripted `opencode` (`claude` and `codex` stay scripted). `--agents-cache <dir>` (assets by file name, still hash-checked) replaces the download. The key is read from the vault in memory (`secrets::load_values`, the call every `wf` verb that resolves a registry key makes) by the capture verb only, handed through the child environment builder to the reference process and no other child, and never written, printed or logged: no file, argv, `GITHUB_ENV`, log line or cassette. A missing key fails the record naming the key. Before a set is published the raw recording, the checkpoint and the masked files are scanned for the exact value (a hit holds the set back, naming the key and the file, never the value).
