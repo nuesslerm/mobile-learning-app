@@ -445,7 +445,7 @@ mod tests {
         let list = ListDir::parse(&json!({"path": "."})).unwrap();
         // Then a read starts at line 0 with no limit, a write does not create, a listing is one level
         assert_eq!((read.offset, read.limit), (0, None));
-        assert_eq!(write.create_dirs, false);
+        assert!(!write.create_dirs);
         assert_eq!(list.depth, 1);
     }
 
