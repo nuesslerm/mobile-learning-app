@@ -125,6 +125,7 @@ impl Launch for SpawnLaunch {
         let root = std::env::temp_dir().join(format!("mimic-host-{}-{}", std::process::id(), HOSTS.fetch_add(1, Ordering::Relaxed)));
         let mut host = Host::prepare(&root, self.cli_dir.as_deref(), self.real_clis.as_deref())?;
         host.env.extend(self.env.iter().cloned());
+        host.wrap_credentials()?;
         let port = free_port()?;
         let binary = self.runtime.join("t3");
         let mut child = Command::new(&binary)

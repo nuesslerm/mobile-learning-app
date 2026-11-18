@@ -57,6 +57,57 @@ impl Host {
     }
 }
 
+/// A credential for one real agent CLI travels in the server's environment as `MIMIC_CRED_<CLI>__<VAR>` and reaches only that CLI, as `VAR`.
+pub const CREDENTIAL_PREFIX: &str = "MIMIC_CRED_";
+
+/// `("opencode", "OPENCODE_API_KEY")` for `MIMIC_CRED_OPENCODE__OPENCODE_API_KEY`; none for any other name.
+pub fn credential_of(name: &str) -> Option<(String, String)> {
+    let (cli, var) = name.strip_prefix(CREDENTIAL_PREFIX)?.split_once("__")?;
+    (!cli.is_empty() && !var.is_empty()).then(|| (cli.to_ascii_lowercase(), var.to_string()))
+}
+
+impl Host {
+    /// Puts a wrapper in front of each real CLI that holds a credential in this host's environment: the wrapper hands the CLI its own `VAR` and
+    /// drops every `MIMIC_CRED_*` before it execs the real program, so a CLI never sees another CLI's credential and no value is in an argument or a file.
+    pub fn wrap_credentials(&mut self) -> Result<(), String> {
+        let Some(real) = self.real.clone() else { return Ok(()) };
+        let mut per_cli: std::collections::BTreeMap<String, Vec<(String, String)>> = std::collections::BTreeMap::new();
+        for (name, _) in &self.env {
+            if let Some((cli, var)) = credential_of(name) {
+                per_cli.entry(cli).or_default().push((name.clone(), var));
+            }
+        }
+        if per_cli.is_empty() {
+            return Ok(());
+        }
+        let held = programs_of(&real)?;
+        let wrap = self.root.join("real-wrap");
+        std::fs::create_dir_all(&wrap).map_err(|e| format!("{}: {e}", wrap.display()))?;
+        for (cli, vars) in per_cli {
+            if !held.contains(&cli) {
+                return Err(format!("a credential is declared for {cli:?}, which is not a real agent CLI of this host (a stub or a scripted program never holds one)"));
+            }
+            let mut script = String::from("#!/bin/sh\n");
+            for (carrier, var) in &vars {
+                script.push_str(&format!("{var}=\"${carrier}\"\nexport {var}\n"));
+            }
+            script.push_str("for n in $(env | sed -n 's/^\\(MIMIC_CRED_[A-Za-z0-9_]*\\)=.*/\\1/p'); do unset \"$n\"; done\n");
+            script.push_str(&format!("exec '{}' \"$@\"\n", real.join(&cli).display()));
+            let path = wrap.join(&cli);
+            std::fs::write(&path, script).map_err(|e| format!("{}: {e}", path.display()))?;
+            set_executable(&path)?;
+        }
+        let dir = wrap.display().to_string();
+        let real_dir = real.display().to_string();
+        for (k, v) in &mut self.env {
+            if k == "PATH" {
+                *v = v.replacen(&real_dir, &format!("{dir}:{real_dir}"), 1);
+            }
+        }
+        Ok(())
+    }
+}
+
 /// The names of the programs in `dir`.
 fn programs_of(dir: &Path) -> Result<Vec<String>, String> {
     let entries = std::fs::read_dir(dir).map_err(|e| format!("{}: {e}", dir.display()))?;

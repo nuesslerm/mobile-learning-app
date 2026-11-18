@@ -347,3 +347,47 @@ fn given_a_curl_and_a_tar_helper_when_started_then_they_get_the_allowed_part_of_
     // Then only the allowed names remain
     assert_eq!(got, ["PATH", "HTTPS_PROXY", "LC_ALL"]);
 }
+
+fn seen_by(host: &Host, cli: &str) -> String {
+    let out = std::process::Command::new("sh").arg("-c").arg(format!("{cli}")).env_clear().envs(host.env.iter().cloned()).output().unwrap();
+    String::from_utf8_lossy(&out.stdout).into_owned()
+}
+
+#[test]
+fn given_a_credential_per_real_cli_when_each_cli_runs_through_the_host_then_it_sees_its_own_variable_and_no_other_cli_credential() {
+    let root = tempfile::tempdir().unwrap();
+    let real = tempfile::tempdir().unwrap();
+    for cli in ["claude", "opencode"] {
+        std::fs::write(real.path().join(cli), "#!/bin/sh\nenv | sort\n").unwrap();
+        set_exec(&real.path().join(cli));
+    }
+    let mut host = Host::prepare(root.path(), None, Some(real.path())).unwrap();
+    host.env.push(("MIMIC_CRED_CLAUDE__CLAUDE_CODE_OAUTH_TOKEN".into(), "claude-secret-value".into()));
+    host.env.push(("MIMIC_CRED_OPENCODE__OPENCODE_API_KEY".into(), "opencode-secret-value".into()));
+
+    host.wrap_credentials().unwrap();
+
+    let claude = seen_by(&host, "claude");
+    assert!(claude.contains("CLAUDE_CODE_OAUTH_TOKEN=claude-secret-value"), "{claude}");
+    assert!(!claude.contains("opencode-secret-value") && !claude.contains("MIMIC_CRED_"), "claude saw another credential");
+    let opencode = seen_by(&host, "opencode");
+    assert!(opencode.contains("OPENCODE_API_KEY=opencode-secret-value"), "{opencode}");
+    assert!(!opencode.contains("claude-secret-value") && !opencode.contains("MIMIC_CRED_") && !opencode.contains("CLAUDE_CODE_OAUTH_TOKEN"), "opencode saw another credential");
+}
+
+#[test]
+fn given_a_credential_for_a_cli_that_is_not_real_when_the_wrappers_are_made_then_it_fails_and_no_wrapper_holds_the_value() {
+    let root = tempfile::tempdir().unwrap();
+    let real = real_dir();
+    let mut host = Host::prepare(root.path(), None, Some(real.path())).unwrap();
+    host.env.push(("MIMIC_CRED_CLAUDE__CLAUDE_CODE_OAUTH_TOKEN".into(), "claude-secret-value".into()));
+
+    let err = host.wrap_credentials().unwrap_err();
+
+    assert!(err.contains("claude") && !err.contains("claude-secret-value"), "{err}");
+}
+
+fn set_exec(path: &Path) {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o755)).unwrap();
+}
