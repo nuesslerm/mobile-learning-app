@@ -250,7 +250,7 @@ jobs:
           mkdir -p "$OUT_DIR"
           set +e
           # shellcheck disable=SC2086
-          nice -n 19 wf mimic capture record "$SET_DIR" --provision skip $flags --run "$GITHUB_RUN_ID" --out "$OUT_DIR" > "$OUT_DIR/$SET_NAME.record.json"
+          nice -n 19 wf mimic capture record "$SET_DIR" --provision skip --publish $flags --run "$GITHUB_RUN_ID" --out "$OUT_DIR" > "$OUT_DIR/$SET_NAME.record.json"
           code=$?
           set -e
           cat "$OUT_DIR/$SET_NAME.record.json"
@@ -293,18 +293,6 @@ jobs:
           path: ${{ runner.temp }}/mimic-out/*.json
           retention-days: 14
           if-no-files-found: ignore
-      - uses: ./.github/actions/install-bws
-        # after the capture: nothing the provisioned reference ran saw the vault
-        if: ${{ success() }}
-      - name: Publish the set to the bucket
-        # The transport an agent session can reach: `wf mimic fetch <run-id>`. The write link comes from the vault and is never printed.
-        # The bucket is gone with the VM: the set is also the workflow artifact `track-set-<set>` (uploaded before this step), so a refused publish is a warning, not a red record.
-        if: ${{ success() }}
-        continue-on-error: true
-        env:
-          SECRETS_BACKEND: bitwarden
-          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
-        run: wf mimic publish "$SET_DIR" --run "$GITHUB_RUN_ID"
 
   drop-checkpoints:
     name: Drop finished checkpoints

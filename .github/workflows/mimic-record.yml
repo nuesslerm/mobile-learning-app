@@ -2,7 +2,7 @@ name: Mimic record
 
 # Long reference-capture jobs on GitHub-hosted runners: record a pinned reference server or CLI into a cassette set, or replay a recorded set against its
 # candidates and publish the diff. They run one set at a time, niced, on a runner that never joins the tailnet (the reference's code reaches nothing of ours), and open no
-# inbound port. The grammar of the marker, the provisioning of a set's reference and the chunked job are `wf mimic trigger|provision|job` and the
+# inbound port. The grammar of the marker is `wf mimic trigger`; the provisioning of a set's reference and the chunked record or replay (with the publish) are `wf mimic capture`, and the
 # `[provision]` block of the set's mimic.toml (docs/runbooks/record-reference-servers-on-the-vm.md): a new clone of a CLI or server is data in
 # its set, never a change here.
 #
@@ -203,14 +203,17 @@ jobs:
           github-token: ${{ github.token }}
       - name: Capture
         id: job
-        # One verb, three phases: provision the reference as the set's [provision] block says (no credential in the environment of what it builds),
-        # the record or replay with the block's env, then the stop of a chain candidate. Niced like the job. No step here holds a secret and nothing is
-        # written to GITHUB_ENV: the block's env reaches the capture through `wf mimic capture` alone
+        # One verb, four phases: provision the reference as the set's [provision] block says, the record or replay, the stop of a chain candidate, and
+        # (a record with --publish) the publish of the masked set to the state ref once the reference is gone. Niced like the job. Nothing is written to
+        # GITHUB_ENV and no step before this one holds a secret. What isolates a credential from the reference and from everything it builds is not the
+        # step boundary but the verb: every child it starts gets a default-deny environment (`wf mimic capture --help`, "Child environment"), never
+        # a BWS_* or GITHUB_* variable, and a key only when the set declares it by name. A set that declares a vault key (`[reference] env_from_vault`)
+        # needs `bws` installed and the vault token in this step's environment, which only the verb itself holds.
         run: |
           OUT_DIR="$RUNNER_TEMP/mimic-out"
           flags=""
           if [ "$ACTION" = record ]; then
-            flags="--chunk $CHUNK --budget 120"
+            flags="--chunk $CHUNK --budget 120 --publish"
             if [ "$FRESH" = true ]; then flags="$flags --fresh"; fi
           fi
           if [ "$ACTION" = replay ] && [ -n "$ROWS" ]; then flags="--rows $ROWS"; fi
@@ -255,21 +258,8 @@ jobs:
           path: ${{ runner.temp }}/mimic-out/*.replay.json
           retention-days: 14
           if-no-files-found: ignore
-      - uses: ./.github/actions/install-bws
-        # after the capture: nothing the provisioned reference ran saw the vault
-        if: ${{ success() && env.ACTION == 'record' }}
-      - name: Publish the set to the bucket
-        # The transport an agent session can reach: `wf mimic fetch <run-id>`. The write link comes from the vault and is never printed.
-        # The bucket is gone with the VM: a refused publish is a warning, not a red record (the set is also a workflow artifact).
-        if: ${{ success() && env.ACTION == 'record' }}
-        continue-on-error: true
-        env:
-          SECRETS_BACKEND: bitwarden
-          BWS_SERVER_URL: https://vault.bitwarden.eu
-          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
-        run: wf mimic publish "$SET_DIR" --run "$GITHUB_RUN_ID"
       - name: Drop the checkpoints of the finished record
-        # a published record leaves nothing to resume, and a later marker must not pick an old checkpoint up
+        # a finished record leaves nothing to resume, and a later marker must not pick an old checkpoint up
         if: ${{ success() && env.ACTION == 'record' }}
         env:
           GITHUB_TOKEN: ${{ github.token }}

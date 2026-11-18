@@ -108,6 +108,10 @@ The cassettes of one recorded session of a real server at its pin, named `<app>-
 
 `wf mimic replay <set> --rows <prefix,...> --gaps check`: the recorded calls run against the candidate (`t3-serve` or `orca-serve` over the real `rca-service` and `rca-exec`, with the scripted agent CLI of both sides) and each answer is labelled clean, allowlisted, drift or breaking. A replay is the parity oracle: a phone row is served when its replay is clean or allowlisted and the method-hit trace shows the call reached rca (`"oracle": "mimic"` in the decisions file). Replays are split by rca feature crate (`replay-<crate>` Nx tasks), so a change to one mapper crate reruns its own rows.
 
+## Child environment
+
+The environment of every process `wf mimic capture` starts (a provisioning step, git, the record, verify and replay children, the reference and its sidecar, a candidate launcher), built in one place (`clis/mimic/src/child_env.rs`): an allowlist of the caller's variables (paths, locale, toolchain homes, the repository's own `MIMIC_*`/`WF_*` knobs) minus any name that looks like a credential, plus what the set declares by name (`env_pass`, `[reference] env_from_vault`). Nothing is inherited, and `BWS_*` and `GITHUB_*` never enter a child. Secret isolation is this property of how the verb launches processes, not of where a workflow step ends: a key the set declares reaches the reference alone, and a recording that holds its exact value is held back before anything is uploaded.
+
 ## Behaviour test
 
 A test of what the candidate does that no recording can show: a pty's output, a restart, a clock, an interaction no recorded set holds. It is a flow or integration test named for the behaviour it checks (`terminal_pty`, `thread_surface`), never for a milestone. It serves a row only through an `unrecordable` reason in the decisions file that says why no recording shows it (class (d) of `wf mimic coverage --by-oracle`); a row with neither a replay nor that reason is not served, and `wf mimic coverage --check` fails it.

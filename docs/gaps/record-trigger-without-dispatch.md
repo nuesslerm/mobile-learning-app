@@ -16,7 +16,7 @@ links: []
 Agent sessions in this repo reach GitHub through an egress proxy that answers 403 to `workflow_dispatch` and to the Actions API (listing runs, downloading an artifact), so a dispatched
 capture could be started and read only by a human. The same constraint shaped the Gem sync: an EMPTY commit to `dev` whose message carries a marker is a plain `git push`, which the proxy
 allows, and the CI pipeline ignores it (`ci-hosted.yml` starts an empty commit only with a `[services:...]` or `[cache:...]` tag). `mimic-record.yml` follows that pattern (`[record <set>...]`, `[replay <set>...]`, parsed by `wf mimic trigger`).
-For the same reason the cassette set also travels through the verification-artifacts bucket (`wf mimic publish` / `fetch`, plain HTTPS), with the Actions artifact as the human-facing copy.
+For the same reason the cassette set also travels through the verification-artifacts bucket (`wf mimic capture record --publish` / `wf mimic fetch`, plain HTTPS), with the Actions artifact as the human-facing copy.
 
 ## What has not been seen
 
@@ -28,7 +28,7 @@ For the same reason the cassette set also travels through the verification-artif
 - Toolchain steps other than node (`actions/setup-python`, `actions/setup-go`, `rustup`) and the checkpoint deletion (`actions: write`) are checked by actionlint and the matrix-key contract test only.
 - Provisioning timeouts (`timeout_minutes`) are not covered by a test: the smallest value is a minute.
 - The `t3-v0.1.9-scenarios` set (needs the scripted CLI built, `T3_CLI_DIR`) declares no `[provision]` yet.
-- Test data from the first development runs of `wf mimic publish` reached the real bucket before the flow-test helper was made hermetic: `verification/record-references/42/`, `.../7/` and
+- Test data from the first development runs of the publish phase of `wf mimic capture` reached the real bucket before the flow-test helper was made hermetic: `verification/record-references/42/`, `.../7/` and
   `.../latest/toy-set.json` hold a masked toy set and can be deleted.
 
 ## What unblocks it
