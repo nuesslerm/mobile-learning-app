@@ -174,7 +174,7 @@ Found by scanning each test's source for the exec-testkit helpers (comments skip
 | `rpc:git.runStackedAction` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-2 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 1 breaking |
 | `rpc:orchestration.forceStopThread` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-2 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 1 breaking |
 | `rpc:orchestration.getThreadFamily` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-3 x1, t3-v0.1.9-scenarios x1; 1 gap-listed, 1 breaking |
-| `rpc:orchestration.getThreadProjection` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x3; 2 gap-listed, 2 breaking |
+| `rpc:orchestration.getThreadProjection` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x4, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x3; 1 gap-listed, 1 breaking |
 | `rpc:projects.listEntries` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x1; 3 gap-listed, 1 breaking |
 | `rpc:projects.readFile` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x5, t3-v0.1.9-recorded-3 x1, t3-v0.1.9-scenarios x1; 3 gap-listed, 1 breaking |
 | `rpc:projects.searchEntries` | replay `wf-mimic-t3-recorded` | t3-v0.1.9-crawl x6, t3-v0.1.9-recorded-1 x1, t3-v0.1.9-scenarios x1; 4 gap-listed, 1 breaking |
