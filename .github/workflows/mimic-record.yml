@@ -194,14 +194,20 @@ jobs:
           path: ${{ matrix.checkpoint }}
           run-id: ${{ steps.checkpoint.outputs.run_id }}
           github-token: ${{ github.token }}
+      # `bws` and the vault token are for the verb itself: a set that declares `[reference] env_from_vault` has its keys read in memory by `wf mimic capture`
+      # (a record only), and no child it starts is given the token (`BWS_*` never enters a child environment).
+      - uses: ./.github/actions/install-bws
       - name: Capture
         id: job
+        env:
+          SECRETS_BACKEND: bitwarden
+          BWS_SERVER_URL: https://vault.bitwarden.eu
+          BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
         # One verb, four phases: provision the reference as the set's [provision] block says, the record or replay, the stop of a chain candidate, and
         # (a record with --publish) the publish of the masked set to the state ref once the reference is gone. Niced like the job. Nothing is written to
         # GITHUB_ENV and no step before this one holds a secret. What isolates a credential from the reference and from everything it builds is not the
         # step boundary but the verb: every child it starts gets a default-deny environment (`wf mimic capture --help`, "Child environment"), never
-        # a BWS_* or GITHUB_* variable, and a key only when the set declares it by name. A set that declares a vault key (`[reference] env_from_vault`)
-        # needs `bws` installed and the vault token in this step's environment, which only the verb itself holds.
+        # a BWS_* or GITHUB_* variable, and a key only when the set declares it by name (`[reference] env_from_vault`, a record only, to the reference alone).
         run: |
           OUT_DIR="$RUNNER_TEMP/mimic-out"
           flags=""

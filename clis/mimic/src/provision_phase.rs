@@ -5,7 +5,7 @@
 use super::{fail, Fail, SetRef};
 use crate::child_env::ChildEnv;
 use crate::config::Config;
-use crate::provision::{expand, Provision, When};
+use crate::provision::{expand, Provision, RealAgent, When};
 use mimic_core::json::sha256_label;
 use serde_json::{json, Value};
 use std::os::fd::AsFd;
@@ -15,6 +15,7 @@ use std::time::{Duration, Instant};
 use wf_kit::args::Parsed;
 
 const MARKER: &str = ".provisioned.json";
+const REAL_DIR: &str = "real-clis";
 const DRIVERS_MINUTES: u64 = 30;
 
 fn to_stderr(cmd: &mut Command) -> std::io::Result<()> {
@@ -91,6 +92,53 @@ fn toolchain_ok(tool: &str, want: &str) -> Result<(), String> {
     }
 }
 
+fn platform() -> &'static str {
+    if std::env::consts::ARCH == "aarch64" {
+        "linux-arm64"
+    } else {
+        "linux-x64"
+    }
+}
+
+/// Installs each pinned real agent CLI into `{work}/real-clis`: the release asset (a file of `cache` of the same name, else downloaded) must hash to the
+/// pin before anything is unpacked, and the program must then report the pinned version.
+fn install_real_agents(agents: &[RealAgent], work: &Path, cache: Option<&Path>) -> Result<(), String> {
+    let dir = work.join(REAL_DIR);
+    std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    let platform = platform();
+    let env = ChildEnv::base();
+    for a in agents {
+        let asset = format!("{}-{platform}.tar.gz", a.name);
+        let archive = dir.join(format!(".{asset}"));
+        match cache.map(|c| c.join(&asset)).filter(|p| p.is_file()) {
+            Some(cached) => drop(std::fs::copy(&cached, &archive).map_err(|e| format!("{}: {e}", cached.display()))?),
+            None => {
+                let mut curl = Command::new("curl");
+                curl.args(["-fsSL", "--retry", "3", "--connect-timeout", "30", "--max-time", "900", "-o"]).arg(&archive).arg(format!("{}/{asset}", a.release));
+                run(curl, &env, Duration::from_secs(16 * 60), &format!("the download of {asset}"))?;
+            }
+        }
+        let bytes = std::fs::read(&archive).map_err(|e| format!("{}: {e}", archive.display()))?;
+        let got = sha256_label(&bytes);
+        let want = format!("sha256:{}", a.sha256[platform]);
+        if got != want {
+            let _ = std::fs::remove_file(&archive);
+            return Err(format!("{asset} of {} {} hashes to {got} and the pin says {want}: nothing was unpacked", a.name, a.version));
+        }
+        let mut tar = Command::new("tar");
+        tar.arg("xzf").arg(&archive).arg("-C").arg(&dir);
+        run(tar, &env, Duration::from_secs(5 * 60), &format!("the unpacking of {asset}"))?;
+        let _ = std::fs::remove_file(&archive);
+        let program = dir.join(&a.name);
+        let out = env.command(&program).arg("--version").output().map_err(|e| format!("{} --version: {e}", program.display()))?;
+        let said = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if !said.split_whitespace().any(|w| w == a.version) {
+            return Err(format!("{} reports {said:?}, not the pinned version {}", program.display(), a.version));
+        }
+    }
+    Ok(())
+}
+
 pub fn work_dir(p: &Parsed, set_name: &str, prov: &Provision) -> PathBuf {
     let root = p.val("work-root").map(PathBuf::from).or_else(|| std::env::var_os("MIMIC_WORK_ROOT").filter(|v| !v.is_empty()).map(PathBuf::from)).or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".cache/mimic-work"))).unwrap_or_else(|| std::env::temp_dir().join("mimic-work"));
     root.join(prov.workdir.as_deref().unwrap_or(set_name))
@@ -107,7 +155,8 @@ pub fn vars(p: &Parsed, set_name: &str, set_dir: &Path, prov: &Provision) -> [(&
 /// never to $GITHUB_ENV, so no later step of the workflow (one that holds a secret) inherits it.
 pub fn block_env(p: &Parsed, set_name: &str, set_dir: &Path, prov: &Provision) -> Vec<(String, String)> {
     let vars = vars(p, set_name, set_dir, prov);
-    prov.env.iter().map(|(k, v)| (k.clone(), expand(v, &vars))).collect()
+    let real = (!prov.real_agents.is_empty()).then(|| ("MIMIC_REAL_CLI_DIR".to_string(), work_dir(p, set_name, prov).join(REAL_DIR).display().to_string()));
+    prov.env.iter().map(|(k, v)| (k.clone(), expand(v, &vars))).chain(real).collect()
 }
 
 /// Whether the capture runs the phase, and what it does with an existing work directory.
@@ -153,11 +202,14 @@ pub fn phase(p: &Parsed, set: &SetRef, cfg: &Config, action: &str, mode: Mode) -
     let vars = vars(p, &set.name, &set.dir, prov);
     let env: Value = block_env(p, &set.name, &set.dir, prov).into_iter().map(|(k, v)| (k, json!(v))).collect::<serde_json::Map<_, _>>().into();
     let drivers = prov.drivers && matches!(when, When::Record);
+    let real_agents: &[RealAgent] = if matches!(when, When::Record) { &prov.real_agents } else { &[] };
+    let real = !real_agents.is_empty();
     let key = sha256_label(&serde_json::to_vec(&(prov, action)).expect("provision serialises"));
     let marked = std::fs::read_to_string(work.join(MARKER)).ok().and_then(|t| serde_json::from_str::<Value>(&t).ok()).is_some_and(|v| v["key"] == json!(key));
     let mut out = json!({
         "state": "ran", "work": work.display().to_string(), "source": prov.source.as_ref().map(|s| json!({"repo": s.repo, "commit": s.commit, "dir": source_dir.display().to_string()})),
-        "toolchain": prov.toolchain, "env": env, "key": key, "steps": drivers.then_some("drivers").into_iter().chain(steps.iter().map(|s| s.name.as_str())).collect::<Vec<_>>(),
+        "toolchain": prov.toolchain, "env": env, "key": key, "steps": drivers.then_some("drivers").into_iter().chain(real.then_some("real-agents")).chain(steps.iter().map(|s| s.name.as_str())).collect::<Vec<_>>(),
+        "real_agents": real_agents.iter().map(|a| json!({"name": a.name, "version": a.version, "sha256": a.sha256[platform()], "dir": work.join(REAL_DIR).display().to_string()})).collect::<Vec<_>>(),
     });
     if p.flag("check") {
         out["state"] = json!("checked");
@@ -192,6 +244,12 @@ pub fn phase(p: &Parsed, set: &SetRef, cfg: &Config, action: &str, mode: Mode) -
             cmd.args(["install", "--frozen-lockfile", "--filter", "mimic-drivers..."]).current_dir(&vars[0].1);
             run(cmd, &ChildEnv::base(), Duration::from_secs(DRIVERS_MINUTES * 60), "the install of the mimic drivers").map_err(|e| failed(&out, "drivers", &e))?;
             ran.push(json!({"name": "drivers", "seconds": started.elapsed().as_secs()}));
+        }
+        if real {
+            let started = Instant::now();
+            let cache = p.val("agents-cache").map(PathBuf::from);
+            install_real_agents(real_agents, &work, cache.as_deref()).map_err(|e| failed(&out, "real-agents", &e))?;
+            ran.push(json!({"name": "real-agents", "seconds": started.elapsed().as_secs()}));
         }
         for step in steps {
             let started = Instant::now();

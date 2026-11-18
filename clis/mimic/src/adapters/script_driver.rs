@@ -13,6 +13,9 @@ use mimic_script_orca::OrcaLaunch;
 use mimic_script_host::{Launch, ScriptDriver};
 use std::path::PathBuf;
 
+/// Whether the host this build links starts a spawned server with real agent CLIs and extra variables (mimic-script-host 0.1.9 and later).
+pub const SPAWN_TAKES_REAL_AGENTS: bool = false;
+
 fn platform() -> String {
     format!("linux-{}", if std::env::consts::ARCH == "aarch64" { "arm64" } else { "x64" })
 }
@@ -26,7 +29,7 @@ fn cache(spec: &ScriptSpec) -> PathBuf {
 fn sidecar_env(spec: &ScriptSpec) -> Vec<(String, String)> {
     let base = ["PATH", "HOME", "MIMIC_FIXED_PORT"].map(String::from);
     let mut env = ChildEnv::default().with([("TZ".to_string(), "UTC".to_string()), ("LANG".to_string(), "C.UTF-8".to_string())]).pass(&base).pass(&spec.env_pass).with(spec.env_set.iter().cloned()).pairs();
-    if let Some(dir) = &spec.cli_dir {
+    for dir in spec.cli_dir.iter().chain(spec.real_clis.iter().filter(|d| d.is_dir())).rev() {
         match env.iter_mut().find(|(k, _)| k == "PATH") {
             Some((_, path)) => *path = format!("{}:{path}", dir.display()),
             None => env.push(("PATH".into(), dir.display().to_string())),

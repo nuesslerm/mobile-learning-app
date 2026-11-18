@@ -134,6 +134,8 @@ pub struct ScriptSpec {
     /// Variables the sidecar gets besides `env_pass`, set by the replay from what a started chain printed (the pairing link of an `orca` candidate with a `launch`).
     pub env_set: Vec<(String, String)>,
     pub env_pass: Vec<String>,
+    /// The directory of real agent CLIs the provision installed (`MIMIC_REAL_CLI_DIR`, set for a block with `real_agents`), when there is one.
+    pub real_clis: Option<PathBuf>,
     pub dir: PathBuf,
     pub cache: Option<PathBuf>,
     pub addr: Option<String>,
@@ -168,6 +170,7 @@ fn script_spec(dir: &Path, name: &str, s: ScriptFile) -> Result<ScriptSpec, Stri
         launch: s.launch,
         env_set: Vec::new(),
         env_pass: s.env_pass,
+        real_clis: std::env::var_os("MIMIC_REAL_CLI_DIR").filter(|v| !v.is_empty()).map(PathBuf::from),
         dir: dir.to_path_buf(),
         cache: s.cache.map(|c| dir.join(c)),
         addr: s.addr,
@@ -195,10 +198,10 @@ struct TargetFile {
     cwd: Option<String>,
     #[serde(default)]
     env: BTreeMap<String, String>,
-    /// `[reference]` only: registry keys the vault (or the caller's environment) holds that this program needs (a model API key). The verb reads them in
-    /// memory for a record and puts them in the environment of this program alone; names only, a value never appears in a set.
+    /// `[reference]` only: `{ ENV_NAME = "REGISTRY_KEY" }`, the variable this program needs (a model API key) and the registry key that holds its value. The
+    /// verb reads the keys in memory for a record and puts them in the environment of this program alone; names only, a value never appears in a set.
     #[serde(default)]
-    env_from_vault: Vec<String>,
+    env_from_vault: BTreeMap<String, String>,
     timeout_ms: Option<u64>,
     name: Option<String>,
     version: Option<String>,
@@ -220,8 +223,8 @@ pub struct Target {
     pub spec: StdioSpec,
     /// Set for `driver = "script"`: the step interpreter instead of a child process speaking `mimic-driver/1`.
     pub script: Option<ScriptSpec>,
-    /// The vault keys the set declares for this program (`[reference]` only).
-    pub env_from_vault: Vec<String>,
+    /// The variable and registry key pairs the set declares for this program (`[reference]` only).
+    pub env_from_vault: BTreeMap<String, String>,
     pub pin: Option<PathBuf>,
     pin_as_written: Option<String>,
     pin_tree: Option<PathBuf>,
@@ -236,7 +239,7 @@ pub struct Target {
 impl Config {
     /// The variables of the caller's environment the set names for its programs (`env_pass`), whose values a capture child may hold. A vault key (`env_from_vault`) is not one of them: only a record's reference gets it.
     pub fn declared_pass(&self) -> Vec<String> {
-        let vault: Vec<&String> = self.reference.iter().flat_map(|r| &r.env_from_vault).collect();
+        let vault: Vec<&String> = self.reference.iter().flat_map(|r| r.env_from_vault.keys()).collect();
         let targets = self.reference.iter().chain(self.candidates.values());
         targets.flat_map(|t| t.script.iter().flat_map(|s| s.env_pass.iter())).filter(|n| !vault.contains(n)).cloned().collect()
     }
@@ -282,7 +285,7 @@ fn target(dir: &Path, name: &str, t: TargetFile) -> Result<Target, String> {
     if !matches!(t.driver.as_str(), "stdio" | "script") {
         return Err(format!("[{name}] driver {:?}: this build runs drivers of kind \"stdio\" and \"script\" (a Rust closure is the SDK's InProcessDriver)", t.driver));
     }
-    for declared in t.env_from_vault.iter().chain(t.script.iter().flat_map(|s| &s.env_pass)) {
+    for declared in t.env_from_vault.iter().flat_map(|(env, key)| [env, key]).chain(t.script.iter().flat_map(|s| &s.env_pass)) {
         if crate::child_env::never(declared) || !declared.bytes().all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_') {
             return Err(format!("[{name}] declares {declared:?}: an UPPER_SNAKE name, and never a BWS_* or GITHUB_* one (no child gets those)"));
         }
@@ -309,18 +312,13 @@ fn target(dir: &Path, name: &str, t: TargetFile) -> Result<Target, String> {
     }
     let mut script = script;
     if let Some(s) = script.as_mut() {
-        if !t.env_from_vault.is_empty() {
-            if s.spawn {
-                return Err(format!("[{name}] env_from_vault on a spawned script target: the host environment of the server is fixed by mimic-script-host and cannot carry a key yet; use an orca sidecar or a stdio driver"));
-            }
-            s.env_pass.extend(t.env_from_vault.iter().cloned());
-        }
+        s.env_pass.extend(t.env_from_vault.keys().cloned());
     }
     let spec = StdioSpec {
         command,
         cwd: Some(t.cwd.map_or_else(|| dir.to_path_buf(), |c| dir.join(c))),
         env: t.env.into_iter().collect(),
-        pass: t.env_from_vault.clone(),
+        pass: t.env_from_vault.keys().cloned().collect(),
         timeout: Duration::from_millis(t.timeout_ms.unwrap_or(DEFAULT_TIMEOUT_MS)),
     };
     Ok(Target {

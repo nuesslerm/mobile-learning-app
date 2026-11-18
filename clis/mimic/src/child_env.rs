@@ -77,15 +77,26 @@ pub fn command(program: impl AsRef<std::ffi::OsStr>) -> Command {
     ChildEnv::base().command(program)
 }
 
-/// The values the vault (or, without one, the caller's environment) holds for the keys a set declares, read in memory. Only the declared keys
-/// are asked for: nothing else of the vault is read. A missing one fails naming the key, never a value.
-pub fn resolve_declared(names: &[String]) -> Result<Vec<(String, String)>, String> {
-    if names.is_empty() {
+/// A key a set declared, read: the variable the program gets, the registry key it came from and its value.
+pub struct Declared {
+    pub env: String,
+    pub key: String,
+    pub value: String,
+}
+
+/// The values the vault (or, without one, the caller's environment) holds for the registry keys a set declares (`[reference] env_from_vault`), read
+/// in memory with `secrets::load_values`. Only the declared keys are asked for: nothing else of the vault is read. A missing one fails naming the
+/// key, never a value.
+pub fn resolve_declared(declared: &BTreeMap<String, String>) -> Result<Vec<Declared>, String> {
+    if declared.is_empty() {
         return Ok(Vec::new());
     }
-    let keys: Vec<&str> = names.iter().map(String::as_str).collect();
+    let keys: Vec<&str> = declared.values().map(String::as_str).collect();
     let mut loaded = secrets::load_values(&keys);
-    names.iter().map(|n| loaded.remove(n).flatten().map(|v| (n.clone(), v)).ok_or_else(|| format!("{n} is declared by the set ([reference] env_from_vault) and the vault holds no value for it"))).collect()
+    declared
+        .iter()
+        .map(|(env, key)| loaded.remove(key).flatten().map(|value| Declared { env: env.clone(), key: key.clone(), value }).ok_or_else(|| format!("{key} is declared by the set ([reference] env_from_vault, for {env}) and the vault holds no value for it")))
+        .collect()
 }
 
 /// `text` with every value of `secrets` (at least 6 characters, so an empty or tiny value never rewrites ordinary text) replaced by its name.

@@ -1,0 +1,16 @@
+{
+  "opencode": {
+    "version": "1.19.0",
+    "release": "https://github.com/anomalyco/opencode/releases/download/v1.19.0",
+    "platforms": {
+      "linux-x64": {
+        "bytes": 60685698,
+        "sha256": "7bb9e61ad6feacf2e89c10a6a2c1840e3de4220bb50ba1fc7110f31806076aec"
+      },
+      "linux-arm64": {
+        "bytes": 60493623,
+        "sha256": "e9841d43d3e1a8f36ed2691592d3b8b4fb097e606c8b559a277a1b845840e26b"
+      }
+    }
+  }
+}

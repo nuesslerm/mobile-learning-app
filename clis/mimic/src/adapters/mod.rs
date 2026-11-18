@@ -5,7 +5,7 @@ mod coverage;
 mod fs_checkpoint;
 mod fs_store;
 mod in_process;
-mod script_driver;
+pub mod script_driver;
 mod stdio;
 mod tap;
 

@@ -188,7 +188,8 @@ fn read_table(path: &Path) -> Result<toml::Table, String> {
 fn provision_facts(table: &toml::Table, origin: &str) -> Result<(BTreeMap<String, String>, bool), String> {
     let toolchain: BTreeMap<String, String> = table.get("toolchain").and_then(|t| t.as_table()).map(|t| t.iter().filter_map(|(k, v)| v.as_str().map(|v| (k.clone(), v.to_string()))).collect()).unwrap_or_default();
     let drivers = table.get("drivers").and_then(|d| d.as_bool()).unwrap_or(toolchain.contains_key("node"));
-    if table.get("step").and_then(|s| s.as_array()).is_none_or(|s| s.is_empty()) && !drivers {
+    let real = table.get("real_agents").and_then(|s| s.as_array()).is_some_and(|s| !s.is_empty());
+    if table.get("step").and_then(|s| s.as_array()).is_none_or(|s| s.is_empty()) && !drivers && !real {
         return Err(format!("{origin}: no [[step]] and no drivers: a reference with nothing to install or build needs no [provision]"));
     }
     Ok((toolchain, drivers))

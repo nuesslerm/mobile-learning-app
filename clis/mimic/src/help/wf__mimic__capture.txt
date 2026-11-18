@@ -52,15 +52,18 @@ launcher) gets PATH, HOME, locale, temp and CA settings, toolchain homes (CARGO_
 PNPM_*, NODE_*, GO*), and the MIMIC_*, WF_*, T3_* and GIT_CONFIG_* variables, minus any name that
 looks like a credential (TOKEN, SECRET, PASSWORD, *_KEY, ...), plus what the set declares by
 name: env_pass of a script target (the variables its sidecar gets) and `[reference]
-env_from_vault = ["KEY"]`, a registry key the verb reads in memory from the vault (and so from no
-other source) for a record only and puts in the environment of the reference's launcher and the
-reference alone; a replay never reads one. BWS_* and GITHUB_* enter no child, declared or not. A
-declared key that the vault does not hold fails the record naming the key. Before anything is
+env_from_vault = { OPENCODE_API_KEY = "OPENCODE_GO_API_KEY" }`: the variable the reference's program
+reads and the registry key that holds its value. The verb reads the registry keys in memory from
+the vault with secrets::load_values (and so from no other source) for a record only and puts the
+variable in the environment of the reference's launcher and the reference alone; a replay or
+--check never reads one. BWS_* and GITHUB_* enter no child, declared or not. A declared key that
+the vault does not hold fails the record naming the key (never a value). Before anything is
 uploaded the raw recording and the masked set are scanned for the exact value of every declared
 key as well as for token shapes; a value found holds the set back (exit 1) naming the key and the
 file, never the value, and the output of every child has the value replaced by the key's name.
-`env_from_vault` is for `[reference]` only, an UPPER_SNAKE registry name, and a spawned script
-target (its host environment is fixed) refuses it.
+`env_from_vault` is for `[reference]` only and both names are UPPER_SNAKE. A reference the host
+starts itself (a spawned T3) cannot take it, or real agent CLIs, before mimic-script-host 0.1.9
+is adopted: a record of such a set is refused before anything starts.
 
 Block (paths relative to the file that declares them):
   [toolchain]                     what the runner sets up first, each checked against the tool:
@@ -73,6 +76,12 @@ Block (paths relative to the file that declares them):
     repo = "https://..."          https, no credentials
     commit = "<40 hex>"           or: pin = "<pin file>", commit_pointer = "/commit"
   [env]                           NAME = "value" the capture sees; no credentials
+  real_agents = ["opencode"]      agent CLIs the reference runs for real (claude and codex stay
+  real_agents_pin = "<pin file>"  scripted): a record installs each into {work}/real-clis from the
+                                  pin file ({"opencode": {"version", "release", "platforms":
+                                  {"linux-x64": {"sha256"}, "linux-arm64": {"sha256"}}}}), the asset
+                                  <release>/<name>-<platform>.tar.gz, refused unless it hashes to the
+                                  pin; the pin file is required (a floating download is no pin)
   [[step]]                        name, run = ["program", "arg"...] (no shell),
     cwd, when, timeout_minutes    cwd defaults to {source} (else {work}); when is record
                                   (default), replay (builds the candidate) or always;
@@ -92,6 +101,7 @@ Options:
   --rows <prefix,...>         replay: only the rows that start with a prefix, and check the known gaps of that slice
   --out <dir>                 replay: write <set>.replay.json here
   --work-root <dir>           where work directories live (default $MIMIC_WORK_ROOT, else ~/.cache/mimic-work)
+  --agents-cache <dir>        provision: a directory of release assets (by file name) used instead of the download; still checked against the pin
   --root <dir>                the checkout {repo} names (default: this one)
   --summary <file>            where the markdown summary is appended
   --run <id>                  the run id to name (default $GITHUB_RUN_ID, else local)

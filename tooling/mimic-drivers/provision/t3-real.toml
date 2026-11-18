@@ -1,0 +1,102 @@
+# How a runner provisions the pinned T3 release for a set that runs opencode for real (`wf mimic capture --help` documents the schema): t3.toml with `claude` and `codex`
+# scripted and `opencode` the pinned real binary (real-agents-pin.json: version and the sha256 of each platform's asset), installed into {work}/real-clis, where the host
+# puts it on the server's PATH instead of a stub or a scripted copy. The key it needs is the set's `[reference] env_from_vault`, never this file.
+workdir = "t3-real"
+real_agents = ["opencode"]
+real_agents_pin = "real-agents-pin.json"
+
+[toolchain]
+node = "24"
+rust = "stable"
+
+[env]
+T3_RELEASE_CACHE = "{work}/release-cache"
+MIMIC_CLI_DIR = "{work}/scripted-clis"
+
+# The scripted agent CLIs the reference sees besides the real opencode: exec-testkit's `scripted-cli` under the names `claude` and `codex`.
+[[step]]
+name = "build-scripted-cli"
+cwd = "{repo}"
+run = ["cargo", "build", "--locked", "--manifest-path", "libraries/agent-api/Cargo.toml", "--target-dir", "{work}/scripted-target", "-p", "exec-testkit", "--bin", "scripted-cli"]
+timeout_minutes = 45
+
+[[step]]
+name = "scripted-cli-dir"
+cwd = "{work}"
+run = ["mkdir", "-p", "scripted-clis"]
+
+[[step]]
+name = "scripted-cli-claude"
+cwd = "{work}"
+run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/claude"]
+
+[[step]]
+name = "scripted-cli-codex"
+cwd = "{work}"
+run = ["cp", "scripted-target/debug/scripted-cli", "scripted-clis/codex"]
+
+# A replay's candidate is the chain the integration tests replay against (t3-serve over rca-service and rca-exec, with the scripted CLIs): the `launch` of
+# the sets' [candidate.t3-serve] starts `chain-bin/chain` (clis/t3-serve/examples/chain.rs, the same rig as tests/integration) over these binaries.
+[[step]]
+name = "build-chain"
+when = "replay"
+cwd = "{repo}"
+run = ["cargo", "build", "--locked", "--manifest-path", "clis/Cargo.toml", "--target-dir", "{work}/chain-target", "-p", "t3-serve", "--bin", "t3-serve", "--example", "chain"]
+timeout_minutes = 60
+
+[[step]]
+name = "build-chain-exec"
+when = "replay"
+cwd = "{repo}"
+run = ["cargo", "build", "--locked", "--manifest-path", "clis/Cargo.toml", "--target-dir", "{work}/chain-target", "-p", "rca-exec", "--bin", "rca-exec"]
+timeout_minutes = 45
+
+[[step]]
+name = "build-chain-service"
+when = "replay"
+cwd = "{repo}"
+run = ["cargo", "build", "--locked", "--manifest-path", "backend/remote-chat-agent/Cargo.toml", "--target-dir", "{work}/service-target", "-p", "rca-service", "--bin", "rca-service"]
+timeout_minutes = 90
+
+[[step]]
+name = "build-chain-cli"
+when = "replay"
+cwd = "{repo}"
+run = ["cargo", "build", "--locked", "--manifest-path", "libraries/agent-api/Cargo.toml", "--target-dir", "{work}/scripted-target", "-p", "exec-testkit", "--bin", "scripted-cli"]
+timeout_minutes = 45
+
+[[step]]
+name = "chain-bin-dir"
+when = "replay"
+cwd = "{work}"
+run = ["mkdir", "-p", "chain-bin"]
+
+[[step]]
+name = "chain-bin-chain"
+when = "replay"
+cwd = "{work}"
+run = ["cp", "chain-target/debug/examples/chain", "chain-bin/chain"]
+
+[[step]]
+name = "chain-bin-t3-serve"
+when = "replay"
+cwd = "{work}"
+run = ["cp", "chain-target/debug/t3-serve", "chain-bin/t3-serve"]
+
+[[step]]
+name = "chain-bin-rca-exec"
+when = "replay"
+cwd = "{work}"
+run = ["cp", "chain-target/debug/rca-exec", "chain-bin/rca-exec"]
+
+[[step]]
+name = "chain-bin-rca-service"
+when = "replay"
+cwd = "{work}"
+run = ["cp", "service-target/debug/rca-service", "chain-bin/rca-service"]
+
+[[step]]
+name = "chain-bin-scripted-cli"
+when = "replay"
+cwd = "{work}"
+run = ["cp", "scripted-target/debug/scripted-cli", "chain-bin/scripted-cli"]

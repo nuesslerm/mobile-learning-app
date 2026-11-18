@@ -20,6 +20,12 @@ pub struct Raw {
     pub env: BTreeMap<String, String>,
     #[serde(default)]
     pub step: Vec<RawStep>,
+    /// Agent CLIs the reference runs for real instead of the scripted ones (`opencode`; `claude` and `codex` stay scripted): the record installs each at the
+    /// version and sha256 the pin file names into `{work}/real-clis`, and the host stops scripting and stubbing it.
+    #[serde(default)]
+    pub real_agents: Vec<String>,
+    /// The pin file of the real agent CLIs, `{"<name>": {"version", "release", "platforms": {"linux-x64": {"bytes", "sha256"}, "linux-arm64": ...}}}`.
+    pub real_agents_pin: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -70,6 +76,16 @@ pub struct Step {
     pub env: BTreeMap<String, String>,
 }
 
+/// One real agent CLI as pinned: the release asset `<release>/<name>-<platform>.tar.gz` holds a program named `name`.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct RealAgent {
+    pub name: String,
+    pub version: String,
+    pub release: String,
+    /// The sha256 (lowercase hex) of the asset of each platform.
+    pub sha256: BTreeMap<String, String>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct Provision {
     pub toolchain: BTreeMap<String, String>,
@@ -78,7 +94,12 @@ pub struct Provision {
     pub source: Option<Source>,
     pub env: BTreeMap<String, String>,
     pub steps: Vec<Step>,
+    pub real_agents: Vec<RealAgent>,
 }
+
+/// The agent CLIs a set may run for real, and the platforms each is pinned for.
+pub const REAL_AGENTS: [&str; 1] = ["opencode"];
+pub const REAL_PLATFORMS: [&str; 2] = ["linux-x64", "linux-arm64"];
 
 pub const DEFAULT_TIMEOUT_MINUTES: u64 = 30;
 const MAX_TIMEOUT_MINUTES: u64 = 180;
@@ -166,7 +187,8 @@ impl Raw {
         let has_source = source.is_some();
         env_ok(&format!("{origin} [env]"), &self.env, has_source)?;
         let drivers = self.drivers.unwrap_or(self.toolchain.contains_key("node"));
-        if self.step.is_empty() && !drivers {
+        let real_agents = real_agents(dir, &self.real_agents, self.real_agents_pin.as_deref()).map_err(&err)?;
+        if self.step.is_empty() && !drivers && real_agents.is_empty() {
             return Err(err("no [[step]] and no drivers: a reference with nothing to install or build needs no [provision]".into()));
         }
         let mut steps: Vec<Step> = Vec::new();
@@ -193,8 +215,49 @@ impl Raw {
             env_ok(&what, &s.env, has_source)?;
             steps.push(Step { name: s.name, run: s.run, cwd, when, timeout_minutes: timeout, env: s.env });
         }
-        Ok(Provision { toolchain: self.toolchain, drivers, workdir: self.workdir, source, env: self.env, steps })
+        Ok(Provision { toolchain: self.toolchain, drivers, workdir: self.workdir, source, env: self.env, steps, real_agents })
     }
+}
+
+fn is_sha256(s: &str) -> bool {
+    s.len() == 64 && s.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+
+/// The real agent CLIs a block names, each with the pin of its release: a name from `REAL_AGENTS`, a version and the sha256 of the asset of every platform.
+fn real_agents(dir: &Path, names: &[String], pin: Option<&str>) -> Result<Vec<RealAgent>, String> {
+    if names.is_empty() {
+        return match pin {
+            Some(_) => Err("real_agents_pin without real_agents: name the agent CLIs to run for real".into()),
+            None => Ok(Vec::new()),
+        };
+    }
+    for (i, name) in names.iter().enumerate() {
+        if matches!(name.as_str(), "claude" | "codex") {
+            return Err(format!("real_agents names {name:?}: claude and codex stay scripted (their login is a file, not a key); the agents that can run for real are {}", REAL_AGENTS.join(", ")));
+        }
+        if !REAL_AGENTS.contains(&name.as_str()) {
+            return Err(format!("real_agents names {name:?}, which is not an agent CLI a set can run for real ({})", REAL_AGENTS.join(", ")));
+        }
+        if names[..i].contains(name) {
+            return Err(format!("real_agents names {name:?} twice"));
+        }
+    }
+    let pin = pin.ok_or_else(|| format!("real_agents = {names:?} needs real_agents_pin: a floating download is no pin (the version and the sha256 of each asset)"))?;
+    let file: PathBuf = dir.join(pin);
+    let text = std::fs::read_to_string(&file).map_err(|e| format!("real_agents_pin {}: {e}", file.display()))?;
+    let json: serde_json::Value = serde_json::from_str(&text).map_err(|e| format!("real_agents_pin {} is not JSON: {e}", file.display()))?;
+    names.iter().map(|name| {
+        let at = |what: &str| format!("real_agents_pin {}: {name} {what}", file.display());
+        let entry = json.get(name).ok_or_else(|| at("is not pinned (no entry of that name)"))?;
+        let version = entry["version"].as_str().filter(|v| is_version(v) && v.split('.').count() == 3).ok_or_else(|| at("has no full version (1.19.0)"))?;
+        let release = entry["release"].as_str().filter(|r| r.starts_with("https://") && !r.contains(['@', ' ']) && !r.ends_with('/')).ok_or_else(|| at("has no https release URL without credentials"))?;
+        let mut sha256 = BTreeMap::new();
+        for platform in REAL_PLATFORMS {
+            let sum = entry["platforms"][platform]["sha256"].as_str().filter(|s| is_sha256(s)).ok_or_else(|| at(&format!("has no 64-hex sha256 for {platform}")))?;
+            sha256.insert(platform.to_string(), sum.to_string());
+        }
+        Ok(RealAgent { name: name.clone(), version: version.to_string(), release: release.to_string(), sha256 })
+    }).collect()
 }
 
 fn source(dir: &Path, s: RawSource) -> Result<Source, String> {

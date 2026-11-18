@@ -96,12 +96,24 @@ pub fn capture_verb(p: &Parsed) -> Done {
     Ok((out, code))
 }
 
+/// A reference the host starts itself (a spawned T3) is launched by mimic-script-host, whose release before 0.1.9 gives the server a fixed environment and
+/// no directory of real agent CLIs: a record that needs either is refused before anything starts, rather than run with the key silently missing.
+fn refuse_unwired_spawn(cfg: &crate::config::Config, declared: &std::collections::BTreeMap<String, String>) -> Result<(), Fail> {
+    let spawned = cfg.reference.as_ref().and_then(|r| r.script.as_ref()).is_some_and(|s| s.spawn);
+    let real = cfg.provision.as_ref().is_some_and(|p| !p.real_agents.is_empty());
+    if spawned && (real || !declared.is_empty()) && !crate::adapters::script_driver::SPAWN_TAKES_REAL_AGENTS {
+        return Err(fail("the reference is a spawned server and this build's mimic-script-host cannot give it real agent CLIs or a key (it needs 0.1.9, released with `wf lib release`, then adopted here)", "release mimic-script-host 0.1.9, raise the version in clis/mimic/Cargo.toml, wire SpawnLaunch.real_clis and SpawnLaunch.env in adapters/script_driver.rs, and record again"));
+    }
+    Ok(())
+}
+
 fn mins(d: Duration) -> String {
     format!("{}m{:02}s", d.as_secs() / 60, d.as_secs() % 60)
 }
 
 fn record(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done {
     super::reference(cfg)?;
+    refuse_unwired_spawn(cfg, &cfg.reference.as_ref().map(|r| r.env_from_vault.clone()).unwrap_or_default())?;
     let chunk = minutes(p, "chunk", u64::from(mimic_plan_core::DEFAULT_CHUNK_MINUTES), u64::from(mimic_plan_core::MAX_CHUNK_MINUTES))?;
     let budget = Duration::from_secs(minutes(p, "budget", DEFAULT_BUDGET_MINUTES, 600)? * 60);
     let run = run_id(p);
@@ -113,9 +125,10 @@ fn record(p: &Parsed, set: &super::SetRef, cfg: &crate::config::Config) -> Done 
     }
     let checkpoint = set.dir.join("raw/checkpoint");
     let declared = cfg.reference.as_ref().map(|r| r.env_from_vault.clone()).unwrap_or_default();
-    let secrets = child_env::resolve_declared(&declared).map_err(|e| fail(e, "put the key in the vault (`wf secret`) or the environment of the capture step, and run again"))?;
+    let held = child_env::resolve_declared(&declared).map_err(|e| fail(e, "put the key in the vault (`wf secret`) or the environment of the capture step, and run again"))?;
+    let secrets: Vec<(String, String)> = held.iter().map(|d| (d.key.clone(), d.value.clone())).collect();
     let block = cfg.provision.as_ref().map(|prov| provision_phase::block_env(p, &set.name, &set.dir, prov)).unwrap_or_default();
-    let env = ChildEnv::base().pass(&cfg.declared_pass()).with(block).with(secrets.clone());
+    let env = ChildEnv::base().pass(&cfg.declared_pass()).with(block).with(held.iter().map(|d| (d.env.clone(), d.value.clone())));
     let key = binding_key(cfg)?;
     let mut warnings: Vec<String> = Vec::new();
     if checkpoint.exists() && (p.flag("fresh") || !bound_to(&checkpoint, &key)) {
