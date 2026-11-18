@@ -33,6 +33,28 @@ pub struct VaultSecret {
     pub file: String,
 }
 
+/// A secret printed by the login command itself (`claude setup-token` prints its token and writes no file): the first capture
+/// group of `pattern`, matched against the command's ANSI-stripped output, is stored as the plain string under vault key `key`.
+#[derive(Clone, Debug)]
+pub struct OutputSecret {
+    pub pattern: String,
+    pub key: String,
+}
+
+impl OutputSecret {
+    /// The secret in `output`, or `None` while the command has not printed it yet.
+    pub fn find(&self, output: &str) -> Option<String> {
+        let re = regex::Regex::new(&self.pattern).ok()?;
+        re.captures(&strip_terminal_codes(output)).and_then(|c| c.get(1)).map(|m| m.as_str().to_string())
+    }
+}
+
+/// Removes escape sequences (CSI, OSC, two-byte) and carriage returns, so a pattern sees the text a person would read.
+pub fn strip_terminal_codes(text: &str) -> String {
+    let re = regex::Regex::new(r"\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b[@-Z\\-_0-9=>]|\r").expect("static pattern");
+    re.replace_all(text, "").into_owned()
+}
+
 #[derive(Clone, Debug)]
 pub struct Descriptor {
     pub id: String,
@@ -42,6 +64,7 @@ pub struct Descriptor {
     /// The credential files a caller may fetch once the login finished (`wf secret login <tool> --copy`), `~/`-rooted.
     pub copy: Vec<String>,
     pub vault: Option<VaultSecret>,
+    pub output_secret: Option<OutputSecret>,
     pub valid_cmd: Option<String>,
     pub valid_path: Option<String>,
     pub capture: Option<Capture>,
@@ -57,8 +80,8 @@ fn builtin_json(id: &str) -> Option<String> {
         format!(r#"{{"id":"{id}","loginCmd":"{login}","credentialPaths":["{path}"],"copy":["{path}"],"validCheck":{{"path":"{path}"}},"authErrorPatterns":{errors}}}"#)
     };
     Some(match id {
-        "claude" => r#"{"id":"claude","loginCmd":"claude setup-token","copy":["~/.claude/.credentials.json"],"validCheck":{"path":"~/.claude/.credentials.json"},"authErrorPatterns":["401","403","invalid_grant","expired","not authenticated","unauthorized","oauth token has expired"]}"#.to_string(),
-        "codex" => file("codex login", "~/.codex/auth.json", GOOGLE_ERRORS),
+        "claude" => r#"{"id":"claude","loginCmd":"script -qec 'stty cols 500; claude setup-token' /dev/null","outputSecret":{"pattern":"(sk-ant-oat\\d{2}-[A-Za-z0-9_-]+)\\s","vaultKey":"CLAUDE_CODE_OAUTH_TOKEN"},"copy":["~/.claude/.credentials.json"],"validCheck":{"path":"~/.claude/.credentials.json"},"authErrorPatterns":["401","403","invalid_grant","expired","not authenticated","unauthorized","oauth token has expired"]}"#.to_string(),
+        "codex" => r#"{"id":"codex","loginCmd":"codex login","credentialPaths":["~/.codex/auth.json"],"copy":["~/.codex/auth.json"],"vault":{"key":"CODEX_AUTH_JSON_B64","file":"~/.codex/auth.json"},"validCheck":{"path":"~/.codex/auth.json"},"authErrorPatterns":["401","403","invalid_grant","expired","not authenticated","unauthorized"]}"#.to_string(),
         "opencode" => file("opencode auth login", "~/.opencode/data/auth.json", GOOGLE_ERRORS),
         "gemini" => file("gemini", "~/.gemini/oauth_creds.json", r#"["401","403","invalid_grant","expired","not authenticated","unauthorized","reauth"]"#),
         "gcloud" => r#"{"id":"gcloud","loginCmd":"gcloud auth login --enable-gdrive-access","credentialPaths":["~/.config/gcloud/credentials.db"],"copy":["~/.config/gcloud/credentials.db"],"vault":{"key":"GCLOUD_DRIVE_CREDENTIALS_DB_B64","file":"~/.config/gcloud/credentials.db"},"validCheck":{"cmd":"gcloud auth list --filter=status:ACTIVE --format=\"value(account)\" | grep ."},"authErrorPatterns":["401","403","invalid_grant","reauth","not authenticated","unauthorized","ERROR: (gcloud.auth)"]}"#.to_string(),
@@ -215,6 +238,10 @@ impl Descriptor {
                 }
             },
         };
+        let output_secret = match obj.get("outputSecret") {
+            None => None,
+            Some(v) => parse_output_secret(&mut issues, v, &at(&root, "outputSecret")),
+        };
         let credential_paths = obj.get("credentialPaths").map(|v| str_array(&mut issues, v, &at(&root, "credentialPaths"), false)).unwrap_or_default();
 
         let (mut valid_cmd, mut valid_path) = (None, None);
@@ -255,7 +282,28 @@ impl Descriptor {
         if !issues.0.is_empty() {
             return Err(issues.0);
         }
-        Ok(Descriptor { id: id.unwrap_or_default(), login_cmd, login_url, credential_paths, copy, vault, valid_cmd, valid_path, capture, deliver, verify })
+        Ok(Descriptor { id: id.unwrap_or_default(), login_cmd, login_url, credential_paths, copy, vault, output_secret, valid_cmd, valid_path, capture, deliver, verify })
+    }
+}
+
+fn parse_output_secret(issues: &mut Issues, v: &Value, path: &[Value]) -> Option<OutputSecret> {
+    let Some(obj) = v.as_object() else {
+        issues.expected(path, "object", v);
+        return None;
+    };
+    let pattern = req_str(issues, obj, "pattern", path);
+    let key = req_str(issues, obj, "vaultKey", path);
+    let (pattern, key) = (pattern?, key?);
+    match regex::Regex::new(&pattern) {
+        Err(_) => {
+            issues.add("invalid_format", &at(path, "pattern"), "Invalid regular expression".to_string());
+            None
+        }
+        Ok(re) if re.captures_len() < 2 => {
+            issues.add("custom", &at(path, "pattern"), "pattern needs a capture group: its first group is the secret".to_string());
+            None
+        }
+        Ok(_) => Some(OutputSecret { pattern, key }),
     }
 }
 

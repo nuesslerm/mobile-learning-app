@@ -4796,7 +4796,7 @@ Options:
 
 ### `wf secret login`
 
-Capture interactive tool logins (claude, codex, gcloud, ...): `wf secret login <tool>` starts the login in the shared VNC desktop's browser, prints the link to open on any device (a phone is enough) and waits until the login finished. The login stays on the VM and agent-shell gets its credential; `--copy` also writes the files the tool's config declares copyable to this machine's home. A tool whose config names a vault secret (gcloud, codex: the credential file's base64; claude: the token `claude setup-token` prints, matched out of the command's output and stored as the plain string) also has it set when the login finishes, and emptied by `--clear` (both need the vault write token; a printed token that cannot be stored fails the login, naming the key and never the value).
+Capture interactive tool logins (claude, codex, gcloud, ...): `wf secret login <tool>` starts the login in the shared VNC desktop's browser, prints the link to open on any device (a phone is enough) and waits until the login finished. The login stays on the VM and agent-shell gets its credential; `--copy` also writes the files the tool's config declares copyable to this machine's home. A tool whose config names a vault secret (gcloud, codex: the credential file's base64; claude: the token `claude setup-token` prints, matched by the descriptor's `outputSecret` pattern and stored as the plain string) also has it set when the login finishes, and emptied by `--clear` (both need the vault write token; a printed token that cannot be stored fails the login, naming the key and never the value).
 
 Usage: `wf secret login [options] [command]`
 
@@ -4823,8 +4823,8 @@ open on any device (a phone is enough) and waits until the login finished. The
 login stays on the VM and agent-shell gets its credential; `--copy` also writes
 the files the tool's config declares copyable to this machine's home. A tool
 whose config names a vault secret (gcloud, codex: the credential file's base64;
-claude: the token `claude setup-token` prints, matched out of the command's
-output and stored as the plain string) also has it set when the login finishes,
+claude: the token `claude setup-token` prints, matched by the descriptor's
+`outputSecret` pattern and stored as the plain string) also has it set when the login finishes,
 and emptied by --clear (both need the vault write token; a printed token that
 cannot be stored fails the login, naming the key and never the value).
 

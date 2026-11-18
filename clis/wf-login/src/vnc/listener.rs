@@ -4,7 +4,7 @@
 //! The tokened `linkUrl` is returned to the authorized caller and never logged (it is a bearer secret). There is no
 //! `/auth/persist`: a captured credential goes back to agent-shell as a file through vm-ops-api (see `relay`), and the
 //! caller that started the login may fetch the same files with `/auth/credential` (the sandbox is no agent-shell).
-use super::descriptor::{self, assemble_credential, builtin, env_or_vault, Descriptor};
+use super::descriptor::{self, assemble_credential, builtin, env_or_vault, Descriptor, OutputSecret};
 use super::desktop::Launcher;
 use super::engine::Engine;
 use super::log;
@@ -84,6 +84,9 @@ fn credential_state(descriptor: &Descriptor, copy: bool, user: &str) -> (u16, Va
     if copy && descriptor.copy.is_empty() {
         return error(400, "this login declares nothing to copy");
     }
+    if let Some(output_secret) = &descriptor.output_secret {
+        return output_secret_state(descriptor, output_secret);
+    }
     if !crate::auth::is_authenticated(descriptor, Some(user)) {
         let check = crate::auth::check_output(descriptor, Some(user));
         return (200, if check.is_empty() { json!({ "ready": false }) } else { json!({ "ready": false, "check": check }) });
@@ -99,6 +102,21 @@ fn credential_state(descriptor: &Descriptor, copy: bool, user: &str) -> (u16, Va
         }
     }
     (200, json!({ "ready": true, "files": files }))
+}
+
+const MAX_LOGIN_OUTPUT: u64 = 1024 * 1024;
+
+/// A login whose credential is printed by its command: ready once the command's output matches the descriptor's pattern, and
+/// the reply then carries the match as `outputSecret {key, value}` for the caller to store. The value is only ever in the
+/// reply to the authorized caller, never in a log line, an error or the session's status.
+fn output_secret_state(descriptor: &Descriptor, output_secret: &OutputSecret) -> (u16, Value) {
+    use std::io::Read;
+    let mut output = String::new();
+    let read = std::fs::File::open(super::desktop::login_log_path(&descriptor.id)).and_then(|f| f.take(MAX_LOGIN_OUTPUT).read_to_string(&mut output));
+    match read.ok().and_then(|_| output_secret.find(&output)) {
+        Some(value) => (200, json!({ "ready": true, "outputSecret": { "key": output_secret.key, "value": value } })),
+        None => (200, json!({ "ready": false })),
+    }
 }
 
 /// Logs the tool out of this container: revokes it where the tool can (gcloud), deletes every credential file its descriptor
@@ -170,6 +188,7 @@ fn control(call: &Call, body: &Value, deps: &Deps) -> (u16, Value) {
             if let Err(detail) = persist(&session.descriptor, &deps.launcher) {
                 return (502, json!({ "error": "capture completed but the credential could not be stored", "detail": detail }));
             }
+            let _ = std::fs::remove_file(super::desktop::login_log_path(&session.descriptor.id));
             deps.engine.mark_complete(&session_id);
             (200, json!({ "ok": true, "persisted": persisted }))
         }
