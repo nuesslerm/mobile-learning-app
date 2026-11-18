@@ -80,6 +80,8 @@ const CUES: Agent[] = [
 
 const OPENCODE = { instanceId: 'opencode', model: 'opencode-go/deepseek-v4.1-flash' }
 const PROMPT = 'reply with OK'
+const LONG_PROMPT = 'write the numbers from 1 to 400, one per line, with no other text'
+const TURN_WAIT_MS = 20000
 // T3 0.1.9 keeps its opencode provider instance disabled until the settings enable it (the first hosted record answered every message with ThreadManagementProviderInstanceDisabledError).
 /** What the projection of a thread with a finished turn names, whichever of these paths this T3 uses (a probe of the first hosted record settles it). */
 const FINISHED: Capture = {
@@ -119,7 +121,9 @@ function steps(api: Api, agent: Agent): Entry[] {
   if (agent.real) out.push(send(api, 'server.updateSettings', 'e1', { patch: {}, providerInstanceMutation: { operation: 'create', instanceId: OPENCODE.instanceId, instance: { driver: 'opencode', enabled: true } } } as unknown as Record<string, Json>, { await: 'exit' }))
   if (agent.thread !== false) out.push(send(api, 'thread.create', 'c1', { threadId: AGENT_THREAD, projectId: PROJECT, title: 'Agent thread', modelSelection: (agent.real ? OPENCODE : CLAUDE) as unknown as Json, branch: null, worktreePath: null }, { await: 'exit' }))
   if (agent.hung || agent.real) {
-    out.push(send(api, 'message.dispatch', 't1', { threadId: AGENT_THREAD, messageId: FIRST, text: agent.real ? PROMPT : 'hello', dispatchMode: { type: 'start_immediately' } }, { await: 'exit' }))
+    out.push(send(api, 'message.dispatch', 't1', { threadId: AGENT_THREAD, messageId: FIRST, text: agent.real ? (agent.queue ? LONG_PROMPT : PROMPT) : 'hello', dispatchMode: { type: 'start_immediately' } }, { await: 'exit' }))
+    // A dispatch answers when the command is accepted, not when the turn ends: a case that needs a finished run waits for the cheap turn, one that needs a running turn gives it a long answer instead.
+    if (agent.real && agent.queue === 0) out.push({ listen: { ms: TURN_WAIT_MS } } as unknown as Entry)
     for (let i = 1; i <= agent.queue; i++) out.push(send(api, 'message.dispatch', `t${i + 1}`, { threadId: AGENT_THREAD, messageId: `m-queued-${i}`, text: agent.real ? PROMPT : `queued ${i}`, dispatchMode: { type: 'queue_after_active' } }, { await: 'exit' }))
     out.push({ ...send(api, PROJECTION, 'r1', THIS), capture: (agent.real?.capture ?? (agent.queue ? QUEUED : RUN)) as unknown as Json })
   }
