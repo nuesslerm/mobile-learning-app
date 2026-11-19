@@ -310,6 +310,8 @@ struct CatalogState {
     discovers: Vec<Value>,
     skills: Vec<Value>,
     detections: Vec<Value>,
+    speech: Option<String>,
+    heard: Vec<(usize, String)>,
 }
 
 const EXECUTOR: &str = "m1";
@@ -364,8 +366,19 @@ impl Catalog {
         EXECUTOR
     }
 
+    /// The service has a speech engine that hears every recording as `text`.
+    pub fn says(&self, text: &str) -> &Catalog {
+        self.0.lock().unwrap().speech = Some(text.to_string());
+        self
+    }
+
+    /// The recordings `speech.transcribe` was given: the bytes of their base64 and their format.
+    pub fn heard(&self) -> Vec<(usize, String)> {
+        self.0.lock().unwrap().heard.clone()
+    }
+
     pub fn install(&self, agent: &ScriptedAgent) {
-        for method in ["models.list", "agents.detect", "skills.list", "commands.list", "sourceControl.discover"] {
+        for method in ["models.list", "agents.detect", "skills.list", "commands.list", "sourceControl.discover", "speech.status", "speech.transcribe"] {
             let me = self.clone();
             agent.reply(method, move |p| me.answer(method, p));
         }
@@ -390,6 +403,14 @@ impl Catalog {
         let mut state = self.0.lock().unwrap();
         match method {
             "models.list" => Ok(Self::models(p["driver"].as_str().unwrap_or_default())),
+            "speech.status" => Ok(json!({"available": state.speech.is_some(), "engine": if state.speech.is_some() { "whisper-cpp" } else { "none" }})),
+            "speech.transcribe" => match state.speech.clone() {
+                Some(text) => {
+                    state.heard.push((p["audio"].as_str().unwrap_or_default().len(), p["format"].as_str().unwrap_or_default().to_string()));
+                    Ok(json!({"text": text, "took_ms": 0}))
+                }
+                None => Err(refused("SPEECH_UNAVAILABLE", "the service has no speech engine".into())),
+            },
             "agents.detect" => {
                 if p["executor"].as_str().is_some_and(|e| e != EXECUTOR) {
                     return Err(refused("UNKNOWN_EXECUTOR", format!("no executor named {} is attached", p["executor"].as_str().unwrap_or_default())));

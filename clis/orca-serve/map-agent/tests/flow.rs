@@ -846,6 +846,11 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.catalog.has_tools(&["git", "gh"]);
     rig.ok("preflight.check", json!({}));
     rig.ok("clipboard.saveImageAsTempFile", json!({"contentBase64": "AAAA"}));
+    rig.catalog.says("hi");
+    rig.ok("speech.dictation.setup", json!({"enabled": true, "modelId": "rca-whisper"}));
+    rig.ok("speech.dictation.start", json!({"dictationId": "d9"}));
+    rig.ok("speech.dictation.chunk", json!({"dictationId": "d9", "audioBase64": pcm_chunk(10), "sampleRate": 16000}));
+    rig.ok("speech.dictation.finish", json!({"dictationId": "d9"}));
     rig.ok("skills.discover", json!({"worktreeId": "feat"}));
     let (mut q, ids) = queued_rig();
     let fp = body_fingerprint("claude_q", "one");
@@ -1549,4 +1554,59 @@ fn given_clipboard_requests_that_break_the_pinned_schema_when_sent_then_each_is_
     // And the largest upload the host takes is started
     assert!(rig.ok("clipboard.startImageUpload", json!({"expectedBase64Length": 25_165_824}))["uploadId"].is_string());
     assert!(rig.agent.requests().iter().all(|(m, _)| !m.starts_with("upload.") && !m.starts_with("attachment.")));
+}
+
+fn pcm_chunk(samples: usize) -> String {
+    STANDARD.encode(vec![1u8; samples * 2])
+}
+
+#[test]
+fn given_the_dictation_settings_when_a_phone_lists_sets_up_and_dictates_then_the_chunks_are_kept_in_order_once_and_sent_as_one_wav_for_the_text() {
+    // Given a service with a speech engine that hears "open the settings", and a host whose dictation is off
+    let mut rig = Rig::new();
+    rig.catalog.says("open the settings");
+    // When the phone lists the models, and starts a dictation
+    let listed = rig.ok("speech.models.list", json!(null));
+    let off = rig.err("speech.dictation.start", json!({"dictationId": "d1"}));
+    // Then the one model is ready and the dictation is off, so the start is refused as the host refuses it
+    assert_eq!(listed["models"], json!([{"id": "rca-whisper", "label": "Whisper (rca)", "provider": "local", "sizeBytes": null, "recommended": true, "status": "ready", "progress": null}]));
+    assert_eq!((listed["enabled"].clone(), listed["selectedModelId"].clone(), listed["dictationMode"].clone(), listed["stopAfterSilenceSeconds"].clone()), (json!(false), json!(""), json!("toggle"), json!(60)));
+    assert_eq!(off.1, "voice_dictation_disabled");
+    // And when it sets the dictation up, and starts, feeds chunks 1, 0, a resend of 0 and 2, and finishes
+    let set = rig.ok("speech.dictation.setup", json!({"enabled": true, "modelId": "rca-whisper", "dictationMode": "hold"}));
+    let started = rig.ok("speech.dictation.start", json!({"dictationId": "d1"}));
+    let sent: Vec<Value> = [1u64, 0, 0, 2].iter().map(|seq| rig.ok("speech.dictation.chunk", json!({"dictationId": "d1", "audioBase64": pcm_chunk(100), "sampleRate": 16000, "seq": seq}))).collect();
+    let done = rig.ok("speech.dictation.finish", json!({"dictationId": "d1"}));
+    // Then the setup is kept and listed, the dictation says it dedupes resends, and the service heard one WAV of the three chunks once each
+    assert_eq!((set["enabled"].clone(), set["selectedModelId"].clone(), set["dictationMode"].clone(), set["dictationHoldToRecord"].clone()), (json!(true), json!("rca-whisper"), json!("hold"), json!(true)));
+    assert_eq!(started, json!({"dictationId": "d1", "modelId": "rca-whisper", "dedupesResentChunks": true}));
+    assert!(sent.iter().all(|r| r == &json!({"dictationId": "d1"})), "{sent:?}");
+    assert_eq!(done, json!({"dictationId": "d1", "text": "open the settings"}));
+    let heard = rig.catalog.heard();
+    assert_eq!(heard.len(), 1);
+    assert_eq!(heard[0].1, "wav");
+    assert_eq!(heard[0].0, STANDARD.encode(vec![0u8; 44 + 3 * 200]).len());
+    // And a finish with no dictation, a chunk of another dictation, and a cancel of a stale one are told apart
+    assert_eq!(rig.err("speech.dictation.finish", json!({"dictationId": "d1"})).1, "dictation_stream_not_started");
+    assert_eq!(rig.ok("speech.dictation.cancel", json!({"dictationId": "gone"})), json!({"dictationId": "gone"}));
+}
+
+#[test]
+fn given_the_one_model_when_it_is_downloaded_deleted_or_another_is_chosen_then_each_is_answered_as_the_host_answers_a_model_it_cannot_do_that_to() {
+    // Given a service with a speech engine
+    let mut rig = Rig::new();
+    rig.catalog.says("x");
+    // When the model is downloaded, another is downloaded, one is deleted, an unknown one is set up, and a dictation starts with no model chosen
+    let started = rig.ok("speech.models.download", json!({"modelId": "rca-whisper"}));
+    let other = rig.err("speech.models.download", json!({"modelId": "cloud"}));
+    let deleted = rig.err("speech.models.delete", json!({"modelId": "rca-whisper"}));
+    let unknown = rig.err("speech.dictation.setup", json!({"modelId": "nope"}));
+    rig.ok("speech.dictation.setup", json!({"enabled": true}));
+    let none = rig.err("speech.dictation.start", json!({"dictationId": "d"}));
+    // Then the download starts for the one model only, a delete and an unknown model are refused, and a start needs a model
+    assert_eq!(started, json!({"started": true}));
+    assert_eq!((other.1.as_str(), deleted.1.as_str(), unknown.1.as_str(), none.1.as_str()), ("voice_model_not_downloadable", "voice_model_delete_failed", "voice_model_unknown", "voice_model_not_selected"));
+    // And with no engine at the service no model is listed
+    let mut bare = Rig::new();
+    assert_eq!(bare.ok("speech.models.list", json!({}))["models"], json!([]));
 }

@@ -16,5 +16,7 @@ mod mimic_x6;
 mod replay_features;
 #[path = "integration/rig.rs"]
 mod rig;
+#[path = "integration/speech.rs"]
+mod speech;
 #[path = "integration/terminal_pty.rs"]
 mod terminal_pty;

@@ -402,6 +402,111 @@
         "complete": true,
         "tests": 61,
         "passed": 40
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 1091,
+        "passed": 55
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 28,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 163,
+        "passed": 18
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 735,
+        "passed": 208
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 69,
+        "passed": 46
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 209,
+        "passed": 125
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 446,
+        "passed": 119
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 33,
+        "passed": 17
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 34,
+        "passed": 29
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 416,
+        "passed": 94
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 53,
+        "passed": 16
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 276,
+        "passed": 88
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 535,
+        "passed": 119
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "23964bb365f782574198ea207b0df79caa664a1d",
+        "complete": true,
+        "tests": 735,
+        "passed": 214
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 69,
+        "passed": 48
       }
     ]
   },
@@ -1753,6 +1858,78 @@
     "rpc:skills.discover": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-skills.discover-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:speech.dictation.cancel": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-speech.dictation.cancel-invalid-drop-dictationId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:speech.dictation.chunk": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-speech.dictation.chunk-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:speech.dictation.finish": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-speech.dictation.finish-invalid-drop-dictationId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:speech.dictation.setup": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-speech.dictation.setup-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:speech.dictation.start": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-speech.dictation.start-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:speech.models.delete": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-speech.models.delete-invalid-drop-modelId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:speech.models.download": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-speech.models.download-invalid-drop-modelId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:speech.models.list": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-speech.models.list-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

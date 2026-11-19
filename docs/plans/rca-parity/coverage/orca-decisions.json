@@ -342,44 +342,25 @@
       "decidedBy": "M12"
     },
     "rpc:speech.dictation.cancel": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:speech.dictation.chunk": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:speech.dictation.finish": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:speech.dictation.setup": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:speech.dictation.start": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:speech.models.delete": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:speech.models.download": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
-    },
-    "rpc:speech.models.list": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:orchestration.partyLocation": {
       "state": "not-offered",
@@ -1273,6 +1254,9 @@
       "state": "not-offered",
       "reason": "decided 18 Nov: the host lists the transient, signed links of a comment's body images and honours a noCache option; rca keeps no read cache and cannot keep signed links beyond their short life, so the call answers the comments with an empty image list and the replay shows only the repo_not_found and schema cases. Reversible by keeping the links through the hosted group",
       "decidedBy": "M11"
+    },
+    "rpc:speech.models.list": {
+      "oracle": "mimic"
     }
   },
   "reverify": {
@@ -1297,15 +1281,7 @@
     "rpc:notifications.subscribe": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to open",
     "rpc:notifications.testPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no sender to deliver a test push",
     "rpc:notifications.unregisterPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so there is no stored push token to remove",
-    "rpc:notifications.unsubscribe": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to end",
-    "rpc:speech.dictation.cancel": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to cancel",
-    "rpc:speech.dictation.chunk": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to feed audio into",
-    "rpc:speech.dictation.finish": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to end with a transcript",
-    "rpc:speech.dictation.setup": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation engine to set up",
-    "rpc:speech.dictation.start": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no dictation to start",
-    "rpc:speech.models.delete": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no model store to delete from",
-    "rpc:speech.models.download": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there is no model store to download into",
-    "rpc:speech.models.list": "reverify when rca has speech to text (an executor action that transcribes audio with a local model, and a model store on the executor; M12 built none): rca has no transcription of any kind, so there are no speech models on the executor to list"
+    "rpc:notifications.unsubscribe": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to end"
   },
   "traceNoise": {
     "rpc:layout.*": "the desktop window's workspace layout (apply, snapshots, held panes, view reports, subscribe): the scan finds no phone caller, and the recorded crawl drives the host's whole method surface, so its trace names them without a phone row to serve",

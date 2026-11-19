@@ -19,6 +19,7 @@ mod session;
 mod status_stream;
 mod stream;
 mod clipboard;
+mod speech;
 
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
@@ -70,6 +71,14 @@ pub const AGENT_SESSION_OPTIONS: &str = "agentSession.options";
 pub const AGENT_SESSION_AGENTS: &str = "agentSession.agents";
 pub const AGENT_SESSION_SET_OPTION: &str = "agentSession.setOption";
 pub const PREFLIGHT_CHECK: &str = "preflight.check";
+pub const SPEECH_MODELS_LIST: &str = "speech.models.list";
+pub const SPEECH_MODELS_DOWNLOAD: &str = "speech.models.download";
+pub const SPEECH_MODELS_DELETE: &str = "speech.models.delete";
+pub const SPEECH_DICTATION_SETUP: &str = "speech.dictation.setup";
+pub const SPEECH_DICTATION_START: &str = "speech.dictation.start";
+pub const SPEECH_DICTATION_CHUNK: &str = "speech.dictation.chunk";
+pub const SPEECH_DICTATION_FINISH: &str = "speech.dictation.finish";
+pub const SPEECH_DICTATION_CANCEL: &str = "speech.dictation.cancel";
 pub const CLIPBOARD_SAVE_IMAGE: &str = "clipboard.saveImageAsTempFile";
 pub const CLIPBOARD_START_UPLOAD: &str = "clipboard.startImageUpload";
 pub const CLIPBOARD_APPEND_CHUNK: &str = "clipboard.appendImageUploadChunk";
@@ -86,7 +95,7 @@ pub const NATIVE_CHAT_UNSUBSCRIBE: &str = "nativeChat.unsubscribe";
 pub const NATIVE_CHAT_SUBSCRIBE: &str = "nativeChat.subscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, THREAD_ROLLBACK, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, agent_api_attachments::STAGE, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST, orca_map_hosted::AUTH_DISCOVER];
+pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, THREAD_ROLLBACK, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, agent_api_attachments::STAGE, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST, agent_api_catalog::SPEECH_STATUS, agent_api_catalog::SPEECH_TRANSCRIBE, orca_map_hosted::AUTH_DISCOVER];
 
 const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_CREATE, kind: Kind::Unary },
@@ -126,6 +135,14 @@ const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_AGENTS, kind: Kind::Unary },
     Method { name: AGENT_SESSION_SET_OPTION, kind: Kind::Unary },
     Method { name: PREFLIGHT_CHECK, kind: Kind::Unary },
+    Method { name: SPEECH_MODELS_LIST, kind: Kind::Unary },
+    Method { name: SPEECH_MODELS_DOWNLOAD, kind: Kind::Unary },
+    Method { name: SPEECH_MODELS_DELETE, kind: Kind::Unary },
+    Method { name: SPEECH_DICTATION_SETUP, kind: Kind::Unary },
+    Method { name: SPEECH_DICTATION_START, kind: Kind::Unary },
+    Method { name: SPEECH_DICTATION_CHUNK, kind: Kind::Unary },
+    Method { name: SPEECH_DICTATION_FINISH, kind: Kind::Unary },
+    Method { name: SPEECH_DICTATION_CANCEL, kind: Kind::Unary },
     Method { name: CLIPBOARD_SAVE_IMAGE, kind: Kind::Unary },
     Method { name: CLIPBOARD_START_UPLOAD, kind: Kind::Unary },
     Method { name: CLIPBOARD_APPEND_CHUNK, kind: Kind::Unary },
@@ -163,6 +180,7 @@ pub fn body_fingerprint(session: &str, text: &str) -> String {
 pub struct AgentArea {
     uploads: attach::Uploads,
     clips: clipboard::Clips,
+    dictations: speech::Dictations,
 }
 
 impl Area for AgentArea {
@@ -219,6 +237,14 @@ impl Area for AgentArea {
             AGENT_SESSION_AGENTS => catalog::agents(params),
             AGENT_SESSION_SET_OPTION => catalog::set_option(agent, params),
             PREFLIGHT_CHECK => catalog::preflight_check(agent, params),
+            SPEECH_MODELS_LIST => speech::list(agent, params),
+            SPEECH_MODELS_DOWNLOAD => speech::download(agent, params),
+            SPEECH_MODELS_DELETE => speech::delete(params),
+            SPEECH_DICTATION_SETUP => speech::configure(agent, params),
+            SPEECH_DICTATION_START => speech::start(&self.dictations, ctx.device_id, agent, params),
+            SPEECH_DICTATION_CHUNK => speech::chunk(&self.dictations, ctx.device_id, params),
+            SPEECH_DICTATION_FINISH => speech::finish(&self.dictations, ctx.device_id, agent, params),
+            SPEECH_DICTATION_CANCEL => speech::cancel(&self.dictations, ctx.device_id, params),
             CLIPBOARD_SAVE_IMAGE => clipboard::save(agent, params),
             CLIPBOARD_START_UPLOAD => clipboard::start(&self.clips, ctx.device_id, params),
             CLIPBOARD_APPEND_CHUNK => clipboard::append(&self.clips, ctx.device_id, params),

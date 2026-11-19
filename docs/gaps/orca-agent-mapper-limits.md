@@ -40,3 +40,7 @@ directories of the executor, with `updatedAt` null and a source's `exists` meani
 glab's sign-in from `sourceControl.discover` at the root workspace's host, asked only for an installed CLI. Bitbucket, Azure DevOps and Gitea are the
 host's own answer for a machine where none is configured, since rca keeps no credentials for them. Known differences: the host also counts gh as signed
 in when `auth status` exits 1 but prints `Active account: true`, and it tries more than one copy of a program on the path.
+
+## Speech models list (19 Nov, issue #83 O1)
+
+The recorded host lists one model, the cloud `openai-gpt-transcribe` row, because its local recognizer is not installed in the recording; `speech.models.list` and `speech.dictation.setup` here list rca's own engine (`rca-whisper`, ready) when the service has one. The five fields of the first model differ in every replay of those rows (`known-gaps.json` of both Orca sets). Dictation needs the engine and the person's setting: `start` answers `voice_dictation_disabled` as the host does until `setup` enables it. The cloud rows (`speech.openAiKey.*`) stay not offered.

@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 179,
+    "served": 187,
     "pending": 4,
-    "notOffered": 124,
+    "notOffered": 116,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -3747,76 +3747,132 @@
       "kind": "rpc",
       "name": "speech.dictation.cancel",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-speech.dictation.cancel-invalid-drop-dictationId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:speech.dictation.chunk",
       "kind": "rpc",
       "name": "speech.dictation.chunk",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-speech.dictation.chunk-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:speech.dictation.finish",
       "kind": "rpc",
       "name": "speech.dictation.finish",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-speech.dictation.finish-invalid-drop-dictationId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:speech.dictation.setup",
       "kind": "rpc",
       "name": "speech.dictation.setup",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-speech.dictation.setup-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:speech.dictation.start",
       "kind": "rpc",
       "name": "speech.dictation.start",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-speech.dictation.start-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:speech.models.delete",
       "kind": "rpc",
       "name": "speech.models.delete",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-speech.models.delete-invalid-drop-modelId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:speech.models.download",
       "kind": "rpc",
       "name": "speech.models.download",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-speech.models.download-invalid-drop-modelId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:speech.models.list",
       "kind": "rpc",
       "name": "speech.models.list",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's speech-to-text is one baked whisper model behind its own HTTP voice routes, and the agent API holds no audio group, so there is no dictation session to run and no model list, download or delete to offer.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-speech.models.list-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:ssh.connect",
