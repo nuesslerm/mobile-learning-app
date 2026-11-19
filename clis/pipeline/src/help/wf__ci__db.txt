@@ -10,10 +10,16 @@ file sealed with XChaCha20-Poly1305 under CI_DB_KEY on the state ref
                            kept once
   record <table> <json>    add one JSON row to this job's local database
                            (WF_CI_DB, else $RUNNER_TEMP/wf-ci-db/rows.sqlite on
-                           a hosted runner); tables TEST_RUNS, WF_USAGE,
+                           a hosted runner); tables TEST_RESULTS, WF_USAGE,
                            HEALTH_REPORTS
   query <sql>              run one statement on an unsealed copy and print its
                            rows as JSON
+
+Tables (real columns, so plain SQL works): TEST_RESULTS (one row per published
+test run: verdict, duration_s, harness, suite_or_runbook, sha, tests_total...),
+WF_USAGE (one per wf command: command, exit_code, duration_ms, error), NX_TASKS
+(one per Nx task of a run: task, hash, outcome ran or hit, ms, passed) and
+CI_JOBS (one per job: secs, queued). A JSON key with no column is kept in EXTRA.
 
 Options:
   --sealed-file <path>     read and write a sealed file instead of the state ref

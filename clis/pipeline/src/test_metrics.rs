@@ -290,7 +290,7 @@ pub fn query_rows(q: &Value, limit: usize) -> Result<Vec<Value>, String> {
 /// Posts the row or logs one line saying why not; the outcome as JSON (`posted`, `runId`, `reason`).
 pub(crate) fn post_best_effort(row: &Map<String, Value>) -> Value {
     let run_id = row["run_id"].as_str().unwrap_or_default().to_string();
-    let kept = match wf_bucket::ci_db::record("TEST_RUNS", row) {
+    let kept = match wf_bucket::ci_db::record("TEST_RESULTS", row) {
         Ok(kept) => kept,
         Err(e) => {
             logfmt::mcp("warn", SOURCE, "test run row not kept in the CI database", &[("run_id", run_id.clone()), ("error", e)]);

@@ -11,8 +11,8 @@ use std::path::{Path, PathBuf};
 pub const STATE_PATH: &str = "ci/ci.sqlite.sealed";
 pub const KEY: &str = "CI_DB_KEY";
 const MAGIC: &[u8] = b"WFCIDB1\n";
-/// The tables a JSON row goes to; the ledger's own tables (`CI_TASKS`, `CI_JOBS`) are typed and made by `ensure_ledger`.
-pub const ROW_TABLES: [&str; 3] = ["TEST_RUNS", "WF_USAGE", "HEALTH_REPORTS"];
+/// The tables a JSON row goes to; the ledger's own tables (`NX_TASKS`, `CI_JOBS`) are typed and made by `ensure_ledger`.
+pub const ROW_TABLES: [&str; 3] = ["TEST_RESULTS", "WF_USAGE", "HEALTH_REPORTS"];
 
 /// The job's local database: `WF_CI_DB` when set (`off` for none), else `$RUNNER_TEMP/wf-ci-db/rows.sqlite` on a GitHub Actions runner,
 /// else none.
@@ -28,12 +28,43 @@ fn sql(e: rusqlite::Error) -> String {
     format!("ci database: {e}")
 }
 
+/// Tables renamed to say what they hold (old name, new name); a database written before the rename is carried over when it is opened or merged.
+const RENAMED: [(&str, &str); 2] = [("TEST_RUNS", "TEST_RESULTS"), ("CI_TASKS", "NX_TASKS")];
+
+fn renamed(name: &str) -> &str {
+    RENAMED.iter().find(|(old, _)| *old == name).map_or(name, |(_, new)| new)
+}
+
+fn migrate(conn: &Connection) -> Result<(), String> {
+    for (old, new) in RENAMED {
+        let has = |t: &str| conn.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1", [t], |r| r.get::<_, i64>(0)).map(|n| n > 0);
+        if !has(old).map_err(sql)? {
+            continue;
+        }
+        if has(new).map_err(sql)? {
+            conn.execute_batch(&format!("INSERT OR IGNORE INTO {new} SELECT * FROM {old}; DROP TABLE {old};")).map_err(sql)?;
+        } else {
+            conn.execute_batch(&format!("ALTER TABLE {old} RENAME TO {new};")).map_err(sql)?;
+        }
+    }
+    for (table, cols) in TYPED {
+        let blob = conn.query_row("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1", [table], |r| r.get::<_, i64>(0)).map_err(sql)? > 0 && has_column(conn, "main", table, "ROW")?;
+        if blob {
+            conn.execute_batch(&format!("ALTER TABLE {table} RENAME TO {table}_BLOB;")).map_err(sql)?;
+            conn.execute_batch(&create_typed(table, cols)).map_err(sql)?;
+            conn.execute_batch(&format!("{}; DROP TABLE {table}_BLOB;", blob_to_columns(table, cols, &format!("{table}_BLOB")))).map_err(sql)?;
+        }
+    }
+    Ok(())
+}
+
 fn open_at(path: &Path) -> Result<Connection, String> {
     if let Some(dir) = path.parent() {
         std::fs::create_dir_all(dir).map_err(|e| format!("{}: {e}", dir.display()))?;
     }
     let conn = Connection::open(path).map_err(sql)?;
     conn.busy_timeout(std::time::Duration::from_secs(10)).map_err(sql)?;
+    migrate(&conn)?;
     Ok(conn)
 }
 
@@ -45,20 +76,78 @@ fn checked_table(table: &str) -> Result<(), String> {
     }
 }
 
+/// The tables whose rows are real columns: (table, [(column, SQL type)]). A JSON key lands in the column of its upper-cased name; a key with no column is
+/// kept in `EXTRA` as JSON, so nothing a writer sends is lost. A table not listed (HEALTH_REPORTS) keeps each row as a JSON blob in `ROW`.
+const TYPED: [(&str, &[(&str, &str)]); 2] = [
+    (
+        "TEST_RESULTS",
+        &[
+            ("RUN_ID", "TEXT"), ("HARNESS", "TEXT"), ("SUITE_OR_RUNBOOK", "TEXT"), ("JOB_ID", "TEXT"), ("SHA", "TEXT"), ("METRO_COMMIT", "TEXT"), ("VERDICT", "TEXT"),
+            ("EXIT_CODE", "INTEGER"), ("DURATION_S", "REAL"), ("ATTEMPT", "INTEGER"), ("RETRY_REASON", "TEXT"), ("DEVICE_OR_SCREEN", "TEXT"), ("PLATFORM", "TEXT"),
+            ("RAN_ON", "TEXT"), ("STEPS", "INTEGER"), ("SCREENSHOTS", "INTEGER"), ("RECORDINGS", "INTEGER"), ("GOLDENS_TOTAL", "INTEGER"), ("GOLDENS_FAILED", "INTEGER"),
+            ("WARNINGS", "INTEGER"), ("DEBUG_HITS", "INTEGER"), ("TESTS_TOTAL", "INTEGER"), ("TESTS_FAILED", "INTEGER"), ("REPORT_PATH", "TEXT"), ("TIMING_JSON", "TEXT"),
+            ("NOTE", "TEXT"),
+        ],
+    ),
+    ("WF_USAGE", &[("COMMAND", "TEXT"), ("EXIT_CODE", "INTEGER"), ("DURATION_MS", "INTEGER"), ("ERROR", "TEXT"), ("WF_VERSION", "TEXT"), ("OS", "TEXT")]),
+];
+
+fn typed(table: &str) -> Option<&'static [(&'static str, &'static str)]> {
+    TYPED.iter().find(|(t, _)| *t == table).map(|(_, cols)| *cols)
+}
+
+fn create_typed(table: &str, cols: &[(&str, &str)]) -> String {
+    let columns: Vec<String> = cols.iter().map(|(c, t)| format!("{c} {t}")).collect();
+    format!("CREATE TABLE IF NOT EXISTS {table} (KEY TEXT PRIMARY KEY, TS INTEGER NOT NULL, {}, EXTRA TEXT)", columns.join(", "))
+}
+
 fn ensure_rows(conn: &Connection, table: &str) -> Result<(), String> {
     checked_table(table)?;
-    conn.execute_batch(&format!("CREATE TABLE IF NOT EXISTS {table} (KEY TEXT PRIMARY KEY, TS INTEGER NOT NULL, ROW TEXT NOT NULL)")).map_err(sql)
+    match typed(table) {
+        Some(cols) => conn.execute_batch(&create_typed(table, cols)).map_err(sql),
+        None => conn.execute_batch(&format!("CREATE TABLE IF NOT EXISTS {table} (KEY TEXT PRIMARY KEY, TS INTEGER NOT NULL, ROW TEXT NOT NULL)")).map_err(sql),
+    }
+}
+
+fn has_column(conn: &Connection, schema: &str, table: &str, column: &str) -> Result<bool, String> {
+    let mut stmt = conn.prepare(&format!("SELECT name FROM pragma_table_info('{table}', '{schema}')")).map_err(sql)?;
+    let names: Vec<String> = stmt.query_map([], |r| r.get(0)).map_err(sql)?.collect::<Result<_, _>>().map_err(sql)?;
+    Ok(names.iter().any(|n| n == column))
+}
+
+/// The statement that fills `table`'s columns from a blob table's JSON `ROW` (`json_extract` per column; `EXTRA` is the keys no column holds).
+fn blob_to_columns(table: &str, cols: &[(&str, &str)], source: &str) -> String {
+    let names: Vec<&str> = cols.iter().map(|(c, _)| *c).collect();
+    let picks: Vec<String> = names.iter().map(|c| format!("json_extract(ROW, '$.{}')", c.to_lowercase())).collect();
+    let known: Vec<String> = names.iter().map(|c| format!("'{}'", c.to_lowercase())).collect();
+    format!(
+        "INSERT OR IGNORE INTO main.{table} (KEY, TS, {}, EXTRA) SELECT KEY, TS, {}, (SELECT json_group_object(key, value) FROM json_each(ROW) WHERE key NOT IN ({})) FROM {source}",
+        names.join(", "),
+        picks.join(", "),
+        known.join(", ")
+    )
 }
 
 /// The typed tables of the CI ledger, as `HEALTH_RPT` had them.
 pub fn ensure_ledger(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
-        "CREATE TABLE IF NOT EXISTS CI_TASKS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, JOB TEXT NOT NULL, TASK TEXT NOT NULL,
+        "CREATE TABLE IF NOT EXISTS NX_TASKS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, JOB TEXT NOT NULL, TASK TEXT NOT NULL,
            HASH TEXT NOT NULL, OUTCOME TEXT NOT NULL, MS INTEGER NOT NULL, PASSED INTEGER NOT NULL, PRIMARY KEY (RUN_ID, TASK, HASH));
          CREATE TABLE IF NOT EXISTS CI_JOBS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, KIND TEXT NOT NULL, JOB TEXT NOT NULL,
            SECS INTEGER NOT NULL, QUEUED INTEGER NOT NULL, PRIMARY KEY (RUN_ID, JOB));",
     )
     .map_err(sql)
+}
+
+fn cell(v: &Value) -> rusqlite::types::Value {
+    use rusqlite::types::Value as Sql;
+    match v {
+        Value::Null => Sql::Null,
+        Value::Bool(b) => Sql::Integer(i64::from(*b)),
+        Value::Number(n) => n.as_i64().map(Sql::Integer).or_else(|| n.as_f64().map(Sql::Real)).unwrap_or(Sql::Null),
+        Value::String(s) => Sql::Text(s.clone()),
+        other => Sql::Text(other.to_string()),
+    }
 }
 
 /// Inserts `row` into `table` of the database at `path` once: the same row recorded twice (a retried step) is one row.
@@ -71,7 +160,17 @@ pub fn insert_at(path: &Path, table: &str, row: &Map<String, Value>) -> Result<(
         hex::encode(sha2::Sha256::digest(text.as_bytes()))
     };
     let ts = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0);
-    conn.execute(&format!("INSERT OR IGNORE INTO {table} (KEY, TS, ROW) VALUES (?1, ?2, ?3)"), rusqlite::params![key, ts, text]).map_err(sql)?;
+    let Some(cols) = typed(table) else {
+        conn.execute(&format!("INSERT OR IGNORE INTO {table} (KEY, TS, ROW) VALUES (?1, ?2, ?3)"), rusqlite::params![key, ts, text]).map_err(sql)?;
+        return Ok(());
+    };
+    let mut params: Vec<rusqlite::types::Value> = vec![key.into(), ts.into()];
+    params.extend(cols.iter().map(|(c, _)| row.get(&c.to_lowercase()).map_or(rusqlite::types::Value::Null, cell)));
+    let extra: Map<String, Value> = row.iter().filter(|(k, _)| !cols.iter().any(|(c, _)| c.to_lowercase() == **k)).map(|(k, v)| (k.clone(), v.clone())).collect();
+    params.push(if extra.is_empty() { rusqlite::types::Value::Null } else { Value::Object(extra).to_string().into() });
+    let names: Vec<&str> = cols.iter().map(|(c, _)| *c).collect();
+    let marks: Vec<String> = (1..=params.len()).map(|i| format!("?{i}")).collect();
+    conn.execute(&format!("INSERT OR IGNORE INTO {table} (KEY, TS, {}, EXTRA) VALUES ({})", names.join(", "), marks.join(", ")), rusqlite::params_from_iter(params)).map_err(sql)?;
     Ok(())
 }
 
@@ -82,7 +181,7 @@ pub fn record(table: &str, row: &Map<String, Value>) -> Result<bool, String> {
     insert_at(&path, table, row).map(|()| true)
 }
 
-/// One task of a CI run's Nx ledger (`CI_TASKS`).
+/// One task of a CI run's Nx ledger (`NX_TASKS`).
 pub struct LedgerTask {
     pub run: String,
     pub sha: String,
@@ -95,7 +194,7 @@ pub struct LedgerTask {
     pub passed: bool,
 }
 
-/// Writes tasks to the typed `CI_TASKS` table of the job's local database, which the report job merges into the sealed one with the other rows. A task already
+/// Writes tasks to the typed `NX_TASKS` table of the job's local database, which the report job merges into the sealed one with the other rows. A task already
 /// there (same run, task and hash) is kept once. Nothing is written, and `false` comes back, when this is not a CI job with a local database.
 pub fn record_tasks_local(tasks: &[LedgerTask]) -> Result<bool, String> {
     let Some(path) = local_path() else { return Ok(false) };
@@ -104,7 +203,7 @@ pub fn record_tasks_local(tasks: &[LedgerTask]) -> Result<bool, String> {
     let tx = conn.transaction().map_err(sql)?;
     for t in tasks {
         tx.execute(
-            "INSERT OR IGNORE INTO CI_TASKS (RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            "INSERT OR IGNORE INTO NX_TASKS (RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             rusqlite::params![t.run, t.sha, t.ts, t.job, t.task, t.hash, t.outcome, t.ms, t.passed as i64],
         )
         .map_err(sql)?;
@@ -125,8 +224,23 @@ pub fn merge(into: &Connection, from: &Path) -> Result<usize, String> {
         };
         let mut copied = 0;
         for (name, create) in tables {
+            let target = renamed(&name);
+            if let Some(cols) = typed(target).filter(|_| matches!(has_column(into, "other", &name, "ROW"), Ok(true))) {
+                into.execute_batch(&create_typed(target, cols)).map_err(sql)?;
+                copied += into.execute(&blob_to_columns(target, cols, &format!("other.\"{name}\"")), []).map_err(sql)?;
+                continue;
+            }
+            let create = if target == name { create } else { create.replacen(&name, target, 1) };
             into.execute_batch(&create.replacen("CREATE TABLE", "CREATE TABLE IF NOT EXISTS", 1)).map_err(sql)?;
-            copied += into.execute(&format!("INSERT OR IGNORE INTO main.\"{name}\" SELECT * FROM other.\"{name}\""), []).map_err(sql)?;
+            let mut stmt = into.prepare(&format!("SELECT name FROM pragma_table_info('{name}', 'other')")).map_err(sql)?;
+            let theirs: Vec<String> = stmt.query_map([], |r| r.get(0)).map_err(sql)?.collect::<Result<_, _>>().map_err(sql)?;
+            drop(stmt);
+            let mut stmt = into.prepare(&format!("SELECT name FROM pragma_table_info('{target}', 'main')")).map_err(sql)?;
+            let ours: Vec<String> = stmt.query_map([], |r| r.get(0)).map_err(sql)?.collect::<Result<_, _>>().map_err(sql)?;
+            drop(stmt);
+            let shared: Vec<String> = theirs.into_iter().filter(|c| ours.contains(c)).map(|c| format!("\"{c}\"")).collect();
+            let list = shared.join(", ");
+            copied += into.execute(&format!("INSERT OR IGNORE INTO main.\"{target}\" ({list}) SELECT {list} FROM other.\"{name}\""), []).map_err(sql)?;
         }
         Ok(copied)
     })();
@@ -237,8 +351,54 @@ mod tests {
 
         std::env::remove_var("WF_CI_DB");
         let conn = Connection::open(&db).unwrap();
-        let n: i64 = conn.query_row("SELECT COUNT(*) FROM CI_TASKS", [], |r| r.get(0)).unwrap();
+        let n: i64 = conn.query_row("SELECT COUNT(*) FROM NX_TASKS", [], |r| r.get(0)).unwrap();
         assert!(first && again);
         assert_eq!(n, 2);
+    }
+
+    #[test]
+    fn given_a_database_with_the_old_table_names_when_it_is_opened_and_merged_then_the_rows_sit_under_the_new_names() {
+        let dir = tempfile::tempdir().unwrap();
+        let (old, sealed) = (dir.path().join("old.sqlite"), dir.path().join("sealed.sqlite"));
+        let conn = Connection::open(&old).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE CI_TASKS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, JOB TEXT NOT NULL, TASK TEXT NOT NULL, HASH TEXT NOT NULL, OUTCOME TEXT NOT NULL, MS INTEGER NOT NULL, PASSED INTEGER NOT NULL, PRIMARY KEY (RUN_ID, TASK, HASH));
+             INSERT INTO CI_TASKS VALUES ('1','a',1,'j','t','h','ran',5,1);
+             CREATE TABLE TEST_RUNS (KEY TEXT PRIMARY KEY, TS INTEGER NOT NULL, ROW TEXT NOT NULL);
+             INSERT INTO TEST_RUNS VALUES ('k',1,'{\"run_id\":\"r1\",\"verdict\":\"fail\",\"duration_s\":1.5,\"custom\":\"x\"}');",
+        )
+        .unwrap();
+        drop(conn);
+
+        let opened = open_at(&old).unwrap();
+        let moved: i64 = opened.query_row("SELECT (SELECT COUNT(*) FROM NX_TASKS) + (SELECT COUNT(*) FROM TEST_RESULTS)", [], |r| r.get(0)).unwrap();
+        let legacy = dir.path().join("legacy.sqlite");
+        let l = Connection::open(&legacy).unwrap();
+        l.execute_batch("CREATE TABLE TEST_RUNS (KEY TEXT PRIMARY KEY, TS INTEGER NOT NULL, ROW TEXT NOT NULL); INSERT INTO TEST_RUNS VALUES ('z',2,'{}');").unwrap();
+        drop(l);
+        let into = open_at(&sealed).unwrap();
+        merge(&into, &legacy).unwrap();
+        let merged: i64 = into.query_row("SELECT COUNT(*) FROM TEST_RESULTS", [], |r| r.get(0)).unwrap();
+        let old_left: i64 = into.query_row("SELECT COUNT(*) FROM sqlite_master WHERE name IN ('TEST_RUNS','CI_TASKS')", [], |r| r.get(0)).unwrap();
+
+        let (verdict, secs, extra): (String, f64, String) = opened.query_row("SELECT VERDICT, DURATION_S, EXTRA FROM TEST_RESULTS WHERE RUN_ID = 'r1'", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap();
+
+        assert_eq!((moved, merged, old_left), (2, 1, 0));
+        assert_eq!((verdict.as_str(), secs, extra.as_str()), ("fail", 1.5, "{\"custom\":\"x\"}"));
+    }
+
+    #[test]
+    fn given_a_usage_row_when_it_is_recorded_then_its_fields_are_columns_and_unknown_keys_are_kept() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = dir.path().join("rows.sqlite");
+        let row: Map<String, Value> = serde_json::from_str(r#"{"command":"ci comment","exit_code":0,"duration_ms":19927,"error":null,"os":"linux","new_field":true}"#).unwrap();
+
+        insert_at(&db, "WF_USAGE", &row).unwrap();
+        insert_at(&db, "WF_USAGE", &row).unwrap();
+
+        let conn = Connection::open(&db).unwrap();
+        let (n, command, ms, extra): (i64, String, i64, String) =
+            conn.query_row("SELECT COUNT(*), MAX(COMMAND), MAX(DURATION_MS), MAX(EXTRA) FROM WF_USAGE", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?))).unwrap();
+        assert_eq!((n, command.as_str(), ms, extra.as_str()), (1, "ci comment", 19927, "{\"new_field\":true}"));
     }
 }

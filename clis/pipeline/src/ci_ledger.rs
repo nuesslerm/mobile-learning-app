@@ -1,4 +1,4 @@
-//! The ledger of what CI did, kept across runs: every Nx task with its input hash and what became of it (`CI_TASKS`), and every job's time
+//! The ledger of what CI did, kept across runs: every Nx task with its input hash and what became of it (`NX_TASKS`), and every job's time
 //! (`CI_JOBS`). `wf ci audit` judges runs against it: a task that ran although the same hash was already produced is a miss that
 //! should have been a hit, and a task's time under one hash is comparable run to run whatever the cache did.
 //!
@@ -115,7 +115,7 @@ impl Ledger for DbLedger {
         let t = sqlite_text;
         self.write(
             rows.iter()
-                .map(|o| format!("INSERT OR IGNORE INTO CI_TASKS VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {})", t(&o.run), t(&o.sha), o.ts, t(&o.job), t(&o.task), t(&o.hash), t(&o.outcome), o.ms, i32::from(o.passed)))
+                .map(|o| format!("INSERT OR IGNORE INTO NX_TASKS VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {})", t(&o.run), t(&o.sha), o.ts, t(&o.job), t(&o.task), t(&o.hash), t(&o.outcome), o.ms, i32::from(o.passed)))
                 .collect(),
             &format!("{} tasks", rows.len()),
         )
@@ -134,7 +134,7 @@ impl Ledger for DbLedger {
         let mut out = Vec::new();
         for chunk in hashes.chunks(200) {
             let list = chunk.iter().map(|h| sqlite_text(h)).collect::<Vec<_>>().join(",");
-            let rows = self.rows(&format!("SELECT RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED FROM CI_TASKS WHERE RUN_ID <> {} AND HASH IN ({list})", sqlite_text(run)))?;
+            let rows = self.rows(&format!("SELECT RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED FROM NX_TASKS WHERE RUN_ID <> {} AND HASH IN ({list})", sqlite_text(run)))?;
             out.extend(rows.iter().map(|r| Observed { run: text_of(r, "RUN_ID"), sha: text_of(r, "SHA"), ts: int(r, "TS"), job: text_of(r, "JOB"), task: text_of(r, "TASK"), hash: text_of(r, "HASH"), outcome: text_of(r, "OUTCOME"), ms: int(r, "MS"), passed: int(r, "PASSED") != 0 }));
         }
         Ok(out)
@@ -145,14 +145,14 @@ impl Ledger for DbLedger {
         let mut out = BTreeSet::new();
         for chunk in tasks.chunks(200) {
             let list = chunk.iter().map(|h| sqlite_text(h)).collect::<Vec<_>>().join(",");
-            out.extend(self.rows(&format!("SELECT DISTINCT TASK FROM CI_TASKS WHERE OUTCOME = 'hit' AND TASK IN ({list})"))?.iter().map(|r| text_of(r, "TASK")));
+            out.extend(self.rows(&format!("SELECT DISTINCT TASK FROM NX_TASKS WHERE OUTCOME = 'hit' AND TASK IN ({list})"))?.iter().map(|r| text_of(r, "TASK")));
         }
         Ok(out)
     }
 
     fn previous(&self, run: &str) -> Result<Option<RunHashes>, String> {
         self.ensure()?;
-        let rows = self.rows(&format!("SELECT SHA, TASK, HASH FROM CI_TASKS WHERE TS = (SELECT MAX(TS) FROM CI_TASKS WHERE RUN_ID <> {})", sqlite_text(run)))?;
+        let rows = self.rows(&format!("SELECT SHA, TASK, HASH FROM NX_TASKS WHERE TS = (SELECT MAX(TS) FROM NX_TASKS WHERE RUN_ID <> {})", sqlite_text(run)))?;
         Ok(rows.first().map(|r| (text_of(r, "SHA"), rows.iter().map(|r| (text_of(r, "TASK"), text_of(r, "HASH"))).collect())))
     }
 

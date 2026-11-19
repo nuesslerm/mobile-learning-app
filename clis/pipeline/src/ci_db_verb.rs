@@ -71,7 +71,7 @@ pub fn run(args: &[String]) -> Option<i32> {
         }
         "record" => {
             let (Some(table), Some(row)) = (rest.first(), rest.get(1)) else {
-                return Some(fail("record wants a table and a JSON object", "wf ci db record TEST_RUNS '{\"suite\":\"flow\"}'"));
+                return Some(fail("record wants a table and a JSON object", "wf ci db record TEST_RESULTS '{\"suite\":\"flow\"}'"));
             };
             let row: Map<String, Value> = match serde_json::from_str::<Value>(row) {
                 Ok(Value::Object(map)) => map,
@@ -82,7 +82,7 @@ pub fn run(args: &[String]) -> Option<i32> {
                     println!("{}", json!({ "ok": true, "recorded": recorded, "path": ci_db::local_path().map(|p| p.display().to_string()) }));
                     0
                 }
-                Err(e) => fail(e, "the tables are TEST_RUNS, WF_USAGE and HEALTH_REPORTS"),
+                Err(e) => fail(e, "the tables are TEST_RESULTS, WF_USAGE and HEALTH_REPORTS"),
             }
         }
         "query" => {
