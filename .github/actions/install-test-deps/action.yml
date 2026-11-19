@@ -109,12 +109,27 @@ runs:
       if: ${{ inputs.browser-harness == 'true' }}
       shell: bash
       run: pnpm --filter @tooling/browser-harness run build
+    # A pinned static build (41 MB, seconds): the apt package pulls about 200 packages from the runner's mirror and took 12 to 20 minutes
+    # per flow shard (run 44339835045). apt stays the fallback when the download or its checksum fails.
     - name: ffmpeg
       if: ${{ inputs.ffmpeg == 'true' }}
       shell: bash
+      env:
+        FFMPEG_URL: https://johnvansickle.com/ffmpeg/old-releases/ffmpeg-6.0.1-amd64-static.tar.xz
+        FFMPEG_SHA256: 28268bf402f1083833ea269331587f60a242848880073be8016501d864bd07a5
       run: |
+        command -v ffmpeg >/dev/null && exit 0
         sudo=$([ "$(id -u)" = 0 ] || echo sudo)
-        command -v ffmpeg >/dev/null || { $sudo dpkg --configure -a; $sudo apt-get update -qq && $sudo apt-get install -y -qq ffmpeg; }
+        dir="$RUNNER_TEMP/ffmpeg-static"
+        if [ "$(uname -m)" = x86_64 ] && curl -fsSL --retry 3 --max-time 180 -o "$RUNNER_TEMP/ffmpeg.tar.xz" "$FFMPEG_URL" \
+          && echo "$FFMPEG_SHA256  $RUNNER_TEMP/ffmpeg.tar.xz" | sha256sum -c --quiet; then
+          mkdir -p "$dir" && tar -xJf "$RUNNER_TEMP/ffmpeg.tar.xz" -C "$dir" --strip-components=1
+          $sudo install -m 0755 "$dir/ffmpeg" "$dir/ffprobe" /usr/local/bin/
+          ffmpeg -version | head -1
+        else
+          echo "ffmpeg: the pinned static build is unavailable here, installing the apt package"
+          $sudo dpkg --configure -a; $sudo apt-get update -qq && $sudo apt-get install -y -qq ffmpeg
+        fi
     - name: restic and sqlite3
       if: ${{ inputs.restic-sqlite == 'true' }}
       shell: bash

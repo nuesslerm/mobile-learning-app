@@ -16,7 +16,11 @@ fn executor_env() -> (std::ffi::OsString, Vec<(String, String)>, tempfile::TempD
     let system = std::env::var_os("PATH").unwrap_or_default();
     let path = std::env::join_paths(std::iter::once(std::path::PathBuf::from(dir)).chain(std::env::split_paths(&system))).unwrap();
     let names = std::env::var("RCA_REAL_CREDENTIAL_ENV").unwrap_or_default();
-    let env = names.split(',').filter(|n| !n.is_empty()).map(|n| (n.to_string(), std::env::var(n).unwrap_or_else(|_| panic!("{n} is not set")))).collect();
+    let mut env: Vec<(String, String)> = names.split(',').filter(|n| !n.is_empty()).map(|n| (n.to_string(), std::env::var(n).unwrap_or_else(|_| panic!("{n} is not set")))).collect();
+    // Claude Code refuses its skip-permissions flag as root unless told it is in a sandbox (a container runs these tests as root)
+    if std::process::Command::new("id").arg("-u").output().is_ok_and(|o| o.stdout.starts_with(b"0\n")) {
+        env.push(("IS_SANDBOX".into(), "1".into()));
+    }
     let home = tempfile::tempdir().unwrap();
     if let Ok(login) = std::env::var("CODEX_OAUTH_JSON_B64") {
         let bytes = base64_decode(login.trim());
