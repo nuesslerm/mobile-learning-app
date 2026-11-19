@@ -307,11 +307,9 @@ fn given_an_agent_cli_when_the_executors_home_holds_its_credential_file_then_the
     // Given an executor with a claude and a git, and a home with no login
     let ((_r, root), (_h, home), (_b, bin)) = (dir(), dir(), dir());
     login_cli(&bin);
-    for tool in ["git"] {
-        let path = bin.join(tool);
-        std::fs::write(&path, "#!/bin/sh\necho git 2.43\n").unwrap();
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
-    }
+    let path = bin.join("git");
+    std::fs::write(&path, "#!/bin/sh\necho git 2.43\n").unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
     let ex = LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home)).with_cli_path(bin.to_str().unwrap());
     let detect = || call(&ex, "cli_detect", json!({"programs": ["claude", "codex", "git"]})).unwrap()["clis"].clone();
     // When it is detected before and after the credential file is written
