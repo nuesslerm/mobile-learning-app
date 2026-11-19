@@ -327,27 +327,6 @@ pub fn scan(tree: &dyn Tree, pin: Value) -> Result<MethodsList, String> {
     Ok(MethodsList { app: "orca".into(), pin, counts, rows, flags })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn the_allowlist_follows_spreads_and_marks_flag_gated_entries() {
-        // Given a routes map over two arrays, one spreading a third and a flag-gated pair
-        let files: BTreeMap<String, Vec<Token>> = [(
-            format!("{REFERENCE}/{}", ROUTES_FILES[0]),
-            lex("const SESSION = ['s.a'] as const\nexport const DESK = ['d.a', ...(FLAG ? (['d.f1', 'd.f2'] as const) : [])] as const\nexport const HOST = ['h.a', ...SESSION, 'h.b'] as const\nexport const MOBILE_RPC_METHOD_ROUTES = new Map([\n  ...DESK.map((m) => [m, 'paired-desktop'] as const),\n  ...HOST.map((m) => [m, 'execution-host'] as const)\n])\n"),
-        )]
-        .into();
-        // When the allowlist is read
-        let allow = allowlist(&files).unwrap();
-        // Then every entry is there with its route, and only the gated ones carry the flag
-        assert_eq!(allow.keys().collect::<Vec<_>>(), ["d.a", "d.f1", "d.f2", "h.a", "h.b", "s.a"]);
-        assert_eq!(allow["s.a"], ("execution-host".into(), None));
-        assert_eq!(allow["d.f2"], ("paired-desktop".into(), Some("FLAG".into())));
-    }
-}
-
 /// What the desktop client reaches: the registered methods it names (by the same literal and constant reading as the phone's), the files it
 /// is made of, and the IPC channels its preload bridge opens to the main process (the desktop's own transport, which no phone row covers).
 struct DesktopReach {
@@ -396,4 +375,25 @@ fn desktop_reach(tree: &dyn Tree, constants: &Constants, registry: &BTreeMap<Str
     channels.sort();
     channels.dedup();
     DesktopReach { methods, files: graph.files.keys().filter(|p| graph.is_app(p)).count(), channels: channels.len() }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_allowlist_follows_spreads_and_marks_flag_gated_entries() {
+        // Given a routes map over two arrays, one spreading a third and a flag-gated pair
+        let files: BTreeMap<String, Vec<Token>> = [(
+            format!("{REFERENCE}/{}", ROUTES_FILES[0]),
+            lex("const SESSION = ['s.a'] as const\nexport const DESK = ['d.a', ...(FLAG ? (['d.f1', 'd.f2'] as const) : [])] as const\nexport const HOST = ['h.a', ...SESSION, 'h.b'] as const\nexport const MOBILE_RPC_METHOD_ROUTES = new Map([\n  ...DESK.map((m) => [m, 'paired-desktop'] as const),\n  ...HOST.map((m) => [m, 'execution-host'] as const)\n])\n"),
+        )]
+        .into();
+        // When the allowlist is read
+        let allow = allowlist(&files).unwrap();
+        // Then every entry is there with its route, and only the gated ones carry the flag
+        assert_eq!(allow.keys().collect::<Vec<_>>(), ["d.a", "d.f1", "d.f2", "h.a", "h.b", "s.a"]);
+        assert_eq!(allow["s.a"], ("execution-host".into(), None));
+        assert_eq!(allow["d.f2"], ("paired-desktop".into(), Some("FLAG".into())));
+    }
 }
