@@ -81,3 +81,6 @@ curl -sS -u "$CH_BACKEND_USER:$CH_BACKEND_PASSWORD" \
 ```
 
 `raw` columns: `dt`, `level`, `message`, `module` (logger source), `app`, `platform`, plus structured `withMetadata` keys spread at top level. Other collections: `remote(<collection>_metrics)`, `remote(<collection>_spans)`. Transient TLS flake (`certificate is not yet valid`): retry — clock skew.
+## Reading the CI gauges (the `vm_health_metrics` source)
+
+The `CH_BACKEND_*` pair cannot see this source (`CLUSTER_DOESNT_EXIST`). Mint a short-lived read connection with `BETTERSTACK_API_TOKEN` (`wf secret get`): `POST https://telemetry.betterstack.com/api/v1/connections` with `{"client_type":"clickhouse","note":"agent: read the CI gauges (expires in 2 h)","data_region":"us-west-2a","team_names":["Your team"],"valid_until":"<now+2h>"}`; the answer carries `host`, `username` and `password` once, so keep them in a scratch file, never in a log. Then `SELECT name, count() FROM remote(t550358_vm_health_metrics_metrics) WHERE _row_type='metric' AND name LIKE 'ci.%' GROUP BY name`; labels are the columns `_tags_<label>` and `tags`, the sample is in `value_avg` (binary) beside `name`.
