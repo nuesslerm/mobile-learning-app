@@ -79,7 +79,15 @@ pub fn replay_ratio(tasks: &[TaskRun]) -> (usize, usize, f64) {
 /// What every `run_many` of this process has run and replayed per stage: the gauges are the stage's, not the last kind's.
 static STAGE_TOTALS: std::sync::Mutex<std::collections::BTreeMap<String, (usize, usize)>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
 
-/// The stage's event and gauges: `ci.nx.tasks{stage,outcome}` and `ci.nx.replay_ratio{stage}`.
+/// A task shorter than this is not a gauge of its own: the series would be hundreds and say nothing.
+const TASK_GAUGE_MIN_MS: i64 = 2_000;
+
+/// The tasks Nx ran (not replayed) that took long enough to be worth a series: the per-unit durations the weighted shards are set from.
+pub fn slow_tasks(tasks: &[TaskRun]) -> Vec<(&str, f64)> {
+    tasks.iter().filter(|t| t.outcome == "ran" && t.ms >= TASK_GAUGE_MIN_MS).map(|t| (t.task.as_str(), t.ms as f64 / 1000.0)).collect()
+}
+
+/// The stage's event and gauges: `ci.nx.tasks{stage,outcome}`, `ci.nx.replay_ratio{stage}` and `ci.nx.task_s{stage,task}` for each task that ran for 2 s or more.
 fn report(stage: &str, target: &str, tasks: &[TaskRun]) {
     use wf_bucket::ci_metrics::{event, Gauges, ALL};
     let (ran, hit, _) = replay_ratio(tasks);
@@ -92,7 +100,12 @@ fn report(stage: &str, target: &str, tasks: &[TaskRun]) {
     };
     let ratio = if stage_ran + stage_hit == 0 { 1.0 } else { stage_hit as f64 / (stage_ran + stage_hit) as f64 };
     event("info", "nx.stage.summary", &[("stage", stage.to_string()), ("target", target.to_string()), ("ran", ran.to_string()), ("replayed", hit.to_string()), ("replay_ratio", format!("{ratio:.2}"))]);
-    Gauges::new().set("ci.nx.tasks", stage, "ran", stage_ran as f64).set("ci.nx.tasks", stage, "hit", stage_hit as f64).set("ci.nx.replay_ratio", stage, ALL, ratio).send();
+    let mut gauges = Gauges::new();
+    gauges.set("ci.nx.tasks", stage, "ran", stage_ran as f64).set("ci.nx.tasks", stage, "hit", stage_hit as f64).set("ci.nx.replay_ratio", stage, ALL, ratio);
+    for (task, seconds) in slow_tasks(tasks) {
+        gauges.set("ci.nx.task_s", stage, task, seconds);
+    }
+    gauges.send();
 }
 
 /// Prints the ledger line of the Nx run that started at `since` (nothing when it left no `run.json`).
@@ -155,6 +168,13 @@ mod tests {
         let log = "2026-10-30T10:00:00.0000000Z wf: nx ledger {\"tasks\":[{\"task\":\"a:lint\",\"hash\":\"7\",\"outcome\":\"ran\",\"ms\":900,\"passed\":true}]}\nnoise\nwf: nx ledger {\"tasks\":[{\"task\":\"b:lint\",\"hash\":\"8\",\"outcome\":\"hit\",\"ms\":5,\"passed\":true}]}\n";
         let tasks = from_log(log);
         assert_eq!(tasks.iter().map(|t| (t.task.as_str(), t.hash.as_str(), t.outcome)).collect::<Vec<_>>(), [("a:lint", "7", "ran"), ("b:lint", "8", "hit")]);
+    }
+
+    #[test]
+    fn given_ran_and_replayed_tasks_when_the_slow_ones_are_picked_then_only_a_task_that_ran_for_two_seconds_or_more_is_a_series_in_seconds() {
+        let task = |name: &str, outcome: &'static str, ms: i64| TaskRun { task: name.into(), hash: "1".into(), outcome, ms, passed: true };
+        let tasks = [task("a:cargo-flow", "ran", 41_500), task("b:cargo-flow", "ran", 1_999), task("c:cargo-flow", "hit", 90_000), task("d:test:flow", "ran", 2_000)];
+        assert_eq!(slow_tasks(&tasks), [("a:cargo-flow", 41.5), ("d:test:flow", 2.0)]);
     }
 
     #[test]
