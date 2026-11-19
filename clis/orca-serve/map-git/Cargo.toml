@@ -3,7 +3,7 @@ name = "orca-map-git"
 version = "0.1.0"
 edition = "2021"
 publish = false
-description = "Orca mapping crate for the phone's git rows: status, history, branches, staging, commit, the remote operations, conflicts and the branch and commit comparisons over rca's git group, behind the AgentApi port of orca-core"
+description = "Orca mapping crate for the phone's git rows: status, history, branches, staging, commit, the remote operations, conflicts and the branch and commit comparisons and the commit page link over rca's git group and its hosted remotes, behind the AgentApi port of orca-core"
 
 [lib]
 doctest = false
@@ -14,6 +14,7 @@ testing = ["orca-core/testing"]
 [dependencies]
 orca-core = { path = "../core" }
 orca-map-workspace = { path = "../map-workspace" }
+orca-map-hosted = { path = "../map-hosted" }
 agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
 agent-api-git = { path = "../../../libraries/agent-api/agent-api-git" }
 serde_json = { version = "1", features = ["preserve_order"] }

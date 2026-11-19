@@ -1,4 +1,4 @@
-//! A double of rca's git group: one repository held in memory, answering the methods of `USES` in the shapes of the contract (`agent-api-git`) and
+//! A double of rca's git group (and the hosted group's `pr.remotes`): one repository held in memory, answering the methods of `USES` in the shapes of the contract (`agent-api-git`) and
 //! changing as git would (a staged file leaves the working tree's column, a commit empties the index, a push publishes the branch). The chain
 //! runs the real service and executor against the same calls, so a shape that drifts fails there.
 use orca_core::testing::ScriptedAgent;
@@ -33,6 +33,8 @@ struct State {
     asked_model: Vec<Vec<String>>,
     blobs: Vec<(String, String, Vec<u8>)>,
     unmerged: Vec<String>,
+    urls: Vec<(String, String)>,
+    remotes_error: Option<String>,
 }
 
 #[derive(Clone)]
@@ -59,6 +61,8 @@ impl Default for Repos {
             asked_model: Vec::new(),
             blobs: Vec::new(),
             unmerged: Vec::new(),
+            urls: Vec::new(),
+            remotes_error: None,
         })))
     }
 }
@@ -81,6 +85,21 @@ impl Repos {
     /// The file `path` as staged in the index (stage 0).
     pub fn staged(&self, path: &str, bytes: &[u8]) -> &Self {
         self.blob("", path, bytes)
+    }
+
+    /// A remote with its fetch URL, as the hosted group's `pr.remotes` lists it.
+    pub fn remote_url(&self, name: &str, url: &str) -> &Self {
+        let mut s = self.0.lock().unwrap();
+        s.urls.push((name.into(), url.into()));
+        s.remotes.push(name.into());
+        drop(s);
+        self
+    }
+
+    /// `pr.remotes` refused with git's words (the folder is no repository).
+    pub fn remotes_fail(&self, message: &str) -> &Self {
+        self.0.lock().unwrap().remotes_error = Some(message.into());
+        self
     }
 
     /// A conflicted path, which the index holds only in its unmerged stages.
@@ -201,6 +220,10 @@ impl Repos {
             Ok(json!({"message": format!("feat: change {}", staged.join(", ")), "model": "double-model"}))
         });
         on("git.compare", compare);
+        on("pr.remotes", |s, _| match &s.remotes_error {
+            Some(m) => Err(refused("IO_ERROR", m.clone())),
+            None => Ok(json!({"remotes": s.urls.iter().map(|(n, u)| json!({"name": n, "url": u})).collect::<Vec<_>>()})),
+        });
         on("git.blob", |s, p| {
             use base64::Engine;
             let path = required(p, "path")?;

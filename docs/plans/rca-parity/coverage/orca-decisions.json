@@ -442,9 +442,7 @@
       "decidedBy": "M12"
     },
     "rpc:git.remoteCommitUrl": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it builds the hosted commit link from the URL of the `origin` remote, and rca's git group reports a repository's remotes by name only (`git.upstreamStatus` `remotes`), never their URLs, so there is nothing to build the link from; serving it needs a remote-URL read added to the agent API.",
-      "decidedBy": "M9"
+      "oracle": "mimic"
     },
     "rpc:files.readTerminalArtifact": {
       "state": "not-offered",
@@ -1313,7 +1311,6 @@
     "rpc:clipboard.commitImageUpload": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the committed image would have no path on the executor to answer",
     "rpc:clipboard.saveImageAsTempFile": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the image would have no temp file on the executor to name",
     "rpc:clipboard.startImageUpload": "reverify when an attachment can be kept with no workspace and its absolute path read back (M12 served the attachments the agent rows send): the row names no workspace and answers the absolute path of a temp file on the host, but attachment.stage writes into a workspace the request must name and answers a path below that workspace's root, and no executor action gives the executor's temp directory; the upload would only be held in the mapper",
-    "rpc:git.remoteCommitUrl": "reverify when the group reports a remote's address (M9): git.upstreamStatus lists the remotes' names and never their URLs, so the web address of a commit cannot be built, and any other answer would pass without reading the remote",
     "rpc:notifications.getMissedSince": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no numbered feed to read what a phone missed from",
     "rpc:notifications.registerPush": "reverify when rca has a push gateway (a group that registers a phone's APNs or FCM token and sends to it; M12 built none): the service reaches phones only over the socket they hold open, so a push token would be stored for nothing to send to",
     "rpc:notifications.subscribe": "reverify when rca has a notification feed with a replay cursor (a group that publishes the service's events across threads, numbered so a phone resumes from its last): thread events are per thread and the schedules stream is per service, so there is no notification stream to open",

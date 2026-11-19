@@ -1699,6 +1699,7 @@ dependencies = [
  "base64 0.22.1",
  "orca-core",
  "orca-map-git",
+ "orca-map-hosted",
  "orca-map-workspace",
  "serde_json",
 ]

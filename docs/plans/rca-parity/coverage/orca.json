@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 171,
+    "served": 172,
     "pending": 4,
-    "notOffered": 132,
+    "notOffered": 131,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -1812,10 +1812,17 @@
       "kind": "rpc",
       "name": "git.remoteCommitUrl",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M9",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it builds the hosted commit link from the URL of the `origin` remote, and rca's git group reports a repository's remotes by name only (`git.upstreamStatus` `remotes`), never their URLs, so there is nothing to build the link from; serving it needs a remote-URL read added to the agent API.",
-      "decidedBy": "M9"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.remoteCommitUrl-empty-min",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:git.resolveConflict",

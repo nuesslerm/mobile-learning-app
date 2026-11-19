@@ -346,6 +346,20 @@
         "complete": true,
         "tests": 31,
         "passed": 28
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "231f83acc3fb9a1a3e47d24e39919decd0bfaa3b",
+        "complete": true,
+        "tests": 209,
+        "passed": 125
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 31,
+        "passed": 29
       }
     ]
   },
@@ -1004,6 +1018,15 @@
     "rpc:git.rebaseFromBase": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-git.rebaseFromBase-invalid-drop-worktree",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:git.remoteCommitUrl": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-git.remoteCommitUrl-empty-min",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

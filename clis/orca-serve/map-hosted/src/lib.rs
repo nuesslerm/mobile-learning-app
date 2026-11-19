@@ -29,6 +29,10 @@ pub mod testing;
 /// review eligibility and creation, and the review template creation reads.
 pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, pr::REMOTES, pr::MR_LIST, pr::CREATE, pr::MR_CREATE, auth::DISCOVER, FETCH, BLOB, REFS, UPSTREAM_STATUS, STATUS, orca_map_workspace::FILE_READ];
 
+/// `pr.remotes`, for a mapping crate that reads a workspace's remotes and their fetch URLs.
+pub const PR_REMOTES: AgentMethod = pr::REMOTES;
+pub use slug::hosted_commit_url;
+
 const METHODS: &[Method] = &[
     Method { name: "github.prForBranch", kind: Kind::Unary },
     Method { name: "github.prChecks", kind: Kind::Unary },

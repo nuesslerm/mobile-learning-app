@@ -38,7 +38,6 @@
         "orca-files.writeTerminalArtifact",
         "orca-git.discoverCommitMessageModels",
         "orca-git.generatePullRequestFields",
-        "orca-git.remoteCommitUrl",
         "orca-github.addIssueComment",
         "orca-github.countWorkItems",
         "orca-github.createIssue",

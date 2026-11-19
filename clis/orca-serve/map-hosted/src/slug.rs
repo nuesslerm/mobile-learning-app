@@ -1,6 +1,7 @@
 //! The host's reading of a repository's GitHub slug from its git remotes, pure: which remote stands for origin, and the owner and repository a
 //! github.com remote URL names. Transcribed from Orca's `parseGitHubRemoteIdentity`, `normalizeGitRemoteUrl` and `deriveOriginStandInRemoteName`;
-//! URLs are read the way the WHATWG parser the host uses reads them.
+//! URLs are read the way the WHATWG parser the host uses reads them. Also the commit page link of a github.com, gitlab.com or bitbucket.org remote
+//! (`parseHostedRemote` and `buildHostedRemoteCommitUrl`).
 use serde_json::Value;
 use std::cmp::Ordering;
 
@@ -308,6 +309,116 @@ pub fn stand_in(remotes: &[Value]) -> Option<String> {
     network.into_iter().find(|n| n != "upstream").filter(|n| n != "origin")
 }
 
+/// JavaScript's whitespace and line terminators (what `trim()` and `\s` mean to the host).
+fn js_space(c: char) -> bool {
+    matches!(c, '\t' | '\n' | '\u{0B}' | '\u{0C}' | '\r' | ' ' | '\u{A0}' | '\u{1680}' | '\u{2000}'..='\u{200A}' | '\u{2028}' | '\u{2029}' | '\u{202F}' | '\u{205F}' | '\u{3000}' | '\u{FEFF}')
+}
+
+/// `decodeURIComponent`, or none where it throws (a malformed escape, or bytes that are not UTF-8).
+fn decode_uri_component(text: &str) -> Option<String> {
+    let bytes = text.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' {
+            let hex = |b: Option<&u8>| b.and_then(|b| (*b as char).to_digit(16));
+            out.push((hex(bytes.get(i + 1))? * 16 + hex(bytes.get(i + 2))?) as u8);
+            i += 3;
+        } else {
+            out.push(bytes[i]);
+            i += 1;
+        }
+    }
+    String::from_utf8(out).ok()
+}
+
+/// `encodeURIComponent`: everything but the unreserved marks, as uppercase escapes of its UTF-8 bytes.
+fn encode_uri_component(text: &str) -> String {
+    let mut out = String::new();
+    for b in text.bytes() {
+        if b.is_ascii_alphanumeric() || b"-_.!~*'()".contains(&b) {
+            out.push(b as char);
+        } else {
+            out.push_str(&format!("%{b:02X}"));
+        }
+    }
+    out
+}
+
+/// The three public forges, with their SSH-over-443 aliases folded; any other host (www., Enterprise, a mirror) is none.
+fn forge(host: &str) -> Option<(&'static str, &'static str)> {
+    match host.trim().to_lowercase().as_str() {
+        "github.com" | "ssh.github.com" => Some(("github.com", "github")),
+        "gitlab.com" | "altssh.gitlab.com" => Some(("gitlab.com", "gitlab")),
+        "bitbucket.org" | "ssh.bitbucket.org" => Some(("bitbucket.org", "bitbucket")),
+        _ => None,
+    }
+}
+
+/// `cleanRemotePath`: at least two segments, one `.git` gone, each segment decoded where it decodes.
+fn clean_remote_path(path: &str) -> Option<String> {
+    let parts: Vec<&str> = strip_git_suffix_ci(path.trim_start_matches('/').trim_end_matches('/')).split('/').filter(|p| !p.is_empty()).collect();
+    (parts.len() >= 2).then(|| parts.iter().map(|p| decode_uri_component(p).unwrap_or_else(|| p.to_string())).collect::<Vec<_>>().join("/"))
+}
+
+/// The scp form `[user@]host:path` exactly as the host's pattern matches it: the user's part is tried first, then the whole as the host.
+fn scp_forge(text: &str) -> Option<(String, String)> {
+    let split = |rest: &str| {
+        let (host, path) = rest.split_once(':')?;
+        let host_ok = !host.is_empty() && !host.chars().any(|c| c == '/' || js_space(c));
+        (host_ok && !path.is_empty() && !path.chars().any(js_space)).then(|| (host.to_string(), path.to_string()))
+    };
+    let with_user = text.split_once('@').filter(|(user, _)| !user.is_empty() && !user.contains(['/', ':'])).and_then(|(_, rest)| split(rest));
+    with_user.or_else(|| split(text))
+}
+
+/// `parseHostedRemote`: the forge host, its path and its provider, from a shorthand, an scp form or a URL of git, http, https or ssh.
+fn hosted_remote(remote_url: &str) -> Option<(&'static str, String, &'static str)> {
+    let trimmed = remote_url.trim_matches(js_space);
+    let trimmed = trimmed.strip_prefix("git+").unwrap_or(trimmed);
+    let letters = trimmed.bytes().take_while(u8::is_ascii_alphabetic).count();
+    if letters > 0 && trimmed.as_bytes().get(letters) == Some(&b':') {
+        let rest = &trimmed[letters + 1..];
+        let mut chars = rest.chars();
+        let shorthand = chars.next().is_some_and(|c| c != '/') && chars.clone().next().is_some() && !chars.any(|c| matches!(c, '\n' | '\r' | '\u{2028}' | '\u{2029}'));
+        if shorthand {
+            let (host, provider) = match trimmed[..letters].to_ascii_lowercase().as_str() {
+                "github" => ("github.com", "github"),
+                "gitlab" => ("gitlab.com", "gitlab"),
+                "bitbucket" => ("bitbucket.org", "bitbucket"),
+                _ => return None,
+            };
+            return clean_remote_path(rest).map(|path| (host, path, provider));
+        }
+    }
+    let scheme = trimmed.split_once("://").is_some_and(|(s, _)| s.starts_with(|c: char| c.is_ascii_alphabetic()) && s.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '.' | '-')));
+    if !scheme {
+        if let Some((host, path)) = scp_forge(trimmed) {
+            let (host, provider) = forge(&host)?;
+            return clean_remote_path(&path).map(|path| (host, path, provider));
+        }
+    }
+    let url = parse_url(trimmed).filter(|u| matches!(u.scheme.as_str(), "git" | "http" | "https" | "ssh"))?;
+    let (host, provider) = forge(&url.hostname)?;
+    clean_remote_path(&url.path).map(|path| (host, path, provider))
+}
+
+/// `buildHostedRemoteCommitUrl`: the forge's page of a commit, none for a remote no public forge hosts.
+pub fn hosted_commit_url(remote_url: &str, sha: &str) -> Option<String> {
+    let sha = sha.trim_matches(js_space);
+    if sha.is_empty() {
+        return None;
+    }
+    let (host, path, provider) = hosted_remote(remote_url)?;
+    let base = format!("https://{host}/{}", path.split('/').map(encode_uri_component).collect::<Vec<_>>().join("/"));
+    let sha = encode_uri_component(sha);
+    Some(match provider {
+        "gitlab" => format!("{base}/-/commit/{sha}"),
+        "bitbucket" => format!("{base}/commits/{sha}"),
+        _ => format!("{base}/commit/{sha}"),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -417,4 +528,29 @@ mod tests {
             assert!(network_remote(url), "{url}");
         }
     }
+    #[test]
+    fn given_remote_urls_when_a_commit_page_is_built_then_only_the_three_public_forges_have_one_in_their_own_form() {
+        let sha = "AbCdEf0123456789abcdef0123456789abcdef01";
+        let page = |url: &str| hosted_commit_url(url, sha);
+        // Given the scp, ssh, https, shorthand and git+ forms of the three forges, When a commit page is built, Then it is the forge's own page
+        assert_eq!(page("git@github.com:Octo/Hello.git").as_deref(), Some("https://github.com/Octo/Hello/commit/AbCdEf0123456789abcdef0123456789abcdef01"));
+        assert_eq!(page("ssh://git@ssh.github.com:443/a/b.git").as_deref(), Some(format!("https://github.com/a/b/commit/{sha}").as_str()));
+        assert_eq!(page(" https://user:tok@github.com/o/r/ \n").as_deref(), Some(format!("https://github.com/o/r/commit/{sha}").as_str()));
+        assert_eq!(page("https://gitlab.com/grp/sub/proj.GIT").as_deref(), Some(format!("https://gitlab.com/grp/sub/proj/-/commit/{sha}").as_str()));
+        assert_eq!(page("git@altssh.gitlab.com:grp/proj.git").as_deref(), Some(format!("https://gitlab.com/grp/proj/-/commit/{sha}").as_str()));
+        assert_eq!(page("git@bitbucket.org:team/repo.git").as_deref(), Some(format!("https://bitbucket.org/team/repo/commits/{sha}").as_str()));
+        assert_eq!(page("gitlab:grp/proj").as_deref(), Some(format!("https://gitlab.com/grp/proj/-/commit/{sha}").as_str()));
+        assert_eq!(page("git+ssh://git@github.com/o/r.git").as_deref(), Some(format!("https://github.com/o/r/commit/{sha}").as_str()));
+        // And a path segment is decoded then encoded again, so a space round-trips and an encoded slash becomes a separator
+        assert_eq!(page("https://github.com/o/my%20repo").as_deref(), Some(format!("https://github.com/o/my%20repo/commit/{sha}").as_str()));
+        assert_eq!(page("https://gitlab.com/grp/a%2Fb").as_deref(), Some(format!("https://gitlab.com/grp/a/b/-/commit/{sha}").as_str()));
+        assert_eq!(page("https://github.com/o/bad%zz").as_deref(), Some(format!("https://github.com/o/bad%25zz/commit/{sha}").as_str()));
+        // Given remotes no public forge hosts, or with fewer than two path segments, Then there is no page
+        for none in ["https://www.github.com/a/b", "https://ghe.example.com/a/b", "/srv/local.git", "file:///srv/x", "https://github.com/onlyowner", "localhost:o/r", "https:x/y", "GIT+ssh://git@github.com/o/r", "ftp://github.com/o/r", "unknown:o/r", ""] {
+            assert_eq!(page(none), None, "{none}");
+        }
+        // And an empty sha has no page
+        assert_eq!(hosted_commit_url("git@github.com:o/r", "  "), None);
+    }
+
 }

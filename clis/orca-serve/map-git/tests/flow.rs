@@ -610,3 +610,71 @@ fn given_malformed_git_diff_requests_when_made_then_each_is_refused_in_the_order
     assert_eq!(rig.err("git.diff", json!({"filePath": "../a", "staged": true})), ("runtime_error".to_string(), "invalid_relative_path".to_string()));
     assert_eq!(rig.err("git.diff", json!({"filePath": "a", "oldPath": "/abs", "staged": false})), ("runtime_error".to_string(), "invalid_relative_path".to_string()));
 }
+
+fn remotes_asked(rig: &Rig) -> Vec<Value> {
+    rig.agent.requests().into_iter().filter(|(m, _)| m == "pr.remotes").map(|(_, p)| p).collect()
+}
+
+const SHA: &str = "AbCdEf0123456789abcdef0123456789abcdef01";
+
+#[test]
+fn given_an_origin_on_a_public_forge_when_the_commit_url_is_read_then_it_is_the_forges_commit_page_and_rca_was_asked_the_remotes_once() {
+    // Given an origin on github.com and an upstream on gitlab.com
+    let mut rig = Rig::new();
+    rig.repo.remote_url("upstream", "https://gitlab.com/up/stream.git").remote_url("origin", "git@github.com:Octo/Hello.git");
+    // When the phone asks for a commit's page, with a key the schema does not know
+    let page = rig.ok("git.remoteCommitUrl", json!({"sha": SHA, "extra": 1}));
+    // Then it is origin's GitHub commit page with the sha as given, and rca was asked the remotes once, naming the workspace only
+    assert_eq!(page, json!(format!("https://github.com/Octo/Hello/commit/{SHA}")));
+    assert_eq!(remotes_asked(&rig), [json!({"workspace": "main"})]);
+    // And a GitLab origin with a subgroup, a Bitbucket one and a 64 hex id are each that forge's page
+    for (url, want) in [("https://gitlab.com/grp/sub/proj.git", "https://gitlab.com/grp/sub/proj/-/commit/"), ("git@bitbucket.org:team/repo.git", "https://bitbucket.org/team/repo/commits/")] {
+        let mut rig = Rig::new();
+        rig.repo.remote_url("origin", url);
+        let sha = "a".repeat(64);
+        assert_eq!(rig.ok("git.remoteCommitUrl", json!({"sha": sha})), json!(format!("{want}{sha}")));
+    }
+}
+
+#[test]
+fn given_no_origin_or_an_origin_no_public_forge_hosts_when_the_commit_url_is_read_then_it_is_null() {
+    let cases: [&[(&str, &str)]; 6] = [&[], &[("upstream", "git@github.com:o/r.git")], &[("origin", "https://www.github.com/a/b")], &[("origin", "https://ghe.example.com/a/b")], &[("origin", "/srv/local.git")], &[("origin", "https://github.com/onlyowner")]];
+    for remotes in cases {
+        // Given a repository whose origin is missing, only an upstream, or on no public forge
+        let mut rig = Rig::new();
+        for (name, url) in remotes {
+            rig.repo.remote_url(name, url);
+        }
+        // When the commit page is read, Then there is none
+        assert_eq!(rig.ok("git.remoteCommitUrl", json!({"sha": SHA})), Value::Null, "{remotes:?}");
+    }
+    // And a folder git refuses is null too, as the host swallows git's error
+    let mut rig = Rig::new();
+    rig.repo.remotes_fail("git exited 128: fatal: not a git repository (or any of the parent directories): .git");
+    assert_eq!(rig.ok("git.remoteCommitUrl", json!({"sha": SHA})), Value::Null);
+}
+
+#[test]
+fn given_a_bad_worktree_or_sha_when_the_commit_url_is_read_then_it_is_the_hosts_schema_refusal_before_the_selector_and_rca_was_asked_nothing() {
+    let mut rig = Rig::new();
+    let cases = [
+        (Value::Null, "Missing worktree selector"),
+        (json!({}), "Missing worktree selector"),
+        (json!({"sha": "a"}), "Missing worktree selector"),
+        (json!({"worktree": 7, "sha": "a"}), "Missing worktree selector"),
+        (json!({"worktree": "nowhere", "sha": "a"}), "Expected a full git object id"),
+        (json!({"worktree": "nowhere"}), "Expected a full git object id"),
+        (json!({"worktree": "nowhere", "sha": &SHA[..39]}), "Expected a full git object id"),
+        (json!({"worktree": "nowhere", "sha": 7}), "Expected a full git object id"),
+        (json!({"worktree": "nowhere", "sha": format!(" {}", &SHA[1..])}), "Expected a full git object id"),
+    ];
+    for (params, message) in cases {
+        // Given a request whose selector or object id breaks the schema
+        // When it is sent, Then it is the schema's first complaint
+        let reply = rig.raw("git.remoteCommitUrl", params.clone());
+        assert_eq!((reply["error"]["code"].clone(), reply["error"]["message"].clone()), (json!("invalid_argument"), json!(message)), "{params}");
+    }
+    // And a valid request naming no workspace is the selector's refusal, and none of them asked rca for remotes
+    assert_eq!(rig.raw("git.remoteCommitUrl", json!({"worktree": "nowhere", "sha": SHA}))["error"], json!({"code": "selector_not_found", "message": "selector_not_found"}));
+    assert_eq!(remotes_asked(&rig), Vec::<Value>::new());
+}
