@@ -19,3 +19,7 @@ tags: [ci, shards, concurrency, nx-cache]
 ## Overlapping runs
 
 `ci-hosted.yml` groups runs per commit (`ci-hosted-<sha>`), so a push never waits for an older run and a red shard is fixed and re-run at once; no run is cancelled, and every run is measured to its end. Per-job groups still serialise what must not overlap (the deploy per app). The `head` job in `pipeline.yml` gates the deploy and the production EAS publish on the commit still being the head of `dev`, so a slow older run never puts older code over newer.
+
+## The e2e jobs are per commit too
+
+`e2e-tests.yml` used one concurrency group per platform for every run. GitHub keeps one running and one pending job per group and cancels the older pending one, so a newer push silently cancelled the browser and Android jobs of the run before it (3a110f34, no job red). The group now carries the commit, so overlapping runs each finish their own e2e jobs.

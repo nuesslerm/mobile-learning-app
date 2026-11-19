@@ -87,7 +87,7 @@ jobs:
     # both jobs build the backends, cold; the browser job also builds the export (about 4 min); the Android one boots the device
     timeout-minutes: 70
     concurrency:
-      group: e2e-tests-${{ inputs.platform }}
+      group: e2e-tests-${{ inputs.platform }}-${{ github.sha }}
       cancel-in-progress: false
     env:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
