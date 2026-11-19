@@ -44,7 +44,7 @@ import {
   Wand2,
 } from '@lib/tamagui-design-system/icons';
 import React from 'react';
-import { ScrollView, TextInput, type LayoutChangeEvent } from 'react-native';
+import { TextInput, type LayoutChangeEvent, type ScrollViewInstance } from 'react-native';
 import { XStack, YStack, useTheme } from '@lib/tamagui-design-system/primitives';
 
 import { useLeetCodePorts } from '../state/ports';
@@ -151,7 +151,7 @@ export function ProblemEditorScreen({
   // buttons: `Run Local` and `Format` execute on the backend with no
   // leetcode.com/session, while `Run` needs an auth'd session.
   const { gateway } = useLeetCodePorts();
-  const scrollRef = React.useRef<ScrollView>(null);
+  const scrollRef = React.useRef<ScrollViewInstance>(null);
   // Which outcome has already been scrolled to, so a re-layout (keyboard
   // raise, rotation) does not yank the page back.
   const revealedOutcomeRef = React.useRef<unknown>(null);

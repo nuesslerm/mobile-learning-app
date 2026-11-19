@@ -26,7 +26,7 @@ pnpm --filter mla-tamagui run publish:eas -- -r /route --platform all   # iOS + 
 EAS_UPDATE_PLATFORM=android pnpm --filter mla-tamagui run publish:eas -- -r /route
 ```
 
-Runtime version: `exposdk:57.0.0` — opens directly in Expo Go.
+Runtime version: `exposdk:58.0.0` — opens directly in Expo Go.
 
 ## Dev server route
 

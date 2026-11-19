@@ -47,7 +47,7 @@
     "@tamagui/z-index-stack": "^2.7.7",
     "lucide-react-native": "^1.17.0",
     "react-native-markdown-display": "7.0.2",
-    "react-native-svg": "15.15.4",
+    "react-native-svg": "15.16.0",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
@@ -59,8 +59,8 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-native": "catalog:",
-    "react-native-reanimated": "4.5.1",
-    "react-native-safe-area-context": "~5.7.0",
+    "react-native-reanimated": "4.7.1",
+    "react-native-safe-area-context": "~5.11.1",
     "typescript": "catalog:",
     "dependency-cruiser": "^17.4.3"
   }

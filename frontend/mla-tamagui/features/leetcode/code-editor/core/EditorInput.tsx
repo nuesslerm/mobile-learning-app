@@ -497,7 +497,7 @@ export const EditorInput = forwardRef<EditorInputHandle, Props>(
         rounded="$3"
         style={{ backgroundColor: palette.background }}
       >
-        <WebView
+        <WebView<object>
           testID="CodeEditorInput"
           ref={webViewRef}
           source={{ html }}
