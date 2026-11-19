@@ -49,3 +49,34 @@ impl Group for HostedPrGroup {
         }
     }
 }
+
+/// `hosted.issue`: every method is one executor action; the result and the refusal are the executor's.
+pub struct HostedIssueGroup {
+    executors: Arc<dyn Executors>,
+    served: Vec<Served>,
+}
+
+impl HostedIssueGroup {
+    pub fn new(executors: Arc<dyn Executors>) -> HostedIssueGroup {
+        HostedIssueGroup { executors, served: rows(api::issue::SPECS) }
+    }
+}
+
+#[async_trait]
+impl Group for HostedIssueGroup {
+    fn name(&self) -> GroupName {
+        api::GROUP_ISSUE
+    }
+
+    fn methods(&self) -> &[Served] {
+        &self.served
+    }
+
+    async fn handle(&self, call: Call<'_>) -> Response {
+        let Some(spec) = api::issue::SPECS.iter().find(|s| s.method == call.method) else { unreachable!("{} is not a method of hosted.issue", call.method.name()) };
+        match relay(&self.executors, spec, call.params).await {
+            Ok(result) => Response::result(call.id, result),
+            Err(r) => Response::error(call.id, &r.code, r.message),
+        }
+    }
+}

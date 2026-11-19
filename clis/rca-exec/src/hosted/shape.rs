@@ -159,6 +159,21 @@ fn gh_pr(v: &Value) -> Value {
     })
 }
 
+fn gh_issue(v: &Value) -> Value {
+    json!({
+        "number": v.get("number"), "title": text(v, "title"), "state": lower(v, "state"), "author": login_of(v, "author", "login"), "labels": names(v, "labels", "name"),
+        "url": text(v, "url"), "created_at_ms": ms(v, "createdAt"), "updated_at_ms": ms(v, "updatedAt"),
+    })
+}
+
+fn gl_issue(v: &Value) -> Value {
+    json!({
+        "number": v.get("iid"), "title": text(v, "title"), "state": gl_state(v), "author": login_of(v, "author", "username"),
+        "labels": json!(items(v, "labels").iter().filter_map(Value::as_str).collect::<Vec<_>>()), "url": text(v, "web_url"),
+        "created_at_ms": ms(v, "created_at"), "updated_at_ms": ms(v, "updated_at"),
+    })
+}
+
 fn gl_state(v: &Value) -> Value {
     match v.get("state").and_then(Value::as_str) {
         Some("opened") => json!("open"),
@@ -343,6 +358,21 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
                 })
                 .collect();
             Ok(json!({"truncated": rows.len() as u64 >= *limit, "prs": prs}))
+        }
+        HostedCall::IssueList { limit, .. } => {
+            let v = body(&last)?;
+            let rows = v.as_array().ok_or_else(|| io(format!("{program} did not print a list")))?;
+            let issues: Vec<Value> = rows.iter().map(|r| if github { gh_issue(r) } else { gl_issue(r) }).collect();
+            Ok(json!({"truncated": rows.len() as u64 >= *limit, "issues": issues}))
+        }
+        HostedCall::IssueView { .. } => {
+            let v = body(&last)?;
+            let issue = if github {
+                extend(gh_issue(&v), json!({"body": v.get("body").and_then(Value::as_str).unwrap_or(""), "closed_at_ms": ms(&v, "closedAt"), "assignees": names(&v, "assignees", "login")}))
+            } else {
+                extend(gl_issue(&v), json!({"body": v.get("description").and_then(Value::as_str).unwrap_or(""), "closed_at_ms": ms(&v, "closed_at"), "assignees": names(&v, "assignees", "username")}))
+            };
+            Ok(json!({"issue": issue}))
         }
         HostedCall::PrView { .. } => {
             let v = body(&last)?;

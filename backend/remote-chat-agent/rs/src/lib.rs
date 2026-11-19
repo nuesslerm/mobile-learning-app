@@ -22,7 +22,7 @@ use rca_group_agent::host::CliLauncher;
 use rca_exec_channel::Registry;
 use rca_group_accounts::{AccountsGroup, GitAiGroup, HostDirs, HostLogin, ModelApi, ProviderDirs, Sessions};
 use rca_group_agent::{AgentLifecycleGroup, AgentQueueGroup, AgentRequestsGroup, AgentThreadsGroup, Runner};
-use rca_service_core::application::agent_groups::{ActivityGroup, EngineThreads, FilesEditGroup, FilesGroup, ServiceGroup, StateGroup, StateHub, StateStore, StateWatchGroup, TerminalGroup, GitGroup, HostedAuthGroup, HostedCloneGroup, HostedPrGroup, ExecutorCredentials, WorkspaceGroup, WorktreesGroup, ScheduleClock, ScheduleGroup, ScheduleIds, ScheduleStore, ScheduleWatchGroup, Schedules, ThreadsTrigger, AttachmentClock, AttachmentIds, Attachments, AttachmentsGroup, BlobStore, Catalog, CatalogGroup, CatalogSpeech, StagesAttachments, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews};
+use rca_service_core::application::agent_groups::{ActivityGroup, EngineThreads, FilesEditGroup, FilesGroup, ServiceGroup, StateGroup, StateHub, StateStore, StateWatchGroup, TerminalGroup, GitGroup, HostedAuthGroup, HostedCloneGroup, HostedIssueGroup, HostedPrGroup, ExecutorCredentials, WorkspaceGroup, WorktreesGroup, ScheduleClock, ScheduleGroup, ScheduleIds, ScheduleStore, ScheduleWatchGroup, Schedules, ThreadsTrigger, AttachmentClock, AttachmentIds, Attachments, AttachmentsGroup, BlobStore, Catalog, CatalogGroup, CatalogSpeech, StagesAttachments, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews};
 use std::sync::Arc;
 
 /// What the `accounts` and `git.ai` groups stand on: where the choice of the default provider is kept, and the model the service asks. The logins are the executor's.
@@ -102,6 +102,7 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         Arc::new(TerminalGroup::new(executors.clone(), Arc::new(SystemClock))),
         Arc::new(GitGroup::new(executors.clone())),
         Arc::new(HostedPrGroup::new(executors.clone())),
+        Arc::new(HostedIssueGroup::new(executors.clone())),
         Arc::new(HostedCloneGroup::new(executors.clone())),
         Arc::new(HostedAuthGroup::new(executors.clone(), Arc::new(ExecutorCredentials::new(executors.clone())))),
         Arc::new(GitAiGroup::new(executors.clone(), accounts.models.clone())),

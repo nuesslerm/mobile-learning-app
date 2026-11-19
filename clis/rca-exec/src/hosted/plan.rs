@@ -47,6 +47,7 @@ pub struct Paths {
     pub dir: Option<PathBuf>,
 }
 
+pub const ISSUE_FIELDS: &str = "number,title,body,state,author,labels,createdAt,updatedAt,closedAt,url,assignees";
 pub const PR_FIELDS: &str = "number,title,body,state,isDraft,author,headRefName,baseRefName,headRefOid,labels,createdAt,updatedAt,mergedAt,closedAt,url,reviewDecision,mergeable,additions,deletions,changedFiles,reviewRequests,assignees";
 pub const PR_LIST_FIELDS: &str = "number,title,state,isDraft,author,headRefName,baseRefName,labels,createdAt,updatedAt,url,reviewDecision,reviewRequests";
 pub const RUN_FIELDS: &str = "databaseId,displayTitle,name,workflowName,status,conclusion,headBranch,headSha,event,createdAt,updatedAt,url";
@@ -402,6 +403,27 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             }
             one(gh(args))
         }
+        HostedCall::IssueList { state, author, label, search, limit } => {
+            let mut args = strs(&["issue", "list"]);
+            repo_flag(&mut args);
+            let state = match state {
+                PrState::Closed => "closed",
+                PrState::All => "all",
+                _ => "open",
+            };
+            args.extend([format!("--state={state}"), format!("--limit={limit}"), format!("--json={ISSUE_FIELDS}")]);
+            for (flag, value) in [("author", author), ("label", label), ("search", search)] {
+                args.extend(value.iter().map(|v| format!("--{flag}={v}")));
+            }
+            one(gh(args))
+        }
+        HostedCall::IssueView { number } => {
+            let mut args = strs(&["issue", "view"]);
+            args.push(number.to_string());
+            repo_flag(&mut args);
+            args.push(format!("--json={ISSUE_FIELDS}"));
+            one(gh(args))
+        }
         HostedCall::PrView { number } => one(view(*number, PR_FIELDS)),
         HostedCall::PrDiff { number } => one(gh(pr(&["diff"], *number, strs(&["--color=never"])))),
         HostedCall::PrChecks { number } => {
@@ -624,6 +646,19 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             }
             one(api("GET", format!("{}/merge_requests?{}", project(), query.join("&"))))
         }
+        HostedCall::IssueList { state, author, label, search, limit } => {
+            let state = match state {
+                PrState::Closed => "closed",
+                PrState::All => "all",
+                _ => "opened",
+            };
+            let mut query = vec![format!("state={state}"), format!("per_page={limit}"), "order_by=updated_at".into(), "sort=desc".into()];
+            for (key, value) in [("author_username", author), ("labels", label), ("search", search)] {
+                query.extend(value.iter().map(|v| format!("{key}={}", encode(v))));
+            }
+            one(api("GET", format!("{}/issues?{}", project(), query.join("&"))))
+        }
+        HostedCall::IssueView { number } => one(api("GET", format!("{}/issues/{number}", project()))),
         HostedCall::PrView { number } => one(api("GET", mr(*number, ""))),
         HostedCall::PrDiff { number } => one(glab(mr_cmd(&["diff"], *number, strs(&["--color=never"])))),
         HostedCall::PrChecks { number } => one(api("GET", mr(*number, "/pipelines"))),

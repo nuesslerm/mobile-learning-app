@@ -41,6 +41,8 @@ pub const PR_MERGE: &str = "hosted_pr_merge";
 pub const PR_STACK: &str = "hosted_pr_stack";
 pub const PR_COMMENT_EDIT: &str = "hosted_pr_comment_edit";
 pub const PR_REVIEW_COMMENT: &str = "hosted_pr_review_comment";
+pub const ISSUE_LIST: &str = "hosted_issue_list";
+pub const ISSUE_VIEW: &str = "hosted_issue_view";
 pub const RUN_LIST: &str = "hosted_run_list";
 pub const RUN_VIEW: &str = "hosted_run_view";
 pub const AUTH_STATUS: &str = "hosted_auth_status";
@@ -216,6 +218,13 @@ pub const ACTIONS: &[Action] = &[
         ],
         ["number", "body", "commit_id", "path", "line"]
     ),
+    action!(
+        ISSUE_LIST,
+        "Issues, most recently updated first.",
+        [Property { name: "state", kind: "string", about: "`open` (default), `closed` or `all`" }, Property { name: "author", kind: "string", about: "Only this account's" }, Property { name: "label", kind: "string", about: "Only with this label" }, Property { name: "search", kind: "string", about: "Only matching this text" }, LIMIT],
+        []
+    ),
+    action!(ISSUE_VIEW, "One issue with its description, labels and assignees.", [NUMBER], ["number"]),
     action!(RUN_LIST, "Recent workflow runs (GitHub) or pipelines (GitLab).", [Property { name: "branch", kind: "string", about: "Only runs of this branch" }, LIMIT], []),
     action!(RUN_VIEW, "One run with its jobs.", [Property { name: "run", kind: "integer", about: "The run's id" }], ["run"]),
     action!(AUTH_STATUS, "Whether the CLI is installed and signed in on the executor machine, as which account and with which scopes (never the token).", [], []),
@@ -507,6 +516,8 @@ pub enum HostedCall {
     PrStack { number: u64 },
     PrCommentEdit { number: u64, comment: String, kind: CommentKind, body: String },
     PrReviewComment { number: u64, body: String, commit_id: String, path: String, line: u64, start_line: Option<u64>, base_sha: Option<String>, start_sha: Option<String>, old_path: Option<String> },
+    IssueList { state: PrState, author: Option<String>, label: Option<String>, search: Option<String>, limit: u64 },
+    IssueView { number: u64 },
     RunList { branch: Option<String>, limit: u64 },
     RunView { run: u64 },
     AuthStatus,
@@ -550,6 +561,8 @@ impl HostedCall {
             HostedCall::PrStack { .. } => PR_STACK,
             HostedCall::PrCommentEdit { .. } => PR_COMMENT_EDIT,
             HostedCall::PrReviewComment { .. } => PR_REVIEW_COMMENT,
+            HostedCall::IssueList { .. } => ISSUE_LIST,
+            HostedCall::IssueView { .. } => ISSUE_VIEW,
             HostedCall::RunList { .. } => RUN_LIST,
             HostedCall::RunView { .. } => RUN_VIEW,
             HostedCall::AuthStatus => AUTH_STATUS,
@@ -644,6 +657,14 @@ impl HostedOp {
                 search: text_arg(a, "search", |s| one_line("search", s, 256))?,
                 limit: limit(a)?,
             },
+            ISSUE_LIST => HostedCall::IssueList {
+                state: choice(a, "state", PrState::Open, &[("open", PrState::Open), ("closed", PrState::Closed), ("all", PrState::All)])?,
+                author: text_arg(a, "author", login)?,
+                label: text_arg(a, "label", label)?,
+                search: text_arg(a, "search", |s| one_line("search", s, 256))?,
+                limit: limit(a)?,
+            },
+            ISSUE_VIEW => HostedCall::IssueView { number: number(a)? },
             PR_VIEW => HostedCall::PrView { number: number(a)? },
             PR_DIFF => HostedCall::PrDiff { number: number(a)? },
             PR_CHECKS => HostedCall::PrChecks { number: number(a)? },

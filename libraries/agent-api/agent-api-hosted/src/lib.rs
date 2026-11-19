@@ -1,8 +1,9 @@
 //! The hosted source control of the agent API: pull and merge requests, runs, clones and the provider sign-in, done by the executor that owns a
-//! workspace with the credentials its machine already holds (`exec-hosted`). The service holds no token. Three sub-groups:
+//! workspace with the credentials its machine already holds (`exec-hosted`). The service holds no token. Four sub-groups:
 //!
 //! - `hosted.pr`: `pr.*` and the same methods as `mr.*` (the neutral spelling for GitLab's merge requests; they differ only in the provider a
 //!   request that names none gets: `github` for `pr.*`, `gitlab` for `mr.*`), `pr.runs` and `pr.run`, and the repository's label and reviewer candidates.
+//! - `hosted.issue`: `issue.list` and `issue.view`, for GitHub and GitLab.
 //! - `hosted.clone`: `clone.start` clones into a directory of the workspace and stays observable (`clone.status`, `clone.subscribe`) until it
 //!   ends or `clone.cancel` stops it; retrying is starting again.
 //! - `hosted.auth`: `sourceControl.*`: what the machine is signed in to, repository lookup and publish, and the CLI's web sign-in.
@@ -18,9 +19,11 @@ pub mod testing;
 
 pub mod auth;
 pub mod clone;
+pub mod issue;
 pub mod pr;
 
 pub const GROUP_PR: GroupName = GroupName::new("hosted.pr");
+pub const GROUP_ISSUE: GroupName = GroupName::new("hosted.issue");
 pub const GROUP_CLONE: GroupName = GroupName::new("hosted.clone");
 pub const GROUP_AUTH: GroupName = GroupName::new("hosted.auth");
 
@@ -103,12 +106,12 @@ pub fn clone_event(seq: u64, workspace: &str, clone: &str, state: &str, repo: &s
 
 /// Every method of the three sub-groups.
 pub fn all_methods() -> Vec<Method> {
-    pr::METHODS.iter().chain(clone::METHODS).chain(auth::METHODS).copied().collect()
+    pr::METHODS.iter().chain(issue::METHODS).chain(clone::METHODS).chain(auth::METHODS).copied().collect()
 }
 
 /// Every spec of the family.
 pub fn all_specs() -> Vec<Spec> {
-    pr::SPECS.iter().chain(clone::SPECS).chain(auth::SPECS).copied().collect()
+    pr::SPECS.iter().chain(issue::SPECS).chain(clone::SPECS).chain(auth::SPECS).copied().collect()
 }
 
 #[cfg(test)]

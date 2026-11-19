@@ -38,6 +38,7 @@ fn rig(channel: Arc<dyn ExecutorChannel>, account: Option<&str>) -> Rig {
     let credentials = Arc::new(ScriptedCredentials::new(account, "ABCD-1234"));
     let groups: Vec<Arc<dyn Group>> = vec![
         Arc::new(HostedPrGroup::new(executors.clone())),
+        Arc::new(HostedIssueGroup::new(executors.clone())),
         Arc::new(HostedCloneGroup::new(executors.clone())),
         Arc::new(HostedAuthGroup::new(executors, credentials.clone())),
     ];
@@ -117,7 +118,7 @@ async fn settle() {
 
 #[test]
 fn given_the_groups_when_compared_with_the_contract_then_each_serves_its_methods_in_order_naming_the_actions_of_their_specs() {
-    // Given the three groups
+    // Given the four groups
     let r = rig(ScriptedChannel::new(|_, _| ok(json!({}))), None);
     let rows: Vec<(Method, Vec<&str>)> = r.api.served().map(|s| (s.method, s.actions.to_vec())).collect();
     // Then the rows are the contract's methods in order, with the actions of their specs
@@ -125,8 +126,8 @@ fn given_the_groups_when_compared_with_the_contract_then_each_serves_its_methods
     for spec in api::all_specs() {
         assert_eq!(rows.iter().find(|r| r.0 == spec.method).unwrap().1, spec.actions, "{}", spec.method.name());
     }
-    // And every group is complete, so service.status lists all three
-    assert_eq!(r.api.listed().iter().map(|g| g.as_str()).collect::<Vec<_>>(), ["hosted.pr", "hosted.clone", "hosted.auth"]);
+    // And every group is complete, so service.status lists all four
+    assert_eq!(r.api.listed().iter().map(|g| g.as_str()).collect::<Vec<_>>(), ["hosted.pr", "hosted.issue", "hosted.clone", "hosted.auth"]);
 }
 
 #[tokio::test]
