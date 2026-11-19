@@ -250,11 +250,43 @@ fn progress(rest: &[String]) -> Option<i32> {
     Some(0)
 }
 
-/// `wf ci timings [--run <id>] [--send]` and `wf ci progress [--run <id>]`.
+const FAILED: Spec = Spec { values: &["run", "runner"], positional: Positional::None, ..Spec::NONE };
+
+/// `wf ci failed`: the step of this job that went red, read live from the Actions API (a job's log text is not published until it ends, but its steps
+/// are). The job is the one running on this runner. Always exits 0: it is a report from inside a failing job, never a second failure.
+fn failed(rest: &[String]) -> Option<i32> {
+    let parsed = parse_spec(rest, &FAILED)?;
+    let env = match api_env(parsed.val("run").map(str::to_string)) {
+        Ok(e) => e,
+        Err(why) => {
+            println!("{}", json!({"ok": false, "error": why, "next": "set GITHUB_TOKEN and GITHUB_REPOSITORY"}));
+            return Some(0);
+        }
+    };
+    let runner = parsed.val("runner").map(str::to_string).or_else(|| var("RUNNER_NAME")).unwrap_or_default();
+    let jobs = match list_jobs_of(&env, &env.run) {
+        Ok(j) => j,
+        Err(why) => {
+            println!("{}", json!({"ok": false, "error": why, "next": "check the token's actions:read scope"}));
+            return Some(0);
+        }
+    };
+    let mine = jobs.iter().find(|j| j["status"] == "in_progress" && !runner.is_empty() && j["runner_name"].as_str() == Some(runner.as_str()));
+    let Some(job) = mine else {
+        println!("{}", json!({"ok": false, "error": format!("no running job on runner '{runner}'"), "next": "pass --runner <name>"}));
+        return Some(0);
+    };
+    let steps: Vec<String> = job["steps"].as_array().map(Vec::as_slice).unwrap_or_default().iter().filter(|s| s["conclusion"] == "failure").filter_map(|s| s["name"].as_str().map(str::to_string)).collect();
+    println!("{}", json!({"ok": true, "run": env.run, "job": job["name"], "url": job["html_url"], "failed_steps": steps}));
+    Some(0)
+}
+
+/// `wf ci timings [--run <id>] [--send]`, `wf ci progress [--run <id>]` and `wf ci failed [--runner <name>]`.
 pub fn run(verb: &str, rest: &[String]) -> Option<i32> {
     match verb {
         "timings" => timings(rest),
         "progress" => progress(rest),
+        "failed" => failed(rest),
         _ => None,
     }
 }

@@ -2157,6 +2157,36 @@ Options:
 
 </details>
 
+### `wf ci failed`
+
+The step of the running job that went red, read live
+
+Usage: `wf ci failed [--runner <name>] [--run <id>]`
+
+Examples:
+
+```sh
+wf ci failed --runner "GitHub Actions 7"
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci failed [--runner <name>] [--run <id>]
+
+The step of the job you are in that went red, read live from the Actions API while the job (and the rest of its steps) still runs; a
+job's log text is only published when it ends, its steps are not. The job is the running one on this runner (RUNNER_NAME). Prints one JSON line
+{ok, run, job, url, failed_steps}; the shared job-end step sends it to Better Stack as the log line `ci.job.failed` and refreshes the run's
+pull request comment (`wf ci live`). Exit 0 always: a report from inside a failing job is never a second failure.
+
+Options:
+  --runner <name>  the runner whose running job to read (default RUNNER_NAME)
+  --run <id>       the run (default GITHUB_RUN_ID)
+  -h, --help       display help for command
+```
+
+</details>
+
 ### `wf ci cache-health`
 
 Fail the run when a cache layer degraded, lost or refused a write.

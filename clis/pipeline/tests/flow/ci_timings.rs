@@ -133,3 +133,24 @@ fn given_a_finished_run_when_its_timings_are_read_in_a_job_with_a_local_database
         q.stderr
     );
 }
+
+#[test]
+fn given_a_running_job_with_a_red_step_when_failed_is_asked_on_its_runner_then_the_step_is_named_while_the_job_still_runs() {
+    // Given a run whose job on runner "GitHub Actions 7" is still running with its test step red and a later step pending
+    let run = json!({"id": 79, "status": "in_progress", "created_at": "2026-11-19T10:00:00Z", "run_started_at": "2026-11-19T10:00:00Z", "head_sha": "abc"});
+    let jobs = json!({"total_count": 2, "jobs": [
+        {"id": 1, "name": "run / flow-tests (1/6)", "status": "in_progress", "conclusion": null, "runner_name": "GitHub Actions 7", "html_url": "https://github.test/job/1",
+         "steps": [{"name": "Set up job", "status": "completed", "conclusion": "success"}, {"name": "Flow tests", "status": "completed", "conclusion": "failure"}, {"name": "Upload", "status": "pending", "conclusion": null}]},
+        {"id": 2, "name": "run / flow-tests (2/6)", "status": "in_progress", "conclusion": null, "runner_name": "GitHub Actions 8", "html_url": "https://github.test/job/2",
+         "steps": [{"name": "Flow tests", "status": "in_progress", "conclusion": null}]},
+    ]});
+    let server = served(&[("/repos/o/r/actions/runs/79", run), ("/repos/o/r/actions/runs/79/jobs?per_page=100&page=1", jobs)]);
+
+    // When the job on runner 7 asks which of its steps failed
+    let r = wf(&server, &["failed", "--run", "79", "--runner", "GitHub Actions 7"], &[]);
+
+    // Then it names its own job and the red step, not the other runner's job, and exits 0
+    let out = line(&r);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!((out["ok"].clone(), out["job"].clone(), out["failed_steps"].clone()), (json!(true), json!("flow-tests (1/6)"), json!(["Flow tests"])), "{out}");
+}

@@ -1,7 +1,7 @@
 name: Pipeline
 
 # The one CI pipeline, called by ci-hosted.yml on GitHub-hosted runners. The job graph is static: wf-build, preflight, plan, flow-tests and
-# typecheck-lint-unit-tests, clis, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, the e2e suites, report.
+# typecheck-lint-unit-tests, clis, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, eas-update-e2e, the e2e suites, report.
 # `ship` publishes (latest images, the EAS Update), `deploy` runs the deploy legs, `e2e` runs the device suites.
 # Rules: docs/solutions/ci/ci-pipeline-on-the-vm.md
 on:
@@ -970,6 +970,61 @@ jobs:
             echo "Source maps: $(jq -r '.maps.uploaded // .maps.error' <<<"$summary") under $(jq -r '.maps.base // "-"' <<<"$summary"); latest-dev pointer: $(jq -r '.pointers.latest // .pointers.error // "-"' <<<"$summary")"
             echo "BetterStack forwarder: $forwarder"
           } >> "$GITHUB_STEP_SUMMARY"
+      # the branch pointers outlive the run: the planner of the next push and `wf ship eas --latest` read them from the state ref
+      - name: Push the EAS pointers to the state ref
+        if: ${{ inputs.ship && success() }}
+        run: |
+          for pointer in "$RUNNER_TEMP"/eas-pointer/latest-*.json; do
+            wf bucket state write "eas/$(basename "$pointer")" --file "$pointer" --message "eas: $(basename "$pointer") at $GITHUB_SHA"
+          done
+      - name: Export the EAS bundle (not published)
+        if: ${{ !inputs.ship }}
+        timeout-minutes: 20
+        env:
+          EXPO_PUBLIC_DEVICE_LAB: "1"
+          NX_DAEMON: "false"
+        run: pnpm exec nx run mla-tamagui:export:eas --skip-nx-cache
+      - uses: ./.github/actions/metro-cache
+        if: ${{ inputs.ship && success() }}
+        with:
+          mode: save
+          scope: export
+      - uses: ./.github/actions/hosted-stats
+        if: ${{ always() }}
+        with:
+          mode: upload
+          job: eas-update
+
+  # The EAS Update the Android e2e tests load (branch e2e, the runner's own backends at 10.0.2.2), and the pointer they read. It is its own job so the
+  # Android e2e needs neither the integration tests nor the production ship that waits for them.
+  eas-update-e2e:
+    name: eas-update-e2e
+    needs: [plan, preflight, clis]
+    if: ${{ !cancelled() && inputs.ship && inputs.e2e && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.clis.result != 'failure' && needs.plan.outputs.eas_update == 'true' }}
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 25
+    permissions:
+      actions: read
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: ${{ format('hosted-eas-update-e2e-{0}', github.run_id) }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          clean: false
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-job
+        with:
+          wf-source: artifact
+          job: eas-update-e2e
+          ts-client-id: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
+          ts-secret: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_SECRET }}
+      - uses: ./.github/actions/metro-cache
+        with:
+          mode: restore
+          scope: export
       # The update above is the one users and the phone open, dialing the deployed backends. The Android e2e tests run the backends on their own
       # runner, which the emulator reaches as 10.0.2.2, so they load this variant of the same commit from branch e2e (its pointer is theirs,
       # WF_EAS_UPDATE_BRANCH in e2e-tests.yml). The bearer is the one that job's leetcode backend starts with (E2E_LEETCODE_BEARER there).
@@ -1000,35 +1055,23 @@ jobs:
           path: ${{ runner.temp }}/eas-pointer
           retention-days: 2
           if-no-files-found: error
-      # the branch pointers outlive the run: the planner of the next push and `wf ship eas --latest` read them from the state ref
-      - name: Push the EAS pointers to the state ref
+      # the pointer outlives the run, as the production one does
+      - name: Push the EAS pointer to the state ref
         if: ${{ inputs.ship && success() }}
         run: |
           for pointer in "$RUNNER_TEMP"/eas-pointer/latest-*.json; do
             wf bucket state write "eas/$(basename "$pointer")" --file "$pointer" --message "eas: $(basename "$pointer") at $GITHUB_SHA"
           done
-      - name: Export the EAS bundle (not published)
-        if: ${{ !inputs.ship }}
-        timeout-minutes: 20
-        env:
-          EXPO_PUBLIC_DEVICE_LAB: "1"
-          NX_DAEMON: "false"
-        run: pnpm exec nx run mla-tamagui:export:eas --skip-nx-cache
-      - uses: ./.github/actions/metro-cache
-        if: ${{ inputs.ship && success() }}
-        with:
-          mode: save
-          scope: export
       - uses: ./.github/actions/hosted-stats
         if: ${{ always() }}
         with:
           mode: upload
-          job: eas-update
+          job: eas-update-e2e
 
   # The focused browser e2e tests the push reaches, against a web export of this commit built and served on the runner.
   browser-e2e-tests:
-    needs: [plan, flow-tests, typecheck-lint-unit-tests, clis, deploy, cli-e2e-tests, eas-update]
-    if: ${{ !cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.clis.result != 'failure' && needs.deploy.result != 'failure' && needs.plan.outputs.browser_e2e_tests != '0' && needs.plan.outputs.run_browser == 'true' }}
+    needs: [plan, flow-tests, typecheck-lint-unit-tests, clis, cli-e2e-tests]
+    if: ${{ !cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.clis.result != 'failure' && needs.plan.outputs.browser_e2e_tests != '0' && needs.plan.outputs.run_browser == 'true' }}
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
@@ -1042,8 +1085,8 @@ jobs:
 
   # The focused Android e2e tests, last: the device boots once, cold, and every test runs on it warm, one after another.
   android-e2e-tests:
-    needs: [plan, flow-tests, typecheck-lint-unit-tests, clis, deploy, cli-e2e-tests, eas-update]
-    if: ${{ !cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.clis.result != 'failure' && needs.deploy.result != 'failure' && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true' }}
+    needs: [plan, flow-tests, typecheck-lint-unit-tests, clis, cli-e2e-tests, eas-update-e2e]
+    if: ${{ !cancelled() && inputs.e2e && needs.plan.result == 'success' && needs.clis.result != 'failure' && needs.plan.outputs.android_e2e_tests != '0' && needs.plan.outputs.run_android == 'true' }}
     uses: ./.github/workflows/e2e-tests.yml
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
@@ -1055,14 +1098,14 @@ jobs:
       sha: ${{ github.sha }}
       base: ${{ github.event.before }}
       # update units load this push's update, error when its publish failed, and after a skipped one load the pointer's only if it is this commit's app
-      eas_update: ${{ needs.eas-update.result }}
+      eas_update: ${{ needs.eas-update-e2e.result }}
 
   # Every run reports where it is read (`wf ci comment`): a table of the jobs with their cache hits and latency, Nx replays, docker layers, EAS
   # seconds and the e2e units, in the job summary and as a comment on the open PR; a red run also gets the cause of each failure as a comment on
   # the pushed commit. A failure to report never turns the run's result into the report's; a cache that degraded, lost or refused a write does.
   report:
     name: report
-    needs: [wf-build, preflight, plan, flow-tests, typecheck-lint-unit-tests, clis, deploy-build, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, browser-e2e-tests, android-e2e-tests]
+    needs: [wf-build, preflight, plan, flow-tests, typecheck-lint-unit-tests, clis, deploy-build, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, eas-update-e2e, browser-e2e-tests, android-e2e-tests]
     if: ${{ always() }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 15
