@@ -180,6 +180,7 @@ jobs:
       android_e2e_tests: ${{ steps.plan.outputs.android_e2e_tests }}
       shards: ${{ steps.shards.outputs.list }}
       shard_count: ${{ steps.shards.outputs.count }}
+      integration_shard_keys: ${{ steps.shardkeys.outputs.integration }}
       legs: ${{ steps.legs.outputs.legs }}
       eas_update: ${{ steps.legs.outputs.eas_update }}
       fresh: ${{ steps.tags.outputs.fresh }}
@@ -240,6 +241,12 @@ jobs:
           echo "count=$n" >> "$GITHUB_OUTPUT"
           echo "list=$(jq -cn --argjson n "$n" '[range(1; $n + 1)]')" >> "$GITHUB_OUTPUT"
           echo "$n machine(s) per test stage"
+      # The crates each integration shard runs, as a key: the shard's concurrency group, so a later commit's shard of the same crates queues behind
+      # the earlier one (a newer pending job replaces an older pending one) while other crates start at once
+      - name: Which crates each integration shard runs
+        id: shardkeys
+        run: |
+          echo "integration=$(wf ci plan shard-keys --stage integration-tests --count "${{ steps.shards.outputs.count }}" --plan "$RUNNER_TEMP/plan.json")" >> "$GITHUB_OUTPUT"
       # What is deployed is what runs: a service's own container image tag (sha-<short>) names the commit it was built
       # from, so there is no record to keep in sync. This also fails in seconds if the runner cannot reach the vault or vm-ops-api.
       - name: Which services changed since the commit they run?
@@ -681,7 +688,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 40
     concurrency:
-      group: ${{ format('hosted-integration-tests-{0}-{1}', github.run_id, matrix.shard) }}
+      group: ${{ format('hosted-integration-{0}', fromJSON(needs.plan.outputs.integration_shard_keys)[matrix.shard - 1]) }}
       cancel-in-progress: false
     strategy:
       fail-fast: false

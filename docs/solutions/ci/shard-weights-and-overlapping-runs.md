@@ -27,3 +27,7 @@ tags: [ci, shards, concurrency, nx-cache]
 ## The e2e jobs do not wait for the integration tests
 
 `browser-e2e-tests` runs against a web export built on its own runner and `android-e2e-tests` against its own backends, so neither reads the deploy or the production EAS Update, which both wait for every stage including the slowest integration shard (about 800 s). They now need `plan`, `flow-tests`, `typecheck-lint-unit-tests`, `clis` and `cli-e2e-tests`; Android also needs `eas-update-e2e`, the job that publishes the branch `e2e` update and hands its pointer over, split out of `eas-update` (which keeps the production publish gated on the tests).
+
+## Integration shards queue per crate set
+
+The concurrency group of an integration shard is `hosted-integration-<key>`, the key being `wf ci plan shard-keys` of the crates that shard runs. Two commits that plan the same crates on a shard share a group: the later one waits for the earlier one, and a third commit replaces the second's pending job (owner, 19 Nov: desired). A different set of crates has a different key and starts at once. The key follows the weighted split of that commit's plan, so a plan that moves a crate to another shard changes the key.

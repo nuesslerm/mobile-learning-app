@@ -256,3 +256,33 @@ fn the_ci_services_and_cache_tags_limit_the_jobs_force_services_and_drop_the_cac
     assert_eq!((out(&all, "force_tests").as_deref(), out(&all, "force_ship").as_deref(), out(&all, "fresh").as_deref()), (Some("all"), Some("--force"), Some("true")));
     assert_eq!(all.json["warnings"], json!(["[services:] ignores the name 'deploy;rm'"]));
 }
+
+#[test]
+fn given_a_plan_when_the_shard_keys_are_asked_then_each_shard_has_a_key_from_its_crates_the_same_in_every_commit_and_none_when_empty() {
+    // Given an integration plan of three crates, and the same crates planned again for another commit
+    let unit = |c: &str| serde_json::json!({"kind": "integration", "crate": c, "group": "svc"});
+    let plan = |sha: &str, crates: &[&str]| serde_json::json!({"sha": sha, "stages": {"integration-tests": crates.iter().map(|c| unit(c)).collect::<Vec<_>>()}});
+    let dir = tempfile::tempdir().unwrap();
+    let write = |name: &str, p: serde_json::Value| {
+        let path = dir.path().join(name);
+        std::fs::write(&path, p.to_string()).unwrap();
+        path.display().to_string()
+    };
+    let (first, second, other) = (write("a.json", plan("aaa", &["alpha", "beta", "gamma"])), write("b.json", plan("bbb", &["alpha", "beta", "gamma"])), write("c.json", plan("ccc", &["alpha", "delta", "gamma"])));
+    let keys = |file: &str, count: &str| -> Vec<String> {
+        let r = run_wf(&["ci", "plan", "shard-keys", "--stage", "integration-tests", "--count", count, "--plan", file], &RunOpts::default());
+        assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+        serde_json::from_str(r.stdout.trim()).unwrap()
+    };
+
+    // When the keys are asked for two shards
+    let (a, b, c) = (keys(&first, "2"), keys(&second, "2"), keys(&other, "2"));
+
+    // Then a commit that plans the same crates gets the same keys, so its shards queue behind the earlier commit's
+    assert_eq!(a, b);
+    // And a different set of crates gets a different key somewhere, so it runs at once
+    assert_ne!(a, c);
+    // And two shards of three crates hold different crates, and a shard with no crate is named none
+    assert_ne!(a[0], a[1]);
+    assert!(keys(&first, "6").contains(&"none".to_string()));
+}

@@ -724,6 +724,23 @@ pub fn assign(keys: &[String], count: usize, weights: &Weights) -> Vec<usize> {
     at
 }
 
+/// A short stable name for the crates a shard runs (FNV-1a over its sorted unit keys): the same set of crates on the same shard count is the same key
+/// in every commit, so a workflow can queue runs on it; an empty shard is `none`.
+pub fn shard_key(stage: &str, tests: &[Value], index: usize, count: usize) -> String {
+    let mut keys: Vec<String> = shard_of(stage, tests, index, count).iter().map(unit_key).collect();
+    keys.sort();
+    keys.dedup();
+    if keys.is_empty() {
+        return "none".to_string();
+    }
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for byte in keys.join(",").bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    format!("{hash:016x}")
+}
+
 /// One shard's tests of `stage`: its units by `assign` over the weights of the stage.
 pub fn shard_of(stage: &str, tests: &[Value], index: usize, count: usize) -> Vec<Value> {
     shard_with(tests, index, count, &Weights::of_stage(stage))

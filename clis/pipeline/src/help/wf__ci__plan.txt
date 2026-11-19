@@ -1,4 +1,4 @@
-Usage: wf ci plan <tags|tests|legs|mimic> [options]
+Usage: wf ci plan <tags|tests|shard-keys|legs|mimic> [options]
 
 Everything the pipeline decides before its jobs run, in one place; the plan job of
 pipeline.yml and the mimic-record and track-contracts workflows call it. Each
@@ -6,6 +6,9 @@ subcommand prints one JSON object (exit 0) or {schema: "ci-plan/1", ok: false, e
 next} (exit 2 for a refusal); with --github-output it also appends the step outputs
 its jobs read to $GITHUB_OUTPUT.
 
+  shard-keys --stage <s> --count <n> --plan <file>
+                         one key per shard (a JSON array) from the crates it runs, the same in every commit that plans the same crates: the
+                         integration shards' concurrency group, so a later commit's shard of the same crates queues behind the earlier one.
   tests [options]        every test a change needs, by CI stage; runs nothing. Scope: --all, --changed [--base <ref>] (default
                          HEAD~1; `last-green`: the newest commit on dev whose CI passed, via gh), or e2e test names; [--sha S]. Package tests (flow test:flow, integration
                          test:integration, typecheck, lint, unit test:unit, deployment-verification test:verify:deployed) follow pnpm's
