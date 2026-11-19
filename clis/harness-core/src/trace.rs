@@ -8,7 +8,7 @@ const CURVE_STEPS: usize = 12;
 const MIN_SPUR_PX: usize = 6;
 const MIN_COMPONENT_PX: usize = 30;
 const FRAME_PX: i64 = 3;
-const DAB_PX: f64 = 1.5;
+const DAB_PX: f64 = 3.0;
 
 fn bezier(controls: &[Pt]) -> Vec<Pt> {
     (1..=CURVE_STEPS)
