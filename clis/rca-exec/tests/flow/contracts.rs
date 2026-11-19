@@ -93,6 +93,9 @@ fn prepare(dir: &Path, base: &Path, (bin, home): (&Path, &Path), setup: &Setup) 
         git(base, &["init", "-q", "--bare", "-b", "main", remote.to_str().unwrap()]);
         git(dir, &["remote", "add", "origin", remote.to_str().unwrap()]);
         git(dir, &["push", "-q", "-u", "origin", "main"]);
+        if setup.remote_head {
+            git(dir, &["remote", "set-head", "origin", "main"]);
+        }
         for number in &setup.remote_pulls {
             git(dir, &["switch", "-q", "-c", &format!("pull-{number}")]);
             std::fs::write(dir.join(format!("pull-{number}.txt")), format!("pull request {number}\n")).unwrap();

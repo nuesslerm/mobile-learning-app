@@ -14,6 +14,7 @@ pub mod testing;
 
 pub use files::{image_mime, previewable_limit};
 pub use target::{resolve, targets, Target};
+pub use worktrees::checkout_of;
 
 use agent_api_workspace::edit::{FILE_CREATE, FILE_READ_CHUNK, FILE_SEARCH, FILE_STAT};
 use agent_api_proto::Method as AgentMethod;

@@ -27,8 +27,8 @@ fn retired_key(repo: &str) -> String {
     format!("orca.retired-names.{repo}")
 }
 
-fn checkouts(agent: &dyn AgentApi, repo: &Target) -> Result<Vec<Checkout>, Failure> {
-    let listed = ask(agent, WORKTREE_LIST.name(), json!({"workspace": repo.workspace}))?;
+fn checkouts(agent: &dyn AgentApi, repo: &str) -> Result<Vec<Checkout>, Failure> {
+    let listed = ask(agent, WORKTREE_LIST.name(), json!({"workspace": repo}))?;
     Ok(listed["worktrees"]
         .as_array()
         .map(|rows| {
@@ -39,6 +39,12 @@ fn checkouts(agent: &dyn AgentApi, repo: &Target) -> Result<Vec<Checkout>, Failu
                 .collect()
         })
         .unwrap_or_default())
+}
+
+/// Whether `found` is a checkout of the repository workspace `repo`: that workspace, or a worktree workspace lying where one of the checkouts git
+/// lists for it lies.
+pub fn checkout_of(agent: &dyn AgentApi, repo: &str, found: &Target) -> Result<bool, Failure> {
+    Ok(found.workspace == repo || (found.kind == "worktree" && !found.root_path.is_empty() && checkouts(agent, repo)?.iter().any(|c| c.path == found.root_path)))
 }
 
 fn basename(path: &str) -> &str {
@@ -83,7 +89,7 @@ fn find(agent: &dyn AgentApi, selector: &str) -> Result<(Target, Checkout), Fail
     let selector = selector.trim();
     let want = selector.strip_prefix("id:").or_else(|| selector.strip_prefix("path:")).unwrap_or(selector);
     for repo in repo_targets(agent)?.into_iter().filter(|t| t.kind == "root") {
-        let found = checkouts(agent, &repo)?.into_iter().find(|c| id_of(&repo.workspace, &c.path) == want || c.path == want || (!c.branch.is_empty() && c.branch == want));
+        let found = checkouts(agent, &repo.workspace)?.into_iter().find(|c| id_of(&repo.workspace, &c.path) == want || c.path == want || (!c.branch.is_empty() && c.branch == want));
         if let Some(c) = found {
             return Ok((repo, c));
         }
@@ -105,7 +111,7 @@ pub(crate) fn list(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failur
     };
     let mut rows = Vec::new();
     for repo in &repos {
-        for c in checkouts(agent, repo)? {
+        for c in checkouts(agent, &repo.workspace)? {
             rows.push(record(agent, repo, &c)?);
         }
     }
@@ -130,7 +136,7 @@ pub(crate) fn create(agent: &dyn AgentApi, params: &Value) -> Result<Value, Fail
     let repo = repo_of(agent, params)?;
     let name = match text(params, "name").map(safe_name).filter(|n| !n.is_empty()) {
         Some(n) => n,
-        None => format!("wt-{}", checkouts(agent, &repo)?.len() + 1),
+        None => format!("wt-{}", checkouts(agent, &repo.workspace)?.len() + 1),
     };
     let mut args = json!({"workspace": repo.workspace, "worktree": name, "branch": name});
     if let Some(base) = text(params, "baseBranch").filter(|b| !b.is_empty()) {

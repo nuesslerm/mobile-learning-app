@@ -41,9 +41,18 @@ impl Workspaces {
         self.0.lock().unwrap().files.get(&(workspace.into(), path.into())).cloned()
     }
 
-    /// The refs `git.refs` lists for a workspace.
+    /// The refs `git.refs` lists for a workspace, newest first: a listing past its limit (500 by default) is cut short.
     pub fn refs(&self, workspace: &str, refs: &[(&str, &str)]) -> &Self {
         self.0.lock().unwrap().refs.insert(workspace.into(), refs.iter().map(|(n, k)| (n.to_string(), k.to_string())).collect());
+        self
+    }
+
+    /// A worktree workspace `name` of the repository `repo`, on `branch` under the worktree base, as `worktree.create` makes one.
+    pub fn linked_worktree(&self, repo: &str, name: &str, branch: &str) -> &Self {
+        let mut s = self.0.lock().unwrap();
+        s.workspaces.insert(name.into(), ("worktree".into(), Some(format!("/base/{name}"))));
+        s.linked.entry(repo.into()).or_default().push((name.into(), branch.into()));
+        drop(s);
         self
     }
 
@@ -209,8 +218,11 @@ impl Workspaces {
         let s = self.0.lock().unwrap();
         let all = s.refs.get(&w).cloned().unwrap_or_else(|| vec![("main".into(), "branch".into())]);
         let query = p["query"].as_str().unwrap_or_default().to_lowercase();
-        let rows: Vec<Value> = all.iter().filter(|(n, k)| p["kind"].as_str().is_none_or(|want| want == k) && n.to_lowercase().contains(&query)).map(|(n, k)| json!({"name": n, "kind": k, "current": n == "main"})).collect();
-        Ok(json!({"current": "main", "detached": false, "refs": rows, "truncated": false}))
+        let mut rows: Vec<Value> = all.iter().filter(|(n, k)| p["kind"].as_str().is_none_or(|want| want == k) && n.to_lowercase().contains(&query)).map(|(n, k)| json!({"name": n, "kind": k, "current": n == "main"})).collect();
+        let limit = p["limit"].as_u64().unwrap_or(500) as usize;
+        let truncated = rows.len() > limit;
+        rows.truncate(limit);
+        Ok(json!({"current": "main", "detached": false, "refs": rows, "truncated": truncated}))
     }
 
     fn git_fetch(&self, p: &Value) -> Result<Value, AgentError> {

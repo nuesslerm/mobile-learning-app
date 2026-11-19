@@ -88,30 +88,40 @@ fn swallowed<T>(result: Result<T, AgentError>) -> Result<Option<T>, Failure> {
 }
 
 /// `baseRefExistsOnRemote`: a remote-tracking branch of `base` under its own remote, origin, upstream or any configured remote, or exactly one
-/// remote segment before it. A read that fails proves nothing missing, so it counts as present.
+/// remote segment before it. A failed read or a listing cut short proves nothing missing, so it counts as present.
 fn on_remote(t: &Target, candidate: &str, remotes: &[String]) -> Result<bool, Failure> {
     let base = base_ref(candidate).trim();
     if base.is_empty() || !safe_ref(base) {
         return Ok(false);
     }
-    let Some(listed) = swallowed(t.try_ask(REFS, json!({"kind": "remote", "query": base})))? else { return Ok(true) };
     let segments = base.split('/').count() + 1;
     let names = ["origin", "upstream"].into_iter().chain(remotes.iter().map(String::as_str));
     let wanted: Vec<String> = names.map(|r| format!("{r}/{base}")).chain(base.contains('/').then(|| base.to_string())).collect();
-    Ok(listed["refs"].as_array().into_iter().flatten().filter(|r| r["kind"] == "remote").filter_map(|r| r["name"].as_str()).any(|name| {
-        wanted.iter().any(|w| w == name) || (name.ends_with(&format!("/{base}")) && name.split('/').count() == segments)
-    }))
+    let Some(listed) = swallowed(t.try_ask(REFS, json!({"kind": "remote", "query": base})))? else { return Ok(true) };
+    Ok(listed["truncated"] == true
+        || listed["refs"].as_array().into_iter().flatten().filter(|r| r["kind"] == "remote").filter_map(|r| r["name"].as_str()).any(|name| {
+            wanted.iter().any(|w| w == name) || (name.ends_with(&format!("/{base}")) && name.split('/').count() == segments)
+        }))
 }
 
-/// `resolveDefaultBaseRefViaExec`: the branch origin's HEAD points at, else the first of the conventional branches the repository has; a failed
-/// read is none.
+/// `resolveDefaultBaseRefViaExec`: the branch origin's HEAD points at, else the first of the conventional branches the repository has, each
+/// probed by its exact name; a failed read is none, and a listing cut short before the name counts it as present.
 fn default_base(t: &Target, origin_head: Option<String>) -> Result<Option<String>, Failure> {
     if origin_head.is_some() {
         return Ok(origin_head);
     }
-    let Some(listed) = swallowed(t.try_ask(REFS, json!({"query": "ma"})))? else { return Ok(None) };
-    let refs = listed["refs"].as_array().cloned().unwrap_or_default();
-    Ok(DEFAULT_BASES.iter().find(|(name, kind)| refs.iter().any(|r| r["name"] == *name && r["kind"] == *kind)).map(|(name, _)| name.to_string()))
+    for (name, kind) in DEFAULT_BASES {
+        match swallowed(t.try_ask(REFS, json!({"kind": kind, "query": name})))? {
+            None => return Ok(None),
+            Some(listed) => {
+                let refs = listed["refs"].as_array().cloned().unwrap_or_default();
+                if listed["truncated"] == true || refs.iter().any(|r| r["name"] == name && r["kind"] == kind) {
+                    return Ok(Some(name.to_string()));
+                }
+            }
+        }
+    }
+    Ok(None)
 }
 
 /// The provider whose host the repository's remotes name, as the host's precedence detects it: a gitlab.com origin, then a github.com origin or
@@ -144,8 +154,8 @@ fn by_branch(t: &Target, list: agent_api_proto::Method, branch: &str) -> Result<
     Ok(Ok(all.iter().find(|p| p["state"] == "open").or_else(|| all.first()).map(|p| json!({"number": p["number"], "url": p["url"]}))))
 }
 
-/// The review of the branch the provider holds (a linked number is read directly, GitHub's fallback only when there is no link and before the
-/// branch), or `Err(())` when the lookup failed, which the host keeps apart from an authoritative absence.
+/// The review of the branch the provider holds (a linked number is read directly; GitHub's fallback number only when the branch names none or its
+/// lookup failed), or `Err(())` when the lookup failed, which the host keeps apart from an authoritative absence.
 fn review_of(t: &Target, params: &Value, branch: &str, provider: &str) -> Result<Result<Option<Value>, ()>, Failure> {
     let (view, list, exact, fallback) = match provider {
         "github" => (pr::VIEW, pr::LIST, linked(params, "linkedGitHubPR"), linked(params, "fallbackGitHubPR").filter(|_| linked(params, "linkedGitHubPR").is_none())),
@@ -155,15 +165,13 @@ fn review_of(t: &Target, params: &Value, branch: &str, provider: &str) -> Result
     if let Some(n) = exact {
         return Ok(by_number(t, view, n)?.map(Some).ok_or(()));
     }
-    if let Some(n) = fallback {
-        if let Some(found) = by_number(t, view, n)? {
+    let of_branch = if branch.is_empty() { Ok(None) } else { by_branch(t, list, branch)? };
+    if !matches!(of_branch, Ok(Some(_))) {
+        if let Some(found) = fallback.map(|n| by_number(t, view, n)).transpose()?.flatten() {
             return Ok(Ok(Some(found)));
         }
     }
-    if branch.is_empty() {
-        return Ok(Ok(None));
-    }
-    by_branch(t, list, branch)
+    Ok(of_branch)
 }
 
 /// Whether the provider's CLI is installed and signed in on the executor's machine for the repository's host; a failed probe is not signed in.
@@ -173,17 +181,11 @@ fn signed_in(t: &Target, provider: &str) -> Result<bool, Failure> {
     Ok(status.is_some_and(|s| s["providers"][0]["installed"] == true && s["providers"][0]["signed_in"] == true))
 }
 
-/// The worktree the request names, which must be a checkout of the repo: an id names its repo before `::`, and a worktree named otherwise is
-/// taken as the repo's unless it resolves to another repo.
+/// The worktree the request names, which must be a checkout of the repo: the repo's own workspace, or a worktree workspace lying where one of the
+/// checkouts git lists for the repo (`worktree.list`) lies.
 fn worktree_of<'a>(repo: &Target<'a>, selector: &str) -> Result<Target<'a>, Failure> {
     let found = orca_map_workspace::resolve(repo.agent, selector)?;
-    let selector = selector.trim();
-    let named = (!selector.starts_with("path:")).then(|| selector.strip_prefix("id:").unwrap_or(selector).split_once("::").map(|(r, _)| r)).flatten();
-    let owned = match named {
-        Some(r) => r == repo.workspace,
-        None => found.workspace == repo.workspace || found.kind == "worktree",
-    };
-    if !owned {
+    if !orca_map_workspace::checkout_of(repo.agent, &repo.workspace, &found)? {
         return Err(Failure::new(RUNTIME_ERROR, "Access denied: worktree does not belong to repository"));
     }
     Ok(repo.with_workspace(found.workspace))
