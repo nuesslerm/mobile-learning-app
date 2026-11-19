@@ -133,6 +133,8 @@ pub fn ensure_ledger(conn: &Connection) -> Result<(), String> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS NX_TASKS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, JOB TEXT NOT NULL, TASK TEXT NOT NULL,
            HASH TEXT NOT NULL, OUTCOME TEXT NOT NULL, MS INTEGER NOT NULL, PASSED INTEGER NOT NULL, PRIMARY KEY (RUN_ID, TASK, HASH));
+         CREATE TABLE IF NOT EXISTS CI_METRICS (RUN_ID TEXT NOT NULL, TS INTEGER NOT NULL, METRIC TEXT NOT NULL, SCOPE TEXT NOT NULL, NAME TEXT NOT NULL, VALUE REAL NOT NULL,
+           PRIMARY KEY (RUN_ID, TS, METRIC, SCOPE, NAME));
          CREATE TABLE IF NOT EXISTS CI_JOBS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, KIND TEXT NOT NULL, JOB TEXT NOT NULL,
            SECS INTEGER NOT NULL, QUEUED INTEGER NOT NULL, PRIMARY KEY (RUN_ID, JOB));",
     )
@@ -212,6 +214,33 @@ pub fn record_tasks_local(tasks: &[LedgerTask]) -> Result<bool, String> {
         tx.execute(
             "INSERT OR IGNORE INTO NX_TASKS (RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             rusqlite::params![t.run, t.sha, t.ts, t.job, t.task, t.hash, t.outcome, t.ms, t.passed as i64],
+        )
+        .map_err(sql)?;
+    }
+    tx.commit().map_err(sql)?;
+    Ok(true)
+}
+
+/// One gauge reading (`CI_METRICS`): the same record the gauges send to Better Stack, two labels (`scope`, `name`), so both transports hold one thing.
+pub struct MetricRow {
+    pub run: String,
+    pub ts: i64,
+    pub metric: String,
+    pub scope: String,
+    pub name: String,
+    pub value: f64,
+}
+
+/// Writes readings to the typed `CI_METRICS` table of the job's local database (the report job merges it); `false`, and nothing written, without one.
+pub fn record_metrics_local(rows: &[MetricRow]) -> Result<bool, String> {
+    let Some(path) = local_path() else { return Ok(false) };
+    let mut conn = open_at(&path)?;
+    ensure_ledger(&conn)?;
+    let tx = conn.transaction().map_err(sql)?;
+    for r in rows {
+        tx.execute(
+            "INSERT OR IGNORE INTO CI_METRICS (RUN_ID, TS, METRIC, SCOPE, NAME, VALUE) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            rusqlite::params![r.run, r.ts, r.metric, r.scope, r.name, r.value],
         )
         .map_err(sql)?;
     }
@@ -377,12 +406,16 @@ pub fn query(conn: &Connection, statement: &str) -> Result<Vec<Value>, String> {
 mod tests {
     use super::*;
 
+    /// `WF_CI_DB` is the process's: the tests that set it run one at a time.
+    static ENV: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     fn task(hash: &str) -> LedgerTask {
         LedgerTask { run: "1".into(), sha: "abc".into(), ts: 10, job: "flow-tests (1/6)".into(), task: "app:test".into(), hash: hash.into(), outcome: "ran".into(), ms: 4200, passed: true }
     }
 
     #[test]
     fn given_a_ci_job_database_when_the_same_task_is_recorded_twice_then_it_is_kept_once() {
+        let _env = ENV.lock().unwrap_or_else(|p| p.into_inner());
         let dir = tempfile::tempdir().unwrap();
         let db = dir.path().join("rows.sqlite");
         std::env::set_var("WF_CI_DB", &db);
@@ -426,6 +459,23 @@ mod tests {
 
         assert_eq!((moved, merged, old_left), (2, 1, 0));
         assert_eq!((verdict.as_str(), secs, extra.as_str()), ("fail", 1.5, "{\"custom\":\"x\"}"));
+    }
+
+    #[test]
+    fn given_gauge_readings_when_they_are_sent_then_the_same_readings_are_rows_of_ci_metrics() {
+        let _env = ENV.lock().unwrap_or_else(|p| p.into_inner());
+        let dir = tempfile::tempdir().unwrap();
+        let db = dir.path().join("rows.sqlite");
+        std::env::set_var("WF_CI_DB", &db);
+        std::env::set_var("WF_CI_METRICS", "off");
+        std::env::set_var("GITHUB_RUN_ID", "4242");
+
+        crate::ci_metrics::Gauges::new().set("ci.job.duration_s", "flow-tests", "1/6", 551.0).set("ci.run.wall_s", "4242", "all", 1900.0).send();
+
+        std::env::remove_var("WF_CI_DB");
+        let conn = Connection::open(&db).unwrap();
+        let (n, run, value): (i64, String, f64) = conn.query_row("SELECT COUNT(*), MAX(RUN_ID), MAX(VALUE) FROM CI_METRICS", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap();
+        assert_eq!((n, run.as_str(), value), (2, "4242", 1900.0));
     }
 
     #[test]

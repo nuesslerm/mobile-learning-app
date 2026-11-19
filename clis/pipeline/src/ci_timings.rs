@@ -302,7 +302,13 @@ fn failed(rest: &[String]) -> Option<i32> {
         return Some(0);
     };
     let steps: Vec<String> = job["steps"].as_array().map(Vec::as_slice).unwrap_or_default().iter().filter(|s| s["conclusion"] == "failure").filter_map(|s| s["name"].as_str().map(str::to_string)).collect();
-    println!("{}", json!({"ok": true, "run": env.run, "job": job["name"], "url": job["html_url"], "failed_steps": steps}));
+    // whether the API shows a running job's error annotations at all: counted here and sent with the report, so the telemetry answers it over time
+    let annotations = send(&env, "GET", &format!("{}/repos/{}/check-runs/{}/annotations", env.api, env.repo, job["id"].as_u64().unwrap_or(0)), None)
+        .ok()
+        .filter(|r| r.ok())
+        .and_then(|r| serde_json::from_str::<Value>(&r.text()).ok())
+        .and_then(|v| v.as_array().map(Vec::len));
+    println!("{}", json!({"ok": true, "run": env.run, "job": job["name"], "url": job["html_url"], "failed_steps": steps, "annotations": annotations}));
     Some(0)
 }
 

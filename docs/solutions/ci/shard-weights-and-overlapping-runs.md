@@ -31,3 +31,23 @@ tags: [ci, shards, concurrency, nx-cache]
 ## Integration shards queue per crate set and inputs
 
 The concurrency group of an integration shard is `hosted-integration-<key>`, the key being `wf ci plan shard-keys` of what that shard runs: the crates it holds and a fingerprint of what they read (the git object ids at the commit of their directories, of the directories of the crates they depend on, and of the lock file). Two commits that plan the same crates with the same inputs share a group: the later one waits for the earlier one and replays its cached result, and a third commit replaces the second's pending job (owner, 19 Nov: desired). A fix to a crate changes its fingerprint, so it is another group and starts at once beside the earlier run; a change to an unrelated crate leaves the key alone. A failed task is not cached, so a queued commit behind a red one runs the task again. The key follows the weighted split of that commit's plan, so a plan that moves a crate to another shard changes the key.
+
+## Checking the queue after some days of use
+
+The sealed CI database answers these, with `wf ci db query` (`CI_JOBS` holds every finished job of a run, cancelled-while-pending ones included; `NX_TASKS` every task; `CI_METRICS` the same gauge readings Better Stack receives):
+
+```sql
+-- work done twice: the same task and input hash that ran in more than one run (should trend to zero)
+SELECT TASK, HASH, COUNT(DISTINCT RUN_ID) AS runs FROM NX_TASKS WHERE OUTCOME = 'ran' GROUP BY TASK, HASH HAVING runs > 1;
+-- an overlap inside a group: two jobs of one group running at the same time (should be none)
+SELECT a.GROUP_KEY, a.RUN_ID, b.RUN_ID FROM CI_JOBS a JOIN CI_JOBS b ON a.GROUP_KEY = b.GROUP_KEY AND a.RUN_ID < b.RUN_ID
+  WHERE a.STARTED > 0 AND b.STARTED > 0 AND a.STARTED < b.STARTED + b.SECS AND b.STARTED < a.STARTED + a.SECS;
+-- a job killed while running (a cancelled job that had started; only pending jobs should be replaced)
+SELECT RUN_ID, JOB FROM CI_JOBS WHERE CONCLUSION = 'cancelled' AND STARTED > 0;
+-- how long a shard waited, by whether it was replaced (a fix push should wait a few seconds)
+SELECT CONCLUSION, COUNT(*), AVG(QUEUED), MAX(QUEUED) FROM CI_JOBS WHERE KIND = 'integration-tests' GROUP BY CONCLUSION;
+-- why jobs failed, as the run saw it
+SELECT RUN_ID, JOB, STEP, EXCERPT FROM CI_JOBS WHERE CONCLUSION IN ('failure', 'timed_out') ORDER BY TS DESC LIMIT 20;
+```
+
+A job that goes red also sends the Better Stack log line `ci.job.failed` (run, job, step, sha, and `annotations`: how many error annotations the API showed for the running job, which tells whether they are readable live) and posts one JSON line to `CI_FAILURE_HOOK_URL` when the vault holds one.

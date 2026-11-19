@@ -30,6 +30,25 @@ pub fn event(level: &str, name: &str, fields: &[(&str, String)]) {
 #[derive(Default)]
 pub struct Gauges(Vec<Reading>);
 
+/// The same readings into the CI database of the job (`CI_METRICS`), so the two transports hold one record; the report job merges it. Best effort.
+fn keep(readings: &[Reading]) {
+    let run = std::env::var("GITHUB_RUN_ID").unwrap_or_default();
+    let rows: Vec<crate::ci_db::MetricRow> = readings
+        .iter()
+        .map(|r| crate::ci_db::MetricRow {
+            run: run.clone(),
+            ts: r.at.duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_millis() as i64),
+            metric: r.metric.clone(),
+            scope: r.scope.clone(),
+            name: r.name.clone(),
+            value: r.value,
+        })
+        .collect();
+    if let Err(why) = crate::ci_db::record_metrics_local(&rows) {
+        event("warn", "ci.metrics.not_kept", &[("reason", why)]);
+    }
+}
+
 impl Gauges {
     pub fn new() -> Gauges {
         Gauges::default()
@@ -63,6 +82,7 @@ impl Gauges {
     /// Sends the batch to the source the environment, then the vault, names; nothing is sent when there is none.
     pub fn send(&mut self) {
         if !self.is_empty() {
+            keep(&self.0);
             send_via(std::mem::take(&mut self.0), resolve, BUDGET);
         }
     }

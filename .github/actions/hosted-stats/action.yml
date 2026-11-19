@@ -37,9 +37,18 @@ runs:
         out=$(timeout 60 wf ci failed 2>/dev/null) || true
         echo "$out"
         step=$(jq -r '.failed_steps[0] // ""' <<<"$out" 2>/dev/null)
-        job=$(jq -r '.job // ""' <<<"$out" 2>/dev/null)
-        timeout 30 wf log emit --service wf-ci --level error --message ci.job.failed --attr "run=$GITHUB_RUN_ID" --attr "job=${job:-${{ inputs.job }}}" --attr "step=$step" --attr "sha=$GITHUB_SHA" > /dev/null 2>&1 || true
+        job=$(jq -r '.job // "${{ inputs.job }}"' <<<"$out" 2>/dev/null)
+        annotations=$(jq -r '.annotations // "unreadable"' <<<"$out" 2>/dev/null)
+        # an error annotation too: whether the API shows it while the job runs is told by the `annotations` count the next red job reports
+        echo "::error title=ci.job.failed::$job: $step"
+        timeout 30 wf log emit --service wf-ci --level error --message ci.job.failed --attr "run=$GITHUB_RUN_ID" --attr "job=$job" --attr "step=$step" --attr "sha=$GITHUB_SHA" --attr "annotations=$annotations" > /dev/null 2>&1 || true
         timeout 60 wf ci live > /dev/null 2>&1 || true
+        # the hook to subscribe to: one JSON post to the URL the vault holds (CI_FAILURE_HOOK_URL), when there is one
+        hook=$(timeout 30 wf secret get CI_FAILURE_HOOK_URL 2>/dev/null || true)
+        if [ -n "$hook" ]; then
+          body=$(jq -cn --arg run "$GITHUB_RUN_ID" --arg job "$job" --arg step "$step" --arg sha "$GITHUB_SHA" --arg url "$(jq -r '.url // ""' <<<"$out")" --arg annotations "$annotations" '{event: "ci.job.failed", run: $run, job: $job, step: $step, sha: $sha, url: $url, annotations: $annotations}')
+          curl -sS --max-time 15 -X POST -H 'Content-Type: application/json' -d "$body" "$hook" > /dev/null 2>&1 || true
+        fi
     - name: Upload the runner samples
       if: ${{ inputs.mode == 'upload' }}
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
