@@ -1813,7 +1813,7 @@ What a workflow decides and tells people about its own run: `wf ci plan` plans t
 failed in a red CI run on the pushed commit, `wf ci live` keeps the run's one pull
 request comment up to date, `wf ci tidy` frees the runner's disk, `wf ci preflight` checks first that
 everything the run needs is live, `wf ci audit` is the nightly audit of CI on dev
-(never a gate), `wf ci cache-health` fails a run whose cache layers broke and `wf ci db`
+(never a gate), `wf ci timings` and `wf ci progress` read what a run's jobs took, `wf ci cache-health` fails a run whose cache layers broke and `wf ci db`
 keeps the sealed CI database (test runs, usage of the commands, health reports, the ledger).
 
 Options:
@@ -1827,6 +1827,8 @@ Commands:
                        runner are live and valid.
   audit [options]      Nightly audit of CI on dev: one JSON verdict with the
                        findings and their next steps; never fails a push.
+  timings [options]    What a run's jobs and steps took; --send makes them gauges.
+  progress [options]   A running run: the jobs not done, their step and time.
   cache-health [options]
                        Fail the run when a cache layer degraded, lost or
                        refused a write.
@@ -2088,6 +2090,69 @@ Options:
   --skip <names>  comma separated checks to leave out (workspace, toolchain,
                   env, secrets, build-cache, ledger, services, runner, github)
   -h, --help      display help for command
+```
+
+</details>
+
+### `wf ci timings`
+
+What a run's jobs and steps took; --send makes them gauges
+
+Usage: `wf ci timings [--run <id>] [--send]`
+
+Examples:
+
+```sh
+wf ci timings --run 44567666031
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci timings [--run <id>] [--send]
+
+What a run's jobs took, from the Actions API: for each finished job its duration, the time it waited for a
+runner and its steps of 5 seconds or more; for each stage with several shards the spread (the slowest shard less
+the fastest) and the slowest shard; the run's wall time. Prints one JSON line {ok, run, sent, timings}. With
+--send the same numbers go as gauges to the Better Stack source of the cache gauges (ci.job.duration_s,
+ci.job.queue_s, ci.step.duration_s, ci.stage.spread_s, ci.run.wall_s), best effort: a refusing or missing source
+costs a log line and never fails the run. In a CI run the run, repository and token are the run's own; elsewhere
+pass --run <id> with GITHUB_TOKEN (or `gh` signed in) and GITHUB_REPOSITORY (or an origin remote on GitHub).
+
+Options:
+  --run <id>  the run to read (default GITHUB_RUN_ID)
+  --send      also send the gauges
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf ci progress`
+
+A running run: the jobs not done, their step and time
+
+Usage: `wf ci progress [--run <id>]`
+
+Examples:
+
+```sh
+wf ci progress --run 44567666031
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci progress [--run <id>]
+
+A run that is going, in one call: how many jobs are done, running and not started, and for each job that is
+not done the step it is in, its elapsed time, the time it has waited for a runner, and what the same job took in
+the last green run of the branch. Prints one JSON line {ok, run, head, status, conclusion, progress}. The
+Actions API shows no log of a running job, so the step is the finest grain; the per-unit rows of the test stages
+(wf ci timings, the CI database) say more once a job ends.
+
+Options:
+  --run <id>  the run to read (default GITHUB_RUN_ID)
+  -h, --help  display help for command
 ```
 
 </details>

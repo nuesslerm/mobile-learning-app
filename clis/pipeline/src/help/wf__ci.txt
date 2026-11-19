@@ -4,7 +4,7 @@ What a workflow decides and tells people about its own run: `wf ci plan` plans t
 failed in a red CI run on the pushed commit, `wf ci live` keeps the run's one pull
 request comment up to date, `wf ci tidy` frees the runner's disk, `wf ci preflight` checks first that
 everything the run needs is live, `wf ci audit` is the nightly audit of CI on dev
-(never a gate), `wf ci cache-health` fails a run whose cache layers broke and `wf ci db`
+(never a gate), `wf ci timings` and `wf ci progress` read what a run's jobs took, `wf ci cache-health` fails a run whose cache layers broke and `wf ci db`
 keeps the sealed CI database (test runs, usage of the commands, health reports, the ledger).
 
 Options:
@@ -18,6 +18,8 @@ Commands:
                        runner are live and valid.
   audit [options]      Nightly audit of CI on dev: one JSON verdict with the
                        findings and their next steps; never fails a push.
+  timings [options]    What a run's jobs and steps took; --send makes them gauges.
+  progress [options]   A running run: the jobs not done, their step and time.
   cache-health [options]
                        Fail the run when a cache layer degraded, lost or
                        refused a write.

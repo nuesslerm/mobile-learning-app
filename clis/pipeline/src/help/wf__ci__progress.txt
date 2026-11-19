@@ -1,0 +1,11 @@
+Usage: wf ci progress [--run <id>]
+
+A run that is going, in one call: how many jobs are done, running and not started, and for each job that is
+not done the step it is in, its elapsed time, the time it has waited for a runner, and what the same job took in
+the last green run of the branch. Prints one JSON line {ok, run, head, status, conclusion, progress}. The
+Actions API shows no log of a running job, so the step is the finest grain; the per-unit rows of the test stages
+(wf ci timings, the CI database) say more once a job ends.
+
+Options:
+  --run <id>  the run to read (default GITHUB_RUN_ID)
+  -h, --help  display help for command

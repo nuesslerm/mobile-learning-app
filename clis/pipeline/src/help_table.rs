@@ -8,6 +8,8 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("ci preflight", false, include_str!("help/wf__ci__preflight.txt")),
     ("ci audit", false, include_str!("help/wf__ci__audit.txt")),
     ("ci comment", false, include_str!("help/wf__ci__comment.txt")),
+    ("ci timings", false, include_str!("help/wf__ci__timings.txt")),
+    ("ci progress", false, include_str!("help/wf__ci__progress.txt")),
     ("ci cache-health", false, include_str!("help/wf__ci__cache-health.txt")),
     ("ci db", false, include_str!("help/wf__ci__db.txt")),
 ];
