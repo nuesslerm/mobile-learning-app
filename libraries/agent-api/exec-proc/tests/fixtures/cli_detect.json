@@ -29,13 +29,15 @@
               "program": "claude",
               "installed": true,
               "path": "/executor/bin/claude",
-              "version": "2.1.7 (Claude Code)"
+              "version": "2.1.7 (Claude Code)",
+              "signed_in": false
             },
             {
               "program": "codex",
               "installed": true,
               "path": "/executor/bin/codex",
-              "version": "codex-cli 0.9.1"
+              "version": "codex-cli 0.9.1",
+              "signed_in": false
             },
             {
               "program": "opencode",
@@ -75,7 +77,8 @@
               "program": "codex",
               "installed": true,
               "path": "/executor/bin/codex",
-              "version": "codex-cli 0.9.1"
+              "version": "codex-cli 0.9.1",
+              "signed_in": false
             }
           ]
         }
@@ -108,7 +111,8 @@
             {
               "program": "opencode",
               "installed": true,
-              "path": "/executor/bin/opencode"
+              "path": "/executor/bin/opencode",
+              "signed_in": false
             }
           ]
         }

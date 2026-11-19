@@ -74,7 +74,7 @@ impl Catalog {
             .map(|driver| {
                 let program = table::program(driver);
                 let cli = found.clis.iter().find(|c| c.program == program);
-                DetectedAgent { driver: driver.to_string(), program: program.into(), installed: cli.is_some_and(|c| c.installed), path: cli.and_then(|c| c.path.clone()), version: cli.and_then(|c| c.version.clone()), error: cli.and_then(|c| c.error.clone()) }
+                DetectedAgent { driver: driver.to_string(), program: program.into(), installed: cli.is_some_and(|c| c.installed), path: cli.and_then(|c| c.path.clone()), version: cli.and_then(|c| c.version.clone()), error: cli.and_then(|c| c.error.clone()), signed_in: cli.and_then(|c| c.signed_in) }
             })
             .collect();
         let tools = TOOLS.iter().map(|p| found.clis.iter().find(|c| c.program == *p).map_or_else(|| DetectedTool { program: p.to_string(), installed: false, path: None, version: None, error: None }, |c| DetectedTool { program: c.program.clone(), installed: c.installed, path: c.path.clone(), version: c.version.clone(), error: c.error.clone() })).collect();

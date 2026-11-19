@@ -166,6 +166,9 @@ pub struct DetectedAgent {
     pub version: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// Whether the CLI holds a login at the executor (its credential file is in the executor's home); none for a CLI that is not installed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signed_in: Option<bool>,
 }
 
 /// What the executor found for one of `TOOLS`, read as a driver's CLI is.

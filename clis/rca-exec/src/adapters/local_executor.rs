@@ -561,14 +561,15 @@ impl ToolExecutor for LocalExecutor {
             .programs
             .iter()
             .map(|program| match find_program(program, &search) {
-                None => CliFound { program: program.clone(), installed: false, path: None, version: None, error: None },
+                None => CliFound { program: program.clone(), installed: false, path: None, version: None, error: None, signed_in: None },
                 Some(path) => {
                     let found = probe_version(&path, &search, self.version_timeout);
                     let (version, error) = match found {
                         Ok(version) => (version, None),
                         Err(error) => (None, Some(error)),
                     };
-                    CliFound { program: program.clone(), installed: true, path: Some(path.to_string_lossy().into_owned()), version, error }
+                    let signed_in = exec_proc::AGENT_CLIS.contains(&program.as_str()).then(|| crate::adapters::logins::home_of(self.skill_home.as_ref()).is_some_and(|home| crate::adapters::logins::signed_in(&home, program)));
+                    CliFound { program: program.clone(), installed: true, path: Some(path.to_string_lossy().into_owned()), version, error, signed_in }
                 }
             })
             .collect())

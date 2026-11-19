@@ -176,6 +176,9 @@ pub struct CliFound {
     pub version: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    /// For an agent CLI that is installed: whether its credential file is in the executor's home (`CREDENTIAL_FILES`); none for the tools.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub signed_in: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -368,9 +371,9 @@ mod tests {
     #[test]
     fn given_a_found_and_a_missing_cli_when_encoded_then_a_missing_one_carries_only_its_name_and_installed_false() {
         // Given a program that answered, one that did not, and one that is not there
-        let found = to_value(&CliFound { program: "claude".into(), installed: true, path: Some("/bin/claude".into()), version: Some("2.1.7".into()), error: None }).to_string();
-        let silent = to_value(&CliFound { program: "codex".into(), installed: true, path: Some("/bin/codex".into()), version: None, error: Some("timed out".into()) }).to_string();
-        let missing = to_value(&CliFound { program: "opencode".into(), installed: false, path: None, version: None, error: None }).to_string();
+        let found = to_value(&CliFound { program: "claude".into(), installed: true, path: Some("/bin/claude".into()), version: Some("2.1.7".into()), error: None, signed_in: None }).to_string();
+        let silent = to_value(&CliFound { program: "codex".into(), installed: true, path: Some("/bin/codex".into()), version: None, error: Some("timed out".into()), signed_in: None }).to_string();
+        let missing = to_value(&CliFound { program: "opencode".into(), installed: false, path: None, version: None, error: None, signed_in: None }).to_string();
         // Then the keys are the contract's, in order
         assert_eq!(found, r#"{"program":"claude","installed":true,"path":"/bin/claude","version":"2.1.7"}"#);
         assert_eq!(silent, r#"{"program":"codex","installed":true,"path":"/bin/codex","error":"timed out"}"#);

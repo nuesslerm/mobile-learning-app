@@ -301,3 +301,25 @@ fn given_logins_the_caller_gets_wrong_when_asked_then_each_is_refused_and_a_runn
     assert_eq!(call(&ex, "login_status", json!({"flow": flow})).unwrap_err().code, Code::NotFound);
     assert_eq!(call(&ex, "login_cancel", json!({"flow": flow})).unwrap()["cancelled"], false);
 }
+
+#[test]
+fn given_an_agent_cli_when_the_executors_home_holds_its_credential_file_then_the_detection_says_it_is_signed_in_and_a_tool_or_a_missing_cli_says_nothing() {
+    // Given an executor with a claude and a git, and a home with no login
+    let ((_r, root), (_h, home), (_b, bin)) = (dir(), dir(), dir());
+    login_cli(&bin);
+    for tool in ["git"] {
+        let path = bin.join(tool);
+        std::fs::write(&path, "#!/bin/sh\necho git 2.43\n").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+    }
+    let ex = LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home)).with_cli_path(bin.to_str().unwrap());
+    let detect = || call(&ex, "cli_detect", json!({"programs": ["claude", "codex", "git"]})).unwrap()["clis"].clone();
+    // When it is detected before and after the credential file is written
+    let before = detect();
+    std::fs::create_dir_all(home.join(".claude")).unwrap();
+    std::fs::write(home.join(".claude/.credentials.json"), "{}").unwrap();
+    let after = detect();
+    // Then claude is signed out and then signed in, and codex (missing) and git (a tool) carry no such field
+    assert_eq!((before[0]["signed_in"].clone(), after[0]["signed_in"].clone()), (json!(false), json!(true)), "{before} {after}");
+    assert!(after[1].get("signed_in").is_none() && after[2].get("signed_in").is_none(), "{after}");
+}
