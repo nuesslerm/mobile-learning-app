@@ -88,7 +88,7 @@ impl Threads {
 
     /// Makes `agent` answer the methods of `USES` from this thread set (`repo.list` comes from the workspace double).
     pub fn install(&self, agent: &ScriptedAgent) {
-        for method in ["thread.create", "thread.list", "thread.rollback", "thread.get", "thread.history", "turn.start", "thread.forceStop", "queue.add", "queue.list", "queue.edit", "queue.move", "queue.delete", "queue.resume", "turn.steer", "approval.answer", "input.answer", "input.dismiss", "upload.put", "attachment.get"] {
+        for method in ["thread.create", "thread.list", "thread.rollback", "thread.get", "thread.history", "turn.start", "thread.forceStop", "queue.add", "queue.list", "queue.edit", "queue.move", "queue.delete", "queue.resume", "turn.steer", "approval.answer", "input.answer", "input.dismiss", "upload.put", "attachment.get", "attachment.stage"] {
             let me = self.clone();
             agent.reply(method, move |p| me.answer(method, p));
         }
@@ -100,6 +100,14 @@ impl Threads {
             json!({"id": id, "name": meta["name"], "mime_type": meta["mime_type"], "kind": meta["kind"], "size_bytes": bytes.len(), "sha256": digest, "created_at_ms": 0})
         };
         let mut kept = self.1.lock().unwrap();
+        if method == "attachment.stage" {
+            let files = p["ids"].as_array().into_iter().flatten().filter_map(Value::as_str).map(|id| {
+                let (meta, bytes) = kept.get(id).ok_or_else(|| refused("ATTACHMENT_NOT_FOUND", format!("no attachment has the id {id}")))?;
+                let name = meta["name"].as_str().unwrap_or_default();
+                Ok(json!({"id": id, "name": name, "path": if p["temp"] == true { format!("/tmp/rca-paste-{id}/{}", agent_api_attachments::safe_file_name(name)) } else { agent_api_attachments::staged_path(id, name) }, "size_bytes": bytes.len()}))
+            });
+            return Ok(json!({"files": files.collect::<Result<Vec<_>, AgentError>>()?}));
+        }
         if method == "upload.put" {
             let id = p["id"].as_str().unwrap_or_default().to_string();
             let bytes = STANDARD.decode(p["data"].as_str().unwrap_or_default()).map_err(|_| refused("INVALID_PARAMS", "data is not base64".into()))?;
@@ -132,7 +140,7 @@ impl Threads {
     }
 
     fn answer(&self, method: &str, p: &Value) -> Result<Value, AgentError> {
-        if matches!(method, "upload.put" | "attachment.get") {
+        if matches!(method, "upload.put" | "attachment.get" | "attachment.stage") {
             return self.attachment(method, p);
         }
         if method == "thread.list" {

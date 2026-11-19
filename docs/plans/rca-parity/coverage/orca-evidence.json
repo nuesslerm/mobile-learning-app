@@ -388,6 +388,20 @@
         "complete": true,
         "tests": 56,
         "passed": 35
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "80d4df5caefc219d989b0e2e37509d47ff6333f3",
+        "complete": true,
+        "tests": 691,
+        "passed": 179
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 61,
+        "passed": 40
       }
     ]
   },
@@ -767,6 +781,51 @@
     "rpc:automation.update": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-automation.update-invalid-drop-id",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:clipboard.abortImageUpload": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-clipboard.abortImageUpload-invalid-drop-uploadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:clipboard.appendImageUploadChunk": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-clipboard.appendImageUploadChunk-boundary-limit-offset",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:clipboard.commitImageUpload": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-clipboard.commitImageUpload-invalid-drop-uploadId",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:clipboard.saveImageAsTempFile": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-clipboard.saveImageAsTempFile-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:clipboard.startImageUpload": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-clipboard.startImageUpload-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

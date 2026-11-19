@@ -1,7 +1,7 @@
 //! The pure core of `rca-exec`: the executor port with the actions every model uses (`docs/plans/rca-client/protocol.md`), and the one function
 //! that maps a wire request `{tool, args}` onto it. The arguments and results are the contract crates' (`libraries/agent-api`). No I/O;
 //! paths are relative to the executor's root.
-use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, ReadChunk, ReadFile, ReadResult, SearchEntries, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
+use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, ListDir, ListResult, MakeDir, MakeDirResult, PutBlob, PutBlobResult, PutTemp, PutTempResult, ReadChunk, ReadFile, ReadResult, SearchEntries, SkillScan, SkillsFound, Stat, StatResult, WriteFile, WriteResult};
 use exec_hosted::HostedOp;
 use exec_preview::PreviewOp;
 use exec_git::{DiffResult, GitDiff, GitOp, SetupEvent, SetupResult, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeListed, WorktreeRemove, WorktreeRemoved, WorktreeSetup};
@@ -29,6 +29,8 @@ pub trait ToolExecutor: Send + Sync {
     fn create_file(&self, args: &CreateFile) -> ExecResult<usize>;
     /// Writes the decoded bytes to a path that does not exist yet; returns the bytes written.
     fn put_blob(&self, args: &PutBlob) -> ExecResult<u64>;
+    /// Writes the decoded bytes to a new folder of the executor's temporary directory; returns the file's absolute path and the bytes written.
+    fn put_temp(&self, args: &PutTemp) -> ExecResult<(String, u64)>;
     /// Makes the directory, and its parents when asked; false when it was there already (only `parents` accepts that).
     fn make_dir(&self, args: &MakeDir) -> ExecResult<bool>;
     fn browse(&self, args: &Browse) -> ExecResult<BrowseResult>;
@@ -83,6 +85,10 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
         exec_fs::PUT_BLOB => {
             let blob = PutBlob::parse(args)?;
             Ok(to_value(&PutBlobResult { bytes: ex.put_blob(&blob)?, path: blob.path }))
+        }
+        exec_fs::PUT_TEMP => {
+            let (path, bytes) = ex.put_temp(&PutTemp::parse(args)?)?;
+            Ok(to_value(&PutTempResult { path, bytes }))
         }
         exec_fs::MAKE_DIR => {
             let dir = MakeDir::parse(args)?;
@@ -172,6 +178,10 @@ mod tests {
         fn put_blob(&self, _: &PutBlob) -> ExecResult<u64> {
             self.note(exec_fs::PUT_BLOB);
             Ok(0)
+        }
+        fn put_temp(&self, _: &PutTemp) -> ExecResult<(String, u64)> {
+            self.note(exec_fs::PUT_TEMP);
+            Ok((String::new(), 0))
         }
         fn create_file(&self, _: &CreateFile) -> ExecResult<usize> {
             self.note(exec_fs::CREATE_FILE);

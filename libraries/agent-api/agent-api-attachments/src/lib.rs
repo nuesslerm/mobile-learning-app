@@ -234,6 +234,10 @@ pub struct DeleteResult {
 pub struct StageParams {
     pub workspace: String,
     pub ids: Vec<String>,
+    /// Write each into a new folder of the workspace executor's temporary directory instead (`put_temp`), answered with its absolute path:
+    /// a pasted file a person names to an agent or a terminal of that executor, never part of the workspace.
+    #[serde(default)]
+    pub temp: bool,
 }
 
 impl StageParams {
@@ -250,7 +254,7 @@ impl StageParams {
     }
 }
 
-/// An attachment placed in a workspace: `path` is relative to the workspace root.
+/// An attachment placed in a workspace: `path` is relative to the workspace root (absolute, at the executor, for a `temp` stage).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct StagedFile {
     pub id: String,
@@ -317,9 +321,10 @@ mod tests {
                     // A volatile time is read as a number: its recorded stand-in is text
                     let result = exchange.filled(|pointer| (pointer == "/result/attachment/created_at_ms").then(|| json!(0)))["result"].clone();
                     assert_eq!(parse_result(method, &result), Ok(()), "{what}");
-                    // And only `attachment.stage` asks an executor, for `put_blob` once per file
+                    // And only `attachment.stage` asks an executor: `put_blob` once per file, or `put_temp` per file of a temp stage
                     let wants_actions = method == "attachment.stage";
-                    assert_eq!(exchange.actions.iter().all(|a| a == "put_blob") && !exchange.actions.is_empty(), wants_actions, "{what}: {:?}", exchange.actions);
+                    let action = if exchange.request["params"]["temp"] == true { "put_temp" } else { "put_blob" };
+                    assert_eq!(exchange.actions.iter().all(|a| a == action) && !exchange.actions.is_empty(), wants_actions, "{what}: {:?}", exchange.actions);
                 } else {
                     let code = exchange.response["error"]["code"].as_str().unwrap();
                     assert!(code::ALL.contains(&code) || ["INVALID_PARAMS", "NO_EXECUTOR"].contains(&code), "{what}: {code}");

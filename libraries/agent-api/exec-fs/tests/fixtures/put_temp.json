@@ -1,0 +1,87 @@
+{
+  "action": "put_temp",
+  "exchanges": [
+    {
+      "name": "writes the decoded bytes to a new folder of the executor's temporary directory and answers the absolute path",
+      "request": {
+        "id": "t96",
+        "tool": "put_temp",
+        "args": {
+          "name": "shot.png",
+          "data": "aGVsbG8="
+        }
+      },
+      "response": {
+        "id": "t96",
+        "ok": true,
+        "result": {
+          "path": "/tmp/rca-paste-1/shot.png",
+          "bytes": 5
+        }
+      },
+      "volatile": [
+        "/result/path"
+      ]
+    },
+    {
+      "name": "keeps only the last path segment of a name that would leave the folder",
+      "request": {
+        "id": "t97",
+        "tool": "put_temp",
+        "args": {
+          "name": "../../.ssh/authorized_keys",
+          "data": "aGk="
+        }
+      },
+      "response": {
+        "id": "t97",
+        "ok": true,
+        "result": {
+          "path": "/tmp/rca-paste-2/authorized_keys",
+          "bytes": 2
+        }
+      },
+      "volatile": [
+        "/result/path"
+      ]
+    },
+    {
+      "name": "refuses a name that names no file",
+      "request": {
+        "id": "t98",
+        "tool": "put_temp",
+        "args": {
+          "name": "..",
+          "data": "aGk="
+        }
+      },
+      "response": {
+        "id": "t98",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`name` must name a file"
+        }
+      }
+    },
+    {
+      "name": "refuses data that is not base64",
+      "request": {
+        "id": "t99",
+        "tool": "put_temp",
+        "args": {
+          "name": "a.png",
+          "data": "!!"
+        }
+      },
+      "response": {
+        "id": "t99",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`data` must be base64"
+        }
+      }
+    }
+  ]
+}

@@ -117,6 +117,52 @@
       ]
     },
     {
+      "name": "writes an attachment into a new folder of the executor's temporary directory when asked, and names its absolute path",
+      "before": [
+        {
+          "id": "setup-t",
+          "method": "upload.put",
+          "params": {
+            "id": "att-t",
+            "name": "paste.png",
+            "mime_type": "image/png",
+            "kind": "image",
+            "data": "aGk="
+          }
+        }
+      ],
+      "request": {
+        "id": 5,
+        "method": "attachment.stage",
+        "params": {
+          "workspace": "w1",
+          "ids": [
+            "att-t"
+          ],
+          "temp": true
+        }
+      },
+      "response": {
+        "id": 5,
+        "result": {
+          "files": [
+            {
+              "id": "att-t",
+              "name": "paste.png",
+              "path": "/tmp/rca-paste-1/paste.png",
+              "size_bytes": 2
+            }
+          ]
+        }
+      },
+      "actions": [
+        "put_temp"
+      ],
+      "volatile": [
+        "/result/files/0/path"
+      ]
+    },
+    {
       "name": "answers ATTACHMENT_NOT_FOUND and writes nothing when one id is unknown",
       "before": [
         {

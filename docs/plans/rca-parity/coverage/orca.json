@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 174,
+    "served": 179,
     "pending": 4,
-    "notOffered": 129,
+    "notOffered": 124,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -1128,50 +1128,85 @@
       "kind": "rpc",
       "name": "clipboard.abortImageUpload",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host has no system clipboard either, it writes the image to a temporary file; served in phase 1 over exec-fs put_temp. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host has no system clipboard either, it writes the image to a temporary file; served in phase 1 over exec-fs put_temp. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host has no system clipboard either, it writes the image to a temporary file; served in phase 1 over exec-fs put_temp. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host has no system clipboard either, it writes the image to a temporary file; served in phase 1 over exec-fs put_temp. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host has no system clipboard either, it writes the image to a temporary file; served in phase 1 over exec-fs put_temp.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-clipboard.abortImageUpload-invalid-drop-uploadId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:clipboard.appendImageUploadChunk",
       "kind": "rpc",
       "name": "clipboard.appendImageUploadChunk",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-clipboard.appendImageUploadChunk-boundary-limit-offset",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:clipboard.commitImageUpload",
       "kind": "rpc",
       "name": "clipboard.commitImageUpload",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-clipboard.commitImageUpload-invalid-drop-uploadId",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:clipboard.saveImageAsTempFile",
       "kind": "rpc",
       "name": "clipboard.saveImageAsTempFile",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-clipboard.saveImageAsTempFile-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:clipboard.startImageUpload",
       "kind": "rpc",
       "name": "clipboard.startImageUpload",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-clipboard.startImageUpload-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:files.createFile",

@@ -16,7 +16,7 @@ impl StagesAttachments {
 #[async_trait]
 impl AttachmentStaging for StagesAttachments {
     async fn stage(&self, workspace: &str, ids: &[String]) -> Result<Vec<String>, Refusal> {
-        let staged = self.0.stage(StageParams { workspace: workspace.to_string(), ids: ids.to_vec() }).await.map_err(|r| Refusal::new(r.code, r.message))?;
+        let staged = self.0.stage(StageParams { workspace: workspace.to_string(), ids: ids.to_vec(), temp: false }).await.map_err(|r| Refusal::new(r.code, r.message))?;
         Ok(staged.files.into_iter().map(|f| f.path).collect())
     }
 }

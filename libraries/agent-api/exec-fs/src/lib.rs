@@ -17,6 +17,7 @@ pub const CREATE_FILE: &str = "create_file";
 pub const BROWSE: &str = "browse";
 pub const SEARCH_ENTRIES: &str = "search_entries";
 pub const PUT_BLOB: &str = "put_blob";
+pub const PUT_TEMP: &str = "put_temp";
 pub const MAKE_DIR: &str = "make_dir";
 pub const SKILL_SCAN: &str = "skill_scan";
 
@@ -91,6 +92,12 @@ pub const ACTIONS: &[Action] = &[
         about: "Write an attachment into the workspace: new file only (never replaces or follows a link), parent directories made, at most 10 MiB.",
         properties: &[PATH, Property { name: "data", kind: "string", about: "The bytes, base64 (standard alphabet, padded)" }],
         required: &["path", "data"],
+    },
+    Action {
+        name: PUT_TEMP,
+        about: "Write a pasted file into a new folder of the executor's temporary directory (never the workspace) and answer its absolute path: the name is one path segment (a separator, a control character or a leading dot is replaced), at most 10 MiB.",
+        properties: &[Property { name: "name", kind: "string", about: "The file's name" }, Property { name: "data", kind: "string", about: "The bytes, base64 (standard alphabet, padded)" }],
+        required: &["name", "data"],
     },
     Action {
         name: MAKE_DIR,
@@ -254,6 +261,38 @@ impl PutBlob {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PutBlobResult {
+    pub path: String,
+    pub bytes: u64,
+}
+
+/// `put_temp`: a file of its own in the executor's temporary directory.
+#[derive(Debug, Clone, PartialEq)]
+pub struct PutTemp {
+    /// One path segment, made safe.
+    pub name: String,
+    /// Base64 of the bytes; the executor decodes it.
+    pub data: String,
+}
+
+impl PutTemp {
+    pub fn parse(args: &Value) -> ExecResult<PutTemp> {
+        let data = string(args, "data")?;
+        if data.len() as u64 > BLOB_MAX.div_ceil(3) * 4 {
+            return Err(ExecError::invalid_args(format!("`data` is longer than {BLOB_MAX} bytes")));
+        }
+        let given = string(args, "name")?;
+        let last = given.rsplit(['/', '\\']).next().unwrap_or("");
+        let name: String = last.chars().map(|c| if c.is_control() || c == ':' { '_' } else { c }).collect::<String>().trim_start_matches('.').trim().chars().take(255).collect();
+        if name.is_empty() {
+            return Err(ExecError::invalid_args("`name` must name a file"));
+        }
+        Ok(PutTemp { name, data })
+    }
+}
+
+/// Where `put_temp` wrote the file: an absolute path at the executor.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct PutTempResult {
     pub path: String,
     pub bytes: u64,
 }
@@ -496,6 +535,7 @@ mod tests {
                 BROWSE => Browse::parse(args).map(drop),
                 SEARCH_ENTRIES => SearchEntries::parse(args).map(drop),
                 PUT_BLOB => PutBlob::parse(args).map(drop),
+                PUT_TEMP => PutTemp::parse(args).map(drop),
                 MAKE_DIR => MakeDir::parse(args).map(drop),
                 SKILL_SCAN => SkillScan::parse(args).map(drop),
                 other => panic!("{other} is not parsed here"),

@@ -18,6 +18,7 @@ mod rewind;
 mod session;
 mod status_stream;
 mod stream;
+mod clipboard;
 
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
@@ -69,6 +70,11 @@ pub const AGENT_SESSION_OPTIONS: &str = "agentSession.options";
 pub const AGENT_SESSION_AGENTS: &str = "agentSession.agents";
 pub const AGENT_SESSION_SET_OPTION: &str = "agentSession.setOption";
 pub const PREFLIGHT_CHECK: &str = "preflight.check";
+pub const CLIPBOARD_SAVE_IMAGE: &str = "clipboard.saveImageAsTempFile";
+pub const CLIPBOARD_START_UPLOAD: &str = "clipboard.startImageUpload";
+pub const CLIPBOARD_APPEND_CHUNK: &str = "clipboard.appendImageUploadChunk";
+pub const CLIPBOARD_COMMIT_UPLOAD: &str = "clipboard.commitImageUpload";
+pub const CLIPBOARD_ABORT_UPLOAD: &str = "clipboard.abortImageUpload";
 pub const PREFLIGHT_DETECT_AGENTS: &str = "preflight.detectAgents";
 pub const PREFLIGHT_DETECT_REMOTE_AGENTS: &str = "preflight.detectRemoteAgents";
 pub const PREFLIGHT_REFRESH_AGENTS: &str = "preflight.refreshAgents";
@@ -80,7 +86,7 @@ pub const NATIVE_CHAT_UNSUBSCRIBE: &str = "nativeChat.unsubscribe";
 pub const NATIVE_CHAT_SUBSCRIBE: &str = "nativeChat.subscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, THREAD_ROLLBACK, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST, orca_map_hosted::AUTH_DISCOVER];
+pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, THREAD_ROLLBACK, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, agent_api_attachments::STAGE, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST, orca_map_hosted::AUTH_DISCOVER];
 
 const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_CREATE, kind: Kind::Unary },
@@ -120,6 +126,11 @@ const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_AGENTS, kind: Kind::Unary },
     Method { name: AGENT_SESSION_SET_OPTION, kind: Kind::Unary },
     Method { name: PREFLIGHT_CHECK, kind: Kind::Unary },
+    Method { name: CLIPBOARD_SAVE_IMAGE, kind: Kind::Unary },
+    Method { name: CLIPBOARD_START_UPLOAD, kind: Kind::Unary },
+    Method { name: CLIPBOARD_APPEND_CHUNK, kind: Kind::Unary },
+    Method { name: CLIPBOARD_COMMIT_UPLOAD, kind: Kind::Unary },
+    Method { name: CLIPBOARD_ABORT_UPLOAD, kind: Kind::Unary },
     Method { name: PREFLIGHT_DETECT_AGENTS, kind: Kind::Unary },
     Method { name: PREFLIGHT_DETECT_REMOTE_AGENTS, kind: Kind::Unary },
     Method { name: PREFLIGHT_REFRESH_AGENTS, kind: Kind::Unary },
@@ -151,6 +162,7 @@ pub fn body_fingerprint(session: &str, text: &str) -> String {
 #[derive(Default)]
 pub struct AgentArea {
     uploads: attach::Uploads,
+    clips: clipboard::Clips,
 }
 
 impl Area for AgentArea {
@@ -207,6 +219,11 @@ impl Area for AgentArea {
             AGENT_SESSION_AGENTS => catalog::agents(params),
             AGENT_SESSION_SET_OPTION => catalog::set_option(agent, params),
             PREFLIGHT_CHECK => catalog::preflight_check(agent, params),
+            CLIPBOARD_SAVE_IMAGE => clipboard::save(agent, params),
+            CLIPBOARD_START_UPLOAD => clipboard::start(&self.clips, ctx.device_id, params),
+            CLIPBOARD_APPEND_CHUNK => clipboard::append(&self.clips, ctx.device_id, params),
+            CLIPBOARD_COMMIT_UPLOAD => clipboard::commit(&self.clips, ctx.device_id, agent, params),
+            CLIPBOARD_ABORT_UPLOAD => clipboard::abort(&self.clips, ctx.device_id, params),
             PREFLIGHT_DETECT_AGENTS => catalog::detect_agents(agent, params),
             PREFLIGHT_DETECT_REMOTE_AGENTS => catalog::detect_remote_agents(agent, params),
             PREFLIGHT_REFRESH_AGENTS => catalog::refresh_agents(agent, params),

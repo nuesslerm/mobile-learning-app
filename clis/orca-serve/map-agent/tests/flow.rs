@@ -845,6 +845,7 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.ok("preflight.detectRemoteAgents", json!({"connectionId": rig.catalog.executor()}));
     rig.catalog.has_tools(&["git", "gh"]);
     rig.ok("preflight.check", json!({}));
+    rig.ok("clipboard.saveImageAsTempFile", json!({"contentBase64": "AAAA"}));
     rig.ok("skills.discover", json!({"worktreeId": "feat"}));
     let (mut q, ids) = queued_rig();
     let fp = body_fingerprint("claude_q", "one");
@@ -1457,4 +1458,95 @@ fn given_a_force_of_the_wrong_type_or_a_payload_that_is_no_object_when_preflight
         assert_eq!(rig.err("preflight.check", params.clone()), ("invalid_argument".to_string(), message.to_string()), "{params}");
     }
     assert_eq!(rig.catalog.detections(), Vec::<Value>::new());
+}
+
+/// The bytes the root workspace's staged file holds, read back from the attachment rca kept under the id in its path.
+fn staged_bytes(rig: &Rig, path: &str) -> (Value, Vec<u8>) {
+    let id = path.split('/').nth(2).unwrap().trim_start_matches("rca-paste-");
+    let got = rig.agent.request("attachment.get", json!({"id": id})).unwrap();
+    (got["attachment"]["mime_type"].clone(), STANDARD.decode(got["data"].as_str().unwrap()).unwrap())
+}
+
+const PNG: &[u8] = &[0x89, b'P', b'N', b'G', 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 13];
+
+#[test]
+fn given_a_pasted_image_when_saved_as_a_temp_file_then_it_is_kept_and_staged_in_the_root_workspace_named_by_its_time_and_kind() {
+    // Given a PNG the phone pasted
+    let mut rig = Rig::new();
+    // When it is saved as a temp file
+    let path = rig.ok("clipboard.saveImageAsTempFile", json!({"contentBase64": STANDARD.encode(PNG)}));
+    // Then the answer is its file below the root workspace's staging folder, named as the host names a paste, holding the bytes as a PNG
+    let path = path.as_str().unwrap().to_string();
+    let parts: Vec<&str> = path.split('/').collect();
+    assert_eq!((parts.len(), parts[1], parts[2].starts_with("rca-paste-")), (4, "tmp", true), "{path}");
+    assert!(parts[3].starts_with("orca-paste-") && parts[3].ends_with(".png"), "{path}");
+    assert_eq!(staged_bytes(&rig, &path), (json!("image/png"), PNG.to_vec()));
+    // And rca was asked to keep it, then to stage it in the root workspace
+    let asked: Vec<(String, Value)> = rig.agent.requests().into_iter().filter(|(m, _)| m == "attachment.stage").collect();
+    assert_eq!(asked, [("attachment.stage".to_string(), json!({"workspace": "main", "ids": [parts[2].trim_start_matches("rca-paste-")], "temp": true}))]);
+}
+
+#[test]
+fn given_an_image_uploaded_in_chunks_when_committed_then_it_keeps_the_picked_name_and_each_wrong_step_is_the_hosts_refusal() {
+    // Given an upload of a picked photo started and sent in two chunks of base64
+    let mut rig = Rig::new();
+    let data = STANDARD.encode(PNG);
+    let (first, second) = data.split_at(8);
+    let id = rig.ok("clipboard.startImageUpload", json!({"expectedBase64Length": data.len(), "fileName": "my shot$(x).png"}))["uploadId"].clone();
+    let runtime = |m: &str| ("runtime_error".to_string(), m.to_string());
+    // When a chunk comes out of order, Then it is refused and nothing is taken
+    assert_eq!(rig.err("clipboard.appendImageUploadChunk", json!({"uploadId": id, "offset": 4, "contentBase64": first})), runtime("Clipboard image chunk offset is out of order"));
+    assert_eq!(rig.ok("clipboard.appendImageUploadChunk", json!({"uploadId": id, "offset": 0, "contentBase64": first})), json!({"receivedBase64Length": 8}));
+    // And another device cannot add to it, and a commit before the last chunk is incomplete and ends the upload
+    assert_eq!(rig.other_err("clipboard.appendImageUploadChunk", json!({"uploadId": id, "offset": 8, "contentBase64": second})), runtime("Clipboard image upload was not found"));
+    assert_eq!(rig.ok("clipboard.appendImageUploadChunk", json!({"uploadId": id, "offset": 8, "contentBase64": second})), json!({"receivedBase64Length": data.len()}));
+    assert_eq!(rig.err("clipboard.appendImageUploadChunk", json!({"uploadId": id, "offset": data.len(), "contentBase64": "AAAA"})), runtime("Clipboard image upload exceeded expected size"));
+    // When it is committed
+    let path = rig.ok("clipboard.commitImageUpload", json!({"uploadId": id}));
+    // Then the file keeps the picked name with what a shell would expand made inert, and holds the bytes
+    let path = path.as_str().unwrap().to_string();
+    assert!(path.ends_with("/my shot__x_.png"), "{path}");
+    assert_eq!(staged_bytes(&rig, &path).1, PNG.to_vec());
+    // And the upload is gone once committed, an incomplete one is refused and gone, and an abort of an unknown upload says aborted
+    assert_eq!(rig.err("clipboard.commitImageUpload", json!({"uploadId": id})), runtime("Clipboard image upload was not found"));
+    let short = rig.ok("clipboard.startImageUpload", json!({"expectedBase64Length": 8}))["uploadId"].clone();
+    assert_eq!(rig.err("clipboard.commitImageUpload", json!({"uploadId": short})), runtime("Clipboard image upload is incomplete"));
+    assert_eq!(rig.err("clipboard.commitImageUpload", json!({"uploadId": short})), runtime("Clipboard image upload was not found"));
+    assert_eq!(rig.ok("clipboard.abortImageUpload", json!({"uploadId": "a"})), json!({"aborted": true}));
+    // And an upload for an SSH target is the host's refusal at commit, and a ninth upload in flight is refused
+    let remote = rig.ok("clipboard.startImageUpload", json!({"expectedBase64Length": 0, "connectionId": "ssh-1"}))["uploadId"].clone();
+    assert_eq!(rig.err("clipboard.commitImageUpload", json!({"uploadId": remote})), runtime("Remote connection dropped. Click Reconnect on the SSH target before retrying."));
+    for _ in 0..8 {
+        rig.ok("clipboard.startImageUpload", json!({"expectedBase64Length": 4}));
+    }
+    assert_eq!(rig.err("clipboard.startImageUpload", json!({"expectedBase64Length": 4})), runtime("Too many clipboard image uploads are in progress"));
+}
+
+#[test]
+fn given_clipboard_requests_that_break_the_pinned_schema_when_sent_then_each_is_its_first_complaint_and_rca_is_asked_nothing() {
+    let mut rig = Rig::new();
+    let invalid = |m: &str| ("invalid_argument".to_string(), m.to_string());
+    for (method, params, message) in [
+        ("clipboard.saveImageAsTempFile", Value::Null, "Missing image content"),
+        ("clipboard.saveImageAsTempFile", json!({"contentBase64": "a"}), "Clipboard image content must be base64"),
+        ("clipboard.saveImageAsTempFile", json!({"contentBase64": "wrong"}), "Clipboard image content must be base64"),
+        ("clipboard.saveImageAsTempFile", json!({"contentBase64": "AAAA", "connectionId": ""}), "Too small: expected string to have >=1 characters"),
+        ("clipboard.startImageUpload", Value::Null, "Invalid input: expected number, received undefined"),
+        ("clipboard.startImageUpload", json!({"expectedBase64Length": "wrong"}), "Invalid input: expected number, received string"),
+        ("clipboard.startImageUpload", json!({"expectedBase64Length": 1.5}), "Invalid input: expected int, received number"),
+        ("clipboard.startImageUpload", json!({"expectedBase64Length": -1}), "Too small: expected number to be >=0"),
+        ("clipboard.startImageUpload", json!({"expectedBase64Length": 25_165_825}), "Clipboard image is too large"),
+        ("clipboard.startImageUpload", json!({"expectedBase64Length": 0, "fileName": ""}), "Too small: expected string to have >=1 characters"),
+        ("clipboard.appendImageUploadChunk", Value::Null, "Invalid input: expected string, received undefined"),
+        ("clipboard.appendImageUploadChunk", json!({"contentBase64": "a", "offset": 0, "uploadId": 7}), "Invalid input: expected string, received number"),
+        ("clipboard.appendImageUploadChunk", json!({"contentBase64": "a", "offset": 0, "uploadId": "a"}), "Clipboard image content must be base64"),
+        ("clipboard.commitImageUpload", json!({}), "Invalid input: expected string, received undefined"),
+        ("clipboard.abortImageUpload", json!({"uploadId": 7}), "Invalid input: expected string, received number"),
+    ] {
+        // Given a request the schema refuses, When sent, Then the refusal is its first complaint
+        assert_eq!(rig.err(method, params.clone()), invalid(message), "{method} {params}");
+    }
+    // And the largest upload the host takes is started
+    assert!(rig.ok("clipboard.startImageUpload", json!({"expectedBase64Length": 25_165_824}))["uploadId"].is_string());
+    assert!(rig.agent.requests().iter().all(|(m, _)| !m.starts_with("upload.") && !m.starts_with("attachment.")));
 }

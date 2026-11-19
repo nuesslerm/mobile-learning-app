@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use crate::domain::ToolExecutor;
 use base64::Engine;
-use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, ReadChunk, ReadFile, ReadResult, SearchEntries, Skill, SkillDir, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
+use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, PutTemp, ReadChunk, ReadFile, ReadResult, SearchEntries, Skill, SkillDir, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
 use exec_git::{GitCall, GitDiff, GitOp, Resolution, SetupEvent, SetupResult, SetupStep, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeRemove, WorktreeSetup};
 use exec_proc::{CliDetect, CliFound, RunCommand, RunResult};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyOpen, PtyOpened, PtyResize, PtyWrite};
@@ -470,6 +470,23 @@ impl ToolExecutor for LocalExecutor {
         Ok(bytes.len() as u64)
     }
 
+    fn put_temp(&self, args: &PutTemp) -> ExecResult<(String, u64)> {
+        use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
+        let bytes = base64::engine::general_purpose::STANDARD.decode(&args.data).map_err(|_| ExecError::invalid_args("`data` must be base64"))?;
+        if bytes.len() as u64 > exec_fs::BLOB_MAX {
+            return Err(ExecError::invalid_args(format!("`data` is longer than {} bytes", exec_fs::BLOB_MAX)));
+        }
+        // a folder of its own, made here (never one that was there): the file in it cannot be a link someone left
+        let dir = (0..16)
+            .map(|_| std::env::temp_dir().join(format!("rca-paste-{}", unique())))
+            .find(|dir| fs::DirBuilder::new().mode(0o700).create(dir).is_ok())
+            .ok_or_else(|| ExecError::new(Code::Io, "no folder could be made in the temporary directory"))?;
+        let path = dir.join(&args.name);
+        let mut file = fs::OpenOptions::new().write(true).create_new(true).mode(0o600).open(&path).map_err(|e| io_at(&args.name, e))?;
+        std::io::Write::write_all(&mut file, &bytes).map_err(|e| io_at(&args.name, e))?;
+        Ok((path.to_string_lossy().into_owned(), bytes.len() as u64))
+    }
+
     fn make_dir(&self, args: &MakeDir) -> ExecResult<bool> {
         let path = self.resolve(&args.path)?;
         if args.parents && path.is_dir() {
@@ -843,4 +860,11 @@ impl LocalExecutor {
         }
         Ok(true)
     }
+}
+
+/// A name no other folder of this process took: the clock, the process and a count.
+fn unique() -> String {
+    static COUNT: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
+    format!("{nanos:x}-{:x}-{:x}", std::process::id(), COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
 }
