@@ -40,6 +40,10 @@ A running or queued CI run is never a reason to stop or idle: take the next item
 
 Work independent issue items in parallel, one agent per git worktree that never pushes or touches the main checkout; every `cargo`, `pnpm` test and `wf check|test` command runs as `flock /tmp/cargo.lock <command>`; stop and report at under 1.2 GB free. Details: `docs/solutions/workflow/parallel-agents-in-the-sandbox.md`.
 
+## Track long work in one issue
+
+Goal, numbered decisions, `###` items (Local/CI boxes, Do, Proof, State), Blocked, Done; edit the body only, never comments: `docs/solutions/workflow/work-tracking-issue.md`.
+
 ## Land on dev
 
 Work autonomously on the `dev` trunk, never a session branch; never delete a branch. Before any work bring `dev` to parity with `main` (`docs/solutions/workflow/dev-parity-with-main.md`); land with `git fetch origin dev && git rebase origin/dev` (never over a merge of `main`), the lefthook suite, push. Deploy is automatic on push to `dev`; never call `/redeploy` by hand. When the open `dev` → `main` PR is merged or closed, open a new one titled exactly `dev → main` with the body exactly ``This is `dev` ``. The rest: `docs/solutions/workflow/land-on-dev.md`.
