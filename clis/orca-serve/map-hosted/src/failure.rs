@@ -81,6 +81,14 @@ pub fn pr_update(stderr: &str) -> Value {
     }
 }
 
+/// A failed glab call as the host answers a merge request update: an unresolved project by its code, anything else by glab's words.
+pub fn glab(stderr: &str) -> Value {
+    if unresolved(&stderr.to_lowercase()) || stderr.to_lowercase().contains("no gitlab remote") {
+        return code_host("gitlab.projectUnresolved", None);
+    }
+    json!({"ok": false, "error": stderr.trim()})
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

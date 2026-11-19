@@ -234,6 +234,20 @@
         "complete": true,
         "tests": 62,
         "passed": 6
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "57a0156b2912f3c64ba0c7f1bd9958144499196a",
+        "complete": true,
+        "tests": 446,
+        "passed": 87
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 62,
+        "passed": 8
       }
     ]
   },
@@ -1051,6 +1065,15 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:github.updatePRState": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-github.updatePRState-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:github.updatePRTitle": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-github.updatePRTitle-invalid-drop-repo",
@@ -1072,6 +1095,15 @@
     "rpc:gitlab.updateMR": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-gitlab.updateMR-invalid-drop-repo",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:gitlab.updateMRState": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-gitlab.updateMRState-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

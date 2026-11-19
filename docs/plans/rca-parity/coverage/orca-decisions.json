@@ -504,14 +504,10 @@
       "decidedBy": "M12"
     },
     "rpc:github.updatePRState": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's hosted group cannot close or reopen a pull request: pr.edit changes the title, body and base only, so a closed or open state would be answered without changing it. Reverify when a close/reopen action exists (hosted_pr_state, small).",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:gitlab.updateMRState": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca has no capability to close or reopen a pull or merge request: the hosted.pr group's mr.edit changes title, description and target branch only and no action runs `glab mr close` or `glab mr reopen`; a state change would be answered without making it. Decided in M12; reverify when the hosted group gains a close/reopen action (which would also serve github.updatePRState).",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:automation.runs": {
       "state": "not-offered",

@@ -100,6 +100,21 @@ pub fn reply_to_comment(t: &Target, params: &Value) -> Result<Value, Failure> {
     Ok(json!({"ok": true, "comment": comment}))
 }
 
+/// `github.updatePRState`: `gh pr close` or `gh pr reopen`; `{ok: true}`, or the host's pull request update failure.
+pub fn set_state(t: &Target, params: &Value) -> Result<Value, Failure> {
+    let closed = match params["updates"]["state"].as_str() {
+        Some("closed") => true,
+        Some("open") => false,
+        _ => return Err(Failure::invalid("Invalid option: expected one of \"open\"|\"closed\"")),
+    };
+    let args = with_repo(json!({"number": pr_number(params)?, "state": if closed { "closed" } else { "open" }}), params, "prRepo")?;
+    match t.try_ask(pr::SET_STATE, args) {
+        Ok(_) => Ok(json!({"ok": true})),
+        Err(AgentError::Refused { code, message }) if code != "UNKNOWN_WORKSPACE" && code != "INVALID_PARAMS" => Ok(crate::failure::pr_update(&message)),
+        Err(other) => Err(crate::refusal(other)),
+    }
+}
+
 /// The host resolves (or reopens) a thread by its node id and answers whether GitHub did; any failure is `false`, never an error.
 pub fn resolve_thread(t: &Target, params: &Value) -> Result<Value, Failure> {
     let thread = crate::text(params, "threadId").filter(|s| !s.is_empty()).ok_or_else(|| Failure::invalid("Invalid input: expected string, received undefined"))?;

@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 162,
+    "served": 164,
     "pending": 4,
-    "notOffered": 141,
+    "notOffered": 139,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -2399,10 +2399,17 @@
       "kind": "rpc",
       "name": "github.updatePRState",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's hosted group cannot close or reopen a pull request: pr.edit changes the title, body and base only, so a closed or open state would be answered without changing it. Reverify when a close/reopen action exists (hosted_pr_state, small).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.updatePRState-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.updatePRTitle",
@@ -2550,10 +2557,17 @@
       "kind": "rpc",
       "name": "gitlab.updateMRState",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca has no capability to close or reopen a pull or merge request: the hosted.pr group's mr.edit changes title, description and target branch only and no action runs `glab mr close` or `glab mr reopen`; a state change would be answered without making it. Decided in M12; reverify when the hosted group gains a close/reopen action (which would also serve github.updatePRState).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-gitlab.updateMRState-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:gitlab.workItemByPath",

@@ -51,3 +51,17 @@ pub fn update(t: &Target, params: &Value) -> Result<Value, Failure> {
     }
     Ok(json!({"ok": true}))
 }
+
+/// `gitlab.updateMRState`: close or reopen (`state` is `closed` or `opened`); `{ok: true}`, or the host's failure.
+pub fn set_state(t: &Target, params: &Value) -> Result<Value, Failure> {
+    let state = match params["state"].as_str() {
+        Some("closed") => "closed",
+        Some("opened") => "open",
+        _ => return Err(Failure::invalid("Invalid option: expected one of \"opened\"|\"closed\"")),
+    };
+    match t.try_ask(pr::MR_SET_STATE, with_repo(json!({"number": iid(params)?, "state": state}), params, "projectRef")?) {
+        Ok(_) => Ok(json!({"ok": true})),
+        Err(orca_core::AgentError::Refused { code, message }) if code != "UNKNOWN_WORKSPACE" && code != "INVALID_PARAMS" => Ok(crate::failure::glab(&message)),
+        Err(other) => Err(crate::refusal(other)),
+    }
+}

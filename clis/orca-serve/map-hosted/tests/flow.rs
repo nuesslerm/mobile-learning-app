@@ -381,6 +381,24 @@ fn given_a_review_comment_when_the_phone_replies_to_it_by_its_numeric_id_then_th
 }
 
 #[test]
+fn given_a_pull_and_a_merge_request_when_the_phone_closes_or_reopens_them_then_rca_sets_the_state_and_failures_are_the_hosts() {
+    let mut rig = Rig::new();
+    // When the phone closes pull request 12 and reopens merge request 12
+    let closed = rig.ok("github.updatePRState", json!({"prNumber": 12, "updates": {"state": "closed"}}));
+    let reopened = rig.ok("gitlab.updateMRState", json!({"iid": 12, "state": "opened"}));
+    // Then both are done, and rca was asked for the closed and the open state
+    assert_eq!((closed, reopened), (json!({"ok": true}), json!({"ok": true})));
+    let asked = |m: &str| rig.agent.requests().into_iter().find(|(x, _)| x == m).unwrap().1;
+    assert_eq!((asked("pr.setState")["state"].clone(), asked("mr.setState")["state"].clone()), (json!("closed"), json!("open")));
+    // And an unknown pull request is the host's not-found failure, a folder with no GitLab project its unresolved one
+    assert_eq!(rig.ok("github.updatePRState", json!({"prNumber": 5, "updates": {"state": "open"}})), json!({"ok": false, "error": "Pull request not found — it may have been deleted.", "errorCode": "github.pullRequestNotFound"}));
+    assert_eq!(rig.ok("gitlab.updateMRState", json!({"iid": 99, "state": "closed"})), json!({"ok": false, "error": "Could not resolve GitLab project for this repository", "errorCode": "gitlab.projectUnresolved"}));
+    // And a state the host does not know is refused
+    assert_eq!(rig.err("github.updatePRState", json!({"prNumber": 12, "updates": {"state": "merged"}})).0, "invalid_argument");
+    assert_eq!(rig.err("gitlab.updateMRState", json!({"iid": 12, "state": "open"})).0, "invalid_argument");
+}
+
+#[test]
 fn given_review_threads_when_one_is_resolved_or_reopened_then_the_answer_is_whether_github_did_and_a_failure_is_false() {
     let mut rig = Rig::new();
     // When the phone resolves a thread by its node id, and reopens it for a named repository
