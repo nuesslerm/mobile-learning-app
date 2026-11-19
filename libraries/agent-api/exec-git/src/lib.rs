@@ -180,9 +180,9 @@ pub const ACTIONS: &[Action] = &[
     },
     Action {
         name: GIT_BLOB,
-        about: "The content of a file at a revision, base64, without checking anything out.",
-        properties: &[WORKTREE, Property { name: "rev", kind: "string", about: "The revision" }, Property { name: "path", kind: "string", about: "The file's path in that revision" }, Property { name: "max_bytes", kind: "integer", about: "Read at most this many bytes (default 1 MiB)" }],
-        required: &["rev", "path"],
+        about: "The content of a file at a revision, or as staged in the index (stage 0) when no revision is named, base64, without checking anything out.",
+        properties: &[WORKTREE, Property { name: "rev", kind: "string", about: "The revision (the index when absent)" }, Property { name: "path", kind: "string", about: "The file's path in that revision" }, Property { name: "max_bytes", kind: "integer", about: "Read at most this many bytes (default 1 MiB)" }],
+        required: &["path"],
     },
     Action {
         name: GIT_WATCH,

@@ -28,6 +28,30 @@
       ]
     },
     {
+      "name": "reads the staged file when no revision is named",
+      "request": {
+        "id": 1,
+        "method": "git.blob",
+        "params": {
+          "workspace": "w1",
+          "path": "README.md"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "path": "README.md",
+          "size": 10,
+          "data": "dGVtcCByZXBvCg==",
+          "truncated": false,
+          "binary": false
+        }
+      },
+      "actions": [
+        "git_blob"
+      ]
+    },
+    {
       "name": "a path in the git directory is refused",
       "request": {
         "id": 1,

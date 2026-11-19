@@ -829,14 +829,19 @@ impl Repo {
         Ok(Resolved { path: path.to_string(), remaining: self.conflicts()? })
     }
 
-    pub fn blob(&self, rev: &str, path: &str, max_bytes: u64) -> ExecResult<BlobResult> {
-        let spec = format!("{rev}:{path}");
+    /// A file at `rev`, or as staged (stage 0) when no revision is named; an unmerged path is not a file of the index.
+    pub fn blob(&self, rev: Option<&str>, path: &str, max_bytes: u64) -> ExecResult<BlobResult> {
+        let spec = format!("{}:{path}", rev.unwrap_or(""));
+        let place = rev.map_or("in the index".to_string(), |r| format!("at {r}"));
         let kind = self.run(&["cat-file", "-t", &spec])?;
         if !kind.ok() {
-            return Err(ExecError::new(Code::NotFound, format!("{path} does not exist at {rev}")));
+            if rev.is_none() && self.conflicts()?.iter().any(|c| c == path) {
+                return Err(ExecError::new(Code::NotAFile, format!("{path} is not merged in the index")));
+            }
+            return Err(ExecError::new(Code::NotFound, format!("{path} does not exist {place}")));
         }
         if kind.text().trim() != "blob" {
-            return Err(ExecError::new(Code::NotAFile, format!("{path} is not a file at {rev}")));
+            return Err(ExecError::new(Code::NotAFile, format!("{path} is not a file {place}")));
         }
         let size: u64 = self.ok(&["cat-file", "-s", &spec])?.trim().parse().unwrap_or(0);
         let args = ["cat-file", "blob", spec.as_str()];
@@ -845,7 +850,7 @@ impl Repo {
             return Err(fail(&args, &out));
         }
         let binary = out.stdout.iter().take(8000).any(|b| *b == 0);
-        Ok(BlobResult { rev: rev.to_string(), path: path.to_string(), size, truncated: size > out.stdout.len() as u64, binary, data: base64::engine::general_purpose::STANDARD.encode(&out.stdout) })
+        Ok(BlobResult { rev: rev.map(str::to_string), path: path.to_string(), size, truncated: size > out.stdout.len() as u64, binary, data: base64::engine::general_purpose::STANDARD.encode(&out.stdout) })
     }
 
     /// Looks at the status every `interval` and sends it when it differs from the last one sent, until `cancelled` or `max_events` were sent.
@@ -889,7 +894,7 @@ impl Repo {
             GitCall::Merge { step, target, strategy, message } => to_value(&self.merge(*step, target.as_deref(), *strategy, message.as_deref())?),
             GitCall::Rebase { step, onto } => to_value(&self.rebase(*step, onto.as_deref())?),
             GitCall::ConflictResolve { path, resolution, content } => to_value(&self.conflict_resolve(path, *resolution, content.as_deref(), confined)?),
-            GitCall::Blob { rev, path, max_bytes } => to_value(&self.blob(rev, path, *max_bytes)?),
+            GitCall::Blob { rev, path, max_bytes } => to_value(&self.blob(rev.as_deref(), path, *max_bytes)?),
             GitCall::Watch { interval_ms, max_events } => to_value(&self.watch(Duration::from_millis(*interval_ms), *max_events, cancelled, events)?),
             GitCall::Checkpoint { thread, turn } => to_value(&self.checkpoint(thread, turn)?),
             GitCall::Init { path, initial_branch, files, message } => to_value(&self.init(path, initial_branch.as_deref(), files, message)?),

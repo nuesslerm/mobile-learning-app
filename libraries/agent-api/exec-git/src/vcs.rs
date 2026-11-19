@@ -219,7 +219,7 @@ pub enum GitCall {
     Merge { step: Step, target: Option<String>, strategy: MergeStrategy, message: Option<String> },
     Rebase { step: Step, onto: Option<String> },
     ConflictResolve { path: String, resolution: Resolution, content: Option<String> },
-    Blob { rev: String, path: String, max_bytes: u64 },
+    Blob { rev: Option<String>, path: String, max_bytes: u64 },
     Watch { interval_ms: u64, max_events: Option<u64> },
     Init { path: String, initial_branch: Option<String>, files: Vec<InitFile>, message: String },
     Checkpoint { thread: String, turn: String },
@@ -350,7 +350,7 @@ impl GitOp {
                 if path == "." {
                     return Err(ExecError::invalid_args("`path` must name a file"));
                 }
-                Ok(GitCall::Blob { rev: required_rev(a, "rev")?, path, max_bytes })
+                Ok(GitCall::Blob { rev: rev(a, "rev")?, path, max_bytes })
             },
             crate::GIT_WATCH => |a| {
                 let interval_ms = opt_uint(a, "interval_ms")?.unwrap_or(WATCH_DEFAULT_MS);
@@ -645,7 +645,9 @@ pub struct Resolved {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct BlobResult {
-    pub rev: String,
+    /// The revision read; absent for the index.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rev: Option<String>,
     pub path: String,
     pub size: u64,
     /// The bytes, base64 (the first `max_bytes` of them).
@@ -864,6 +866,9 @@ mod tests {
         assert!(parse(crate::GIT_WATCH, json!({"max_events": 0})).is_err());
         assert!(parse(crate::GIT_BLOB, json!({"rev": "HEAD", "path": "."})).is_err());
         assert!(parse(crate::GIT_BLOB, json!({"rev": "HEAD", "path": "a", "max_bytes": BLOB_MAX + 1})).is_err());
+        // And a blob with no revision is the index, while an empty revision is refused
+        assert_eq!(parse(crate::GIT_BLOB, json!({"path": "a"})).unwrap().call, GitCall::Blob { rev: None, path: "a".into(), max_bytes: BLOB_DEFAULT });
+        assert!(parse(crate::GIT_BLOB, json!({"rev": "", "path": "a"})).unwrap_err().message.contains("`rev`"));
         // And a worktree is a plain name, for every action
         assert_eq!(parse(crate::GIT_STATUS, json!({"worktree": "wt"})).unwrap().worktree.as_deref(), Some("wt"));
         assert!(parse(crate::GIT_STATUS, json!({"worktree": "../x"})).unwrap_err().message.contains("`name`"));

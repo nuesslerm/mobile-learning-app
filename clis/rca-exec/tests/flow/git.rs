@@ -467,6 +467,36 @@ fn a_blob_is_the_content_at_a_revision_not_the_working_tree_and_is_cut_at_the_li
 }
 
 #[test]
+fn a_blob_with_no_revision_is_the_staged_bytes_and_a_path_the_index_lacks_or_has_unmerged_is_refused() {
+    // Given a file committed, then staged with a change, then edited again in the working tree, and an untracked file
+    let r = repo(&[("a.txt", "one\n"), ("m.txt", "base\n")]);
+    put(r.path(), "a.txt", "two\n");
+    sh(r.path(), &["add", "a.txt"]);
+    put(r.path(), "a.txt", "three\n");
+    put(r.path(), "new.txt", "x\n");
+    use base64::Engine;
+    let decode = |v: &Value| base64::engine::general_purpose::STANDARD.decode(v["data"].as_str().unwrap()).unwrap();
+    // When the file is read with no revision
+    let staged = r.ok("git_blob", json!({"path": "a.txt"}));
+    // Then it is the staged bytes, and the answer names no revision
+    assert_eq!((decode(&staged), staged.get("rev").cloned()), (b"two\n".to_vec(), None));
+    // And a path only in the working tree does not exist in the index
+    assert_eq!(r.err("git_blob", json!({"path": "new.txt"})), (Code::NotFound, "new.txt does not exist in the index".to_string()));
+    // When a merge leaves a file conflicted
+    sh(r.path(), &["reset", "-q", "--hard"]);
+    sh(r.path(), &["switch", "-q", "-c", "other"]);
+    put(r.path(), "m.txt", "theirs\n");
+    sh(r.path(), &["commit", "-q", "-am", "theirs"]);
+    sh(r.path(), &["switch", "-q", "main"]);
+    put(r.path(), "m.txt", "ours\n");
+    sh(r.path(), &["commit", "-q", "-am", "ours"]);
+    r.ok("git_merge", json!({"op": "start", "ref": "other"}));
+    // Then its index read is refused as not a file, while HEAD still reads
+    assert_eq!(r.err("git_blob", json!({"path": "m.txt"})), (Code::NotAFile, "m.txt is not merged in the index".to_string()));
+    assert_eq!(decode(&r.ok("git_blob", json!({"rev": "HEAD", "path": "m.txt"}))), b"ours\n".to_vec());
+}
+
+#[test]
 fn fetch_pull_push_and_fast_forward_work_against_the_repositorys_own_remote_and_a_collaborators_commits() {
     // Given a repository whose origin is a bare repository and a collaborator that pushes a commit to main
     let r = repo(&[("a.txt", "one\n")]);
