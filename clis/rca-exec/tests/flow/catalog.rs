@@ -209,3 +209,95 @@ fn given_a_claude_projects_directory_when_a_file_is_read_in_its_scope_then_only_
     // And without the scope the same absolute path is outside the workspace
     assert_eq!(call(&ex, "read_chunk", json!({"path": projects.join("flow.js").to_str().unwrap()})).unwrap_err().code, Code::PathOutsideRoot);
 }
+
+fn login_cli(bin: &std::path::Path) {
+    use std::os::unix::fs::PermissionsExt;
+    let script = r#"#!/bin/sh
+case "$1 $2" in
+  "auth login")
+    echo "Open https://example.test/oauth to sign in"
+    echo "Paste code:"
+    read code
+    if [ "$code" = "bad" ]; then echo "Invalid code" >&2; exit 1; fi
+    mkdir -p "$HOME/.claude"
+    printf '{"t":"%s"}' "$code" > "$HOME/.claude/.credentials.json"
+    echo "Logged in"
+    ;;
+  "auth logout") rm -f "$HOME/.claude/.credentials.json" ;;
+  *) echo "claude 1.0" ;;
+esac
+"#;
+    let path = bin.join("claude");
+    std::fs::write(&path, script).unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
+}
+
+/// The login's status once it has ended, polled for at most five seconds.
+fn ended(ex: &LocalExecutor, flow: &str) -> Value {
+    for _ in 0..250 {
+        let state = call(ex, "login_status", json!({"flow": flow})).unwrap();
+        if state["ended"] == true {
+            return state;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    panic!("the login {flow} did not end");
+}
+
+#[test]
+fn given_an_agent_cli_with_a_login_when_it_is_started_answered_and_ended_then_the_executors_home_holds_the_login_and_a_wrong_code_fails_with_the_cli_s_words() {
+    // Given an executor whose home is empty and which has a claude that prompts for a code and writes its credential file
+    let ((_r, root), (_h, home), (_b, bin)) = (dir(), dir(), dir());
+    login_cli(&bin);
+    let ex = LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home)).with_cli_path(bin.to_str().unwrap());
+    // When a login is started and its output read
+    let flow = call(&ex, "login_start", json!({"program": "claude"})).unwrap()["flow"].as_str().unwrap().to_string();
+    let mut printed = String::new();
+    for _ in 0..250 {
+        let state = call(&ex, "login_status", json!({"flow": flow, "after": printed.len()})).unwrap();
+        printed.push_str(state["output"].as_str().unwrap());
+        if printed.contains("Paste code:") {
+            break;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+    // Then the address and the prompt are in it and the CLI holds no login yet
+    assert!(printed.contains("https://example.test/oauth") && printed.contains("Paste code:"), "{printed}");
+    assert_eq!(call(&ex, "login_status", json!({"flow": flow})).unwrap()["signed_in"], false);
+    // And when the code is sent, the login ends well and the credential file is in the home
+    call(&ex, "login_send", json!({"flow": flow, "text": "abc"})).unwrap();
+    let done = ended(&ex, &flow);
+    assert_eq!((done["ok"].clone(), done["signed_in"].clone()), (json!(true), json!(true)), "{done}");
+    assert_eq!(std::fs::read_to_string(home.join(".claude/.credentials.json")).unwrap(), r#"{"t":"abc"}"#);
+    // And an ended login takes no more input, a status of the whole output starts at 0 and a logout takes the login away
+    assert_eq!(call(&ex, "login_send", json!({"flow": flow, "text": "x"})).unwrap_err().code, Code::NotFound);
+    assert!(call(&ex, "login_status", json!({"flow": flow})).unwrap()["output"].as_str().unwrap().contains("Logged in"));
+    assert_eq!(call(&ex, "logout", json!({"program": "claude"})).unwrap()["signed_in"], false);
+    // And a wrong code ends the login as failed with the CLI's words
+    let second = call(&ex, "login_start", json!({"program": "claude"})).unwrap()["flow"].as_str().unwrap().to_string();
+    call(&ex, "login_send", json!({"flow": second, "text": "bad"})).unwrap();
+    let failed = ended(&ex, &second);
+    assert_eq!((failed["ok"].clone(), failed["signed_in"].clone()), (json!(false), json!(false)), "{failed}");
+    assert!(failed["error"].as_str().unwrap().contains("Invalid code"), "{failed}");
+}
+
+#[test]
+fn given_logins_the_caller_gets_wrong_when_asked_then_each_is_refused_and_a_running_login_is_stopped_and_forgotten_by_a_cancel() {
+    // Given an executor with a claude and no codex
+    let ((_r, root), (_h, home), (_b, bin)) = (dir(), dir(), dir());
+    login_cli(&bin);
+    let ex = LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home)).with_cli_path(bin.to_str().unwrap());
+    // When a program that is no agent CLI, one that is missing, an unknown flow and a program-less request are asked for
+    let shell = call(&ex, "login_start", json!({"program": "sh"})).unwrap_err();
+    let missing = call(&ex, "login_start", json!({"program": "codex"})).unwrap_err();
+    let unknown = call(&ex, "login_status", json!({"flow": "login-99"})).unwrap_err();
+    let none = call(&ex, "login_start", json!({})).unwrap_err();
+    // Then each is refused with its own words
+    assert_eq!((shell.code, missing.code, unknown.code, none.code), (Code::InvalidArgs, Code::NotFound, Code::NotFound, Code::InvalidArgs));
+    assert!(missing.message.contains("codex is not installed here"), "{missing:?}");
+    // And a running login is stopped by a cancel, which forgets it, and a second cancel finds none
+    let flow = call(&ex, "login_start", json!({"program": "claude"})).unwrap()["flow"].as_str().unwrap().to_string();
+    assert_eq!(call(&ex, "login_cancel", json!({"flow": flow})).unwrap()["cancelled"], true);
+    assert_eq!(call(&ex, "login_status", json!({"flow": flow})).unwrap_err().code, Code::NotFound);
+    assert_eq!(call(&ex, "login_cancel", json!({"flow": flow})).unwrap()["cancelled"], false);
+}

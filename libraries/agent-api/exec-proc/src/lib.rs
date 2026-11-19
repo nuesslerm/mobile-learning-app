@@ -12,6 +12,24 @@ pub mod testing;
 pub const RUN_COMMAND: &str = "run_command";
 pub const CANCEL: &str = "cancel";
 pub const CLI_DETECT: &str = "cli_detect";
+/// A CLI's own login, run at the executor with the executor's own home, so what the CLI writes lands where its turns read it.
+pub const LOGIN_START: &str = "login_start";
+pub const LOGIN_SEND: &str = "login_send";
+pub const LOGIN_STATUS: &str = "login_status";
+pub const LOGIN_CANCEL: &str = "login_cancel";
+pub const LOGOUT: &str = "logout";
+
+/// The arguments of each agent CLI's login: a URL and a code on its output, no browser or display at the executor. Written from the CLIs'
+/// documentation, not run against them here: the real-CLI checks of the plan verify them for each pinned version.
+pub const LOGIN_ARGS: [(&str, &[&str]); 3] = [("claude", &["auth", "login"]), ("codex", &["login", "--device-auth"]), ("opencode", &["auth", "login"])];
+/// The arguments of each agent CLI's logout.
+pub const LOGOUT_ARGS: [(&str, &[&str]); 3] = [("claude", &["auth", "logout"]), ("codex", &["logout"]), ("opencode", &["auth", "logout"])];
+/// The file, relative to the executor's home, whose presence says the CLI holds a login.
+pub const CREDENTIAL_FILES: [(&str, &str); 3] = [("claude", ".claude/.credentials.json"), ("codex", ".codex/auth.json"), ("opencode", ".local/share/opencode/auth.json")];
+/// The most output one login keeps; older lines are dropped from the front.
+pub const LOGIN_OUTPUT_MAX: usize = 64 << 10;
+/// The most logins one executor runs at once.
+pub const LOGINS_MAX: usize = 8;
 
 /// The programs `cli_detect` looks for: the executor runs only these, by name, never a path or a word the caller makes up.
 pub const AGENT_CLIS: [&str; 3] = ["claude", "codex", "opencode"];
@@ -45,6 +63,31 @@ pub const ACTIONS: &[Action] = &[
         about: "Say which of the named CLIs (the agent CLIs claude, codex, opencode, and git, gh, glab) the executor has on its path and what each prints for `--version` (run without a shell, at most 5 s each).",
         properties: &[Property { name: "programs", kind: "array", about: "Program names, each one of claude, codex, opencode, git, gh, glab (1 to 6, no repeats)" }],
         required: &["programs"],
+    },
+    Action {
+        name: LOGIN_START,
+        about: "Start an agent CLI's own login (claude, codex or opencode) at the executor, with the executor's home, and return the id of the flow; read what it prints with login_status.",
+        properties: &[Property { name: "program", kind: "string", about: "One of claude, codex, opencode" }],
+        required: &["program"],
+    },
+    Action {
+        name: LOGIN_SEND,
+        about: "Send one line (a pasted code, an answer to a prompt) to a running login's input.",
+        properties: &[Property { name: "flow", kind: "string", about: "Id login_start returned" }, Property { name: "text", kind: "string", about: "The line to send, without its newline" }],
+        required: &["flow", "text"],
+    },
+    Action {
+        name: LOGIN_STATUS,
+        about: "What a login has printed since `after` (a byte offset into its output, 0 for all of it), whether it ended and how, and whether its CLI now holds a login.",
+        properties: &[Property { name: "flow", kind: "string", about: "Id login_start returned" }, Property { name: "after", kind: "integer", about: "Output offset to read from (default 0)" }],
+        required: &["flow"],
+    },
+    Action { name: LOGIN_CANCEL, about: "Stop a running login and forget it.", properties: &[Property { name: "flow", kind: "string", about: "Id login_start returned" }], required: &["flow"] },
+    Action {
+        name: LOGOUT,
+        about: "Run an agent CLI's own logout at the executor and say whether it now holds a login.",
+        properties: &[Property { name: "program", kind: "string", about: "One of claude, codex, opencode" }],
+        required: &["program"],
     },
 ];
 
@@ -138,6 +181,111 @@ pub struct CliFound {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CliDetectResult {
     pub clis: Vec<CliFound>,
+}
+
+fn agent_program(args: &Value) -> ExecResult<String> {
+    let program = string(args, "program")?;
+    if !AGENT_CLIS.contains(&program.as_str()) {
+        return Err(ExecError::invalid_args(format!("`program` is one of {}, not {program:?}", AGENT_CLIS.join(", "))));
+    }
+    Ok(program)
+}
+
+/// `login_start` and `logout`: the agent CLI to run the flow of.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LoginProgram {
+    pub program: String,
+}
+
+impl LoginProgram {
+    pub fn parse(args: &Value) -> ExecResult<LoginProgram> {
+        Ok(LoginProgram { program: agent_program(args)? })
+    }
+
+    /// The arguments of its login, and of its logout.
+    pub fn login_args(&self) -> &'static [&'static str] {
+        LOGIN_ARGS.iter().find(|(p, _)| *p == self.program).map_or(&[], |(_, a)| a)
+    }
+
+    pub fn logout_args(&self) -> &'static [&'static str] {
+        LOGOUT_ARGS.iter().find(|(p, _)| *p == self.program).map_or(&[], |(_, a)| a)
+    }
+
+    pub fn credential_file(&self) -> &'static str {
+        CREDENTIAL_FILES.iter().find(|(p, _)| *p == self.program).map_or("", |(_, f)| f)
+    }
+}
+
+/// `login_send`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LoginSend {
+    pub flow: String,
+    pub text: String,
+}
+
+impl LoginSend {
+    pub fn parse(args: &Value) -> ExecResult<LoginSend> {
+        let text = string(args, "text")?;
+        if text.len() > 4096 || text.contains('\n') {
+            return Err(ExecError::invalid_args("`text` is one line of at most 4096 bytes"));
+        }
+        Ok(LoginSend { flow: string(args, "flow")?, text })
+    }
+}
+
+/// `login_status`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LoginStatus {
+    pub flow: String,
+    pub after: u64,
+}
+
+impl LoginStatus {
+    pub fn parse(args: &Value) -> ExecResult<LoginStatus> {
+        Ok(LoginStatus { flow: string(args, "flow")?, after: opt_uint(args, "after")?.unwrap_or(0) })
+    }
+}
+
+/// `login_cancel`.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LoginCancel {
+    pub flow: String,
+}
+
+impl LoginCancel {
+    pub fn parse(args: &Value) -> ExecResult<LoginCancel> {
+        Ok(LoginCancel { flow: string(args, "flow")? })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LoginStarted {
+    pub flow: String,
+}
+
+/// What a login has done: `output` is what it printed from `after`, `next` the offset to ask from next. A login that has ended says whether it
+/// succeeded (`ok`, its exit code was 0) and, when it did not, `error` is the tail of its output; `signed_in` is whether the CLI's credential
+/// file is there now.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LoginState {
+    pub output: String,
+    pub next: u64,
+    pub ended: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ok: Option<bool>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    pub signed_in: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LoginCancelled {
+    pub cancelled: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct LoggedOut {
+    pub signed_in: bool,
 }
 
 /// The first non-empty line of a program's `--version` output, cut to `VERSION_MAX` bytes at a character boundary; none when there is none.

@@ -5,7 +5,7 @@ use exec_fs::{Browse, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entr
 use exec_hosted::HostedOp;
 use exec_preview::PreviewOp;
 use exec_git::{DiffResult, GitDiff, GitOp, SetupEvent, SetupResult, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeListed, WorktreeRemove, WorktreeRemoved, WorktreeSetup};
-use exec_proc::{Cancel, CancelResult, CliDetect, CliDetectResult, CliFound, RunCommand, RunResult};
+use exec_proc::{Cancel, CancelResult, CliDetect, CliDetectResult, CliFound, LoggedOut, LoginCancel, LoginCancelled, LoginProgram, LoginSend, LoginStarted, LoginState, LoginStatus, RunCommand, RunResult};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyListed, PtyOpen, PtyOpened, PtyResize, PtyResized, PtyWrite, PtyWritten};
 use exec_proto::{to_value, Code, ExecError, ExecResult, Stream};
 use serde_json::Value;
@@ -36,6 +36,16 @@ pub trait ToolExecutor: Send + Sync {
     fn browse(&self, args: &Browse) -> ExecResult<BrowseResult>;
     /// The agent CLIs named, in order, with where each lies on the executor's path and what its `--version` prints.
     fn cli_detect(&self, args: &CliDetect) -> ExecResult<Vec<CliFound>>;
+    /// Starts the agent CLI's own login at this executor (its home, no workspace) and returns the id of the flow.
+    fn login_start(&self, args: &LoginProgram) -> ExecResult<String>;
+    /// Sends one line to the running login's input.
+    fn login_send(&self, args: &LoginSend) -> ExecResult<()>;
+    /// What the login printed from an offset, whether it ended and how, and whether the CLI holds a login now.
+    fn login_status(&self, args: &LoginStatus) -> ExecResult<LoginState>;
+    /// Stops the login and forgets it; false when there was none.
+    fn login_cancel(&self, args: &LoginCancel) -> ExecResult<bool>;
+    /// Runs the CLI's own logout and says whether it still holds a login.
+    fn logout(&self, args: &LoginProgram) -> ExecResult<bool>;
     /// The skills of a directory of the workspace and, when asked, of the executor's own home.
     fn skill_scan(&self, args: &SkillScan) -> ExecResult<SkillsFound>;
     fn search_entries(&self, args: &SearchEntries) -> ExecResult<EntriesResult>;
@@ -96,6 +106,14 @@ pub fn execute_binary(ex: &dyn ToolExecutor, id: &str, tool: &str, args: &Value,
         }
         exec_fs::BROWSE => Ok(to_value(&ex.browse(&Browse::parse(args)?)?)),
         exec_proc::CLI_DETECT => Ok(to_value(&CliDetectResult { clis: ex.cli_detect(&CliDetect::parse(args)?)? })),
+        exec_proc::LOGIN_START => Ok(to_value(&LoginStarted { flow: ex.login_start(&LoginProgram::parse(args)?)? })),
+        exec_proc::LOGIN_SEND => {
+            ex.login_send(&LoginSend::parse(args)?)?;
+            Ok(to_value(&serde_json::json!({})))
+        }
+        exec_proc::LOGIN_STATUS => Ok(to_value(&ex.login_status(&LoginStatus::parse(args)?)?)),
+        exec_proc::LOGIN_CANCEL => Ok(to_value(&LoginCancelled { cancelled: ex.login_cancel(&LoginCancel::parse(args)?)? })),
+        exec_proc::LOGOUT => Ok(to_value(&LoggedOut { signed_in: ex.logout(&LoginProgram::parse(args)?)? })),
         exec_fs::SKILL_SCAN => Ok(to_value(&ex.skill_scan(&SkillScan::parse(args)?)?)),
         exec_fs::SEARCH_ENTRIES => Ok(to_value(&ex.search_entries(&SearchEntries::parse(args)?)?)),
         exec_git::GIT_WORKTREE_ADD => Ok(to_value(&ex.git_worktree_add(&WorktreeAdd::parse(args)?)?)),
@@ -195,6 +213,26 @@ mod tests {
             self.note(exec_proc::CLI_DETECT);
             Ok(Vec::new())
         }
+        fn login_start(&self, _: &LoginProgram) -> ExecResult<String> {
+            self.note(exec_proc::LOGIN_START);
+            Ok("flow-1".into())
+        }
+        fn login_send(&self, _: &LoginSend) -> ExecResult<()> {
+            self.note(exec_proc::LOGIN_SEND);
+            Ok(())
+        }
+        fn login_status(&self, _: &LoginStatus) -> ExecResult<LoginState> {
+            self.note(exec_proc::LOGIN_STATUS);
+            Ok(LoginState { output: String::new(), next: 0, ended: false, ok: None, error: None, signed_in: false })
+        }
+        fn login_cancel(&self, _: &LoginCancel) -> ExecResult<bool> {
+            self.note(exec_proc::LOGIN_CANCEL);
+            Ok(true)
+        }
+        fn logout(&self, _: &LoginProgram) -> ExecResult<bool> {
+            self.note(exec_proc::LOGOUT);
+            Ok(false)
+        }
         fn skill_scan(&self, _: &SkillScan) -> ExecResult<SkillsFound> {
             self.note(exec_fs::SKILL_SCAN);
             Ok(SkillsFound { skills: Vec::new(), truncated: false, present: Vec::new() })
@@ -280,6 +318,7 @@ mod tests {
             ("op", _) => json!("abort"),
             ("resolution", _) => json!("resolved"),
             ("provider", _) => json!("github"),
+            ("program", _) => json!("claude"),
             ("repo", _) => json!("o/r"),
             ("port", _) => json!(4000),
             ("verdict", _) => json!("approve"),

@@ -15,7 +15,7 @@ use crate::domain::ToolExecutor;
 use base64::Engine;
 use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, PutTemp, ReadChunk, ReadFile, ReadResult, SearchEntries, Skill, SkillDir, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
 use exec_git::{GitCall, GitDiff, GitOp, Resolution, SetupEvent, SetupResult, SetupStep, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeRemove, WorktreeSetup};
-use exec_proc::{CliDetect, CliFound, RunCommand, RunResult};
+use exec_proc::{CliDetect, CliFound, LoginCancel, LoginProgram, LoginSend, LoginState, LoginStatus, RunCommand, RunResult};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyOpen, PtyOpened, PtyResize, PtyWrite};
 use crate::adapters::git::{Repo, Watches};
 use crate::adapters::hosted::Hosted;
@@ -47,6 +47,7 @@ pub struct LocalExecutor {
     hosted: Hosted,
     previews: PreviewTable,
     cli_path: Option<String>,
+    logins: crate::adapters::logins::Logins,
     version_timeout: Duration,
     skill_home: Option<PathBuf>,
 }
@@ -69,7 +70,7 @@ fn outside(path: &str) -> ExecError {
 impl LocalExecutor {
     pub fn new(root: &Path) -> Result<LocalExecutor, String> {
         let root = fs::canonicalize(root).map_err(|e| format!("executor root {}: {e}", root.display()))?;
-        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), cli_path: None, version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
+        Ok(LocalExecutor { root, worktree_base: None, browse_allow: Vec::new(), running: Mutex::new(HashMap::new()), setups: Mutex::new(HashMap::new()), ptys: PtyTable::default(), pty_shell: None, git_hooks: false, watches: Mutex::new(HashMap::new()), hosted: Hosted::default(), previews: PreviewTable::default(), cli_path: None, logins: Default::default(), version_timeout: Duration::from_millis(exec_proc::VERSION_TIMEOUT_MS), skill_home: None })
     }
 
     /// Widens confinement to the directory worktrees are made in (created when missing).
@@ -152,6 +153,19 @@ impl LocalExecutor {
             return Err(ExecError::new(Code::NotAFile, format!("{path} is not a regular file")));
         }
         Ok(resolved)
+    }
+
+    /// Where the CLI is, the path it is found on and the home its login is kept in, or why it cannot be run.
+    fn login_target(&self, program: &str) -> ExecResult<(PathBuf, String, PathBuf)> {
+        let search = self.cli_path.clone().or_else(|| std::env::var("PATH").ok()).unwrap_or_default();
+        let path = find_program(program, &search).ok_or_else(|| ExecError::new(Code::NotFound, format!("{program} is not installed here")))?;
+        let home = crate::adapters::logins::home_of(self.skill_home.as_ref()).ok_or_else(|| ExecError::new(Code::Io, "the executor has no home"))?;
+        // The CLI's own tools (a shell, a browser opener) are found on the executor's usual path after the directory the CLIs were told to be in
+        let env_path = match &self.cli_path {
+            Some(own) => format!("{own}:{}", std::env::var("PATH").unwrap_or_default()),
+            None => search,
+        };
+        Ok((path, env_path, home))
     }
 
     fn resolve(&self, path: &str) -> ExecResult<PathBuf> {
@@ -558,6 +572,29 @@ impl ToolExecutor for LocalExecutor {
                 }
             })
             .collect())
+    }
+
+    fn login_start(&self, args: &LoginProgram) -> ExecResult<String> {
+        let (path, search, home) = self.login_target(&args.program)?;
+        self.logins.start(args, &path, &search, &home)
+    }
+
+    fn login_send(&self, args: &LoginSend) -> ExecResult<()> {
+        self.logins.send(&args.flow, &args.text)
+    }
+
+    fn login_status(&self, args: &LoginStatus) -> ExecResult<LoginState> {
+        let home = crate::adapters::logins::home_of(self.skill_home.as_ref()).ok_or_else(|| ExecError::new(Code::Io, "the executor has no home"))?;
+        self.logins.status(&args.flow, args.after, &home)
+    }
+
+    fn login_cancel(&self, args: &LoginCancel) -> ExecResult<bool> {
+        Ok(self.logins.cancel(&args.flow))
+    }
+
+    fn logout(&self, args: &LoginProgram) -> ExecResult<bool> {
+        let (path, search, home) = self.login_target(&args.program)?;
+        self.logins.logout(args, &path, &search, &home)
     }
 
     fn skill_scan(&self, args: &SkillScan) -> ExecResult<SkillsFound> {

@@ -3,5 +3,6 @@ pub mod exec_channel;
 pub mod git;
 pub mod hosted;
 pub mod local_executor;
+pub mod logins;
 pub mod preview;
 pub mod pty;

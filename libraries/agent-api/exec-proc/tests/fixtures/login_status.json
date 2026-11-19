@@ -1,0 +1,42 @@
+{
+  "action": "login_status",
+  "exchanges": [
+    {
+      "name": "refuses a login that is not running",
+      "request": {
+        "id": "t1",
+        "tool": "login_status",
+        "args": {
+          "flow": "login-99"
+        }
+      },
+      "response": {
+        "id": "t1",
+        "ok": false,
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "no login login-99 is running here"
+        }
+      }
+    },
+    {
+      "name": "refuses an offset that is not a number",
+      "request": {
+        "id": "t2",
+        "tool": "login_status",
+        "args": {
+          "flow": "login-99",
+          "after": "x"
+        }
+      },
+      "response": {
+        "id": "t2",
+        "ok": false,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`after` must be a non-negative integer"
+        }
+      }
+    }
+  ]
+}
