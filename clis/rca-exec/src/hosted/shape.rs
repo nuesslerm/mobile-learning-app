@@ -374,6 +374,15 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
             };
             Ok(json!({"issue": issue}))
         }
+        HostedCall::IssueComments { .. } => {
+            let v = body(&last)?;
+            let comments: Vec<Value> = if github {
+                items(&v, "comments").iter().map(|c| json!({"id": id_string(c, "id"), "author": login_of(c, "author", "login"), "body": c.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(c, "createdAt"), "url": text(c, "url")})).collect()
+            } else {
+                v.as_array().map_or(&[][..], Vec::as_slice).iter().filter(|n| n.get("system").and_then(Value::as_bool) != Some(true)).map(|n| json!({"id": id_string(n, "id"), "author": login_of(n, "author", "username"), "body": n.get("body").and_then(Value::as_str).unwrap_or(""), "created_at_ms": ms(n, "created_at"), "url": Value::Null})).collect()
+            };
+            Ok(json!({"comments": comments}))
+        }
         HostedCall::IssueComment { .. } if github => Ok(json!({"done": true, "url": first_url(&last.stdout)})),
         HostedCall::IssueComment { .. } => {
             let v = body(&last)?;

@@ -43,6 +43,7 @@ pub const PR_COMMENT_EDIT: &str = "hosted_pr_comment_edit";
 pub const PR_REVIEW_COMMENT: &str = "hosted_pr_review_comment";
 pub const ISSUE_LIST: &str = "hosted_issue_list";
 pub const ISSUE_VIEW: &str = "hosted_issue_view";
+pub const ISSUE_COMMENTS: &str = "hosted_issue_comments";
 pub const ISSUE_COMMENT: &str = "hosted_issue_comment";
 pub const ISSUE_EDIT: &str = "hosted_issue_edit";
 pub const ISSUE_STATE: &str = "hosted_issue_state";
@@ -230,6 +231,7 @@ pub const ACTIONS: &[Action] = &[
         []
     ),
     action!(ISSUE_VIEW, "One issue with its description, labels and assignees.", [ISSUE_NUMBER], ["number"]),
+    action!(ISSUE_COMMENTS, "The comments of an issue, oldest first.", [ISSUE_NUMBER], ["number"]),
     action!(ISSUE_COMMENT, "Add a comment to an issue.", [ISSUE_NUMBER, BODY], ["number", "body"]),
     action!(ISSUE_EDIT, "Change an issue's title or description.", [ISSUE_NUMBER, Property { name: "title", kind: "string", about: "The new title" }, BODY], ["number"]),
     action!(ISSUE_STATE, "Close an issue, or reopen a closed one; answers its number and new state.", [ISSUE_NUMBER, Property { name: "state", kind: "string", about: "`closed` or `open`" }], ["number", "state"]),
@@ -532,6 +534,7 @@ pub enum HostedCall {
     PrReviewComment { number: u64, body: String, commit_id: String, path: String, line: u64, start_line: Option<u64>, base_sha: Option<String>, start_sha: Option<String>, old_path: Option<String> },
     IssueList { state: PrState, author: Option<String>, label: Option<String>, search: Option<String>, limit: u64 },
     IssueView { number: u64 },
+    IssueComments { number: u64 },
     IssueComment { number: u64, body: String },
     IssueEdit { number: u64, title: Option<String>, body: Option<String> },
     IssueState { number: u64, closed: bool },
@@ -581,6 +584,7 @@ impl HostedCall {
             HostedCall::PrReviewComment { .. } => PR_REVIEW_COMMENT,
             HostedCall::IssueList { .. } => ISSUE_LIST,
             HostedCall::IssueView { .. } => ISSUE_VIEW,
+            HostedCall::IssueComments { .. } => ISSUE_COMMENTS,
             HostedCall::IssueComment { .. } => ISSUE_COMMENT,
             HostedCall::IssueEdit { .. } => ISSUE_EDIT,
             HostedCall::IssueState { .. } => ISSUE_STATE,
@@ -687,6 +691,7 @@ impl HostedOp {
                 limit: limit(a)?,
             },
             ISSUE_VIEW => HostedCall::IssueView { number: number(a)? },
+            ISSUE_COMMENTS => HostedCall::IssueComments { number: number(a)? },
             ISSUE_COMMENT => HostedCall::IssueComment { number: number(a)?, body: required_body()? },
             ISSUE_EDIT => {
                 let (title, body) = (title_of("title")?, body_of("body")?);

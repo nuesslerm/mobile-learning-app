@@ -424,6 +424,13 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             args.push(format!("--json={ISSUE_FIELDS}"));
             one(gh(args))
         }
+        HostedCall::IssueComments { number } => {
+            let mut args = strs(&["issue", "view"]);
+            args.push(number.to_string());
+            repo_flag(&mut args);
+            args.push("--json=comments".into());
+            one(gh(args))
+        }
         HostedCall::IssueComment { number, body } => {
             let mut args = strs(&["issue", "comment"]);
             args.push(number.to_string());
@@ -696,6 +703,7 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             one(api("GET", format!("{}/issues?{}", project(), query.join("&"))))
         }
         HostedCall::IssueView { number } => one(api("GET", format!("{}/issues/{number}", project()))),
+        HostedCall::IssueComments { number } => one(api("GET", format!("{}/issues/{number}/notes?per_page=100&sort=asc&order_by=created_at", project()))),
         HostedCall::IssueComment { number, body } => one(with_json(api("POST", format!("{}/issues/{number}/notes", project())), serde_json::json!({"body": body}))),
         HostedCall::IssueEdit { number, title, body } => {
             let mut v = serde_json::Map::new();
