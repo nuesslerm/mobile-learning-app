@@ -173,14 +173,14 @@ mod tests {
         contract.iter().filter(|m| !served.iter().any(|s| s.method == **m)).map(|m| m.name()).collect()
     }
 
-    /// Executor actions built ahead of the accounts rows that will call them (G1 of issue 83); the list only shrinks, and every entry must be a contract action.
-    const AWAITING_ROWS: [&str; 5] = ["login_start", "login_send", "login_status", "login_cancel", "logout"];
+    /// The executor actions only the accounts group calls: the service root registers that group, so this registry lacks its rows (`rca-group-accounts` checks that its rows name each of these).
+    const CALLED_BY_ROOT_GROUPS: [&str; 5] = ["login_start", "login_send", "login_status", "login_cancel", "logout"];
 
     /// The actions that no row of `served` calls and that no MCP tool of `tools` reaches. A tool reaches an action only for the model of a CLI
     /// turn, so the tools count while some row starts one.
     fn unused<'a>(actions: impl Iterator<Item = &'a str>, served: &[Served], tools: &[&str]) -> Vec<&'a str> {
         let a_model_calls_tools = served.iter().any(|s| s.uses == Uses::Cli);
-        actions.filter(|a| !AWAITING_ROWS.contains(a) && !served.iter().any(|s| s.actions.contains(a)) && !(a_model_calls_tools && tools.contains(a))).collect()
+        actions.filter(|a| !CALLED_BY_ROOT_GROUPS.contains(a) && !served.iter().any(|s| s.actions.contains(a)) && !(a_model_calls_tools && tools.contains(a))).collect()
     }
 
     /// The rows of the registered groups.
@@ -214,7 +214,7 @@ mod tests {
         // And every action a row calls, and every MCP tool, is an action of the contract
         assert!(served.iter().flat_map(|s| s.actions).all(|a| actions.contains(a)));
         assert!(TOOLS.iter().all(|t| actions.contains(t)));
-        assert!(AWAITING_ROWS.iter().all(|a| actions.contains(a)));
+        assert!(CALLED_BY_ROOT_GROUPS.iter().all(|a| actions.contains(a)));
         // And an action added to a family crate that nothing uses is reported after them
         assert_eq!(unused(actions.iter().copied().chain(["format_disk"]), &served, &TOOLS), ["format_disk"]);
     }

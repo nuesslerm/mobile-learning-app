@@ -34,7 +34,10 @@
             "error": null
           }
         }
-      }
+      },
+      "actions": [
+        "login_send"
+      ]
     },
     {
       "name": "a login that asks for nothing to be pasted refuses it",

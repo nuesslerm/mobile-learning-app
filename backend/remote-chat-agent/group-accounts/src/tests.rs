@@ -66,9 +66,12 @@ fn error_code(answered: &Value) -> &str {
 #[test]
 fn given_the_served_rows_when_compared_with_the_contracts_then_each_method_is_there_in_order_and_only_git_ai_calls_an_executor_action() {
     // Given the rows of the two groups
-    // Then accounts serves the contract's methods in order with no executor action, and git.ai calls git_diff
+    // Then accounts serves the contract's methods in order calling only cli_detect and the login actions, and git.ai calls git_diff
     assert_eq!(SERVED.iter().map(|s| s.method).collect::<Vec<_>>(), api::METHODS);
-    assert!(SERVED.iter().all(|s| s.actions.is_empty()));
+    assert!(SERVED.iter().all(|s| s.actions.iter().all(|a| ["cli_detect", "login_start", "login_send", "login_status", "login_cancel", "logout"].contains(a))));
+    for action in ["login_start", "login_send", "login_status", "login_cancel", "logout"] {
+        assert!(SERVED.iter().any(|s| s.actions.contains(&action)), "no accounts row calls {action}");
+    }
     assert_eq!(GIT_AI_SERVED.iter().map(|s| (s.method, s.actions.to_vec())).collect::<Vec<_>>(), [(ai::GENERATE_COMMIT_MESSAGE, vec![exec_git::GIT_DIFF])]);
 }
 

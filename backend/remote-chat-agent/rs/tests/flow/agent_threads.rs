@@ -34,6 +34,8 @@ pub(crate) struct Chain {
     pub(crate) cli: ScriptedCli,
     pub(crate) repo: TempRepo,
     pub(crate) exec: Option<RcaExec>,
+    /// The workspace host's home: where the agent CLIs it runs keep their logins.
+    pub(crate) host_home: std::path::PathBuf,
     token: String,
 }
 
@@ -47,9 +49,11 @@ async fn chain_with(env: &Env, options: Options) -> Chain {
     let repo = TempRepo::new();
     let svc = service_spawning(env, Options { at_workspace: true, ..options }, ScriptedSpawner::new());
     let port = svc.listen().await;
-    let exec = tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path()));
+    let host_home = env.home.join("host");
+    std::fs::create_dir_all(&host_home).expect("the host's home is made");
+    let exec = tokio::task::block_in_place(|| RcaExec::serve_with_home(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path(), Some(&host_home)));
     let token = svc.mint("flow mapper").await;
-    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token }
+    Chain { _svc: svc, port, cli, repo, exec: Some(exec), host_home, token }
 }
 
 impl Chain {
@@ -375,13 +379,13 @@ async fn given_the_service_secret_when_it_is_presented_to_the_agent_socket_then_
 
 /// The same chain after its service and executor were stopped and started again over the same home, repository and bearer.
 async fn restarted(old: Chain, env: &Env, options: Options) -> Chain {
-    let Chain { _svc, cli, repo, exec, token, .. } = old;
+    let Chain { _svc, cli, repo, exec, token, host_home, .. } = old;
     drop(exec);
     drop(_svc);
     let svc = service_spawning(env, Options { at_workspace: true, ..options }, ScriptedSpawner::new());
     let port = svc.listen().await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path()));
-    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token }
+    Chain { _svc: svc, port, cli, repo, exec: Some(exec), host_home, token }
 }
 
 fn opencode_said(session: &str, text: &str) -> String {
@@ -504,14 +508,14 @@ async fn given_an_opencode_turn_interrupted_by_a_restart_with_a_prompt_queued_be
 
 /// The chain after its service and executor were stopped: the service starts at once and the executor only after `delay`.
 async fn restarted_with_a_late_executor(old: Chain, env: &Env, options: Options, delay: Duration) -> Chain {
-    let Chain { _svc, cli, repo, exec, token, .. } = old;
+    let Chain { _svc, cli, repo, exec, token, host_home, .. } = old;
     drop(exec);
     drop(_svc);
     let svc = service_spawning(env, Options { at_workspace: true, ..options }, ScriptedSpawner::new());
     let port = svc.listen().await;
     tokio::time::sleep(delay).await;
     let exec = tokio::task::block_in_place(|| RcaExec::serve_on(&format!("http://127.0.0.1:{port}"), "w1", &repo, SECRET, &[], &cli.path()));
-    Chain { _svc: svc, port, cli, repo, exec: Some(exec), token }
+    Chain { _svc: svc, port, cli, repo, exec: Some(exec), host_home, token }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 3)]

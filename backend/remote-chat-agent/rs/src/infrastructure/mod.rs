@@ -15,7 +15,6 @@ pub mod catalog;
 pub mod previews;
 pub mod schedules;
 pub mod provider_dirs;
-pub mod provider_login;
 pub mod secrets;
 pub mod system;
 pub mod workspace_ledger;

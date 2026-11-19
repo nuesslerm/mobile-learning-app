@@ -12,16 +12,16 @@ use std::sync::Arc;
 use std::time::Duration;
 
 pub const SERVED: [Served; 11] = [
-    Served::service(api::PROVIDER_LIST, &[]),
-    Served::service(api::PROVIDER_REFRESH, &[]),
-    Served::service(api::PROVIDER_SELECT, &[]),
-    Served::service(api::AUTH_START, &[]),
-    Served::service(api::AUTH_RESPOND, &[]),
+    Served::service(api::PROVIDER_LIST, &["cli_detect"]),
+    Served::service(api::PROVIDER_REFRESH, &["cli_detect"]),
+    Served::service(api::PROVIDER_SELECT, &["cli_detect"]),
+    Served::service(api::AUTH_START, &["login_start", "login_status", "cli_detect"]),
+    Served::service(api::AUTH_RESPOND, &["login_send"]),
     Served::service(api::AUTH_COMPLETE, &[]),
-    Served::service(api::AUTH_CANCEL, &[]),
+    Served::service(api::AUTH_CANCEL, &["login_cancel"]),
     Served::service(api::AUTH_SUBSCRIBE, &[]),
-    Served::service(api::PROVIDER_LOGOUT, &[]),
-    Served::service(api::USAGE_SUMMARY, &[]),
+    Served::service(api::PROVIDER_LOGOUT, &["login_cancel", "logout", "cli_detect"]),
+    Served::service(api::USAGE_SUMMARY, &["cli_detect"]),
     Served::service(api::RESET_CREDIT, &[]),
 ];
 
@@ -68,24 +68,26 @@ impl AccountsGroup {
         ProviderView { provider: driver.id().to_string(), status: self.status_of(driver), selected, auth_methods: login_methods(driver).into_iter().map(|m| m.name().to_string()).collect() }
     }
 
-    fn list(&self) -> Value {
+    async fn list(&self) -> Value {
+        self.sessions.dirs().refresh().await;
         api::list_result(&DRIVERS.iter().map(|d| self.view_of(*d)).collect::<Vec<_>>())
     }
 
-    fn refresh(&self, params: &Value) -> Answer {
+    async fn refresh(&self, params: &Value) -> Answer {
         if let Some(name) = api::optional_provider(params)? {
             driver_named(&name)?;
         }
-        Ok(self.list())
+        Ok(self.list().await)
     }
 
-    fn select(&self, params: &Value) -> Answer {
+    async fn select(&self, params: &Value) -> Answer {
         let driver = driver_named(&api::provider_param(params)?)?;
+        self.sessions.dirs().refresh().await;
         if !self.sessions.dirs().signed_in(driver) {
             return Err(refuse(code::SIGNED_OUT, format!("{} holds no login; sign it in first", driver.id())));
         }
         self.sessions.dirs().select(driver).map_err(|why| refuse(code::DIRECTORY_UNAVAILABLE, why))?;
-        Ok(self.list())
+        Ok(self.list().await)
     }
 
     async fn start(&self, params: &Value) -> Answer {
@@ -153,7 +155,7 @@ impl AccountsGroup {
         let driver = driver_named(&api::provider_param(params)?)?;
         self.sessions.cancel_for(driver);
         let dirs = self.sessions.dirs();
-        dirs.clear(driver).map_err(|why| refuse(code::DIRECTORY_UNAVAILABLE, why))?;
+        dirs.logout(driver).await.map_err(|why| refuse(code::DIRECTORY_UNAVAILABLE, why))?;
         if dirs.selected() == Some(driver) {
             dirs.deselect().map_err(|why| refuse(code::DIRECTORY_UNAVAILABLE, why))?;
         }
@@ -161,6 +163,7 @@ impl AccountsGroup {
     }
 
     async fn usage(&self) -> Answer {
+        self.sessions.dirs().refresh().await;
         let mut rows = Vec::new();
         for driver in DRIVERS {
             let usage = self.models.usage(driver.id()).await.ok().flatten();
@@ -200,9 +203,9 @@ impl Group for AccountsGroup {
     async fn handle(&self, call: Call<'_>) -> Response {
         let params = call.params;
         let answer = match call.method {
-            api::PROVIDER_LIST => Ok(self.list()),
-            api::PROVIDER_REFRESH => self.refresh(params),
-            api::PROVIDER_SELECT => self.select(params),
+            api::PROVIDER_LIST => Ok(self.list().await),
+            api::PROVIDER_REFRESH => self.refresh(params).await,
+            api::PROVIDER_SELECT => self.select(params).await,
             api::AUTH_START => self.start(params).await,
             api::AUTH_RESPOND => self.respond(params),
             api::AUTH_COMPLETE => self.complete(params).await,

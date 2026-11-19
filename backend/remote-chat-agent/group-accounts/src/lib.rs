@@ -4,6 +4,7 @@
 //! goes through `ModelApi`. The ports are this crate's; the service implements them and `testing` doubles them.
 mod accounts;
 mod git_ai;
+mod host;
 mod ports;
 mod sessions;
 
@@ -13,6 +14,7 @@ pub mod testing;
 mod tests;
 
 pub use accounts::{AccountsGroup, SERVED};
+pub use host::{HostDirs, HostLogin};
 pub use git_ai::{commit_message_prompt, tidy_message, GitAiGroup, GIT_AI_SERVED};
 pub use ports::{Completed, Completion, LoginRun, ModelApi, ModelError, ProviderDirs, ProviderLogin};
 pub use sessions::Sessions;

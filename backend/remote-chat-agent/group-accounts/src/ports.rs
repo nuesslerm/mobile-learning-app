@@ -10,7 +10,14 @@ use std::sync::Arc;
 
 /// The directory each provider keeps its login in, on the service's volume. The service reads whether a login is there and removes it on a
 /// logout; the CLI writes it. It never reads a token, so the port has no method that returns one.
+#[async_trait]
 pub trait ProviderDirs: Send + Sync {
+    /// Reads again where the logins are kept, for a store that is somewhere else (an executor's home); the local directories have nothing to read.
+    async fn refresh(&self) {}
+    /// Ends the provider's login where it is kept; the local directories empty it with `clear`.
+    async fn logout(&self, driver: Driver) -> Result<(), String> {
+        self.clear(driver)
+    }
     /// Makes the provider's directory if it is not there.
     fn ensure(&self, driver: Driver) -> Result<(), String>;
     /// Whether the provider's directory holds a login.

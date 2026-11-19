@@ -20,7 +20,7 @@ const URL_LINE: &str = "Open https://login.example.test/device to sign in.";
 const CODE_LINE: &str = "Enter the code ABCD-1234 there.";
 const PASTE_LINE: &str = "Open https://login.example.test/device and paste the code.";
 /// The variables a scripted CLI keeps the value of: the provider variables of every provider, and the service's own.
-const WATCHED: [&str; 9] = ["CLAUDE_CONFIG_DIR", "CODEX_HOME", "XDG_DATA_HOME", "XDG_CONFIG_HOME", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "KIMI_API_KEY", "CHAT_AGENT_API_SECRET", "GH_TOKEN"];
+const WATCHED: [&str; 10] = ["HOME", "CLAUDE_CONFIG_DIR", "CODEX_HOME", "XDG_DATA_HOME", "XDG_CONFIG_HOME", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "KIMI_API_KEY", "CHAT_AGENT_API_SECRET", "GH_TOKEN"];
 
 /// What the service's environment holds that no provider but its own may see, as a deployed service has it.
 fn service_env(env: &Env) {
@@ -31,12 +31,12 @@ fn service_env(env: &Env) {
 
 /// Codex's login: prints the address and the code, waits a moment as a person would, then keeps its token in `CODEX_HOME`.
 fn codex_login(token: &str) -> Turn {
-    Turn::default().then_line(URL_LINE).then_line(CODE_LINE).then_sleeping(500).then_writing_credential("CODEX_HOME", "auth.json", &format!("{{\"access_token\":\"{token}\"}}")).logging_env(&WATCHED).listing_env(&["CODEX_HOME"])
+    Turn::default().then_line(URL_LINE).then_line(CODE_LINE).then_sleeping(500).then_writing_credential("HOME", ".codex/auth.json", &format!("{{\"access_token\":\"{token}\"}}")).logging_env(&WATCHED).listing_env(&[])
 }
 
 /// Claude's paste login: prints the address, reads the pasted code and keeps it as its token in `CLAUDE_CONFIG_DIR`.
 fn claude_login() -> Turn {
-    Turn::default().then_line(PASTE_LINE).then_reading_a_line().then_writing_credential("CLAUDE_CONFIG_DIR", ".credentials.json", "{\"access_token\":\"{paste}\"}").logging_env(&WATCHED).listing_env(&["CLAUDE_CONFIG_DIR"])
+    Turn::default().then_line(PASTE_LINE).then_reading_a_line().then_writing_credential("HOME", ".claude/.credentials.json", "{\"access_token\":\"{paste}\"}").logging_env(&WATCHED).listing_env(&[])
 }
 
 /// A turn that says one thing and keeps what it could see: the provider variables and the files of the directories it was told of.
@@ -92,8 +92,8 @@ async fn given_a_fake_device_flow_when_a_provider_signs_in_and_a_turn_runs_then_
     let env = Env::new(&[]);
     service_env(&env);
     let chain = chain(&env).await;
-    let root = env.providers_root();
-    chain.cli.script("claude", &Script::of(vec![claude_login(), watching(Turn::replaying(&[said("hello")]), &["CLAUDE_CONFIG_DIR"])]));
+    let root = chain.host_home.clone();
+    chain.cli.script("claude", &Script::of(vec![claude_login(), watching(Turn::replaying(&[said("hello")]), &["CLAUDE_CONFIG_DIR"])]).printing_version("0.0.0-flow"));
     let (mut agent, mut seen) = (chain.agent().await, Seen::default());
     // When Claude signs in by pasting a code (the CLI keeps it as its token), and a turn then runs on it
     sign_in_claude(&mut agent, &mut seen, "pasted-secret-code-1").await;
@@ -102,10 +102,10 @@ async fn given_a_fake_device_flow_when_a_provider_signs_in_and_a_turn_runs_then_
     seen.ask(&mut agent, "turn.start", json!({"thread": "t1", "workspace": "w1", "driver": "claudeAgent", "prompt": "hi"})).await;
     let events = agent.events_through("turn.finished").await;
     // Then the CLI itself wrote the login below the directory the service named for it, and the pasted code is in that file only
-    assert_eq!(credential_text(&root, "claude", ".credentials.json"), "{\"access_token\":\"pasted-secret-code-1\"}");
+    assert_eq!(credential_text(&root, ".claude", ".credentials.json"), "{\"access_token\":\"pasted-secret-code-1\"}");
     let (login, turn) = (start(&chain, "claude", 0), start(&chain, "claude", 1));
     assert_eq!(login.argv, ["auth", "login"]);
-    assert_eq!(login.env["CLAUDE_CONFIG_DIR"], Some(root.join("claude").to_string_lossy().into_owned()));
+    assert_eq!(login.env["HOME"], Some(root.to_string_lossy().into_owned()));
     // And the turn ran at the workspace host's root, with the host's own environment
     assert_eq!(turn.cwd, chain.repo.path().to_string_lossy());
     // And the provider reads signed in and selected, the turn finished, and no frame the mapper saw holds the pasted code or any key
@@ -123,9 +123,9 @@ async fn given_a_provider_signed_in_when_it_logs_out_then_its_login_file_is_gone
     // Given Codex and Claude signed in
     let env = Env::new(&[]);
     let chain = chain(&env).await;
-    let root = env.providers_root();
-    chain.cli.script("codex", &Script::of(vec![codex_login("codex-token-3")]));
-    chain.cli.script("claude", &Script::of(vec![claude_login()]));
+    let root = chain.host_home.clone();
+    chain.cli.script("codex", &Script::of(vec![codex_login("codex-token-3")]).printing_version("0.0.0-flow"));
+    chain.cli.script("claude", &Script::of(vec![claude_login()]).printing_version("0.0.0-flow"));
     let (mut agent, mut seen) = (chain.agent().await, Seen::default());
     sign_in_codex(&mut agent, &mut seen).await;
     sign_in_claude(&mut agent, &mut seen, "claude-token-4").await;
@@ -133,7 +133,7 @@ async fn given_a_provider_signed_in_when_it_logs_out_then_its_login_file_is_gone
     let out = seen.ask(&mut agent, "provider.logout", json!({"provider": "codex"})).await;
     // Then its login file is gone from the volume, Claude's stays, and the list says so
     assert_eq!(out["result"]["provider"]["status"], json!("signed_out"));
-    assert!(!root.join("codex/auth.json").exists() && root.join("claude/.credentials.json").exists());
+    assert!(!root.join(".codex/auth.json").exists() && root.join(".claude/.credentials.json").exists());
     let listed = seen.ask(&mut agent, "provider.list", json!({})).await;
     let status = |name: &str| listed["result"]["providers"].as_array().unwrap().iter().find(|p| p["provider"] == name).unwrap()["status"].clone();
     assert_eq!((status("codex"), status("claudeAgent")), (json!("signed_out"), json!("signed_in")));
@@ -144,7 +144,7 @@ async fn given_a_login_command_that_fails_when_it_ends_then_the_session_says_why
     // Given Codex's login scripted to print its address and then to fail with an error, as a login whose code expired does
     let env = Env::new(&[]);
     let chain = chain(&env).await;
-    chain.cli.script("codex", &Script::of(vec![Turn::default().then_line(URL_LINE).complaining("error: the device code expired").exiting(1)]));
+    chain.cli.script("codex", &Script::of(vec![Turn::default().then_line(URL_LINE).complaining("error: the device code expired").exiting(1)]).printing_version("0.0.0-flow"));
     let (mut agent, mut seen) = (chain.agent().await, Seen::default());
     // When Codex's login starts and its command fails
     let started = auth(&seen.ask(&mut agent, "provider.auth.start", json!({"provider": "codex"})).await);
@@ -152,7 +152,7 @@ async fn given_a_login_command_that_fails_when_it_ends_then_the_session_says_why
     // Then the session failed with the error output of the command, and Codex holds no login
     assert_eq!(done["status"], json!("failed"));
     assert!(done["error"].as_str().unwrap().contains("the device code expired"), "{done}");
-    assert!(!env.providers_root().join("codex/auth.json").exists());
+    assert!(!chain.host_home.join(".codex/auth.json").exists());
 }
 
 fn contract_methods() -> BTreeSet<&'static str> {
@@ -167,8 +167,8 @@ fn recorded() -> Vec<Fixture> {
 /// token is kept after half a second), Claude by paste.
 async fn replay_rig(env: &Env) -> Chain {
     let chain = chain(env).await;
-    chain.cli.script("codex", &Script::of(vec![codex_login("recorded-codex-token")]));
-    chain.cli.script("claude", &Script::of(vec![claude_login()]));
+    chain.cli.script("codex", &Script::of(vec![codex_login("recorded-codex-token")]).printing_version("0.0.0-flow"));
+    chain.cli.script("claude", &Script::of(vec![claude_login()]).printing_version("0.0.0-flow"));
     chain
 }
 

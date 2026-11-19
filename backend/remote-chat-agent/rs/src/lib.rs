@@ -20,15 +20,14 @@ use infrastructure::ws_channel::ExecutorSockets;
 use rca_agent_core::{DeviceBearers, Group};
 use rca_group_agent::host::CliLauncher;
 use rca_exec_channel::Registry;
-use rca_group_accounts::{AccountsGroup, GitAiGroup, ModelApi, ProviderDirs, ProviderLogin, Sessions};
+use rca_group_accounts::{AccountsGroup, GitAiGroup, HostDirs, HostLogin, ModelApi, ProviderDirs, Sessions};
 use rca_group_agent::{AgentLifecycleGroup, AgentQueueGroup, AgentRequestsGroup, AgentThreadsGroup, Runner};
 use rca_service_core::application::agent_groups::{ActivityGroup, EngineThreads, FilesEditGroup, FilesGroup, ServiceGroup, StateGroup, StateHub, StateStore, StateWatchGroup, TerminalGroup, GitGroup, HostedAuthGroup, HostedCloneGroup, HostedPrGroup, ExecutorCredentials, WorkspaceGroup, WorktreesGroup, ScheduleClock, ScheduleGroup, ScheduleIds, ScheduleStore, ScheduleWatchGroup, Schedules, ThreadsTrigger, AttachmentClock, AttachmentIds, Attachments, AttachmentsGroup, BlobStore, Catalog, CatalogGroup, CatalogSpeech, StagesAttachments, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews};
 use std::sync::Arc;
 
-/// What the `accounts` and `git.ai` groups stand on: the providers' directories, the start of a CLI's login and the model the service asks.
+/// What the `accounts` and `git.ai` groups stand on: where the choice of the default provider is kept, and the model the service asks. The logins are the executor's.
 pub struct Accounts {
     pub dirs: Arc<dyn ProviderDirs>,
-    pub login: Arc<dyn ProviderLogin>,
     pub models: Arc<dyn ModelApi>,
 }
 
@@ -38,7 +37,6 @@ impl Accounts {
         let root = settings.providers_root.as_str();
         Accounts {
             dirs: Arc::new(infrastructure::provider_dirs::ProviderFiles::at(root)),
-            login: Arc::new(infrastructure::provider_login::CliLogin::at(root)),
             models: Arc::new(infrastructure::model_api::HttpModelApi::from_settings(settings, outbound)),
         }
     }
@@ -107,7 +105,7 @@ pub fn agent_api(config: &Config, launcher: Arc<dyn CliLauncher>, state: Arc<dyn
         Arc::new(HostedCloneGroup::new(executors.clone())),
         Arc::new(HostedAuthGroup::new(executors.clone(), Arc::new(ExecutorCredentials::new(executors.clone())))),
         Arc::new(GitAiGroup::new(executors.clone(), accounts.models.clone())),
-        Arc::new(AccountsGroup::new(Arc::new(Sessions::new(accounts.dirs, accounts.login)), accounts.models)),
+        Arc::new(AccountsGroup::new(Arc::new(Sessions::new(Arc::new(HostDirs::new(executors.clone(), accounts.dirs)), Arc::new(HostLogin::new(executors.clone())))), accounts.models)),
         agent_threads,
         Arc::new(AgentRequestsGroup::new(runner.clone())),
         Arc::new(AgentQueueGroup::new(runner.clone())),

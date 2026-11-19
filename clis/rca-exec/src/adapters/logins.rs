@@ -151,6 +151,10 @@ impl Logins {
             }
             std::thread::sleep(std::time::Duration::from_millis(20));
         }
+        // A CLI whose logout leaves its credential file behind has not logged out: the file is what its turns read
+        if let Some((_, file)) = CREDENTIAL_FILES.iter().find(|(p, _)| *p == args.program) {
+            let _ = std::fs::remove_file(home.join(file));
+        }
         Ok(signed_in(home, &args.program))
     }
 }

@@ -1778,6 +1778,7 @@ dependencies = [
  "rca-agent-core",
  "rca-cli-driver",
  "rca-exec-channel",
+ "serde",
  "serde_json",
  "tokio",
 ]

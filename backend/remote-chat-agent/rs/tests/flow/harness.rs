@@ -20,7 +20,6 @@ use remote_chat_agent_core::application::ports::Ledgers;
 use rca_group_accounts::testing::ScriptedModelApi;
 use rca_group_schedules::testing::{CountingIds, FakeClock};
 use rca_service::infrastructure::provider_dirs::ProviderFiles;
-use rca_service::infrastructure::provider_login::CliLogin;
 use rca_service::Accounts;
 use rca_service_core::application::environment::Environment;
 use rca_service_core::testing::MapEnv;
@@ -66,21 +65,6 @@ impl Env {
     /// What the service is given as its environment.
     pub fn source(&self) -> Arc<dyn Environment> {
         self.map.clone()
-    }
-
-    /// The variables the real provider CLIs choose from in this flow, a value: the machine's own without what the service reads or the
-    /// providers sign in with, this flow's `HOME`, then what the flow sets.
-    pub fn inherited(&self) -> Vec<(String, String)> {
-        let names = Settings::names();
-        let hidden: Vec<&str> = names.iter().map(String::as_str).chain(["GH_TOKEN", "GITHUB_TOKEN", "HOME"]).collect();
-        let mut vars: Vec<(String, String)> = std::env::vars().filter(|(k, _)| !hidden.contains(&k.as_str())).collect();
-        vars.push(("HOME".to_string(), self.home.display().to_string()));
-        vars.extend(self.map.all());
-        if let Some(path) = self.path.lock().unwrap_or_else(|e| e.into_inner()).clone() {
-            vars.retain(|(k, _)| k != "PATH");
-            vars.push(("PATH".to_string(), path));
-        }
-        vars
     }
 
     /// Puts `path` (the scripted programs first) in the `PATH` of everything this flow starts, as a value.
@@ -176,7 +160,7 @@ pub fn agent_api_for(env: &Env, config: &Config, spawner: Arc<dyn Spawner>) -> A
 /// `agent_api_for` with the model the `git.ai` group asks: the providers' directories and logins are the real adapters under the flow's home.
 pub fn agent_api_with(env: &Env, config: &Config, launcher: Arc<dyn CliLauncher>, models: Arc<ScriptedModelApi>, clock: Arc<FakeClock>) -> AgentApi {
     let root = env.home.join("providers").to_string_lossy().into_owned();
-    let accounts = Accounts { dirs: Arc::new(ProviderFiles::at(&root)), login: Arc::new(CliLogin::with_inherited(&root, env.inherited())), models };
+    let accounts = Accounts { dirs: Arc::new(ProviderFiles::at(&root)), models };
     let state = Arc::new(rca_service::infrastructure::agent_state::StateFile::at(env.home.join(".local/state/rca/agent-state.json")));
     let bearers = Arc::new(rca_service::infrastructure::device_bearers::BearerFile::at(env.home.join(".local/state/rca/device-bearers.json")));
     let schedules = rca_service::ScheduleParts { store: Arc::new(rca_service::infrastructure::schedules::ScheduleFile::at(env.home.join(".local/state/rca/schedules.json"))), clock, ids: Arc::new(CountingIds::default()) };

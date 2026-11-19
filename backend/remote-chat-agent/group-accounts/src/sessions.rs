@@ -138,6 +138,7 @@ impl Sessions {
                 });
             }
             let ended = finish.await;
+            dirs.refresh().await;
             let kept = dirs.signed_in(driver);
             // The first login becomes the default provider before the session reads `succeeded`, so a caller that waited sees it chosen
             if ended.is_ok() && kept && dirs.selected().is_none() {
