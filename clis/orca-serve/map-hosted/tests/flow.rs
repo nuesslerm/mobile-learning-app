@@ -737,6 +737,11 @@ fn given_remotes_that_name_no_github_origin_when_the_slug_is_read_then_it_is_nul
     assert_eq!(read(&[("origin", "ssh://git@ssh.github.com:443/acme/app.git")]), json!({"owner": "acme", "repo": "app", "host": "github.com"}));
     // Given a local origin or none, then the remote standing in for it answers, never upstream
     assert_eq!(read(&[("origin", "/srv/local.git"), ("fork", "https://github.com/me/app.git")]), json!({"owner": "me", "repo": "app", "host": "github.com"}));
+    // Given an origin cloned from a file URL, with or without localhost, then it is local too and the fork stands in
+    assert_eq!(read(&[("origin", "file:///srv/local.git"), ("fork", "https://github.com/me/app")]), json!({"owner": "me", "repo": "app", "host": "github.com"}));
+    assert_eq!(read(&[("origin", "file://localhost/srv/local.git"), ("fork", "https://github.com/me/app")]), json!({"owner": "me", "repo": "app", "host": "github.com"}));
+    // Given an origin the host's URL parser refuses, then it is not a network remote either
+    assert_eq!(read(&[("origin", "https://git hub.com/a/b"), ("fork", "https://github.com/me/app")]), json!({"owner": "me", "repo": "app", "host": "github.com"}));
     assert_eq!(read(&[("upstream", "https://github.com/acme/app"), ("zeta", "git@github.com:z/app.git")]), json!({"owner": "z", "repo": "app", "host": "github.com"}));
     assert_eq!(read(&[("upstream", "https://github.com/acme/app")]), Value::Null);
     // Given git refusing to list them, then the host's swallowed error is null too

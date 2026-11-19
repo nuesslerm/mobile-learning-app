@@ -64,6 +64,68 @@ fn resolve_dots(path: &str) -> String {
     format!("/{}", parts.join("/"))
 }
 
+fn forbidden_host(c: char) -> bool {
+    matches!(c, '\0' | '\t' | '\n' | '\r' | ' ' | '#' | '/' | ':' | '<' | '>' | '?' | '@' | '[' | '\\' | ']' | '^' | '|')
+}
+
+fn percent_decode(text: &str) -> String {
+    let bytes = text.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        let hex = |b: u8| (b as char).to_digit(16);
+        match (bytes[i], bytes.get(i + 1).copied().and_then(hex), bytes.get(i + 2).copied().and_then(hex)) {
+            (b'%', Some(hi), Some(lo)) => {
+                out.push((hi * 16 + lo) as u8);
+                i += 3;
+            }
+            (b, ..) => {
+                out.push(b);
+                i += 1;
+            }
+        }
+    }
+    String::from_utf8_lossy(&out).into_owned()
+}
+
+/// The hostname the parser keeps, or none where it throws: a special host is percent-decoded and lowercased, an opaque one kept as written.
+fn parse_host(raw: &str, is_special: bool) -> Option<String> {
+    if raw.starts_with('[') {
+        return raw.ends_with(']').then(|| raw.to_ascii_lowercase());
+    }
+    if !is_special {
+        return (!raw.chars().any(forbidden_host)).then(|| raw.to_string());
+    }
+    let domain = percent_decode(raw).to_lowercase();
+    (!domain.chars().any(|c| forbidden_host(c) || c.is_ascii_control() || c == '%')).then_some(domain)
+}
+
+fn url_path(raw: &str, is_special: bool) -> String {
+    if raw.is_empty() {
+        return if is_special { "/".to_string() } else { String::new() };
+    }
+    let raw = if raw.starts_with('/') { raw.to_string() } else { format!("/{raw}") };
+    resolve_dots(&encode_path(&raw))
+}
+
+/// A `file:` URL: only what follows `//` is its host, a drive letter there is path, and `localhost` is no host.
+fn file_url(rest: &str) -> Option<Url> {
+    let (authority, tail) = match rest.strip_prefix("//") {
+        Some(after) => after.split_at(after.find(['/', '?', '#']).unwrap_or(after.len())),
+        None => ("", rest),
+    };
+    let bytes = authority.as_bytes();
+    let drive = bytes.len() == 2 && bytes[0].is_ascii_alphabetic() && matches!(bytes[1], b':' | b'|');
+    let (hostname, tail) = if drive || authority.is_empty() {
+        (String::new(), if drive { rest.trim_start_matches('/') } else { tail })
+    } else {
+        let hostname = parse_host(authority, true)?;
+        (if hostname == "localhost" { String::new() } else { hostname }, tail)
+    };
+    let raw_path = &tail[..tail.find(['?', '#']).unwrap_or(tail.len())];
+    Some(Url { scheme: "file".into(), host: hostname.clone(), hostname, path: url_path(raw_path, true) })
+}
+
 /// An absolute URL with an authority, or none where the host's parser throws or gives no authority.
 fn parse_url(input: &str) -> Option<Url> {
     let input: String = input.trim_matches(|c: char| c <= ' ').chars().filter(|c| !matches!(c, '\t' | '\n' | '\r')).collect();
@@ -72,14 +134,12 @@ fn parse_url(input: &str) -> Option<Url> {
     if !scheme.starts_with(|c: char| c.is_ascii_alphabetic()) || !scheme.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '-' | '.')) {
         return None;
     }
-    let rest = &input[colon + 1..];
     let is_special = special(&scheme);
-    let after = if is_special {
-        rest.trim_start_matches(['/', '\\'])
-    } else {
-        rest.strip_prefix("//")?
-    };
-    let rest = if is_special { after.replace('\\', "/") } else { after.to_string() };
+    let rest = if is_special { input[colon + 1..].replace('\\', "/") } else { input[colon + 1..].to_string() };
+    if scheme == "file" {
+        return file_url(&rest);
+    }
+    let rest = if is_special { rest.trim_start_matches('/') } else { rest.strip_prefix("//")? };
     let end = rest.find(['/', '?', '#']).unwrap_or(rest.len());
     let authority = &rest[..end];
     let tail = &rest[end..];
@@ -100,15 +160,14 @@ fn parse_url(input: &str) -> Option<Url> {
     if is_special && hostname.is_empty() {
         return None;
     }
-    let hostname = if is_special { hostname.to_ascii_lowercase() } else { hostname.to_string() };
+    let hostname = parse_host(hostname, is_special)?;
     let port = port.filter(|p| Some(p.as_str()) != default_port(&scheme));
     let host = match &port {
         Some(p) => format!("{hostname}:{p}"),
         None => hostname.clone(),
     };
     let raw_path = &tail[..tail.find(['?', '#']).unwrap_or(tail.len())];
-    let path = if raw_path.is_empty() { if is_special { "/".to_string() } else { String::new() } } else { resolve_dots(&encode_path(raw_path)) };
-    Some(Url { scheme, host, hostname, path })
+    Some(Url { scheme, host, hostname, path: url_path(raw_path, is_special) })
 }
 
 fn strip_git_suffix_ci(name: &str) -> &str {
@@ -288,5 +347,31 @@ mod tests {
         assert_eq!(stand_in(&remotes(&[("upstream", "https://github.com/a/b"), ("zeta", "git@github.com:z/app.git"), ("Alpha", "/local")])), Some("zeta".into()));
         assert_eq!(stand_in(&remotes(&[("zeta", "https://github.com/z/app"), ("Beta", "https://github.com/b/app"), ("alpha", "C:/x")])), Some("Beta".into()));
         assert_eq!(stand_in(&remotes(&[("b", "host:path"), ("a", "host:/")])), Some("b".into()));
+        assert_eq!(stand_in(&remotes(&[("origin", "file:///srv/local.git"), ("fork", "https://github.com/me/app")])), Some("fork".into()));
+    }
+
+    #[test]
+    fn given_remote_urls_when_the_host_asks_whether_each_is_a_network_remote_then_file_urls_without_a_host_and_invalid_urls_are_not() {
+        for url in [
+            "file:///srv/x.git",
+            "file://localhost/srv/x.git",
+            "FILE://LocalHost/srv/x.git",
+            "file://C:/repos/app.git",
+            "file://user@server/srv/x.git",
+            "file://server:22/srv/x.git",
+            "https://git hub.com/a/b",
+            "https://github.com:443:/a/b",
+            "https://git%20hub.com/a/b",
+            "ssh://git hub/a/b",
+            "https://github.com/",
+            "file:////srv/x",
+            "ssh:///x/y",
+            "https://%zz.com/a",
+        ] {
+            assert!(!network_remote(url), "{url}");
+        }
+        for url in ["file://server/share/x.git", "file:/srv/x.git", "https://github%2Ecom/a/b", "https://[::1]:8443/a/b", "ssh://git@host/a/b", "https://a@b@github.com/x/y", "host:path"] {
+            assert!(network_remote(url), "{url}");
+        }
     }
 }

@@ -582,7 +582,6 @@ pub fn parse_auth_status(text: &str) -> AuthStatus {
     status
 }
 
-/// A sign-in prompt: the one-time code (GitHub) and the address to open. `None` until the address has been printed.
 /// The remotes `git remote -v` printed, in its order: each name once, with its first fetch URL (a partial clone adds a ` [filter]` suffix).
 pub fn remotes_of(printed: &str) -> Vec<Value> {
     let mut seen: Vec<&str> = Vec::new();
@@ -604,6 +603,7 @@ pub fn remotes_of(printed: &str) -> Vec<Value> {
     remotes
 }
 
+/// A sign-in prompt: the one-time code (GitHub) and the address to open. `None` until the address has been printed.
 pub fn parse_login_prompt(text: &str) -> Option<(Option<String>, String)> {
     let url = first_url(text)?.to_string();
     let code = text.split("one-time code:").nth(1).and_then(|rest| rest.split_whitespace().next()).map(str::to_string);

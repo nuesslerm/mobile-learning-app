@@ -209,7 +209,7 @@ pub fn resolve_thread(t: &Target, params: &Value) -> Result<Value, Failure> {
 }
 
 /// `github.repoSlug`: the host reads the origin remote (or the remote standing in for it) locally, answering `{owner, repo, host}` for a github.com
-/// repository and null otherwise; it swallows git's errors, so a refused read is null too. Enterprise hosts and SSH host aliases stay null here.
+/// repository and null otherwise; it swallows git's errors, so a refused read is null too. Enterprise hosts and SSH host aliases stay null here (docs/gaps/orca-hosted-mapper-limits.md).
 pub fn repo_slug(t: &Target) -> Result<Value, Failure> {
     let remotes = match t.try_ask(pr::REMOTES, json!({})) {
         Ok(v) => v["remotes"].as_array().cloned().unwrap_or_default(),
