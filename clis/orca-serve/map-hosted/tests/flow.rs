@@ -363,6 +363,24 @@ fn given_a_repository_with_assignable_accounts_when_they_are_listed_then_each_is
 }
 
 #[test]
+fn given_review_threads_when_one_is_resolved_or_reopened_then_the_answer_is_whether_github_did_and_a_failure_is_false() {
+    let mut rig = Rig::new();
+    // When the phone resolves a thread by its node id, and reopens it for a named repository
+    let resolved = rig.ok("github.resolveReviewThread", json!({"threadId": "PRRT_1", "resolve": true}));
+    let reopened = rig.ok("github.resolveReviewThread", json!({"threadId": "PRRT_1", "resolve": false, "prRepo": {"owner": "acme", "repo": "app"}}));
+    // Then both are true, and rca was asked with the thread alone (no number), the second for the named repository
+    assert_eq!((resolved, reopened), (json!(true), json!(true)));
+    let asked = rig.agent.requests().into_iter().filter(|(m, _)| m == "pr.resolveThread").map(|(_, p)| p).collect::<Vec<_>>();
+    assert_eq!((asked[0]["thread"].clone(), asked[0].get("number").cloned(), asked[1]["resolved"].clone(), asked[1]["repo"].clone()), (json!("PRRT_1"), None, json!(false), json!("acme/app")));
+    // And a thread GitHub cannot resolve answers false, as the host does
+    assert_eq!(rig.ok("github.resolveReviewThread", json!({"threadId": "nope", "resolve": true})), json!(false));
+    // And a missing selector or thread is refused, an unknown repository is repo_not_found
+    assert_eq!(rig.err("github.resolveReviewThread", json!({"repo": "", "threadId": "PRRT_1"})).1, "Missing repo selector");
+    assert_eq!(rig.err("github.resolveReviewThread", json!({"resolve": true})).0, "invalid_argument");
+    assert_eq!(rig.err("github.resolveReviewThread", json!({"repo": "nowhere", "threadId": "PRRT_1"})).0, "repo_not_found");
+}
+
+#[test]
 fn given_a_branch_with_an_open_and_an_older_pull_request_when_its_review_is_read_then_it_is_the_open_one_in_the_neutral_shape_with_the_outcome_when_asked() {
     // Given an open pull request that passed its checks and was approved, and an older merged one of the same branch
     let mut rig = Rig::new();

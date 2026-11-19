@@ -58,7 +58,6 @@
         "orca-github.repoSlug",
         "orca-github.requestPRReviewers",
         "orca-github.rerunPRChecks",
-        "orca-github.resolveReviewThread",
         "orca-github.setPRAutoMerge",
         "orca-github.setPRFileViewed",
         "orca-github.updateIssue",

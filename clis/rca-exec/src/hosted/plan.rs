@@ -619,7 +619,10 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             let path = reaction_collection(op, *number, *target, *comment_id)?;
             one(api("POST", format!("{path}?name={}", award_name(content))))
         }
-        HostedCall::PrResolveThread { number, thread, resolved } => one(api("PUT", mr(*number, &format!("/discussions/{thread}?resolved={resolved}")))),
+        HostedCall::PrResolveThread { number, thread, resolved } => {
+            let number = number.ok_or("`number` is required on GitLab: a discussion belongs to one merge request")?;
+            one(api("PUT", mr(number, &format!("/discussions/{thread}?resolved={resolved}"))))
+        }
         HostedCall::PrUpdateBranch { number, .. } => one(api("PUT", mr(*number, "/rebase"))),
         HostedCall::PrMerge { number, method, auto, delete_branch, match_head_commit } => {
             if *method == MergeMethod::Rebase {

@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 160,
+    "served": 161,
     "pending": 4,
-    "notOffered": 143,
+    "notOffered": 142,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -2329,10 +2329,17 @@
       "kind": "rpc",
       "name": "github.resolveReviewThread",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the phone sends only the thread id, and rca's pr.resolveThread needs the pull request number too, which this host would have to keep an index of from earlier reads and otherwise guess by scanning open pull requests. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: GitHub's resolveReviewThread mutation takes only the thread's node id, so the number is not needed on GitHub; served in phase 1.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.resolveReviewThread-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.setPRAutoMerge",

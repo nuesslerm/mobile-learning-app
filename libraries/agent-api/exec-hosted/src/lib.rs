@@ -167,7 +167,7 @@ pub const ACTIONS: &[Action] = &[
         ],
         ["number", "content"]
     ),
-    action!(PR_RESOLVE_THREAD, "Resolve a review thread, or with `resolved: false` reopen it.", [NUMBER, THREAD, Property { name: "resolved", kind: "boolean", about: "Default true" }], ["number", "thread"]),
+    action!(PR_RESOLVE_THREAD, "Resolve a review thread, or with `resolved: false` reopen it. GitHub names a thread by its node id alone, so `number` is needed on GitLab only.", [NUMBER, THREAD, Property { name: "resolved", kind: "boolean", about: "Default true" }], ["thread"]),
     action!(PR_UPDATE_BRANCH, "Bring the pull or merge request's branch up to date with its base.", [NUMBER, Property { name: "rebase", kind: "boolean", about: "Rebase instead of merging the base in" }], ["number"]),
     action!(
         PR_MERGE,
@@ -447,7 +447,7 @@ pub enum HostedCall {
     PrRequestReviewers { number: u64, add: Vec<String>, remove: Vec<String> },
     PrLabels { number: u64, add: Vec<String>, remove: Vec<String> },
     PrReact { number: u64, target: ReactTarget, comment_id: Option<u64>, content: String, undo: bool },
-    PrResolveThread { number: u64, thread: String, resolved: bool },
+    PrResolveThread { number: Option<u64>, thread: String, resolved: bool },
     PrUpdateBranch { number: u64, rebase: bool },
     PrMerge { number: u64, method: MergeMethod, auto: bool, delete_branch: bool, match_head_commit: Option<String> },
     PrStack { number: u64 },
@@ -641,7 +641,13 @@ impl HostedOp {
                 }
                 HostedCall::PrReact { number: number(a)?, target, comment_id, content, undo: flag(a, "undo") }
             }
-            PR_RESOLVE_THREAD => HostedCall::PrResolveThread { number: number(a)?, thread: thread_of()?, resolved: a.get("resolved").and_then(Value::as_bool).unwrap_or(true) },
+            PR_RESOLVE_THREAD => {
+                let number = match (provider, a.get("number").filter(|n| !n.is_null())) {
+                    (Provider::Github, None) => None,
+                    _ => Some(number(a)?),
+                };
+                HostedCall::PrResolveThread { number, thread: thread_of()?, resolved: a.get("resolved").and_then(Value::as_bool).unwrap_or(true) }
+            }
             PR_UPDATE_BRANCH => HostedCall::PrUpdateBranch { number: number(a)?, rebase: flag(a, "rebase") },
             PR_MERGE => {
                 let sha = text_arg(a, "match_head_commit", |s| if (7..=64).contains(&s.len()) && s.bytes().all(|b| b.is_ascii_hexdigit()) { Ok(()) } else { Err(bad("`match_head_commit` must be 7-64 hex characters")) })?;

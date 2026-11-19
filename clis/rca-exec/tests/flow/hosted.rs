@@ -577,3 +577,25 @@ fn given_a_thread_with_more_comments_whose_further_page_does_not_advance_when_th
     // Then
     assert!(err.message.contains("cursor did not advance"), "{}", err.message);
 }
+
+#[test]
+fn given_a_review_thread_named_by_its_node_id_alone_when_it_is_resolved_then_github_needs_no_number_and_gitlab_refuses_before_starting() {
+    // Given the recorded GitHub resolve, asked without the pull request's number
+    let b = bench();
+    let mut args = baseline(exec_hosted::PR_RESOLVE_THREAD, "github");
+    args.as_object_mut().unwrap().remove("number");
+    let recorded = fixtures().into_iter().find(|f| f.action == exec_hosted::PR_RESOLVE_THREAD).unwrap().exchanges.into_iter().find(|e| e.request["args"]["provider"] == "github" && e.response["ok"] == true).unwrap();
+    b.clis.replay(&recorded.cli, &[]);
+    // When it is resolved
+    let resolved = call(&b.ex, "r1", exec_hosted::PR_RESOLVE_THREAD, args.clone());
+    // Then gh resolves it by the thread id
+    assert!(resolved.is_ok(), "{resolved:?}");
+    assert_eq!(b.clis.argvs().len(), 1);
+    // And the same request for GitLab is refused for the missing number, with nothing started
+    let g = bench();
+    let mut gitlab = baseline(exec_hosted::PR_RESOLVE_THREAD, "gitlab");
+    gitlab.as_object_mut().unwrap().remove("number");
+    let refused = call(&g.ex, "r2", exec_hosted::PR_RESOLVE_THREAD, gitlab).unwrap_err();
+    assert!(refused.message.contains("`number`"), "{refused:?}");
+    no_start(&g);
+}

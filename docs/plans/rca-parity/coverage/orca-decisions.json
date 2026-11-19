@@ -853,9 +853,7 @@
       "decidedBy": "M12"
     },
     "rpc:github.resolveReviewThread": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the phone sends only the thread id, and rca's pr.resolveThread needs the pull request number too, which this host would have to keep an index of from earlier reads and otherwise guess by scanning open pull requests. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: GitHub's resolveReviewThread mutation takes only the thread's node id, so the number is not needed on GitHub; served in phase 1.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:accounts.list": {
       "oracle": "mimic"

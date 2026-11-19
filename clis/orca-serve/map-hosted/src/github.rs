@@ -60,6 +60,17 @@ pub fn list_labels(t: &Target, params: &Value) -> Result<Value, Failure> {
     }
 }
 
+/// The host resolves (or reopens) a thread by its node id and answers whether GitHub did; any failure is `false`, never an error.
+pub fn resolve_thread(t: &Target, params: &Value) -> Result<Value, Failure> {
+    let thread = crate::text(params, "threadId").filter(|s| !s.is_empty()).ok_or_else(|| Failure::invalid("Invalid input: expected string, received undefined"))?;
+    let args = with_repo(json!({"thread": thread, "resolved": params["resolve"].as_bool().unwrap_or(true)}), params, "prRepo")?;
+    match t.try_ask(pr::RESOLVE_THREAD, args) {
+        Ok(_) => Ok(json!(true)),
+        Err(AgentError::Refused { code, .. }) if code != "UNKNOWN_WORKSPACE" => Ok(json!(false)),
+        Err(other) => Err(crate::refusal(other)),
+    }
+}
+
 /// Orca's host lists `repos/{o}/{r}/assignees` as `{login, name, avatarUrl}` and answers `[]` when gh fails.
 pub fn list_assignable_users(t: &Target, params: &Value) -> Result<Value, Failure> {
     let args = with_repo(json!({"limit": 100}), params, "ownerRepo")?;
