@@ -342,6 +342,27 @@ fn given_a_repository_with_labels_when_they_are_listed_then_the_names_come_back_
 }
 
 #[test]
+fn given_a_repository_with_assignable_accounts_when_they_are_listed_then_each_is_login_name_and_avatar_and_an_unreadable_repository_is_an_empty_list() {
+    let mut rig = Rig::new();
+    // Given two accounts the repository can assign, one without an avatar
+    rig.hosting.assignees(&[("octocat", "https://avatars.example/1"), ("hubot", "")]);
+    // When the phone lists them for the worktree's repository, and for one it names
+    let own = rig.ok("github.listAssignableUsers", json!({}));
+    let named = rig.ok("github.listAssignableUsers", json!({"ownerRepo": {"owner": "acme", "repo": "app"}}));
+    // Then each is the host's {login, name, avatarUrl}, a missing avatar the empty string, and rca was asked for the named repository
+    let expected = json!([{"login": "octocat", "name": null, "avatarUrl": "https://avatars.example/1"}, {"login": "hubot", "name": null, "avatarUrl": ""}]);
+    assert_eq!((own, named), (expected.clone(), expected));
+    let asked = rig.agent.requests().into_iter().filter(|(m, _)| m == "pr.reviewerCandidates").map(|(_, p)| p).collect::<Vec<_>>();
+    assert_eq!((asked[0]["repo"].clone(), asked[1]["repo"].clone(), asked[1]["limit"].clone()), (Value::Null, json!("acme/app"), json!(100)));
+    // And a repository rca cannot read answers an empty list, as the host does
+    assert_eq!(Rig::new().ok("github.listAssignableUsers", json!({})), json!([]));
+    // And the selector checks are those of the label list
+    assert_eq!(rig.err("github.listAssignableUsers", json!({"ownerRepo": null})).0, "invalid_argument");
+    assert_eq!(rig.err("github.listAssignableUsers", json!({"repo": "nowhere"})).0, "repo_not_found");
+    assert_eq!(rig.err("github.listAssignableUsers", json!({"expectedGhAccount": "a"})).1, "Invalid GitHub account expectation");
+}
+
+#[test]
 fn given_a_branch_with_an_open_and_an_older_pull_request_when_its_review_is_read_then_it_is_the_open_one_in_the_neutral_shape_with_the_outcome_when_asked() {
     // Given an open pull request that passed its checks and was approved, and an older merged one of the same branch
     let mut rig = Rig::new();

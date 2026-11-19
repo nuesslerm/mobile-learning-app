@@ -323,7 +323,7 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
         HostedCall::RepoReviewers { .. } => {
             let v = body(&last)?;
             let key = if github { "login" } else { "username" };
-            let users: Vec<Value> = v.as_array().map_or(&[][..], Vec::as_slice).iter().map(|u| json!({"login": text(u, key), "name": text(u, "name")})).collect();
+            let users: Vec<Value> = v.as_array().map_or(&[][..], Vec::as_slice).iter().map(|u| json!({"login": text(u, key), "name": text(u, "name"), "avatarUrl": text(u, "avatar_url")})).collect();
             Ok(json!({"users": users}))
         }
         HostedCall::RepoClone { .. } => Ok(json!({"repo": op.repo})),

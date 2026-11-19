@@ -45,7 +45,6 @@
         "orca-github.addPRReviewCommentReply",
         "orca-github.countWorkItems",
         "orca-github.createIssue",
-        "orca-github.listAssignableUsers",
         "orca-github.listWorkItems",
         "orca-github.markPRDraft",
         "orca-github.markPRReadyForReview",

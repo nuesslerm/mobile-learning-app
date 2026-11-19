@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 158,
+    "served": 159,
     "pending": 4,
-    "notOffered": 145,
+    "notOffered": 144,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -1824,10 +1824,17 @@
       "id": "rpc:github.listAssignableUsers",
       "kind": "rpc",
       "name": "github.listAssignableUsers",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: assignable users of issues are not the reviewer candidates rca lists (reviewers and assignees are different sets on GitHub) and the hosted group has no assignees action.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.listAssignableUsers-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.listLabels",
@@ -2010,7 +2017,7 @@
       "name": "github.project.listAssignableUsersBySlug",
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible, plus the assignees reason of github.listAssignableUsers.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same GitHub Projects reason as listAccessible.",
       "decidedBy": "M12"
     },
     {

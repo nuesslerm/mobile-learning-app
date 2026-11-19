@@ -36,6 +36,7 @@ struct State {
     local: BTreeMap<String, String>,
     fetch_error: Option<String>,
     labels: Option<Vec<(String, String)>>,
+    assignees: Option<Vec<(String, String)>>,
     view_error: Option<String>,
     comments: Vec<(u64, Value)>,
     threads: Vec<(u64, Value)>,
@@ -192,6 +193,12 @@ impl Hosting {
         self
     }
 
+    /// The accounts the repository can assign as (login, avatar url); with none set, reading them is refused as when `gh` is not signed in.
+    pub fn assignees(&self, users: &[(&str, &str)]) -> &Self {
+        self.0.lock().unwrap().assignees = Some(users.iter().map(|(l, a)| (l.to_string(), a.to_string())).collect());
+        self
+    }
+
     /// A conversation comment of pull request `number`, whose id is a node id as `gh pr view` prints it.
     pub fn conversation_comment(&self, number: u64, node_id: &str, author: &str, body: &str, created_ms: u64, url: &str) -> &Self {
         self.0.lock().unwrap().comments.push((number, json!({"id": node_id, "author": author, "body": body, "created_at_ms": created_ms, "url": url})));
@@ -279,6 +286,13 @@ impl Hosting {
             let s = me.0.lock().unwrap();
             let labels = s.labels.as_ref().ok_or_else(|| refused("HOSTED_AUTH", "gh is not signed in"))?;
             Ok(json!({"labels": labels.iter().take(p["limit"].as_u64().unwrap_or(200) as usize).map(|(n, c)| json!({"name": n, "color": c, "description": ""})).collect::<Vec<_>>()}))
+        });
+        let me = self.clone();
+        agent.reply("pr.reviewerCandidates", move |p| {
+            let s = me.0.lock().unwrap();
+            let users = s.assignees.as_ref().ok_or_else(|| refused("HOSTED_AUTH", "gh is not signed in"))?;
+            let avatar = |a: &str| if a.is_empty() { Value::Null } else { json!(a) };
+            Ok(json!({"users": users.iter().take(p["limit"].as_u64().unwrap_or(200) as usize).map(|(l, a)| json!({"login": l, "name": null, "avatarUrl": avatar(a)})).collect::<Vec<_>>()}))
         });
         for (name, provider) in [("pr.list", "github"), ("pr.view", "github"), ("pr.checks", "github"), ("pr.merge", "github"), ("pr.edit", "github"), ("pr.ready", "github"), ("pr.requestReviewers", "github"), ("mr.view", "gitlab"), ("mr.edit", "gitlab"), ("mr.ready", "gitlab"), ("mr.setLabels", "gitlab"), ("mr.merge", "gitlab")] {
             let me = self.clone();

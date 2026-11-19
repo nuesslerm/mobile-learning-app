@@ -60,6 +60,23 @@ pub fn list_labels(t: &Target, params: &Value) -> Result<Value, Failure> {
     }
 }
 
+/// Orca's host lists `repos/{o}/{r}/assignees` as `{login, name, avatarUrl}` and answers `[]` when gh fails.
+pub fn list_assignable_users(t: &Target, params: &Value) -> Result<Value, Failure> {
+    let args = with_repo(json!({"limit": 100}), params, "ownerRepo")?;
+    match t.try_ask(pr::REVIEWER_CANDIDATES, args) {
+        Ok(answer) => Ok(Value::Array(
+            answer["users"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .filter_map(|u| u["login"].as_str().filter(|l| !l.is_empty()).map(|login| json!({"login": login, "name": u["name"], "avatarUrl": u["avatarUrl"].as_str().unwrap_or("")})))
+                .collect(),
+        )),
+        Err(AgentError::Refused { code, .. }) if code != "UNKNOWN_WORKSPACE" => Ok(json!([])),
+        Err(other) => Err(crate::refusal(other)),
+    }
+}
+
 /// The number of the branch's open pull request, else the latest one that is not.
 pub(crate) fn find_for_branch(t: &Target, branch: &str) -> Result<Option<u64>, Failure> {
     let listed = t.ask(pr::LIST, json!({"head": branch, "state": "all", "limit": 20}))?;

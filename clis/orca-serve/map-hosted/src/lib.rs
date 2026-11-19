@@ -21,12 +21,13 @@ mod time;
 pub mod testing;
 
 /// The agent methods this crate sends: the `pr.*` and `mr.*` ones it reaches, and the fetch of a request's head.
-pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::COMMENTS, pr::REVIEWS, pr::THREADS, FETCH, BLOB];
+pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::COMMENTS, pr::REVIEWS, pr::THREADS, FETCH, BLOB];
 
 const METHODS: &[Method] = &[
     Method { name: "github.prForBranch", kind: Kind::Unary },
     Method { name: "github.prChecks", kind: Kind::Unary },
     Method { name: "github.listLabels", kind: Kind::Unary },
+    Method { name: "github.listAssignableUsers", kind: Kind::Unary },
     Method { name: "github.mergePR", kind: Kind::Unary },
     Method { name: "github.updatePRTitle", kind: Kind::Unary },
     Method { name: "github.updatePR", kind: Kind::Unary },
@@ -55,18 +56,20 @@ impl Area for HostedArea {
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
-        if method == "github.listLabels" {
+        let repo_list = matches!(method, "github.listLabels" | "github.listAssignableUsers");
+        if repo_list {
             github::check_label_params(params)?;
         }
         let target = match Target::of(ctx.agent, params) {
             Err(f) if f.code == "selector_not_found" && method.starts_with("worktree.resolve") => return Ok(json!({"error": "Repo not found", "errorCode": "repoNotFound"})),
-            Err(f) if f.code == "selector_not_found" && method == "github.listLabels" => return Err(Failure::new("repo_not_found", "repo_not_found")),
+            Err(f) if f.code == "selector_not_found" && repo_list => return Err(Failure::new("repo_not_found", "repo_not_found")),
             other => other?,
         };
         match method {
             "github.prForBranch" => github::pr_for_branch(&target, params),
             "github.prChecks" => github::pr_checks(&target, params),
             "github.listLabels" => github::list_labels(&target, params),
+            "github.listAssignableUsers" => github::list_assignable_users(&target, params),
             "github.mergePR" => github::merge(&target, params),
             "github.updatePRTitle" => github::update_title(&target, params),
             "github.updatePR" => github::update(&target, params),
