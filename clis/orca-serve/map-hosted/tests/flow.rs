@@ -381,6 +381,56 @@ fn given_a_review_comment_when_the_phone_replies_to_it_by_its_numeric_id_then_th
 }
 
 #[test]
+fn given_a_line_of_a_pull_request_file_when_the_phone_comments_on_it_then_the_answer_is_the_new_review_comment_as_the_host_renders_it() {
+    let mut rig = Rig::new();
+    let comment = |extra: Value| {
+        let mut p = json!({"prNumber": 12, "commitId": "abc1234", "path": "src/lib.rs", "line": 9, "body": "Why?"});
+        p.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+        p
+    };
+    // When the phone comments on lines 7 to 9 of src/lib.rs at the head commit of pull request 12
+    let r = rig.ok("github.addPRReviewComment", comment(json!({"startLine": 7})));
+    // Then the answer is the host's new comment row: the numeric id, the node id for reactions, the path, the line and the range's start
+    assert_eq!(r, json!({"ok": true, "comment": {"id": 9100, "author": "octocat", "authorAvatarUrl": "https://avatars.example/1", "body": "Why?", "createdAt": "2026-11-19T03:00:00Z", "url": "https://github.com/acme/app/pull/12#discussion_r9100", "isBot": false, "reactionSubjectId": "PRRC_kwDOAC", "path": "src/lib.rs", "line": 9, "startLine": 7}}));
+    // And rca was asked for a comment on that range of that file at that commit
+    let asked = |rig: &Rig| {
+        let mut p = rig.agent.requests().into_iter().rfind(|(m, _)| m == "pr.reviewComment").unwrap().1;
+        p.as_object_mut().unwrap().remove("workspace");
+        p
+    };
+    assert_eq!(asked(&rig), json!({"number": 12, "commit_id": "abc1234", "path": "src/lib.rs", "line": 9, "body": "Why?", "start_line": 7}));
+
+    // When the range starts on its own line
+    let one = rig.ok("github.addPRReviewComment", comment(json!({"startLine": 9})));
+    // Then rca is asked for a one-line comment, and the answer still carries the start the phone gave
+    assert_eq!(asked(&rig).get("start_line"), None);
+    assert_eq!((one["comment"]["line"].clone(), one["comment"]["startLine"].clone()), (json!(9), json!(9)));
+
+    // When GitHub refuses the line, or the folder has no GitHub remote, or GitHub answers no usable id
+    // Then each is the host's failure answer, not an error
+    assert_eq!(rig.ok("github.addPRReviewComment", comment(json!({"commitId": "def0"}))), json!({"ok": false, "error": "Invalid update — gh: Validation Failed (HTTP 422)", "errorCode": "invalidUpdate", "errorDetail": "gh: Validation Failed (HTTP 422)"}));
+    assert_eq!(rig.ok("github.addPRReviewComment", comment(json!({"commitId": "dead"}))), json!({"ok": false, "error": "Could not resolve GitHub owner/repo for this repository", "errorCode": "github.repoUnresolved"}));
+    assert_eq!(rig.ok("github.addPRReviewComment", comment(json!({"commitId": "0"}))), json!({"ok": false, "error": "Unexpected response from GitHub", "errorCode": "github.unexpectedResponse"}));
+
+    // When a field breaks the host's schema, Then the refusal is zod's first issue in the schema's order, before the selector is resolved
+    let refused = |rig: &mut Rig, p: Value| rig.err("github.addPRReviewComment", p);
+    assert_eq!(refused(&mut rig, comment(json!({"repo": ""}))), ("invalid_argument".into(), "Missing repo selector".into()));
+    assert_eq!(refused(&mut rig, comment(json!({"repo": "nope"}))), ("repo_not_found".into(), "repo_not_found".into()));
+    let mut no_commit = comment(json!({"repo": "nope"}));
+    no_commit.as_object_mut().unwrap().remove("commitId");
+    assert_eq!(refused(&mut rig, no_commit).1, "Missing PR head SHA");
+    assert_eq!(refused(&mut rig, comment(json!({"path": ""}))).1, "File path required");
+    assert_eq!(refused(&mut rig, comment(json!({"line": 0}))).1, "Too small: expected number to be >0");
+    assert_eq!(refused(&mut rig, comment(json!({"line": 1.5}))).1, "Invalid input: expected int, received number");
+    assert_eq!(refused(&mut rig, comment(json!({"startLine": null}))).1, "Invalid input: expected number, received null");
+    assert_eq!(refused(&mut rig, comment(json!({"body": 7}))).1, "Comment body required");
+    assert_eq!(refused(&mut rig, comment(json!({"prNumber": "1", "body": ""}))).1, "Invalid input: expected number, received string");
+    assert_eq!(refused(&mut rig, comment(json!({"prRepo": {"owner": "acme"}}))).1, "Missing repo");
+    // And a key outside the schema is stripped, never refused
+    assert_eq!(rig.ok("github.addPRReviewComment", comment(json!({"ownerRepo": 7})))["ok"], true);
+}
+
+#[test]
 fn given_a_pull_and_a_merge_request_when_the_phone_closes_or_reopens_them_then_rca_sets_the_state_and_failures_are_the_hosts() {
     let mut rig = Rig::new();
     // When the phone closes pull request 12 and reopens merge request 12

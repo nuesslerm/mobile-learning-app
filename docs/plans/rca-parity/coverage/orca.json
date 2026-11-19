@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 164,
+    "served": 165,
     "pending": 4,
-    "notOffered": 139,
+    "notOffered": 138,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -1910,10 +1910,17 @@
       "kind": "rpc",
       "name": "github.addPRReviewComment",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's hosted group cannot post a comment on a file line: pr.comment is a conversation comment, pr.reply answers an existing thread and pr.review is a verdict, so the phone's inline comment would land as another kind of comment. Reverify when the hosted group gains a review-comment action (a hosted_pr_review_comment executor action over gh api, medium effort).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.addPRReviewComment-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.addPRReviewCommentReply",

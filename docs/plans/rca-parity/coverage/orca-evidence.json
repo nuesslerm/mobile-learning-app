@@ -248,6 +248,20 @@
         "complete": true,
         "tests": 62,
         "passed": 8
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "5e45e56029c08e03896caa189f9e5631795f0ace",
+        "complete": true,
+        "tests": 446,
+        "passed": 93
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 62,
+        "passed": 9
       }
     ]
   },
@@ -942,6 +956,15 @@
     "rpc:git.upstreamStatus": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-git.upstreamStatus-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:github.addPRReviewComment": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-github.addPRReviewComment-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

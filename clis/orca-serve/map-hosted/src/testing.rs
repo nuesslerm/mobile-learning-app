@@ -298,6 +298,12 @@ impl Hosting {
             Some(9003) => Ok(json!({"id": "PRRC_kwDOAB", "database_id": 9004, "url": "https://github.com/acme/app/pull/12#discussion_r9004", "author": "octocat", "avatar_url": "https://avatars.example/1", "is_bot": false, "body": p["body"], "created_at": "2026-11-19T02:00:00Z", "path": null, "line": null})),
             _ => Err(refused("HOSTED_FAILED", "gh: Not Found (HTTP 404)")),
         });
+        agent.reply("pr.reviewComment", |p| match p["commit_id"].as_str() {
+            Some("abc1234") => Ok(json!({"id": "PRRC_kwDOAC", "database_id": 9100, "thread": null, "url": "https://github.com/acme/app/pull/12#discussion_r9100", "author": "octocat", "avatar_url": "https://avatars.example/1", "is_bot": false, "body": p["body"], "created_at": "2026-11-19T03:00:00Z", "path": p["path"], "line": p["line"], "start_line": p["start_line"]})),
+            Some("dead") => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known GitHub host")),
+            Some("0") => Ok(json!({"id": "PRRC_0", "database_id": 0, "thread": null, "url": null, "author": "octocat", "avatar_url": null, "is_bot": false, "body": p["body"], "created_at": null, "path": null, "line": null, "start_line": null})),
+            _ => Err(refused("HOSTED_FAILED", "gh: Validation Failed (HTTP 422)")),
+        });
         agent.reply("pr.resolveThread", |p| match p["thread"].as_str() {
             Some(t) if t.starts_with("PRRT_") => Ok(json!({"thread": t, "resolved": p["resolved"]})),
             _ => Err(refused("HOSTED_FAILED", "Could not resolve to a node with the global id")),

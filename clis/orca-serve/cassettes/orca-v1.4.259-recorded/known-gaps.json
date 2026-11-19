@@ -41,7 +41,6 @@
         "orca-git.generatePullRequestFields",
         "orca-git.remoteCommitUrl",
         "orca-github.addIssueComment",
-        "orca-github.addPRReviewComment",
         "orca-github.countWorkItems",
         "orca-github.createIssue",
         "orca-github.listWorkItems",

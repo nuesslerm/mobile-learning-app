@@ -489,9 +489,7 @@
       "decidedBy": "M12"
     },
     "rpc:github.addPRReviewComment": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's hosted group cannot post a comment on a file line: pr.comment is a conversation comment, pr.reply answers an existing thread and pr.review is a verdict, so the phone's inline comment would land as another kind of comment. Reverify when the hosted group gains a review-comment action (a hosted_pr_review_comment executor action over gh api, medium effort).",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.rerunPRChecks": {
       "state": "not-offered",

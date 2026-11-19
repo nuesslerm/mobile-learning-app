@@ -1,7 +1,7 @@
 //! The `github.*` pull request rows over `pr.*`.
 use crate::{checks, number, outcome, required, text, time, with_repo, Target};
 use agent_api_hosted::pr;
-use orca_core::wire::{Failure, RUNTIME_ERROR};
+use orca_core::wire::{received, Failure, RUNTIME_ERROR};
 use orca_core::AgentError;
 use serde_json::{json, Value};
 
@@ -75,7 +75,17 @@ pub fn reply_to_comment(t: &Target, params: &Value) -> Result<Value, Failure> {
         Err(AgentError::Refused { code, message }) if code != "UNKNOWN_WORKSPACE" && code != "INVALID_PARAMS" => return Ok(crate::failure::gh(&message)),
         Err(other) => return Err(crate::refusal(other)),
     };
-    let Some(id) = c["database_id"].as_u64() else { return Ok(crate::failure::code_host("github.unexpectedResponse", None)) };
+    let Some(mut comment) = comment_row(&c, params, body) else { return Ok(crate::failure::code_host("github.unexpectedResponse", None)) };
+    if let Some(thread) = params.get("threadId").filter(|v| !v.is_null()) {
+        comment["threadId"] = thread.clone();
+    }
+    Ok(json!({"ok": true, "comment": comment}))
+}
+
+/// The host's `mapReviewCommentResponse` of rca's new review comment, with the phone's body, path and line where GitHub gave none; none when the
+/// comment has no usable numeric id, which the host answers as an unexpected response.
+fn comment_row(c: &Value, params: &Value, body: &str) -> Option<Value> {
+    let id = c["database_id"].as_u64().filter(|id| (1..=MAX_SAFE_INTEGER).contains(id))?;
     let mut comment = json!({
         "id": id,
         "author": c["author"].as_str().unwrap_or("You"),
@@ -94,8 +104,74 @@ pub fn reply_to_comment(t: &Target, params: &Value) -> Result<Value, Failure> {
             comment[key] = v.clone();
         }
     }
-    if let Some(thread) = params.get("threadId").filter(|v| !v.is_null()) {
-        comment["threadId"] = thread.clone();
+    Some(comment)
+}
+
+const MAX_SAFE_INTEGER: u64 = (1 << 53) - 1;
+
+/// zod's `z.number().int().positive()`: the first issue it reports for `v`, or the number.
+fn int_positive(v: Option<&Value>) -> Result<u64, Failure> {
+    let n = match v {
+        None => return Err(Failure::invalid("Invalid input: expected number, received undefined")),
+        Some(Value::Number(n)) => n,
+        Some(other) => return Err(Failure::invalid(format!("Invalid input: expected number, received {}", received(other)))),
+    };
+    let f = n.as_f64().unwrap_or(0.0);
+    if f.fract() != 0.0 {
+        return Err(Failure::invalid("Invalid input: expected int, received number"));
+    }
+    if f <= 0.0 {
+        return Err(Failure::invalid("Too small: expected number to be >0"));
+    }
+    Ok(n.as_u64().unwrap_or(f as u64))
+}
+
+/// zod's `requiredString(message)`: anything but a non-empty string is `message`.
+fn required_string<'a>(params: &'a Value, key: &str, message: &str) -> Result<&'a str, Failure> {
+    crate::text(params, key).ok_or_else(|| Failure::invalid(message))
+}
+
+/// The schema of `github.addPRReviewComment` in its key order, answering zod's first issue; unknown keys are stripped, never refused.
+pub(crate) fn check_review_comment_params(params: &Value) -> Result<(), Failure> {
+    required_string(params, "repo", "Missing repo selector")?;
+    int_positive(params.get("prNumber"))?;
+    match params.get("prRepo") {
+        None | Some(Value::Null) => {}
+        Some(named @ Value::Object(_)) => {
+            required_string(named, "owner", "Missing owner")?;
+            required_string(named, "repo", "Missing repo")?;
+        }
+        Some(other) => return Err(Failure::invalid(format!("Invalid input: expected object, received {}", received(other)))),
+    }
+    required_string(params, "commitId", "Missing PR head SHA")?;
+    required_string(params, "path", "File path required")?;
+    int_positive(params.get("line"))?;
+    if let Some(start) = params.get("startLine") {
+        int_positive(Some(start))?;
+    }
+    required_string(params, "body", "Comment body required")?;
+    Ok(())
+}
+
+/// `github.addPRReviewComment`: a comment on a line (or a range ending at it) of the head's file over GitHub's REST route, answered as the
+/// host's new comment row or its classified failure. As the host does, a range that starts on its own line is a one-line comment.
+pub fn review_comment(t: &Target, params: &Value) -> Result<Value, Failure> {
+    let (number, line) = (int_positive(params.get("prNumber"))?, int_positive(params.get("line"))?);
+    let body = required_string(params, "body", "Comment body required")?;
+    let start = params.get("startLine").map(|s| int_positive(Some(s))).transpose()?;
+    let mut args = json!({"number": number, "commit_id": required_string(params, "commitId", "Missing PR head SHA")?, "path": required_string(params, "path", "File path required")?, "line": line, "body": body});
+    if let Some(s) = start.filter(|s| *s != line) {
+        args["start_line"] = json!(s);
+    }
+    let c = match t.try_ask(pr::REVIEW_COMMENT, with_repo(args, params, "prRepo")?) {
+        Ok(c) => c,
+        Err(AgentError::Refused { code, message }) if code == "INVALID_ARGS" => return Ok(crate::failure::code_host("invalidUpdate", Some(&message))),
+        Err(AgentError::Refused { code, message }) if code != "UNKNOWN_WORKSPACE" && code != "INVALID_PARAMS" => return Ok(crate::failure::gh(&message)),
+        Err(other) => return Err(crate::refusal(other)),
+    };
+    let Some(mut comment) = comment_row(&c, params, body) else { return Ok(crate::failure::code_host("github.unexpectedResponse", None)) };
+    if let Some(s) = start {
+        comment["startLine"] = json!(s);
     }
     Ok(json!({"ok": true, "comment": comment}))
 }
