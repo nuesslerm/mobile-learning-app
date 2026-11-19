@@ -3225,6 +3225,8 @@ Commands:
                            sync-pricing
   sessions                 The sessions the rca service keeps: rm
   bearers                  The rca service's device bearers: mint, list, revoke
+  login                    The agent CLIs' logins at the workspace host: start,
+                           respond, complete, cancel, status, logout
 ```
 
 </details>
@@ -3520,6 +3522,203 @@ is open stays open until it closes.
 
 Prints one JSON line {ok, revoked: <id>}; exit 0, 1 when the service refuses, has
 no such bearer or cannot be reached ({ok: false, error, status, next}).
+
+Options:
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf rca login`
+
+The agent CLIs' own logins at the workspace host, over the rca service's agent socket
+
+Usage: `wf rca login [options] [command]`
+
+Examples:
+
+```sh
+wf rca login
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login [options] [command]
+
+The agent CLIs' own logins (claude, codex, opencode) at the workspace host, run over the
+rca service's agent socket: no SSH, no T3 or Orca needed
+
+Options:
+  -h, --help                      display help for command
+
+Commands:
+  start [options] <provider>      Start a provider's login and print its address and code
+  respond <auth> <text>           Paste a code into a login that waits for one
+  complete [options] <auth>       Wait until a login ends and print how
+  cancel <auth>                   End a running login
+  status                          List each provider and whether it is signed in
+  logout <provider>               Sign a provider out
+  help [command]                  display help for command
+```
+
+</details>
+
+### `wf rca login start`
+
+Start a provider's login and print its address and code
+
+Usage: `wf rca login start [--method <name>] <provider>`
+
+Examples:
+
+```sh
+wf rca login start codex
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login start [--method <name>] <provider>
+
+Starts the provider's own login (claude, codex or opencode: claudeAgent, codex, opencode)
+at the workspace host and prints {ok, result: {auth, status, url, code}} once its prompt
+is printed. Open the url, enter the code (or `respond` with the pasted code), then
+`complete <auth>`. The service secret (CHAT_AGENT_API_SECRET) mints a bearer for the call
+and revokes it after; RCA_AGENT_BEARER reuses one. Exit 0, 1 on a refusal ({ok: false,
+error, code, next}), 2 on a malformed line.
+
+Options:
+  --method <name>  device_code or paste, when the CLI offers both
+  -h, --help       display help for command
+```
+
+</details>
+
+### `wf rca login respond`
+
+Paste a code into a login that waits for one
+
+Usage: `wf rca login respond <auth> <text>`
+
+Examples:
+
+```sh
+wf rca login respond auth-1 ABCD-1234
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login respond <auth> <text>
+
+Sends the code a person pasted to a login that waits for one (a paste login), one line.
+Prints {ok, result: {auth, status, ...}}.
+
+Options:
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf rca login complete`
+
+Wait until a login ends and print how
+
+Usage: `wf rca login complete [--wait <seconds>] <auth>`
+
+Examples:
+
+```sh
+wf rca login complete auth-1 --wait 120
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login complete [--wait <seconds>] <auth>
+
+Waits until the login ends (succeeded, failed or cancelled) or the wait is over (300 s by
+default, at most the service's cap) and prints its state; a login that succeeded left the
+CLI signed in at the workspace host.
+
+Options:
+  --wait <seconds>  how long to wait (default 300)
+  -h, --help        display help for command
+```
+
+</details>
+
+### `wf rca login cancel`
+
+End a running login
+
+Usage: `wf rca login cancel <auth>`
+
+Examples:
+
+```sh
+wf rca login cancel auth-1
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login cancel <auth>
+
+Ends a running login. Prints {ok, result: {auth, status: "cancelled"}}.
+
+Options:
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf rca login status`
+
+List each provider and whether it is signed in
+
+Usage: `wf rca login status`
+
+Examples:
+
+```sh
+wf rca login status
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login status
+
+Lists each provider with its status (signed_in, signed_out or authenticating), the login
+methods its CLI offers and which one new turns use by default.
+
+Options:
+  -h, --help  display help for command
+```
+
+</details>
+
+### `wf rca login logout`
+
+Sign a provider out
+
+Usage: `wf rca login logout <provider>`
+
+Examples:
+
+```sh
+wf rca login logout codex
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf rca login logout <provider>
+
+Signs the provider out at the workspace host (its CLI's logout, then its credential file is
+gone) and prints the provider's new status.
 
 Options:
   -h, --help  display help for command
