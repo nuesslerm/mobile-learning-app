@@ -97,12 +97,24 @@ runs:
         [ -f "$marker" ] && exit 0
         # apt can stall on a mirror with no output for the rest of the job: bound each try, kill the stuck apt, try again
         sudo=$([ "$(id -u)" = 0 ] || echo sudo)
+        # a try is bounded to 150 s (the system packages take 20 to 40 s when the mirror answers; one stalled shard of run 44591379311 lost 457 s to a 420 s bound),
+        # and after the first failure the sources point at one mirror directly, as hosted-apt does
+        current="mirror+file:/etc/apt/apt-mirrors.txt"
+        mirrors=(http://mirrors.edge.kernel.org/ubuntu/ http://archive.ubuntu.com/ubuntu/)
         for attempt in 1 2 3; do
-          if timeout -k 10 420 pnpm --filter @lib/browser-client exec playwright install --with-deps chromium; then
+          if timeout -k 10 150 pnpm --filter @lib/browser-client exec playwright install --with-deps chromium; then
             mkdir -p "$(dirname "$marker")" && touch "$marker"; exit 0
           fi
           echo "playwright: attempt $attempt failed or stalled"
           $sudo pkill -9 -x apt-get || true; $sudo pkill -9 -x dpkg || true; $sudo dpkg --configure -a || true
+          next="${mirrors[$((attempt - 1))]:-}"
+          if [ -n "$next" ]; then
+            echo "playwright: switching the apt sources to $next"
+            for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do
+              [ -f "$f" ] && $sudo sed -i "s#${current}#${next}#g" "$f"
+            done
+            current="$next"
+          fi
         done
         exit 1
     - name: Device-frame page
@@ -118,7 +130,7 @@ runs:
       shell: bash
       run: |
         sudo=$([ "$(id -u)" = 0 ] || echo sudo)
-        $sudo dpkg --configure -a; $sudo apt-get update -qq && $sudo apt-get install -y -qq ffmpeg
+        $sudo dpkg --configure -a; timeout 240 $sudo apt-get update -qq && timeout 300 $sudo apt-get install -y -qq ffmpeg
     - name: restic and sqlite3
       if: ${{ inputs.restic-sqlite == 'true' }}
       shell: bash
