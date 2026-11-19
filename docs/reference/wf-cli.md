@@ -1794,7 +1794,7 @@ Options:
 
 ### `wf ci`
 
-What a workflow tells people about its own run: `wf ci comment` posts what failed in a red CI run on the pushed commit, `wf ci live` keeps the run's one pull request comment up to date, `wf ci tidy` frees the runner's disk, `wf ci preflight` checks first that everything the run needs is live, `wf ci audit` is the nightly audit of CI on dev (never a gate) and `wf ci cache-health` fails a run whose cache layers broke.
+What a workflow tells people about its own run: `wf ci comment` posts what failed in a red CI run on the pushed commit, `wf ci live` keeps the run's one pull request comment up to date, `wf ci tidy` frees the runner's disk, `wf ci preflight` checks first that everything the run needs is live, `wf ci audit` is the nightly audit of CI on dev (never a gate), `wf ci cache-health` fails a run whose cache layers broke and `wf ci db` keeps the sealed CI database.
 
 Usage: `wf ci [options] [command]`
 
@@ -1813,7 +1813,8 @@ What a workflow decides and tells people about its own run: `wf ci plan` plans t
 failed in a red CI run on the pushed commit, `wf ci live` keeps the run's one pull
 request comment up to date, `wf ci tidy` frees the runner's disk, `wf ci preflight` checks first that
 everything the run needs is live, `wf ci audit` is the nightly audit of CI on dev
-(never a gate) and `wf ci cache-health` fails a run whose cache layers broke.
+(never a gate), `wf ci cache-health` fails a run whose cache layers broke and `wf ci db`
+keeps the sealed CI database (test runs, usage of the commands, health reports, the ledger).
 
 Options:
   -h, --help           display help for command
@@ -1829,6 +1830,8 @@ Commands:
   cache-health [options]
                        Fail the run when a cache layer degraded, lost or
                        refused a write.
+  db <merge|record|query>
+                       The sealed CI database on the state ref.
   comment [options]    Comment on the pushed commit what failed in this CI run,
                        with the cause from each failed job's log.
   help [command]       display help for command
@@ -2142,6 +2145,47 @@ exit stays 0: a failure to report never fails the run.
 
 Options:
   -h, --help  display help for command
+```
+
+</details>
+
+### `wf ci db`
+
+The sealed CI database on the state ref: what CI used to send to HEALTH_RPT through ORDS.
+
+Usage: `wf ci db <merge|record|query> [--sealed-file <path>] ...`
+
+Examples:
+
+```sh
+wf ci db query "SELECT JOB, AVG(SECS) FROM CI_JOBS GROUP BY JOB"
+wf ci db merge "$RUNNER_TEMP"/ci-db/*/rows.sqlite
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci db <merge|record|query> [--sealed-file <path>] ...
+
+The CI database: what CI used to send to HEALTH_RPT through ORDS (test runs,
+usage of the commands, health reports, the ledger of tasks and jobs), kept as one SQLite
+file sealed with XChaCha20-Poly1305 under CI_DB_KEY on the state ref
+(refs/wf/state, ci/ci.sqlite.sealed).
+
+  merge <rows.sqlite>...   fold the jobs' local databases into the sealed one
+                           and push it (the report job); a row already held is
+                           kept once
+  record <table> <json>    add one JSON row to this job's local database
+                           (WF_CI_DB, else $RUNNER_TEMP/wf-ci-db/rows.sqlite on
+                           a hosted runner); tables TEST_RUNS, WF_USAGE,
+                           HEALTH_REPORTS
+  query <sql>              run one statement on an unsealed copy and print its
+                           rows as JSON
+
+Options:
+  --sealed-file <path>     read and write a sealed file instead of the state ref
+
+Output: one JSON object; `ok` false with `error` and `next` on a failure.
 ```
 
 </details>

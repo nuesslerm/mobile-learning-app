@@ -47,7 +47,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 150
     permissions:
-      contents: read
+      # write: the ledger it records goes to the sealed CI database on refs/wf/state (wf ci db)
+      contents: write
       actions: read
     env:
       BWS_SERVER_URL: https://vault.bitwarden.eu

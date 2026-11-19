@@ -65,10 +65,14 @@ fn fetch(base: Base) -> Result<Option<String>, String> {
 }
 
 fn show(base: Base, tip: &str, path: &str) -> Result<Option<String>, String> {
+    Ok(show_bytes(base, tip, path)?.map(|b| String::from_utf8_lossy(&b).into_owned()))
+}
+
+fn show_bytes(base: Base, tip: &str, path: &str) -> Result<Option<Vec<u8>>, String> {
     let spec = format!("{tip}:{path}");
     let out = git(base, &["show", &spec], &[], None)?;
     if out.ok {
-        return Ok(Some(String::from_utf8_lossy(&out.stdout).into_owned()));
+        return Ok(Some(out.stdout));
     }
     if out.stderr.contains("does not exist") || out.stderr.contains("exists on disk, but not in") {
         return Ok(None);
@@ -82,6 +86,13 @@ pub fn read(path: &str) -> Result<Option<String>, String> {
     checked(path)?;
     let Some(tip) = fetch(None)? else { return Ok(None) };
     show(None, &tip, path)
+}
+
+/// A file of the state ref as its exact bytes (a sealed database), with `read`'s answers for a missing ref or file.
+pub fn read_bytes(path: &str) -> Result<Option<Vec<u8>>, String> {
+    checked(path)?;
+    let Some(tip) = fetch(None)? else { return Ok(None) };
+    show_bytes(None, &tip, path)
 }
 
 /// Several files of one fetched tip, in the order asked: a missing one is `None`.

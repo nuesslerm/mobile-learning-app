@@ -9,4 +9,5 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("ci audit", false, include_str!("help/wf__ci__audit.txt")),
     ("ci comment", false, include_str!("help/wf__ci__comment.txt")),
     ("ci cache-health", false, include_str!("help/wf__ci__cache-health.txt")),
+    ("ci db", false, include_str!("help/wf__ci__db.txt")),
 ];

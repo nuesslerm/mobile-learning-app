@@ -29,3 +29,12 @@ runs:
         path: ${{ runner.temp }}/runner-stats/stats-${{ inputs.job }}.jsonl
         retention-days: 1
         if-no-files-found: ignore
+    # the rows the job's wf commands kept for the CI database (wf ci db); the report job merges them into the sealed one
+    - name: Upload the job's CI database rows
+      if: ${{ inputs.mode == 'upload' }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: ci-db-${{ inputs.job }}
+        path: ${{ runner.temp }}/wf-ci-db/rows.sqlite
+        retention-days: 1
+        if-no-files-found: ignore

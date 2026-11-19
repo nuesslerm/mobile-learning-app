@@ -52,12 +52,115 @@ pub trait Ledger {
     fn cold_jobs(&self, runs: usize) -> Result<BTreeMap<String, Vec<i64>>, String>;
 }
 
-/// The store this environment names: a file when `WF_CI_LEDGER_FILE` is set, else the database.
+/// The store this environment names: a file when `WF_CI_LEDGER_FILE` is set, else the sealed CI database when `CI_DB_KEY` is readable,
+/// else HEALTH_RPT through ORDS.
 pub fn open() -> Result<Box<dyn Ledger>, String> {
     if let Some(path) = crate::ci_comment::var("WF_CI_LEDGER_FILE") {
         return Ok(Box::new(FileLedger { path: path.into() }));
     }
+    if wf_bucket::ci_db::key().is_ok() {
+        return Ok(Box::new(DbLedger::fetch()?));
+    }
     Ok(Box::new(Ords::from_env()?))
+}
+
+// ---- the sealed CI database ----
+
+/// The ledger in the sealed CI database (`wf_bucket::ci_db`): read from a working copy, and pushed back after each write.
+pub struct DbLedger {
+    work: wf_bucket::ci_db::Working,
+    publish: bool,
+}
+
+impl DbLedger {
+    pub fn fetch() -> Result<DbLedger, String> {
+        Ok(DbLedger { work: wf_bucket::ci_db::Working::fetch()?, publish: true })
+    }
+
+    /// Over a working copy that is never pushed (tests, a dry run).
+    #[cfg(test)]
+    pub fn over(work: wf_bucket::ci_db::Working) -> DbLedger {
+        DbLedger { work, publish: false }
+    }
+
+    fn rows(&self, statement: &str) -> Result<Vec<Value>, String> {
+        wf_bucket::ci_db::query(&self.work.connect()?, statement)
+    }
+
+    fn write(&self, statements: Vec<String>, what: &str) -> Result<(), String> {
+        if statements.is_empty() {
+            return Ok(());
+        }
+        let conn = self.work.connect()?;
+        wf_bucket::ci_db::ensure_ledger(&conn)?;
+        conn.execute_batch(&format!("BEGIN; {}; COMMIT;", statements.join("; "))).map_err(|e| format!("ci database: {e}"))?;
+        drop(conn);
+        if self.publish {
+            self.work.publish(&format!("ci db: {what}"))?;
+        }
+        Ok(())
+    }
+}
+
+fn sqlite_text(text: &str) -> String {
+    format!("'{}'", text.replace('\'', "''"))
+}
+
+impl Ledger for DbLedger {
+    fn ensure(&self) -> Result<(), String> {
+        wf_bucket::ci_db::ensure_ledger(&self.work.connect()?)
+    }
+
+    fn record_tasks(&self, rows: &[Observed]) -> Result<(), String> {
+        let t = sqlite_text;
+        self.write(
+            rows.iter()
+                .map(|o| format!("INSERT OR IGNORE INTO CI_TASKS VALUES ({}, {}, {}, {}, {}, {}, {}, {}, {})", t(&o.run), t(&o.sha), o.ts, t(&o.job), t(&o.task), t(&o.hash), t(&o.outcome), o.ms, i32::from(o.passed)))
+                .collect(),
+            &format!("{} tasks", rows.len()),
+        )
+    }
+
+    fn record_jobs(&self, rows: &[JobRow]) -> Result<(), String> {
+        let t = sqlite_text;
+        self.write(
+            rows.iter().map(|j| format!("INSERT OR IGNORE INTO CI_JOBS VALUES ({}, {}, {}, {}, {}, {}, {})", t(&j.run), t(&j.sha), j.ts, t(&j.kind), t(&j.job), j.secs, j.queued)).collect(),
+            &format!("{} jobs", rows.len()),
+        )
+    }
+
+    fn priors(&self, hashes: &[String], run: &str) -> Result<Vec<Observed>, String> {
+        self.ensure()?;
+        let mut out = Vec::new();
+        for chunk in hashes.chunks(200) {
+            let list = chunk.iter().map(|h| sqlite_text(h)).collect::<Vec<_>>().join(",");
+            let rows = self.rows(&format!("SELECT RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED FROM CI_TASKS WHERE RUN_ID <> {} AND HASH IN ({list})", sqlite_text(run)))?;
+            out.extend(rows.iter().map(|r| Observed { run: text_of(r, "RUN_ID"), sha: text_of(r, "SHA"), ts: int(r, "TS"), job: text_of(r, "JOB"), task: text_of(r, "TASK"), hash: text_of(r, "HASH"), outcome: text_of(r, "OUTCOME"), ms: int(r, "MS"), passed: int(r, "PASSED") != 0 }));
+        }
+        Ok(out)
+    }
+
+    fn ever_hit(&self, tasks: &[String]) -> Result<BTreeSet<String>, String> {
+        self.ensure()?;
+        let mut out = BTreeSet::new();
+        for chunk in tasks.chunks(200) {
+            let list = chunk.iter().map(|h| sqlite_text(h)).collect::<Vec<_>>().join(",");
+            out.extend(self.rows(&format!("SELECT DISTINCT TASK FROM CI_TASKS WHERE OUTCOME = 'hit' AND TASK IN ({list})"))?.iter().map(|r| text_of(r, "TASK")));
+        }
+        Ok(out)
+    }
+
+    fn previous(&self, run: &str) -> Result<Option<RunHashes>, String> {
+        self.ensure()?;
+        let rows = self.rows(&format!("SELECT SHA, TASK, HASH FROM CI_TASKS WHERE TS = (SELECT MAX(TS) FROM CI_TASKS WHERE RUN_ID <> {})", sqlite_text(run)))?;
+        Ok(rows.first().map(|r| (text_of(r, "SHA"), rows.iter().map(|r| (text_of(r, "TASK"), text_of(r, "HASH"))).collect())))
+    }
+
+    fn cold_jobs(&self, runs: usize) -> Result<BTreeMap<String, Vec<i64>>, String> {
+        self.ensure()?;
+        let rows = self.rows(&format!("SELECT RUN_ID, TS, JOB, SECS FROM CI_JOBS WHERE KIND = 'cold' AND TS IN (SELECT DISTINCT TS FROM CI_JOBS WHERE KIND = 'cold' ORDER BY TS DESC LIMIT {runs})"))?;
+        Ok(newest_runs(&rows, runs, |r| (text_of(r, "RUN_ID"), int(r, "TS"), text_of(r, "JOB"), int(r, "SECS"))))
+    }
 }
 
 // ---- file ----
@@ -306,6 +409,23 @@ mod tests {
         let (sha, hashes) = ledger.previous("3").unwrap().unwrap();
         assert_eq!((sha.as_str(), hashes.len()), ("sha-2", 2));
         assert!(ledger.previous("9").unwrap().is_some() && FileLedger { path: dir.path().join("none") }.previous("1").unwrap().is_none());
+    }
+
+    #[test]
+    fn given_rows_when_stored_in_the_sealed_database_then_priors_previous_cacheable_tasks_and_cold_jobs_come_back_as_from_the_file() {
+        // Given a ledger over an empty, never-pushed working copy of the CI database
+        let ledger = DbLedger::over(wf_bucket::ci_db::Working::from_sealed([3u8; 32], None).unwrap());
+        // When tasks (one recorded twice) and cold jobs are stored
+        ledger.record_tasks(&[row("1", "a:lint", "h1", "ran", 10), row("2", "a:lint", "h1", "hit", 20), row("2", "b:lint", "h2", "ran", 20), row("2", "b:lint", "h2", "ran", 20)]).unwrap();
+        let job = |run: &str, ts: i64, secs: i64| JobRow { run: run.into(), sha: "s".into(), ts, kind: "cold".into(), job: "flow".into(), secs, queued: 0 };
+        ledger.record_jobs(&[job("1", 1, 100), job("2", 2, 200), job("3", 3, 300)]).unwrap();
+        // Then the queries answer what the file ledger answers
+        assert_eq!(ledger.priors(&["h1".into()], "3").unwrap().len(), 2);
+        assert_eq!(ledger.priors(&["h1".into()], "1").unwrap().len(), 1);
+        assert_eq!(ledger.ever_hit(&["a:lint".into(), "b:lint".into()]).unwrap().into_iter().collect::<Vec<_>>(), ["a:lint"]);
+        let (sha, hashes) = ledger.previous("3").unwrap().unwrap();
+        assert_eq!((sha.as_str(), hashes.len()), ("sha-2", 2));
+        assert_eq!(ledger.cold_jobs(2).unwrap()["flow"], [300, 200]);
     }
 
     #[test]

@@ -1103,6 +1103,7 @@ pub fn run(args: &[String]) -> Option<i32> {
     match verb.as_str() {
         "audit" => return crate::ci_audit::run(rest),
         "cache-health" => return crate::ci_cache_health::run(rest),
+        "db" => return crate::ci_db_verb::run(rest),
         "preflight" => return crate::ci_preflight::run(rest),
         "live" => return crate::ci_live::run(rest),
         "plan" => return crate::ci_plan::run(rest),

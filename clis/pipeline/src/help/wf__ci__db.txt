@@ -1,0 +1,21 @@
+Usage: wf ci db <merge|record|query> [--sealed-file <path>] ...
+
+The CI database: what CI used to send to HEALTH_RPT through ORDS (test runs,
+usage of the commands, health reports, the ledger of tasks and jobs), kept as one SQLite
+file sealed with XChaCha20-Poly1305 under CI_DB_KEY on the state ref
+(refs/wf/state, ci/ci.sqlite.sealed).
+
+  merge <rows.sqlite>...   fold the jobs' local databases into the sealed one
+                           and push it (the report job); a row already held is
+                           kept once
+  record <table> <json>    add one JSON row to this job's local database
+                           (WF_CI_DB, else $RUNNER_TEMP/wf-ci-db/rows.sqlite on
+                           a hosted runner); tables TEST_RUNS, WF_USAGE,
+                           HEALTH_REPORTS
+  query <sql>              run one statement on an unsealed copy and print its
+                           rows as JSON
+
+Options:
+  --sealed-file <path>     read and write a sealed file instead of the state ref
+
+Output: one JSON object; `ok` false with `error` and `next` on a failure.

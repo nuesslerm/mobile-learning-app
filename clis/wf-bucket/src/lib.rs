@@ -3,6 +3,7 @@
 pub mod artifacts;
 pub mod cache;
 pub mod cache_runs;
+pub mod ci_db;
 pub mod ci_metrics;
 mod help_table;
 mod state_verb;

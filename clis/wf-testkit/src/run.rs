@@ -126,6 +126,8 @@ fn isolate(command: &mut Command) {
     command.env_remove("WF_TEST_SPEED");
     // the pipeline's kill switch for a store that is gone must not turn a test of the cache off
     command.env_remove("WF_BLOB_CACHE");
+    // inside a hosted job a fixture's `wf` would write its usage rows into that job's real CI database
+    command.env("WF_CI_DB", "off");
     command.env("WF_TAILNET_SOCKS", "127.0.0.1:1").env("SECRETS_BACKEND", "macos").env("SECRETS_LOG_BETTERSTACK", "false");
     // the developer's ~/.config/wf/.env holds real keys; a test that wants one gives wf its own HOME
     let real = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| "/tmp".into()));

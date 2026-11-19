@@ -3166,8 +3166,11 @@ name = "wf-bucket"
 version = "0.1.0"
 dependencies = [
  "blob-cache",
+ "chacha20poly1305",
  "cli-http",
+ "getrandom 0.4.3",
  "hex",
+ "rusqlite",
  "secrets",
  "serde_json",
  "sha2",
