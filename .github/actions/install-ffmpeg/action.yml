@@ -1,0 +1,33 @@
+name: Install ffmpeg (static)
+description: >-
+  ffmpeg and ffprobe from a pinned static build (41 MB, seconds) instead of the apt package, which pulls about 200 packages from the runner's mirror
+  and took 4 to 20 minutes a job (runs 44339835045 and 44567666031). A no-op when ffmpeg is on the PATH. The download fails fast (8 s to connect, one
+  retry, 90 s in all): with curl's defaults an unreachable host cost 4 tries of 135 s. When the build is unavailable nothing is installed and the
+  caller falls back to apt (`steps.ffmpeg.outputs.installed` is `false`).
+outputs:
+  installed:
+    description: "true when ffmpeg is on the PATH after this step"
+    value: ${{ steps.ffmpeg.outputs.installed }}
+runs:
+  using: composite
+  steps:
+    - name: ffmpeg
+      id: ffmpeg
+      shell: bash
+      env:
+        FFMPEG_URL: https://johnvansickle.com/ffmpeg/old-releases/ffmpeg-6.0.1-amd64-static.tar.xz
+        FFMPEG_SHA256: 28268bf402f1083833ea269331587f60a242848880073be8016501d864bd07a5
+      run: |
+        if command -v ffmpeg >/dev/null; then echo "installed=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+        sudo=$([ "$(id -u)" = 0 ] || echo sudo)
+        dir="$RUNNER_TEMP/ffmpeg-static"
+        if [ "$(uname -m)" = x86_64 ] && curl -fsSL --connect-timeout 8 --retry 1 --max-time 90 -o "$RUNNER_TEMP/ffmpeg.tar.xz" "$FFMPEG_URL" \
+          && echo "$FFMPEG_SHA256  $RUNNER_TEMP/ffmpeg.tar.xz" | sha256sum -c --quiet; then
+          mkdir -p "$dir" && tar -xJf "$RUNNER_TEMP/ffmpeg.tar.xz" -C "$dir" --strip-components=1
+          $sudo install -m 0755 "$dir/ffmpeg" "$dir/ffprobe" /usr/local/bin/
+          ffmpeg -version | head -1
+          echo "installed=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "ffmpeg: the pinned static build is unavailable here"
+          echo "installed=false" >> "$GITHUB_OUTPUT"
+        fi
