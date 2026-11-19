@@ -68,7 +68,7 @@ When a row moves to served, its decision entry is removed in the same commit.
   - listAssignableUsers served (bf4592d0): one page of 100 assignees with avatarUrl; `--paginate` is not added, since gh prints one JSON array per page.
   - skills.discover served (6dd0ac17). It was M, not XS: the host answers a catalog of 23 home and 12 per-repo roots, so `skill_scan` takes directory lists and reports the ones present; root path, id and label are allowlisted as the host's own state.
   - The stale reasons above are corrected in place in both decisions files (a dated "Revisited 19 Nov" sentence names the phase that serves each row).
-  - Desktop plumbing is still open.
+  - Desktop plumbing done: the sparse sets add Orca `src/renderer src/preload` and T3 `apps/web/src apps/desktop/src`; `wf mimic coverage` scans them as a second client, marks `desktop` per row (a Client column in the tables) and counts desktop-only rows and IPC channels (Orca 290 and 1289, T3 71 and 140). The `cli` and `permission` columns are left for phase 5, where they decide the order.
 
 ### Phase 1: cheap reads and the shared speech group (about 5 M units)
 

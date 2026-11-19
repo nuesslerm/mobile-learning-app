@@ -207,31 +207,44 @@ pub fn scan(tree: &dyn Tree, pin: Value) -> Result<MethodsList, String> {
         if let (true, Some(key)) = (t.ident().is_some_and(|i| i.ends_with("lient")) && toks.get(at + 1).is_some_and(|b| b.is("[")) && toks.get(at + 3).is_some_and(|b| b.is("]")), toks.get(at + 2).and_then(Token::ident).filter(|k| k.starts_with(|c: char| c.is_ascii_lowercase()))) {
             dynamic.push(json!({"site": here(), "method": key}));
         }
-        if let (Some(table), Some(dot), Some(key)) = (t.ident().filter(|i| tables.contains(i)), toks.get(at + 1), toks.get(at + 2)) {
-            let typeof_ = at > 0 && toks[at - 1].ident() == Some("typeof");
-            if let (true, false, Some(method)) = (dot.is("."), typeof_, cat.methods.get(&(table.to_string(), key.text.clone()))) {
-                hits.push((format!("rpc:{method}"), here()));
-            }
-        }
-        if let Some(v) = t.string().filter(|v| typed.contains(v) && !in_type_union(toks, at)) {
-            let kind = if mutations.contains(v) { "mutation" } else { "command" };
-            hits.push((format!("{kind}:{v}"), here()));
-        }
-        if let (Some(name), true) = (t.ident(), at > 0 && toks[at - 1].is(".") && toks.get(at + 1).is_some_and(|n| n.is("("))) {
-            let full = (at >= 3 && toks[at - 3].is(".")).then(|| toks[at - 2].ident()).flatten().filter(|g| cat.http.get(*g).is_some_and(|e| e.iter().any(|(n, _, _)| n == name)));
-            let groups = match full {
-                Some(g) => vec![g.to_string()],
-                None => groups_of.entry((s.path.to_string(), s.chunk.0)).or_insert_with(|| chunk_groups(toks, s.chunk, &cat.http)).clone(),
-            };
-            for g in groups.iter().filter(|g| cat.http[*g].iter().any(|(n, _, _)| n == name)) {
-                hits.push((format!("http:{g}.{name}"), here()));
-            }
+        for id in row_hits(&s, &cat, &tables, &typed, &mutations, &mut groups_of) {
+            hits.push((id, here()));
         }
     });
     for (id, at) in hits {
         if let Some(row) = cat.rows.get_mut(&id) {
             row.reached(at);
         }
+    }
+    // The desktop client: the web app and the Electron shell (absent from a checkout that predates the widened sparse set).
+    let desktop_dirs = [format!("{REFERENCE}/apps/web/src/"), format!("{REFERENCE}/apps/desktop/src/")];
+    let desktop_roots: Vec<String> = desktop_dirs.iter().flat_map(|d| tree.files(d.trim_end_matches('/'))).filter(|f| (f.ends_with(".ts") || f.ends_with(".tsx")) && !is_test(f)).collect();
+    let (mut desktop_files, mut channels) = (0, Vec::<String>::new());
+    if !desktop_roots.is_empty() {
+        let is_desktop = |p: &str| desktop_dirs.iter().any(|d| p.starts_with(d.as_str()));
+        let desktop_scope = Scope { roots: desktop_roots, resolve: &resolver, excluded: &is_test, is_app: &is_desktop, scanned: &|p: &str| !p.starts_with(&contracts) };
+        let desktop_graph = Graph::build(tree, &desktop_scope);
+        let mut reached: Vec<String> = vec![];
+        desktop_graph.each_live(|s: Site| {
+            let (toks, at) = (s.toks, s.at);
+            if toks[at].ident() == Some("ipcRenderer") && toks.get(at + 1).is_some_and(|d| d.is(".")) && toks.get(at + 3).is_some_and(|o| o.is("(")) {
+                let channel = first_arg(toks, at + 3);
+                if !channel.is_empty() {
+                    channels.push(channel);
+                }
+            }
+            if s.bound {
+                reached.extend(row_hits(&s, &cat, &tables, &typed, &mutations, &mut groups_of));
+            }
+        });
+        for id in reached {
+            if let Some(row) = cat.rows.get_mut(&id) {
+                row.extra.insert("desktop".into(), true.into());
+            }
+        }
+        desktop_files = desktop_graph.files.keys().filter(|p| desktop_graph.is_app(p)).count();
+        channels.sort();
+        channels.dedup();
     }
     let rows: Vec<Row> = cat.rows.into_values().collect();
     let count = |kind: &str, phone: bool| rows.iter().filter(|r| r.kind == kind && (!phone || r.phone)).count();
@@ -240,6 +253,12 @@ pub fn scan(tree: &dyn Tree, pin: Value) -> Result<MethodsList, String> {
         "catalog": {"rpc": count("rpc", false), "subscriptions": subs(false), "commands": count("command", false), "mutations": count("mutation", false), "http": count("http", false)},
         "phone": {"rpc": count("rpc", true), "subscriptions": subs(true), "commands": count("command", true), "mutations": count("mutation", true), "http": count("http", true)},
         "files": {"reached": graph.files.len(), "phone": graph.files.keys().filter(|p| graph.is_app(p)).count()},
+        "desktop": {
+            "files": desktop_files,
+            "rows": rows.iter().filter(|r| r.extra.contains_key("desktop")).count(),
+            "desktopOnly": rows.iter().filter(|r| !r.phone && r.extra.contains_key("desktop")).count(),
+            "ipcChannels": channels.len(),
+        },
     });
     let flags = json!({
         "dynamicMethodNames": {"note": "an RPC client indexed by a variable: a generic dispatcher whose methods are counted where their tags are bound", "sites": dynamic},
@@ -247,4 +266,32 @@ pub fn scan(tree: &dyn Tree, pin: Value) -> Result<MethodsList, String> {
         "nativeModules": native_modules(tree, &format!("{REFERENCE}/apps/mobile/modules"), REFERENCE),
     });
     Ok(MethodsList { app: "t3".into(), pin, counts, rows, flags })
+}
+
+/// The rows one live token names: a method of a typed table (`WS_METHODS.x`), a typed command or mutation tag, or an HTTP endpoint call.
+fn row_hits(s: &Site, cat: &Catalog, tables: &HashSet<&str>, typed: &HashSet<&str>, mutations: &HashSet<&str>, groups_of: &mut HashMap<(String, usize), Vec<String>>) -> Vec<String> {
+    let (toks, at) = (s.toks, s.at);
+    let t = &toks[at];
+    let mut hits = vec![];
+    if let (Some(table), Some(dot), Some(key)) = (t.ident().filter(|i| tables.contains(i)), toks.get(at + 1), toks.get(at + 2)) {
+        let typeof_ = at > 0 && toks[at - 1].ident() == Some("typeof");
+        if let (true, false, Some(method)) = (dot.is("."), typeof_, cat.methods.get(&(table.to_string(), key.text.clone()))) {
+            hits.push(format!("rpc:{method}"));
+        }
+    }
+    if let Some(v) = t.string().filter(|v| typed.contains(v) && !in_type_union(toks, at)) {
+        let kind = if mutations.contains(v) { "mutation" } else { "command" };
+        hits.push(format!("{kind}:{v}"));
+    }
+    if let (Some(name), true) = (t.ident(), at > 0 && toks[at - 1].is(".") && toks.get(at + 1).is_some_and(|n| n.is("("))) {
+        let full = (at >= 3 && toks[at - 3].is(".")).then(|| toks[at - 2].ident()).flatten().filter(|g| cat.http.get(*g).is_some_and(|e| e.iter().any(|(n, _, _)| n == name)));
+        let groups = match full {
+            Some(g) => vec![g.to_string()],
+            None => groups_of.entry((s.path.to_string(), s.chunk.0)).or_insert_with(|| chunk_groups(toks, s.chunk, &cat.http)).clone(),
+        };
+        for g in groups.iter().filter(|g| cat.http[*g].iter().any(|(n, _, _)| n == name)) {
+            hits.push(format!("http:{g}.{name}"));
+        }
+    }
+    hits
 }

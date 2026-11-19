@@ -27,6 +27,12 @@
     "files": {
       "reached": 4061,
       "phone": 2407
+    },
+    "desktop": {
+      "files": 9526,
+      "methods": 540,
+      "desktopOnly": 290,
+      "ipcChannels": 1289
     }
   },
   "flags": {
@@ -276,7 +282,8 @@
       "name": "accounts.antigravityChatAuthApply",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/antigravity-accounts.ts:113",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.antigravityChatAuthGet",
@@ -284,7 +291,8 @@
       "name": "accounts.antigravityChatAuthGet",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/antigravity-accounts.ts:107",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.antigravityChatSignInCancel",
@@ -317,7 +325,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/accounts/antigravity-accounts.ts:76",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.antigravityList",
@@ -366,6 +375,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:177",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/accounts/usage/codex-reset-credit-consume-operations.ts:10"
       ]
@@ -384,7 +394,8 @@
       "name": "accounts.hostSignInCancel",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:242",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.hostSignInStart",
@@ -392,7 +403,8 @@
       "name": "accounts.hostSignInStart",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:221",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.hostSignInSubmitCode",
@@ -400,7 +412,8 @@
       "name": "accounts.hostSignInSubmitCode",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:235",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.hostSignInWait",
@@ -408,7 +421,8 @@
       "name": "accounts.hostSignInWait",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:228",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.list",
@@ -417,6 +431,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:135",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/accounts/use-mobile-accounts-snapshot.ts:68",
         "mobile/src/home/tabs/MobileHomeUsageTab.tsx:68"
@@ -428,7 +443,8 @@
       "name": "accounts.listData",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:104",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.minimaxClearApiKey",
@@ -436,7 +452,8 @@
       "name": "accounts.minimaxClearApiKey",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/usage-credentials.ts:43",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.minimaxClearSessionCookie",
@@ -444,7 +461,8 @@
       "name": "accounts.minimaxClearSessionCookie",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/usage-credentials.ts:62",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.minimaxCredentialsStatus",
@@ -452,7 +470,8 @@
       "name": "accounts.minimaxCredentialsStatus",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/usage-credentials.ts:24",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.minimaxSaveApiKey",
@@ -460,7 +479,8 @@
       "name": "accounts.minimaxSaveApiKey",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/usage-credentials.ts:33",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.minimaxSaveSessionCookie",
@@ -468,7 +488,8 @@
       "name": "accounts.minimaxSaveSessionCookie",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/usage-credentials.ts:52",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.removeClaude",
@@ -476,7 +497,8 @@
       "name": "accounts.removeClaude",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:184",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.removeCodex",
@@ -484,7 +506,8 @@
       "name": "accounts.removeCodex",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:190",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.removeData",
@@ -501,6 +524,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:154",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/accounts/MobileAccountsScreen.tsx:149"
       ]
@@ -512,6 +536,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:163",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/accounts/MobileAccountsScreen.tsx:152"
       ]
@@ -523,6 +548,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:169",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/accounts/MobileAccountsScreen.tsx:151"
       ]
@@ -551,6 +577,7 @@
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/accounts/accounts.ts:250",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/accounts/accounts-snapshot-stream.ts:59",
         "mobile/src/transport/rpc/rpc-client-server-subscription.ts:7"
@@ -573,7 +600,8 @@
       "name": "accounts.zcodePlanClearApiKey",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/usage-credentials.ts:90",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.zcodePlanCredentialsStatus",
@@ -581,7 +609,8 @@
       "name": "accounts.zcodePlanCredentialsStatus",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/usage-credentials.ts:71",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:accounts.zcodePlanSaveApiKey",
@@ -589,7 +618,8 @@
       "name": "accounts.zcodePlanSaveApiKey",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/accounts/usage-credentials.ts:80",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agent.launch",
@@ -652,7 +682,8 @@
       "name": "agentSession.accountUsage",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/catalog/structured-agent-session-account-usage.ts:79",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.acknowledgeAttention",
@@ -660,7 +691,8 @@
       "name": "agentSession.acknowledgeAttention",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/subscriptions/structured-agent-session-turn-completion-stream.ts:22",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.agents",
@@ -669,6 +701,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/catalog/structured-agent-session-agents.ts:27",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/use-mobile-native-chat-fork.ts:11",
         "mobile/src/session/native-chat/use-mobile-native-chat-fork.ts:113",
@@ -682,6 +715,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/structured-agent-session.ts:109",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/mobile-structured-agent-session-cancel.ts:65",
         "mobile/src/session/native-chat/agent-session/mobile-structured-agent-session-cancel.ts:87",
@@ -695,6 +729,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/catalog/structured-agent-session-usage-limit-continue.ts:6",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/use-mobile-native-chat-usage-limit.ts:143"
       ]
@@ -705,7 +740,8 @@
       "name": "agentSession.close",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-close-method.ts:18",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.commands",
@@ -714,6 +750,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/catalog/structured-agent-session-options-read.ts:49",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/composer/use-mobile-structured-session-commands.ts:40",
         "mobile/src/session/native-chat/composer/use-mobile-structured-session-commands.ts:49"
@@ -725,7 +762,8 @@
       "name": "agentSession.continuationContext",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/catalog/structured-agent-session-options-read.ts:35",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.continueInterrupted",
@@ -734,6 +772,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-restart-resume.ts:73",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/composer/use-mobile-structured-interrupted-continue.ts:82"
       ]
@@ -745,6 +784,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/structured-agent-session.ts:76",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/mobile-structured-agent-session-rpc.ts:171",
         "mobile/src/session/native-chat/composer/mobile-structured-composer-command.ts:113",
@@ -757,7 +797,8 @@
       "name": "agentSession.conversationOutline",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/history/structured-agent-session-conversation-outline.ts:12",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.create",
@@ -766,6 +807,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/structured-agent-session.ts:88",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/mobile-structured-create-operations.ts:23",
         "mobile/src/session/native-chat/agent-session/mobile-structured-create-operations.ts:24",
@@ -779,6 +821,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/structured-agent-session.ts:82",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/mobile-structured-create-operations.ts:13"
       ]
@@ -790,6 +833,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-current-requests.ts:17",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/use-mobile-structured-agent-state.ts:206"
       ]
@@ -808,7 +852,8 @@
       "name": "agentSession.handoffStatus",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/catalog/structured-agent-session-options-read.ts:42",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.history",
@@ -817,6 +862,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/structured-agent-session.ts:167",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/use-mobile-structured-agent-state.ts:258"
       ]
@@ -828,6 +874,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-hold.ts:16",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/use-mobile-structured-agent-state.ts:179"
       ]
@@ -839,6 +886,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/history/structured-agent-session-item.ts:15",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/transcript/mobile-native-chat-item-read.ts:16",
         "mobile/src/session/native-chat/transcript/mobile-native-chat-item-read.ts:17"
@@ -851,6 +899,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/catalog/structured-agent-session-options-read.ts:82",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/mobile-host-model-catalog-query.ts:20",
         "mobile/src/session/native-chat/input/mobile-host-model-catalog-query.ts:31",
@@ -864,6 +913,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/catalog/structured-agent-session-options-read.ts:59",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/use-mobile-structured-option-state.ts:191",
         "mobile/src/session/native-chat/use-mobile-native-chat-usage-limit.ts:118"
@@ -876,6 +926,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-queued-methods.ts:53",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/use-mobile-structured-queued-message-controls.ts:145",
         "mobile/src/session/native-chat/input/use-mobile-structured-queued-message-controls.ts:146",
@@ -889,6 +940,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-queued-methods.ts:33",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/mobile-queued-message-edit-lease.ts:25"
       ]
@@ -900,6 +952,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-queued-methods.ts:60",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/use-mobile-queued-message-composer-actions.ts:54",
         "mobile/src/session/native-chat/input/use-mobile-queued-message-composer-actions.ts:55"
@@ -912,6 +965,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-queued-methods.ts:46",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/use-mobile-structured-queued-message-controls.ts:134",
         "mobile/src/session/native-chat/input/use-mobile-structured-queued-message-controls.ts:135",
@@ -925,6 +979,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-queued-methods.ts:23",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/use-mobile-structured-queued-edit.ts:203",
         "mobile/src/session/native-chat/input/use-mobile-structured-queued-edit.ts:204",
@@ -938,6 +993,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-queued-methods.ts:67",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/use-mobile-structured-queued-message-controls.ts:236",
         "mobile/src/session/native-chat/input/use-mobile-structured-queued-message-controls.ts:237"
@@ -950,6 +1006,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/attachments/structured-agent-session-visual.ts:16",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/visual/mobile-native-chat-visual-read.ts:36"
       ]
@@ -960,7 +1017,8 @@
       "name": "agentSession.regenerateName",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-regenerate-name.ts:11",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.release",
@@ -969,6 +1027,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-hold.ts:25",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/use-mobile-structured-agent-state.ts:220"
       ]
@@ -979,7 +1038,8 @@
       "name": "agentSession.rename",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-rename.ts:12",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.respondToApproval",
@@ -988,6 +1048,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-prompt-response.ts:17",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/use-mobile-structured-prompt-responses.ts:48"
       ]
@@ -999,6 +1060,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-prompt-response.ts:27",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/use-mobile-structured-prompt-responses.ts:69"
       ]
@@ -1009,7 +1071,8 @@
       "name": "agentSession.restartContinue",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-restart-resume.ts:58",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.restartResumable",
@@ -1017,7 +1080,8 @@
       "name": "agentSession.restartResumable",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-restart-resume.ts:21",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.restartResumableDismiss",
@@ -1025,7 +1089,8 @@
       "name": "agentSession.restartResumableDismiss",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-restart-resume.ts:36",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.restartResume",
@@ -1042,6 +1107,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-reveal.ts:32",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/mobile-structured-session-open-rpc.ts:39"
       ]
@@ -1053,6 +1119,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/structured-agent-session.ts:66",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/use-mobile-structured-agent-rewind.ts:76",
         "mobile/src/session/native-chat/agent-session/use-mobile-structured-agent-rewind.ts:77"
@@ -1065,6 +1132,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/structured-agent-session.ts:103",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/mobile-structured-agent-session-send.ts:55",
         "mobile/src/session/native-chat/agent-session/mobile-structured-agent-session-send.ts:56",
@@ -1090,6 +1158,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-prompt-response.ts:37",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/use-mobile-structured-held-option-picks.ts:50",
         "mobile/src/session/native-chat/input/use-mobile-structured-held-option-picks.ts:51",
@@ -1102,7 +1171,8 @@
       "name": "agentSession.sleepWorkspace",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/structured-agent-session.ts:117",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.subscribe",
@@ -1112,6 +1182,7 @@
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/subscriptions/structured-agent-session-subscribe-method.ts:16",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/mobile-structured-transcript-subscription.ts:24",
         "mobile/src/transport/rpc/rpc-client-terminal-subscription.ts:54"
@@ -1124,7 +1195,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/catalog/structured-agent-session-agents.ts:45",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.subscribeStatus",
@@ -1134,6 +1206,7 @@
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/subscriptions/structured-agent-session-status-stream.ts:47",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/mobile-structured-session-status-feed.ts:112"
       ]
@@ -1145,7 +1218,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/subscriptions/structured-agent-session-turn-completion-stream.ts:45",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:agentSession.threadGoal",
@@ -1154,6 +1228,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/conversation/structured-agent-session-thread-goal.ts:14",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/use-mobile-structured-thread-goal.ts:105",
         "mobile/src/session/native-chat/input/use-mobile-structured-thread-goal.ts:106",
@@ -1178,6 +1253,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/attachments/structured-agent-session-attachments.ts:77",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/visual/mobile-native-chat-image-preview.ts:19"
       ]
@@ -1189,6 +1265,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/attachments/structured-agent-session-attachments.ts:32",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/attachments/mobile-chat-attachment-read.ts:19"
       ]
@@ -1200,6 +1277,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/attachments/structured-agent-session-attachments.ts:68",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/attachments/mobile-agent-session-attachment-upload.ts:51"
       ]
@@ -1211,6 +1289,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/attachments/structured-agent-session-attachments.ts:50",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/attachments/mobile-agent-session-attachment-upload.ts:30"
       ]
@@ -1222,6 +1301,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/attachments/structured-agent-session-attachments.ts:59",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/attachments/mobile-agent-session-attachment-upload.ts:40"
       ]
@@ -1233,6 +1313,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/structured-sessions/attachments/structured-agent-session-attachments.ts:41",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/attachments/mobile-agent-session-attachment-upload.ts:20"
       ]
@@ -1259,7 +1340,8 @@
       "name": "aiVault.deleteSession",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/history/ai-vault.ts:175",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:aiVault.listSessions",
@@ -1268,6 +1350,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/history/ai-vault.ts:96",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/agent-history/mobile-agent-history-operations.ts:33",
         "mobile/src/agent-history/use-mobile-agent-history-state.ts:35"
@@ -1279,7 +1362,8 @@
       "name": "aiVault.prepareSessionHandoff",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/history/ai-vault.ts:169",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:aiVault.prepareSessionResume",
@@ -1288,6 +1372,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/history/ai-vault.ts:137",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/agent-history/mobile-ai-vault-resume-operations.ts:12"
       ]
@@ -1298,7 +1383,8 @@
       "name": "aiVault.resolveSessionTitles",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/history/ai-vault.ts:89",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:aiVault.searchSessions",
@@ -1306,7 +1392,8 @@
       "name": "aiVault.searchSessions",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/history/ai-vault.ts:43",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:aiVault.searchStatus",
@@ -1314,7 +1401,8 @@
       "name": "aiVault.searchStatus",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/history/ai-vault.ts:61",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:aiVault.setSearchEnabled",
@@ -1330,7 +1418,8 @@
       "name": "artifacts.delete",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/artifacts/artifacts.ts:46",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:artifacts.getPublishedLink",
@@ -1338,7 +1427,8 @@
       "name": "artifacts.getPublishedLink",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/artifacts/artifacts.ts:16",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:artifacts.list",
@@ -1346,7 +1436,8 @@
       "name": "artifacts.list",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/artifacts/artifacts.ts:10",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:artifacts.publish",
@@ -1354,7 +1445,8 @@
       "name": "artifacts.publish",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/artifacts/artifacts.ts:28",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:artifacts.share",
@@ -1387,6 +1479,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/automations/automations.ts:50",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-draft.ts:216",
         "mobile/src/automations/automation-draft.ts:255",
@@ -1400,6 +1493,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/automations/automations.ts:78",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-operations.ts:56"
       ]
@@ -1411,6 +1505,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/automations/automations.ts:32",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-operations.ts:20",
         "mobile/src/automations/use-automation-catalog.ts:50"
@@ -1423,6 +1518,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/automations/automations.ts:88",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-operations.ts:65"
       ]
@@ -1434,6 +1530,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/automations/automations.ts:99",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-operations.ts:74",
         "mobile/src/automations/automation-operations.ts:84"
@@ -1457,6 +1554,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/automations/automations.ts:66",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-draft.ts:174",
         "mobile/src/automations/automation-draft.ts:281",
@@ -1470,6 +1568,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-core.ts:79",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:43",
         "mobile/src/session/tabs/MobileBrowserTabActionSheet.tsx:40",
@@ -1498,7 +1597,8 @@
       "name": "browser.certificate.proceed",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-core.ts:60",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.check",
@@ -1587,7 +1687,8 @@
       "name": "browser.clientHost.requestResult",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-client-host.ts:218",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.clientPage.initializationAction",
@@ -1595,7 +1696,8 @@
       "name": "browser.clientPage.initializationAction",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-page-initialization-action.ts:6",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.clipboardRead",
@@ -1660,6 +1762,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-extras.ts:153",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:58",
         "mobile/src/browser/page-interaction/use-mobile-browser-commands.ts:233",
@@ -1673,6 +1776,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-extras.ts:159",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:62",
         "mobile/src/browser/pane-view/MobileBrowserPaneView.tsx:277"
@@ -1700,7 +1804,8 @@
       "name": "browser.eval",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-core.ts:97",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.exec",
@@ -1740,7 +1845,8 @@
       "name": "browser.find",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-core.ts:253",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.focus",
@@ -1757,6 +1863,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-core.ts:229",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:44",
         "mobile/src/session/tabs/MobileBrowserTabActionSheet.tsx:56",
@@ -1794,6 +1901,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-core.ts:54",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:40"
       ]
@@ -1869,6 +1977,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-text-rpc-methods.ts:28",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:53"
       ]
@@ -1880,6 +1989,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-core.ts:205",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:55"
       ]
@@ -1902,6 +2012,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-extras.ts:84",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:48"
       ]
@@ -1913,6 +2024,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-extras.ts:78",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:47"
       ]
@@ -1924,6 +2036,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-extras.ts:96",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:49"
       ]
@@ -1935,6 +2048,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-extras.ts:102",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:50"
       ]
@@ -1969,7 +2083,8 @@
       "name": "browser.profileClearDefaultCookies",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-profile-rpc-methods.ts:67",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.profileClearGoogleCookies",
@@ -1977,7 +2092,8 @@
       "name": "browser.profileClearGoogleCookies",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-profile-rpc-methods.ts:61",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.profileCreate",
@@ -1985,7 +2101,8 @@
       "name": "browser.profileCreate",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-profile-rpc-methods.ts:37",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.profileDelete",
@@ -1993,7 +2110,8 @@
       "name": "browser.profileDelete",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-profile-rpc-methods.ts:43",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.profileDetectBrowsers",
@@ -2001,7 +2119,8 @@
       "name": "browser.profileDetectBrowsers",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-profile-rpc-methods.ts:49",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.profileImportFromBrowser",
@@ -2009,7 +2128,8 @@
       "name": "browser.profileImportFromBrowser",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-profile-rpc-methods.ts:55",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.profileList",
@@ -2017,7 +2137,8 @@
       "name": "browser.profileList",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-profile-rpc-methods.ts:31",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.reload",
@@ -2026,6 +2147,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-core.ts:85",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/page-interaction/mobile-browser-command-operations.ts:45",
         "mobile/src/session/tabs/MobileBrowserTabActionSheet.tsx:70",
@@ -2040,6 +2162,7 @@
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-screencast.ts:14",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/screencast/use-mobile-browser-stream.ts:210",
         "mobile/src/transport/relay/mobile-relay-rpc-streams.ts:182",
@@ -2219,7 +2342,8 @@
       "name": "browser.tabClose",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-core.ts:149",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.tabCreate",
@@ -2228,6 +2352,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/browser/browser-core.ts:133",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/browser/tab-navigation/mobile-session-browser-operations.ts:11"
       ]
@@ -2278,7 +2403,8 @@
       "name": "browser.tabShow",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/browser/browser-core.ts:109",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:browser.tabSwitch",
@@ -2327,6 +2453,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/clipboard/clipboard.ts:195",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/attachments/mobile-clipboard-image-operations.ts:56"
       ]
@@ -2338,6 +2465,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/clipboard/clipboard.ts:147",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/attachments/mobile-clipboard-image-operations.ts:25"
       ]
@@ -2349,6 +2477,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/clipboard/clipboard.ts:167",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/attachments/mobile-clipboard-image-operations.ts:35"
       ]
@@ -2360,6 +2489,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/clipboard/clipboard.ts:106",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/attachments/mobile-clipboard-image-operations.ts:45"
       ]
@@ -2371,6 +2501,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/clipboard/clipboard.ts:124",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/attachments/mobile-clipboard-image-operations.ts:15"
       ]
@@ -2453,7 +2584,8 @@
       "name": "computer.permissions",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/computer/computer.ts:51",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:computer.permissionsStatus",
@@ -2461,7 +2593,8 @@
       "name": "computer.permissionsStatus",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/computer/computer.ts:61",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:computer.pressKey",
@@ -2574,7 +2707,8 @@
       "name": "diagnostics.memory",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/host-management/diagnostics.ts:4",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:emulator.attach",
@@ -2582,7 +2716,8 @@
       "name": "emulator.attach",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/emulator/emulator.ts:43",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:emulator.availability",
@@ -2590,7 +2725,8 @@
       "name": "emulator.availability",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/emulator/emulator.ts:109",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:emulator.ax",
@@ -2606,7 +2742,8 @@
       "name": "emulator.button",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/emulator/emulator.ts:67",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:emulator.checkInput",
@@ -2614,7 +2751,8 @@
       "name": "emulator.checkInput",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/emulator/emulator.ts:73",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:emulator.exec",
@@ -2630,7 +2768,8 @@
       "name": "emulator.gesture",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/emulator/emulator.ts:55",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:emulator.install",
@@ -2670,7 +2809,8 @@
       "name": "emulator.listDevices",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/emulator/emulator.ts:115",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:emulator.listSimulators",
@@ -2702,7 +2842,8 @@
       "name": "emulator.rotate",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/emulator/emulator.ts:79",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:emulator.shutdown",
@@ -2710,7 +2851,8 @@
       "name": "emulator.shutdown",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/emulator/emulator.ts:97",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:emulator.tap",
@@ -2718,7 +2860,8 @@
       "name": "emulator.tap",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/emulator/emulator.ts:49",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:emulator.type",
@@ -2742,7 +2885,8 @@
       "name": "environment.doctor",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/host-management/environment-doctor.ts:9",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.browseServerDir",
@@ -2750,7 +2894,8 @@
       "name": "files.browseServerDir",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:205",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:files.commitUpload",
@@ -2758,7 +2903,8 @@
       "name": "files.commitUpload",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:138",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.copy",
@@ -2766,7 +2912,8 @@
       "name": "files.copy",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:175",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.createDir",
@@ -2774,7 +2921,8 @@
       "name": "files.createDir",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:116",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.createDirNoClobber",
@@ -2782,7 +2930,8 @@
       "name": "files.createDirNoClobber",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:127",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.createFile",
@@ -2791,6 +2940,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:105",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/session-documents/mobile-markdown-tab-operations.ts:13"
       ]
@@ -2801,7 +2951,8 @@
       "name": "files.delete",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:187",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.formatText",
@@ -2809,7 +2960,8 @@
       "name": "files.formatText",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:41",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.list",
@@ -2818,6 +2970,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:39",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/explorer/mobile-file-explorer-operations.ts:47",
         "mobile/src/files/explorer/native-chat-file-search-operations.ts:20"
@@ -2829,7 +2982,8 @@
       "name": "files.listAll",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:235",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.listMarkdownDocuments",
@@ -2837,7 +2991,8 @@
       "name": "files.listMarkdownDocuments",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:252",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.open",
@@ -2869,6 +3024,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:258",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/use-mobile-native-chat-markdown-links.ts:36"
       ]
@@ -2880,6 +3036,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:99",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/preview/mobile-file-preview-operations.ts:16",
         "mobile/src/files/preview/mobile-file-preview-request.ts:85",
@@ -2904,6 +3061,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:173",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/media/mobile-file-media-download.ts:32"
       ]
@@ -2915,6 +3073,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:185",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/explorer/mobile-file-explorer-operations.ts:162",
         "mobile/src/files/explorer/mobile-file-explorer-operations.ts:25"
@@ -2943,6 +3102,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:151",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/preview/mobile-file-preview-operations.ts:26",
         "mobile/src/files/preview/mobile-file-preview-request.ts:103",
@@ -2956,6 +3116,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files-terminal-artifact-methods.ts:10",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/preview/mobile-file-preview-operations.ts:36",
         "mobile/src/files/preview/mobile-file-preview-request.ts:108",
@@ -2968,7 +3129,8 @@
       "name": "files.readTerminalArtifactChunk",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-terminal-artifact-methods.ts:51",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:files.readTerminalArtifactPreview",
@@ -2977,6 +3139,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files-terminal-artifact-methods.ts:22",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/preview/mobile-file-preview-operations.ts:46",
         "mobile/src/files/preview/mobile-file-preview-request.ts:113",
@@ -2989,7 +3152,8 @@
       "name": "files.rename",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:163",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.replaceWithUpload",
@@ -2997,7 +3161,8 @@
       "name": "files.replaceWithUpload",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:150",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.resolveTerminalPath",
@@ -3006,6 +3171,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:135",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/preview/mobile-file-preview-operations.ts:67"
       ]
@@ -3016,7 +3182,8 @@
       "name": "files.saveAbort",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-staged-save-methods.ts:42",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.saveBegin",
@@ -3024,7 +3191,8 @@
       "name": "files.saveBegin",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-staged-save-methods.ts:14",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.saveChunk",
@@ -3032,7 +3200,8 @@
       "name": "files.saveChunk",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-staged-save-methods.ts:21",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.saveCommit",
@@ -3040,7 +3209,8 @@
       "name": "files.saveCommit",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-staged-save-methods.ts:35",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.search",
@@ -3048,7 +3218,8 @@
       "name": "files.search",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:213",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.searchPaths",
@@ -3057,6 +3228,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:48",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/explorer/native-chat-file-search-operations.ts:10",
         "mobile/src/transport/rpc/rpc-operation-compile-fence.ts:100",
@@ -3070,6 +3242,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:265",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/media/mobile-file-media-download.ts:15"
       ]
@@ -3080,7 +3253,8 @@
       "name": "files.statTerminalArtifact",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-terminal-artifact-methods.ts:44",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:files.unwatch",
@@ -3088,7 +3262,8 @@
       "name": "files.unwatch",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:290",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.watch",
@@ -3097,7 +3272,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/files/files.ts:272",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.write",
@@ -3105,7 +3281,8 @@
       "name": "files.write",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:53",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.writeBase64",
@@ -3121,7 +3298,8 @@
       "name": "files.writeBase64Chunk",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:92",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.writeIfUnchanged",
@@ -3129,7 +3307,8 @@
       "name": "files.writeIfUnchanged",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/files/files-mutation-methods.ts:65",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:files.writeTerminalArtifact",
@@ -3138,6 +3317,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/files/files-terminal-artifact-methods.ts:65",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/preview/mobile-file-preview-operations.ts:56"
       ]
@@ -3148,7 +3328,8 @@
       "name": "folderWorkspace.create",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/folder-workspace.ts:19",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:folderWorkspace.delete",
@@ -3156,7 +3337,8 @@
       "name": "folderWorkspace.delete",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/folder-workspace.ts:42",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:folderWorkspace.getPathStatus",
@@ -3164,7 +3346,8 @@
       "name": "folderWorkspace.getPathStatus",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/folder-workspace.ts:51",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:folderWorkspace.list",
@@ -3173,6 +3356,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/workspaces/folder-workspace.ts:11",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/agent-history/mobile-agent-history-operations.ts:56",
         "mobile/src/session/agent-launch/mobile-new-tab-folder-host-operations.ts:13"
@@ -3184,7 +3368,8 @@
       "name": "folderWorkspace.update",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/folder-workspace.ts:30",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.abortMerge",
@@ -3193,6 +3378,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:63",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/conflicts/use-mobile-conflict-runners.ts:43"
       ]
@@ -3204,6 +3390,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:75",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/conflicts/use-mobile-conflict-runners.ts:43"
       ]
@@ -3214,7 +3401,8 @@
       "name": "git.atRiskLocalFiles",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-status-methods.ts:76",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.branchCompare",
@@ -3223,6 +3411,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:97",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-read-operations.ts:64",
         "mobile/src/source-control/review/mobile-diff-review-branch-compare-cache.ts:16",
@@ -3236,6 +3425,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-diff-methods.ts:32",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/mobile-diff-review-operations.ts:79"
       ]
@@ -3246,7 +3436,8 @@
       "name": "git.bulkDiscard",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:223",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.bulkStage",
@@ -3255,6 +3446,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:188",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-mutation-operations.ts:58",
         "mobile/src/source-control/workflows/use-mobile-stage-all-runner.ts:24",
@@ -3268,6 +3460,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:209",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/changes/MobileSourceControlFileRows.tsx:134",
         "mobile/src/source-control/review/mobile-diff-review-git-operations.ts:21",
@@ -3281,6 +3474,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-commit-message-generation-methods.ts:93",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-mutation-operations.ts:124"
       ]
@@ -3292,6 +3486,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-commit-message-generation-methods.ts:120",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-mutation-operations.ts:188"
       ]
@@ -3302,7 +3497,8 @@
       "name": "git.checkIgnored",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:30",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.checkout",
@@ -3311,6 +3507,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:82",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/workflows/use-mobile-source-control-runners.ts:285"
       ]
@@ -3321,7 +3518,8 @@
       "name": "git.cherryPick",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-commit-action-methods.ts:30",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.commit",
@@ -3330,6 +3528,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:173",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-mutation-operations.ts:25",
         "mobile/src/source-control/git/use-mobile-git-requests.ts:53"
@@ -3342,6 +3541,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:104",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-read-operations.ts:54"
       ]
@@ -3353,6 +3553,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-diff-methods.ts:45",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/mobile-diff-review-operations.ts:89"
       ]
@@ -3364,6 +3565,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:69",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/conflicts/use-mobile-conflict-runners.ts:70"
       ]
@@ -3374,7 +3576,8 @@
       "name": "git.conflictOperation",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-status-methods.ts:83",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.createBranch",
@@ -3382,7 +3585,8 @@
       "name": "git.createBranch",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-commit-action-methods.ts:9",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.diff",
@@ -3391,6 +3595,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-diff-methods.ts:18",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/session-documents/mobile-file-tab-doc-operations.ts:21",
         "mobile/src/source-control/review/mobile-diff-review-operations.ts:68",
@@ -3404,6 +3609,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:216",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/components/MobileDiffReviewDrawers.tsx:75",
         "mobile/src/source-control/panel/MobileSourceControlModals.tsx:45",
@@ -3417,6 +3623,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-commit-message-generation-methods.ts:78",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/use-mobile-native-chat-model-discovery.ts:33"
       ]
@@ -3428,6 +3635,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:145",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-mutation-operations.ts:48",
         "mobile/src/source-control/workflows/use-mobile-source-control-action-sheet.ts:71"
@@ -3440,6 +3648,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:120",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/use-mobile-git-requests.ts:108",
         "mobile/src/source-control/workflows/use-mobile-source-control-action-sheet.ts:65"
@@ -3451,7 +3660,8 @@
       "name": "git.forkSync",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:129",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:git.generateCommitMessage",
@@ -3460,6 +3670,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-commit-message-generation-methods.ts:65",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-mutation-operations.ts:114"
       ]
@@ -3471,6 +3682,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-commit-message-generation-methods.ts:100",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-mutation-operations.ts:178"
       ]
@@ -3482,6 +3694,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:43",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-read-operations.ts:44"
       ]
@@ -3493,6 +3706,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:89",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/workflows/use-mobile-source-control-runners.ts:238"
       ]
@@ -3503,7 +3717,8 @@
       "name": "git.mutationInFlight",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:57",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.pull",
@@ -3512,6 +3727,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:136",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/use-mobile-git-requests.ts:109",
         "mobile/src/source-control/workflows/mobile-source-control-primary-action.ts:274",
@@ -3525,6 +3741,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:161",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-mutation-operations.ts:38",
         "mobile/src/source-control/git/use-mobile-git-requests.ts:112",
@@ -3538,6 +3755,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:154",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/workflows/use-mobile-source-control-action-sheet-runners.ts:85"
       ]
@@ -3548,7 +3766,8 @@
       "name": "git.refs",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:37",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.remoteCommitUrl",
@@ -3557,6 +3776,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:242",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/mobile-git-read-operations.ts:75"
       ]
@@ -3567,7 +3787,8 @@
       "name": "git.remoteFileUrl",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:230",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.resolveConflict",
@@ -3576,6 +3797,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:195",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/conflicts/use-mobile-conflict-runners.ts:58"
       ]
@@ -3586,7 +3808,8 @@
       "name": "git.revert",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-commit-action-methods.ts:37",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.sequencerAbort",
@@ -3594,7 +3817,8 @@
       "name": "git.sequencerAbort",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-commit-action-methods.ts:23",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.sequencerContinue",
@@ -3602,7 +3826,8 @@
       "name": "git.sequencerContinue",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-commit-action-methods.ts:16",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.stage",
@@ -3611,6 +3836,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:181",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/changes/MobileSourceControlFileRows.tsx:130",
         "mobile/src/source-control/review/mobile-diff-review-git-operations.ts:19",
@@ -3624,6 +3850,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-status-methods.ts:36",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/changes/mobile-git-status-query.ts:79",
         "mobile/src/source-control/git/mobile-git-read-operations.ts:17",
@@ -3636,7 +3863,8 @@
       "name": "git.submoduleStatus",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-status-methods.ts:20",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.switchBranch",
@@ -3644,7 +3872,8 @@
       "name": "git.switchBranch",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git-branch-methods.ts:5",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:git.unstage",
@@ -3653,6 +3882,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:202",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/components/use-mobile-diff-review-overflow-actions.ts:35",
         "mobile/src/source-control/changes/MobileSourceControlFileRows.tsx:135",
@@ -3666,6 +3896,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/git/git.ts:111",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/git/use-mobile-git-requests.ts:87"
       ]
@@ -3677,6 +3908,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-issue-methods.ts:55",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:87",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:36",
@@ -3690,6 +3922,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-update-methods.ts:101",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:82",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:35",
@@ -3703,6 +3936,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-update-methods.ts:116",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:77",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:37",
@@ -3716,6 +3950,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-repo-work-item-methods.ts:54",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/task-list/mobile-task-list-operations.ts:39"
       ]
@@ -3727,6 +3962,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-issue-methods.ts:29",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-state-operations.ts:21"
       ]
@@ -3737,7 +3973,8 @@
       "name": "github.issue",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-issue-methods.ts:23",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:github.listAssignableUsers",
@@ -3746,6 +3983,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-repo-work-item-methods.ts:72",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-read-operations.ts:89",
         "mobile/src/tasks/item-detail/mobile-task-item-detail-operations.ts:69",
@@ -3758,7 +3996,8 @@
       "name": "github.listBindableAccounts",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-account-binding-methods.ts:8",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:github.listIssues",
@@ -3766,7 +4005,8 @@
       "name": "github.listIssues",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-repo-work-item-methods.ts:48",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:github.listLabels",
@@ -3775,6 +4015,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-repo-work-item-methods.ts:60",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-detail-operations.ts:59",
         "src/shared/github/work-items/exact-work-item-operation.ts:8"
@@ -3787,6 +4028,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-repo-work-item-methods.ts:35",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/mobile-task-source-search-operations.ts:17"
       ]
@@ -3811,6 +4053,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-update-methods.ts:63",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-draft-mutations.ts:16",
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:52",
@@ -3824,6 +4067,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-update-methods.ts:36",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:36",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:29",
@@ -3837,6 +4081,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-methods.ts:45",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-read-operations.ts:79",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:20"
@@ -3849,6 +4094,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-methods.ts:35",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-read-operations.ts:69",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:19",
@@ -3862,6 +4108,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-methods.ts:73",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-read-operations.ts:100",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:33"
@@ -3874,6 +4121,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-methods.ts:95",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-repo-slug.ts:34",
         "mobile/src/tasks/item-detail/mobile-task-item-state-operations.ts:151"
@@ -3886,6 +4134,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-methods.ts:15",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-read-operations.ts:49"
       ]
@@ -3897,6 +4146,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:99",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:155"
       ]
@@ -3908,6 +4158,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:75",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:145"
       ]
@@ -3919,6 +4170,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:111",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:97",
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:175"
@@ -3931,6 +4183,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:21",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:24"
       ]
@@ -3942,6 +4195,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:33",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:84"
       ]
@@ -3953,6 +4207,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:39",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:94"
       ]
@@ -3964,6 +4219,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:27",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:74"
       ]
@@ -3975,6 +4231,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:51",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:34"
       ]
@@ -3986,6 +4243,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:45",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:54"
       ]
@@ -3997,6 +4255,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:81",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:105"
       ]
@@ -4008,6 +4267,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:105",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:92",
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:165"
@@ -4020,6 +4280,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:93",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:125"
       ]
@@ -4031,6 +4292,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:69",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:135"
       ]
@@ -4042,6 +4304,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:87",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:115"
       ]
@@ -4053,6 +4316,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:57",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:44"
       ]
@@ -4064,6 +4328,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-project-methods.ts:63",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/project-board/mobile-task-project-board-operations.ts:64"
       ]
@@ -4074,7 +4339,8 @@
       "name": "github.rateLimit",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-repo-work-item-methods.ts:29",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:github.removePRReviewers",
@@ -4083,6 +4349,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-update-methods.ts:89",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:67",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:28"
@@ -4095,6 +4362,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-repo-work-item-methods.ts:17",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-read-operations.ts:22",
         "mobile/src/source-control/review/mobile-pr-queries.ts:100",
@@ -4107,7 +4375,8 @@
       "name": "github.repoUpstream",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-repo-work-item-methods.ts:23",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:github.requestPRReviewers",
@@ -4116,6 +4385,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-update-methods.ts:77",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:62",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:27",
@@ -4129,6 +4399,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-methods.ts:62",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:72",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:21",
@@ -4142,6 +4413,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-methods.ts:110",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:114",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:22",
@@ -4155,6 +4427,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-update-methods.ts:43",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:42",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:30"
@@ -4166,7 +4439,8 @@
       "name": "github.setPRCommentReaction",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-methods.ts:82",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:github.setPRFileViewed",
@@ -4175,6 +4449,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-methods.ts:122",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:125",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:23",
@@ -4188,6 +4463,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-issue-methods.ts:43",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-state-operations.ts:51",
         "src/shared/github/work-items/exact-work-item-operation.ts:7"
@@ -4213,6 +4489,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-update-methods.ts:56",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:47",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:24",
@@ -4226,6 +4503,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-pull-request-update-methods.ts:17",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-mutation-operations.ts:104",
         "mobile/src/source-control/review/github-pr-repo-slug.ts:31"
@@ -4237,7 +4515,8 @@
       "name": "github.uploadAttachment",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-issue-methods.ts:12",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:github.validateAccountBinding",
@@ -4245,7 +4524,8 @@
       "name": "github.validateAccountBinding",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-account-binding-methods.ts:17",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:github.workItem",
@@ -4254,6 +4534,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-repo-work-item-methods.ts:84",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/mobile-task-source-search-operations.ts:71"
       ]
@@ -4265,6 +4546,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-repo-work-item-methods.ts:91",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/mobile-task-source-search-operations.ts:92"
       ]
@@ -4276,6 +4558,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/github/github-repo-work-item-methods.ts:108",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-read-operations.ts:59",
         "mobile/src/tasks/item-detail/mobile-task-item-detail-operations.ts:17",
@@ -4289,6 +4572,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:114",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-comment-operations.ts:46"
       ]
@@ -4300,6 +4584,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:121",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-comment-operations.ts:56"
       ]
@@ -4310,7 +4595,8 @@
       "name": "gitlab.addMRInlineComment",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:128",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:gitlab.createIssue",
@@ -4319,6 +4605,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:100",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-state-operations.ts:31"
       ]
@@ -4329,7 +4616,8 @@
       "name": "gitlab.diagnoseAuth",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:76",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:gitlab.jobTrace",
@@ -4337,7 +4625,8 @@
       "name": "gitlab.jobTrace",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:148",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:gitlab.listAssignableUsers",
@@ -4345,7 +4634,8 @@
       "name": "gitlab.listAssignableUsers",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:94",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:gitlab.listIssues",
@@ -4353,7 +4643,8 @@
       "name": "gitlab.listIssues",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:55",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:gitlab.listLabels",
@@ -4361,7 +4652,8 @@
       "name": "gitlab.listLabels",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:88",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:gitlab.listMRs",
@@ -4369,7 +4661,8 @@
       "name": "gitlab.listMRs",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:28",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:gitlab.listWorkItems",
@@ -4378,6 +4671,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:42",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/mobile-task-source-search-operations.ts:27"
       ]
@@ -4389,6 +4683,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:168",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-state-operations.ts:181"
       ]
@@ -4399,7 +4694,8 @@
       "name": "gitlab.rateLimit",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:82",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:gitlab.resolveMRDiscussion",
@@ -4407,7 +4703,8 @@
       "name": "gitlab.resolveMRDiscussion",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:135",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:gitlab.retryJob",
@@ -4415,7 +4712,8 @@
       "name": "gitlab.retryJob",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:161",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:gitlab.todos",
@@ -4424,6 +4722,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:70",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/task-list/mobile-task-list-operations.ts:49"
       ]
@@ -4435,6 +4734,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:107",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-state-operations.ts:81"
       ]
@@ -4446,6 +4746,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:182",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-state-operations.ts:91"
       ]
@@ -4456,7 +4757,8 @@
       "name": "gitlab.updateMRReviewers",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:189",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:gitlab.updateMRState",
@@ -4465,6 +4767,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:175",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-state-operations.ts:101"
       ]
@@ -4476,6 +4779,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:215",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/mobile-task-source-search-operations.ts:102"
       ]
@@ -4487,6 +4791,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/gitlab/gitlab.ts:201",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-detail-operations.ts:27"
       ]
@@ -4505,7 +4810,8 @@
       "name": "host.gitBash.isAvailable",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/host-management/host-capabilities.ts:33",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:host.peerDesktops",
@@ -4532,7 +4838,8 @@
       "name": "host.pwsh.isAvailable",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/host-management/host-capabilities.ts:27",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:host.wsl.isAvailable",
@@ -4540,7 +4847,8 @@
       "name": "host.wsl.isAvailable",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/host-management/host-capabilities.ts:15",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:host.wsl.listDistros",
@@ -4548,7 +4856,8 @@
       "name": "host.wsl.listDistros",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/host-management/host-capabilities.ts:21",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:hostedReview.create",
@@ -4557,6 +4866,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/reviews/hosted-review.ts:62",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/creation/mobile-hosted-review-operations.ts:32",
         "mobile/src/source-control/review/creation/mobile-hosted-review-operations.ts:33",
@@ -4569,7 +4879,8 @@
       "name": "hostedReview.createStacked",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/source-control/reviews/hosted-review.ts:84",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:hostedReview.forBranch",
@@ -4578,6 +4889,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/reviews/hosted-review.ts:11",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/github-pr-read-operations.ts:32"
       ]
@@ -4589,6 +4901,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/source-control/reviews/hosted-review.ts:36",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/creation/mobile-hosted-review-operations.ts:22"
       ]
@@ -4599,7 +4912,8 @@
       "name": "jira.addIssueComment",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:188",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.attachmentImage",
@@ -4608,7 +4922,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira-attachment-image.ts:14",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:jira.cancelGenerateIssueSummary",
@@ -4616,7 +4931,8 @@
       "name": "jira.cancelGenerateIssueSummary",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:63",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.connect",
@@ -4624,7 +4940,8 @@
       "name": "jira.connect",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:70",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.createIssue",
@@ -4632,7 +4949,8 @@
       "name": "jira.createIssue",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:166",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.disconnect",
@@ -4640,7 +4958,8 @@
       "name": "jira.disconnect",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:82",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.generateIssueSummary",
@@ -4648,7 +4967,8 @@
       "name": "jira.generateIssueSummary",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:56",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.getIssue",
@@ -4657,6 +4977,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:132",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/jira/mobile-jira-operations.ts:59"
       ]
@@ -4668,7 +4989,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:150",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.getProjectStatusOrder",
@@ -4676,7 +4998,8 @@
       "name": "jira.getProjectStatusOrder",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:277",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.issueComments",
@@ -4685,6 +5008,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:195",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/jira/mobile-jira-operations.ts:69"
       ]
@@ -4696,7 +5020,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:202",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.listAssignableUsers",
@@ -4704,7 +5029,8 @@
       "name": "jira.listAssignableUsers",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:257",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.listCreateFields",
@@ -4712,7 +5038,8 @@
       "name": "jira.listCreateFields",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:238",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.listFavouriteFilters",
@@ -4720,7 +5047,8 @@
       "name": "jira.listFavouriteFilters",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:218",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.listIssueTypes",
@@ -4728,7 +5056,8 @@
       "name": "jira.listIssueTypes",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:231",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.listIssues",
@@ -4737,6 +5066,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:119",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/jira/mobile-jira-operations.ts:39"
       ]
@@ -4747,7 +5077,8 @@
       "name": "jira.listPriorities",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:250",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.listProjects",
@@ -4755,7 +5086,8 @@
       "name": "jira.listProjects",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:225",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.listTransitions",
@@ -4763,7 +5095,8 @@
       "name": "jira.listTransitions",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:270",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.lookupIssueSummary",
@@ -4771,7 +5104,8 @@
       "name": "jira.lookupIssueSummary",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:139",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.readStatus",
@@ -4779,7 +5113,8 @@
       "name": "jira.readStatus",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:100",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.searchIssues",
@@ -4788,6 +5123,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:112",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/jira/mobile-jira-operations.ts:49"
       ]
@@ -4798,7 +5134,8 @@
       "name": "jira.searchUsers",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:264",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.selectSite",
@@ -4806,7 +5143,8 @@
       "name": "jira.selectSite",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:88",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.status",
@@ -4815,6 +5153,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:94",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/jira/mobile-jira-operations.ts:17",
         "mobile/src/tasks/providers/jira/mobile-jira-operations.ts:27"
@@ -4826,7 +5165,8 @@
       "name": "jira.testConnection",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:106",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:jira.updateIssue",
@@ -4834,7 +5174,8 @@
       "name": "jira.updateIssue",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/jira/jira.ts:181",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:layout.apply",
@@ -4842,7 +5183,8 @@
       "name": "layout.apply",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspace-layout/workspace-layout.ts:103",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:layout.getRemoteSnapshots",
@@ -4858,7 +5200,8 @@
       "name": "layout.reopenHeldPanes",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspace-layout/workspace-layout.ts:115",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:layout.reportView",
@@ -4866,7 +5209,8 @@
       "name": "layout.reportView",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspace-layout/workspace-layout.ts:132",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:layout.startWslHeldPanes",
@@ -4874,7 +5218,8 @@
       "name": "layout.startWslHeldPanes",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspace-layout/workspace-layout.ts:122",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:layout.subscribe",
@@ -4883,7 +5228,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/workspace-layout/workspace-layout.ts:27",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:layout.unsubscribe",
@@ -4900,6 +5246,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:97",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-comment-operations.ts:66"
       ]
@@ -4983,6 +5330,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:24",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/task-list/mobile-task-list-operations.ts:60"
       ]
@@ -4994,6 +5342,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:63",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-state-operations.ts:41"
       ]
@@ -5004,7 +5353,8 @@
       "name": "linear.createProject",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear-project-create.ts:4",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:linear.disconnect",
@@ -5012,7 +5362,8 @@
       "name": "linear.disconnect",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:30",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:linear.getCustomView",
@@ -5020,7 +5371,8 @@
       "name": "linear.getCustomView",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:151",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:linear.getIssue",
@@ -5029,6 +5381,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:83",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-detail-operations.ts:38"
       ]
@@ -5039,7 +5392,8 @@
       "name": "linear.getProject",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:125",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:linear.issueAddComment",
@@ -5064,6 +5418,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:104",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-detail-operations.ts:49"
       ]
@@ -5114,7 +5469,8 @@
       "name": "linear.listCustomViewIssues",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:163",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:linear.listCustomViewProjects",
@@ -5122,7 +5478,8 @@
       "name": "linear.listCustomViewProjects",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:175",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:linear.listCustomViews",
@@ -5130,7 +5487,8 @@
       "name": "linear.listCustomViews",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:144",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:linear.listIssues",
@@ -5139,6 +5497,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear-issue-list-method.ts:8",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/mobile-task-source-search-operations.ts:50"
       ]
@@ -5149,7 +5508,8 @@
       "name": "linear.listProjectIssues",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:132",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:linear.listProjects",
@@ -5157,7 +5517,8 @@
       "name": "linear.listProjects",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:117",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:linear.listTeams",
@@ -5166,6 +5527,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:111",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-detail-operations.ts:91",
         "mobile/src/tasks/task-list/mobile-task-list-operations.ts:29"
@@ -5202,6 +5564,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:54",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/providers/mobile-task-source-search-operations.ts:40"
       ]
@@ -5213,6 +5576,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:36",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/screen-state/mobile-task-runtime-operations.ts:82"
       ]
@@ -5224,6 +5588,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:42",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/screen-state/mobile-task-runtime-operations.ts:49",
         "mobile/src/tasks/task-list/mobile-task-list-operations.ts:18"
@@ -5235,7 +5600,8 @@
       "name": "linear.teamLabels",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:194",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:linear.teamMembers",
@@ -5243,7 +5609,8 @@
       "name": "linear.teamMembers",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:201",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:linear.teamStates",
@@ -5252,6 +5619,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:187",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-detail-operations.ts:80"
       ]
@@ -5262,7 +5630,8 @@
       "name": "linear.testConnection",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:48",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:linear.updateIssue",
@@ -5271,6 +5640,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/integrations/linear/linear.ts:90",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/item-detail/mobile-task-item-state-operations.ts:111"
       ]
@@ -5281,7 +5651,8 @@
       "name": "linkPreview.get",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/link-preview/link-preview.ts:6",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:managedRuntime.cancel",
@@ -5289,7 +5660,8 @@
       "name": "managedRuntime.cancel",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/host-management/managed-runtime-install.ts:125",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:managedRuntime.install",
@@ -5297,7 +5669,8 @@
       "name": "managedRuntime.install",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/host-management/managed-runtime-install.ts:115",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:managedRuntime.remove",
@@ -5305,7 +5678,8 @@
       "name": "managedRuntime.remove",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/host-management/managed-runtime-install.ts:134",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:managedRuntime.subscribe",
@@ -5314,7 +5688,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/host-management/managed-runtime-install.ts:70",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:managedServer.cancelStop",
@@ -5505,6 +5880,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/native-chat/native-chat.ts:93",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/mobile-native-chat-page-read-operations.ts:10"
       ]
@@ -5517,6 +5893,7 @@
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/native-chat/native-chat.ts:129",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/use-mobile-native-chat-session.ts:173",
         "mobile/src/transport/rpc/rpc-client-terminal-subscription.ts:62"
@@ -5529,6 +5906,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/native-chat/native-chat.ts:276",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/transport/rpc/rpc-client-terminal-subscription.ts:65",
         "src/shared/native-chat/native-chat-stream-unsubscribe.ts:23",
@@ -5691,7 +6069,8 @@
       "name": "orchestration.approvalAnswer",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-approval-answer.ts:36",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:orchestration.ask",
@@ -5724,7 +6103,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/orchestration/crew-methods.ts:46",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:orchestration.dispatch",
@@ -5740,7 +6120,8 @@
       "name": "orchestration.dispatchShow",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/orchestration/runs/dispatch-methods.ts:210",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:orchestration.federationAck",
@@ -5869,6 +6250,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/orchestration/caller-show.ts:111",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/mobile-structured-session-open-rpc.ts:34"
       ]
@@ -5880,6 +6262,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/orchestration/caller-show.ts:119",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/agent-session/mobile-structured-session-open-rpc.ts:37"
       ]
@@ -6010,7 +6393,8 @@
       "name": "orchestration.sessionAddress",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/orchestration/caller-show.ts:93",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:orchestration.taskCreate",
@@ -6051,7 +6435,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/orchestration/crew-methods.ts:64",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:orchestration.workerAutoClose",
@@ -6060,6 +6445,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-keep-open.ts:15",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/tabs/mobile-worker-auto-close.ts:38"
       ]
@@ -6079,6 +6465,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/orchestration/worker/worker-keep-open.ts:30",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/tabs/mobile-worker-auto-close.ts:48"
       ]
@@ -6205,7 +6592,8 @@
       "name": "pairing.registerDeviceKey",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/pairing/pairing.ts:60",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:plugins.catalogAdd",
@@ -6434,6 +6822,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/preflight/preflight.ts:39",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/screen-state/mobile-task-runtime-operations.ts:39"
       ]
@@ -6445,6 +6834,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/preflight/preflight.ts:45",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/new-workspace/creation/mobile-workspace-source-operations.ts:47",
         "mobile/src/session/agent-launch/mobile-agent-detection-operations.ts:9"
@@ -6457,6 +6847,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/preflight/preflight.ts:61",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/new-workspace/creation/mobile-workspace-source-operations.ts:37",
         "mobile/src/session/agent-launch/mobile-agent-detection-operations.ts:29"
@@ -6468,7 +6859,8 @@
       "name": "preflight.detectRemoteWindowsTerminalCapabilities",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/preflight/preflight.ts:68",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:preflight.refreshAgents",
@@ -6477,6 +6869,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/preflight/preflight.ts:74",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/agent-launch/mobile-agent-detection-operations.ts:19"
       ]
@@ -6488,6 +6881,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/projects/project-runtime-rpc-methods.ts:13",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-operations.ts:93"
       ]
@@ -6498,7 +6892,8 @@
       "name": "project.update",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-runtime-rpc-methods.ts:22",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectGroup.checkHooks",
@@ -6506,7 +6901,8 @@
       "name": "projectGroup.checkHooks",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-group-rpc-methods.ts:15",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectGroup.create",
@@ -6514,7 +6910,8 @@
       "name": "projectGroup.create",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-group-rpc-methods.ts:28",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectGroup.delete",
@@ -6522,7 +6919,8 @@
       "name": "projectGroup.delete",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-group-rpc-methods.ts:44",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectGroup.importNested",
@@ -6530,7 +6928,8 @@
       "name": "projectGroup.importNested",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-group-rpc-methods.ts:80",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectGroup.list",
@@ -6539,6 +6938,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/projects/project-group-rpc-methods.ts:22",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/agent-history/mobile-agent-history-operations.ts:66",
         "mobile/src/session/agent-launch/mobile-new-tab-folder-host-operations.ts:37",
@@ -6551,7 +6951,8 @@
       "name": "projectGroup.moveProject",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-group-rpc-methods.ts:58",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectGroup.scanNested",
@@ -6559,7 +6960,8 @@
       "name": "projectGroup.scanNested",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-group-rpc-methods.ts:74",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectGroup.update",
@@ -6567,7 +6969,8 @@
       "name": "projectGroup.update",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-group-rpc-methods.ts:36",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectGroup.updateMany",
@@ -6575,7 +6978,8 @@
       "name": "projectGroup.updateMany",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-group-rpc-methods.ts:50",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectHostSetup.clone",
@@ -6591,7 +6995,8 @@
       "name": "projectHostSetup.create",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-runtime-rpc-methods.ts:39",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectHostSetup.delete",
@@ -6599,7 +7004,8 @@
       "name": "projectHostSetup.delete",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-runtime-rpc-methods.ts:80",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectHostSetup.list",
@@ -6608,6 +7014,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/projects/project-runtime-rpc-methods.ts:30",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-operations.ts:102"
       ]
@@ -6618,7 +7025,8 @@
       "name": "projectHostSetup.setupExistingFolder",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-runtime-rpc-methods.ts:47",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:projectHostSetup.update",
@@ -6626,7 +7034,8 @@
       "name": "projectHostSetup.update",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/project-runtime-rpc-methods.ts:69",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:reference.find",
@@ -6650,7 +7059,8 @@
       "name": "repo.add",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:77",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.addRemote",
@@ -6658,7 +7068,8 @@
       "name": "repo.addRemote",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:89",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.baseRefDefault",
@@ -6667,6 +7078,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:199",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/branches/mobile-repo-base-ref-operations.ts:65"
       ]
@@ -6677,7 +7089,8 @@
       "name": "repo.checkCloneTarget",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:129",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.clone",
@@ -6685,7 +7098,8 @@
       "name": "repo.clone",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:113",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.create",
@@ -6693,7 +7107,8 @@
       "name": "repo.create",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:97",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.gitAvailable",
@@ -6701,7 +7116,8 @@
       "name": "repo.gitAvailable",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:107",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:repo.hooks",
@@ -6722,7 +7138,8 @@
       "name": "repo.hooksCheck",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:231",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.issueCommandRead",
@@ -6730,7 +7147,8 @@
       "name": "repo.issueCommandRead",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:247",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.issueCommandWrite",
@@ -6738,7 +7156,8 @@
       "name": "repo.issueCommandWrite",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:254",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.list",
@@ -6747,6 +7166,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:40",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/agent-history/mobile-agent-history-operations.ts:44",
         "mobile/src/host-screen/catalog/host-list-queries.ts:199",
@@ -6759,7 +7179,8 @@
       "name": "repo.reorder",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:182",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.rm",
@@ -6767,7 +7188,8 @@
       "name": "repo.rm",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:176",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.saveSparsePreset",
@@ -6787,6 +7209,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:205",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/branches/mobile-repo-base-ref-operations.ts:85"
       ]
@@ -6813,7 +7236,8 @@
       "name": "repo.setupScriptImports",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:241",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.show",
@@ -6821,7 +7245,8 @@
       "name": "repo.show",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:135",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:repo.sparsePresets",
@@ -6841,6 +7266,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/projects/repo.ts:146",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/tasks/task-list/mobile-task-list-operations.ts:71"
       ]
@@ -6851,7 +7277,8 @@
       "name": "runtime.automaticWork.resume",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/automations/automatic-work.ts:14",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:runtime.automaticWork.status",
@@ -6859,7 +7286,8 @@
       "name": "runtime.automaticWork.status",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/automations/automatic-work.ts:6",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:runtime.clientCapabilities.update",
@@ -6880,6 +7308,7 @@
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/client-events/client-events.ts:23",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/transport/connection/shared-client-events.ts:111",
         "mobile/src/transport/rpc/rpc-client-server-subscription.ts:5"
@@ -6910,7 +7339,8 @@
       "name": "session.readTerminalScrollback",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/session-terminal-scrollback.ts:8",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:session.tabs.activate",
@@ -6919,6 +7349,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tab-mutation-methods.ts:21",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/tabs/mobile-session-tab-activation.ts:92",
         "mobile/src/session/tabs/mobile-session-tab-write-operations.ts:33"
@@ -6931,6 +7362,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tab-close-methods.ts:14",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/tabs/mobile-session-tab-write-operations.ts:23"
       ]
@@ -6941,7 +7373,8 @@
       "name": "session.tabs.closeLifecycle",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tab-close-methods.ts:94",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:session.tabs.createTerminal",
@@ -6950,6 +7383,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tabs.ts:62",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/tabs/mobile-session-tab-write-operations.ts:13",
         "mobile/src/source-control/review/mobile-review-terminal-operations.ts:13"
@@ -6962,6 +7396,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tabs.ts:33",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/session-documents/mobile-source-file-open-operations.ts:53",
         "mobile/src/session/native-chat/agent-session/mobile-structured-session-open-rpc.ts:55",
@@ -6974,7 +7409,8 @@
       "name": "session.tabs.listAll",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tabs.ts:51",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:session.tabs.move",
@@ -6982,7 +7418,8 @@
       "name": "session.tabs.move",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tab-mutation-methods.ts:52",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:session.tabs.movePaneToNewTab",
@@ -6990,7 +7427,8 @@
       "name": "session.tabs.movePaneToNewTab",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tab-mutation-methods.ts:110",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:session.tabs.setTabProps",
@@ -6998,7 +7436,8 @@
       "name": "session.tabs.setTabProps",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tab-mutation-methods.ts:141",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:session.tabs.subscribe",
@@ -7008,6 +7447,7 @@
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tabs.ts:116",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/tabs/use-mobile-session-tabs-reconciliation.ts:160",
         "mobile/src/transport/relay/mobile-relay-rpc-streams.ts:172",
@@ -7021,7 +7461,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tabs.ts:298",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:session.tabs.unsubscribe",
@@ -7048,7 +7489,8 @@
       "name": "session.tabs.updatePaneLayout",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/session-tabs/session-tab-mutation-methods.ts:87",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:settings.get",
@@ -7057,6 +7499,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:94",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/host-screen/view-settings/host-list-settings-operations.ts:35",
         "mobile/src/session/agent-launch/mobile-new-tab-settings-operations.ts:20",
@@ -7070,6 +7513,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:80",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-operations.ts:139"
       ]
@@ -7081,6 +7525,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:108",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/terminal/quick-commands/mobile-quick-command-operations.ts:15"
       ]
@@ -7091,7 +7536,8 @@
       "name": "settings.mutateAgentLaunch",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:86",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:settings.mutateNativeChatSessionOptions",
@@ -7100,6 +7546,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:146",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/input/mobile-native-chat-options-operations.ts:12"
       ]
@@ -7111,6 +7558,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:100",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/host-screen/host-screen-operations.ts:71",
         "mobile/src/tasks/screen-state/mobile-task-runtime-operations.ts:71"
@@ -7122,7 +7570,8 @@
       "name": "settings.updatePRBotAuthorOverride",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:138",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:settings.updateTerminalQuickCommands",
@@ -7131,6 +7580,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:120",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/terminal/quick-commands/mobile-quick-command-operations.ts:25"
       ]
@@ -7168,6 +7618,7 @@
       "registered": "src/main/runtime/rpc/methods/sidebar-inputs/sidebar-inputs.ts:69",
       "allowlist": "paired-desktop",
       "flag": "ORCA_SIDEBAR_INPUTS_IS_MAIN",
+      "desktop": true,
       "sites": [
         "mobile/src/host-screen/sidebar-feed/host-sidebar-feed-operations.ts:15"
       ]
@@ -7191,7 +7642,8 @@
       "name": "sidebarInputs.reportView",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/sidebar-inputs/sidebar-inputs.ts:117",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:sidebarInputs.reviewFacts",
@@ -7231,7 +7683,8 @@
       "name": "sidebarSession.begin",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/sidebar-inputs/sidebar-inputs.ts:101",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:skills.autoUpdateBundledOrca",
@@ -7239,7 +7692,8 @@
       "name": "skills.autoUpdateBundledOrca",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/skills/skills.ts:144",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:skills.beginUpload",
@@ -7279,7 +7733,8 @@
       "name": "skills.delete",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/skills/skills.ts:120",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:skills.discover",
@@ -7288,6 +7743,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/skills/skills.ts:91",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/native-chat/composer/mobile-native-chat-skill-operations.ts:10",
         "mobile/src/session/native-chat/composer/use-mobile-native-chat-skills.ts:16"
@@ -7299,7 +7755,8 @@
       "name": "skills.executeBundledOrca",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/skills/skills.ts:138",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:skills.getInstallProgress",
@@ -7339,7 +7796,8 @@
       "name": "skills.planBundledOrca",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/skills/skills.ts:132",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:skills.previewDelete",
@@ -7347,7 +7805,8 @@
       "name": "skills.previewDelete",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/skills/skills.ts:109",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:skills.previewInstall",
@@ -7388,6 +7847,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/speech/speech.ts:65",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/dictation/mobile-dictation-operations.ts:85"
       ]
@@ -7399,6 +7859,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/speech/speech.ts:52",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/dictation/mobile-dictation-operations.ts:63"
       ]
@@ -7410,6 +7871,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/speech/speech.ts:58",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/dictation/mobile-dictation-operations.ts:74"
       ]
@@ -7432,6 +7894,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/speech/speech.ts:45",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/dictation/mobile-dictation-operations.ts:53"
       ]
@@ -7500,7 +7963,8 @@
       "name": "ssh.addTarget",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/ssh/ssh.ts:146",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:ssh.browseDir",
@@ -7508,7 +7972,8 @@
       "name": "ssh.browseDir",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/ssh/ssh.ts:186",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:ssh.connect",
@@ -7517,6 +7982,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/ssh/ssh.ts:103",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/new-workspace/creation/mobile-workspace-source-operations.ts:16"
       ]
@@ -7528,6 +7994,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/ssh/ssh.ts:95",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/files/mutation-ownership/mobile-file-ownership-operations.ts:26",
         "mobile/src/new-workspace/creation/mobile-workspace-source-operations.ts:26"
@@ -7539,7 +8006,8 @@
       "name": "ssh.listEditableTargets",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/ssh/ssh.ts:140",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:ssh.listRemovedTargetLabels",
@@ -7547,7 +8015,8 @@
       "name": "ssh.listRemovedTargetLabels",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/ssh/ssh.ts:133",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:ssh.listTargetSummaries",
@@ -7556,6 +8025,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/ssh/ssh.ts:126",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-operations.ts:111",
         "mobile/src/host-screen/host-screen-operations.ts:29"
@@ -7575,7 +8045,8 @@
       "name": "ssh.removeTarget",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/ssh/ssh.ts:177",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:ssh.updateTarget",
@@ -7583,7 +8054,8 @@
       "name": "ssh.updateTarget",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/ssh/ssh.ts:161",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:stats.summary",
@@ -7592,6 +8064,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/host-management/stats.ts:4",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/stats/home-stats-summary-read.ts:23",
         "mobile/src/stats/home-stats-summary-read.ts:33"
@@ -7604,6 +8077,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/host-management/status.ts:9",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/agent-history/mobile-agent-history-operations.ts:17",
         "mobile/src/new-workspace/creation/mobile-workspace-create-operations.ts:75",
@@ -7627,7 +8101,8 @@
       "name": "terminal.adoptOrphans",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-orphan.ts:5",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:terminal.agentId",
@@ -7635,7 +8110,8 @@
       "name": "terminal.agentId",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:74",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.agentStatus",
@@ -7643,7 +8119,8 @@
       "name": "terminal.agentStatus",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:158",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:terminal.clearBuffer",
@@ -7652,6 +8129,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:182",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/terminal/host-operations/mobile-terminal-operations.ts:67"
       ]
@@ -7663,6 +8141,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-lifecycle-methods.ts:235",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/terminal/session/mobile-session-terminal-operations.ts:67",
         "mobile/src/terminal/session/mobile-session-terminal-operations.ts:68"
@@ -7690,7 +8169,8 @@
       "name": "terminal.create",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-lifecycle-methods.ts:36",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:terminal.createAgentSession",
@@ -7698,7 +8178,8 @@
       "name": "terminal.createAgentSession",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/agent-session.ts:55",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:terminal.ensureAgentSession",
@@ -7706,7 +8187,8 @@
       "name": "terminal.ensureAgentSession",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/agent-session.ts:44",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:terminal.focus",
@@ -7715,6 +8197,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-lifecycle-methods.ts:200",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/session/tabs/mobile-session-tab-activation.ts:81",
         "mobile/src/terminal/session/mobile-session-terminal-operations.ts:78",
@@ -7746,7 +8229,8 @@
       "name": "terminal.inferCodexQuestionSkip",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-codex-question-skip-method.ts:8",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.inspectProcess",
@@ -7754,7 +8238,8 @@
       "name": "terminal.inspectProcess",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:131",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.isRunningAgent",
@@ -7762,7 +8247,8 @@
       "name": "terminal.isRunningAgent",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:150",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:terminal.list",
@@ -7771,6 +8257,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:25",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-run-agent.ts:18",
         "mobile/src/terminal/session/mobile-session-terminal-operations.ts:23",
@@ -7784,7 +8271,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-multiplex-method.ts:20",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:terminal.openInputSession",
@@ -7814,7 +8302,8 @@
       "name": "terminal.readKittyFile",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:198",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.recoverPane",
@@ -7822,7 +8311,8 @@
       "name": "terminal.recoverPane",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:90",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.rename",
@@ -7831,6 +8321,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:166",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/terminal/session/mobile-session-terminal-operations.ts:57",
         "mobile/src/terminal/session/mobile-session-terminal-operations.ts:58"
@@ -7842,7 +8333,8 @@
       "name": "terminal.resetInputModes",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:190",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.resizeForClient",
@@ -7874,7 +8366,8 @@
       "name": "terminal.resolvePane",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:66",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.restoreFit",
@@ -7882,7 +8375,8 @@
       "name": "terminal.restoreFit",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-viewport-methods.ts:37",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.reveal",
@@ -7899,6 +8393,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-send-method.ts:44",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/source-control/review/mobile-review-terminal-operations.ts:24",
         "mobile/src/terminal/host-operations/mobile-terminal-operations.ts:15",
@@ -7941,7 +8436,8 @@
       "name": "terminal.setViewerColors",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-viewer-colors-method.ts:11",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.show",
@@ -7949,7 +8445,8 @@
       "name": "terminal.show",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-query-methods.ts:102",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.sleep",
@@ -7965,7 +8462,8 @@
       "name": "terminal.split",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-lifecycle-methods.ts:144",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.stop",
@@ -7973,7 +8471,8 @@
       "name": "terminal.stop",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-workspace-stop-methods.ts:18",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.stopExact",
@@ -7981,7 +8480,8 @@
       "name": "terminal.stopExact",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-workspace-stop-methods.ts:50",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.subscribe",
@@ -8004,7 +8504,8 @@
       "phone": false,
       "subscription": true,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-claude-agent-view-method.ts:17",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.unsubscribe",
@@ -8025,6 +8526,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-viewport-methods.ts:61",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/terminal/host-operations/mobile-terminal-operations.ts:36"
       ]
@@ -8035,7 +8537,8 @@
       "name": "terminal.viewClaudeAgent",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-claude-agent-view-method.ts:34",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminal.wait",
@@ -8043,7 +8546,8 @@
       "name": "terminal.wait",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-lifecycle-methods.ts:24",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:terminalDaemon.limit",
@@ -8051,7 +8555,8 @@
       "name": "terminalDaemon.limit",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-daemon.ts:10",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminalDaemon.restartSevered",
@@ -8067,7 +8572,8 @@
       "name": "terminalDaemon.setLimit",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/terminal/terminal-daemon.ts:16",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:terminalDaemon.severedStatus",
@@ -8084,6 +8590,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:155",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/components/new-workspace-operations.ts:26",
         "mobile/src/host-screen/host-screen-operations.ts:50",
@@ -8096,7 +8603,8 @@
       "name": "ui.getJiraQuickFilters",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:46",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:ui.getJiraSavedFilters",
@@ -8104,7 +8612,8 @@
       "name": "ui.getJiraSavedFilters",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:63",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:ui.mutateJiraSavedFilters",
@@ -8112,7 +8621,8 @@
       "name": "ui.mutateJiraSavedFilters",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:70",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:ui.recordFeatureInteraction",
@@ -8120,7 +8630,8 @@
       "name": "ui.recordFeatureInteraction",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:182",
-      "allowlist": "paired-desktop"
+      "allowlist": "paired-desktop",
+      "desktop": true
     },
     {
       "id": "rpc:ui.set",
@@ -8129,6 +8640,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:161",
       "allowlist": "paired-desktop",
+      "desktop": true,
       "sites": [
         "mobile/src/host-screen/host-screen-operations.ts:61",
         "mobile/src/tasks/screen-state/mobile-task-runtime-operations.ts:60"
@@ -8153,7 +8665,8 @@
       "name": "ui.setJiraQuickFilters",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/client-state/client-ui.ts:53",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:updater.check",
@@ -8161,7 +8674,8 @@
       "name": "updater.check",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/updater/updater.ts:17",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:updater.download",
@@ -8169,7 +8683,8 @@
       "name": "updater.download",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/updater/updater.ts:23",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:updater.getStatus",
@@ -8177,7 +8692,8 @@
       "name": "updater.getStatus",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/updater/updater.ts:11",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:updater.install",
@@ -8185,7 +8701,8 @@
       "name": "updater.install",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/updater/updater.ts:29",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:workspaceCleanup.preview",
@@ -8193,7 +8710,8 @@
       "name": "workspaceCleanup.preview",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/workspace-cleanup-runner-methods.ts:12",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:workspaceCleanup.report",
@@ -8201,7 +8719,8 @@
       "name": "workspaceCleanup.report",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/workspace-cleanup-runner-methods.ts:25",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:workspaceCleanup.reportUnsavedEditors",
@@ -8209,7 +8728,8 @@
       "name": "workspaceCleanup.reportUnsavedEditors",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/workspace-cleanup-runner-methods.ts:31",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:workspaceCleanup.runNow",
@@ -8217,7 +8737,8 @@
       "name": "workspaceCleanup.runNow",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/workspace-cleanup-runner-methods.ts:18",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:workspaceCleanup.scan",
@@ -8225,7 +8746,8 @@
       "name": "workspaceCleanup.scan",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/workspace-cleanup-scan-method.ts:6",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:workspacePorts.kill",
@@ -8233,7 +8755,8 @@
       "name": "workspacePorts.kill",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspace-ports/workspace-ports.ts:18",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:workspacePorts.killHost",
@@ -8241,7 +8764,8 @@
       "name": "workspacePorts.killHost",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspace-ports/workspace-ports.ts:41",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:workspacePorts.probePage",
@@ -8249,7 +8773,8 @@
       "name": "workspacePorts.probePage",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspace-ports/workspace-ports.ts:29",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:workspacePorts.scan",
@@ -8257,7 +8782,8 @@
       "name": "workspacePorts.scan",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspace-ports/workspace-ports.ts:12",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:workspacePorts.scanHost",
@@ -8265,7 +8791,8 @@
       "name": "workspacePorts.scanHost",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspace-ports/workspace-ports.ts:35",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:worktree.activate",
@@ -8274,6 +8801,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:102",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/host-screen/host-screen-operations.ts:136"
       ]
@@ -8284,7 +8812,8 @@
       "name": "worktree.adoptProvisionedRoot",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree-provisioned-root-method.ts:5",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:worktree.archive",
@@ -8301,6 +8830,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:119",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/new-workspace/creation/mobile-workspace-create-operations.ts:21",
         "mobile/src/new-workspace/creation/mobile-workspace-create-operations.ts:22",
@@ -8313,7 +8843,8 @@
       "name": "worktree.detectedList",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree-catalog-methods.ts:70",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:worktree.forceDeleteBranch",
@@ -8321,7 +8852,8 @@
       "name": "worktree.forceDeleteBranch",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:287",
-      "allowlist": "execution-host"
+      "allowlist": "execution-host",
+      "desktop": true
     },
     {
       "id": "rpc:worktree.lineageList",
@@ -8329,7 +8861,8 @@
       "name": "worktree.lineageList",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:67",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:worktree.list",
@@ -8338,6 +8871,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree-catalog-methods.ts:47",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/automations/automation-operations.ts:121",
         "mobile/src/mobile-web-shell/bridge/bridge-port-pair-test-harness.ts:210"
@@ -8350,6 +8884,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree-catalog-methods.ts:64",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/worktree/worktree-catalog-operations.ts:22"
       ]
@@ -8360,7 +8895,8 @@
       "name": "worktree.persistSortOrder",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:184",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:worktree.prefetchCreateBase",
@@ -8369,6 +8905,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:171",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/new-workspace/creation/mobile-workspace-create-operations.ts:87"
       ]
@@ -8379,7 +8916,8 @@
       "name": "worktree.previewNestedRemoval",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:277",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:worktree.ps",
@@ -8400,7 +8938,8 @@
       "name": "worktree.resolveCallerParent",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:80",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:worktree.resolveMrBase",
@@ -8409,6 +8948,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:205",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/new-workspace/creation/mobile-workspace-create-operations.ts:63"
       ]
@@ -8420,6 +8960,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:191",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/new-workspace/creation/mobile-workspace-create-operations.ts:53"
       ]
@@ -8439,6 +8980,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:219",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/host-screen/host-screen-operations.ts:125"
       ]
@@ -8449,7 +8991,8 @@
       "name": "worktree.runApprovedSetup",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:58",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "rpc:worktree.set",
@@ -8458,6 +9001,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree-set-method.ts:6",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/host-screen/host-screen-operations.ts:82",
         "mobile/src/host-screen/host-screen-operations.ts:93",
@@ -8484,6 +9028,7 @@
       "phone": true,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree-sleep-method.ts:4",
       "allowlist": "execution-host",
+      "desktop": true,
       "sites": [
         "mobile/src/host-screen/host-screen-operations.ts:103"
       ]
@@ -8494,7 +9039,8 @@
       "name": "worktree.teardownMissingTerminals",
       "phone": false,
       "registered": "src/main/runtime/rpc/methods/workspaces/worktree.ts:47",
-      "allowlist": null
+      "allowlist": null,
+      "desktop": true
     },
     {
       "id": "transport:e2ee.handshake",

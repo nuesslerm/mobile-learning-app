@@ -21,13 +21,19 @@
       "mutation": 3,
       "rpc": 156
     },
-    "pendingByMilestone": {}
+    "pendingByMilestone": {},
+    "desktop": {
+      "phoneRowsTheDesktopReaches": 219,
+      "desktopOnly": 71,
+      "ipcChannels": 140
+    }
   },
   "rows": [
     {
       "id": "command:checkpoint.rollback",
       "kind": "command",
       "name": "checkpoint.rollback",
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "target": "agent:thread.rollback",
@@ -47,6 +53,7 @@
       "id": "command:message.dispatch",
       "kind": "command",
       "name": "message.dispatch",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "target": "agent:turn.start",
@@ -68,6 +75,7 @@
       "id": "command:prepared-run.retry",
       "kind": "command",
       "name": "prepared-run.retry",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M4",
       "target": "t3-local",
@@ -78,6 +86,7 @@
       "id": "command:provider-session.detach",
       "kind": "command",
       "name": "provider-session.detach",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:thread.detach",
@@ -95,6 +104,7 @@
       "id": "command:queue.resume",
       "kind": "command",
       "name": "queue.resume",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:queue.resume",
@@ -115,6 +125,7 @@
       "id": "command:queued-message.promote-to-steer",
       "kind": "command",
       "name": "queued-message.promote-to-steer",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:turn.steer",
@@ -135,6 +146,7 @@
       "id": "command:queued-run.cancel",
       "kind": "command",
       "name": "queued-run.cancel",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:queue.delete",
@@ -160,6 +172,7 @@
       "id": "command:queued-run.edit",
       "kind": "command",
       "name": "queued-run.edit",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:queue.edit",
@@ -185,6 +198,7 @@
       "id": "command:queued-run.start",
       "kind": "command",
       "name": "queued-run.start",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:queue.resume",
@@ -211,6 +225,7 @@
       "id": "command:run.interrupt",
       "kind": "command",
       "name": "run.interrupt",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "target": "agent:turn.interrupt",
@@ -235,6 +250,7 @@
       "id": "command:runtime-request.respond",
       "kind": "command",
       "name": "runtime-request.respond",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:approval.answer",
@@ -254,6 +270,7 @@
       "id": "command:subagent.stop",
       "kind": "command",
       "name": "subagent.stop",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:workflow.stop",
@@ -272,6 +289,7 @@
       "id": "command:thread.active.reorder",
       "kind": "command",
       "name": "thread.active.reorder",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "state:thread.activeOrder",
@@ -289,6 +307,7 @@
       "id": "command:thread.archive",
       "kind": "command",
       "name": "thread.archive",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:thread.archive",
@@ -309,6 +328,7 @@
       "id": "command:thread.auto-settle.set",
       "kind": "command",
       "name": "thread.auto-settle.set",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "state:thread.autoSettle",
@@ -326,6 +346,7 @@
       "id": "command:thread.create",
       "kind": "command",
       "name": "thread.create",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "target": "agent:thread.create",
@@ -345,6 +366,7 @@
       "id": "command:thread.delete",
       "kind": "command",
       "name": "thread.delete",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:thread.delete",
@@ -365,6 +387,7 @@
       "id": "command:thread.fork",
       "kind": "command",
       "name": "thread.fork",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:thread.fork",
@@ -382,6 +405,7 @@
       "id": "command:thread.guest-message.dismiss",
       "kind": "command",
       "name": "thread.guest-message.dismiss",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M5",
       "target": "t3-local",
@@ -392,6 +416,7 @@
       "id": "command:thread.guest-share.close",
       "kind": "command",
       "name": "thread.guest-share.close",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M5",
       "target": "t3-local",
@@ -402,6 +427,7 @@
       "id": "command:thread.interaction-mode.set",
       "kind": "command",
       "name": "thread.interaction-mode.set",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "state:thread.settings",
@@ -419,6 +445,7 @@
       "id": "command:thread.mark-unread",
       "kind": "command",
       "name": "thread.mark-unread",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "state:thread.visits",
@@ -436,6 +463,7 @@
       "id": "command:thread.merge_back",
       "kind": "command",
       "name": "thread.merge_back",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:thread.mergeBack",
@@ -453,6 +481,7 @@
       "id": "command:thread.metadata.update",
       "kind": "command",
       "name": "thread.metadata.update",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "state:thread.settings",
@@ -470,6 +499,7 @@
       "id": "command:thread.model-selection.set",
       "kind": "command",
       "name": "thread.model-selection.set",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "state:thread.settings",
@@ -487,6 +517,7 @@
       "id": "command:thread.pin",
       "kind": "command",
       "name": "thread.pin",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "state:thread.pins",
@@ -504,6 +535,7 @@
       "id": "command:thread.pin.reorder",
       "kind": "command",
       "name": "thread.pin.reorder",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "state:thread.pins",
@@ -521,6 +553,7 @@
       "id": "command:thread.pull-request.link",
       "kind": "command",
       "name": "thread.pull-request.link",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "target": "state:thread.pullRequests",
@@ -538,6 +571,7 @@
       "id": "command:thread.pull-request.unlink",
       "kind": "command",
       "name": "thread.pull-request.unlink",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "target": "state:thread.pullRequests",
@@ -555,6 +589,7 @@
       "id": "command:thread.pull-request.watch",
       "kind": "command",
       "name": "thread.pull-request.watch",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "target": "state:thread.pullRequests",
@@ -572,6 +607,7 @@
       "id": "command:thread.runtime-mode.set",
       "kind": "command",
       "name": "thread.runtime-mode.set",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "state:thread.settings",
@@ -589,6 +625,7 @@
       "id": "command:thread.settle",
       "kind": "command",
       "name": "thread.settle",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:thread.settle",
@@ -609,6 +646,7 @@
       "id": "command:thread.snooze",
       "kind": "command",
       "name": "thread.snooze",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:thread.settle",
@@ -629,6 +667,7 @@
       "id": "command:thread.stop",
       "kind": "command",
       "name": "thread.stop",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "target": "agent:thread.forceStop",
@@ -653,6 +692,7 @@
       "id": "command:thread.unarchive",
       "kind": "command",
       "name": "thread.unarchive",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:thread.archive",
@@ -670,6 +710,7 @@
       "id": "command:thread.unpin",
       "kind": "command",
       "name": "thread.unpin",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "state:thread.pins",
@@ -687,6 +728,7 @@
       "id": "command:thread.unsettle",
       "kind": "command",
       "name": "thread.unsettle",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:thread.settle",
@@ -707,6 +749,7 @@
       "id": "command:thread.unsnooze",
       "kind": "command",
       "name": "thread.unsnooze",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:thread.settle",
@@ -727,6 +770,7 @@
       "id": "command:thread.user-input.dismiss",
       "kind": "command",
       "name": "thread.user-input.dismiss",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "agent:input.dismiss",
@@ -746,6 +790,7 @@
       "id": "command:thread.visit",
       "kind": "command",
       "name": "thread.visit",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "target": "state:thread.visits",
@@ -763,6 +808,7 @@
       "id": "http:auth.pairingCredential",
       "kind": "http",
       "name": "auth.pairingCredential",
+      "desktop": true,
       "state": "served",
       "milestone": "M5",
       "evidence": {
@@ -779,6 +825,7 @@
       "id": "http:auth.session",
       "kind": "http",
       "name": "auth.session",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -795,6 +842,7 @@
       "id": "http:auth.token",
       "kind": "http",
       "name": "auth.token",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -811,6 +859,7 @@
       "id": "http:auth.webSocketTicket",
       "kind": "http",
       "name": "auth.webSocketTicket",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -827,6 +876,7 @@
       "id": "http:auth.webSocketTicketFor",
       "kind": "http",
       "name": "auth.webSocketTicketFor",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -861,6 +911,7 @@
       "id": "http:metadata.descriptor",
       "kind": "http",
       "name": "metadata.descriptor",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -874,6 +925,7 @@
       "id": "http:orchestration.shellSnapshot",
       "kind": "http",
       "name": "orchestration.shellSnapshot",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -890,6 +942,7 @@
       "id": "http:orchestration.threadBoundedSnapshot",
       "kind": "http",
       "name": "orchestration.threadBoundedSnapshot",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -906,6 +959,7 @@
       "id": "http:orchestration.threadHistoryPage",
       "kind": "http",
       "name": "orchestration.threadHistoryPage",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -922,6 +976,7 @@
       "id": "http:orchestration.threadTranscript",
       "kind": "http",
       "name": "orchestration.threadTranscript",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -938,6 +993,7 @@
       "id": "http:pullRequests.diff",
       "kind": "http",
       "name": "pullRequests.diff",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -954,6 +1010,7 @@
       "id": "http:voice.cancelModelDownload",
       "kind": "http",
       "name": "voice.cancelModelDownload",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
@@ -963,6 +1020,7 @@
       "id": "http:voice.cloudKeys",
       "kind": "http",
       "name": "voice.cloudKeys",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4.",
@@ -972,6 +1030,7 @@
       "id": "http:voice.cloudModels",
       "kind": "http",
       "name": "voice.cloudModels",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
@@ -981,6 +1040,7 @@
       "id": "http:voice.downloadModel",
       "kind": "http",
       "name": "voice.downloadModel",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4.",
@@ -990,6 +1050,7 @@
       "id": "http:voice.models",
       "kind": "http",
       "name": "voice.models",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4.",
@@ -999,6 +1060,7 @@
       "id": "http:voice.selectModel",
       "kind": "http",
       "name": "voice.selectModel",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
@@ -1008,6 +1070,7 @@
       "id": "http:voice.setCloudKey",
       "kind": "http",
       "name": "voice.setCloudKey",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
@@ -1017,6 +1080,7 @@
       "id": "http:voice.status",
       "kind": "http",
       "name": "voice.status",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
@@ -1026,6 +1090,7 @@
       "id": "http:voice.transcribe",
       "kind": "http",
       "name": "voice.transcribe",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
@@ -1035,6 +1100,7 @@
       "id": "http:voice.transcribeCloud",
       "kind": "http",
       "name": "voice.transcribeCloud",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
@@ -1044,6 +1110,7 @@
       "id": "mutation:project.create",
       "kind": "mutation",
       "name": "project.create",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "target": "agent:workspace.create",
@@ -1069,6 +1136,7 @@
       "id": "mutation:project.delete",
       "kind": "mutation",
       "name": "project.delete",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "target": "agent:workspace.remove",
@@ -1095,6 +1163,7 @@
       "id": "mutation:project.update",
       "kind": "mutation",
       "name": "project.update",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "target": "state:project.settings",
@@ -1112,6 +1181,7 @@
       "id": "rpc:assets.createUrl",
       "kind": "rpc",
       "name": "assets.createUrl",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1128,6 +1198,7 @@
       "id": "rpc:assets.persistChatAttachments",
       "kind": "rpc",
       "name": "assets.persistChatAttachments",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1144,6 +1215,7 @@
       "id": "rpc:attachments.createUploadUrl",
       "kind": "rpc",
       "name": "attachments.createUploadUrl",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1160,6 +1232,7 @@
       "id": "rpc:attachments.delete",
       "kind": "rpc",
       "name": "attachments.delete",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1176,6 +1249,7 @@
       "id": "rpc:device.action",
       "kind": "rpc",
       "name": "device.action",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
@@ -1185,6 +1259,7 @@
       "id": "rpc:device.close",
       "kind": "rpc",
       "name": "device.close",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
@@ -1194,6 +1269,7 @@
       "id": "rpc:device.configure",
       "kind": "rpc",
       "name": "device.configure",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
@@ -1203,6 +1279,7 @@
       "id": "rpc:device.detail",
       "kind": "rpc",
       "name": "device.detail",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
@@ -1212,6 +1289,7 @@
       "id": "rpc:device.list",
       "kind": "rpc",
       "name": "device.list",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
@@ -1221,6 +1299,7 @@
       "id": "rpc:device.open",
       "kind": "rpc",
       "name": "device.open",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
@@ -1230,6 +1309,7 @@
       "id": "rpc:device.shutdown",
       "kind": "rpc",
       "name": "device.shutdown",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
@@ -1239,6 +1319,7 @@
       "id": "rpc:filesystem.browse",
       "kind": "rpc",
       "name": "filesystem.browse",
+      "desktop": true,
       "state": "served",
       "milestone": "M6",
       "evidence": {
@@ -1255,6 +1336,7 @@
       "id": "rpc:filesystem.getMetadata",
       "kind": "rpc",
       "name": "filesystem.getMetadata",
+      "desktop": true,
       "state": "served",
       "milestone": "M6",
       "evidence": {
@@ -1271,6 +1353,7 @@
       "id": "rpc:git.preparePullRequestThread",
       "kind": "rpc",
       "name": "git.preparePullRequestThread",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -1288,6 +1371,7 @@
       "kind": "rpc",
       "name": "git.runStackedAction",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "evidence": {
@@ -1304,6 +1388,7 @@
       "id": "rpc:mcpApps.callTool",
       "kind": "rpc",
       "name": "mcpApps.callTool",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Owner-confirmed (decision 7).",
@@ -1313,6 +1398,7 @@
       "id": "rpc:mcpApps.readResource",
       "kind": "rpc",
       "name": "mcpApps.readResource",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Owner-confirmed (decision 7).",
@@ -1322,6 +1408,7 @@
       "id": "rpc:mcpApps.toolInfo",
       "kind": "rpc",
       "name": "mcpApps.toolInfo",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Owner-confirmed (decision 7).",
@@ -1331,6 +1418,7 @@
       "id": "rpc:mcpApps.updateModelContext",
       "kind": "rpc",
       "name": "mcpApps.updateModelContext",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "MCP apps render a tool's UI resource inside the T3 desktop webview and call a server the T3 process hosts; rca runs the agent's MCP servers inside the CLI, not in the mapper, so there is nothing to call or read. Owner-confirmed (decision 7).",
@@ -1340,6 +1428,7 @@
       "id": "rpc:orchestration.dispatchCommand",
       "kind": "rpc",
       "name": "orchestration.dispatchCommand",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -1356,6 +1445,7 @@
       "id": "rpc:orchestration.forceStopThread",
       "kind": "rpc",
       "name": "orchestration.forceStopThread",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1372,6 +1462,7 @@
       "id": "rpc:orchestration.getArchivedShellSnapshot",
       "kind": "rpc",
       "name": "orchestration.getArchivedShellSnapshot",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1388,6 +1479,7 @@
       "id": "rpc:orchestration.getFullThreadDiff",
       "kind": "rpc",
       "name": "orchestration.getFullThreadDiff",
+      "desktop": true,
       "state": "served",
       "milestone": "M6",
       "evidence": {
@@ -1404,6 +1496,7 @@
       "id": "rpc:orchestration.getNativeChildWork",
       "kind": "rpc",
       "name": "orchestration.getNativeChildWork",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1422,6 +1515,7 @@
       "id": "rpc:orchestration.getOlderSettledThreads",
       "kind": "rpc",
       "name": "orchestration.getOlderSettledThreads",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1440,6 +1534,7 @@
       "id": "rpc:orchestration.getThreadFamily",
       "kind": "rpc",
       "name": "orchestration.getThreadFamily",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1456,6 +1551,7 @@
       "id": "rpc:orchestration.getThreadLinkMetadata",
       "kind": "rpc",
       "name": "orchestration.getThreadLinkMetadata",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1474,6 +1570,7 @@
       "id": "rpc:orchestration.getThreadProjection",
       "kind": "rpc",
       "name": "orchestration.getThreadProjection",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -1490,6 +1587,7 @@
       "id": "rpc:orchestration.getThreadTitles",
       "kind": "rpc",
       "name": "orchestration.getThreadTitles",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1508,6 +1606,7 @@
       "id": "rpc:orchestration.getTurnDiff",
       "kind": "rpc",
       "name": "orchestration.getTurnDiff",
+      "desktop": true,
       "state": "served",
       "milestone": "M6",
       "evidence": {
@@ -1524,6 +1623,7 @@
       "id": "rpc:orchestration.getTurnItem",
       "kind": "rpc",
       "name": "orchestration.getTurnItem",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1540,6 +1640,7 @@
       "id": "rpc:orchestration.getWorkflowScript",
       "kind": "rpc",
       "name": "orchestration.getWorkflowScript",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M4",
       "reason": "rca starts no Claude workflow scripts of its own, so a thread has none to show; an owner who wants it gets an executor action that reads one file by absolute path under the Claude projects root, with .. and links refused and 1 MiB truncation, outside the workspace confinement. Owner-confirmed (decision 7).",
@@ -1549,6 +1650,7 @@
       "id": "rpc:orchestration.launchThread",
       "kind": "rpc",
       "name": "orchestration.launchThread",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -1565,6 +1667,7 @@
       "id": "rpc:orchestration.searchThreads",
       "kind": "rpc",
       "name": "orchestration.searchThreads",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1581,6 +1684,7 @@
       "id": "rpc:orchestration.stopWorkflow",
       "kind": "rpc",
       "name": "orchestration.stopWorkflow",
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1598,6 +1702,7 @@
       "kind": "rpc",
       "name": "orchestration.subscribeCommandOutput",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1615,6 +1720,7 @@
       "kind": "rpc",
       "name": "orchestration.subscribePromptSuggestion",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M4",
       "evidence": {
@@ -1634,6 +1740,7 @@
       "kind": "rpc",
       "name": "orchestration.subscribeShell",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -1648,6 +1755,7 @@
       "kind": "rpc",
       "name": "orchestration.subscribeThread",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -1664,6 +1772,7 @@
       "id": "rpc:peerLinks.answerRequest",
       "kind": "rpc",
       "name": "peerLinks.answerRequest",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M5",
       "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Owner-confirmed (decision 7).",
@@ -1673,6 +1782,7 @@
       "id": "rpc:peerLinks.link",
       "kind": "rpc",
       "name": "peerLinks.link",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M5",
       "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Owner-confirmed (decision 7).",
@@ -1682,6 +1792,7 @@
       "id": "rpc:peerLinks.list",
       "kind": "rpc",
       "name": "peerLinks.list",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M5",
       "reason": "peer links sign this server in at another environment with a person's credential; rca holds no peer link and the mapper makes none. Owner-confirmed (decision 7).",
@@ -1691,6 +1802,7 @@
       "id": "rpc:preview.adjust",
       "kind": "rpc",
       "name": "preview.adjust",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1707,6 +1819,7 @@
       "id": "rpc:preview.close",
       "kind": "rpc",
       "name": "preview.close",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1725,6 +1838,7 @@
       "id": "rpc:preview.list",
       "kind": "rpc",
       "name": "preview.list",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1741,6 +1855,7 @@
       "id": "rpc:preview.open",
       "kind": "rpc",
       "name": "preview.open",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1757,6 +1872,7 @@
       "id": "rpc:preview.resize",
       "kind": "rpc",
       "name": "preview.resize",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1773,6 +1889,7 @@
       "id": "rpc:projectClone.cancel",
       "kind": "rpc",
       "name": "projectClone.cancel",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -1789,6 +1906,7 @@
       "id": "rpc:projectClone.retry",
       "kind": "rpc",
       "name": "projectClone.retry",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -1805,6 +1923,7 @@
       "id": "rpc:projectClone.start",
       "kind": "rpc",
       "name": "projectClone.start",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -1821,6 +1940,7 @@
       "id": "rpc:projects.createFromThread",
       "kind": "rpc",
       "name": "projects.createFromThread",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1837,6 +1957,7 @@
       "id": "rpc:projects.createNew",
       "kind": "rpc",
       "name": "projects.createNew",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1853,6 +1974,7 @@
       "id": "rpc:projects.ensureScratch",
       "kind": "rpc",
       "name": "projects.ensureScratch",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -1879,6 +2001,7 @@
       "id": "rpc:projects.listEntries",
       "kind": "rpc",
       "name": "projects.listEntries",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -1895,6 +2018,7 @@
       "id": "rpc:projects.mutate",
       "kind": "rpc",
       "name": "projects.mutate",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -1911,6 +2035,7 @@
       "id": "rpc:projects.readFile",
       "kind": "rpc",
       "name": "projects.readFile",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -1927,6 +2052,7 @@
       "id": "rpc:projects.searchEntries",
       "kind": "rpc",
       "name": "projects.searchEntries",
+      "desktop": true,
       "state": "served",
       "milestone": "M6",
       "evidence": {
@@ -1943,6 +2069,7 @@
       "id": "rpc:projects.writeFile",
       "kind": "rpc",
       "name": "projects.writeFile",
+      "desktop": true,
       "state": "served",
       "milestone": "M6",
       "evidence": {
@@ -1959,6 +2086,7 @@
       "id": "rpc:provider.auth.cancel",
       "kind": "rpc",
       "name": "provider.auth.cancel",
+      "desktop": true,
       "state": "served",
       "milestone": "M10",
       "evidence": {
@@ -1975,6 +2103,7 @@
       "id": "rpc:provider.auth.complete",
       "kind": "rpc",
       "name": "provider.auth.complete",
+      "desktop": true,
       "state": "served",
       "milestone": "M10",
       "evidence": {
@@ -1991,6 +2120,7 @@
       "id": "rpc:provider.auth.logout",
       "kind": "rpc",
       "name": "provider.auth.logout",
+      "desktop": true,
       "state": "served",
       "milestone": "M10",
       "evidence": {
@@ -2007,6 +2137,7 @@
       "id": "rpc:provider.auth.removeMethod",
       "kind": "rpc",
       "name": "provider.auth.removeMethod",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M10",
       "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca keeps no provider sign-in methods of its own: an agent CLI is signed in on the executor's machine, outside the service, so there is no method to remove.",
@@ -2016,6 +2147,7 @@
       "id": "rpc:provider.auth.respond",
       "kind": "rpc",
       "name": "provider.auth.respond",
+      "desktop": true,
       "state": "served",
       "milestone": "M10",
       "evidence": {
@@ -2032,6 +2164,7 @@
       "id": "rpc:provider.auth.start",
       "kind": "rpc",
       "name": "provider.auth.start",
+      "desktop": true,
       "state": "served",
       "milestone": "M10",
       "evidence": {
@@ -2049,6 +2182,7 @@
       "kind": "rpc",
       "name": "provider.auth.subscribe",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M10",
       "evidence": {
@@ -2065,6 +2199,7 @@
       "id": "rpc:provider.chatgpt.import-profile",
       "kind": "rpc",
       "name": "provider.chatgpt.import-profile",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M10",
       "reason": "a ChatGPT profile is a credential: importing or reconnecting one would pass tokens through the mapper, which never holds one, and the Codex CLI behind rca keeps its own login. Owner-confirmed (decision 7).",
@@ -2074,6 +2209,7 @@
       "id": "rpc:provider.chatgpt.reconnect-profile",
       "kind": "rpc",
       "name": "provider.chatgpt.reconnect-profile",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M10",
       "reason": "a ChatGPT profile is a credential: importing or reconnecting one would pass tokens through the mapper, which never holds one, and the Codex CLI behind rca keeps its own login. Owner-confirmed (decision 7).",
@@ -2083,6 +2219,7 @@
       "id": "rpc:provider.consumeResetCredit",
       "kind": "rpc",
       "name": "provider.consumeResetCredit",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M10",
       "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): correction: the rates are a public price table (LiteLLM's), not reset credits; served in phase 1 from that table.",
@@ -2092,6 +2229,7 @@
       "id": "rpc:provider.uploadFeedback",
       "kind": "rpc",
       "name": "provider.uploadFeedback",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "uploading provider feedback sends a transcript to the T3 vendor's endpoint; the owner has not approved sending any thread data off the service. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): correction: the feedback goes to OpenAI under the person's own account, not to the T3 vendor; it stays not offered until the owner decides (issue #83, Blocked).",
@@ -2101,6 +2239,7 @@
       "id": "rpc:pullRequests.activity",
       "kind": "rpc",
       "name": "pullRequests.activity",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2117,6 +2256,7 @@
       "id": "rpc:pullRequests.changeBreakdown",
       "kind": "rpc",
       "name": "pullRequests.changeBreakdown",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2133,6 +2273,7 @@
       "id": "rpc:pullRequests.checks",
       "kind": "rpc",
       "name": "pullRequests.checks",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2149,6 +2290,7 @@
       "id": "rpc:pullRequests.comment",
       "kind": "rpc",
       "name": "pullRequests.comment",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2165,6 +2307,7 @@
       "id": "rpc:pullRequests.detail",
       "kind": "rpc",
       "name": "pullRequests.detail",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2181,6 +2324,7 @@
       "id": "rpc:pullRequests.diffFileContents",
       "kind": "rpc",
       "name": "pullRequests.diffFileContents",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2197,6 +2341,7 @@
       "id": "rpc:pullRequests.filesViewed",
       "kind": "rpc",
       "name": "pullRequests.filesViewed",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2213,6 +2358,7 @@
       "id": "rpc:pullRequests.filterOptions",
       "kind": "rpc",
       "name": "pullRequests.filterOptions",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2229,6 +2375,7 @@
       "id": "rpc:pullRequests.generateReviewGuide",
       "kind": "rpc",
       "name": "pullRequests.generateReviewGuide",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2247,6 +2394,7 @@
       "id": "rpc:pullRequests.invalidate",
       "kind": "rpc",
       "name": "pullRequests.invalidate",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M11",
       "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Owner-confirmed (decision 7).",
@@ -2256,6 +2404,7 @@
       "id": "rpc:pullRequests.labelCandidates",
       "kind": "rpc",
       "name": "pullRequests.labelCandidates",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2272,6 +2421,7 @@
       "id": "rpc:pullRequests.linkedThreads",
       "kind": "rpc",
       "name": "pullRequests.linkedThreads",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2290,6 +2440,7 @@
       "id": "rpc:pullRequests.list",
       "kind": "rpc",
       "name": "pullRequests.list",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2306,6 +2457,7 @@
       "id": "rpc:pullRequests.listStats",
       "kind": "rpc",
       "name": "pullRequests.listStats",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2322,6 +2474,7 @@
       "id": "rpc:pullRequests.preview",
       "kind": "rpc",
       "name": "pullRequests.preview",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2338,6 +2491,7 @@
       "id": "rpc:pullRequests.replyToThread",
       "kind": "rpc",
       "name": "pullRequests.replyToThread",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2354,6 +2508,7 @@
       "id": "rpc:pullRequests.reportState",
       "kind": "rpc",
       "name": "pullRequests.reportState",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M11",
       "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Owner-confirmed (decision 7).",
@@ -2363,6 +2518,7 @@
       "id": "rpc:pullRequests.requestReviewers",
       "kind": "rpc",
       "name": "pullRequests.requestReviewers",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2379,6 +2535,7 @@
       "id": "rpc:pullRequests.reviewGuide",
       "kind": "rpc",
       "name": "pullRequests.reviewGuide",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2395,6 +2552,7 @@
       "id": "rpc:pullRequests.reviewerCandidates",
       "kind": "rpc",
       "name": "pullRequests.reviewerCandidates",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2411,6 +2569,7 @@
       "id": "rpc:pullRequests.routing",
       "kind": "rpc",
       "name": "pullRequests.routing",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2427,6 +2586,7 @@
       "id": "rpc:pullRequests.routingIdentity",
       "kind": "rpc",
       "name": "pullRequests.routingIdentity",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2443,6 +2603,7 @@
       "id": "rpc:pullRequests.runAction",
       "kind": "rpc",
       "name": "pullRequests.runAction",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2459,6 +2620,7 @@
       "id": "rpc:pullRequests.setFilesViewed",
       "kind": "rpc",
       "name": "pullRequests.setFilesViewed",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2475,6 +2637,7 @@
       "id": "rpc:pullRequests.setLabels",
       "kind": "rpc",
       "name": "pullRequests.setLabels",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2491,6 +2654,7 @@
       "id": "rpc:pullRequests.setReaction",
       "kind": "rpc",
       "name": "pullRequests.setReaction",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2507,6 +2671,7 @@
       "id": "rpc:pullRequests.setThreadResolution",
       "kind": "rpc",
       "name": "pullRequests.setThreadResolution",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2523,6 +2688,7 @@
       "id": "rpc:pullRequests.stack",
       "kind": "rpc",
       "name": "pullRequests.stack",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2539,6 +2705,7 @@
       "id": "rpc:pullRequests.submitReview",
       "kind": "rpc",
       "name": "pullRequests.submitReview",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2556,6 +2723,7 @@
       "kind": "rpc",
       "name": "pullRequests.subscribeRefreshes",
       "subscription": true,
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M11",
       "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Owner-confirmed (decision 7).",
@@ -2565,6 +2733,7 @@
       "id": "rpc:pullRequests.summary",
       "kind": "rpc",
       "name": "pullRequests.summary",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2581,6 +2750,7 @@
       "id": "rpc:pullRequests.threadComments",
       "kind": "rpc",
       "name": "pullRequests.threadComments",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2597,6 +2767,7 @@
       "id": "rpc:pullRequests.update",
       "kind": "rpc",
       "name": "pullRequests.update",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2613,6 +2784,7 @@
       "id": "rpc:pullRequests.updateComment",
       "kind": "rpc",
       "name": "pullRequests.updateComment",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2629,6 +2801,7 @@
       "id": "rpc:review.getDiffFileContents",
       "kind": "rpc",
       "name": "review.getDiffFileContents",
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "evidence": {
@@ -2645,6 +2818,7 @@
       "id": "rpc:review.getDiffPreview",
       "kind": "rpc",
       "name": "review.getDiffPreview",
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "evidence": {
@@ -2661,6 +2835,7 @@
       "id": "rpc:scheduledTasks.delete",
       "kind": "rpc",
       "name": "scheduledTasks.delete",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -2677,6 +2852,7 @@
       "id": "rpc:scheduledTasks.rotateWebhookToken",
       "kind": "rpc",
       "name": "scheduledTasks.rotateWebhookToken",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -2693,6 +2869,7 @@
       "id": "rpc:scheduledTasks.runNow",
       "kind": "rpc",
       "name": "scheduledTasks.runNow",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -2709,6 +2886,7 @@
       "id": "rpc:scheduledTasks.setEnabled",
       "kind": "rpc",
       "name": "scheduledTasks.setEnabled",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -2726,6 +2904,7 @@
       "kind": "rpc",
       "name": "scheduledTasks.subscribe",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -2745,6 +2924,7 @@
       "id": "rpc:scheduledTasks.upsert",
       "kind": "rpc",
       "name": "scheduledTasks.upsert",
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -2761,6 +2941,7 @@
       "id": "rpc:secrets.answerRequest",
       "kind": "rpc",
       "name": "secrets.answerRequest",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M4",
       "reason": "rca never asks for a secret, so there is no request to answer; the call could only get not_found. Owner-confirmed (decision 7).",
@@ -2770,6 +2951,7 @@
       "id": "rpc:server.commitDesktopUpdate",
       "kind": "rpc",
       "name": "server.commitDesktopUpdate",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Owner-confirmed (decision 7).",
@@ -2779,6 +2961,7 @@
       "id": "rpc:server.discoverSourceControl",
       "kind": "rpc",
       "name": "server.discoverSourceControl",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2800,6 +2983,7 @@
       "kind": "rpc",
       "name": "server.getDatabaseStorage",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M10",
       "evidence": {
@@ -2816,6 +3000,7 @@
       "id": "rpc:server.getUsageSummary",
       "kind": "rpc",
       "name": "server.getUsageSummary",
+      "desktop": true,
       "state": "served",
       "milestone": "M10",
       "evidence": {
@@ -2832,6 +3017,7 @@
       "id": "rpc:server.prepareTriage",
       "kind": "rpc",
       "name": "server.prepareTriage",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "it starts an in-app triage of the T3 Code install itself: the server writes the session files `t3 triage` writes (its own logs, config and version under T3 home) and clones the T3 Code source from github.com/pingdotgg/t3code into its cache, then hands the phone a prompt for a scratch thread. t3-serve is not that server (it has no T3 home, logs or release to diagnose) and rca-exec has nothing of it to read; the feature would be a network clone of a third party's repository with no state of ours to triage, so there is nothing to build and prove on the executor. The phone's own fallback is the `npx t3 triage` command it offers to copy. Owner-confirmed (decision 7).",
@@ -2841,6 +3027,7 @@
       "id": "rpc:server.probe",
       "kind": "rpc",
       "name": "server.probe",
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -2857,6 +3044,7 @@
       "id": "rpc:server.refreshProviders",
       "kind": "rpc",
       "name": "server.refreshProviders",
+      "desktop": true,
       "state": "served",
       "milestone": "M10",
       "evidence": {
@@ -2873,6 +3061,7 @@
       "id": "rpc:server.refreshUsageRates",
       "kind": "rpc",
       "name": "server.refreshUsageRates",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M10",
       "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Owner-confirmed (decision 7).",
@@ -2882,6 +3071,7 @@
       "id": "rpc:server.reportClientActivity",
       "kind": "rpc",
       "name": "server.reportClientActivity",
+      "desktop": true,
       "state": "served",
       "milestone": "M5",
       "evidence": {
@@ -2898,6 +3088,7 @@
       "id": "rpc:server.updateProvider",
       "kind": "rpc",
       "name": "server.updateProvider",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M10",
       "reason": "the provider CLIs ship inside the service's image, so a version is updated by shipping an image, not by an RPC; the row could only pass by refusing. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the CLIs run at the executor's host, not in the service's image; updating one is a host action (cli_update) planned in phase 2.",
@@ -2907,6 +3098,7 @@
       "id": "rpc:server.updateServer",
       "kind": "rpc",
       "name": "server.updateServer",
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Owner-confirmed (decision 7).",
@@ -2917,6 +3109,7 @@
       "kind": "rpc",
       "name": "server.updateServerWithProgress",
       "subscription": true,
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the desktop and server self-update replace the T3 binary; the service's image is updated by shipping an image through CI, and the phone has no desktop updater. Owner-confirmed (decision 7).",
@@ -2926,6 +3119,7 @@
       "id": "rpc:server.updateSettings",
       "kind": "rpc",
       "name": "server.updateSettings",
+      "desktop": true,
       "state": "served",
       "milestone": "M10",
       "evidence": {
@@ -2942,6 +3136,7 @@
       "id": "rpc:sourceControl.appAccess",
       "kind": "rpc",
       "name": "sourceControl.appAccess",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2958,6 +3153,7 @@
       "id": "rpc:sourceControl.lookupRepository",
       "kind": "rpc",
       "name": "sourceControl.lookupRepository",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2974,6 +3170,7 @@
       "id": "rpc:sourceControl.publishRepository",
       "kind": "rpc",
       "name": "sourceControl.publishRepository",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -2990,6 +3187,7 @@
       "id": "rpc:sourceControl.signInCancel",
       "kind": "rpc",
       "name": "sourceControl.signInCancel",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -3006,6 +3204,7 @@
       "id": "rpc:sourceControl.signInStart",
       "kind": "rpc",
       "name": "sourceControl.signInStart",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -3022,6 +3221,7 @@
       "id": "rpc:sourceControl.signInWait",
       "kind": "rpc",
       "name": "sourceControl.signInWait",
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -3039,6 +3239,7 @@
       "kind": "rpc",
       "name": "subscribeDeviceState",
       "subscription": true,
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the device rows drive an emulator, a simulator or a physical device (open and close it, its detail and actions, the EAS account and SIM-lock identity it is set up with): that needs a real emulator, which rca-exec does not run (the emulator runs only in CI) and the chain cannot prove, and the executor contract has no device_* action. Owner-confirmed (decision 7) (plan decision 1 lists device as a T3 candidate).",
@@ -3049,6 +3250,7 @@
       "kind": "rpc",
       "name": "subscribePreviewEvents",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M12",
       "evidence": {
@@ -3068,6 +3270,7 @@
       "kind": "rpc",
       "name": "subscribeProjectClones",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M11",
       "evidence": {
@@ -3087,6 +3290,7 @@
       "kind": "rpc",
       "name": "subscribeResourceTelemetry",
       "subscription": true,
+      "desktop": true,
       "state": "not-offered",
       "milestone": "M12",
       "reason": "the stream is a process monitor of the T3 install itself: samples of the T3 server, its provider and terminal roots and the Electron processes (categories `server`, `provider-root`, `electron-main`, ...) taken by a protocol-3 resource-monitor sidecar, plus update state and host power. t3-serve has no such process tree and rca-exec has no process-sampling action; the one honest part, the executor host's CPU and memory, would ship with an empty process list that the phone's resource view would present as a healthy idle server. Owner-confirmed (decision 7).",
@@ -3097,6 +3301,7 @@
       "kind": "rpc",
       "name": "subscribeServerConfig",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -3113,6 +3318,7 @@
       "kind": "rpc",
       "name": "subscribeServerLifecycle",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M3",
       "evidence": {
@@ -3127,6 +3333,7 @@
       "kind": "rpc",
       "name": "subscribeTerminalMetadata",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M8",
       "evidence": {
@@ -3150,6 +3357,7 @@
       "kind": "rpc",
       "name": "subscribeVcsBranch",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "evidence": {
@@ -3182,6 +3390,7 @@
       "kind": "rpc",
       "name": "subscribeVcsStatus",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "evidence": {
@@ -3199,6 +3408,7 @@
       "kind": "rpc",
       "name": "subscribeWorktreeSetup",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M6",
       "evidence": {
@@ -3216,6 +3426,7 @@
       "kind": "rpc",
       "name": "terminal.attach",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M8",
       "evidence": {
@@ -3232,6 +3443,7 @@
       "id": "rpc:terminal.clear",
       "kind": "rpc",
       "name": "terminal.clear",
+      "desktop": true,
       "state": "served",
       "milestone": "M8",
       "evidence": {
@@ -3248,6 +3460,7 @@
       "id": "rpc:terminal.close",
       "kind": "rpc",
       "name": "terminal.close",
+      "desktop": true,
       "state": "served",
       "milestone": "M8",
       "evidence": {
@@ -3265,6 +3478,7 @@
       "kind": "rpc",
       "name": "terminal.observe",
       "subscription": true,
+      "desktop": true,
       "state": "served",
       "milestone": "M8",
       "evidence": {
@@ -3281,6 +3495,7 @@
       "id": "rpc:terminal.open",
       "kind": "rpc",
       "name": "terminal.open",
+      "desktop": true,
       "state": "served",
       "milestone": "M8",
       "evidence": {
@@ -3297,6 +3512,7 @@
       "id": "rpc:terminal.resize",
       "kind": "rpc",
       "name": "terminal.resize",
+      "desktop": true,
       "state": "served",
       "milestone": "M8",
       "evidence": {
@@ -3313,6 +3529,7 @@
       "id": "rpc:terminal.write",
       "kind": "rpc",
       "name": "terminal.write",
+      "desktop": true,
       "state": "served",
       "milestone": "M8",
       "evidence": {
@@ -3329,6 +3546,7 @@
       "id": "rpc:vcs.createRef",
       "kind": "rpc",
       "name": "vcs.createRef",
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "evidence": {
@@ -3361,6 +3579,7 @@
       "id": "rpc:vcs.listRefs",
       "kind": "rpc",
       "name": "vcs.listRefs",
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "evidence": {
@@ -3377,6 +3596,7 @@
       "id": "rpc:vcs.pull",
       "kind": "rpc",
       "name": "vcs.pull",
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "evidence": {
@@ -3393,6 +3613,7 @@
       "id": "rpc:vcs.refreshBranch",
       "kind": "rpc",
       "name": "vcs.refreshBranch",
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "evidence": {
@@ -3423,6 +3644,7 @@
       "id": "rpc:vcs.refreshStatus",
       "kind": "rpc",
       "name": "vcs.refreshStatus",
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "evidence": {
@@ -3439,6 +3661,7 @@
       "id": "rpc:vcs.switchRef",
       "kind": "rpc",
       "name": "vcs.switchRef",
+      "desktop": true,
       "state": "served",
       "milestone": "M9",
       "evidence": {
@@ -3455,6 +3678,7 @@
       "id": "rpc:worktreeSetup.cancel",
       "kind": "rpc",
       "name": "worktreeSetup.cancel",
+      "desktop": true,
       "state": "served",
       "milestone": "M6",
       "evidence": {

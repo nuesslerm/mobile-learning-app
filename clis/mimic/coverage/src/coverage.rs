@@ -122,6 +122,9 @@ pub fn build(list: &MethodsList, decisions: &Decisions, answered: &BTreeMap<Stri
         if row.subscription {
             o.insert("subscription".into(), true.into());
         }
+        if row.extra.get("desktop") == Some(&Value::Bool(true)) {
+            o.insert("desktop".into(), true.into());
+        }
         let decision = decisions.rows.get(&row.id);
         let (state, reason, decided) = match (row.class.as_deref(), decision) {
             (Some("flagged"), _) => ("flagged", Some(format!("behind {}: outside the parity target until the flag ships", row.extra.get("flag").and_then(Value::as_str).unwrap_or("a flag"))), None),
@@ -237,6 +240,11 @@ pub fn build(list: &MethodsList, decisions: &Decisions, answered: &BTreeMap<Stri
         "answeredByMapper": out.iter().filter(|r| r.get("note").is_some()).count(),
         "byKind": by_kind,
         "pendingByMilestone": by_milestone,
+        "desktop": {
+            "phoneRowsTheDesktopReaches": out.iter().filter(|r| r["desktop"] == true).count(),
+            "desktopOnly": list.rows.iter().filter(|r| !r.phone && r.extra.get("desktop") == Some(&Value::Bool(true))).count(),
+            "ipcChannels": list.counts["desktop"]["ipcChannels"].clone(),
+        },
     });
     let json = json!({
         "schema": 1,
@@ -270,14 +278,20 @@ fn markdown(app: &str, doc: &Value) -> String {
     } else {
         md.push('\n');
     }
-    md.push_str("\n| Row | State | Milestone | Target | Note |\n| --- | --- | --- | --- | --- |\n");
+    let d = &s["desktop"];
+    md.push_str(&format!(
+        "\nDesktop client: {} of these rows are also reached by the desktop app, {} rows only by it (`desktop: true`, `phone: false` in `{app}-methods.json`), and its preload bridge opens {} IPC channels of its own. Desktop rows are not gated here.\n",
+        d["phoneRowsTheDesktopReaches"], d["desktopOnly"], d["ipcChannels"]
+    ));
+    md.push_str("\n| Row | Client | State | Milestone | Target | Note |\n| --- | --- | --- | --- | --- | --- |\n");
     let cell = |v: &Value| v.as_str().unwrap_or("").replace('|', "\\|");
     for r in doc["rows"].as_array().into_iter().flatten() {
         let sub = if r["subscription"] == true { " (subscription)" } else { "" };
         let proof = r["evidence"]["test"].as_str().map(|t| format!("evidence: `{}` `{t}`{}", r["evidence"]["suite"].as_str().unwrap_or(""), mimic_note(&r["evidence"]))).unwrap_or_default();
         let held = r["reverify"].as_str().map(|w| format!("reverify: {}", w.replace('|', "\\|"))).unwrap_or_default();
         let note = [cell(&r["reason"]), cell(&r["note"]), proof, held, r["decidedBy"].as_str().map(|d| format!("decided by {d}")).unwrap_or_default()].into_iter().filter(|x| !x.is_empty()).collect::<Vec<_>>().join("; ");
-        md.push_str(&format!("| `{}`{sub} | {} | {} | {} | {note} |\n", cell(&r["id"]), cell(&r["state"]), cell(&r["milestone"]), cell(&r["target"])));
+        let client = if r["desktop"] == true { "phone, desktop" } else { "phone" };
+        md.push_str(&format!("| `{}`{sub} | {client} | {} | {} | {} | {note} |\n", cell(&r["id"]), cell(&r["state"]), cell(&r["milestone"]), cell(&r["target"])));
     }
     md
 }
@@ -322,6 +336,27 @@ mod tests {
         // Then the named ones are noise, a near miss and an entry without a reason are not
         assert!(decisions.is_trace_noise("rpc:sidebarSession.begin") && decisions.is_trace_noise("rpc:layout.apply"));
         assert!(!decisions.is_trace_noise("rpc:sidebarSession.beginx") && !decisions.is_trace_noise("rpc:layouts") && !decisions.is_trace_noise("rpc:empty"));
+    }
+
+    #[test]
+    fn rows_the_desktop_app_also_reaches_are_marked_and_desktop_only_rows_are_counted_but_never_gated() {
+        // Given a phone row the desktop also reaches, a phone-only row, and a row only the desktop reaches
+        let mut both = phone("rpc", "a.both");
+        both.extra.insert("desktop".into(), true.into());
+        let mut desk = Row::new("rpc", "b.desk");
+        desk.extra.insert("desktop".into(), true.into());
+        let mut l = list(vec![both, phone("rpc", "c.phone"), desk]);
+        l.counts = json!({"desktop": {"ipcChannels": 7}});
+        let decisions = Decisions::parse(r#"{"milestones": {"rpc:*": "M1"}}"#).unwrap();
+        // When the table is built
+        let c = build(&l, &decisions, &BTreeMap::new(), &BTreeMap::new(), &crate::testing::AdmitOnly::default());
+        // Then the table holds the two phone rows, the first marked as reached by the desktop too
+        let rows = c.json["rows"].as_array().unwrap();
+        assert_eq!(rows.iter().map(|r| (r["id"].clone(), r["desktop"].clone())).collect::<Vec<_>>(), vec![(json!("rpc:a.both"), json!(true)), (json!("rpc:c.phone"), Value::Null)]);
+        assert_eq!(c.json["summary"]["desktop"], json!({"phoneRowsTheDesktopReaches": 1, "desktopOnly": 1, "ipcChannels": 7}));
+        assert!(c.markdown.contains("| `rpc:a.both` | phone, desktop |") && c.markdown.contains("| `rpc:c.phone` | phone |"), "{}", c.markdown);
+        // And the desktop-only row adds nothing pending
+        assert_eq!(c.pending, 2);
     }
 
     #[test]

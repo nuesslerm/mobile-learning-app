@@ -25,6 +25,12 @@
     "files": {
       "reached": 1485,
       "phone": 1049
+    },
+    "desktop": {
+      "files": 1519,
+      "rows": 290,
+      "desktopOnly": 71,
+      "ipcChannels": 140
     }
   },
   "flags": {
@@ -146,6 +152,7 @@
       "kind": "command",
       "name": "checkpoint.rollback",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:926",
         "packages/client-runtime/src/operations/commands.ts:955"
@@ -180,6 +187,7 @@
       "kind": "command",
       "name": "message.dispatch",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:469",
         "packages/client-runtime/src/operations/commands.ts:738",
@@ -215,6 +223,7 @@
       "kind": "command",
       "name": "prepared-run.retry",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:1067"
       ]
@@ -224,6 +233,7 @@
       "kind": "command",
       "name": "provider-session.detach",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:973"
       ]
@@ -239,6 +249,7 @@
       "kind": "command",
       "name": "queue.resume",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:1034"
       ]
@@ -248,6 +259,7 @@
       "kind": "command",
       "name": "queued-message.promote-to-steer",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:1045"
       ]
@@ -257,6 +269,7 @@
       "kind": "command",
       "name": "queued-run.cancel",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:1057"
       ]
@@ -266,6 +279,7 @@
       "kind": "command",
       "name": "queued-run.edit",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:1083"
       ]
@@ -281,6 +295,7 @@
       "kind": "command",
       "name": "queued-run.start",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:1035"
       ]
@@ -290,6 +305,7 @@
       "kind": "command",
       "name": "run.interrupt",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:875"
       ]
@@ -299,6 +315,7 @@
       "kind": "command",
       "name": "runtime-request.respond",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:886",
         "packages/client-runtime/src/operations/commands.ts:899"
@@ -309,6 +326,7 @@
       "kind": "command",
       "name": "subagent.stop",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:800",
         "packages/client-runtime/src/operations/commands.ts:811"
@@ -319,6 +337,7 @@
       "kind": "command",
       "name": "thread.active.reorder",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:542"
       ]
@@ -328,6 +347,7 @@
       "kind": "command",
       "name": "thread.archive",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:485"
       ]
@@ -343,6 +363,7 @@
       "kind": "command",
       "name": "thread.auto-settle.set",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:519"
       ]
@@ -352,6 +373,7 @@
       "kind": "command",
       "name": "thread.create",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:402"
       ]
@@ -367,6 +389,7 @@
       "kind": "command",
       "name": "thread.delete",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:436"
       ]
@@ -376,6 +399,7 @@
       "kind": "command",
       "name": "thread.fork",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:1003",
         "packages/client-runtime/src/operations/commands.ts:987"
@@ -386,6 +410,7 @@
       "kind": "command",
       "name": "thread.guest-message.dismiss",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:462"
       ]
@@ -395,6 +420,7 @@
       "kind": "command",
       "name": "thread.guest-share.close",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:447"
       ]
@@ -404,6 +430,7 @@
       "kind": "command",
       "name": "thread.interaction-mode.set",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:664"
       ]
@@ -413,6 +440,7 @@
       "kind": "command",
       "name": "thread.mark-unread",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:605"
       ]
@@ -422,6 +450,7 @@
       "kind": "command",
       "name": "thread.merge_back",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:1019"
       ]
@@ -431,6 +460,7 @@
       "kind": "command",
       "name": "thread.metadata.update",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:624"
       ]
@@ -440,6 +470,7 @@
       "kind": "command",
       "name": "thread.model-selection.set",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:640"
       ]
@@ -449,6 +480,7 @@
       "kind": "command",
       "name": "thread.pin",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:505"
       ]
@@ -458,6 +490,7 @@
       "kind": "command",
       "name": "thread.pin.reorder",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:531"
       ]
@@ -473,6 +506,7 @@
       "kind": "command",
       "name": "thread.pull-request.link",
       "phone": true,
+      "desktop": true,
       "sites": [
         "apps/mobile/src/features/threads/useLinkedPullRequestActions.ts:84",
         "packages/client-runtime/src/operations/commands.ts:1102",
@@ -490,6 +524,7 @@
       "kind": "command",
       "name": "thread.pull-request.unlink",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:1107",
         "packages/client-runtime/src/operations/commands.ts:1138",
@@ -501,6 +536,7 @@
       "kind": "command",
       "name": "thread.pull-request.watch",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:1121",
         "packages/client-runtime/src/operations/commands.ts:1129",
@@ -512,6 +548,7 @@
       "kind": "command",
       "name": "thread.runtime-mode.set",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:653"
       ]
@@ -521,6 +558,7 @@
       "kind": "command",
       "name": "thread.settle",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:497"
       ]
@@ -530,6 +568,7 @@
       "kind": "command",
       "name": "thread.snooze",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:570"
       ]
@@ -539,6 +578,7 @@
       "kind": "command",
       "name": "thread.stop",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:827"
       ]
@@ -560,6 +600,7 @@
       "kind": "command",
       "name": "thread.unarchive",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:491"
       ]
@@ -569,6 +610,7 @@
       "kind": "command",
       "name": "thread.unpin",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:552"
       ]
@@ -578,6 +620,7 @@
       "kind": "command",
       "name": "thread.unsettle",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:559"
       ]
@@ -587,6 +630,7 @@
       "kind": "command",
       "name": "thread.unsnooze",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:581"
       ]
@@ -596,6 +640,7 @@
       "kind": "command",
       "name": "thread.user-input.dismiss",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:914"
       ]
@@ -605,6 +650,7 @@
       "kind": "command",
       "name": "thread.visit",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:592"
       ]
@@ -615,7 +661,8 @@
       "name": "auth.browserSession",
       "phone": false,
       "method": "POST",
-      "path": "/api/auth/browser-session"
+      "path": "/api/auth/browser-session",
+      "desktop": true
     },
     {
       "id": "http:auth.pairingCredential",
@@ -624,6 +671,7 @@
       "phone": true,
       "method": "POST",
       "path": "/api/auth/pairing-token",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/peerPairingCode.ts:61",
         "packages/client-runtime/src/state/peerPairingCode.ts:63"
@@ -635,7 +683,8 @@
       "name": "auth.revokeClient",
       "phone": false,
       "method": "POST",
-      "path": "/api/auth/clients/revoke"
+      "path": "/api/auth/clients/revoke",
+      "desktop": true
     },
     {
       "id": "http:auth.revokeOtherClients",
@@ -643,7 +692,8 @@
       "name": "auth.revokeOtherClients",
       "phone": false,
       "method": "POST",
-      "path": "/api/auth/clients/revoke-others"
+      "path": "/api/auth/clients/revoke-others",
+      "desktop": true
     },
     {
       "id": "http:auth.revokePairingLink",
@@ -651,7 +701,8 @@
       "name": "auth.revokePairingLink",
       "phone": false,
       "method": "POST",
-      "path": "/api/auth/pairing-links/revoke"
+      "path": "/api/auth/pairing-links/revoke",
+      "desktop": true
     },
     {
       "id": "http:auth.session",
@@ -660,6 +711,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/auth/session",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/session.ts:64",
         "packages/client-runtime/src/state/session.ts:66"
@@ -672,6 +724,7 @@
       "phone": true,
       "method": "POST",
       "path": "/oauth/token",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/authorization/remote.ts:130",
         "packages/client-runtime/src/authorization/remote.ts:158"
@@ -684,6 +737,7 @@
       "phone": true,
       "method": "POST",
       "path": "/api/auth/websocket-ticket",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/authorization/remote.ts:230",
         "packages/client-runtime/src/authorization/remote.ts:261"
@@ -696,6 +750,7 @@
       "phone": true,
       "method": "POST",
       "path": "/api/auth/websocket-ticket/:use",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/authorization/remote.ts:231",
         "packages/client-runtime/src/authorization/remote.ts:262",
@@ -778,7 +833,8 @@
       "name": "mcpOAuth.approval",
       "phone": false,
       "method": "POST",
-      "path": "/oauth/mcp/approval"
+      "path": "/oauth/mcp/approval",
+      "desktop": true
     },
     {
       "id": "http:mcpOAuth.authorizationServer",
@@ -802,7 +858,8 @@
       "name": "mcpOAuth.decision",
       "phone": false,
       "method": "POST",
-      "path": "/oauth/mcp/decision"
+      "path": "/oauth/mcp/decision",
+      "desktop": true
     },
     {
       "id": "http:mcpOAuth.mcpProtectedResource",
@@ -843,6 +900,7 @@
       "phone": true,
       "method": "GET",
       "path": "/.well-known/t3/environment",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/environment/descriptor.ts:15"
       ]
@@ -854,6 +912,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/orchestration/shell",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/shellSnapshotHttp.ts:49",
         "packages/client-runtime/src/state/shellSnapshotHttp.ts:53"
@@ -866,6 +925,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/orchestration/threads/:threadId/bounded",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/boundedThreadSnapshotHttp.ts:44",
         "packages/client-runtime/src/state/boundedThreadSnapshotHttp.ts:47"
@@ -878,6 +938,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/orchestration/threads/:threadId/history",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/threadHistoryHttp.ts:41",
         "packages/client-runtime/src/state/threadHistoryHttp.ts:44"
@@ -898,6 +959,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/orchestration/threads/:threadId/transcript",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/threadTranscriptHttp.ts:25",
         "packages/client-runtime/src/state/threadTranscriptHttp.ts:28"
@@ -926,6 +988,7 @@
       "phone": true,
       "method": "POST",
       "path": "/api/pull-requests/diff",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestDiffHttp.ts:54",
         "packages/client-runtime/src/state/pullRequestDiffHttp.ts:56"
@@ -938,6 +1001,7 @@
       "phone": true,
       "method": "POST",
       "path": "/api/voice/models/cancel",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/voice-input/environment.ts:224",
         "packages/client-runtime/src/voice-input/environment.ts:225"
@@ -950,6 +1014,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/voice/cloud/keys",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/voice-input/environment.ts:79",
         "packages/client-runtime/src/voice-input/environment.ts:80"
@@ -962,6 +1027,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/voice/cloud/openrouter/models",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/voice-input/environment.ts:88",
         "packages/client-runtime/src/voice-input/environment.ts:89"
@@ -974,6 +1040,7 @@
       "phone": true,
       "method": "POST",
       "path": "/api/voice/models/download",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/voice-input/environment.ts:202",
         "packages/client-runtime/src/voice-input/environment.ts:204"
@@ -985,7 +1052,8 @@
       "name": "voice.linkModels",
       "phone": false,
       "method": "POST",
-      "path": "/api/voice/models/link"
+      "path": "/api/voice/models/link",
+      "desktop": true
     },
     {
       "id": "http:voice.models",
@@ -994,6 +1062,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/voice/models",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/voice-input/environment.ts:192",
         "packages/client-runtime/src/voice-input/environment.ts:193"
@@ -1005,7 +1074,8 @@
       "name": "voice.postProcess",
       "phone": false,
       "method": "POST",
-      "path": "/api/voice/post-process"
+      "path": "/api/voice/post-process",
+      "desktop": true
     },
     {
       "id": "http:voice.prepareModel",
@@ -1021,7 +1091,8 @@
       "name": "voice.removeModel",
       "phone": false,
       "method": "POST",
-      "path": "/api/voice/models/remove"
+      "path": "/api/voice/models/remove",
+      "desktop": true
     },
     {
       "id": "http:voice.selectModel",
@@ -1030,6 +1101,7 @@
       "phone": true,
       "method": "POST",
       "path": "/api/voice/models/select",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/voice-input/environment.ts:212",
         "packages/client-runtime/src/voice-input/environment.ts:213"
@@ -1042,6 +1114,7 @@
       "phone": true,
       "method": "POST",
       "path": "/api/voice/cloud/:provider/key",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/voice-input/environment.ts:118",
         "packages/client-runtime/src/voice-input/environment.ts:120"
@@ -1054,6 +1127,7 @@
       "phone": true,
       "method": "GET",
       "path": "/api/voice/status",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/voice-input/environment.ts:70",
         "packages/client-runtime/src/voice-input/environment.ts:71"
@@ -1066,6 +1140,7 @@
       "phone": true,
       "method": "POST",
       "path": "/api/voice/transcribe",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/voice-input/environment.ts:238",
         "packages/client-runtime/src/voice-input/environment.ts:242"
@@ -1078,6 +1153,7 @@
       "phone": true,
       "method": "POST",
       "path": "/api/voice/cloud/:provider/transcribe",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/voice-input/environment.ts:142",
         "packages/client-runtime/src/voice-input/environment.ts:144"
@@ -1089,7 +1165,8 @@
       "name": "voice.updateAcceleration",
       "phone": false,
       "method": "POST",
-      "path": "/api/voice/acceleration"
+      "path": "/api/voice/acceleration",
+      "desktop": true
     },
     {
       "id": "http:voice.updateModelUnloadTimeout",
@@ -1097,7 +1174,8 @@
       "name": "voice.updateModelUnloadTimeout",
       "phone": false,
       "method": "POST",
-      "path": "/api/voice/model-unload-timeout"
+      "path": "/api/voice/model-unload-timeout",
+      "desktop": true
     },
     {
       "id": "http:webhooks.webhookGet",
@@ -1136,6 +1214,7 @@
       "kind": "mutation",
       "name": "project.create",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:316",
         "packages/client-runtime/src/operations/commands.ts:348",
@@ -1147,6 +1226,7 @@
       "kind": "mutation",
       "name": "project.delete",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:335",
         "packages/client-runtime/src/operations/commands.ts:391"
@@ -1157,6 +1237,7 @@
       "kind": "mutation",
       "name": "project.update",
       "phone": true,
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:326",
         "packages/client-runtime/src/operations/commands.ts:367"
@@ -1167,14 +1248,16 @@
       "kind": "rpc",
       "name": "agentSessions.import",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:agentSessions.scan",
       "kind": "rpc",
       "name": "agentSessions.scan",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:assets.createUrl",
@@ -1182,6 +1265,7 @@
       "name": "assets.createUrl",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/assets.ts:259"
       ]
@@ -1192,6 +1276,7 @@
       "name": "assets.persistChatAttachments",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:297"
       ]
@@ -1202,6 +1287,7 @@
       "name": "attachments.createUploadUrl",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/attachments.ts:26"
       ]
@@ -1212,6 +1298,7 @@
       "name": "attachments.delete",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/attachments.ts:30"
       ]
@@ -1221,7 +1308,8 @@
       "kind": "rpc",
       "name": "cloud.getRelayClientStatus",
       "phone": false,
-      "scope": "relay:read"
+      "scope": "relay:read",
+      "desktop": true
     },
     {
       "id": "rpc:cloud.installRelayClient",
@@ -1229,7 +1317,8 @@
       "name": "cloud.installRelayClient",
       "phone": false,
       "subscription": true,
-      "scope": "relay:write"
+      "scope": "relay:write",
+      "desktop": true
     },
     {
       "id": "rpc:device.action",
@@ -1237,6 +1326,7 @@
       "name": "device.action",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:89"
       ]
@@ -1247,6 +1337,7 @@
       "name": "device.close",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:71"
       ]
@@ -1257,6 +1348,7 @@
       "name": "device.configure",
       "phone": true,
       "scope": "settings:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:45"
       ]
@@ -1267,6 +1359,7 @@
       "name": "device.detail",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:83"
       ]
@@ -1276,7 +1369,8 @@
       "kind": "rpc",
       "name": "device.easAccount",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:device.list",
@@ -1284,6 +1378,7 @@
       "name": "device.list",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:59"
       ]
@@ -1294,6 +1389,7 @@
       "name": "device.open",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:65"
       ]
@@ -1304,6 +1400,7 @@
       "name": "device.shutdown",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:77"
       ]
@@ -1313,14 +1410,16 @@
       "kind": "rpc",
       "name": "device.simlockIdentity",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:device.testHost",
       "kind": "rpc",
       "name": "device.testHost",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:filesystem.browse",
@@ -1328,6 +1427,7 @@
       "name": "filesystem.browse",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/filesystem.ts:152"
       ]
@@ -1338,6 +1438,7 @@
       "name": "filesystem.getMetadata",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/fileMetadata.ts:145"
       ]
@@ -1348,6 +1449,7 @@
       "name": "git.preparePullRequestThread",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/git.ts:20"
       ]
@@ -1357,7 +1459,8 @@
       "kind": "rpc",
       "name": "git.resolvePullRequest",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:git.runStackedAction",
@@ -1366,6 +1469,7 @@
       "phone": true,
       "subscription": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/vcsAction.ts:487"
       ]
@@ -1375,7 +1479,8 @@
       "kind": "rpc",
       "name": "guestShare.create",
       "phone": false,
-      "scope": "access:write"
+      "scope": "access:write",
+      "desktop": true
     },
     {
       "id": "rpc:mcpApps.callTool",
@@ -1383,6 +1488,7 @@
       "name": "mcpApps.callTool",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/mcpApps.ts:13"
       ]
@@ -1393,6 +1499,7 @@
       "name": "mcpApps.readResource",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/mcpApps.ts:26"
       ]
@@ -1403,6 +1510,7 @@
       "name": "mcpApps.toolInfo",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/mcpApps.ts:17",
         "packages/client-runtime/src/state/mcpApps.ts:22"
@@ -1414,6 +1522,7 @@
       "name": "mcpApps.updateModelContext",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/mcpApps.ts:30"
       ]
@@ -1424,6 +1533,7 @@
       "name": "orchestration.dispatchCommand",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:280",
         "packages/client-runtime/src/state/orchestration.ts:149"
@@ -1435,6 +1545,7 @@
       "name": "orchestration.forceStopThread",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:207"
       ]
@@ -1445,6 +1556,7 @@
       "name": "orchestration.getArchivedShellSnapshot",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:241"
       ]
@@ -1455,6 +1567,7 @@
       "name": "orchestration.getFullThreadDiff",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:218"
       ]
@@ -1465,6 +1578,7 @@
       "name": "orchestration.getNativeChildWork",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:197"
       ]
@@ -1475,6 +1589,7 @@
       "name": "orchestration.getOlderSettledThreads",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/olderSettledThreads.ts:245",
         "packages/client-runtime/src/state/olderSettledThreads.ts:263"
@@ -1486,6 +1601,7 @@
       "name": "orchestration.getThreadFamily",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/threadFamilies.ts:110"
       ]
@@ -1496,6 +1612,7 @@
       "name": "orchestration.getThreadLinkMetadata",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:112"
       ]
@@ -1506,6 +1623,7 @@
       "name": "orchestration.getThreadProjection",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:283"
       ]
@@ -1516,6 +1634,7 @@
       "name": "orchestration.getThreadTitles",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:114"
       ]
@@ -1526,6 +1645,7 @@
       "name": "orchestration.getTurnDiff",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:185"
       ]
@@ -1536,6 +1656,7 @@
       "name": "orchestration.getTurnItem",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:59",
         "packages/client-runtime/src/state/orchestration.ts:66",
@@ -1548,6 +1669,7 @@
       "name": "orchestration.getWorkflowScript",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:190"
       ]
@@ -1557,7 +1679,8 @@
       "kind": "rpc",
       "name": "orchestration.getWorktreeThreadIds",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:orchestration.launchThread",
@@ -1565,6 +1688,7 @@
       "name": "orchestration.launchThread",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:714"
       ]
@@ -1574,7 +1698,8 @@
       "kind": "rpc",
       "name": "orchestration.searchThread",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:orchestration.searchThreadStream",
@@ -1582,7 +1707,8 @@
       "name": "orchestration.searchThreadStream",
       "phone": false,
       "subscription": true,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:orchestration.searchThreads",
@@ -1590,6 +1716,7 @@
       "name": "orchestration.searchThreads",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/olderSettledThreads.ts:404",
         "packages/client-runtime/src/state/orchestration.ts:235"
@@ -1601,6 +1728,7 @@
       "name": "orchestration.stopWorkflow",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:203"
       ]
@@ -1612,6 +1740,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:165"
       ]
@@ -1623,6 +1752,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:179"
       ]
@@ -1634,6 +1764,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:153",
         "packages/client-runtime/src/state/shell.ts:452"
@@ -1646,6 +1777,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/orchestration.ts:157",
         "packages/client-runtime/src/state/threads.ts:975"
@@ -1657,6 +1789,7 @@
       "name": "peerLinks.answerRequest",
       "phone": true,
       "scope": "access:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/peerLinks.ts:36"
       ]
@@ -1667,6 +1800,7 @@
       "name": "peerLinks.link",
       "phone": true,
       "scope": "access:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/peerLinks.ts:23"
       ]
@@ -1677,6 +1811,7 @@
       "name": "peerLinks.list",
       "phone": true,
       "scope": "access:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/peerLinks.ts:15"
       ]
@@ -1686,7 +1821,8 @@
       "kind": "rpc",
       "name": "peerLinks.unlink",
       "phone": false,
-      "scope": "access:write"
+      "scope": "access:write",
+      "desktop": true
     },
     {
       "id": "rpc:preview.adjust",
@@ -1694,6 +1830,7 @@
       "name": "preview.adjust",
       "phone": true,
       "scope": "preview:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:56"
       ]
@@ -1703,7 +1840,8 @@
       "kind": "rpc",
       "name": "preview.clearProfile",
       "phone": false,
-      "scope": "preview:operate"
+      "scope": "preview:operate",
+      "desktop": true
     },
     {
       "id": "rpc:preview.close",
@@ -1711,6 +1849,7 @@
       "name": "preview.close",
       "phone": true,
       "scope": "preview:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:62"
       ]
@@ -1721,6 +1860,7 @@
       "name": "preview.list",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:26"
       ]
@@ -1731,6 +1871,7 @@
       "name": "preview.open",
       "phone": true,
       "scope": "preview:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:44"
       ]
@@ -1740,14 +1881,16 @@
       "kind": "rpc",
       "name": "preview.reportProfiles",
       "phone": false,
-      "scope": "preview:operate"
+      "scope": "preview:operate",
+      "desktop": true
     },
     {
       "id": "rpc:preview.reportStatus",
       "kind": "rpc",
       "name": "preview.reportStatus",
       "phone": false,
-      "scope": "preview:operate"
+      "scope": "preview:operate",
+      "desktop": true
     },
     {
       "id": "rpc:preview.resize",
@@ -1755,6 +1898,7 @@
       "name": "preview.resize",
       "phone": true,
       "scope": "preview:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:50"
       ]
@@ -1764,7 +1908,8 @@
       "kind": "rpc",
       "name": "preview.stopLocalServer",
       "phone": false,
-      "scope": "terminal:operate"
+      "scope": "terminal:operate",
+      "desktop": true
     },
     {
       "id": "rpc:projectClone.cancel",
@@ -1772,6 +1917,7 @@
       "name": "projectClone.cancel",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:60"
       ]
@@ -1782,6 +1928,7 @@
       "name": "projectClone.retry",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:69"
       ]
@@ -1792,6 +1939,7 @@
       "name": "projectClone.start",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:49"
       ]
@@ -1802,6 +1950,7 @@
       "name": "projects.createFromThread",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:206"
       ]
@@ -1812,6 +1961,7 @@
       "name": "projects.createNew",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:200"
       ]
@@ -1822,6 +1972,7 @@
       "name": "projects.ensureScratch",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:179"
       ]
@@ -1832,6 +1983,7 @@
       "name": "projects.listEntries",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:122",
         "packages/client-runtime/src/state/projectCommands.ts:127"
@@ -1842,7 +1994,8 @@
       "kind": "rpc",
       "name": "projects.listIgnoredFiles",
       "phone": false,
-      "scope": "filesystem:read"
+      "scope": "filesystem:read",
+      "desktop": true
     },
     {
       "id": "rpc:projects.mutate",
@@ -1850,6 +2003,7 @@
       "name": "projects.mutate",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/operations/commands.ts:341"
       ]
@@ -1860,6 +2014,7 @@
       "name": "projects.readFile",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:138",
         "packages/client-runtime/src/state/projectCommands.ts:143"
@@ -1870,7 +2025,8 @@
       "kind": "rpc",
       "name": "projects.searchContents",
       "phone": false,
-      "scope": "filesystem:read"
+      "scope": "filesystem:read",
+      "desktop": true
     },
     {
       "id": "rpc:projects.searchEntries",
@@ -1878,6 +2034,7 @@
       "name": "projects.searchEntries",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:112",
         "packages/client-runtime/src/state/projectCommands.ts:116"
@@ -1889,6 +2046,7 @@
       "name": "projects.writeFile",
       "phone": true,
       "scope": "filesystem:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/projectCommands.ts:212",
         "packages/client-runtime/src/state/projectCommands.ts:220"
@@ -1900,6 +2058,7 @@
       "name": "provider.auth.cancel",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1274"
       ]
@@ -1910,6 +2069,7 @@
       "name": "provider.auth.complete",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1254"
       ]
@@ -1920,6 +2080,7 @@
       "name": "provider.auth.logout",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1282"
       ]
@@ -1930,6 +2091,7 @@
       "name": "provider.auth.removeMethod",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1278"
       ]
@@ -1940,6 +2102,7 @@
       "name": "provider.auth.respond",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1250"
       ]
@@ -1950,6 +2113,7 @@
       "name": "provider.auth.start",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1242"
       ]
@@ -1961,6 +2125,7 @@
       "phone": true,
       "subscription": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1237"
       ]
@@ -1971,7 +2136,8 @@
       "name": "provider.chatgpt.handoff.subscribe",
       "phone": false,
       "subscription": true,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:provider.chatgpt.import-profile",
@@ -1979,6 +2145,7 @@
       "name": "provider.chatgpt.import-profile",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1262"
       ]
@@ -1989,6 +2156,7 @@
       "name": "provider.chatgpt.reconnect-profile",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1258"
       ]
@@ -1999,6 +2167,7 @@
       "name": "provider.consumeResetCredit",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1403"
       ]
@@ -2008,21 +2177,24 @@
       "kind": "rpc",
       "name": "provider.install.cancel",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:provider.install.remove",
       "kind": "rpc",
       "name": "provider.install.remove",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:provider.install.start",
       "kind": "rpc",
       "name": "provider.install.start",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:provider.install.subscribe",
@@ -2030,7 +2202,8 @@
       "name": "provider.install.subscribe",
       "phone": false,
       "subscription": true,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:provider.uploadFeedback",
@@ -2038,6 +2211,7 @@
       "name": "provider.uploadFeedback",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/threadCommands.ts:380"
       ]
@@ -2048,6 +2222,7 @@
       "name": "pullRequests.activity",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:40",
         "packages/client-runtime/src/state/pullRequests.ts:446",
@@ -2060,6 +2235,7 @@
       "name": "pullRequests.changeBreakdown",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:44",
         "packages/client-runtime/src/state/pullRequests.ts:831",
@@ -2072,6 +2248,7 @@
       "name": "pullRequests.checks",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:331",
         "packages/client-runtime/src/state/pullRequestRouting.ts:39",
@@ -2084,6 +2261,7 @@
       "name": "pullRequests.comment",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:54",
         "packages/client-runtime/src/state/pullRequests.ts:888",
@@ -2096,6 +2274,7 @@
       "name": "pullRequests.detail",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:37",
         "packages/client-runtime/src/state/pullRequestRouting.ts:463",
@@ -2108,6 +2287,7 @@
       "name": "pullRequests.diffFileContents",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:42",
         "packages/client-runtime/src/state/pullRequests.ts:802",
@@ -2120,6 +2300,7 @@
       "name": "pullRequests.filesViewed",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:43",
         "packages/client-runtime/src/state/pullRequests.ts:824",
@@ -2132,6 +2313,7 @@
       "name": "pullRequests.filterOptions",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequests.ts:764"
       ]
@@ -2142,6 +2324,7 @@
       "name": "pullRequests.generateReviewGuide",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequests.ts:1013",
         "packages/client-runtime/src/state/pullRequests.ts:1014"
@@ -2153,6 +2336,7 @@
       "name": "pullRequests.invalidate",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:214",
         "packages/client-runtime/src/state/pullRequestRouting.ts:243",
@@ -2165,6 +2349,7 @@
       "name": "pullRequests.labelCandidates",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:46",
         "packages/client-runtime/src/state/pullRequests.ts:590",
@@ -2177,6 +2362,7 @@
       "name": "pullRequests.linkedThreads",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequests.ts:710",
         "packages/client-runtime/src/state/pullRequests.ts:719"
@@ -2188,6 +2374,7 @@
       "name": "pullRequests.list",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequests.ts:727"
       ]
@@ -2198,6 +2385,7 @@
       "name": "pullRequests.listStats",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequests.ts:757"
       ]
@@ -2208,6 +2396,7 @@
       "name": "pullRequests.preview",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:38",
         "packages/client-runtime/src/state/pullRequests.ts:552",
@@ -2220,6 +2409,7 @@
       "name": "pullRequests.replyToThread",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:57",
         "packages/client-runtime/src/state/pullRequests.ts:918",
@@ -2232,6 +2422,7 @@
       "name": "pullRequests.reportState",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:231"
       ]
@@ -2242,6 +2433,7 @@
       "name": "pullRequests.requestReviewers",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:60",
         "packages/client-runtime/src/state/pullRequests.ts:928",
@@ -2254,6 +2446,7 @@
       "name": "pullRequests.reviewGuide",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequests.ts:599",
         "packages/client-runtime/src/state/pullRequests.ts:600"
@@ -2265,6 +2458,7 @@
       "name": "pullRequests.reviewerCandidates",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:45",
         "packages/client-runtime/src/state/pullRequests.ts:609",
@@ -2277,6 +2471,7 @@
       "name": "pullRequests.routing",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:345"
       ]
@@ -2287,6 +2482,7 @@
       "name": "pullRequests.routingIdentity",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:419"
       ]
@@ -2297,6 +2493,7 @@
       "name": "pullRequests.runAction",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:52",
         "packages/client-runtime/src/state/pullRequests.ts:674",
@@ -2309,6 +2506,7 @@
       "name": "pullRequests.setFilesViewed",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:305",
         "packages/client-runtime/src/state/pullRequestRouting.ts:307",
@@ -2321,6 +2519,7 @@
       "name": "pullRequests.setLabels",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:61",
         "packages/client-runtime/src/state/pullRequests.ts:1023",
@@ -2333,6 +2532,7 @@
       "name": "pullRequests.setReaction",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:58",
         "packages/client-runtime/src/state/pullRequests.ts:1068",
@@ -2345,6 +2545,7 @@
       "name": "pullRequests.setThreadResolution",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:59",
         "packages/client-runtime/src/state/pullRequests.ts:1061",
@@ -2357,6 +2558,7 @@
       "name": "pullRequests.stack",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:36",
         "packages/client-runtime/src/state/pullRequests.ts:405",
@@ -2369,6 +2571,7 @@
       "name": "pullRequests.submitReview",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:56",
         "packages/client-runtime/src/state/pullRequests.ts:911",
@@ -2382,6 +2585,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequests.ts:325"
       ]
@@ -2392,6 +2596,7 @@
       "name": "pullRequests.summary",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:35",
         "packages/client-runtime/src/state/pullRequestRouting.ts:508",
@@ -2404,6 +2609,7 @@
       "name": "pullRequests.threadComments",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:41",
         "packages/client-runtime/src/state/pullRequests.ts:785",
@@ -2416,6 +2622,7 @@
       "name": "pullRequests.update",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:53",
         "packages/client-runtime/src/state/pullRequests.ts:880",
@@ -2428,6 +2635,7 @@
       "name": "pullRequests.updateComment",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/pullRequestRouting.ts:55",
         "packages/client-runtime/src/state/pullRequests.ts:895",
@@ -2439,7 +2647,8 @@
       "kind": "rpc",
       "name": "review.getBranchCommits",
       "phone": false,
-      "scope": "filesystem:read"
+      "scope": "filesystem:read",
+      "desktop": true
     },
     {
       "id": "rpc:review.getDiffFileContents",
@@ -2447,6 +2656,7 @@
       "name": "review.getDiffFileContents",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/review.ts:116"
       ]
@@ -2457,6 +2667,7 @@
       "name": "review.getDiffPreview",
       "phone": true,
       "scope": "filesystem:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/review.ts:36",
         "packages/client-runtime/src/state/review.ts:51",
@@ -2469,6 +2680,7 @@
       "name": "scheduledTasks.delete",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1574"
       ]
@@ -2478,14 +2690,16 @@
       "kind": "rpc",
       "name": "scheduledTasks.getWebhookDelivery",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:scheduledTasks.listWebhookDeliveries",
       "kind": "rpc",
       "name": "scheduledTasks.listWebhookDeliveries",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:scheduledTasks.rotateWebhookToken",
@@ -2493,6 +2707,7 @@
       "name": "scheduledTasks.rotateWebhookToken",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1587"
       ]
@@ -2503,6 +2718,7 @@
       "name": "scheduledTasks.runNow",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1583"
       ]
@@ -2513,6 +2729,7 @@
       "name": "scheduledTasks.setEnabled",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1568"
       ]
@@ -2524,6 +2741,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1340"
       ]
@@ -2534,6 +2752,7 @@
       "name": "scheduledTasks.upsert",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1562"
       ]
@@ -2544,6 +2763,7 @@
       "name": "secrets.answerRequest",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1599"
       ]
@@ -2553,14 +2773,16 @@
       "kind": "rpc",
       "name": "server.acceptAcpRegistryUrlAuth",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.checkOtlpEndpoint",
       "kind": "rpc",
       "name": "server.checkOtlpEndpoint",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:server.commitDesktopUpdate",
@@ -2568,6 +2790,7 @@
       "name": "server.commitDesktopUpdate",
       "phone": true,
       "scope": "environment:maintain",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/connection/outdatedHostUpdate.ts:191",
         "packages/client-runtime/src/state/server.ts:1046",
@@ -2579,14 +2802,16 @@
       "kind": "rpc",
       "name": "server.deleteAcpRegistrySession",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:server.disableAcpRegistryProvider",
       "kind": "rpc",
       "name": "server.disableAcpRegistryProvider",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.discoverSourceControl",
@@ -2594,6 +2819,7 @@
       "name": "server.discoverSourceControl",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:22"
       ]
@@ -2612,6 +2838,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1169"
       ]
@@ -2621,35 +2848,40 @@
       "kind": "rpc",
       "name": "server.getHostResources",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getNpmRelease",
       "kind": "rpc",
       "name": "server.getNpmRelease",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getProcessDiagnostics",
       "kind": "rpc",
       "name": "server.getProcessDiagnostics",
       "phone": false,
-      "scope": "diagnostics:read"
+      "scope": "diagnostics:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getProcessResourceHistory",
       "kind": "rpc",
       "name": "server.getProcessResourceHistory",
       "phone": false,
-      "scope": "diagnostics:read"
+      "scope": "diagnostics:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getResourceTelemetryHistory",
       "kind": "rpc",
       "name": "server.getResourceTelemetryHistory",
       "phone": false,
-      "scope": "diagnostics:read"
+      "scope": "diagnostics:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getStorageCleanupReport",
@@ -2657,14 +2889,16 @@
       "name": "server.getStorageCleanupReport",
       "phone": false,
       "subscription": true,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getTraceDiagnostics",
       "kind": "rpc",
       "name": "server.getTraceDiagnostics",
       "phone": false,
-      "scope": "diagnostics:read"
+      "scope": "diagnostics:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.getUsageSummary",
@@ -2672,6 +2906,7 @@
       "name": "server.getUsageSummary",
       "phone": true,
       "scope": "diagnostics:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1346",
         "packages/client-runtime/src/state/server.ts:1350",
@@ -2683,42 +2918,48 @@
       "kind": "rpc",
       "name": "server.importAcpRegistrySession",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:server.listAcpRegistryProviders",
       "kind": "rpc",
       "name": "server.listAcpRegistryProviders",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.listAcpRegistrySessions",
       "kind": "rpc",
       "name": "server.listAcpRegistrySessions",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.listTextGeneratorModels",
       "kind": "rpc",
       "name": "server.listTextGeneratorModels",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:server.logoutAcpRegistry",
       "kind": "rpc",
       "name": "server.logoutAcpRegistry",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.prepareAcpRegistryAgent",
       "kind": "rpc",
       "name": "server.prepareAcpRegistryAgent",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.prepareTriage",
@@ -2726,6 +2967,7 @@
       "name": "server.prepareTriage",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1215"
       ]
@@ -2736,6 +2978,7 @@
       "name": "server.probe",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/rpc/session.ts:434"
       ]
@@ -2745,7 +2988,8 @@
       "kind": "rpc",
       "name": "server.reclaimDatabaseSpace",
       "phone": false,
-      "scope": "environment:maintain"
+      "scope": "environment:maintain",
+      "desktop": true
     },
     {
       "id": "rpc:server.refreshProviders",
@@ -2753,6 +2997,7 @@
       "name": "server.refreshProviders",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1412",
         "packages/client-runtime/src/state/server.ts:1414"
@@ -2764,6 +3009,7 @@
       "name": "server.refreshUsageRates",
       "phone": true,
       "scope": "diagnostics:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1608"
       ]
@@ -2773,7 +3019,8 @@
       "kind": "rpc",
       "name": "server.removeKeybinding",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:server.reportClientActivity",
@@ -2781,6 +3028,7 @@
       "name": "server.reportClientActivity",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "apps/mobile/src/connection/background-activity.ts:68"
       ]
@@ -2790,42 +3038,48 @@
       "kind": "rpc",
       "name": "server.retryResourceTelemetry",
       "phone": false,
-      "scope": "diagnostics:read"
+      "scope": "diagnostics:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.runStorageCleanup",
       "kind": "rpc",
       "name": "server.runStorageCleanup",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:server.searchAcpRegistry",
       "kind": "rpc",
       "name": "server.searchAcpRegistry",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:server.setAcpRegistryProvider",
       "kind": "rpc",
       "name": "server.setAcpRegistryProvider",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.signalProcess",
       "kind": "rpc",
       "name": "server.signalProcess",
       "phone": false,
-      "scope": "environment:maintain"
+      "scope": "environment:maintain",
+      "desktop": true
     },
     {
       "id": "rpc:server.uninstallAcpRegistryManagedBinary",
       "kind": "rpc",
       "name": "server.uninstallAcpRegistryManagedBinary",
       "phone": false,
-      "scope": "providers:manage"
+      "scope": "providers:manage",
+      "desktop": true
     },
     {
       "id": "rpc:server.updateProvider",
@@ -2833,6 +3087,7 @@
       "name": "server.updateProvider",
       "phone": true,
       "scope": "providers:manage",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1450"
       ]
@@ -2843,6 +3098,7 @@
       "name": "server.updateServer",
       "phone": true,
       "scope": "environment:maintain",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/connection/outdatedHostUpdate.ts:171",
         "packages/client-runtime/src/state/server.ts:940"
@@ -2855,6 +3111,7 @@
       "phone": true,
       "subscription": true,
       "scope": "environment:maintain",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/connection/outdatedHostUpdate.ts:145",
         "packages/client-runtime/src/state/server.ts:900"
@@ -2866,6 +3123,7 @@
       "name": "server.updateSettings",
       "phone": true,
       "scope": "settings:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1201"
       ]
@@ -2875,14 +3133,16 @@
       "kind": "rpc",
       "name": "server.upsertKeybinding",
       "phone": false,
-      "scope": "settings:write"
+      "scope": "settings:write",
+      "desktop": true
     },
     {
       "id": "rpc:shell.openInEditor",
       "kind": "rpc",
       "name": "shell.openInEditor",
       "phone": false,
-      "scope": "orchestration:operate"
+      "scope": "orchestration:operate",
+      "desktop": true
     },
     {
       "id": "rpc:sourceControl.appAccess",
@@ -2890,6 +3150,7 @@
       "name": "sourceControl.appAccess",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:26",
         "packages/client-runtime/src/state/sourceControl.ts:31"
@@ -2908,6 +3169,7 @@
       "name": "sourceControl.lookupRepository",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:43"
       ]
@@ -2918,6 +3180,7 @@
       "name": "sourceControl.publishRepository",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:95"
       ]
@@ -2928,6 +3191,7 @@
       "name": "sourceControl.signInCancel",
       "phone": true,
       "scope": "settings:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:87"
       ]
@@ -2938,6 +3202,7 @@
       "name": "sourceControl.signInStart",
       "phone": true,
       "scope": "settings:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:79"
       ]
@@ -2948,6 +3213,7 @@
       "name": "sourceControl.signInWait",
       "phone": true,
       "scope": "settings:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:83"
       ]
@@ -2957,14 +3223,16 @@
       "kind": "rpc",
       "name": "sourceControl.star",
       "phone": false,
-      "scope": "source-control:write"
+      "scope": "source-control:write",
+      "desktop": true
     },
     {
       "id": "rpc:sourceControl.starred",
       "kind": "rpc",
       "name": "sourceControl.starred",
       "phone": false,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:subscribeAuthAccess",
@@ -2972,7 +3240,8 @@
       "name": "subscribeAuthAccess",
       "phone": false,
       "subscription": true,
-      "scope": "access:read"
+      "scope": "access:read",
+      "desktop": true
     },
     {
       "id": "rpc:subscribeDeviceState",
@@ -2981,6 +3250,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/device.ts:41"
       ]
@@ -2991,7 +3261,8 @@
       "name": "subscribeDiscoveredLocalServers",
       "phone": false,
       "subscription": true,
-      "scope": "orchestration:read"
+      "scope": "orchestration:read",
+      "desktop": true
     },
     {
       "id": "rpc:subscribePreviewEvents",
@@ -3000,6 +3271,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/preview.ts:31"
       ]
@@ -3011,6 +3283,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/sourceControl.ts:91"
       ]
@@ -3022,6 +3295,7 @@
       "phone": true,
       "subscription": true,
       "scope": "diagnostics:read",
+      "desktop": true,
       "sites": [
         "apps/mobile/src/connection/background-activity-scopes.ts:40"
       ]
@@ -3033,6 +3307,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/rpc/client.ts:298",
         "packages/client-runtime/src/rpc/session.ts:294",
@@ -3046,6 +3321,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/server.ts:1013",
         "packages/client-runtime/src/state/server.ts:601"
@@ -3058,6 +3334,7 @@
       "phone": true,
       "subscription": true,
       "scope": "terminal:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:84"
       ]
@@ -3069,6 +3346,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/rpc/client.ts:457"
       ]
@@ -3080,6 +3358,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "apps/mobile/src/connection/background-activity-scopes.ts:43",
         "packages/client-runtime/src/rpc/client.ts:474",
@@ -3093,6 +3372,7 @@
       "phone": true,
       "subscription": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/vcs.ts:353"
       ]
@@ -3104,6 +3384,7 @@
       "phone": true,
       "subscription": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:69"
       ]
@@ -3114,6 +3395,7 @@
       "name": "terminal.clear",
       "phone": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:108"
       ]
@@ -3124,6 +3406,7 @@
       "name": "terminal.close",
       "phone": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:114"
       ]
@@ -3135,6 +3418,7 @@
       "phone": true,
       "subscription": true,
       "scope": "terminal:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:59"
       ]
@@ -3145,6 +3429,7 @@
       "name": "terminal.open",
       "phone": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:92"
       ]
@@ -3155,6 +3440,7 @@
       "name": "terminal.resize",
       "phone": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:102"
       ]
@@ -3165,6 +3451,7 @@
       "name": "terminal.write",
       "phone": true,
       "scope": "terminal:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/terminal.ts:98"
       ]
@@ -3175,6 +3462,7 @@
       "name": "vcs.createRef",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/vcs.ts:369"
       ]
@@ -3194,7 +3482,8 @@
       "kind": "rpc",
       "name": "vcs.init",
       "phone": false,
-      "scope": "source-control:write"
+      "scope": "source-control:write",
+      "desktop": true
     },
     {
       "id": "rpc:vcs.listRefs",
@@ -3202,6 +3491,7 @@
       "name": "vcs.listRefs",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/vcs.ts:163",
         "packages/client-runtime/src/state/vcs.ts:301"
@@ -3213,6 +3503,7 @@
       "name": "vcs.pull",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/vcs.ts:332"
       ]
@@ -3223,6 +3514,7 @@
       "name": "vcs.refreshBranch",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/rpc/client.ts:501"
       ]
@@ -3233,6 +3525,7 @@
       "name": "vcs.refreshStatus",
       "phone": true,
       "scope": "orchestration:read",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/vcs.ts:339"
       ]
@@ -3242,7 +3535,8 @@
       "kind": "rpc",
       "name": "vcs.removeWorktree",
       "phone": false,
-      "scope": "source-control:write"
+      "scope": "source-control:write",
+      "desktop": true
     },
     {
       "id": "rpc:vcs.switchRef",
@@ -3250,6 +3544,7 @@
       "name": "vcs.switchRef",
       "phone": true,
       "scope": "source-control:write",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/vcs.ts:376"
       ]
@@ -3260,6 +3555,7 @@
       "name": "worktreeSetup.cancel",
       "phone": true,
       "scope": "orchestration:operate",
+      "desktop": true,
       "sites": [
         "packages/client-runtime/src/state/vcs.ts:358"
       ]

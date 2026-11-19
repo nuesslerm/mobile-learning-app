@@ -15,6 +15,8 @@ pub const REFERENCE: &str = "references/orca";
 const ROUTES_FILES: [&str; 2] = ["src/main/runtime/rpc/server/runtime-rpc-mobile-method-routing.ts", "src/main/runtime/runtime-rpc/runtime-rpc-mobile-method-routing.ts"];
 const ROUTES: &str = "MOBILE_RPC_METHOD_ROUTES";
 const PHONE_DIRS: [&str; 5] = ["mobile/app", "mobile/src", "mobile/modules", "mobile/packages", "mobile/web-entry"];
+/// The desktop client: the Electron renderer and its preload bridge (absent from a checkout that predates the widened sparse set).
+const DESKTOP_DIRS: [&str; 2] = ["src/renderer", "src/preload"];
 const EXTS: [&str; 6] = [".ts", ".tsx", ".js", ".jsx", ".mjs", ".mts"];
 
 /// The definitions of one constant name: `(file, value)`.
@@ -283,6 +285,12 @@ pub fn scan(tree: &dyn Tree, pin: Value) -> Result<MethodsList, String> {
         row.reached(at);
         rows.insert(row.id.clone(), row);
     }
+    let desktop = desktop_reach(tree, &constants, &registry);
+    for name in &desktop.methods {
+        if let Some(row) = rows.get_mut(&format!("rpc:{name}")) {
+            row.extra.insert("desktop".into(), true.into());
+        }
+    }
     let rows: Vec<Row> = rows.into_values().collect();
     let methods = |f: &dyn Fn(&Row) -> bool| rows.iter().filter(|r| r.kind == "rpc" && f(r)).count();
     let counts = json!({
@@ -303,6 +311,12 @@ pub fn scan(tree: &dyn Tree, pin: Value) -> Result<MethodsList, String> {
             "transport": rows.iter().filter(|r| r.kind == "transport").count(),
         },
         "files": {"reached": graph.files.len(), "phone": graph.files.keys().filter(|p| graph.is_app(p)).count()},
+        "desktop": {
+            "files": desktop.files,
+            "methods": methods(&|r| r.extra.contains_key("desktop")),
+            "desktopOnly": methods(&|r| !r.phone && r.extra.contains_key("desktop")),
+            "ipcChannels": desktop.channels,
+        },
     });
     let flags = json!({
         "dynamicMethodNames": {"note": "sendRequest calls whose method is not a literal; the names they carry come from elsewhere", "sites": dynamic},
@@ -332,4 +346,54 @@ mod tests {
         assert_eq!(allow["s.a"], ("execution-host".into(), None));
         assert_eq!(allow["d.f2"], ("paired-desktop".into(), Some("FLAG".into())));
     }
+}
+
+/// What the desktop client reaches: the registered methods it names (by the same literal and constant reading as the phone's), the files it
+/// is made of, and the IPC channels its preload bridge opens to the main process (the desktop's own transport, which no phone row covers).
+struct DesktopReach {
+    methods: Vec<String>,
+    files: usize,
+    channels: usize,
+}
+
+fn desktop_reach(tree: &dyn Tree, constants: &Constants, registry: &BTreeMap<String, Registered>) -> DesktopReach {
+    let roots: Vec<String> = DESKTOP_DIRS.iter().flat_map(|d| tree.files(&format!("{REFERENCE}/{d}"))).filter(|f| EXTS.iter().any(|e| f.ends_with(e)) && !is_test(f)).collect();
+    if roots.is_empty() {
+        return DesktopReach { methods: vec![], files: 0, channels: 0 };
+    }
+    let resolver = |from: &str, spec: &str| resolve::relative(tree, from, spec, &EXTS);
+    let is_desktop = |p: &str| DESKTOP_DIRS.iter().any(|d| p.starts_with(&format!("{REFERENCE}/{d}/")));
+    let scope = Scope { roots, resolve: &resolver, excluded: &is_test, is_app: &is_desktop, scanned: &|_| true };
+    let graph = Graph::build(tree, &scope);
+    let (mut methods, mut channels): (Vec<String>, Vec<String>) = (vec![], vec![]);
+    graph.each_live(|s: Site| {
+        let (toks, at) = (s.toks, s.at);
+        let t = &toks[at];
+        if t.ident() == Some("ipcRenderer") && toks.get(at + 1).is_some_and(|d| d.is(".")) && toks.get(at + 3).is_some_and(|o| o.is("(")) {
+            let channel = first_arg(toks, at + 3);
+            if !channel.is_empty() {
+                channels.push(channel);
+            }
+        }
+        if !s.bound {
+            return;
+        }
+        let name = match t.kind {
+            Kind::Str if !in_type_union(toks, at) => Some(t.text.clone()),
+            Kind::Ident if t.text.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit() || c == '_') && !(at > 0 && (toks[at - 1].is(".") || toks[at - 1].ident() == Some("const"))) => value(constants, s.path, toks, at),
+            _ => None,
+        };
+        if let Some(n) = name.filter(|n| registry.contains_key(n)) {
+            // A capability flag that happens to share a method's name is no call.
+            if !graph.is_app(s.path) && s.declares.iter().any(|d| d.contains("CAPABILIT")) {
+                return;
+            }
+            methods.push(n);
+        }
+    });
+    methods.sort();
+    methods.dedup();
+    channels.sort();
+    channels.dedup();
+    DesktopReach { methods, files: graph.files.keys().filter(|p| graph.is_app(p)).count(), channels: channels.len() }
 }
