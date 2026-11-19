@@ -1309,3 +1309,42 @@ fn given_use_template_with_a_blank_body_when_a_review_is_created_then_the_first_
     rig.ok(CREATE, submit(json!({"useTemplate": true, "body": ""})));
     assert_eq!((asked(&rig, "pr.create")[0]["body"].clone(), asked(&rig, "file.read").len()), (json!(""), 6));
 }
+
+#[test]
+fn given_a_workspace_when_the_phone_creates_updates_and_comments_on_issues_then_each_row_is_the_hosts_answer_over_the_issue_methods_of_rca() {
+    // Given a workspace whose GitHub and GitLab issue 7 the executor can change
+    let mut rig = Rig::new();
+    // When the phone opens an issue on each host, closes one and retitles it, and comments on both
+    let gh_created = rig.ok("github.createIssue", json!({"title": "Upload fails", "body": "Steps", "labels": ["bug"]}));
+    let gl_created = rig.ok("gitlab.createIssue", json!({"title": "Upload fails", "body": "Steps"}));
+    let updated = rig.ok("github.updateIssue", json!({"number": 7, "updates": {"state": "closed", "title": "New title"}}));
+    let gl_updated = rig.ok("gitlab.updateIssue", json!({"number": 7, "updates": {"body": "New body"}}));
+    let gh_comment = rig.ok("github.addIssueComment", json!({"number": 7, "body": "On it"}));
+    let gl_comment = rig.ok("gitlab.addIssueComment", json!({"number": 7, "body": "On it"}));
+    let pr_comment = rig.ok("github.addIssueComment", json!({"number": 12, "body": "Same", "type": "pr"}));
+    // Then the creates answer the number and address, the updates `{ok}`, and a comment the row the phone renders
+    assert_eq!(gh_created, json!({"ok": true, "number": 8, "url": "https://github.com/acme/app/issues/8"}));
+    assert_eq!(gl_created, json!({"ok": true, "number": 4, "url": "https://gitlab.com/grp/proj/-/issues/4"}));
+    assert_eq!((updated, gl_updated), (json!({"ok": true}), json!({"ok": true})));
+    assert_eq!((gh_comment["comment"]["id"].clone(), gh_comment["comment"]["url"].clone(), gh_comment["comment"]["body"].clone()), (json!(91), json!("https://github.com/acme/app/issues/7#issuecomment-91"), json!("On it")));
+    assert_eq!((gl_comment["comment"]["id"].clone(), gl_comment["comment"]["author"].clone()), (json!(92), json!("You")));
+    assert_eq!(pr_comment["comment"]["id"], json!(77));
+    // And rca was asked, in order, with the provider each host names and the labels only when given
+    let asked: Vec<(String, Value)> = rig.agent.requests().into_iter().filter(|(m, _)| m.starts_with("issue.") || m == "pr.comment").collect();
+    assert_eq!(asked[0], ("issue.create".to_string(), json!({"workspace": "main", "title": "Upload fails", "body": "Steps", "labels": ["bug"], "provider": "github"})));
+    assert_eq!(asked[1], ("issue.create".to_string(), json!({"workspace": "main", "title": "Upload fails", "body": "Steps", "provider": "gitlab"})));
+    assert_eq!(asked[2], ("issue.setState".to_string(), json!({"workspace": "main", "number": 7, "state": "closed", "provider": "github"})));
+    assert_eq!(asked[3], ("issue.edit".to_string(), json!({"workspace": "main", "number": 7, "title": "New title", "provider": "github"})));
+    // And a request for what rca does not do is the host's `{ok: false}` and nothing is asked, an unresolved folder is the host's code, and a bad request is refused in key order
+    let issue_calls = |rig: &Rig| rig.agent.requests().into_iter().filter(|(m, _)| m.starts_with("issue.")).count();
+    let before = issue_calls(&rig);
+    assert_eq!(rig.ok("github.createIssue", json!({"title": "t", "body": "b", "assignees": ["octocat"]}))["ok"], false);
+    assert_eq!(rig.ok("github.updateIssue", json!({"number": 7, "updates": {"addLabels": ["x"]}}))["ok"], false);
+    assert_eq!(issue_calls(&rig), before);
+    assert_eq!(rig.ok("github.addIssueComment", json!({"number": 99, "body": "x"})), json!({"ok": false, "error": "Could not resolve GitHub owner/repo for this repository", "errorCode": "github.repoUnresolved"}));
+    assert_eq!(rig.ok("gitlab.updateIssue", json!({"number": 99, "updates": {"state": "open"}})), json!({"ok": false, "error": "Could not resolve GitLab project for this repository", "errorCode": "gitlab.projectUnresolved"}));
+    assert_eq!(rig.err("github.createIssue", json!({"title": "", "body": "b"})), ("invalid_argument".into(), "Missing title".into()));
+    assert_eq!(rig.err("github.addIssueComment", json!({"number": 7, "body": ""})), ("invalid_argument".into(), "Comment body required".into()));
+    assert_eq!(rig.err("github.updateIssue", json!({"number": 0, "updates": {}})), ("invalid_argument".into(), "Too small: expected number to be >0".into()));
+    assert_eq!(rig.err("github.updateIssue", json!({"number": 7, "updates": {"state": "merged"}})), ("invalid_argument".into(), "Invalid option: expected one of \"open\"|\"closed\"".into()));
+}

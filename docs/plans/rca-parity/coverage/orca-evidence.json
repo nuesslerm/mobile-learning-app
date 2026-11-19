@@ -507,6 +507,20 @@
         "complete": true,
         "tests": 69,
         "passed": 48
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "bfc46accff8833492ff994841c09eacd3d4b18d6",
+        "complete": true,
+        "tests": 446,
+        "passed": 152
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 62,
+        "passed": 20
       }
     ]
   },
@@ -1279,6 +1293,15 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:github.addIssueComment": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-github.addIssueComment-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:github.addPRReviewComment": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-github.addPRReviewComment-boundary-full",
@@ -1291,6 +1314,15 @@
     "rpc:github.addPRReviewCommentReply": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-github.addPRReviewCommentReply-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:github.createIssue": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-github.createIssue-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",
@@ -1414,6 +1446,15 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:github.updateIssue": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-github.updateIssue-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:github.updatePR": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-github.updatePR-invalid-drop-repo",
@@ -1441,6 +1482,15 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:gitlab.addIssueComment": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-gitlab.addIssueComment-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:gitlab.addMRComment": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-gitlab.addMRComment-boundary-full",
@@ -1450,9 +1500,27 @@
       "diff": "clean",
       "cassette": "recorded"
     },
+    "rpc:gitlab.createIssue": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-gitlab.createIssue-invalid-drop-repo",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
     "rpc:gitlab.mergeMR": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-gitlab.mergeMR-invalid-drop-repo",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:gitlab.updateIssue": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-gitlab.updateIssue-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

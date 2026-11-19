@@ -427,6 +427,33 @@ impl Hosting {
                 _ => Err(refused("HOSTED_FAILED", "glab: 404 Not Found")),
             }
         });
+        agent.reply("issue.create", |p| match p["title"].as_str() {
+            Some("unresolved") => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+            Some(_) if p["provider"] == "gitlab" => Ok(json!({"number": 4, "url": "https://gitlab.com/grp/proj/-/issues/4"})),
+            Some(_) => Ok(json!({"number": 8, "url": "https://github.com/acme/app/issues/8"})),
+            None => Err(refused("INVALID_ARGS", "`title` is required")),
+        });
+        for method in ["issue.setState", "issue.edit"] {
+            agent.reply(method, |p| match p["number"].as_u64() {
+                Some(7) => Ok(json!({"done": true, "number": 7, "state": p["state"]})),
+                Some(99) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+                _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
+            });
+        }
+        agent.reply("issue.list", |p| match p["repo"].as_str() {
+            Some("acme/unresolved") => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+            _ => Ok(json!({"issues": [], "truncated": false})),
+        });
+        agent.reply("issue.comment", |p| match p["number"].as_u64() {
+            Some(7) if p["provider"] == "gitlab" => Ok(json!({"done": true, "url": null, "id": "92", "body": p["body"]})),
+            Some(7) => Ok(json!({"done": true, "url": "https://github.com/acme/app/issues/7#issuecomment-91"})),
+            Some(99) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository point to a known host")),
+            _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
+        });
+        agent.reply("pr.comment", |p| match p["number"].as_u64() {
+            Some(12) => Ok(json!({"done": true, "url": "https://github.com/acme/app/pull/12#issuecomment-77"})),
+            _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
+        });
         agent.reply("pr.reply", |p| match p["comment_id"].as_u64() {
             Some(9003) => Ok(json!({"id": "PRRC_kwDOAB", "database_id": 9004, "url": "https://github.com/acme/app/pull/12#discussion_r9004", "author": "octocat", "avatar_url": "https://avatars.example/1", "is_bot": false, "body": p["body"], "created_at": "2026-11-19T02:00:00Z", "path": null, "line": null})),
             _ => Err(refused("HOSTED_FAILED", "gh: Not Found (HTTP 404)")),

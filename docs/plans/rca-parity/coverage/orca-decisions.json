@@ -499,19 +499,13 @@
       "decidedBy": "M12"
     },
     "rpc:github.createIssue": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.updateIssue": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.addIssueComment": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.listAssignableUsers": {
       "oracle": "mimic"
@@ -612,19 +606,13 @@
       "decidedBy": "M12"
     },
     "rpc:gitlab.createIssue": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:gitlab.updateIssue": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:gitlab.addIssueComment": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:gitlab.todos": {
       "state": "not-offered",
