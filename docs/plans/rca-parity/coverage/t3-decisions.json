@@ -251,7 +251,7 @@
     },
     "rpc:provider.uploadFeedback": {
       "state": "not-offered",
-      "reason": "uploading provider feedback sends a transcript to the T3 vendor's endpoint; the owner has not approved sending any thread data off the service. Owner-confirmed (decision 7).",
+      "reason": "uploading provider feedback sends a transcript to the T3 vendor's endpoint; the owner has not approved sending any thread data off the service. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): correction: the feedback goes to OpenAI under the person's own account, not to the T3 vendor; it stays not offered until the owner decides (issue #83, Blocked).",
       "decidedBy": "M12"
     },
     "rpc:provider.chatgpt.import-profile": {
@@ -266,7 +266,7 @@
     },
     "rpc:provider.consumeResetCredit": {
       "state": "not-offered",
-      "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Owner-confirmed (decision 7).",
+      "reason": "the service's model API reports no reset credit and rca keeps no price table; the rows could only pass by refusing. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): correction: the rates are a public price table (LiteLLM's), not reset credits; served in phase 1 from that table.",
       "decidedBy": "M12"
     },
     "rpc:server.refreshUsageRates": {
@@ -276,7 +276,7 @@
     },
     "rpc:server.updateProvider": {
       "state": "not-offered",
-      "reason": "the provider CLIs ship inside the service's image, so a version is updated by shipping an image, not by an RPC; the row could only pass by refusing. Owner-confirmed (decision 7).",
+      "reason": "the provider CLIs ship inside the service's image, so a version is updated by shipping an image, not by an RPC; the row could only pass by refusing. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the CLIs run at the executor's host, not in the service's image; updating one is a host action (cli_update) planned in phase 2.",
       "decidedBy": "M12"
     },
     "rpc:secrets.answerRequest": {
@@ -286,7 +286,7 @@
     },
     "command:prepared-run.retry": {
       "state": "not-offered",
-      "reason": "rca prepares no workspace for a run, so there is no failed preparation to retry; the call could only get the refusal. Owner-confirmed (decision 7).",
+      "reason": "rca prepares no workspace for a run, so there is no failed preparation to retry; the call could only get the refusal. Owner-confirmed (decision 7). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has worktree setup (git_worktree_setup), so a failed preparation exists to retry; served in phase 2 with the new-worktree launch.",
       "decidedBy": "M12"
     },
     "rpc:orchestration.getWorkflowScript": {
@@ -378,7 +378,7 @@
     },
     "http:voice.cloudKeys": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca holds no cloud speech-to-text keys and no speech provider account: its transcription is the local whisper model baked into the image (backend/remote-chat-agent/speech), configured by the host's settings and not by a phone. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4.",
       "decidedBy": "M12"
     },
     "http:voice.setCloudKey": {
@@ -398,7 +398,7 @@
     },
     "http:voice.downloadModel": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca ships its whisper models in the image and never downloads, selects or lists a model at run time, so there is nothing to call or cancel. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4.",
       "decidedBy": "M12"
     },
     "http:voice.cancelModelDownload": {
@@ -418,7 +418,7 @@
     },
     "http:voice.models": {
       "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (serve it when rca has the capability, otherwise not offered with a reason), open to the owner's overrule: rca's speech-to-text is a local whisper model behind its own HTTP voice routes (backend/remote-chat-agent/rs/src/api/routes/voice.rs), and the agent API holds no audio group, so t3-serve, which speaks to rca only through the agent API, has no capability to transcribe with or to report the speech engine's models and status from. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca has local whisper and the Groq transcription of the LeetCode voice editing; the local rows are served in phase 1 over one speech group, the cloud-key rows wait for phase 4.",
       "decidedBy": "M12"
     },
     "http:voice.status": {

@@ -775,7 +775,7 @@
       "name": "aiVault.listSessions",
       "state": "not-offered",
       "milestone": "M7",
-      "reason": "owner-confirmed (decision 7): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves",
+      "reason": "owner-confirmed (decision 7): it lists the session files the CLIs keep in the host's own home directory, which rca does not keep; the chats of this host are rca threads, which agentSession.* already serves. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the CLIs now run at the executor's host (owner decision of 18 Nov), so their session files are readable there; served in phase 3 with the host session vault.",
       "decidedBy": "M7"
     },
     {
@@ -784,7 +784,7 @@
       "name": "aiVault.prepareSessionResume",
       "state": "not-offered",
       "milestone": "M7",
-      "reason": "owner-confirmed (decision 7): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal",
+      "reason": "owner-confirmed (decision 7): it prepares the resume of a CLI session file from the host's disk for a desktop terminal to open; rca has no such file and no desktop terminal. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the CLIs now run at the executor's host (owner decision of 18 Nov), so their session files are readable there; served in phase 3 with the host session vault.",
       "decidedBy": "M7"
     },
     {
@@ -1052,7 +1052,7 @@
       "name": "clipboard.abortImageUpload",
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's executor has no clipboard, and an image reaches an agent as an attachment (the agent API's attachments group), so the phone's clipboard upload bridge has nothing to write to. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host has no system clipboard either, it writes the image to a temporary file; served in phase 1 over exec-fs put_temp. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host has no system clipboard either, it writes the image to a temporary file; served in phase 1 over exec-fs put_temp. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host has no system clipboard either, it writes the image to a temporary file; served in phase 1 over exec-fs put_temp. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host has no system clipboard either, it writes the image to a temporary file; served in phase 1 over exec-fs put_temp. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host has no system clipboard either, it writes the image to a temporary file; served in phase 1 over exec-fs put_temp.",
       "decidedBy": "M12"
     },
     {
@@ -1799,7 +1799,7 @@
       "name": "github.addPRReviewCommentReply",
       "state": "not-offered",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it replies in a review thread by the numeric comment id the phone holds, and rca's pr.reply needs the thread's node id and the pull request number, which would have to be recovered by re-reading every thread and guessing the new comment back from its URL.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it replies in a review thread by the numeric comment id the phone holds, and rca's pr.reply needs the thread's node id and the pull request number, which would have to be recovered by re-reading every thread and guessing the new comment back from its URL. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host replies over GitHub's REST replies route by the numeric comment id, which hosted_pr_reply can take as comment_id; served in phase 1.",
       "decidedBy": "M12"
     },
     {
@@ -2175,7 +2175,7 @@
       "name": "github.resolveReviewThread",
       "state": "not-offered",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the phone sends only the thread id, and rca's pr.resolveThread needs the pull request number too, which this host would have to keep an index of from earlier reads and otherwise guess by scanning open pull requests.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the phone sends only the thread id, and rca's pr.resolveThread needs the pull request number too, which this host would have to keep an index of from earlier reads and otherwise guess by scanning open pull requests. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: GitHub's resolveReviewThread mutation takes only the thread's node id, so the number is not needed on GitHub; served in phase 1.",
       "decidedBy": "M12"
     },
     {
@@ -2306,7 +2306,7 @@
       "name": "gitlab.listWorkItems",
       "state": "not-offered",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: same issue-family reason as github.listWorkItems. The provider account for this row waits for accounts (#84), so there is nothing to serve it against yet. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the provider-account premise is stale: glab sign-in is already in hosted.auth; the issue-family reason stands until hosted.issue lands in phase 2.",
       "decidedBy": "M12"
     },
     {
@@ -2408,7 +2408,7 @@
       "name": "hostedReview.create",
       "state": "not-offered",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it opens a pull or merge request after a preflight of the branch, its upstream, its base and the working tree rebuilt from several reads, and a creation that skips one of those checks could push a review the host would have refused; rca's pr.create takes the head and title only.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it opens a pull or merge request after a preflight of the branch, its upstream, its base and the working tree rebuilt from several reads, and a creation that skips one of those checks could push a review the host would have refused; rca's pr.create takes the head and title only. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca's pr.create already takes body, base, draft, labels and reviewers; served in phase 1.",
       "decidedBy": "M12"
     },
     {
@@ -2433,7 +2433,7 @@
       "name": "hostedReview.getCreationEligibility",
       "state": "not-offered",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it tells the phone whether a review can be created for the branch, and review creation is not offered (hostedReview.create), so an eligibility answer would promise an action this host refuses.",
+      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it tells the phone whether a review can be created for the branch, and review creation is not offered (hostedReview.create), so an eligibility answer would promise an action this host refuses. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the branch preflight is pr.list/pr.view over the existing hosted group; served in phase 1.",
       "decidedBy": "M12"
     },
     {
@@ -2922,7 +2922,7 @@
       "name": "preflight.check",
       "state": "not-offered",
       "milestone": "M7",
-      "reason": "owner-confirmed (decision 7): it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md)",
+      "reason": "owner-confirmed (decision 7): it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is partly stale: gh and glab sign-in already come from sourceControl.discover and cli_detect can report git; served in phase 1.",
       "decidedBy": "M7"
     },
     {
