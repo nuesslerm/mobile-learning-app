@@ -50,7 +50,7 @@ const FORWARDED: [&str; 4] = ["offset", "limit", "depth", "base"];
 /// The params copied unchanged to the executor for `method`, beside its path.
 fn forwarded_keys(method: Method) -> &'static [&'static str] {
     match method {
-        edit::FILE_READ_CHUNK => &["offset", "length"],
+        edit::FILE_READ_CHUNK => &["offset", "length", "scope"],
         edit::FILE_WRITE => &["content", "create_dirs"],
         edit::FILE_CREATE => &["content", "create_dirs"],
         edit::FILE_STAT => &[],
@@ -230,10 +230,10 @@ mod tests {
     #[test]
     fn given_the_params_of_the_edit_methods_when_read_then_each_requires_what_it_cannot_do_without_and_forwards_only_its_own_keys() {
         // Given params with every key any method forwards, and a stray one
-        let all = json!({"workspace": "w", "path": "p", "content": "c", "create_dirs": true, "offset": 1, "length": 2, "limit": 3, "query": "q", "base": "b", "show_hidden": true, "depth": 4, "other": 5});
+        let all = json!({"workspace": "w", "path": "p", "content": "c", "create_dirs": true, "offset": 1, "length": 2, "limit": 3, "query": "q", "base": "b", "show_hidden": true, "depth": 4, "scope": "claudeProjects", "other": 5});
         // When each method's params are read, Then the executor is given its own keys and path only
         let args = |method| FileParams::parse(method, &all).unwrap().executor_args();
-        assert_eq!(args(edit::FILE_READ_CHUNK), json!({"path": "p", "offset": 1, "length": 2}));
+        assert_eq!(args(edit::FILE_READ_CHUNK), json!({"path": "p", "offset": 1, "length": 2, "scope": "claudeProjects"}));
         assert_eq!(args(edit::FILE_WRITE), json!({"path": "p", "content": "c", "create_dirs": true}));
         assert_eq!(args(edit::FILE_CREATE), json!({"path": "p", "content": "c", "create_dirs": true}));
         assert_eq!(args(edit::FILE_STAT), json!({"path": "p"}));

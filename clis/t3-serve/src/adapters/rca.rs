@@ -316,6 +316,7 @@ impl RcaAgent {
                 let (workspace, path) = at(client, root, path)?;
                 (edit::FILE_BROWSE, json!({"workspace": workspace, "path": path, "show_hidden": show_hidden}))
             }
+            Op::WorkflowScript { path, length } => (edit::FILE_READ_CHUNK, json!({"workspace": self.workspace, "path": path, "length": length, "scope": "claudeProjects"})),
             Op::FileMkdir { path, parents } => (edit::FILE_MKDIR, json!({"workspace": self.workspace, "path": path, "parents": parents})),
             Op::GitInit { path, initial_branch, files, message } => {
                 let mut params = json!({"workspace": self.workspace, "path": path});
@@ -503,7 +504,7 @@ fn request(op: &Op) -> Result<(Method, Value), AgentError> {
         Op::WorkspaceRemove { workspace } => (WORKSPACE_REMOVE, json!({"workspace": workspace})),
         Op::StateGet { scope, key } => (agent_api_state::GET, json!({"scope": scope, "key": key})),
         Op::StateSet { scope, key, value } => (agent_api_state::SET, json!({"scope": scope, "key": key, "value": value})),
-        Op::FileStat { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
+        Op::FileStat { .. } | Op::WorkflowScript { .. } | Op::FileWrite { .. } | Op::FileBrowse { .. } | Op::FileMkdir { .. } | Op::GitInit { .. } | Op::FileSearch { .. } | Op::TurnDiff { .. } | Op::ThreadDiff { .. } | Op::WorktreeCreate { .. } | Op::WorktreeSetupCancel { .. } | Op::TerminalOpen { .. } | Op::TerminalWrite { .. } | Op::TerminalResize { .. } | Op::TerminalClear { .. } | Op::TerminalClose { .. } | Op::GitStatus { .. } | Op::GitUpstream { .. } | Op::GitDiff { .. } | Op::GitRefs { .. } | Op::GitHistory { .. } | Op::GitCheckout { .. } | Op::GitCreateRef { .. } | Op::GitFetch { .. } | Op::GitCompare { .. } | Op::WorktreeList { .. } | Op::GitPull { .. } | Op::GitBlob { .. } | Op::GitStage { .. } | Op::GitCommit { .. } | Op::GitPush { .. } | Op::Hosted { .. } | Op::Schedule { root: Some(_), .. } => {
             return Err(AgentError::Failed(format!("{} is placed in a workspace before it is sent", op.method())));
         }
     })
@@ -521,7 +522,7 @@ fn is_hosted(op: &Op) -> bool {
 /// The requests about directories and workspaces whose refusals keep the codes the app tells apart (`ALREADY_EXISTS`, `PATH_OUTSIDE_ROOT`,
 /// `WORKSPACE_EXISTS`).
 fn keeps_code(op: &Op) -> bool {
-    matches!(op, Op::FileMkdir { .. } | Op::FileBrowse { .. } | Op::WorkspaceCreate { .. } | Op::WorkspaceRemove { .. })
+    matches!(op, Op::FileMkdir { .. } | Op::WorkflowScript { .. } | Op::FileBrowse { .. } | Op::WorkspaceCreate { .. } | Op::WorkspaceRemove { .. })
 }
 
 fn strip_nulls(mut value: Value) -> Value {

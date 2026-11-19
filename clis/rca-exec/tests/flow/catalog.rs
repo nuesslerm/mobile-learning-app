@@ -186,3 +186,26 @@ fn given_the_scripted_clis_on_the_executors_path_when_detected_then_each_reports
     assert_eq!((found(&result, "claude")["version"].clone(), found(&result, "codex")["version"].clone(), found(&result, "opencode")["installed"].clone()), (json!("2.1.7 (Claude Code)"), json!("codex-cli 0.9.1"), json!(false)));
     assert!(cli.invocations("claude").is_empty() && cli.invocations("codex").is_empty());
 }
+
+#[test]
+fn given_a_claude_projects_directory_when_a_file_is_read_in_its_scope_then_only_files_below_it_are_read_and_a_link_out_is_refused() {
+    // Given a home whose .claude/projects holds a script and a link to a file outside it, and a file outside
+    let ((_r, root), (_h, home), (_o, outside)) = (dir(), dir(), dir());
+    let projects = home.join(".claude/projects/p");
+    std::fs::create_dir_all(&projects).unwrap();
+    std::fs::write(projects.join("flow.js"), "export const a = 1").unwrap();
+    std::fs::write(outside.join("secret.js"), "x").unwrap();
+    symlink(outside.join("secret.js"), projects.join("linked.js")).unwrap();
+    let ex = LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home));
+    let read = |path: &std::path::Path| call(&ex, "read_chunk", json!({"path": path.to_str().unwrap(), "scope": "claudeProjects"}));
+    // When the script is read, a link out, a file outside, and the directory itself
+    let script = read(&projects.join("flow.js")).unwrap();
+    let linked = read(&projects.join("linked.js")).unwrap_err();
+    let elsewhere = read(&outside.join("secret.js")).unwrap_err();
+    let dir_read = read(&projects).unwrap_err();
+    // Then the script is its bytes, the link and the file outside are outside the root, and a directory is no file
+    assert_eq!((script["bytes"].clone(), script["eof"].clone()), (json!(18), json!(true)));
+    assert_eq!((linked.code, elsewhere.code, dir_read.code), (Code::PathOutsideRoot, Code::PathOutsideRoot, Code::NotAFile));
+    // And without the scope the same absolute path is outside the workspace
+    assert_eq!(call(&ex, "read_chunk", json!({"path": projects.join("flow.js").to_str().unwrap()})).unwrap_err().code, Code::PathOutsideRoot);
+}

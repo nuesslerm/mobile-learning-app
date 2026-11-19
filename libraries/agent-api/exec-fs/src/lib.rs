@@ -62,7 +62,7 @@ pub const ACTIONS: &[Action] = &[
     Action {
         name: READ_CHUNK,
         about: "Read a byte range of a file in the workspace, base64 encoded (binary safe).",
-        properties: &[PATH, Property { name: "offset", kind: "integer", about: "First byte to return (default 0)" }, Property { name: "length", kind: "integer", about: "Number of bytes to return (at most 1 MiB, the default)" }],
+        properties: &[PATH, Property { name: "offset", kind: "integer", about: "First byte to return (default 0)" }, Property { name: "length", kind: "integer", about: "Number of bytes to return (at most 1 MiB, the default)" }, Property { name: "scope", kind: "string", about: "`claudeProjects` reads an absolute path below the executor's own ~/.claude/projects instead of the workspace" }],
         required: &["path"],
     },
     Action {
@@ -211,11 +211,20 @@ pub struct ReadChunk {
     pub path: String,
     pub offset: u64,
     pub length: u64,
+    /// `Some(CLAUDE_PROJECTS)` reads below the executor's home `.claude/projects`, not the workspace.
+    pub scope: Option<String>,
 }
+
+/// The `scope` of a `read_chunk` that reads the Claude CLI's own projects directory (workflow scripts and logs).
+pub const CLAUDE_PROJECTS: &str = "claudeProjects";
 
 impl ReadChunk {
     pub fn parse(args: &Value) -> ExecResult<ReadChunk> {
-        Ok(ReadChunk { path: string(args, "path")?, offset: opt_uint(args, "offset")?.unwrap_or(0), length: opt_uint(args, "length")?.unwrap_or(CHUNK_MAX).min(CHUNK_MAX) })
+        let scope = opt_string(args, "scope")?;
+        if scope.as_deref().is_some_and(|s| s != CLAUDE_PROJECTS) {
+            return Err(ExecError::invalid_args(format!("`scope` must be `{CLAUDE_PROJECTS}`")));
+        }
+        Ok(ReadChunk { path: string(args, "path")?, offset: opt_uint(args, "offset")?.unwrap_or(0), length: opt_uint(args, "length")?.unwrap_or(CHUNK_MAX).min(CHUNK_MAX), scope })
     }
 }
 

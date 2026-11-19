@@ -138,6 +138,22 @@ impl LocalExecutor {
         &self.root
     }
 
+    /// A file below the executor's own `~/.claude/projects` (a link is followed and its target must stay below it), whatever the workspace.
+    fn claude_projects_file(&self, path: &str) -> ExecResult<PathBuf> {
+        if !Path::new(path).is_absolute() {
+            return Err(ExecError::invalid_args(format!("{path} must be an absolute path")));
+        }
+        let root = self.skill_home.as_ref().and_then(|h| fs::canonicalize(h.join(".claude").join("projects")).ok()).ok_or_else(|| ExecError::new(Code::NotFound, "the Claude projects root is unavailable"))?;
+        let resolved = fs::canonicalize(path).map_err(|e| io_at(path, e))?;
+        if !resolved.starts_with(&root) {
+            return Err(outside(path));
+        }
+        if !fs::metadata(&resolved).map_err(|e| io_at(path, e))?.is_file() {
+            return Err(ExecError::new(Code::NotAFile, format!("{path} is not a regular file")));
+        }
+        Ok(resolved)
+    }
+
     fn resolve(&self, path: &str) -> ExecResult<PathBuf> {
         let given = Path::new(path);
         let (jail, rel) = if given.is_absolute() {
@@ -421,7 +437,7 @@ impl ToolExecutor for LocalExecutor {
     }
 
     fn read_chunk(&self, args: &ReadChunk) -> ExecResult<ChunkResult> {
-        let path = self.resolve(&args.path)?;
+        let path = if args.scope.is_some() { self.claude_projects_file(&args.path)? } else { self.resolve(&args.path)? };
         if path.is_dir() {
             return Err(ExecError::new(Code::NotAFile, format!("{} is a directory", args.path)));
         }

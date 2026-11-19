@@ -280,6 +280,8 @@ pub enum Op {
     /// A directory made in the executor's tree (`files.edit`): `path` is under the executor's root, relative or absolute. `parents` makes the
     /// missing ones and accepts a directory that exists; without it the name is claimed and a taken one is refused (`ALREADY_EXISTS`).
     FileMkdir { path: String, parents: bool },
+    /// A Claude workflow script, read at the executor below its `~/.claude/projects` (at most `length` bytes).
+    WorkflowScript { path: String, length: u64 },
     /// A repository made in the directory `path` below the executor's root (`git` group), with `files` (path, content) written as new files and
     /// committed under `message` when there are any. The answer says why a commit did not happen (`commit_error`).
     GitInit { path: String, initial_branch: Option<String>, files: Vec<(String, String)>, message: Option<String> },
@@ -381,6 +383,7 @@ impl Op {
             Op::FileWrite { .. } => "file.write",
             Op::FileBrowse { .. } => "file.browse",
             Op::FileMkdir { .. } => "file.mkdir",
+            Op::WorkflowScript { .. } => "file.readChunk",
             Op::GitInit { .. } => "git.init",
             Op::WorkspaceCreate { .. } => "workspace.create",
             Op::WorkspaceRemove { .. } => "workspace.remove",

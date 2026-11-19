@@ -661,6 +661,342 @@
         "complete": true,
         "tests": 13,
         "passed": 8
+      },
+      {
+        "suite": "t3-serve-integration",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": false,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 17,
+        "passed": 17
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 1,
+        "passed": 0
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 3,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 0
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 10,
+        "passed": 10
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 832,
+        "passed": 587
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 42,
+        "passed": 37
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 38,
+        "passed": 27
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 39,
+        "passed": 32
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 88,
+        "passed": 39
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 43,
+        "passed": 37
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 6,
+        "passed": 3
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 228,
+        "passed": 217
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 15,
+        "passed": 15
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 16,
+        "passed": 16
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 14,
+        "passed": 14
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 20,
+        "passed": 8
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 41,
+        "passed": 41
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 34,
+        "passed": 34
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 1,
+        "passed": 1
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 77,
+        "passed": 70
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 5,
+        "passed": 5
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 14,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 2,
+        "passed": 2
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 77,
+        "passed": 60
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 5,
+        "passed": 5
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 6,
+        "passed": 6
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 4,
+        "passed": 4
+      },
+      {
+        "suite": "wf-mimic-t3-recorded",
+        "sha": "6a2566ed556bf36c9d48b9a63a4e6eb19d2ad281",
+        "complete": true,
+        "tests": 13,
+        "passed": 8
       }
     ]
   },
@@ -1396,6 +1732,15 @@
     "rpc:orchestration.getTurnItem": {
       "suite": "wf-mimic-t3-recorded",
       "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getTurnItem-boundary-full",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
+      "cassette": "recorded"
+    },
+    "rpc:orchestration.getWorkflowScript": {
+      "suite": "wf-mimic-t3-recorded",
+      "test": "t3-v0.1.9-crawl::t3-rpc-orchestration.getWorkflowScript-invalid-drop-threadId",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

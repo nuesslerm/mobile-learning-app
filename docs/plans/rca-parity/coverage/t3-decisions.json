@@ -290,9 +290,7 @@
       "decidedBy": "M12"
     },
     "rpc:orchestration.getWorkflowScript": {
-      "state": "not-offered",
-      "reason": "rca starts no Claude workflow scripts of its own, so a thread has none to show; an owner who wants it gets an executor action that reads one file by absolute path under the Claude projects root, with .. and links refused and 1 MiB truncation, outside the workspace confinement. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:pullRequests.invalidate": {
       "oracle": "mimic"

@@ -39,6 +39,27 @@
       "name": "refuses an offset that is not a number",
       "request": {"id": "c7", "tool": "read_chunk", "args": {"path": "data.bin", "offset": "two"}},
       "response": {"id": "c7", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`offset` must be a non-negative integer"}}
+    },
+    {
+      "name": "refuses a scope it does not know",
+      "request": {"id": "c8", "tool": "read_chunk", "args": {"path": "/a.js", "scope": "home"}},
+      "response": {"id": "c8", "ok": false, "error": {"code": "INVALID_ARGS", "message": "`scope` must be `claudeProjects`"}}
+    },
+    {
+      "name": "refuses a relative path in the Claude projects scope",
+      "request": {"id": "c9", "tool": "read_chunk", "args": {"path": "a.js", "scope": "claudeProjects"}},
+      "response": {"id": "c9", "ok": false, "error": {"code": "INVALID_ARGS", "message": "a.js must be an absolute path"}}
+    },
+    {
+      "name": "says the Claude projects root is unavailable when the home has none",
+      "request": {"id": "c10", "tool": "read_chunk", "args": {"path": "/a.js", "scope": "claudeProjects"}},
+      "response": {"id": "c10", "ok": false, "error": {"code": "NOT_FOUND", "message": "the Claude projects root is unavailable"}}
+    },
+    {
+      "name": "refuses a file outside the Claude projects root",
+      "setup": {"home": {".claude/projects/p/a.js": "x"}},
+      "request": {"id": "c11", "tool": "read_chunk", "args": {"path": "/etc/hostname", "scope": "claudeProjects"}},
+      "response": {"id": "c11", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "/etc/hostname is outside the root"}}
     }
   ]
 }

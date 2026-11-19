@@ -65,6 +65,28 @@
         "id": 3
       },
       "actions": []
+    },
+    {
+      "name": "relays the scope that reads the executor's Claude projects directory, which an executor with no such directory refuses",
+      "request": {
+        "params": {
+          "workspace": "w1",
+          "path": "/home/a/.claude/projects/p/flow.js",
+          "scope": "claudeProjects"
+        },
+        "id": 4,
+        "method": "file.readChunk"
+      },
+      "response": {
+        "error": {
+          "code": "NOT_FOUND",
+          "message": "the Claude projects root is unavailable"
+        },
+        "id": 4
+      },
+      "actions": [
+        "read_chunk"
+      ]
     }
   ]
 }

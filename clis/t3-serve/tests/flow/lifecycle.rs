@@ -363,18 +363,41 @@ fn a_force_stop_and_a_workflow_stop_name_the_turn_of_the_run_and_a_workflow_that
 }
 
 #[test]
-fn a_workflow_script_is_never_read_and_a_secret_answer_finds_no_request_and_is_sent_nowhere() {
-    // Given a thread
+fn a_workflow_script_is_read_below_the_executors_claude_projects_and_every_refusal_names_its_reason() {
+    // Given a thread, and an executor that reads one script, finds another outside its projects root, and has no root for a third
     let (h, mut rpc) = started();
-    // When scripts of each kind of path are asked for, and secrets are answered, one malformed
-    let absolute = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/wf.js"}));
+    *h.agent.responder.lock().unwrap() = Some(Box::new(|op| match op {
+        Op::WorkflowScript { path, .. } if path.ends_with("/wf.js") => Some(Ok(json!({"data": "ZXhwb3J0IGNvbnN0IGEgPSAx", "offset": 0, "bytes": 18, "total_bytes": 18, "eof": true}))),
+        Op::WorkflowScript { path, .. } if path.ends_with("/long.js") => Some(Ok(json!({"data": "eA==", "offset": 0, "bytes": 1, "total_bytes": 9, "eof": false}))),
+        Op::WorkflowScript { path, .. } if path.starts_with("/etc") => Some(Err(AgentError::Refused { code: "PATH_OUTSIDE_ROOT".into(), message: format!("{path} is outside the root") })),
+        Op::WorkflowScript { path, .. } if path.ends_with("/none.js") => Some(Err(AgentError::Refused { code: "NOT_FOUND".into(), message: "the Claude projects root is unavailable".into() })),
+        Op::WorkflowScript { .. } => Some(Err(AgentError::Refused { code: "NOT_FOUND".into(), message: "missing does not exist".into() })),
+        _ => None,
+    }));
+    // When scripts of each kind of path are asked for
+    let read = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/wf.js"}));
+    let cut = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/long.js"}));
+    let outside = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/etc/passwd.js"}));
+    let no_root = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/none.js"}));
+    let missing = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/gone.js"}));
     let relative = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "wf.js"}));
     let wrong = rpc.call("orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/etc/passwd"}));
+    // Then the script is its text, a cut one says so, each refusal has its reason, and a bad path never reached the executor
+    assert_eq!(success(&read), &json!({"scriptPath": "/home/u/.claude/projects/x/wf.js", "contents": "export const a = 1", "truncated": false}));
+    assert_eq!(success(&cut)["truncated"], json!(true));
+    assert_eq!([&outside, &no_root, &missing, &relative, &wrong].map(|e| failure(e)["reason"].as_str().unwrap().to_string()), ["outside-root", "root-unavailable", "not-found", "invalid-path", "invalid-path"]);
+    assert_eq!(ops(&h).len(), 5);
+}
+
+#[test]
+fn a_secret_answer_finds_no_request_and_is_sent_nowhere() {
+    // Given a thread
+    let (h, mut rpc) = started();
+    // When secrets are answered, one malformed
     let saved = rpc.call("secrets.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "save", "secret": "hunter2"}}));
     let declined = rpc.call("secrets.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "decline"}}));
     let malformed = rpc.call("secrets.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "save"}}));
-    // Then a .js path has no root, anything else is an invalid path, the secret has no request, a malformed answer is a defect, and nothing reached the agent API
-    assert_eq!([&absolute, &relative, &wrong].map(|e| failure(e)["reason"].as_str().unwrap().to_string()), ["root-unavailable", "invalid-path", "invalid-path"]);
+    // Then the secret has no request, a malformed answer is a defect, and nothing reached the agent API
     assert_eq!([&saved, &declined].map(|e| failure(e)["reason"].as_str().unwrap().to_string()), ["not_found", "not_found"]);
     assert!(malformed["cause"][0]["defect"].is_string());
     assert!(ops(&h).is_empty());

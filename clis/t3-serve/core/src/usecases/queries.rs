@@ -26,6 +26,9 @@ pub(super) fn field<'a>(payload: &'a Value, key: &str) -> Result<&'a str, QueryF
     payload.get(key).and_then(Value::as_str).filter(|s| !s.is_empty()).ok_or_else(|| QueryFailure::Defect(format!("Missing key\n  at [\"{key}\"]")))
 }
 
+/// The most bytes of a workflow script `orchestration.getWorkflowScript` returns.
+const WORKFLOW_SCRIPT_CAP: u64 = 256 * 1024;
+
 fn failed(e: AgentError) -> QueryFailure {
     QueryFailure::Error(wire::host_error(&e.message()))
 }
@@ -203,13 +206,33 @@ impl Service {
         self.agent().run(&Op::WorkflowStop { thread, turn, workflow: Some(workflow.to_string()) }).map(drop).map_err(failed)
     }
 
-    /// `orchestration.getWorkflowScript`: scripts live in the CLI's own projects directory, which no agent API method reaches.
+    /// `orchestration.getWorkflowScript`: a script below the executor's `~/.claude/projects`, at most 256 KiB of it.
     pub fn workflow_script(&self, payload: &Value) -> Result<Value, QueryFailure> {
         let (asked, path) = (field(payload, "threadId")?, field(payload, "scriptPath")?);
-        let (reason, message) = if path.starts_with('/') && path.ends_with(".js") { ("root-unavailable", "Script root unavailable.") } else { ("invalid-path", "Workflow files must be absolute paths with the expected extension.") };
-        let thread = if reason == "invalid-path" { asked.to_string() } else { self.known_thread(payload)? };
-        self.log("workflow.script.refused", &[("thread", thread), ("reason", reason.to_string())]);
-        Err(QueryFailure::Error(json!({"_tag": "OrchestrationGetWorkflowScriptError", "cause": {"message": message, "name": "OrchestrationWorkflowFileError"}, "reason": reason, "scriptPath": path})))
+        let refused = |reason: &str, message: &str| QueryFailure::Error(json!({"_tag": "OrchestrationGetWorkflowScriptError", "cause": {"message": message, "name": "OrchestrationWorkflowFileError"}, "reason": reason, "scriptPath": path}));
+        if !(path.starts_with('/') && path.ends_with(".js")) {
+            self.log("workflow.script.refused", &[("thread", asked.to_string()), ("reason", "invalid-path".to_string())]);
+            return Err(refused("invalid-path", "Workflow files must be absolute paths with the expected extension."));
+        }
+        self.known_thread(payload)?;
+        match self.agent().run(&Op::WorkflowScript { path: path.to_string(), length: WORKFLOW_SCRIPT_CAP }) {
+            Ok(read) => {
+                use base64::Engine;
+                let bytes = base64::engine::general_purpose::STANDARD.decode(read["data"].as_str().unwrap_or_default()).unwrap_or_default();
+                Ok(json!({"scriptPath": path, "contents": String::from_utf8_lossy(&bytes), "truncated": read["eof"] != json!(true)}))
+            }
+            Err(e) => {
+                let (reason, message) = match &e {
+                    AgentError::Refused { code, message } if code == "NOT_FOUND" && message.contains("root is unavailable") => ("root-unavailable", "Workflow file root unavailable."),
+                    AgentError::Refused { code, .. } if code == "NOT_FOUND" => ("not-found", "Workflow file not found."),
+                    AgentError::Refused { code, .. } if code == "PATH_OUTSIDE_ROOT" => ("outside-root", "Path is outside the workflow files root."),
+                    AgentError::Refused { code, .. } if code == "NOT_A_FILE" => ("not-regular-file", "Workflow file is not a regular file."),
+                    _ => ("read-failed", "Workflow file read failed."),
+                };
+                self.log("workflow.script.refused", &[("thread", asked.to_string()), ("reason", reason.to_string())]);
+                Err(refused(reason, message))
+            }
+        }
     }
 
     /// `secrets.answerRequest`: the agent API never asks for a secret, so no request exists to answer, and what was sent goes nowhere.
