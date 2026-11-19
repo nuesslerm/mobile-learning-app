@@ -27,6 +27,8 @@ enum Kind {
     Shell,
     Thread(String),
     Idle,
+    /// The pull request refresh stream, with the last epoch it has reached (a new follower starts at the current one: the recorded host sends it no replay).
+    Refreshes(u64),
     Followed { _stop: StopSetup },
 }
 
@@ -101,6 +103,15 @@ impl Connection {
                     _ => {}
                 }
                 s.floor = seq;
+            }
+        }
+        let epoch = self.svc.pr_refresh_epoch();
+        for s in self.streams.iter_mut() {
+            if let Kind::Refreshes(seen) = &mut s.kind {
+                if epoch > *seen {
+                    *seen = epoch;
+                    s.pacer.push(json!(epoch));
+                }
             }
         }
         let snapshots: Vec<(Value, Value)> = self.setups.try_iter().collect();
@@ -472,7 +483,10 @@ impl Connection {
                 };
                 vec![self.answered(&id, tag, answer.map(|()| None))]
             }
-            "pullRequests.invalidate" => vec![rpc::exit_success(&id, Some(Value::Null))],
+            "pullRequests.invalidate" => {
+                self.svc.pr_invalidate(payload);
+                vec![rpc::exit_success(&id, Some(Value::Null))]
+            }
             "pullRequests.stack" => vec![self.answered(&id, tag, self.svc.pr_stack(payload).map(Some))],
             "pullRequests.reviewGuide" => vec![self.answered(&id, tag, self.svc.pr_review_guide(payload).map(Some))],
             "pullRequests.generateReviewGuide" => vec![self.answered(&id, tag, self.svc.pr_generate_review_guide(payload).map(Some))],
@@ -480,7 +494,8 @@ impl Connection {
             "git.preparePullRequestThread" => vec![self.answered(&id, tag, self.svc.git_prepare_pull_request_thread(payload).map(Some))],
             "server.discoverSourceControl" => vec![rpc::exit_success(&id, Some(self.svc.discover_source_control()))],
             "pullRequests.subscribeRefreshes" => {
-                self.open(id, Kind::Idle, 0, vec![]);
+                let epoch = self.svc.pr_refresh_epoch();
+                self.open(id, Kind::Refreshes(epoch), 0, vec![]);
                 vec![]
             }
             "server.getStorageCleanupReport" => {

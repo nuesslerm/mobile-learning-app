@@ -35,9 +35,19 @@ pub struct Held {
     pub(super) projects: Mutex<()>,
     /// The review guides being written or that failed, by pull request (`Running` and `Failed` as T3's run union has them).
     pub(super) guide_runs: Mutex<HashMap<String, Value>>,
+    /// The pull request refresh epoch: an invalidate that tells readers bumps it, and the refresh stream sends each new value.
+    refreshes: std::sync::atomic::AtomicU64,
 }
 
 impl Held {
+    pub(super) fn bump_refresh(&self) {
+        self.refreshes.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    pub(crate) fn refresh_epoch(&self) -> u64 {
+        self.refreshes.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
     fn session(&self, instance: &str) -> Option<(String, String)> {
         self.sessions.lock().unwrap_or_else(|e| e.into_inner()).get(instance).cloned()
     }

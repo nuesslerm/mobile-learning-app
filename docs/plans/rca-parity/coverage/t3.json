@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 222,
-    "served": 175,
+    "served": 178,
     "pending": 0,
-    "notOffered": 47,
+    "notOffered": 44,
     "excluded": 0,
     "flagged": 0,
     "answeredByMapper": 0,
@@ -2395,10 +2395,17 @@
       "kind": "rpc",
       "name": "pullRequests.invalidate",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.invalidate-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:pullRequests.labelCandidates",
@@ -2509,10 +2516,17 @@
       "kind": "rpc",
       "name": "pullRequests.reportState",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.reportState-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:pullRequests.requestReviewers",
@@ -2724,10 +2738,17 @@
       "name": "pullRequests.subscribeRefreshes",
       "subscription": true,
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-t3-recorded",
+        "test": "t3-v0.1.9-crawl::t3-rpc-pullRequests.subscribeRefreshes-invalid-no-payload",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:pullRequests.summary",

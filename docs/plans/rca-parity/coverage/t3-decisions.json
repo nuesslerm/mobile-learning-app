@@ -295,19 +295,13 @@
       "decidedBy": "M12"
     },
     "rpc:pullRequests.invalidate": {
-      "state": "not-offered",
-      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:pullRequests.reportState": {
-      "state": "not-offered",
-      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:pullRequests.subscribeRefreshes": {
-      "state": "not-offered",
-      "reason": "t3 serve keeps no pull request cache and no push source (the executor's CLIs are polled, not pushed), so invalidate, reportState and the refresh stream have nothing to act on. Owner-confirmed (decision 7).",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:server.prepareTriage": {
       "state": "not-offered",

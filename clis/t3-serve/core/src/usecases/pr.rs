@@ -724,6 +724,18 @@ impl Service {
         self.project("reportState", &payload["reference"]).map(drop)
     }
 
+    /// `pullRequests.invalidate`: nothing is cached, so it only tells the readers (a files-viewed-only one tells none, as the host's does not).
+    pub fn pr_invalidate(&self, payload: &Value) {
+        if payload["filesViewedOnly"].as_bool() != Some(true) {
+            self.2.bump_refresh();
+        }
+    }
+
+    /// The refresh epoch the stream of `pullRequests.subscribeRefreshes` has reached; 0 until a reader was told.
+    pub fn pr_refresh_epoch(&self) -> u64 {
+        self.2.refresh_epoch()
+    }
+
     pub fn pr_set_files_viewed(&self, payload: &Value) -> Result<(), QueryFailure> {
         let mut marks = self.viewed_files(payload)?;
         for press in payload["files"].as_array().into_iter().flatten() {

@@ -2,6 +2,7 @@
 //! the thread links. The double answers the neutral shape the executor's `hosted_*` actions produce (`rca-exec` `hosted::shape`); what a request
 //! becomes (the `Op::Hosted` the agent API is asked, its method and params) and what the phone is told are both asserted.
 use super::support::*;
+use std::time::Duration;
 use std::sync::Mutex;
 use t3_core::ports::{AgentError, AgentEventKind, Finish, Op};
 
@@ -723,4 +724,32 @@ fn a_review_guide_is_refused_while_guides_are_off_or_no_model_is_set_a_second_as
     rpc.call("pullRequests.generateReviewGuide", pr_ref(12));
     let nonsense = finished_guide(&mut rpc);
     assert_eq!((nonsense["run"]["_tag"].clone(), nonsense["run"]["detail"].clone()), (json!("Failed"), json!("The model's answer holds no JSON object.")));
+}
+
+#[test]
+fn an_invalidate_that_tells_readers_sends_the_refresh_stream_a_new_epoch_and_a_files_viewed_only_one_sends_none() {
+    // Given a client following the pull request refresh stream, which has sent nothing yet
+    let h = Harness::start();
+    let mut rpc = connect(&h);
+    let id = rpc.send("pullRequests.subscribeRefreshes", json!({}));
+    assert!(rpc.try_recv(Duration::from_millis(300)).is_none());
+
+    // When a pull request is invalidated for its files viewed only, and then every pull request is invalidated twice
+    let quiet = rpc.call("pullRequests.invalidate", json!({"filesViewedOnly": true}));
+    let silent = rpc.try_recv(Duration::from_millis(300));
+    let first = rpc.call("pullRequests.invalidate", json!({}));
+    let one = rpc.chunk(&id);
+    let second = rpc.call("pullRequests.invalidate", json!({}));
+    let two = rpc.chunk(&id);
+
+    // Then each invalidate answers null, the files-viewed-only one sends the stream nothing, and the others send epochs 1 and 2
+    assert_eq!((success(&quiet), success(&first), success(&second)), (&Value::Null, &Value::Null, &Value::Null));
+    assert!(silent.is_none());
+    assert_eq!((one, two), (vec![json!(1)], vec![json!(2)]));
+
+    // And a client that follows later is sent nothing until the next invalidate, which is epoch 3
+    let late = rpc.send("pullRequests.subscribeRefreshes", json!({}));
+    assert!(rpc.try_recv(Duration::from_millis(300)).is_none());
+    rpc.call("pullRequests.invalidate", json!({}));
+    assert_eq!((rpc.chunk(&id), rpc.chunk(&late)), (vec![json!(3)], vec![json!(3)]));
 }
