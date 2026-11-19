@@ -21,6 +21,25 @@ runs:
         mkdir -p "$(dirname "$STATS_FILE")"
         # the runner kills what still carries the step's tracking id when the step ends, which setsid does not clear
         env -u RUNNER_TRACKING_ID setsid nohup bash "${{ github.action_path }}/../hosted-setup/sampler.sh" "$STATS_FILE" > /dev/null 2>&1 &
+    # a job that went red says so at once: the failed step as a Better Stack log line (ci.job.failed) and a refreshed run comment, while the rest of the
+    # run still goes; best effort, never a second failure (the Actions API shows a step's result at once, a job's log only when it ends)
+    - name: Report the failure now
+      if: ${{ inputs.mode == 'upload' && failure() }}
+      shell: bash
+      continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        GITHUB_REPOSITORY: ${{ github.repository }}
+        GITHUB_RUN_ID: ${{ github.run_id }}
+        GITHUB_SHA: ${{ github.sha }}
+      run: |
+        command -v wf > /dev/null || exit 0
+        out=$(timeout 60 wf ci failed 2>/dev/null) || true
+        echo "$out"
+        step=$(jq -r '.failed_steps[0] // ""' <<<"$out" 2>/dev/null)
+        job=$(jq -r '.job // ""' <<<"$out" 2>/dev/null)
+        timeout 30 wf log emit --service wf-ci --level error --message ci.job.failed --attr "run=$GITHUB_RUN_ID" --attr "job=${job:-${{ inputs.job }}}" --attr "step=$step" --attr "sha=$GITHUB_SHA" > /dev/null 2>&1 || true
+        timeout 60 wf ci live > /dev/null 2>&1 || true
     - name: Upload the runner samples
       if: ${{ inputs.mode == 'upload' }}
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
