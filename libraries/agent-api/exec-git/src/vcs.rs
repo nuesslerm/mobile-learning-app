@@ -551,6 +551,9 @@ pub struct UpstreamStatus {
     pub behind: u32,
     /// The names of the repository's configured remotes.
     pub remotes: Vec<String>,
+    /// The remote-tracking branch `refs/remotes/origin/HEAD` points at, e.g. `origin/main`; none when git never recorded it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub origin_head: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

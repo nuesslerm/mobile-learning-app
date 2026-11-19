@@ -405,7 +405,8 @@ impl Repo {
     pub fn upstream(&self) -> ExecResult<UpstreamStatus> {
         let branch = self.current_branch()?;
         let remotes = self.remotes()?;
-        let mut status = UpstreamStatus { branch: branch.clone(), has_upstream: false, upstream: None, remote: None, ahead: 0, behind: 0, remotes };
+        let origin_head = self.query(&["symbolic-ref", "-q", "refs/remotes/origin/HEAD"])?.map(|r| r.strip_prefix("refs/remotes/").unwrap_or(&r).to_string());
+        let mut status = UpstreamStatus { branch: branch.clone(), has_upstream: false, upstream: None, remote: None, ahead: 0, behind: 0, remotes, origin_head };
         let Some(branch) = branch else { return Ok(status) };
         let heads = format!("refs/heads/{branch}");
         let line = self.query(&["for-each-ref", "--format=%(upstream:short)%09%(upstream:remotename)", &heads])?.unwrap_or_default();

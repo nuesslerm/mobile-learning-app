@@ -108,7 +108,7 @@ pub const ACTIONS: &[Action] = &[
         properties: &[WORKTREE, Property { name: "base", kind: "string", about: "The revision to compare against" }, Property { name: "head", kind: "string", about: "The revision compared" }, Property { name: "limit", kind: "integer", about: "At most this many commits (default 50)" }],
         required: &["base", "head"],
     },
-    Action { name: GIT_UPSTREAM, about: "The current branch's upstream and how far it is ahead and behind, and the configured remotes.", properties: &[WORKTREE], required: &[] },
+    Action { name: GIT_UPSTREAM, about: "The current branch's upstream and how far it is ahead and behind, the configured remotes, and the branch origin's HEAD points at.", properties: &[WORKTREE], required: &[] },
     Action { name: GIT_STAGE, about: "Stage the paths: additions, changes and deletions.", properties: &[WORKTREE, PATHS], required: &["paths"] },
     Action { name: GIT_UNSTAGE, about: "Unstage the paths, leaving the working tree as it is.", properties: &[WORKTREE, PATHS], required: &["paths"] },
     Action {

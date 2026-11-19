@@ -508,6 +508,19 @@ fn fetch_pull_push_and_fast_forward_work_against_the_repositorys_own_remote_and_
     assert_eq!(r.upstream_of("topic"), "origin/topic");
 }
 
+#[test]
+fn given_origins_head_recorded_when_the_upstream_is_read_then_it_names_the_branch_origin_head_points_at() {
+    // Given a repository whose origin is a bare repository, before and after git records origin's HEAD
+    let r = repo(&[("a.txt", "one\n")]);
+    let _remote = with_remote(&r);
+    assert_eq!(r.ok("git_upstream", json!({})).get("origin_head"), None);
+    sh(r.path(), &["symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main"]);
+    // When the upstream is read
+    let up = r.ok("git_upstream", json!({}));
+    // Then it names the remote-tracking branch origin's HEAD points at
+    assert_eq!((up["origin_head"].clone(), up["upstream"].clone(), up["remotes"].clone()), (json!("origin/main"), json!("origin/main"), json!(["origin"])));
+}
+
 impl Repo {
     fn upstream_of(&self, branch: &str) -> String {
         sh(self.path(), &["rev-parse", "--abbrev-ref", &format!("{branch}@{{upstream}}")])
