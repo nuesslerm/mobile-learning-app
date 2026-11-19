@@ -183,6 +183,20 @@ fn json_body(mut s: Step, body: &Value) -> Step {
     s
 }
 
+fn gitlab_project(op: &HostedOp) -> String {
+    op.repo.as_ref().map_or("projects/:fullpath".to_string(), |r| format!("projects/{}", encode(r)))
+}
+
+/// GitLab's new merge request into `target`, its description on stdin; a draft is a title starting `Draft: `, as GitLab marks one.
+fn new_merge_request(op: &HostedOp, target: &str) -> Result<Step, String> {
+    let HostedCall::PrCreate { title, body, head, draft, labels, .. } = &op.call else { return Err("not a new merge request".into()) };
+    let mut fields = json!({"source_branch": head, "target_branch": target, "title": if *draft { format!("Draft: {title}") } else { title.clone() }, "description": body.clone().unwrap_or_default()});
+    if !labels.is_empty() {
+        fields["labels"] = json!(labels.join(","));
+    }
+    Ok(json_body(step(Program::Glab, vec!["api".into(), "--method=POST".into(), format!("{}/merge_requests", gitlab_project(op))]), &fields))
+}
+
 /// The step that follows the steps run so far, when what it asks depends on what they printed: the stack's own read after the list that found
 /// it, and a reaction taken back (the signed-in account, then its reaction in the list, then the delete by that reaction's id).
 pub fn follow(op: &HostedOp, outputs: &[Output]) -> Result<Option<Step>, String> {
@@ -214,6 +228,21 @@ pub fn follow(op: &HostedOp, outputs: &[Output]) -> Result<Option<Step>, String>
                 })
             }).and_then(|r| r["id"].as_u64());
             Ok(mine.map(|id| step(program, vec!["api".into(), "--method=DELETE".into(), format!("{collection}/{id}")])))
+        }
+        (HostedCall::PrCreate { base, reviewers, .. }, Provider::Gitlab, n) => {
+            let created_at = usize::from(base.is_none());
+            if n == created_at {
+                let target = parse(&outputs[0])?.get("default_branch").and_then(Value::as_str).map(str::to_string).ok_or("glab named no default branch to merge into")?;
+                return new_merge_request(op, &target).map(Some);
+            }
+            if n != created_at + 1 || reviewers.is_empty() {
+                return Ok(None);
+            }
+            let iid = parse(&outputs[created_at])?.get("iid").and_then(Value::as_u64).ok_or("glab answered no iid for the new merge request")?;
+            let mut args = vec!["mr".into(), "update".into(), iid.to_string()];
+            args.extend(op.repo.iter().map(|r| format!("--repo={r}")));
+            args.push(format!("--reviewer={}", reviewers.join(",")));
+            Ok(Some(step(Program::Glab, args)))
         }
         _ => Ok(None),
     }
@@ -511,10 +540,7 @@ pub fn login_args(op: &HostedOp) -> Vec<String> {
 }
 
 fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
-    let project = || match &op.repo {
-        Some(r) => format!("projects/{}", encode(r)),
-        None => "projects/:fullpath".to_string(),
-    };
+    let project = || gitlab_project(op);
     let api = |method: &str, path: String| {
         let mut args = strs(&["api"]);
         if method != "GET" {
@@ -584,18 +610,8 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
         HostedCall::PrReviews { number } => one(api("GET", mr(*number, "/approvals"))),
         HostedCall::PrThreads { number } => one(api("GET", mr(*number, "/discussions?per_page=100"))),
         HostedCall::PrFiles { number } => one(api("GET", mr(*number, "/changes"))),
-        HostedCall::PrCreate { title, body, head, base, draft, labels, reviewers } => {
-            let mut args = strs(&["mr", "create"]);
-            repo_flag(&mut args);
-            args.extend([format!("--title={title}"), format!("--source-branch={head}"), format!("--description={}", body.clone().unwrap_or_default()), "--yes".into()]);
-            args.extend(base.iter().map(|b| format!("--target-branch={b}")));
-            args.extend(labels.iter().map(|l| format!("--label={l}")));
-            args.extend(reviewers.iter().map(|r| format!("--reviewer={r}")));
-            if *draft {
-                args.push("--draft".into());
-            }
-            one(glab(args))
-        }
+        HostedCall::PrCreate { base: Some(base), .. } => one(new_merge_request(op, base)?),
+        HostedCall::PrCreate { base: None, .. } => one(api("GET", project())),
         HostedCall::PrEdit { number, title, body, base } => {
             let mut extra: Vec<String> = Vec::new();
             extra.extend(title.iter().map(|t| format!("--title={t}")));

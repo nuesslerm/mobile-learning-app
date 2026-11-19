@@ -448,11 +448,17 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
             };
             Ok(json!({"files": files}))
         }
+        HostedCall::PrCreate { .. } if !github => {
+            let created = outputs.iter().filter_map(|o| serde_json::from_str::<Value>(&o.stdout).ok()).find(|v| v["iid"].is_u64() && v["web_url"].is_string());
+            match created {
+                Some(v) => Ok(json!({"number": v["iid"], "url": v["web_url"]})),
+                None => Err(io(format!("{program} printed no address for the new request: {}", brief(&last.stdout)))),
+            }
+        }
         HostedCall::PrCreate { .. } => {
             let printed = format!("{}\n{}", last.stdout, last.stderr);
-            let marker = if github { "/pull/" } else { "/merge_requests/" };
-            let url = printed.split_whitespace().rev().find(|w| w.contains(marker));
-            match (url.and_then(|u| number_after(u, marker)), url) {
+            let url = printed.split_whitespace().rev().find(|w| w.contains("/pull/"));
+            match (url.and_then(|u| number_after(u, "/pull/")), url) {
                 (Some(number), Some(url)) => Ok(json!({"number": number, "url": url.trim_end_matches(['.', ',', ')'])})),
                 _ => Err(io(format!("{program} printed no address for the new request: {}", brief(&printed)))),
             }
