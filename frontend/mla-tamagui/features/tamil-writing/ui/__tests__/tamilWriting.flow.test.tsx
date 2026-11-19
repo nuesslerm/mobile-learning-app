@@ -293,6 +293,34 @@ describe('Tamil writing course flow', () => {
     expect(JSON.stringify(lines)).not.toMatch(/<svg|Reads as|Longer bar/);
   });
 
+  it('given a line and a single tap on the pad, when the learner checks their writing, then the picture sent to the marker holds both the line and the dot', async () => {
+    // Given a marker that records what it is sent
+    let sent: { svg: string } | undefined;
+    const fetchDouble = (async (_url: string, init?: RequestInit) => {
+      sent = JSON.parse(String(init?.body));
+      return new Response(JSON.stringify({ ok: true, score: 90, summary: 'Reads as ம்.', fix: '' }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const marker = createHttpWritingCheck('http://marker.test', fetchDouble);
+    await app.render('/tamil/write/uyir-a', { overrides: { tamilWriting: { writingCheck: marker } } });
+    const surface = await waitFor(() => screen.getByTestId('TamilWriteCanvasSurface'));
+    fireEvent.pointerDown(surface, { clientX: 10, clientY: 60, pointerId: 1 });
+    fireEvent.pointerMove(surface, { clientX: 90, clientY: 60, pointerId: 1 });
+    fireEvent.pointerUp(surface, { clientX: 90, clientY: 60, pointerId: 1 });
+
+    // And a tap that never moves, the pulli of ம்
+    fireEvent.pointerDown(surface, { clientX: 50, clientY: 20, pointerId: 2 });
+    fireEvent.pointerUp(surface, { clientX: 50, clientY: 20, pointerId: 2 });
+    await waitFor(() => expect(screen.getByTestId('TamilWriteHint').textContent).toBe('2 strokes'));
+
+    // When the learner checks their writing
+    await userEvent.click(screen.getByTestId('TamilWriteCheck'));
+
+    // Then the marker was sent the line as a path and the tap as a dot
+    await waitFor(() => expect(sent).toBeDefined());
+    expect(sent?.svg).toContain('<path');
+    expect(sent?.svg).toContain('<circle');
+  });
+
   it('given ink on one write pad, when a link opens another subject on the same screen, then its pad starts empty', async () => {
     await app.render('/tamil/write/uyir-a');
     await waitFor(() => {
