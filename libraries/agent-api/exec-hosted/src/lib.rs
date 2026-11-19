@@ -33,6 +33,7 @@ pub const PR_REQUEST_REVIEWERS: &str = "hosted_pr_request_reviewers";
 pub const PR_LABELS: &str = "hosted_pr_labels";
 pub const PR_REACT: &str = "hosted_pr_react";
 pub const PR_RESOLVE_THREAD: &str = "hosted_pr_resolve_thread";
+pub const PR_FILE_VIEWED: &str = "hosted_pr_file_viewed";
 pub const PR_STATE: &str = "hosted_pr_state";
 pub const PR_UPDATE_BRANCH: &str = "hosted_pr_update_branch";
 pub const PR_MERGE: &str = "hosted_pr_merge";
@@ -171,6 +172,12 @@ pub const ACTIONS: &[Action] = &[
     ),
     action!(PR_STATE, "Close a pull or merge request, or reopen a closed one; answers its number and new state.", [NUMBER, Property { name: "state", kind: "string", about: "`closed` or `open`" }], ["number", "state"]),
     action!(PR_RESOLVE_THREAD, "Resolve a review thread, or with `resolved: false` reopen it. GitHub names a thread by its node id alone, so `number` is needed on GitLab only.", [NUMBER, THREAD, Property { name: "resolved", kind: "boolean", about: "Default true" }], ["thread"]),
+    action!(
+        PR_FILE_VIEWED,
+        "Mark a file of a pull request viewed for the signed-in account, or with `viewed: false` unmark it (GitHub; GitLab keeps this mark in the browser).",
+        [Property { name: "pull_request", kind: "string", about: "The pull request's node id" }, Property { name: "path", kind: "string", about: "The file's path in the pull request" }, Property { name: "viewed", kind: "boolean", about: "Default true" }],
+        ["pull_request", "path"]
+    ),
     action!(PR_UPDATE_BRANCH, "Bring the pull or merge request's branch up to date with its base.", [NUMBER, Property { name: "rebase", kind: "boolean", about: "Rebase instead of merging the base in" }], ["number"]),
     action!(
         PR_MERGE,
@@ -490,6 +497,7 @@ pub enum HostedCall {
     PrLabels { number: u64, add: Vec<String>, remove: Vec<String> },
     PrReact { number: u64, target: ReactTarget, comment_id: Option<u64>, content: String, undo: bool },
     PrResolveThread { number: Option<u64>, thread: String, resolved: bool },
+    PrFileViewed { pull_request: String, path: String, viewed: bool },
     PrState { number: u64, closed: bool },
     PrUpdateBranch { number: u64, rebase: bool },
     PrMerge { number: u64, method: MergeMethod, auto: bool, delete_branch: bool, match_head_commit: Option<String> },
@@ -531,6 +539,7 @@ impl HostedCall {
             HostedCall::PrLabels { .. } => PR_LABELS,
             HostedCall::PrReact { .. } => PR_REACT,
             HostedCall::PrResolveThread { .. } => PR_RESOLVE_THREAD,
+            HostedCall::PrFileViewed { .. } => PR_FILE_VIEWED,
             HostedCall::PrState { .. } => PR_STATE,
             HostedCall::PrUpdateBranch { .. } => PR_UPDATE_BRANCH,
             HostedCall::PrMerge { .. } => PR_MERGE,
@@ -707,6 +716,13 @@ impl HostedOp {
                 };
                 HostedCall::PrResolveThread { number, thread: thread_of()?, resolved: a.get("resolved").and_then(Value::as_bool).unwrap_or(true) }
             }
+            PR_FILE_VIEWED => {
+                let pull_request = string(a, "pull_request")?;
+                token("pull_request", &pull_request)?;
+                let file = string(a, "path")?;
+                file_path("path", &file)?;
+                HostedCall::PrFileViewed { pull_request, path: file, viewed: a.get("viewed").and_then(Value::as_bool).unwrap_or(true) }
+            }
             PR_UPDATE_BRANCH => HostedCall::PrUpdateBranch { number: number(a)?, rebase: flag(a, "rebase") },
             PR_MERGE => {
                 let sha = text_arg(a, "match_head_commit", |s| if (7..=64).contains(&s.len()) && s.bytes().all(|b| b.is_ascii_hexdigit()) { Ok(()) } else { Err(bad("`match_head_commit` must be 7-64 hex characters")) })?;
@@ -836,6 +852,8 @@ mod tests {
                 (PR_COMMENT_EDIT, "comment", json!(text)),
                 (PR_REVIEW_COMMENT, "commit_id", json!(text)),
                 (PR_REVIEW_COMMENT, "path", json!(text)),
+                (PR_FILE_VIEWED, "pull_request", json!(text)),
+                (PR_FILE_VIEWED, "path", json!(text)),
             ];
             for (tool, key, value) in cases {
                 let action = ACTIONS.iter().find(|a| a.name == tool).unwrap();
@@ -851,7 +869,7 @@ mod tests {
                     (PR_CREATE, "title") => !text.is_empty() && !text.chars().any(char::is_control),
                 (PR_LABELS, "add" | "remove") => !text.is_empty() && !text.starts_with('-') && !text.chars().any(char::is_control) && !text.contains(','),
                     (REPO_CLONE, "dest") => !text.is_empty() && !text.starts_with('-') && !text.contains('\0'),
-                    (PR_REVIEW_COMMENT, "path") => !text.is_empty() && !text.starts_with(['-', '/']) && !text.chars().any(char::is_control),
+                    (PR_REVIEW_COMMENT | PR_FILE_VIEWED, "path") => !text.is_empty() && !text.starts_with(['-', '/']) && !text.chars().any(char::is_control),
                     _ => false,
                 };
                 assert_eq!(outcome.is_ok(), harmless, "{tool} {key} {text:?}: {outcome:?}");
@@ -900,6 +918,8 @@ mod tests {
         assert!(github(PR_REVIEW_COMMENT, json!({"number": 1, "body": "x", "commit_id": "abc", "path": "a", "line": 0})).contains("`line`"));
         assert!(github(PR_REVIEW_COMMENT, json!({"number": 1, "body": "x", "commit_id": "xyz!", "path": "a", "line": 3})).contains("`commit_id`"));
         assert!(github(PR_REVIEW_COMMENT, json!({"number": 1, "body": "x", "commit_id": "abc", "path": "a", "line": 3, "start_line": -2})).contains("`start_line`"));
+        assert!(github(PR_FILE_VIEWED, json!({"pull_request": "PR_1", "path": ""})).contains("`path`"));
+        assert!(github(PR_FILE_VIEWED, json!({"pull_request": "PR 1", "path": "a"})).contains("`pull_request`"));
         let gitlab = HostedOp::parse(PR_REVIEW_COMMENT, &json!({"provider": "gitlab", "number": 1, "body": "x", "commit_id": "abc", "path": "a", "line": 3, "base_sha": "ba5e", "start_sha": "5ca1", "start_line": 2})).unwrap().unwrap_err();
         assert!(gitlab.message.contains("`start_line`"));
     }

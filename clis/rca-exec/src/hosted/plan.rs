@@ -75,6 +75,8 @@ pub fn thread_replies_query() -> String {
 pub const REPLY_MUTATION: &str = "mutation($thread:ID!,$body:String!){addPullRequestReviewThreadReply(input:{pullRequestReviewThreadId:$thread,body:$body}){comment{id url}}}";
 pub const RESOLVE_MUTATION: &str = "mutation($thread:ID!){resolveReviewThread(input:{threadId:$thread}){thread{id isResolved}}}";
 pub const UNRESOLVE_MUTATION: &str = "mutation($thread:ID!){unresolveReviewThread(input:{threadId:$thread}){thread{id isResolved}}}";
+pub const MARK_VIEWED_MUTATION: &str = "mutation($pullRequestId:ID!,$path:String!){markFileAsViewed(input:{pullRequestId:$pullRequestId,path:$path}){pullRequest{id}}}";
+pub const UNMARK_VIEWED_MUTATION: &str = "mutation($pullRequestId:ID!,$path:String!){unmarkFileAsViewed(input:{pullRequestId:$pullRequestId,path:$path}){pullRequest{id}}}";
 pub const EDIT_ISSUE_COMMENT_MUTATION: &str = "mutation($id:ID!,$body:String!){updateIssueComment(input:{id:$id,body:$body}){issueComment{id}}}";
 pub const EDIT_REVIEW_COMMENT_MUTATION: &str = "mutation($id:ID!,$body:String!){updatePullRequestReviewComment(input:{pullRequestReviewCommentId:$id,body:$body}){pullRequestReviewComment{id}}}";
 
@@ -444,6 +446,10 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             let query = if *resolved { RESOLVE_MUTATION } else { UNRESOLVE_MUTATION };
             one(gh(vec!["api".into(), "graphql".into(), format!("-f=thread={thread}"), format!("-f=query={query}")]))
         }
+        HostedCall::PrFileViewed { pull_request, path, viewed } => {
+            let query = if *viewed { MARK_VIEWED_MUTATION } else { UNMARK_VIEWED_MUTATION };
+            one(json_body(gh(strs(&["api", "graphql"])), &json!({"query": query, "variables": {"pullRequestId": pull_request, "path": path}})))
+        }
         HostedCall::PrUpdateBranch { number, rebase } => one(gh(pr(&["update-branch"], *number, if *rebase { strs(&["--rebase"]) } else { vec![] }))),
         HostedCall::PrMerge { number, method, auto, delete_branch, match_head_commit } => {
             let mut extra = vec![match method {
@@ -642,6 +648,7 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             let number = number.ok_or("`number` is required on GitLab: a discussion belongs to one merge request")?;
             one(api("PUT", mr(number, &format!("/discussions/{thread}?resolved={resolved}"))))
         }
+        HostedCall::PrFileViewed { .. } => Err("GitLab keeps whether a file was viewed in the browser; no API marks it".into()),
         HostedCall::PrUpdateBranch { number, .. } => one(api("PUT", mr(*number, "/rebase"))),
         HostedCall::PrMerge { number, method, auto, delete_branch, match_head_commit } => {
             if *method == MergeMethod::Rebase {

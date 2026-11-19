@@ -2,7 +2,7 @@
 //! real process with the argv, stdin, environment and directory the executor chooses, and prints what the real CLIs print (written from their
 //! documented JSON and text output). No account, token or network is involved.
 use exec_hosted::testing::{fixtures, Exchange, Fixture};
-use exec_hosted::{ACTIONS, AUTH_LOGIN_CANCEL, AUTH_LOGIN_START, AUTH_LOGIN_WAIT, OUTPUT_CAP, PR_COMMENT, PR_DIFF, PR_COMMENTS, PR_LABELS, PR_LIST, PR_REVIEWS, PR_THREADS, PR_VIEW, REPO_CLONE, REPO_PUBLISH};
+use exec_hosted::{ACTIONS, AUTH_LOGIN_CANCEL, AUTH_LOGIN_START, AUTH_LOGIN_WAIT, OUTPUT_CAP, PR_COMMENT, PR_DIFF, PR_COMMENTS, PR_LABELS, PR_LIST, PR_REVIEWS, PR_THREADS, PR_VIEW, PR_FILE_VIEWED, REPO_CLONE, REPO_PUBLISH};
 use exec_proto::{Code, ExecResult, Stream};
 use exec_testkit::{HostedClis, Rule, TempRepo};
 use rca_exec::adapters::local_executor::LocalExecutor;
@@ -13,6 +13,8 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 const LOGIN_ACTIONS: [&str; 3] = [AUTH_LOGIN_START, AUTH_LOGIN_WAIT, AUTH_LOGIN_CANCEL];
+// Publishing to GitLab ends with a real `git push` (its own test below); GitLab keeps a file's viewed mark in the browser.
+const GITHUB_ONLY: [&str; 2] = [REPO_PUBLISH, PR_FILE_VIEWED];
 
 struct Bench {
     root: PathBuf,
@@ -91,14 +93,12 @@ fn given_every_recorded_exchange_when_replayed_through_the_executor_then_the_res
 #[test]
 fn given_the_actions_of_the_contract_when_the_fixtures_are_read_then_each_action_is_answered_for_both_providers_and_every_response_is_shaped() {
     let all = fixtures();
-    // Publishing to GitLab ends with a real `git push`: its own test below.
-    let github_only = [REPO_PUBLISH];
     for action in ACTIONS.iter().filter(|a| !LOGIN_ACTIONS.contains(&a.name)) {
         let fixture = all.iter().find(|f| f.action == action.name).unwrap_or_else(|| panic!("{} has no fixture", action.name));
         for exchange in &fixture.exchanges {
             assert_eq!(exchange.request["tool"], action.name, "{}", exchange.name);
         }
-        for provider in ["github", "gitlab"].iter().filter(|p| !(github_only.contains(&action.name) && **p == "gitlab")) {
+        for provider in ["github", "gitlab"].iter().filter(|p| !(GITHUB_ONLY.contains(&action.name) && **p == "gitlab")) {
             let answered = fixture.exchanges.iter().any(|e| e.request["args"]["provider"] == *provider && e.response["ok"] == true);
             assert!(answered, "{} has no succeeding {provider} exchange", action.name);
         }
@@ -126,7 +126,7 @@ const LABEL_KEYS: [&str; 3] = ["label", "labels", "add"];
 fn given_every_argument_of_every_action_when_it_carries_text_a_cli_or_shell_could_misread_then_the_request_is_refused_and_no_program_starts() {
     for action in ACTIONS.iter().filter(|a| !LOGIN_ACTIONS.contains(&a.name)) {
         for provider in ["github", "gitlab"] {
-            if action.name == REPO_PUBLISH && provider == "gitlab" {
+            if GITHUB_ONLY.contains(&action.name) && provider == "gitlab" {
                 continue;
             }
             for property in action.properties {
@@ -163,7 +163,7 @@ fn given_free_text_that_starts_like_an_option_when_a_request_carries_it_then_it_
     let sentinel = "--sentinel-flag value";
     for action in ACTIONS.iter().filter(|a| !LOGIN_ACTIONS.contains(&a.name)) {
         for provider in ["github", "gitlab"] {
-            if action.name == REPO_PUBLISH && provider == "gitlab" {
+            if GITHUB_ONLY.contains(&action.name) && provider == "gitlab" {
                 continue;
             }
             let b = bench();
