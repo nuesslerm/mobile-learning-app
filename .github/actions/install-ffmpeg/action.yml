@@ -11,6 +11,14 @@ outputs:
 runs:
   using: composite
   steps:
+    # the build host is unreachable from some runners on some runs (4 to 6 of 6 shards in run 44591048119 fell back to a 4 minute apt install): what one run
+    # downloaded is cached, so only a run with a cold cache and an unreachable host takes the fallback
+    - name: Restore the static build
+      id: cache
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+      with:
+        path: ~/ffmpeg-static
+        key: ffmpeg-static-28268bf402f1
     - name: ffmpeg
       id: ffmpeg
       shell: bash
@@ -20,8 +28,12 @@ runs:
       run: |
         if command -v ffmpeg >/dev/null; then echo "installed=true" >> "$GITHUB_OUTPUT"; exit 0; fi
         sudo=$([ "$(id -u)" = 0 ] || echo sudo)
-        dir="$RUNNER_TEMP/ffmpeg-static"
-        if [ "$(uname -m)" = x86_64 ] && curl -fsSL --connect-timeout 8 --retry 1 --max-time 90 -o "$RUNNER_TEMP/ffmpeg.tar.xz" "$FFMPEG_URL" \
+        dir="$HOME/ffmpeg-static"
+        if [ -x "$dir/ffmpeg" ]; then
+          $sudo install -m 0755 "$dir/ffmpeg" "$dir/ffprobe" /usr/local/bin/
+          ffmpeg -version | head -1
+          echo "installed=true" >> "$GITHUB_OUTPUT"
+        elif [ "$(uname -m)" = x86_64 ] && curl -fsSL --connect-timeout 8 --retry 1 --max-time 90 -o "$RUNNER_TEMP/ffmpeg.tar.xz" "$FFMPEG_URL" \
           && echo "$FFMPEG_SHA256  $RUNNER_TEMP/ffmpeg.tar.xz" | sha256sum -c --quiet; then
           mkdir -p "$dir" && tar -xJf "$RUNNER_TEMP/ffmpeg.tar.xz" -C "$dir" --strip-components=1
           $sudo install -m 0755 "$dir/ffmpeg" "$dir/ffprobe" /usr/local/bin/
