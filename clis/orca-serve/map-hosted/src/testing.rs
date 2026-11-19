@@ -44,6 +44,9 @@ struct State {
     blobs: Vec<(String, String, Vec<u8>)>,
     remotes: Vec<(String, String)>,
     remotes_error: Option<String>,
+    origin_head: Option<String>,
+    signed_out: bool,
+    list_error: Option<String>,
 }
 
 /// What rca's richer answers add to a comment, a review or a thread comment; every part is optional and a default adds none.
@@ -269,7 +272,39 @@ impl Hosting {
         self.0.lock().unwrap().remotes_error = Some(message.into());
     }
 
+    /// The remote-tracking branch origin's HEAD points at, as git records it on clone.
+    pub fn origin_head(&self, branch: &str) -> &Self {
+        self.0.lock().unwrap().origin_head = Some(branch.into());
+        self
+    }
+
+    /// Makes the executor's CLIs report no signed-in account.
+    pub fn signed_out(&self) -> &Self {
+        self.0.lock().unwrap().signed_out = true;
+        self
+    }
+
+    /// Makes every `list` of requests fail with `message`.
+    pub fn list_fails(&self, message: &str) {
+        self.0.lock().unwrap().list_error = Some(message.into());
+    }
+
     pub fn install(&self, agent: &ScriptedAgent) {
+        let me = self.clone();
+        agent.reply("git.upstreamStatus", move |_| {
+            let s = me.0.lock().unwrap();
+            let mut up = json!({"branch": "feat/x", "has_upstream": true, "upstream": "origin/feat/x", "remote": "origin", "ahead": 0, "behind": 0, "remotes": s.remotes.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>()});
+            if let Some(head) = &s.origin_head {
+                up["origin_head"] = json!(head);
+            }
+            Ok(up)
+        });
+        let me = self.clone();
+        agent.reply("sourceControl.discover", move |p| {
+            let provider = p["provider"].as_str().filter(|x| matches!(*x, "github" | "gitlab")).ok_or_else(|| refused("INVALID_PARAMS", "provider must be github or gitlab"))?;
+            let signed_in = !me.0.lock().unwrap().signed_out;
+            Ok(json!({"providers": [{"provider": provider, "installed": true, "signed_in": signed_in, "host": p["host"], "account": if signed_in { json!("octocat") } else { Value::Null }, "scopes": []}]}))
+        });
         let me = self.clone();
         agent.reply("pr.remotes", move |_| {
             let s = me.0.lock().unwrap();
@@ -348,7 +383,7 @@ impl Hosting {
             let avatar = |a: &str| if a.is_empty() { Value::Null } else { json!(a) };
             Ok(json!({"users": users.iter().take(p["limit"].as_u64().unwrap_or(200) as usize).map(|(l, a)| json!({"login": l, "name": null, "avatarUrl": avatar(a)})).collect::<Vec<_>>()}))
         });
-        for (name, provider) in [("pr.list", "github"), ("pr.view", "github"), ("pr.checks", "github"), ("pr.merge", "github"), ("pr.edit", "github"), ("pr.ready", "github"), ("pr.requestReviewers", "github"), ("mr.view", "gitlab"), ("mr.edit", "gitlab"), ("mr.ready", "gitlab"), ("mr.setLabels", "gitlab"), ("mr.merge", "gitlab")] {
+        for (name, provider) in [("pr.list", "github"), ("pr.view", "github"), ("pr.checks", "github"), ("pr.merge", "github"), ("pr.edit", "github"), ("pr.ready", "github"), ("pr.requestReviewers", "github"), ("mr.list", "gitlab"), ("mr.view", "gitlab"), ("mr.edit", "gitlab"), ("mr.ready", "gitlab"), ("mr.setLabels", "gitlab"), ("mr.merge", "gitlab")] {
             let me = self.clone();
             let verb = name.split_once('.').map_or(name, |(_, v)| v).to_string();
             agent.reply(name, move |p| me.answer(provider, &verb, p));
@@ -360,6 +395,9 @@ impl Hosting {
     fn answer(&self, provider: &'static str, verb: &str, p: &Value) -> Result<Value, AgentError> {
         let mut s = self.0.lock().unwrap();
         if verb == "list" {
+            if let Some(message) = &s.list_error {
+                return Err(refused("HOSTED_FAILED", message.clone()));
+            }
             let head = p["head"].as_str();
             let state = p["state"].as_str().ok_or_else(|| refused("INVALID_ARGS", "`state` is required here"))?;
             let limit = p["limit"].as_u64().ok_or_else(|| refused("INVALID_ARGS", "`limit` is required here"))? as usize;

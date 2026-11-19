@@ -230,6 +230,39 @@ pub fn github_com_slug(remote_url: &str) -> Option<(String, String)> {
     identity(remote_url).filter(|(host, ..)| host == "github.com").map(|(_, owner, repo)| (owner, repo))
 }
 
+/// `parseRemoteProjectRefCandidate` with the built-in known host: whether a remote URL names a gitlab.com project (a host of `gitlab.com` on any
+/// port, or its SSH-over-443 alias, and a path of at least two segments).
+pub fn is_gitlab_com_project(remote_url: &str) -> bool {
+    let trimmed = remote_url.trim();
+    let has_scheme = trimmed.split_once("://").is_some_and(|(s, _)| s.starts_with(|c: char| c.is_ascii_alphabetic()) && s.chars().all(|c| c.is_ascii_alphanumeric() || matches!(c, '+' | '.' | '-')));
+    let scp = (!has_scheme).then(|| scp_project(trimmed)).flatten();
+    let (host, path) = match scp {
+        Some(found) => found,
+        None => match parse_url(trimmed).filter(|u| PROTOCOLS.contains(&u.scheme.as_str())) {
+            Some(u) => (if matches!(u.scheme.as_str(), "http" | "https") { u.host } else { u.hostname }, u.path),
+            None => return false,
+        },
+    };
+    let host = host.trim().to_lowercase();
+    let hostname = host.rsplit_once(':').filter(|(_, p)| !p.is_empty() && p.bytes().all(|b| b.is_ascii_digit())).map_or(host.as_str(), |(h, _)| h);
+    let path = path.trim_start_matches('/').trim_end_matches('/');
+    let path = strip_git_suffix_ci(path).trim();
+    matches!(hostname, "gitlab.com" | "altssh.gitlab.com") && path.contains('/')
+}
+
+/// The scp form `[user@]host:path[.git]` as the GitLab parser matches it.
+fn scp_project(url: &str) -> Option<(String, String)> {
+    let rest = match url.split_once('@') {
+        Some((user, rest)) if !user.is_empty() && !user.contains(['/', ':']) => rest,
+        _ => url,
+    };
+    let (host, path) = rest.split_once(':')?;
+    if host.is_empty() || host.contains(|c: char| c.is_whitespace() || c == '/') || path.is_empty() || path.contains(char::is_whitespace) {
+        return None;
+    }
+    Some((host.to_string(), path.strip_suffix(".git").filter(|p| !p.is_empty()).unwrap_or(path).to_string()))
+}
+
 fn remote_path(path: &str) -> &str {
     let path = path.trim_start_matches('/').trim_end_matches('/');
     path.strip_suffix(".git").unwrap_or(path)
@@ -286,6 +319,16 @@ mod tests {
 
     fn pair(owner: &str, repo: &str) -> Option<(String, String)> {
         Some((owner.into(), repo.into()))
+    }
+
+    #[test]
+    fn given_remote_urls_when_read_as_gitlab_projects_then_only_a_gitlab_com_path_of_two_segments_is_one() {
+        for url in ["git@gitlab.com:grp/app.git", "https://gitlab.com/grp/sub/app", "https://tok@GitLab.com:8443/grp/app.git", "ssh://git@altssh.gitlab.com:443/grp/app", "gitlab.com:grp/app"] {
+            assert!(is_gitlab_com_project(url), "{url}");
+        }
+        for url in ["git@gitlab.com:app.git", "https://gitlab.example/grp/app", "https://github.com/acme/app", "file:///srv/gitlab.com/grp/app", "/srv/repo.git", "ftp://gitlab.com/grp/app", ""] {
+            assert!(!is_gitlab_com_project(url), "{url}");
+        }
     }
 
     #[test]

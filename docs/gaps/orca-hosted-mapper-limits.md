@@ -8,7 +8,7 @@ last_verified: 2026-11-19
 links:
   - "docs/plans/rca-parity/plan.md"
 ---
-# The Orca hosted mapper serves a narrower reply than the Orca host in three places
+# The Orca hosted mapper serves a narrower reply than the Orca host in four places
 
 ## What is broken
 
@@ -19,10 +19,15 @@ usual setup for several GitHub accounts) answers null where the host resolves th
 (`src/main/github/repositories/github-ssh-host-alias-resolution.ts`); and the stand-in remote's name order only approximates the host's
 `localeCompare(name, 'en')` (lowercase first, then reverse code point), so names that differ in accents or punctuation can pick another remote.
 
+`hostedReview.getCreationEligibility` detects the provider from the same remotes: a gitlab.com origin is `gitlab` and a github.com origin (or
+stand-in) is `github`; everything else answers `unsupported`, where the host also names a GitLab host `glab` is signed in to, an authenticated
+GitHub Enterprise host, and Bitbucket, Azure DevOps and Gitea remotes. Its review lookup is the branch's open pull request else the latest
+(as `hostedReview.forBranch`), without the host's upstream-owner, merged-fallback and rate-limit rules.
+
 ## Why blocked
 
-The rca agent API has no method that reports the hosts `gh` is signed in to or that resolves an SSH host alias at the workspace host, and the
-mapper has no ICU collation; each needs a new executor action (or an ICU dependency) that no recorded phone flow has asked for yet.
+The rca agent API has no method that reports the hosts `gh` or `glab` is signed in to or that resolves an SSH host alias at the workspace host,
+rca's hosted group serves only GitHub and GitLab, and the mapper has no ICU collation; each needs a new executor action (or an ICU dependency) that no recorded phone flow has asked for yet.
 
 ## What unblocks it
 

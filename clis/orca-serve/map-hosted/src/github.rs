@@ -109,8 +109,8 @@ fn comment_row(c: &Value, params: &Value, body: &str) -> Option<Value> {
 
 const MAX_SAFE_INTEGER: u64 = (1 << 53) - 1;
 
-/// zod's `z.number().int().positive()` (whose `int()` is bounded to the safe integers): the first issue it reports for `v`, or the number.
-pub(crate) fn int_positive(v: Option<&Value>) -> Result<u64, Failure> {
+/// zod's `z.number().int()` (bounded to the safe integers): the first issue it reports for `v`, or the number as a float.
+fn int_safe(v: Option<&Value>) -> Result<(f64, Option<u64>), Failure> {
     let n = match v {
         None => return Err(Failure::invalid("Invalid input: expected number, received undefined")),
         Some(Value::Number(n)) => n,
@@ -126,10 +126,25 @@ pub(crate) fn int_positive(v: Option<&Value>) -> Result<u64, Failure> {
     if f < -(MAX_SAFE_INTEGER as f64) {
         return Err(Failure::invalid(format!("Too small: expected int to be >=-{MAX_SAFE_INTEGER}")));
     }
+    Ok((f, n.as_u64()))
+}
+
+/// zod's `z.number().int().positive()`: the first issue it reports for `v`, or the number.
+pub(crate) fn int_positive(v: Option<&Value>) -> Result<u64, Failure> {
+    let (f, n) = int_safe(v)?;
     if f <= 0.0 {
         return Err(Failure::invalid("Too small: expected number to be >0"));
     }
-    Ok(n.as_u64().unwrap_or(f as u64))
+    Ok(n.unwrap_or(f as u64))
+}
+
+/// zod's `z.number().int().nonnegative()`: the first issue it reports for `v`, or the number.
+pub(crate) fn int_nonnegative(v: Option<&Value>) -> Result<u64, Failure> {
+    let (f, n) = int_safe(v)?;
+    if f < 0.0 {
+        return Err(Failure::invalid("Too small: expected number to be >=0"));
+    }
+    Ok(n.unwrap_or(f as u64))
 }
 
 /// zod's `requiredString(message)`: anything but a non-empty string is `message`.

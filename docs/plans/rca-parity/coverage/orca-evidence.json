@@ -304,6 +304,20 @@
         "complete": true,
         "tests": 62,
         "passed": 12
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "9f5b6085a663fb4065543754aeefb3010e08b2ae",
+        "complete": true,
+        "tests": 446,
+        "passed": 114
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 62,
+        "passed": 13
       }
     ]
   },
@@ -1214,6 +1228,15 @@
     "rpc:hostedReview.forBranch": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-hostedReview.forBranch-invalid-drop-repo",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:hostedReview.getCreationEligibility": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-hostedReview.getCreationEligibility-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

@@ -72,7 +72,6 @@
         "orca-gitlab.workItemByPath",
         "orca-gitlab.workItemDetails",
         "orca-hostedReview.forBranch",
-        "orca-hostedReview.getCreationEligibility",
         "orca-notifications.registerPush",
         "orca-notifications.testPush",
         "orca-notifications.unregisterPush",

@@ -11,6 +11,7 @@ use std::sync::Arc;
 struct Rig {
     agent: Arc<ScriptedAgent>,
     hosting: Hosting,
+    ws: Workspaces,
     conn: Connection,
     n: u32,
 }
@@ -18,11 +19,12 @@ struct Rig {
 impl Rig {
     fn new() -> Rig {
         let agent = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
-        Workspaces::default().workspace("main", "root", Some("/srv/main")).install(&agent);
+        let ws = Workspaces::default();
+        ws.workspace("main", "root", Some("/srv/main")).install(&agent);
         let hosting = Hosting::default();
         hosting.install(&agent);
         let host = Host::new("rt".into(), vec![Box::new(HostedArea)], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
-        Rig { agent, hosting, conn: host.connection("dev", "tok", vec![]), n: 0 }
+        Rig { agent, hosting, ws, conn: host.connection("dev", "tok", vec![]), n: 0 }
     }
 
     fn call(&mut self, method: &str, mut params: Value) -> Value {
@@ -48,7 +50,7 @@ impl Rig {
 
     /// What rca was asked of the hosted and git groups since the rig was made.
     fn asked_hosted(&self) -> Vec<String> {
-        self.agent.requests().into_iter().map(|(m, _)| m).filter(|m| m.starts_with("pr.") || m.starts_with("mr.") || m.starts_with("git.")).collect()
+        self.agent.requests().into_iter().map(|(m, _)| m).filter(|m| m.starts_with("pr.") || m.starts_with("mr.") || m.starts_with("git.") || m.starts_with("sourceControl.")).collect()
     }
 }
 
@@ -768,4 +770,206 @@ fn given_a_bad_selector_when_the_slug_is_read_then_it_is_the_hosts_refusal() {
     assert_eq!(rig.err("github.repoSlug", json!({"repo": "nowhere"})), ("repo_not_found".to_string(), "repo_not_found".to_string()));
     // And rca was asked nothing of the remotes
     assert!(remotes_asked(&rig).is_empty());
+}
+
+const ELIGIBLE: &str = "hostedReview.getCreationEligibility";
+
+/// A clean, published branch `feat/x` of a github.com origin whose HEAD rca reports as `origin/main`.
+fn github_rig() -> Rig {
+    let rig = Rig::new();
+    rig.hosting.remote("origin", "https://github.com/acme/app.git").origin_head("origin/main");
+    rig.ws.refs("main", &[("main", "branch"), ("origin/main", "remote"), ("origin/develop", "remote"), ("feat/x", "branch")]);
+    rig
+}
+
+fn ready() -> Value {
+    json!({"branch": "feat/x", "hasUncommittedChanges": false, "hasUpstream": true, "ahead": 0, "behind": 0})
+}
+
+fn with(mut params: Value, extra: Value) -> Value {
+    for (k, v) in extra.as_object().unwrap() {
+        params[k] = v.clone();
+    }
+    params
+}
+
+#[test]
+fn given_a_clean_published_branch_of_a_github_repository_without_a_review_when_eligibility_is_read_then_a_review_can_be_created() {
+    // Given a github.com origin, origin's HEAD on main and no pull request of the branch
+    let mut rig = github_rig();
+    // When the phone asks whether a review can be created
+    let answer = rig.ok(ELIGIBLE, ready());
+    // Then it can, against origin/main, with stacked creation offered
+    assert_eq!(
+        answer,
+        json!({"provider": "github", "review": null, "reviewLookupOutcome": "not_found", "defaultBaseRef": "origin/main", "head": "feat/x", "stackedCreationSupported": true, "canCreate": true, "blockedReason": null, "nextAction": null})
+    );
+    // And rca was asked the remotes, origin's HEAD, the branch's pull requests and the sign-in, in that order
+    assert_eq!(rig.asked_hosted(), vec!["pr.remotes", "git.upstreamStatus", "pr.list", "sourceControl.discover"]);
+    let asked = |m: &str| rig.agent.requests().into_iter().find(|(x, _)| x == m).unwrap().1;
+    assert_eq!(asked("pr.list"), json!({"head": "feat/x", "state": "all", "limit": 20, "workspace": "main"}));
+    assert_eq!(asked("sourceControl.discover"), json!({"provider": "github", "host": "github.com", "workspace": "main"}));
+}
+
+#[test]
+fn given_an_open_pull_request_of_the_branch_when_eligibility_is_read_then_it_is_the_existing_review_and_no_sign_in_is_asked() {
+    // Given pull request 12 open on refs/heads/feat/x
+    let mut rig = github_rig();
+    rig.hosting.pull_request(12, "Add retry", "feat/x", "main");
+    // When eligibility is read for the branch by its full ref
+    let answer = rig.ok(ELIGIBLE, with(ready(), json!({"branch": "refs/heads/feat/x"})));
+    // Then the review is offered to open instead
+    assert_eq!(
+        answer,
+        json!({"provider": "github", "review": {"number": 12, "url": "https://example.test/github/12"}, "reviewLookupOutcome": "found", "defaultBaseRef": "origin/main", "head": "feat/x", "stackedCreationSupported": true, "canCreate": false, "blockedReason": "existing_review", "nextAction": "open_existing_review"})
+    );
+    assert!(!rig.asked_hosted().contains(&"sourceControl.discover".to_string()));
+    // And a linked number is read directly, not by the branch
+    let mut rig = github_rig();
+    rig.hosting.pull_request(7, "Other", "elsewhere", "main");
+    assert_eq!(rig.ok(ELIGIBLE, with(ready(), json!({"linkedGitHubPR": 7})))["review"], json!({"number": 7, "url": "https://example.test/github/7"}));
+    assert!(!rig.asked_hosted().contains(&"pr.list".to_string()));
+}
+
+#[test]
+fn given_a_repository_with_no_remote_when_eligibility_is_read_then_it_is_the_recorded_unsupported_provider_answer() {
+    // Given a fresh repository on main with no remote, as the host's scenario recording made it
+    let mut rig = Rig::new();
+    // When eligibility is read for branch a
+    let answer = rig.ok(ELIGIBLE, json!({"branch": "a"}));
+    // Then it is exactly the host's recorded answer, with no stacked creation key
+    assert_eq!(
+        answer,
+        json!({"blockedReason": "unsupported_provider", "canCreate": false, "defaultBaseRef": "main", "head": "a", "nextAction": null, "provider": "unsupported", "review": null, "reviewLookupOutcome": "not_found"})
+    );
+    // And no review was looked up
+    assert_eq!(rig.asked_hosted(), vec!["pr.remotes", "git.upstreamStatus", "git.refs"]);
+}
+
+#[test]
+fn given_each_blocking_state_of_the_branch_when_eligibility_is_read_then_the_first_rule_of_the_hosts_ladder_answers() {
+    let cases: [(Value, bool, Value, Value); 8] = [
+        (json!({"branch": "HEAD"}), false, json!("detached_head"), Value::Null),
+        (json!({"branch": "Main"}), false, json!("default_branch"), Value::Null),
+        (json!({"hasUncommittedChanges": true}), false, json!("dirty"), json!("commit")),
+        (json!({"hasUpstream": false}), false, json!("no_upstream"), json!("publish")),
+        (json!({"behind": 1}), false, json!("needs_sync"), json!("sync")),
+        (json!({}), true, json!("auth_required"), json!("authenticate")),
+        (json!({"ahead": 2}), false, json!("needs_push"), json!("push")),
+        (json!({"ahead": 2, "behind": 1, "hasUncommittedChanges": true}), false, json!("dirty"), json!("commit")),
+    ];
+    for (extra, signed_out, reason, next) in cases {
+        // Given the branch in that state
+        let mut rig = github_rig();
+        if signed_out {
+            rig.hosting.signed_out();
+        }
+        // When eligibility is read
+        let answer = rig.ok(ELIGIBLE, with(ready(), extra.clone()));
+        // Then creation is blocked with that rule's reason and next action
+        assert_eq!((answer["canCreate"].clone(), answer["blockedReason"].clone(), answer["nextAction"].clone()), (json!(false), reason, next), "{extra}");
+    }
+    // Given no word on the upstream, then creation is not offered and nothing blocks it by name
+    let mut rig = github_rig();
+    let answer = rig.ok(ELIGIBLE, json!({"branch": "feat/x"}));
+    assert_eq!((answer["canCreate"].clone(), answer["blockedReason"].clone(), answer["nextAction"].clone()), (json!(false), Value::Null, Value::Null));
+}
+
+#[test]
+fn given_the_pull_request_lookup_fails_when_eligibility_is_read_then_the_review_is_unavailable_and_creation_is_not_offered() {
+    // Given gh failing to list the branch's pull requests
+    let mut rig = github_rig();
+    rig.hosting.list_fails("gh: HTTP 502");
+    // When eligibility is read
+    let answer = rig.ok(ELIGIBLE, ready());
+    // Then the failure is not an absence: nothing blocks by name, but creation is not offered
+    assert_eq!(
+        answer,
+        json!({"provider": "github", "review": null, "reviewLookupOutcome": "unavailable", "defaultBaseRef": "origin/main", "head": "feat/x", "stackedCreationSupported": true, "canCreate": false, "blockedReason": null, "nextAction": null})
+    );
+}
+
+#[test]
+fn given_a_gitlab_origin_with_a_merge_request_of_the_branch_when_eligibility_is_read_then_it_is_the_gitlab_review() {
+    // Given an SSH origin on gitlab.com and merge request 5 of the branch
+    let mut rig = Rig::new();
+    rig.hosting.remote("origin", "git@gitlab.com:grp/app.git").merge_request(5, "Add retry", "feat/x", "main");
+    rig.ws.refs("main", &[("origin/main", "remote")]);
+    // When eligibility is read
+    let answer = rig.ok(ELIGIBLE, ready());
+    // Then it is GitLab's review, with no stacked creation, found by the merge request list
+    assert_eq!(
+        answer,
+        json!({"provider": "gitlab", "review": {"number": 5, "url": "https://example.test/gitlab/5"}, "reviewLookupOutcome": "found", "defaultBaseRef": "origin/main", "head": "feat/x", "canCreate": false, "blockedReason": "existing_review", "nextAction": "open_existing_review"})
+    );
+    assert_eq!(rig.asked_hosted(), vec!["pr.remotes", "git.upstreamStatus", "git.refs", "mr.list"]);
+}
+
+#[test]
+fn given_a_base_when_eligibility_is_read_then_it_is_the_default_only_when_a_remote_tracks_it() {
+    // Given develop on origin and a branch that only exists locally
+    let mut rig = github_rig();
+    // When eligibility names develop, then it is the base
+    let answer = rig.ok(ELIGIBLE, with(ready(), json!({"base": " develop "})));
+    assert_eq!((answer["defaultBaseRef"].clone(), answer["canCreate"].clone()), (json!("develop"), json!(true)));
+    let asked = rig.agent.requests().into_iter().find(|(m, _)| m == "git.refs").unwrap().1;
+    assert_eq!(asked, json!({"kind": "remote", "query": "develop", "workspace": "main"}));
+    // When it names a local-only branch, then the repository's default replaces it
+    let mut rig = github_rig();
+    assert_eq!(rig.ok(ELIGIBLE, with(ready(), json!({"base": "local-only"})))["defaultBaseRef"], json!("origin/main"));
+    // When the base is the branch itself under its remote name, then it is the default branch
+    let mut rig = github_rig();
+    rig.ws.refs("main", &[("origin/feat/x", "remote")]);
+    assert_eq!(rig.ok(ELIGIBLE, with(ready(), json!({"base": "origin/feat/x"})))["blockedReason"], json!("default_branch"));
+}
+
+#[test]
+fn given_a_worktree_selector_when_eligibility_is_read_then_one_of_another_repository_is_refused() {
+    // Given a second repository, and a worktree of main named by its id
+    let mut rig = github_rig();
+    rig.ws.workspace("other", "root", Some("/srv/other"));
+    // When the worktree belongs to the repository, then it answers
+    assert_eq!(rig.ok(ELIGIBLE, with(ready(), json!({"worktree": "id:main::/srv/main"})))["canCreate"], json!(true));
+    // When it names another repository, then access is denied before rca is asked anything hosted
+    let before = rig.asked_hosted().len();
+    assert_eq!(rig.err(ELIGIBLE, with(ready(), json!({"worktree": "id:other::/srv/other"}))), ("runtime_error".to_string(), "Access denied: worktree does not belong to repository".to_string()));
+    assert_eq!(rig.err(ELIGIBLE, with(ready(), json!({"worktree": "other"}))).1, "Access denied: worktree does not belong to repository");
+    // When it names nothing, then it is the selector's failure
+    assert_eq!(rig.err(ELIGIBLE, with(ready(), json!({"worktree": "nowhere"}))).0, "selector_not_found");
+    assert_eq!(rig.asked_hosted().len(), before);
+}
+
+#[test]
+fn given_params_the_hosts_schema_refuses_when_eligibility_is_read_then_it_is_zods_first_issue_and_rca_is_asked_nothing_hosted() {
+    let mut rig = github_rig();
+    let invalid = |m: &str| ("invalid_argument".to_string(), m.to_string());
+    let cases = [
+        (json!({"repo": 7, "branch": "a"}), "Missing repo selector"),
+        (json!({}), "Missing branch"),
+        (json!({"branch": ""}), "Missing branch"),
+        (json!({"worktree": "", "branch": 1}), "Missing worktree selector"),
+        (json!({"worktree": null, "branch": "a"}), "Invalid input: expected string, received null"),
+        (json!({"branch": "a", "base": 7}), "Invalid input: expected string, received number"),
+        (json!({"branch": "a", "hasUpstream": "yes"}), "Invalid input: expected boolean, received string"),
+        (json!({"branch": "a", "hasUncommittedChanges": null}), "Invalid input: expected boolean, received null"),
+        (json!({"branch": "a", "ahead": -1}), "Too small: expected number to be >=0"),
+        (json!({"branch": "a", "behind": 1.5}), "Invalid input: expected int, received number"),
+        (json!({"branch": "a", "ahead": 9007199254740992u64}), "Too big: expected int to be <=9007199254740991"),
+        (json!({"branch": "a", "linkedGitHubPR": 0}), "Too small: expected number to be >0"),
+        (json!({"branch": "a", "linkedGiteaPR": "1"}), "Invalid input: expected number, received string"),
+    ];
+    for (params, message) in cases {
+        // Given params the host's schema refuses, when eligibility is read, then the refusal is zod's first issue in key order
+        assert_eq!(rig.err(ELIGIBLE, params.clone()), invalid(message), "{params}");
+    }
+    // Given no params at all, then the repo selector is missing
+    let frame = json!({"id": "x", "method": ELIGIBLE, "params": null}).to_string();
+    let r: Value = serde_json::from_str(&rig.conn.on_message(&frame)[0]).unwrap();
+    assert_eq!((r["error"]["code"].clone(), r["error"]["message"].clone()), (json!("invalid_argument"), json!("Missing repo selector")));
+    // Given a repo no workspace owns, even with a worktree, then it is not found
+    assert_eq!(rig.err(ELIGIBLE, json!({"repo": "nowhere", "branch": "a", "worktree": "a"})), ("repo_not_found".to_string(), "repo_not_found".to_string()));
+    // And null links and an ignored WSL wake are taken
+    assert_eq!(rig.ok(ELIGIBLE, with(ready(), json!({"linkedGitHubPR": null, "fallbackGitHubPR": null, "wakeWslDistro": "x", "extra": 1})))["canCreate"], json!(true));
+    // And rca was asked nothing hosted for the refused ones
+    assert_eq!(rig.asked_hosted(), vec!["pr.remotes", "git.upstreamStatus", "pr.list", "sourceControl.discover"]);
 }

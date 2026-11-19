@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 168,
+    "served": 169,
     "pending": 4,
-    "notOffered": 135,
+    "notOffered": 134,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -2665,10 +2665,17 @@
       "kind": "rpc",
       "name": "hostedReview.getCreationEligibility",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it tells the phone whether a review can be created for the branch, and review creation is not offered (hostedReview.create), so an eligibility answer would promise an action this host refuses. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the branch preflight is pr.list/pr.view over the existing hosted group; served in phase 1.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-hostedReview.getCreationEligibility-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:jira.getIssue",

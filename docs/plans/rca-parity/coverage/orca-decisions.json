@@ -831,9 +831,7 @@
       "decidedBy": "M12"
     },
     "rpc:hostedReview.getCreationEligibility": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it tells the phone whether a review can be created for the branch, and review creation is not offered (hostedReview.create), so an eligibility answer would promise an action this host refuses. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the branch preflight is pr.list/pr.view over the existing hosted group; served in phase 1.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.addPRReviewCommentReply": {
       "oracle": "mimic"
