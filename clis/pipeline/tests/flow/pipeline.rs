@@ -388,7 +388,7 @@ fn pipeline_line(block: &str, key: &str) -> String {
 }
 
 #[test]
-fn a_red_test_stage_does_not_hide_the_e2e_jobs_but_still_blocks_the_deploy_and_the_production_update() {
+fn a_red_test_stage_does_not_hide_the_e2e_jobs_but_still_blocks_the_deploy_but_not_the_production_update() {
     // Given the pipeline workflow
     let text = std::fs::read_to_string(crate::support::repo_root().join(".github/workflows/pipeline.yml")).unwrap();
     let tests = ["flow-tests", "typecheck-lint-unit-tests", "integration-tests", "cli-e2e-tests"];
@@ -412,12 +412,13 @@ fn a_red_test_stage_does_not_hide_the_e2e_jobs_but_still_blocks_the_deploy_and_t
             assert!(!cond.contains(&format!("needs.{t}.result")), "{job} if: {cond}");
         }
     }
-    // And the production EAS Update step, the one phones open, keeps all four
+    // And the production EAS Update step, the one phones open, ships the head of dev whatever the tests say
     let eas = pipeline_job(&text, "eas-update");
     let step = &eas[eas.find("- name: Publish the EAS Update\n").expect("production step")..];
     let step_if = step.lines().find(|l| l.trim_start().starts_with("if:")).unwrap();
+    assert!(step_if.contains("needs.head.outputs.is_head == 'true'"), "{step_if}");
     for t in tests {
-        assert!(step_if.contains(&format!("needs.{t}.result != 'failure'")), "{step_if}");
+        assert!(!step_if.contains(&format!("needs.{t}.result")), "{step_if}");
     }
     // And the one job that dials a deployed service still needs a successful deploy unless no leg was planned
     let dvt = pipeline_line(&pipeline_job(&text, "deployment-verification-tests"), "if");
