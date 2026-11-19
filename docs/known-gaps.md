@@ -6,6 +6,7 @@ Pre-2026-10 history: [archive](archive/README.md).
 
 - agent-guards · Command guards regex-match text, so a mention of a blocked pattern is refused · 46d · [guards-match-quoted-text](gaps/guards-match-quoted-text.md)
 - agent-shell · agent-shell's global `wf` runs the dev trunk's build, not the checkout's · 46d · [agent-shell-wf-baked-bundle](gaps/agent-shell-wf-baked-bundle.md)
+- android-e2e · The Android editor-typing unit sometimes loses a typed newline, and the run then fails at the Run step · 0d · [android-editor-typing-drops-a-newline](gaps/android-editor-typing-drops-a-newline.md)
 - architecture · Features other than leetcode are not on ports + DI yet · 46d · [feature-di-migration](gaps/feature-di-migration.md)
 - architecture · Nine declared dependencies of the clis crates are never named in their sources · 11d · [unused-cargo-dependencies](gaps/unused-cargo-dependencies.md)
 - browser-harness · A browser-harness screenshot once came back as the frame's chrome tiled 22 times · 36d · [browser-harness-screenshot-tiled-chrome](gaps/browser-harness-screenshot-tiled-chrome.md)
@@ -40,7 +41,7 @@ Pre-2026-10 history: [archive](archive/README.md).
 - rca-parity · The Orca workspace mapper serves a narrower reply than the Orca host in four places · 14d · [orca-workspace-mapper-limits](gaps/orca-workspace-mapper-limits.md)
 - rca-parity · `device_*` and `browser_*` executor actions are not built, and the preview tabs have no browser behind them · 14d · [preview-device-browser-actions-not-built](gaps/preview-device-browser-actions-not-built.md)
 - rca-parity · The Orca terminal stream is a replay of rca's byte tail, not the host's screen · 3d · [orca-terminal-stream-limits](gaps/orca-terminal-stream-limits.md)
-- rca-parity · The Orca hosted mapper serves a narrower reply than the Orca host in three places · 0d · [orca-hosted-mapper-limits](gaps/orca-hosted-mapper-limits.md)
+- rca-parity · The Orca hosted mapper serves a narrower reply than the Orca host in four places · 0d · [orca-hosted-mapper-limits](gaps/orca-hosted-mapper-limits.md)
 - remote-chat-agent · Claude and Codex backends of remote-chat-agent were removed unproven; the credential relay awaits a human sign-in (blocked) · 91d · [agent-backends-await-human-login](gaps/agent-backends-await-human-login.md)
 - remote-chat-agent · `POST /api/edit-stats` answers `stored: true` for a row the table then rejects · 65d · [edit-stats-false-stored](gaps/edit-stats-false-stored.md)
 - remote-chat-agent · The published `opencode-server` image is arm64-only · 46d · [opencode-server-image-arm64-only](gaps/opencode-server-image-arm64-only.md)
