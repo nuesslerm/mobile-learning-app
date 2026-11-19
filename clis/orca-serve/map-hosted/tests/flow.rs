@@ -455,6 +455,34 @@ fn given_a_pull_and_a_merge_request_when_the_phone_closes_or_reopens_them_then_r
 }
 
 #[test]
+fn given_a_merge_request_when_the_phone_comments_on_it_then_the_answer_is_the_new_note_as_the_host_renders_it() {
+    // Given a workspace whose merge request 12 GitLab can take a note on
+    let mut rig = Rig::new();
+    // When the phone comments on it, and again for a project it names on another GitLab host
+    let posted = rig.ok("gitlab.addMRComment", json!({"iid": 12, "body": "Looks good"}));
+    rig.ok("gitlab.addMRComment", json!({"iid": 12, "body": "Again", "projectRef": {"host": "gitlab.example.com", "path": "grp/proj"}}));
+    // Then the answer is the whole new note as the host renders it
+    assert_eq!(posted, json!({"ok": true, "comment": {"id": 88, "author": "tanuki", "authorAvatarUrl": "https://gitlab.example/a.png", "body": "Looks good", "createdAt": "2026-11-19T02:00:00.000Z", "url": "", "isBot": false}}));
+    // And rca was asked for the note on that number with the body, the second for the named project and host
+    let asked = rig.agent.requests().into_iter().filter(|(m, _)| m == "mr.comment").map(|(_, p)| p).collect::<Vec<_>>();
+    assert_eq!(asked[0], json!({"workspace": "main", "number": 12, "body": "Looks good"}));
+    assert_eq!(asked[1], json!({"workspace": "main", "number": 12, "body": "Again", "repo": "grp/proj", "host": "gitlab.example.com"}));
+    // And a folder with no GitLab project is the host's unresolved failure, any other glab failure its words
+    assert_eq!(rig.ok("gitlab.addMRComment", json!({"iid": 99, "body": "x"})), json!({"ok": false, "error": "Could not resolve GitLab project for this repository", "errorCode": "gitlab.projectUnresolved"}));
+    assert_eq!(rig.ok("gitlab.addMRComment", json!({"iid": 5, "body": "x"})), json!({"ok": false, "error": "glab: 404 Not Found"}));
+    // And the host's schema refuses a bad request in key order, before the repository is resolved
+    let refused = |rig: &mut Rig, params: Value| rig.err("gitlab.addMRComment", params);
+    assert_eq!(refused(&mut rig, json!({"repo": "", "iid": 12, "body": "x"})), ("invalid_argument".into(), "Missing repo selector".into()));
+    assert_eq!(refused(&mut rig, json!({"repo": "nope", "iid": 12, "body": "x"})), ("repo_not_found".into(), "repo_not_found".into()));
+    assert_eq!(refused(&mut rig, json!({"iid": 0, "body": "x"})), ("invalid_argument".into(), "Too small: expected number to be >0".into()));
+    assert_eq!(refused(&mut rig, json!({"iid": "3", "body": "x"})), ("invalid_argument".into(), "Invalid input: expected number, received string".into()));
+    assert_eq!(refused(&mut rig, json!({"iid": 12})), ("invalid_argument".into(), "Comment body is required".into()));
+    assert_eq!(refused(&mut rig, json!({"iid": 12, "body": "x", "projectRef": {"host": "h"}})), ("invalid_argument".into(), "Missing GitLab project path".into()));
+    assert_eq!(refused(&mut rig, json!({"repo": "nope", "iid": 0, "body": "x"})), ("invalid_argument".into(), "Too small: expected number to be >0".into()));
+    assert_eq!(rig.agent.requests().into_iter().filter(|(m, _)| m == "mr.comment").count(), 4);
+}
+
+#[test]
 fn given_review_threads_when_one_is_resolved_or_reopened_then_the_answer_is_whether_github_did_and_a_failure_is_false() {
     let mut rig = Rig::new();
     // When the phone resolves a thread by its node id, and reopens it for a named repository

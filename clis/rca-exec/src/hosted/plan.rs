@@ -603,7 +603,7 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
         }
         HostedCall::PrReady { number, undo } => one(glab(mr_cmd(&["update"], *number, strs(&[if *undo { "--draft" } else { "--ready" }])))),
         HostedCall::PrState { number, closed } => one(with_json(api("PUT", mr(*number, "")), serde_json::json!({"state_event": if *closed { "close" } else { "reopen" }}))),
-        HostedCall::PrComment { number, body } => one(glab(mr_cmd(&["note"], *number, vec![format!("--message={body}")]))),
+        HostedCall::PrComment { number, body } => one(with_json(api("POST", mr(*number, "/notes")), serde_json::json!({"body": body}))),
         HostedCall::PrReply { number, thread, body, .. } => {
             let thread = thread.as_deref().ok_or("GitLab replies in a discussion named by `thread`")?;
             one(with_json(api("POST", mr(*number, &format!("/discussions/{thread}/notes"))), serde_json::json!({"body": body})))

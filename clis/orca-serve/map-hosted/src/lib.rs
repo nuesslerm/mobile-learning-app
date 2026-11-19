@@ -22,7 +22,7 @@ mod time;
 pub mod testing;
 
 /// The agent methods this crate sends: the `pr.*` and `mr.*` ones it reaches, and the fetch of a request's head.
-pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::COMMENTS, pr::REVIEWS, pr::THREADS, FETCH, BLOB];
+pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, FETCH, BLOB];
 
 const METHODS: &[Method] = &[
     Method { name: "github.prForBranch", kind: Kind::Unary },
@@ -35,6 +35,7 @@ const METHODS: &[Method] = &[
     Method { name: "github.addPRReviewCommentReply", kind: Kind::Unary },
     Method { name: "github.updatePRState", kind: Kind::Unary },
     Method { name: "gitlab.updateMRState", kind: Kind::Unary },
+    Method { name: "gitlab.addMRComment", kind: Kind::Unary },
     Method { name: "github.mergePR", kind: Kind::Unary },
     Method { name: "github.updatePRTitle", kind: Kind::Unary },
     Method { name: "github.updatePR", kind: Kind::Unary },
@@ -63,9 +64,11 @@ impl Area for HostedArea {
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
-        let repo_list = matches!(method, "github.listLabels" | "github.listAssignableUsers" | "github.resolveReviewThread" | "github.setPRFileViewed" | "github.addPRReviewComment" | "github.addPRReviewCommentReply" | "github.updatePRState" | "gitlab.updateMRState");
+        let repo_list = matches!(method, "github.listLabels" | "github.listAssignableUsers" | "github.resolveReviewThread" | "github.setPRFileViewed" | "github.addPRReviewComment" | "github.addPRReviewCommentReply" | "github.updatePRState" | "gitlab.updateMRState" | "gitlab.addMRComment");
         if method == "github.addPRReviewComment" {
             github::check_review_comment_params(params)?;
+        } else if method == "gitlab.addMRComment" {
+            gitlab::check_comment(params)?;
         } else if method == "github.setPRFileViewed" {
             github::check_file_viewed_params(params)?;
         } else if repo_list {
@@ -87,6 +90,7 @@ impl Area for HostedArea {
             "github.addPRReviewCommentReply" => github::reply_to_comment(&target, params),
             "github.updatePRState" => github::set_state(&target, params),
             "gitlab.updateMRState" => gitlab::set_state(&target, params),
+            "gitlab.addMRComment" => gitlab::comment(&target, params),
             "github.mergePR" => github::merge(&target, params),
             "github.updatePRTitle" => github::update_title(&target, params),
             "github.updatePR" => github::update(&target, params),

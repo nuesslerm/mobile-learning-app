@@ -810,9 +810,7 @@
       "decidedBy": "M12"
     },
     "rpc:gitlab.addMRComment": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's mr.comment answers only {done, url} through `glab mr note`, where the phone reads the created comment back (id, author, body, time), so the answer would lack what the row returns until rca's GitLab comment is changed to the notes API.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:accounts.subscribe": {
       "state": "not-offered",

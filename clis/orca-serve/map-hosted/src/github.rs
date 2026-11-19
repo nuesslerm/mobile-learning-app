@@ -110,7 +110,7 @@ fn comment_row(c: &Value, params: &Value, body: &str) -> Option<Value> {
 const MAX_SAFE_INTEGER: u64 = (1 << 53) - 1;
 
 /// zod's `z.number().int().positive()` (whose `int()` is bounded to the safe integers): the first issue it reports for `v`, or the number.
-fn int_positive(v: Option<&Value>) -> Result<u64, Failure> {
+pub(crate) fn int_positive(v: Option<&Value>) -> Result<u64, Failure> {
     let n = match v {
         None => return Err(Failure::invalid("Invalid input: expected number, received undefined")),
         Some(Value::Number(n)) => n,
@@ -133,7 +133,7 @@ fn int_positive(v: Option<&Value>) -> Result<u64, Failure> {
 }
 
 /// zod's `requiredString(message)`: anything but a non-empty string is `message`.
-fn required_string<'a>(params: &'a Value, key: &str, message: &str) -> Result<&'a str, Failure> {
+pub(crate) fn required_string<'a>(params: &'a Value, key: &str, message: &str) -> Result<&'a str, Failure> {
     crate::text(params, key).ok_or_else(|| Failure::invalid(message))
 }
 

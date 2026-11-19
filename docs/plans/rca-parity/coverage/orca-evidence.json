@@ -276,6 +276,20 @@
         "complete": true,
         "tests": 62,
         "passed": 10
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "3e58e9348d504e61af46754d550fe993f5ec2390",
+        "complete": true,
+        "tests": 446,
+        "passed": 104
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 62,
+        "passed": 11
       }
     ]
   },
@@ -1123,6 +1137,15 @@
     "rpc:github.updatePRTitle": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-github.updatePRTitle-invalid-drop-repo",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:gitlab.addMRComment": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-gitlab.addMRComment-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

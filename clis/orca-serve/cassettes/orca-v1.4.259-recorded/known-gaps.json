@@ -64,7 +64,6 @@
         "orca-github.workItemByOwnerRepo",
         "orca-github.workItemDetails",
         "orca-gitlab.addIssueComment",
-        "orca-gitlab.addMRComment",
         "orca-gitlab.createIssue",
         "orca-gitlab.listWorkItems",
         "orca-gitlab.mergeMR",

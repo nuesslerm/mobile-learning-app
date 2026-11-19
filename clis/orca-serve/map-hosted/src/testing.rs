@@ -294,6 +294,14 @@ impl Hosting {
                 _ => Err(refused("HOSTED_FAILED", "HTTP 404: Not Found")),
             });
         }
+        agent.reply("mr.comment", |p| {
+            let body = p["body"].as_str().filter(|b| !b.trim().is_empty()).ok_or_else(|| refused("INVALID_ARGS", "`body` must not be empty"))?;
+            match p["number"].as_u64() {
+                Some(12) => Ok(json!({"done": true, "url": null, "id": "88", "database_id": 88, "author": "tanuki", "avatar_url": "https://gitlab.example/a.png", "is_bot": false, "body": body, "created_at": "2026-11-19T02:00:00.000Z"})),
+                Some(99) => Err(refused("HOSTED_FAILED", "none of the git remotes configured for this repository points to a known GitLab host")),
+                _ => Err(refused("HOSTED_FAILED", "glab: 404 Not Found")),
+            }
+        });
         agent.reply("pr.reply", |p| match p["comment_id"].as_u64() {
             Some(9003) => Ok(json!({"id": "PRRC_kwDOAB", "database_id": 9004, "url": "https://github.com/acme/app/pull/12#discussion_r9004", "author": "octocat", "avatar_url": "https://avatars.example/1", "is_bot": false, "body": p["body"], "created_at": "2026-11-19T02:00:00Z", "path": null, "line": null})),
             _ => Err(refused("HOSTED_FAILED", "gh: Not Found (HTTP 404)")),

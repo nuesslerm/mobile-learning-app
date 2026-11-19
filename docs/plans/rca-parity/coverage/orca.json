@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 166,
+    "served": 167,
     "pending": 4,
-    "notOffered": 137,
+    "notOffered": 136,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -2487,10 +2487,17 @@
       "kind": "rpc",
       "name": "gitlab.addMRComment",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca's mr.comment answers only {done, url} through `glab mr note`, where the phone reads the created comment back (id, author, body, time), so the answer would lack what the row returns until rca's GitLab comment is changed to the notes API.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-gitlab.addMRComment-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:gitlab.createIssue",

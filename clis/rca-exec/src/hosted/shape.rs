@@ -456,7 +456,12 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
                 _ => Err(io(format!("{program} printed no address for the new request: {}", brief(&printed)))),
             }
         }
-        HostedCall::PrComment { .. } => Ok(json!({"done": true, "url": first_url(&last.stdout)})),
+        HostedCall::PrComment { .. } if github => Ok(json!({"done": true, "url": first_url(&last.stdout)})),
+        HostedCall::PrComment { .. } => {
+            let v = body(&last)?;
+            let a = &v["author"];
+            Ok(json!({"done": true, "url": null, "id": id_string(&v, "id"), "database_id": v["id"], "author": text(a, "username"), "avatar_url": text(a, "avatar_url"), "is_bot": a["state"] == "bot", "body": v["body"], "created_at": text(&v, "created_at")}))
+        }
         HostedCall::PrReply { comment_id: Some(_), .. } => {
             let v = body(&last)?;
             let user = &v["user"];

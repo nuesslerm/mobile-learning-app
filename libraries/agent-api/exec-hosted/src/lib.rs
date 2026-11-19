@@ -148,7 +148,7 @@ pub const ACTIONS: &[Action] = &[
         ["number"]
     ),
     action!(PR_READY, "Mark a draft ready for review, or with `undo` make it a draft again.", [NUMBER, Property { name: "undo", kind: "boolean", about: "Make it a draft" }], ["number"]),
-    action!(PR_COMMENT, "Add a conversation comment.", [NUMBER, BODY], ["number", "body"]),
+    action!(PR_COMMENT, "Add a conversation comment; GitLab answers the new note's id, database_id, author, avatar_url, is_bot, body and created_at.", [NUMBER, BODY], ["number", "body"]),
     action!(PR_REPLY, "Reply in a review thread, named by `thread` or (GitHub) by the numeric id of a comment in it, `comment_id`, which answers the new comment's id, database_id, url, author, avatar_url, is_bot, body, created_at, path and line.", [NUMBER, THREAD, BODY, Property { name: "comment_id", kind: "integer", about: "GitHub: the numeric id of a review comment of the thread, instead of `thread`" }], ["number", "body"]),
     action!(
         PR_REVIEW,
