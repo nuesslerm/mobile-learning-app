@@ -502,9 +502,7 @@
       "oracle": "mimic"
     },
     "rpc:automation.runs": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca keeps only a schedule's last run (last_run_ms, status, error) and a non-durable 256-event tail on the schedules stream, so a page of runs with a cursor, or one run by runId, would be made up from the last run.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.listWorkItems": {
       "state": "not-offered",

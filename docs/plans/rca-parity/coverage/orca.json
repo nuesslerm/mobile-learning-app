@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 172,
+    "served": 173,
     "pending": 4,
-    "notOffered": 131,
+    "notOffered": 130,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -910,10 +910,17 @@
       "kind": "rpc",
       "name": "automation.runs",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M12",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: rca keeps only a schedule's last run (last_run_ms, status, error) and a non-durable 256-event tail on the schedules stream, so a page of runs with a cursor, or one run by runId, would be made up from the last run.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-automation.runs-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:automation.show",

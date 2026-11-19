@@ -1,7 +1,8 @@
 //! The automation rows: the phone's record from an rca schedule and its kept `orca` meta, and each write as one `schedule.upsert`.
 use crate::recurrence::{next_after, schedule_of};
 use crate::{ask, not_found, ok_delete, text};
-use agent_api_schedules::{ListResult, MutationResult, RunNowResult, RunSource, RunState, RunStatus, TaskView, DELETE, LIST, RUN_NOW, UPSERT};
+use agent_api_schedules::{ListResult, MutationResult, RunNowResult, RunSource, RunState, RunStatus, RunView, RunsResult, TaskView, DELETE, LIST, RUNS, RUN_NOW, UPSERT};
+use crate::runs_page::{budget, newest_first, page_json, paginate, preview};
 use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::AgentApi;
 use orca_map_agent::{agent_of, driver_of};
@@ -238,8 +239,8 @@ pub fn update(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     Ok(json!({"automation": record(&saved, &kept)?}))
 }
 
-fn run_of(task: &TaskView, kept: &Kept, done: &RunNowResult) -> Result<Value, Failure> {
-    let run = &done.run;
+/// rca's run as the phone's `AutomationRun` row; `method` names the answer that carried it.
+fn run_row(task: &TaskView, kept: &Kept, run: &RunView, method: &str) -> Result<Value, Failure> {
     let status = match run.state {
         RunState::Started => "dispatched",
         RunState::Succeeded => "completed",
@@ -248,7 +249,7 @@ fn run_of(task: &TaskView, kept: &Kept, done: &RunNowResult) -> Result<Value, Fa
     };
     let began = matches!(run.state, RunState::Started | RunState::Succeeded);
     if run.state == RunState::Failed && run.error.is_none() {
-        return Err(bad_answer("schedule.runNow answered a failed run with no error"));
+        return Err(bad_answer(&format!("{method} answered a failed run with no error")));
     }
     Ok(json!({
         "id": run.run, "automationId": task.id, "title": task.title, "scheduledFor": run.at_ms, "status": status,
@@ -263,5 +264,53 @@ pub fn run_now(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
     own_host_only(params)?;
     let (task, kept) = find(agent, id_of(params)?)?;
     let done: RunNowResult = serde_json::from_value(ask(agent, RUN_NOW, json!({"id": task.id}))?).map_err(|e| bad_answer(&format!("schedule.runNow answered no run: {e}")))?;
-    Ok(json!({"run": run_of(&task, &kept, &done)?}))
+    Ok(json!({"run": run_row(&task, &kept, &done.run, "schedule.runNow")?}))
+}
+
+/// The host's lenient optional string: a non-empty string, anything else absent (no trimming).
+fn opt_text<'a>(params: &'a Value, key: &str) -> Option<&'a str> {
+    params.get(key).and_then(Value::as_str).filter(|s| !s.is_empty())
+}
+
+fn history(agent: &dyn AgentApi, id: Option<&str>) -> Result<Vec<RunView>, Failure> {
+    let params = id.map_or_else(|| json!({}), |id| json!({"id": id}));
+    let answer: RunsResult = serde_json::from_value(ask(agent, RUNS, params)?).map_err(|e| bad_answer(&format!("schedule.runs answered no runs: {e}")))?;
+    Ok(answer.runs)
+}
+
+/// `automation.runs`: one run by id, or the runs (of one automation, or of them all) as the whole list, a page, or a page cut to the reply's
+/// budget, from the runs rca keeps.
+pub fn runs(agent: &dyn AgentApi, params: &Value, request_id: &str) -> Result<Value, Failure> {
+    own_host_only(params)?;
+    let automation = opt_text(params, "automationId");
+    if let Some(run_id) = opt_text(params, "runId") {
+        let id = automation.ok_or_else(|| Failure::new(RUNTIME_ERROR, "A run id requires an automation id."))?;
+        let (task, kept) = find(agent, id)?;
+        let run = history(agent, Some(&task.id))?.into_iter().find(|r| r.run == run_id).ok_or_else(|| Failure::new(RUNTIME_ERROR, "Automation run not found."))?;
+        return Ok(json!({"run": run_row(&task, &kept, &run, "schedule.runs")?}));
+    }
+    if params.get("expectedOwner").is_some_and(|o| !o.is_null()) && automation.is_none() {
+        return Err(Failure::new(RUNTIME_ERROR, "An expected owner requires an automation id."));
+    }
+    let mut rows = match automation {
+        Some(id) => {
+            let (task, kept) = find(agent, id)?;
+            history(agent, Some(&task.id))?.iter().map(|r| run_row(&task, &kept, r, "schedule.runs")).collect::<Result<Vec<_>, _>>()?
+        }
+        None => {
+            let all = tasks(agent)?;
+            let runs = history(agent, None)?;
+            runs.iter().filter_map(|r| all.iter().find(|(t, _)| t.id == r.schedule).map(|(t, k)| run_row(t, k, r, "schedule.runs"))).collect::<Result<Vec<_>, _>>()?
+        }
+    };
+    rows.sort_by(newest_first);
+    let limit = params.get("limit").and_then(Value::as_f64).filter(|n| n.is_finite() && *n >= 0.0);
+    let cursor = opt_text(params, "cursor");
+    if params.get("preview") == Some(&Value::Bool(true)) {
+        return preview(paginate(rows, limit, cursor), budget(request_id));
+    }
+    if limit.is_some() || cursor.is_some() {
+        return Ok(page_json(paginate(rows, limit, cursor)));
+    }
+    Ok(json!({"runs": rows}))
 }
