@@ -42,6 +42,8 @@ struct State {
     threads: Vec<(u64, Value)>,
     reviews: Vec<(u64, Value)>,
     blobs: Vec<(String, String, Vec<u8>)>,
+    remotes: Vec<(String, String)>,
+    remotes_error: Option<String>,
 }
 
 /// What rca's richer answers add to a comment, a review or a thread comment; every part is optional and a default adds none.
@@ -256,7 +258,26 @@ impl Hosting {
         self
     }
 
+    /// A remote of the workspace repository with its fetch URL, listed in the order added.
+    pub fn remote(&self, name: &str, url: &str) -> &Self {
+        self.0.lock().unwrap().remotes.push((name.into(), url.into()));
+        self
+    }
+
+    /// Makes listing the remotes fail with `message`, as git does outside a repository.
+    pub fn remotes_fail(&self, message: &str) {
+        self.0.lock().unwrap().remotes_error = Some(message.into());
+    }
+
     pub fn install(&self, agent: &ScriptedAgent) {
+        let me = self.clone();
+        agent.reply("pr.remotes", move |_| {
+            let s = me.0.lock().unwrap();
+            match &s.remotes_error {
+                Some(message) => Err(refused("IO_ERROR", message.clone())),
+                None => Ok(json!({"remotes": s.remotes.iter().map(|(n, u)| json!({"name": n, "url": u})).collect::<Vec<_>>()})),
+            }
+        });
         let me = self.clone();
         agent.reply("pr.comments", move |p| {
             let (s, n) = (me.0.lock().unwrap(), number(p)?);

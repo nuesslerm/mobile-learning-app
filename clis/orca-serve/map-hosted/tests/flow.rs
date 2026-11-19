@@ -698,3 +698,69 @@ fn given_a_pull_request_that_cannot_be_fetched_or_a_path_the_commit_lacks_when_t
     let (code, _) = rig.err("github.prFileContents", json!({"prNumber": 12, "path": "p", "status": "weird", "headSha": "c", "baseSha": "a"}));
     assert_eq!((code.as_str(), rig.asked_hosted().len()), ("invalid_argument", before));
 }
+
+fn remotes_asked(rig: &Rig) -> Vec<Value> {
+    rig.agent.requests().into_iter().filter(|(m, _)| m == "pr.remotes").map(|(_, p)| p).collect()
+}
+
+#[test]
+fn given_a_workspace_whose_origin_names_a_github_repository_when_its_slug_is_read_then_it_is_the_owner_repo_and_github_host_and_rca_was_asked_its_remotes() {
+    // Given an origin on github.com in its own casing, and an upstream
+    let mut rig = Rig::new();
+    rig.hosting.remote("origin", "git@github.com:Octo/Hello.git").remote("upstream", "https://github.com/acme/hello");
+    // When the phone reads the repository's slug
+    let slug = rig.ok("github.repoSlug", json!({}));
+    // Then it is origin's owner and repository on github.com, read from the remotes rca listed for the workspace
+    assert_eq!(slug, json!({"owner": "Octo", "repo": "Hello", "host": "github.com"}));
+    let asked = remotes_asked(&rig);
+    assert_eq!(asked.len(), 1);
+    assert_eq!(asked[0].as_object().unwrap().keys().collect::<Vec<_>>(), vec!["workspace"]);
+    // And keys the host strips are never refused
+    assert_eq!(rig.ok("github.repoSlug", json!({"ownerRepo": 5, "expectedGhAccount": "x", "extra": 1})), json!({"owner": "Octo", "repo": "Hello", "host": "github.com"}));
+}
+
+#[test]
+fn given_remotes_that_name_no_github_origin_when_the_slug_is_read_then_it_is_null_or_the_stand_in_remote() {
+    let read = |remotes: &[(&str, &str)]| {
+        let mut rig = Rig::new();
+        for (name, url) in remotes {
+            rig.hosting.remote(name, url);
+        }
+        rig.ok("github.repoSlug", json!({}))
+    };
+    // Given no remote, an origin on another forge, a local origin alone or an Enterprise origin, when the slug is read, then there is none
+    assert_eq!(read(&[]), Value::Null);
+    assert_eq!(read(&[("origin", "git@gitlab.com:grp/proj.git"), ("fork", "https://github.com/me/app.git")]), Value::Null);
+    assert_eq!(read(&[("origin", "/srv/local.git")]), Value::Null);
+    assert_eq!(read(&[("origin", "https://ghe.example.com/a/b")]), Value::Null);
+    // Given SSH over port 443, then it is github.com
+    assert_eq!(read(&[("origin", "ssh://git@ssh.github.com:443/acme/app.git")]), json!({"owner": "acme", "repo": "app", "host": "github.com"}));
+    // Given a local origin or none, then the remote standing in for it answers, never upstream
+    assert_eq!(read(&[("origin", "/srv/local.git"), ("fork", "https://github.com/me/app.git")]), json!({"owner": "me", "repo": "app", "host": "github.com"}));
+    assert_eq!(read(&[("upstream", "https://github.com/acme/app"), ("zeta", "git@github.com:z/app.git")]), json!({"owner": "z", "repo": "app", "host": "github.com"}));
+    assert_eq!(read(&[("upstream", "https://github.com/acme/app")]), Value::Null);
+    // Given git refusing to list them, then the host's swallowed error is null too
+    let mut rig = Rig::new();
+    rig.hosting.remotes_fail("git exited 128: fatal: not a git repository (or any of the parent directories): .git");
+    assert_eq!(rig.ok("github.repoSlug", json!({})), Value::Null);
+}
+
+#[test]
+fn given_a_bad_selector_when_the_slug_is_read_then_it_is_the_hosts_refusal() {
+    let mut rig = Rig::new();
+    rig.hosting.remote("origin", "git@github.com:octo/hello.git");
+    // Given an empty, a non-string, a null or a missing selector, when the slug is read, then the host's selector refusal comes back
+    let missing = ("invalid_argument".to_string(), "Missing repo selector".to_string());
+    for params in [json!({"repo": ""}), json!({"repo": 7}), json!({"repo": null})] {
+        assert_eq!(rig.err("github.repoSlug", params.clone()), missing, "{params}");
+    }
+    for params in [Value::Null, json!({})] {
+        let frame = json!({"id": "x", "method": "github.repoSlug", "params": params}).to_string();
+        let r: Value = serde_json::from_str(&rig.conn.on_message(&frame)[0]).unwrap();
+        assert_eq!((r["ok"].clone(), r["error"]["code"].clone(), r["error"]["message"].clone()), (json!(false), json!("invalid_argument"), json!("Missing repo selector")), "{params}");
+    }
+    // And a selector that names no workspace is not found
+    assert_eq!(rig.err("github.repoSlug", json!({"repo": "nowhere"})), ("repo_not_found".to_string(), "repo_not_found".to_string()));
+    // And rca was asked nothing of the remotes
+    assert!(remotes_asked(&rig).is_empty());
+}

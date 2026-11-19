@@ -16,18 +16,20 @@ mod checks;
 mod github;
 mod gitlab;
 mod review;
+mod slug;
 mod time;
 
 #[cfg(any(test, feature = "testing"))]
 pub mod testing;
 
 /// The agent methods this crate sends: the `pr.*` and `mr.*` ones it reaches, and the fetch of a request's head.
-pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, FETCH, BLOB];
+pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, pr::REMOTES, FETCH, BLOB];
 
 const METHODS: &[Method] = &[
     Method { name: "github.prForBranch", kind: Kind::Unary },
     Method { name: "github.prChecks", kind: Kind::Unary },
     Method { name: "github.listLabels", kind: Kind::Unary },
+    Method { name: "github.repoSlug", kind: Kind::Unary },
     Method { name: "github.listAssignableUsers", kind: Kind::Unary },
     Method { name: "github.resolveReviewThread", kind: Kind::Unary },
     Method { name: "github.setPRFileViewed", kind: Kind::Unary },
@@ -64,14 +66,14 @@ impl Area for HostedArea {
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
-        let repo_list = matches!(method, "github.listLabels" | "github.listAssignableUsers" | "github.resolveReviewThread" | "github.setPRFileViewed" | "github.addPRReviewComment" | "github.addPRReviewCommentReply" | "github.updatePRState" | "gitlab.updateMRState" | "gitlab.addMRComment");
+        let repo_list = matches!(method, "github.listLabels" | "github.listAssignableUsers" | "github.resolveReviewThread" | "github.setPRFileViewed" | "github.addPRReviewComment" | "github.addPRReviewCommentReply" | "github.updatePRState" | "gitlab.updateMRState" | "gitlab.addMRComment" | "github.repoSlug");
         if method == "github.addPRReviewComment" {
             github::check_review_comment_params(params)?;
         } else if method == "gitlab.addMRComment" {
             gitlab::check_comment(params)?;
         } else if method == "github.setPRFileViewed" {
             github::check_file_viewed_params(params)?;
-        } else if repo_list {
+        } else if repo_list && method != "github.repoSlug" {
             github::check_label_params(params)?;
         }
         let target = match Target::of(ctx.agent, params) {
@@ -83,6 +85,7 @@ impl Area for HostedArea {
             "github.prForBranch" => github::pr_for_branch(&target, params),
             "github.prChecks" => github::pr_checks(&target, params),
             "github.listLabels" => github::list_labels(&target, params),
+            "github.repoSlug" => github::repo_slug(&target),
             "github.listAssignableUsers" => github::list_assignable_users(&target, params),
             "github.resolveReviewThread" => github::resolve_thread(&target, params),
             "github.setPRFileViewed" => github::file_viewed(&target, params),

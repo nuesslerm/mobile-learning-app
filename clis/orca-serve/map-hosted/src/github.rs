@@ -1,5 +1,5 @@
 //! The `github.*` pull request rows over `pr.*`.
-use crate::{checks, number, outcome, required, text, time, with_repo, Target};
+use crate::{checks, number, outcome, required, slug, text, time, with_repo, Target};
 use agent_api_hosted::pr;
 use orca_core::wire::{received, Failure, RUNTIME_ERROR};
 use orca_core::AgentError;
@@ -206,6 +206,19 @@ pub fn resolve_thread(t: &Target, params: &Value) -> Result<Value, Failure> {
         Err(AgentError::Refused { code, .. }) if code != "UNKNOWN_WORKSPACE" => Ok(json!(false)),
         Err(other) => Err(crate::refusal(other)),
     }
+}
+
+/// `github.repoSlug`: the host reads the origin remote (or the remote standing in for it) locally, answering `{owner, repo, host}` for a github.com
+/// repository and null otherwise; it swallows git's errors, so a refused read is null too. Enterprise hosts and SSH host aliases stay null here.
+pub fn repo_slug(t: &Target) -> Result<Value, Failure> {
+    let remotes = match t.try_ask(pr::REMOTES, json!({})) {
+        Ok(v) => v["remotes"].as_array().cloned().unwrap_or_default(),
+        Err(AgentError::Refused { code, .. }) if code != "UNKNOWN_WORKSPACE" => return Ok(Value::Null),
+        Err(other) => return Err(crate::refusal(other)),
+    };
+    let slug = |name: &str| remotes.iter().find(|r| r["name"] == name).and_then(|r| r["url"].as_str()).and_then(slug::github_com_slug);
+    let found = slug("origin").or_else(|| slug::stand_in(&remotes).and_then(|name| slug(&name)));
+    Ok(found.map_or(Value::Null, |(owner, repo)| json!({"owner": owner, "repo": repo, "host": "github.com"})))
 }
 
 /// The schema of `github.setPRFileViewed` in its key order, answering zod's first issue; unknown keys are stripped, never refused.

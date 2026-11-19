@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 167,
+    "served": 168,
     "pending": 4,
-    "notOffered": 136,
+    "notOffered": 135,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -2306,10 +2306,17 @@
       "kind": "rpc",
       "name": "github.repoSlug",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host parses the origin remote's URL locally with no sign-in, and rca has no method that reads a remote URL (git.refs and git.upstreamStatus give names only), so the slug could only come from a network lookup through the signed-in gh that may name another casing or a renamed repository.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.repoSlug-invalid-drop-repo",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.requestPRReviewers",

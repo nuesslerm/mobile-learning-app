@@ -795,9 +795,7 @@
       "decidedBy": "M12"
     },
     "rpc:github.repoSlug": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the host parses the origin remote's URL locally with no sign-in, and rca has no method that reads a remote URL (git.refs and git.upstreamStatus give names only), so the slug could only come from a network lookup through the signed-in gh that may name another casing or a renamed repository.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:github.prCheckDetails": {
       "state": "not-offered",
