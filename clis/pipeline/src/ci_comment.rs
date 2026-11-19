@@ -147,7 +147,7 @@ fn is_failed(job: &Value) -> bool {
     matches!(job["conclusion"].as_str(), Some("failure" | "timed_out"))
 }
 
-fn failed_step(job: &Value) -> String {
+pub(crate) fn failed_step(job: &Value) -> String {
     let steps = job["steps"].as_array().map(Vec::as_slice).unwrap_or_default();
     let with = |conclusions: &[&str]| steps.iter().find(|s| s["conclusion"].as_str().is_some_and(|c| conclusions.contains(&c)));
     with(&["failure", "timed_out"]).or_else(|| with(&["cancelled"])).map_or_else(|| "-".to_string(), |s| text(s, "name"))
@@ -324,6 +324,14 @@ fn analyse(log: &str, token: &str) -> (Vec<String>, Vec<String>) {
 pub(crate) fn read_log(env: &Env, job: &Value) -> Result<String, String> {
     let url = format!("{}/repos/{}/actions/jobs/{}/logs", env.api, env.repo, job["id"].as_u64().unwrap_or(0));
     send(env, "GET", &url, None).and_then(|r| if r.ok() { Ok(r.text()) } else { Err(format!("HTTP {}", r.status)) })
+}
+
+/// The failed step of a finished job and the lines of its log that say why, as one short text for the CI database (`CI_JOBS.EXCERPT`): the same causes the run
+/// comment shows, joined, at most 700 characters. Empty when the log cannot be read.
+pub(crate) fn excerpt_of(env: &Env, job: &Value) -> (String, String) {
+    let step = failed_step(job);
+    let cause = read_log(env, job).map(|log| analyse(&log, &env.token).0.join("\n")).unwrap_or_default();
+    (step, cause.chars().take(700).collect())
 }
 
 fn failure(env: &Env, job: &Value, log: &Result<String, String>) -> Failure {

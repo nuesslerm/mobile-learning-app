@@ -136,7 +136,14 @@ pub fn ensure_ledger(conn: &Connection) -> Result<(), String> {
          CREATE TABLE IF NOT EXISTS CI_JOBS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, KIND TEXT NOT NULL, JOB TEXT NOT NULL,
            SECS INTEGER NOT NULL, QUEUED INTEGER NOT NULL, PRIMARY KEY (RUN_ID, JOB));",
     )
-    .map_err(sql)
+    .map_err(sql)?;
+    // what a job ended as, when it started (0: never) and the concurrency group it queued in: added to a database that had the first seven columns
+    for (column, kind) in [("CONCLUSION", "TEXT"), ("STARTED", "INTEGER"), ("GROUP_KEY", "TEXT"), ("STEP", "TEXT"), ("EXCERPT", "TEXT")] {
+        if !has_column(conn, "main", "CI_JOBS", column)? {
+            conn.execute_batch(&format!("ALTER TABLE CI_JOBS ADD COLUMN {column} {kind}")).map_err(sql)?;
+        }
+    }
+    Ok(())
 }
 
 fn cell(v: &Value) -> rusqlite::types::Value {
@@ -221,6 +228,11 @@ pub struct JobRow {
     pub job: String,
     pub secs: i64,
     pub queued: i64,
+    pub conclusion: String,
+    pub started: i64,
+    pub group_key: Option<String>,
+    pub step: Option<String>,
+    pub excerpt: Option<String>,
 }
 
 /// Writes jobs to the typed `CI_JOBS` table of the job's local database (the report job merges it); a job already there for the run is kept once.
@@ -232,8 +244,8 @@ pub fn record_jobs_local(jobs: &[JobRow]) -> Result<bool, String> {
     let tx = conn.transaction().map_err(sql)?;
     for j in jobs {
         tx.execute(
-            "INSERT OR IGNORE INTO CI_JOBS (RUN_ID, SHA, TS, KIND, JOB, SECS, QUEUED) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-            rusqlite::params![j.run, j.sha, j.ts, j.kind, j.job, j.secs, j.queued],
+            "INSERT OR IGNORE INTO CI_JOBS (RUN_ID, SHA, TS, KIND, JOB, SECS, QUEUED, CONCLUSION, STARTED, GROUP_KEY, STEP, EXCERPT) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+            rusqlite::params![j.run, j.sha, j.ts, j.kind, j.job, j.secs, j.queued, j.conclusion, j.started, j.group_key, j.step, j.excerpt],
         )
         .map_err(sql)?;
     }

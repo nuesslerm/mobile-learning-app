@@ -1167,6 +1167,7 @@ jobs:
         continue-on-error: true
         timeout-minutes: 3
         env:
+          WF_CI_SHARD_KEYS: ${{ needs.plan.outputs.integration_shard_keys }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}

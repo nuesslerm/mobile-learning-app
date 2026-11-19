@@ -142,28 +142,53 @@ fn fail(message: &str, next: &str) -> i32 {
     1
 }
 
-/// Each job's time into the CI database's `CI_JOBS` (the job-local file the report job merges); best effort like the gauges.
-fn keep_jobs(run: &Value, run_id: &str, table: &Value) {
+/// The concurrency group of a job when it is a shard with a key: `WF_CI_SHARD_KEYS` is the plan's JSON array of keys of the integration shards.
+fn group_of(stage: &str, shard: &str) -> Option<String> {
+    if stage != "integration-tests" {
+        return None;
+    }
+    let keys: Vec<String> = serde_json::from_str(&var("WF_CI_SHARD_KEYS")?).ok()?;
+    let index = shard.split('/').next()?.parse::<usize>().ok()?.checked_sub(1)?;
+    keys.get(index).cloned()
+}
+
+/// Each finished job into the CI database's `CI_JOBS` (the job-local file the report job merges): how it ended, how long it ran, how long it waited
+/// (a job cancelled while pending ran 0 s, never started, and waited until it was replaced), and the concurrency group it queued in. Best effort like the gauges.
+fn keep_jobs(env: &Env, run: &Value, run_id: &str, jobs: &[Value]) {
     let sha = run["head_sha"].as_str().unwrap_or_default().to_string();
     let ts = now();
-    let jobs: Vec<wf_bucket::ci_db::JobRow> = table["jobs"]
-        .as_array()
-        .map(Vec::as_slice)
-        .unwrap_or_default()
+    let rows: Vec<wf_bucket::ci_db::JobRow> = jobs
         .iter()
         .filter_map(|j| {
+            let conclusion = j["conclusion"].as_str()?.to_string();
+            let name = j["name"].as_str()?;
+            let (stage, shard) = (stage_name(name), shard_of(name));
+            let (created, started, completed) = (stamp(j, "created_at"), stamp(j, "started_at").unwrap_or(0), stamp(j, "completed_at").unwrap_or(0));
+            let secs = if started > 0 && completed > 0 { (completed - started).max(0) } else { 0 };
+            let queued = match (created, started, completed) {
+                (Some(c), s, _) if s > 0 => (s - c).max(0),
+                (Some(c), _, e) if e > 0 => (e - c).max(0),
+                _ => 0,
+            };
+            let red = matches!(conclusion.as_str(), "failure" | "timed_out");
+            let (step, excerpt) = if red { crate::ci_comment::excerpt_of(env, j) } else { (String::new(), String::new()) };
             Some(wf_bucket::ci_db::JobRow {
                 run: run_id.to_string(),
                 sha: sha.clone(),
                 ts,
-                kind: j["stage"].as_str()?.to_string(),
-                job: j["job"].as_str()?.to_string(),
-                secs: j["duration_s"].as_i64()?,
-                queued: j["queue_s"].as_i64().unwrap_or(0),
+                group_key: group_of(&stage, &shard),
+                kind: stage,
+                job: name.to_string(),
+                secs,
+                queued,
+                conclusion,
+                started,
+                step: Some(step).filter(|s| !s.is_empty() && s != "-"),
+                excerpt: Some(excerpt).filter(|e| !e.is_empty()),
             })
         })
         .collect();
-    if let Err(why) = wf_bucket::ci_db::record_jobs_local(&jobs) {
+    if let Err(why) = wf_bucket::ci_db::record_jobs_local(&rows) {
         wf_kit::wf_err!("wf: ci jobs not recorded: {why}");
     }
 }
@@ -180,7 +205,7 @@ fn timings(rest: &[String]) -> Option<i32> {
         Err(why) => return Some(fail(&why, "check the run id and the token's actions:read scope")),
     };
     let table = rows(&run, &jobs);
-    keep_jobs(&run, &env.run, &table);
+    keep_jobs(&env, &run, &env.run, &jobs);
     let mut sent = false;
     if parsed.flag("send") {
         gauges(&table, &env.run).send();

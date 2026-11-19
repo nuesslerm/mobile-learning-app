@@ -124,10 +124,10 @@ fn given_a_finished_run_when_its_timings_are_read_in_a_job_with_a_local_database
 
     // Then the sealed database holds one CI_JOBS row per job with its seconds and its wait
     assert_eq!((r.exit_code, merged.exit_code), (0, 0), "{}{}{}{}", r.stdout, r.stderr, merged.stdout, merged.stderr);
-    let q = wf(&server, &["db", "query", "--sealed-file", &sealed.display().to_string(), "SELECT KIND, JOB, SECS, QUEUED, SHA FROM CI_JOBS ORDER BY JOB"], &[("CI_DB_KEY", key)]);
+    let q = wf(&server, &["db", "query", "--sealed-file", &sealed.display().to_string(), "SELECT KIND, JOB, SECS, QUEUED, SHA, CONCLUSION, GROUP_KEY FROM CI_JOBS ORDER BY JOB"], &[("CI_DB_KEY", key)]);
     assert_eq!(
         line(&q)["rows"],
-        json!([{"KIND": "flow-tests", "JOB": "flow-tests (1/6)", "SECS": 600, "QUEUED": 30, "SHA": "feedbeef"}, {"KIND": "wf-build", "JOB": "wf-build", "SECS": 120, "QUEUED": 1, "SHA": "feedbeef"}]),
+        json!([{"KIND": "flow-tests", "JOB": "flow-tests (1/6)", "SECS": 600, "QUEUED": 30, "SHA": "feedbeef", "CONCLUSION": "success", "GROUP_KEY": null}, {"KIND": "wf-build", "JOB": "wf-build", "SECS": 120, "QUEUED": 1, "SHA": "feedbeef", "CONCLUSION": "success", "GROUP_KEY": null}]),
         "{}{}",
         q.stdout,
         q.stderr
@@ -153,4 +153,62 @@ fn given_a_running_job_with_a_red_step_when_failed_is_asked_on_its_runner_then_t
     let out = line(&r);
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     assert_eq!((out["ok"].clone(), out["job"].clone(), out["failed_steps"].clone()), (json!(true), json!("flow-tests (1/6)"), json!(["Flow tests"])), "{out}");
+}
+
+#[test]
+fn given_a_shard_replaced_while_pending_when_the_timings_are_kept_then_it_is_a_cancelled_row_that_never_started_with_its_group_and_its_wait() {
+    // Given an integration run whose shard 1 ran and whose shard 2 was replaced by a newer commit's job while it was still pending
+    let run = json!({"id": 80, "status": "completed", "created_at": "2026-11-19T10:00:00Z", "run_started_at": "2026-11-19T10:00:00Z", "head_sha": "cafe"});
+    let pending = json!({"id": 2, "name": "run / integration-tests (2/2)", "status": "completed", "conclusion": "cancelled", "created_at": "2026-11-19T10:00:00Z", "started_at": null, "completed_at": "2026-11-19T10:04:00Z", "steps": []});
+    let jobs = json!({"total_count": 2, "jobs": [job("run / integration-tests (1/2)", "10:00:00", "10:00:05", "10:09:05", vec![]), pending]});
+    let server = served(&[("/repos/o/r/actions/runs/80", run), ("/repos/o/r/actions/runs/80/jobs?per_page=100&page=1", jobs)]);
+    let dir = tempfile::tempdir().unwrap();
+    let (local, sealed) = (dir.path().join("rows.sqlite"), dir.path().join("ci.sealed"));
+    let key = "0707070707070707070707070707070707070707070707070707070707070707";
+
+    // When the report job keeps the timings with the plan's shard keys and merges
+    let r = wf(&server, &["timings", "--run", "80"], &[("WF_CI_DB", &local.display().to_string()), ("WF_CI_SHARD_KEYS", r#"["k-one","k-two"]"#)]);
+    let merged = wf(&server, &["db", "merge", "--sealed-file", &sealed.display().to_string(), &local.display().to_string()], &[("CI_DB_KEY", key)]);
+
+    // Then the replaced shard is a cancelled row with no start, the 240 s it waited and its group, and the shard that ran has its own group
+    assert_eq!((r.exit_code, merged.exit_code), (0, 0), "{}{}{}{}", r.stdout, r.stderr, merged.stdout, merged.stderr);
+    let q = wf(&server, &["db", "query", "--sealed-file", &sealed.display().to_string(), "SELECT JOB, CONCLUSION, STARTED > 0 AS started, SECS, QUEUED, GROUP_KEY FROM CI_JOBS ORDER BY JOB"], &[("CI_DB_KEY", key)]);
+    assert_eq!(
+        line(&q)["rows"],
+        json!([{"JOB": "integration-tests (1/2)", "CONCLUSION": "success", "started": 1, "SECS": 540, "QUEUED": 5, "GROUP_KEY": "k-one"}, {"JOB": "integration-tests (2/2)", "CONCLUSION": "cancelled", "started": 0, "SECS": 0, "QUEUED": 240, "GROUP_KEY": "k-two"}]),
+        "{}{}",
+        q.stdout,
+        q.stderr
+    );
+}
+
+#[test]
+fn given_a_failed_job_when_the_timings_are_kept_then_the_failed_step_and_the_lines_that_say_why_are_in_ci_jobs() {
+    // Given a run whose test job failed in its "Flow tests" step with a panic in its log
+    let run = json!({"id": 81, "status": "completed", "created_at": "2026-11-19T10:00:00Z", "run_started_at": "2026-11-19T10:00:00Z", "head_sha": "dead"});
+    let mut red = job("run / flow-tests (1/6)", "10:00:00", "10:00:02", "10:03:02", vec![step("Flow tests", "10:00:03", "10:03:00")]);
+    red["id"] = json!(501);
+    red["conclusion"] = json!("failure");
+    red["steps"][0]["conclusion"] = json!("failure");
+    let jobs = json!({"total_count": 1, "jobs": [red]});
+    let server = MockServer::start(None);
+    server.routes(&[
+        ("GET /repos/o/r/actions/runs/81", MockReply::json(200, run)),
+        ("GET /repos/o/r/actions/runs/81/jobs?per_page=100&page=1", MockReply::json(200, jobs)),
+        ("GET /repos/o/r/actions/jobs/501/logs", MockReply::text(200, "2026-11-19T10:02:59.0Z thread 'tests::adds' panicked at src/lib.rs:7:5:\n2026-11-19T10:02:59.1Z assertion `left == right` failed\n2026-11-19T10:03:00.0Z error: test failed, to rerun pass `-p demo --lib`\n")),
+    ]);
+    let dir = tempfile::tempdir().unwrap();
+    let (local, sealed) = (dir.path().join("rows.sqlite"), dir.path().join("ci.sealed"));
+    let key = "0707070707070707070707070707070707070707070707070707070707070707";
+
+    // When the timings are kept and merged
+    let r = wf(&server, &["timings", "--run", "81"], &[("WF_CI_DB", &local.display().to_string())]);
+    let merged = wf(&server, &["db", "merge", "--sealed-file", &sealed.display().to_string(), &local.display().to_string()], &[("CI_DB_KEY", key)]);
+
+    // Then the row names the red step and holds the panic line
+    assert_eq!((r.exit_code, merged.exit_code), (0, 0), "{}{}{}{}", r.stdout, r.stderr, merged.stdout, merged.stderr);
+    let q = wf(&server, &["db", "query", "--sealed-file", &sealed.display().to_string(), "SELECT CONCLUSION, STEP, EXCERPT FROM CI_JOBS"], &[("CI_DB_KEY", key)]);
+    let row = &line(&q)["rows"][0];
+    assert_eq!((row["CONCLUSION"].as_str(), row["STEP"].as_str()), (Some("failure"), Some("Flow tests")), "{row}");
+    assert!(row["EXCERPT"].as_str().is_some_and(|e| e.contains("panicked at src/lib.rs")), "{row}");
 }

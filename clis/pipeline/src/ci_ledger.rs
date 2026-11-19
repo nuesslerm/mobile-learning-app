@@ -124,7 +124,7 @@ impl Ledger for DbLedger {
     fn record_jobs(&self, rows: &[JobRow]) -> Result<(), String> {
         let t = sqlite_text;
         self.write(
-            rows.iter().map(|j| format!("INSERT OR IGNORE INTO CI_JOBS VALUES ({}, {}, {}, {}, {}, {}, {})", t(&j.run), t(&j.sha), j.ts, t(&j.kind), t(&j.job), j.secs, j.queued)).collect(),
+            rows.iter().map(|j| format!("INSERT OR IGNORE INTO CI_JOBS (RUN_ID, SHA, TS, KIND, JOB, SECS, QUEUED) VALUES ({}, {}, {}, {}, {}, {}, {})", t(&j.run), t(&j.sha), j.ts, t(&j.kind), t(&j.job), j.secs, j.queued)).collect(),
             &format!("{} jobs", rows.len()),
         )
     }
