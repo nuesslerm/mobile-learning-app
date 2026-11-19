@@ -308,6 +308,10 @@ impl Hosting {
             Some(t) if t.starts_with("PRRT_") => Ok(json!({"thread": t, "resolved": p["resolved"]})),
             _ => Err(refused("HOSTED_FAILED", "Could not resolve to a node with the global id")),
         });
+        agent.reply("pr.fileViewed", |p| match p["pull_request"].as_str() {
+            Some(id) if id.starts_with("PR_") => Ok(json!({"pull_request": id, "path": p["path"], "viewed": p["viewed"]})),
+            _ => Err(refused("NOT_FOUND", "gh: GraphQL: Could not resolve to a node with the global id of 'x' (markFileAsViewed)")),
+        });
         let me = self.clone();
         agent.reply("pr.reviewerCandidates", move |p| {
             let s = me.0.lock().unwrap();

@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 165,
+    "served": 166,
     "pending": 4,
-    "notOffered": 138,
+    "notOffered": 137,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -2370,10 +2370,17 @@
       "kind": "rpc",
       "name": "github.setPRFileViewed",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: gitHub's per-viewer viewed mark is a GraphQL mutation by the pull request's node id and the path, and rca's hosted group has no action that sets it; answering true would claim a mark nothing made. Reverify when a hosted action for it exists.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.setPRFileViewed-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.updateIssue",

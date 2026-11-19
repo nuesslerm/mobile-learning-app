@@ -208,6 +208,40 @@ pub fn resolve_thread(t: &Target, params: &Value) -> Result<Value, Failure> {
     }
 }
 
+/// The schema of `github.setPRFileViewed` in its key order, answering zod's first issue; unknown keys are stripped, never refused.
+pub(crate) fn check_file_viewed_params(params: &Value) -> Result<(), Failure> {
+    required_string(params, "repo", "Missing repo selector")?;
+    match params.get("expectedGhAccount") {
+        None | Some(Value::Null) => {}
+        Some(account) if gh_account_binding(account) => {}
+        Some(_) => return Err(Failure::invalid("Invalid GitHub account expectation")),
+    }
+    match params.get("prRepo") {
+        None | Some(Value::Null) => {}
+        Some(named @ Value::Object(_)) => {
+            required_string(named, "owner", "Missing owner")?;
+            required_string(named, "repo", "Missing repo")?;
+        }
+        Some(other) => return Err(Failure::invalid(format!("Invalid input: expected object, received {}", received(other)))),
+    }
+    required_string(params, "pullRequestId", "Missing pull request ID")?;
+    required_string(params, "path", "Missing file path")?;
+    match params.get("viewed") {
+        Some(Value::Bool(_)) => Ok(()),
+        other => Err(Failure::invalid(format!("Invalid input: expected boolean, received {}", other.map_or("undefined", received)))),
+    }
+}
+
+/// The host marks (or unmarks) a file viewed by the pull request's node id and answers whether GitHub did; any failure is `false`, never an error.
+pub fn file_viewed(t: &Target, params: &Value) -> Result<Value, Failure> {
+    let args = json!({"pull_request": required_string(params, "pullRequestId", "Missing pull request ID")?, "path": required_string(params, "path", "Missing file path")?, "viewed": params["viewed"].as_bool().unwrap_or(true)});
+    match t.try_ask(pr::FILE_VIEWED, with_repo(args, params, "prRepo")?) {
+        Ok(_) => Ok(json!(true)),
+        Err(AgentError::Refused { code, .. }) if code != "UNKNOWN_WORKSPACE" => Ok(json!(false)),
+        Err(other) => Err(crate::refusal(other)),
+    }
+}
+
 /// Orca's host lists `repos/{o}/{r}/assignees` as `{login, name, avatarUrl}` and answers `[]` when gh fails.
 pub fn list_assignable_users(t: &Target, params: &Value) -> Result<Value, Failure> {
     let args = with_repo(json!({"limit": 100}), params, "ownerRepo")?;

@@ -473,6 +473,39 @@ fn given_review_threads_when_one_is_resolved_or_reopened_then_the_answer_is_whet
 }
 
 #[test]
+fn given_a_pull_request_file_when_it_is_marked_or_unmarked_viewed_then_the_answer_is_whether_github_did_and_a_failure_is_false() {
+    // Given a workspace whose pull request GitHub names by its node id
+    let mut rig = Rig::new();
+    // When the phone marks a file viewed, and unmarks it for a repository it names on an Enterprise host
+    let marked = rig.ok("github.setPRFileViewed", json!({"pullRequestId": "PR_1", "path": "src/a b.rs", "viewed": true}));
+    let unmarked = rig.ok("github.setPRFileViewed", json!({"pullRequestId": "PR_1", "path": "src/a b.rs", "viewed": false, "prRepo": {"owner": "acme", "repo": "app", "host": "git.acme.dev"}, "ownerRepo": "ignored"}));
+    // Then both answer true, and rca was asked by the node id and path, the second for the named repository and host
+    assert_eq!((marked, unmarked), (json!(true), json!(true)));
+    let asked = rig.agent.requests().into_iter().filter(|(m, _)| m == "pr.fileViewed").map(|(_, p)| p).collect::<Vec<_>>();
+    assert_eq!(asked, vec![json!({"pull_request": "PR_1", "path": "src/a b.rs", "viewed": true, "workspace": "main"}), json!({"pull_request": "PR_1", "path": "src/a b.rs", "viewed": false, "repo": "acme/app", "host": "git.acme.dev", "workspace": "main"})]);
+    // And a pull request GitHub cannot resolve answers false, as the host does
+    assert_eq!(rig.ok("github.setPRFileViewed", json!({"pullRequestId": "nope", "path": "a", "viewed": true})), json!(false));
+    // When a field is missing or of the wrong kind, Then it is refused with the host's words in its schema order, before rca is asked
+    let before = rig.asked_hosted().len();
+    let refused = |rig: &mut Rig, params: Value| rig.err("github.setPRFileViewed", params);
+    let invalid = |m: &str| ("invalid_argument".to_string(), m.to_string());
+    assert_eq!(refused(&mut rig, json!({"repo": "", "pullRequestId": "PR_1", "path": "a", "viewed": true})), invalid("Missing repo selector"));
+    assert_eq!(refused(&mut rig, json!({"repo": 7, "pullRequestId": "PR_1", "path": "a", "viewed": true})), invalid("Missing repo selector"));
+    assert_eq!(refused(&mut rig, json!({"expectedGhAccount": "a", "prRepo": 1, "pullRequestId": "PR_1", "path": "a", "viewed": true})), invalid("Invalid GitHub account expectation"));
+    assert_eq!(refused(&mut rig, json!({"prRepo": "acme/app", "pullRequestId": "PR_1", "path": "a", "viewed": true})), invalid("Invalid input: expected object, received string"));
+    assert_eq!(refused(&mut rig, json!({"prRepo": {"repo": "app"}, "pullRequestId": "PR_1", "path": "a", "viewed": true})), invalid("Missing owner"));
+    assert_eq!(refused(&mut rig, json!({"prRepo": {"owner": "acme"}, "pullRequestId": "PR_1", "path": "a", "viewed": true})), invalid("Missing repo"));
+    assert_eq!(refused(&mut rig, json!({"path": "a", "viewed": true})), invalid("Missing pull request ID"));
+    assert_eq!(refused(&mut rig, json!({"pullRequestId": "PR_1", "path": "", "viewed": true})), invalid("Missing file path"));
+    assert_eq!(refused(&mut rig, json!({"pullRequestId": "PR_1", "path": "a"})), invalid("Invalid input: expected boolean, received undefined"));
+    assert_eq!(refused(&mut rig, json!({"pullRequestId": "PR_1", "path": "a", "viewed": "yes"})), invalid("Invalid input: expected boolean, received string"));
+    assert_eq!(refused(&mut rig, json!({"repo": "nowhere", "path": "a", "viewed": true})), invalid("Missing pull request ID"));
+    // And valid fields for a repository no workspace owns are the host's repo_not_found
+    assert_eq!(refused(&mut rig, json!({"repo": "nowhere", "pullRequestId": "PR_1", "path": "a", "viewed": true})), ("repo_not_found".to_string(), "repo_not_found".to_string()));
+    assert_eq!(rig.asked_hosted().len(), before);
+}
+
+#[test]
 fn given_a_branch_with_an_open_and_an_older_pull_request_when_its_review_is_read_then_it_is_the_open_one_in_the_neutral_shape_with_the_outcome_when_asked() {
     // Given an open pull request that passed its checks and was approved, and an older merged one of the same branch
     let mut rig = Rig::new();
