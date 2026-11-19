@@ -1,6 +1,6 @@
 {
-  "content_hash": "sha256:ab77306ac4fa13ec9b51878770f853122ea22c79ecd6fb377523f4933b7c4a0a",
-  "interactions": 123,
+  "content_hash": "sha256:464b11ba84285792d3a15264d4d8d53a00e4afdaf69fc136d4a9c75059357fce",
+  "interactions": 132,
   "provenance": {
     "imported_from": [
       {
@@ -8,8 +8,24 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_auth_status.json"
       },
       {
+        "hash": "sha256:4f94f897ccca734f319e6347d00107de34daf462f6523a9fcfeb787ec2160631",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_comment.json"
+      },
+      {
+        "hash": "sha256:4a6715379e0fee017dd513984d56cea0aed4b65e58b902ac691f79b98933bdf3",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_create.json"
+      },
+      {
+        "hash": "sha256:c89a498ab529219cd31505acf8cde8617f37d9a54f7af7048456dd9eba8e285f",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_edit.json"
+      },
+      {
         "hash": "sha256:7799ecd2386ad7032d67a22cbf8107dff1f52ea5a1c40453960bc5865e5283f7",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_list.json"
+      },
+      {
+        "hash": "sha256:83ba2a4f65e19a173e671df69e7c45094f15f18dca93fb99e428ec6336ba3bad",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_issue_state.json"
       },
       {
         "hash": "sha256:d7a6b9f36abd8f141a09f7468c3bdd498b68899963574dd67791e12cbb35a0df",

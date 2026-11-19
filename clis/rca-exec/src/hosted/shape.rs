@@ -374,6 +374,21 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
             };
             Ok(json!({"issue": issue}))
         }
+        HostedCall::IssueComment { .. } if github => Ok(json!({"done": true, "url": first_url(&last.stdout)})),
+        HostedCall::IssueComment { .. } => {
+            let v = body(&last)?;
+            Ok(json!({"done": true, "url": null, "id": id_string(&v, "id"), "body": v["body"]}))
+        }
+        HostedCall::IssueEdit { .. } => done(),
+        HostedCall::IssueState { number, closed } => Ok(json!({"number": number, "state": if *closed { "closed" } else { "open" }})),
+        HostedCall::IssueCreate { .. } if github => {
+            let url = first_url(&last.stdout).map(str::to_string);
+            Ok(json!({"number": url.as_deref().and_then(|u| number_after(u, "/issues/")), "url": url}))
+        }
+        HostedCall::IssueCreate { .. } => {
+            let v = body(&last)?;
+            Ok(json!({"number": v.get("iid"), "url": text(&v, "web_url")}))
+        }
         HostedCall::PrView { .. } => {
             let v = body(&last)?;
             let pr = if github {

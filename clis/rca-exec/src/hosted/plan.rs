@@ -424,6 +424,43 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             args.push(format!("--json={ISSUE_FIELDS}"));
             one(gh(args))
         }
+        HostedCall::IssueComment { number, body } => {
+            let mut args = strs(&["issue", "comment"]);
+            args.push(number.to_string());
+            repo_flag(&mut args);
+            args.push("--body-file=-".into());
+            let mut s = gh(args);
+            s.stdin = Some(body.clone());
+            one(s)
+        }
+        HostedCall::IssueEdit { number, title, body } => {
+            let mut args = strs(&["issue", "edit"]);
+            args.push(number.to_string());
+            repo_flag(&mut args);
+            args.extend(title.iter().map(|t| format!("--title={t}")));
+            let mut s = gh(args);
+            if let Some(b) = body {
+                s.args.push("--body-file=-".into());
+                s.stdin = Some(b.clone());
+            }
+            one(s)
+        }
+        HostedCall::IssueState { number, closed } => {
+            let mut args = strs(&["issue", if *closed { "close" } else { "reopen" }]);
+            args.push(number.to_string());
+            repo_flag(&mut args);
+            one(gh(args))
+        }
+        HostedCall::IssueCreate { title, body, labels } => {
+            let mut args = strs(&["issue", "create"]);
+            repo_flag(&mut args);
+            args.push(format!("--title={title}"));
+            args.extend(labels.iter().map(|l| format!("--label={l}")));
+            let mut s = gh(args);
+            s.args.push("--body-file=-".into());
+            s.stdin = Some(body.clone().unwrap_or_default());
+            one(s)
+        }
         HostedCall::PrView { number } => one(view(*number, PR_FIELDS)),
         HostedCall::PrDiff { number } => one(gh(pr(&["diff"], *number, strs(&["--color=never"])))),
         HostedCall::PrChecks { number } => {
@@ -659,6 +696,25 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             one(api("GET", format!("{}/issues?{}", project(), query.join("&"))))
         }
         HostedCall::IssueView { number } => one(api("GET", format!("{}/issues/{number}", project()))),
+        HostedCall::IssueComment { number, body } => one(with_json(api("POST", format!("{}/issues/{number}/notes", project())), serde_json::json!({"body": body}))),
+        HostedCall::IssueEdit { number, title, body } => {
+            let mut v = serde_json::Map::new();
+            if let Some(t) = title {
+                v.insert("title".into(), serde_json::json!(t));
+            }
+            if let Some(b) = body {
+                v.insert("description".into(), serde_json::json!(b));
+            }
+            one(with_json(api("PUT", format!("{}/issues/{number}", project())), serde_json::Value::Object(v)))
+        }
+        HostedCall::IssueState { number, closed } => one(with_json(api("PUT", format!("{}/issues/{number}", project())), serde_json::json!({"state_event": if *closed { "close" } else { "reopen" }}))),
+        HostedCall::IssueCreate { title, body, labels } => {
+            let mut v = serde_json::json!({"title": title, "description": body.clone().unwrap_or_default()});
+            if !labels.is_empty() {
+                v["labels"] = serde_json::json!(labels.join(","));
+            }
+            one(with_json(api("POST", format!("{}/issues", project())), v))
+        }
         HostedCall::PrView { number } => one(api("GET", mr(*number, ""))),
         HostedCall::PrDiff { number } => one(glab(mr_cmd(&["diff"], *number, strs(&["--color=never"])))),
         HostedCall::PrChecks { number } => one(api("GET", mr(*number, "/pipelines"))),

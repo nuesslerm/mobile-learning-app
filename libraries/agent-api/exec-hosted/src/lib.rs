@@ -43,6 +43,10 @@ pub const PR_COMMENT_EDIT: &str = "hosted_pr_comment_edit";
 pub const PR_REVIEW_COMMENT: &str = "hosted_pr_review_comment";
 pub const ISSUE_LIST: &str = "hosted_issue_list";
 pub const ISSUE_VIEW: &str = "hosted_issue_view";
+pub const ISSUE_COMMENT: &str = "hosted_issue_comment";
+pub const ISSUE_EDIT: &str = "hosted_issue_edit";
+pub const ISSUE_STATE: &str = "hosted_issue_state";
+pub const ISSUE_CREATE: &str = "hosted_issue_create";
 pub const RUN_LIST: &str = "hosted_run_list";
 pub const RUN_VIEW: &str = "hosted_run_view";
 pub const AUTH_STATUS: &str = "hosted_auth_status";
@@ -82,6 +86,7 @@ const HOST: Property = Property { name: "host", kind: "string", about: "A self-h
 const REPO: Property = Property { name: "repo", kind: "string", about: "`owner/name` (GitLab: `group/subgroup/name`); default the repository the workspace's remote names" };
 const NUMBER: Property = Property { name: "number", kind: "integer", about: "The pull request (GitHub) or merge request (GitLab) number" };
 const THREAD: Property = Property { name: "thread", kind: "string", about: "A review thread's id as `hosted_pr_threads` returned it" };
+const ISSUE_NUMBER: Property = Property { name: "number", kind: "integer", about: "The issue number" };
 const BODY: Property = Property { name: "body", kind: "string", about: "Markdown text, at most 65536 bytes" };
 const LIMIT: Property = Property { name: "limit", kind: "integer", about: "At most this many items (default 30, at most 200)" };
 const TIMEOUT: Property = Property { name: "timeout_ms", kind: "integer", about: "Time the CLI may run (default 60000, at most 600000)" };
@@ -224,7 +229,16 @@ pub const ACTIONS: &[Action] = &[
         [Property { name: "state", kind: "string", about: "`open` (default), `closed` or `all`" }, Property { name: "author", kind: "string", about: "Only this account's" }, Property { name: "label", kind: "string", about: "Only with this label" }, Property { name: "search", kind: "string", about: "Only matching this text" }, LIMIT],
         []
     ),
-    action!(ISSUE_VIEW, "One issue with its description, labels and assignees.", [NUMBER], ["number"]),
+    action!(ISSUE_VIEW, "One issue with its description, labels and assignees.", [ISSUE_NUMBER], ["number"]),
+    action!(ISSUE_COMMENT, "Add a comment to an issue.", [ISSUE_NUMBER, BODY], ["number", "body"]),
+    action!(ISSUE_EDIT, "Change an issue's title or description.", [ISSUE_NUMBER, Property { name: "title", kind: "string", about: "The new title" }, BODY], ["number"]),
+    action!(ISSUE_STATE, "Close an issue, or reopen a closed one; answers its number and new state.", [ISSUE_NUMBER, Property { name: "state", kind: "string", about: "`closed` or `open`" }], ["number", "state"]),
+    action!(
+        ISSUE_CREATE,
+        "Open an issue; answers its number and url.",
+        [Property { name: "title", kind: "string", about: "The title, one line" }, BODY, Property { name: "labels", kind: "array", about: "Labels to put on it" }],
+        ["title"]
+    ),
     action!(RUN_LIST, "Recent workflow runs (GitHub) or pipelines (GitLab).", [Property { name: "branch", kind: "string", about: "Only runs of this branch" }, LIMIT], []),
     action!(RUN_VIEW, "One run with its jobs.", [Property { name: "run", kind: "integer", about: "The run's id" }], ["run"]),
     action!(AUTH_STATUS, "Whether the CLI is installed and signed in on the executor machine, as which account and with which scopes (never the token).", [], []),
@@ -518,6 +532,10 @@ pub enum HostedCall {
     PrReviewComment { number: u64, body: String, commit_id: String, path: String, line: u64, start_line: Option<u64>, base_sha: Option<String>, start_sha: Option<String>, old_path: Option<String> },
     IssueList { state: PrState, author: Option<String>, label: Option<String>, search: Option<String>, limit: u64 },
     IssueView { number: u64 },
+    IssueComment { number: u64, body: String },
+    IssueEdit { number: u64, title: Option<String>, body: Option<String> },
+    IssueState { number: u64, closed: bool },
+    IssueCreate { title: String, body: Option<String>, labels: Vec<String> },
     RunList { branch: Option<String>, limit: u64 },
     RunView { run: u64 },
     AuthStatus,
@@ -563,6 +581,10 @@ impl HostedCall {
             HostedCall::PrReviewComment { .. } => PR_REVIEW_COMMENT,
             HostedCall::IssueList { .. } => ISSUE_LIST,
             HostedCall::IssueView { .. } => ISSUE_VIEW,
+            HostedCall::IssueComment { .. } => ISSUE_COMMENT,
+            HostedCall::IssueEdit { .. } => ISSUE_EDIT,
+            HostedCall::IssueState { .. } => ISSUE_STATE,
+            HostedCall::IssueCreate { .. } => ISSUE_CREATE,
             HostedCall::RunList { .. } => RUN_LIST,
             HostedCall::RunView { .. } => RUN_VIEW,
             HostedCall::AuthStatus => AUTH_STATUS,
@@ -665,6 +687,23 @@ impl HostedOp {
                 limit: limit(a)?,
             },
             ISSUE_VIEW => HostedCall::IssueView { number: number(a)? },
+            ISSUE_COMMENT => HostedCall::IssueComment { number: number(a)?, body: required_body()? },
+            ISSUE_EDIT => {
+                let (title, body) = (title_of("title")?, body_of("body")?);
+                if title.is_none() && body.is_none() {
+                    return Err(bad("give at least one of `title`, `body`"));
+                }
+                HostedCall::IssueEdit { number: number(a)?, title, body }
+            }
+            ISSUE_STATE => {
+                let closed = choice(a, "state", None, &[("closed", Some(true)), ("open", Some(false))])?.ok_or_else(|| bad("`state` is required: closed or open"))?;
+                HostedCall::IssueState { number: number(a)?, closed }
+            }
+            ISSUE_CREATE => {
+                let title = string(a, "title")?;
+                one_line("title", &title, TITLE_MAX)?;
+                HostedCall::IssueCreate { title, body: body_of("body")?, labels: names(a, "labels", label)? }
+            }
             PR_VIEW => HostedCall::PrView { number: number(a)? },
             PR_DIFF => HostedCall::PrDiff { number: number(a)? },
             PR_CHECKS => HostedCall::PrChecks { number: number(a)? },
@@ -823,11 +862,11 @@ pub fn minimal_args(action: &Action) -> Value {
     }
     // The actions that need one of several optional arguments
     match action.name {
-        PR_EDIT => args.insert("title".into(), serde_json::json!("t")),
+        PR_EDIT | ISSUE_EDIT => args.insert("title".into(), serde_json::json!("t")),
         PR_LABELS | PR_REQUEST_REVIEWERS => args.insert("add".into(), serde_json::json!(["x"])),
         // a reply names its thread or (GitHub) a comment of it, one of the two
         PR_REPLY => args.insert("thread".into(), serde_json::json!("PRRT_1")),
-        PR_STATE => args.insert("state".into(), serde_json::json!("closed")),
+        PR_STATE | ISSUE_STATE => args.insert("state".into(), serde_json::json!("closed")),
         _ => None,
     };
     Value::Object(args)
