@@ -192,6 +192,20 @@
         "complete": true,
         "tests": 62,
         "passed": 4
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "bf4592d09acc1c75116bf40c12d6e449462aca47",
+        "complete": true,
+        "tests": 667,
+        "passed": 151
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 56,
+        "passed": 34
       }
     ]
   },
@@ -1367,6 +1381,15 @@
       "executor": [],
       "oracle": "mimic",
       "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:skills.discover": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-skills.discover-invalid-no-payload",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "allowlisted",
       "cassette": "recorded"
     },
     "rpc:stats.summary": {

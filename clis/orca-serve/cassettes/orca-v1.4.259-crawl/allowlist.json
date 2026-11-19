@@ -225,6 +225,24 @@
       "reason": "the capability strings this host advertises: this server lists only the capabilities its mapped rows serve, the recording host lists everything it implements",
       "phase": "R10",
       "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.sources.path",
+      "reason": "where a skill root lies is the answering host's own state: the recording host's home and process folder, the chain's executor home (named below ~, which the executor never discloses) and its workspaces",
+      "phase": "O0",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.sources.id",
+      "reason": "a repo root's id hashes the repo's path, which is the answering host's own state (the recording host's process folder, the chain's workspaces)",
+      "phase": "O0",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
+    },
+    {
+      "path": "result.sources.label",
+      "reason": "a repo root's label names the repo's folder, which is the answering host's own state (the recording host's process folder, the chain's workspaces)",
+      "phase": "O0",
+      "pin_hash": "sha256:e9a3a690a8aaf189b388efc595fa0ac5240c8a74f25ae6bbf035c18534ab13d2"
     }
   ]
 }

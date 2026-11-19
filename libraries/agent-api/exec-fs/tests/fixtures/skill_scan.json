@@ -15,7 +15,7 @@
         {"name": "ship-it", "description": "Ships the build to the server", "scope": "workspace", "dir": ".claude/skills", "path": ".claude/skills/deploy/SKILL.md"},
         {"name": "review", "description": "Reviews a diff", "scope": "workspace", "dir": ".claude/skills", "path": ".claude/skills/review/SKILL.md"},
         {"name": "notes", "scope": "workspace", "dir": ".agents/skills", "path": ".agents/skills/notes/SKILL.md"}
-      ], "truncated": false}}
+      ], "truncated": false, "present": [{"scope": "workspace", "dir": ".claude/skills"}, {"scope": "workspace", "dir": ".agents/skills"}]}}
     },
     {
       "name": "lists the skills of a directory of the workspace, paths relative to the workspace root",
@@ -26,7 +26,7 @@
       "request": {"id": "s2", "tool": "skill_scan", "args": {"root": "pkg"}},
       "response": {"id": "s2", "ok": true, "result": {"skills": [
         {"name": "lint", "description": "Runs the linter", "scope": "workspace", "dir": ".codex/skills", "path": "pkg/.codex/skills/lint/SKILL.md"}
-      ], "truncated": false}}
+      ], "truncated": false, "present": [{"scope": "workspace", "dir": ".codex/skills"}]}}
     },
     {
       "name": "adds the skills of the executor's own home after the workspace's, naming them below ~ and not by where the home is",
@@ -39,19 +39,19 @@
         {"name": "review", "description": "Reviews a diff", "scope": "workspace", "dir": ".claude/skills", "path": ".claude/skills/review/SKILL.md"},
         {"name": "personal", "description": "Mine", "scope": "home", "dir": ".claude/skills", "path": "~/.claude/skills/personal/SKILL.md"},
         {"name": "tidy", "scope": "home", "dir": ".codex/skills", "path": "~/.codex/skills/tidy/SKILL.md"}
-      ], "truncated": false}}
+      ], "truncated": false, "present": [{"scope": "workspace", "dir": ".claude/skills"}, {"scope": "home", "dir": ".claude/skills"}, {"scope": "home", "dir": ".codex/skills"}]}}
     },
     {
       "name": "leaves the home out unless asked",
       "setup": {"home": {".claude/skills/personal/SKILL.md": "---\nname: personal\n---\n"}},
       "request": {"id": "s4", "tool": "skill_scan", "args": {"root": "."}},
-      "response": {"id": "s4", "ok": true, "result": {"skills": [], "truncated": false}}
+      "response": {"id": "s4", "ok": true, "result": {"skills": [], "truncated": false, "present": []}}
     },
     {
       "name": "answers a workspace with no skill directories with an empty list",
       "setup": {"files": {"a.txt": "x"}},
       "request": {"id": "s5", "tool": "skill_scan", "args": {"root": "."}},
-      "response": {"id": "s5", "ok": true, "result": {"skills": [], "truncated": false}}
+      "response": {"id": "s5", "ok": true, "result": {"skills": [], "truncated": false, "present": []}}
     },
     {
       "name": "refuses a root outside the workspace",

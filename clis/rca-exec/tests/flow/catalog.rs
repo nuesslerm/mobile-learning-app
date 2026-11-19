@@ -116,6 +116,29 @@ fn given_skill_directories_that_link_out_when_scanned_then_only_skills_inside_th
 }
 
 #[test]
+fn given_skill_directories_the_caller_names_when_scanned_then_only_those_are_read_and_the_ones_that_exist_are_reported() {
+    // Given a root with a skill below .trae/skills and an empty .kiro/skills, and a home with one below .config/opencode/skills
+    let ((_r, root), (_h, home)) = (dir(), dir());
+    skill(&root, ".trae/skills", "fmt", "---\nname: fmt\n---\n");
+    std::fs::create_dir_all(root.join(".kiro/skills")).unwrap();
+    skill(&root, ".claude/skills", "ignored", "---\nname: ignored\n---\n");
+    skill(&home, ".config/opencode/skills", "lint", "---\nname: lint\n---\n");
+    let ex = LocalExecutor::new(&root).unwrap().with_skill_home(Some(&home));
+    // When the caller names the directories of the root and of the home
+    let args = json!({"root": ".", "home": true, "dirs": [".trae/skills", ".kiro/skills", ".grok/skills"], "home_dirs": [".config/opencode/skills"]});
+    let result = call(&ex, "skill_scan", args).unwrap();
+    // Then only the named directories are read, in their order
+    let found: Vec<(&str, &str)> = result["skills"].as_array().unwrap().iter().map(|s| (s["name"].as_str().unwrap(), s["dir"].as_str().unwrap())).collect();
+    assert_eq!(found, [("fmt", ".trae/skills"), ("lint", ".config/opencode/skills")]);
+    // And the directories that exist are reported, an empty one too, a missing one not
+    assert_eq!(result["present"], json!([{"scope": "workspace", "dir": ".trae/skills"}, {"scope": "workspace", "dir": ".kiro/skills"}, {"scope": "home", "dir": ".config/opencode/skills"}]));
+    // And a directory that climbs out or is absolute is refused before anything is read
+    for bad in ["../x", "/etc", "~/x", "a//b"] {
+        assert_eq!(call(&ex, "skill_scan", json!({"root": ".", "dirs": [bad]})).unwrap_err().code, Code::InvalidArgs, "{bad}");
+    }
+}
+
+#[test]
 fn given_more_skills_than_the_most_when_scanned_then_the_most_come_back_in_order_and_the_answer_says_it_stopped() {
     // Given one skill more than the contract's most, named so their order is the number's
     let ((_r, root), most) = (dir(), exec_fs::SKILLS_MAX);

@@ -187,7 +187,7 @@ mod tests {
         }
         fn skill_scan(&self, _: &SkillScan) -> ExecResult<SkillsFound> {
             self.note(exec_fs::SKILL_SCAN);
-            Ok(SkillsFound { skills: Vec::new(), truncated: false })
+            Ok(SkillsFound { skills: Vec::new(), truncated: false, present: Vec::new() })
         }
         fn browse(&self, _: &Browse) -> ExecResult<BrowseResult> {
             self.note(exec_fs::BROWSE);

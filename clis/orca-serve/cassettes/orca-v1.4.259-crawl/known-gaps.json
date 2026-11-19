@@ -2797,8 +2797,6 @@
         "orca-skills.delete-boundary-limit-operationId",
         "orca-skills.delete-valid-min",
         "orca-skills.discover-boundary-full",
-        "orca-skills.discover-invalid-no-payload",
-        "orca-skills.discover-valid-min",
         "orca-skills.getInstallProgress-boundary-limit-operationId",
         "orca-skills.getInstallProgress-valid-min",
         "orca-skills.listManagedInstalls-empty-empty-object",
@@ -3229,8 +3227,7 @@
         "orca-settings.updateTerminalQuickCommands-empty-min",
         "orca-settings.updateTerminalQuickCommands-invalid-drop-mutation",
         "orca-settings.updateTerminalQuickCommands-invalid-no-payload",
-        "orca-settings.updateTerminalQuickCommands-invalid-wrong-type-mutation",
-        "orca-skills.discover-invalid-wrong-type-runtime"
+        "orca-settings.updateTerminalQuickCommands-invalid-wrong-type-mutation"
       ]
     },
     {

@@ -140,7 +140,6 @@
         "orca-orchestration.partyOpen",
         "orca-preflight.check",
         "orca-settings.getAgentLaunch",
-        "orca-skills.discover",
         "orca-speech.dictation.cancel",
         "orca-speech.dictation.setup",
         "orca-speech.models.list",

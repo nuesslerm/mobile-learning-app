@@ -377,7 +377,19 @@ impl Catalog {
                 if p["workspace"].as_str().is_none_or(|w| w.is_empty()) {
                     return Err(refused("INVALID_PARAMS", "workspace is required".into()));
                 }
-                Ok(json!({"skills": state.skills, "truncated": false}))
+                let default: Vec<Value> = [".claude/skills", ".agents/skills", ".codex/skills"].iter().map(|d| json!(d)).collect();
+                let named = |key: &str| p[key].as_array().cloned().unwrap_or_else(|| default.clone());
+                let (dirs, home_dirs) = (named("dirs"), named("home_dirs"));
+                let wanted = |s: &Value| if s["scope"] == "home" { home_dirs.contains(&s["dir"]) } else { dirs.contains(&s["dir"]) };
+                let skills: Vec<Value> = state.skills.iter().filter(|s| wanted(s)).cloned().collect();
+                let mut present: Vec<Value> = Vec::new();
+                for s in &state.skills {
+                    let row = json!({"scope": s["scope"], "dir": s["dir"]});
+                    if wanted(s) && !present.contains(&row) {
+                        present.push(row);
+                    }
+                }
+                Ok(json!({"skills": skills, "truncated": false, "present": present}))
             }
             _ => {
                 let driver = p["driver"].as_str().unwrap_or_default();

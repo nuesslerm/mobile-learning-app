@@ -168,17 +168,27 @@ pub struct DetectResult {
     pub checked_at_ms: u64,
 }
 
-/// `skills.list`: the skills of `workspace` and of its executor's own home.
+/// `skills.list`: the skills of `workspace` and of its executor's own home. `dirs` and `home_dirs` name the skill directories to read below
+/// each (relative, at most 64 each; the executor's three by default).
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SkillsParams {
     pub workspace: String,
+    #[serde(default)]
+    pub dirs: Option<Vec<String>>,
+    #[serde(default)]
+    pub home_dirs: Option<Vec<String>>,
 }
 
 impl SkillsParams {
     pub fn parse(params: &Value) -> Result<SkillsParams, ParamError> {
         let p: SkillsParams = read(params)?;
         check_name("workspace", &p.workspace)?;
+        for (key, dirs) in [("dirs", &p.dirs), ("home_dirs", &p.home_dirs)] {
+            if dirs.as_ref().is_some_and(|d| d.len() > 64 || d.iter().any(|x| x.is_empty() || x.starts_with('/') || x.split('/').any(|part| part == ".."))) {
+                return Err(ParamError(format!("`{key}` must be at most 64 relative directories")));
+            }
+        }
         Ok(p)
     }
 }
@@ -190,7 +200,7 @@ pub enum Scope {
     Home,
 }
 
-/// A skill as `skill_scan` found it. `dir` is the skills directory it lies in (`.claude/skills`, `.agents/skills`, `.codex/skills`); `path` is
+/// A skill as `skill_scan` found it. `dir` is the scanned skills directory it lies in (by default `.claude/skills`, `.agents/skills`, `.codex/skills`); `path` is
 /// its `SKILL.md`, relative to the workspace's executor root, or `~/<dir>/<name>/SKILL.md` for the executor's home.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Skill {
@@ -202,11 +212,21 @@ pub struct Skill {
     pub path: String,
 }
 
+/// A skill directory that exists, whether or not it holds a skill.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SkillDir {
+    pub scope: Scope,
+    pub dir: String,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SkillsResult {
     pub skills: Vec<Skill>,
     /// The executor stopped at its most (`skill_scan`'s `SKILLS_MAX`): there are more.
     pub truncated: bool,
+    /// The scanned directories that exist (none from an executor older than this list).
+    #[serde(default)]
+    pub present: Vec<SkillDir>,
 }
 
 /// `commands.list`: the commands `driver` offers in a chat, and, given `workspace`, the skills of that workspace and its executor's home that the

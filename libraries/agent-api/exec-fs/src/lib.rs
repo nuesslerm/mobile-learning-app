@@ -104,6 +104,8 @@ pub const ACTIONS: &[Action] = &[
         properties: &[
             Property { name: "root", kind: "string", about: "Directory relative to the workspace root whose skill directories are listed (\".\" is the root)" },
             Property { name: "home", kind: "boolean", about: "Also list the skill directories of the executor's own home" },
+            Property { name: "dirs", kind: "array", about: "The skill directories to list below `root`, relative and without `..` (default .claude/skills, .agents/skills, .codex/skills)" },
+            Property { name: "home_dirs", kind: "array", about: "The skill directories to list below the home, relative and without `..` (default the same three)" },
         ],
         required: &["root"],
     },
@@ -279,12 +281,39 @@ pub struct MakeDirResult {
 pub struct SkillScan {
     pub root: String,
     pub home: bool,
+    pub dirs: Vec<String>,
+    pub home_dirs: Vec<String>,
+}
+
+/// The most skill directories one `skill_scan` lists below each of the root and the home.
+pub const SKILL_DIRS_MAX: usize = 64;
+
+fn skill_dirs(args: &Value, key: &str) -> ExecResult<Vec<String>> {
+    let Some(given) = args.get(key).filter(|v| !v.is_null()) else { return Ok(SKILL_DIRS.iter().map(|d| d.to_string()).collect()) };
+    let list = given.as_array().ok_or_else(|| ExecError::invalid_args(format!("`{key}` must be a list of directories")))?;
+    if list.len() > SKILL_DIRS_MAX {
+        return Err(ExecError::invalid_args(format!("`{key}` holds at most {SKILL_DIRS_MAX} directories")));
+    }
+    list.iter()
+        .map(|d| {
+            let dir = d.as_str().unwrap_or_default();
+            let relative = !dir.is_empty() && dir.len() <= 200 && !dir.starts_with(['/', '~', '\\']) && dir.split('/').all(|part| !part.is_empty() && part != ".." && part != ".");
+            relative.then(|| dir.to_string()).ok_or_else(|| ExecError::invalid_args(format!("`{key}`: {dir:?} is not a relative directory")))
+        })
+        .collect()
 }
 
 impl SkillScan {
     pub fn parse(args: &Value) -> ExecResult<SkillScan> {
-        Ok(SkillScan { root: string(args, "root")?, home: flag(args, "home") })
+        Ok(SkillScan { root: string(args, "root")?, home: flag(args, "home"), dirs: skill_dirs(args, "dirs")?, home_dirs: skill_dirs(args, "home_dirs")? })
     }
+}
+
+/// A skill directory the scan found (whether or not it held a skill): what tells a missing directory from an empty one.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SkillDir {
+    pub scope: SkillScope,
+    pub dir: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -294,7 +323,7 @@ pub enum SkillScope {
     Home,
 }
 
-/// One skill. `dir` is the one of `SKILL_DIRS` it lies in. `path` is its `SKILL.md`: relative to the executor's root for the workspace, and
+/// One skill. `dir` is the scanned directory it lies in. `path` is its `SKILL.md`: relative to the executor's root for the workspace, and
 /// `~/<dir>/<name>/SKILL.md` for the home (the home's own location never leaves the executor). `name` is the front matter's, else the
 /// directory's; `description` is absent when the front matter has none.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -307,11 +336,14 @@ pub struct Skill {
     pub path: String,
 }
 
-/// The workspace's skills first, then the home's, each by directory order of `SKILL_DIRS` and then by directory name.
+/// The workspace's skills first, then the home's, each by the order of the scanned directories and then by directory name. `present` lists
+/// the scanned directories that exist (an older executor answers none).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SkillsFound {
     pub skills: Vec<Skill>,
     pub truncated: bool,
+    #[serde(default)]
+    pub present: Vec<SkillDir>,
 }
 
 fn cut(text: &str, max: usize) -> String {

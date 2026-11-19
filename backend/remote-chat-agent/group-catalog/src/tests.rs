@@ -153,3 +153,23 @@ async fn given_a_workspace_nobody_serves_or_an_executor_that_refuses_when_skills
     let refused = rig.ask(api::SKILLS_LIST, json!({"workspace": "w1"})).await;
     assert_eq!(refused["error"], json!({"code": "PATH_OUTSIDE_ROOT", "message": "root is outside the workspace"}));
 }
+
+#[tokio::test]
+async fn given_named_skill_directories_when_skills_are_listed_then_the_executor_scans_those_and_the_present_ones_come_back() {
+    // Given an executor that answers which named directories exist
+    let rig = rig(|tool, args| match tool {
+        "skill_scan" => {
+            assert_eq!(args, &json!({"root": ".", "home": true, "dirs": [".trae/skills"], "home_dirs": [".grok/skills"]}));
+            ok(json!({"skills": [], "truncated": false, "present": [{"scope": "home", "dir": ".grok/skills"}]}))
+        }
+        other => panic!("{other}"),
+    });
+    // When the skills are listed with directories of the workspace and of the home
+    let listed = rig.ask(api::SKILLS_LIST, json!({"workspace": "w1", "dirs": [".trae/skills"], "home_dirs": [".grok/skills"]})).await;
+    // Then the present directory comes back as the executor reported it
+    assert_eq!(listed["result"]["present"], json!([{"scope": "home", "dir": ".grok/skills"}]));
+    // And a directory that climbs out is refused before the executor is asked
+    let before = rig.channel.calls().len();
+    let bad = rig.ask(api::SKILLS_LIST, json!({"workspace": "w1", "dirs": ["../x"]})).await;
+    assert_eq!((bad["error"]["code"].clone(), rig.channel.calls().len()), (json!("INVALID_PARAMS"), before));
+}

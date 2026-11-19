@@ -5,7 +5,7 @@ use crate::agent::{ask, refusal, refused_code, state_set};
 use crate::journal::view;
 use crate::ops::{lookup, refused, Envelope};
 use crate::session::{accepted, agent_of, agent_session_id, driver_of, finish, now_ms, text, unsupported};
-use agent_api_catalog::{code as catalog_code, AGENTS_DETECT, COMMANDS_LIST, DRIVERS, MODELS_LIST, SKILLS_LIST};
+use agent_api_catalog::{code as catalog_code, AGENTS_DETECT, COMMANDS_LIST, DRIVERS, MODELS_LIST};
 use orca_core::wire::{Failure, RUNTIME_ERROR};
 use orca_core::{AgentApi, AgentError};
 use serde_json::{json, Map, Value};
@@ -238,53 +238,6 @@ pub(crate) fn create_support(agent: &dyn AgentApi, params: &Value) -> Result<Val
         return Ok(json!({"supported": false, "reason": "agent"}));
     }
     Ok(json!({"supported": true}))
-}
-
-/// The skills directories of the executor and the agent each belongs to (`None` is the shared one): what the phone reads a skill's providers by.
-const DIRS: [(&str, &str, Option<&str>); 3] = [(".claude/skills", "claude", Some("claude")), (".agents/skills", "agent-skills", None), (".codex/skills", "codex", Some("codex"))];
-
-fn dir_row(dir: &str) -> Option<(&'static str, Option<&'static str>)> {
-    DIRS.iter().find(|(d, ..)| *d == dir).map(|(_, provider, owner)| (*provider, *owner))
-}
-
-/// `skills.discover`: the skills of one workspace and of the executor's home, as `skill_scan` found them.
-pub(crate) fn skills_discover(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
-    let selector = match (text(params, "worktreeId"), text(params, "cwd")) {
-        (Some(id), _) => format!("id:{id}"),
-        (None, Some(cwd)) => format!("path:{cwd}"),
-        (None, None) => return Err(Failure::invalid("Skill discovery needs a workspace")),
-    };
-    let target = orca_map_workspace::resolve(agent, &selector)?;
-    let listed = ask(agent, SKILLS_LIST.name(), json!({"workspace": target.workspace}))?;
-    let kinds: Option<Vec<&str>> = params["sourceKinds"].as_array().map(|k| k.iter().filter_map(Value::as_str).collect());
-    let names: Option<Vec<&str>> = params["names"].as_array().map(|k| k.iter().filter_map(Value::as_str).collect());
-    let (mut skills, mut found) = (Vec::new(), Vec::new());
-    for s in listed["skills"].as_array().into_iter().flatten() {
-        let (Some(dir), Some(name), Some(path)) = (s["dir"].as_str(), s["name"].as_str(), s["path"].as_str()) else { continue };
-        let Some((provider, _)) = dir_row(dir) else { continue };
-        let home = s["scope"] == "home";
-        let kind = if home { "home" } else { "repo" };
-        let root = if home { format!("~/{dir}") } else { format!("{}/{dir}", target.root_path.trim_end_matches('/')) };
-        let file = if home { path.to_string() } else { format!("{}/{path}", target.root_path.trim_end_matches('/')) };
-        found.push((kind, dir.to_string(), root.clone()));
-        if kinds.as_ref().is_some_and(|k| !k.contains(&kind)) || names.as_ref().is_some_and(|n| !n.contains(&name)) {
-            continue;
-        }
-        let directory = file.rsplit_once('/').map_or(file.clone(), |(d, _)| d.to_string());
-        skills.push(json!({"id": format!("{kind}:{file}"), "name": name, "description": s["description"], "providers": [provider], "sourceKind": kind, "sourceLabel": format!("{} {dir}", if home { "Home" } else { "Project" }), "rootPath": root, "directoryPath": directory, "skillFilePath": file, "installed": true, "updatedAt": null}));
-    }
-    let mut sources = Vec::new();
-    for (kind, home) in [("repo", false), ("home", true)] {
-        for (dir, provider, owner) in DIRS {
-            let path = if home { format!("~/{dir}") } else { format!("{}/{dir}", target.root_path.trim_end_matches('/')) };
-            if kinds.as_ref().is_some_and(|k| !k.contains(&kind)) {
-                continue;
-            }
-            let exists = found.iter().any(|(k, _, p)| *k == kind && *p == path);
-            sources.push(json!({"id": format!("{kind}:{path}"), "label": format!("{} {dir}", if home { "Home" } else { "Project" }), "path": path, "sourceKind": kind, "providers": [provider], "owner": owner, "exists": exists}));
-        }
-    }
-    Ok(json!({"skills": skills, "sources": sources, "scannedAt": now_ms()}))
 }
 
 /// Every driver of the contract has an Orca agent id here: a flow test holds this to the catalog's `DRIVERS`.

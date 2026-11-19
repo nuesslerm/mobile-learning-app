@@ -12,6 +12,7 @@ mod launch;
 mod native_stream;
 mod ops;
 mod queued;
+mod skills;
 mod respond;
 mod rewind;
 mod session;
@@ -207,7 +208,7 @@ impl Area for AgentArea {
             PREFLIGHT_DETECT_AGENTS => catalog::detect_agents(agent, params),
             PREFLIGHT_DETECT_REMOTE_AGENTS => catalog::detect_remote_agents(agent, params),
             PREFLIGHT_REFRESH_AGENTS => catalog::refresh_agents(agent, params),
-            SKILLS_DISCOVER => catalog::skills_discover(agent, params),
+            SKILLS_DISCOVER => skills::discover(agent, params),
             AGENT_LAUNCH => launch::launch(agent, params),
             AGENT_LAUNCH_REPLAY => launch::replay(agent, params),
             NATIVE_CHAT_READ_SESSION => session::read_session(agent, params),

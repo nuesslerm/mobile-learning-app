@@ -13,7 +13,7 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 use crate::domain::ToolExecutor;
 use base64::Engine;
-use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, ReadChunk, ReadFile, ReadResult, SearchEntries, Skill, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
+use exec_fs::{Browse, BrowseEntry, BrowseResult, ChunkResult, CreateFile, EntriesResult, Entry, EntryKind, FoundEntry, ListDir, MakeDir, PutBlob, ReadChunk, ReadFile, ReadResult, SearchEntries, Skill, SkillDir, SkillScan, SkillScope, SkillsFound, Stat, StatResult, WriteFile};
 use exec_git::{GitCall, GitDiff, GitOp, Resolution, SetupEvent, SetupResult, SetupStep, WorktreeAdd, WorktreeAdded, WorktreeInfo, WorktreeRemove, WorktreeSetup};
 use exec_proc::{CliDetect, CliFound, RunCommand, RunResult};
 use exec_pty::{PtyAttach, PtyAttached, PtyClose, PtyClosed, PtyEvent, PtyInfo, PtyOpen, PtyOpened, PtyResize, PtyWrite};
@@ -252,14 +252,15 @@ fn kill_group(pid: i32) {
 
 /// Adds the skills below `base`'s skill directories to `found`: a directory per skill holding `SKILL.md`, in directory-name order. A link
 /// that leaves `jail` is skipped, so a skill never reads a file the executor was not given. `label` names a path in the answer.
-fn scan_skills(base: &Path, jail: &Path, scope: SkillScope, label: &dyn Fn(&Path) -> String, found: &mut SkillsFound) {
+fn scan_skills(base: &Path, jail: &Path, dirs: &[String], scope: SkillScope, label: &dyn Fn(&Path) -> String, found: &mut SkillsFound) {
     let inside = |p: &Path| fs::canonicalize(p).is_ok_and(|c| c.starts_with(jail));
-    for dir in exec_fs::SKILL_DIRS {
+    for dir in dirs {
         let skills_dir = base.join(dir);
         if !inside(&skills_dir) {
             continue;
         }
         let Ok(read) = fs::read_dir(&skills_dir) else { continue };
+        found.present.push(SkillDir { scope, dir: dir.clone() });
         let mut names: Vec<String> = read.flatten().map(|e| e.file_name().to_string_lossy().into_owned()).collect();
         names.sort();
         for name in names {
@@ -274,7 +275,7 @@ fn scan_skills(base: &Path, jail: &Path, scope: SkillScope, label: &dyn Fn(&Path
             }
             if found.skills.len() >= exec_fs::SKILLS_MAX {
                 found.truncated = true;
-                return;
+                continue;
             }
             let (title, description) = exec_fs::front_matter(&String::from_utf8_lossy(&head));
             found.skills.push(Skill { name: title.unwrap_or_else(|| name.chars().take(exec_fs::SKILL_NAME_MAX).collect()), description, scope, dir: dir.to_string(), path: label(&file) });
@@ -532,10 +533,10 @@ impl ToolExecutor for LocalExecutor {
             return Err(ExecError::invalid_args(format!("{} is not a directory", args.root)));
         }
         let jail = std::iter::once(&self.root).chain(&self.worktree_base).find(|j| root.starts_with(j)).unwrap_or(&self.root);
-        let mut found = SkillsFound { skills: Vec::new(), truncated: false };
-        scan_skills(&root, jail, SkillScope::Workspace, &|p| self.rel(p), &mut found);
+        let mut found = SkillsFound { skills: Vec::new(), truncated: false, present: Vec::new() };
+        scan_skills(&root, jail, &args.dirs, SkillScope::Workspace, &|p| self.rel(p), &mut found);
         if let Some(home) = args.home.then(|| self.skill_home.as_ref().and_then(|h| fs::canonicalize(h).ok())).flatten() {
-            scan_skills(&home, &home, SkillScope::Home, &|p| format!("~/{}", p.strip_prefix(&home).unwrap_or(p).to_string_lossy()), &mut found);
+            scan_skills(&home, &home, &args.home_dirs, SkillScope::Home, &|p| format!("~/{}", p.strip_prefix(&home).unwrap_or(p).to_string_lossy()), &mut found);
         }
         Ok(found)
     }

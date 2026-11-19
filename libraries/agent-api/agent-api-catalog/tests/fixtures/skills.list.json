@@ -51,7 +51,17 @@
               "path": ".codex/skills/lint/SKILL.md"
             }
           ],
-          "truncated": false
+          "truncated": false,
+          "present": [
+            {
+              "scope": "workspace",
+              "dir": ".claude/skills"
+            },
+            {
+              "scope": "workspace",
+              "dir": ".codex/skills"
+            }
+          ]
         }
       },
       "actions": [
@@ -71,7 +81,8 @@
         "id": 2,
         "result": {
           "skills": [],
-          "truncated": false
+          "truncated": false,
+          "present": []
         }
       },
       "actions": [

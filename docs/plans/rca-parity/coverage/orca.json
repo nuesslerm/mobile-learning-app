@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 159,
+    "served": 160,
     "pending": 4,
-    "notOffered": 144,
+    "notOffered": 143,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -3370,10 +3370,17 @@
       "id": "rpc:skills.discover",
       "kind": "rpc",
       "name": "skills.discover",
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M7",
-      "reason": "decided 18 Nov: rca reads skills only from an executor through `skills.list {workspace}` and never from the service's own disk, so a workspace-less discovery has no process directory or home to scan; the call answers `Skill discovery needs a workspace` (the pinned host scans its own process directory and user home, which rca has no equivalent of). Reversible by a workspace-less `skills.list` once an executor-less scan means something",
-      "decidedBy": "M11"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-skills.discover-invalid-no-payload",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "allowlisted",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:speech.dictation.cancel",

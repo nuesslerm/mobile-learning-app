@@ -1039,34 +1039,46 @@ fn given_agents_the_executor_has_or_lacks_when_create_support_is_read_then_a_cha
 }
 
 #[test]
-fn given_skills_on_the_executor_when_discovered_for_a_workspace_then_each_is_a_row_the_phone_parses_with_its_provider_source_and_files() {
-    // Given the skills of the executor: two in the workspace feat and one in its home
+fn given_skills_on_the_executor_when_discovered_then_the_roots_are_the_hosts_catalog_for_each_repo_and_the_home_and_each_skill_is_a_row_of_its_root() {
+    // Given the skills of the executor: one in .claude/skills and one in .trae/skills of each workspace, one in .codex/skills (no repo root of the host), one in the home
     let mut rig = Rig::new();
-    // When the phone discovers the skills of feat
+    rig.catalog.skill("workspace", ".trae/skills", "fmt", None);
+    // When the phone discovers the skills for the worktree feat
     let r = rig.ok("skills.discover", json!({"worktreeId": "feat"}));
-    // Then the skills are the executor's, with the provider each directory belongs to and the files named under the workspace's path
-    let by_name = |name: &str| r["skills"].as_array().unwrap().iter().find(|s| s["name"] == name).unwrap().clone();
-    let review = by_name("review");
-    assert_eq!((review["providers"].clone(), review["sourceKind"].clone(), review["description"].clone(), review["skillFilePath"].clone(), review["directoryPath"].clone(), review["rootPath"].clone()), (json!(["claude"]), json!("repo"), json!("Reviews a diff"), json!("/srv/wt/feat/.claude/skills/review/SKILL.md"), json!("/srv/wt/feat/.claude/skills/review"), json!("/srv/wt/feat/.claude/skills")));
-    assert_eq!((by_name("lint")["providers"].clone(), by_name("lint")["description"].clone()), (json!(["codex"]), Value::Null));
-    let notes = by_name("notes");
-    assert_eq!((notes["providers"].clone(), notes["sourceKind"].clone(), notes["skillFilePath"].clone()), (json!(["agent-skills"]), json!("home"), json!("~/.agents/skills/notes/SKILL.md")));
-    // And every skill's root is a source the reply lists, owned by the agent of that directory (the shared one by none), which says whether it holds skills
+    // Then a skill is a row of its root, labelled as the host labels it, with the files named under the repo's path or below ~ for the home
+    let row = |file: &str| r["skills"].as_array().unwrap().iter().find(|s| s["skillFilePath"] == file).cloned().unwrap_or_else(|| panic!("{file}: {r}"));
+    let review = row("/srv/wt/feat/.claude/skills/review/SKILL.md");
+    assert_eq!(
+        (review["providers"].clone(), review["sourceKind"].clone(), review["sourceLabel"].clone(), review["rootPath"].clone(), review["directoryPath"].clone(), review["description"].clone()),
+        (json!(["claude"]), json!("repo"), json!("Repo feat .claude"), json!("/srv/wt/feat/.claude/skills"), json!("/srv/wt/feat/.claude/skills/review"), json!("Reviews a diff"))
+    );
+    assert_eq!((row("/srv/wt/feat/.trae/skills/fmt/SKILL.md")["providers"].clone(), row("/srv/wt/feat/.trae/skills/fmt/SKILL.md")["sourceLabel"].clone()), (json!(["agent-skills"]), json!("Repo feat .trae")));
+    let notes = row("~/.agents/skills/notes/SKILL.md");
+    assert_eq!((notes["sourceKind"].clone(), notes["sourceLabel"].clone(), notes["providers"].clone()), (json!("home"), json!("Agent skills home"), json!(["agent-skills"])));
+    assert!(r["skills"].as_array().unwrap().iter().all(|s| s["name"] != "lint"), "{r}");
+    // And the sources are the host's 23 home roots and 12 roots of each repo (the asked worktree and the root workspace main), sorted by label
     let sources = r["sources"].as_array().unwrap();
-    for skill in r["skills"].as_array().unwrap() {
-        let source = sources.iter().find(|s| s["path"] == skill["rootPath"]).unwrap();
-        assert_eq!((source["exists"].clone(), source["sourceKind"].clone()), (json!(true), skill["sourceKind"].clone()));
-    }
-    let owner = |path: &str| sources.iter().find(|s| s["path"] == path).unwrap()["owner"].clone();
-    assert_eq!((owner("/srv/wt/feat/.claude/skills"), owner("~/.agents/skills"), owner("/srv/wt/feat/.codex/skills")), (json!("claude"), Value::Null, json!("codex")));
-    assert_eq!(sources.iter().find(|s| s["path"] == "/srv/wt/feat/.agents/skills").unwrap()["exists"], false);
-    assert!(r["scannedAt"].as_u64().unwrap() > 0);
-    // And a filter by source kind or name narrows the skills, a workspace named by its folder is found, and none named is refused
+    assert_eq!(sources.len(), 23 + 12 * 2);
+    let labels: Vec<String> = sources.iter().map(|s| s["label"].as_str().unwrap().to_lowercase()).collect();
+    assert!(labels.windows(2).all(|w| w[0] <= w[1]), "{labels:?}");
+    // And a root the executor saw exists, one it did not is missing, and a root holds the owner and providers of its agent
+    let by_path = |p: &str| sources.iter().find(|s| s["path"] == p).cloned().unwrap_or_else(|| panic!("{p}"));
+    assert_eq!(by_path("~/.agents/skills"), json!({"id": "home-agents", "label": "Agent skills home", "path": "~/.agents/skills", "sourceKind": "home", "providers": ["agent-skills"], "owner": null, "exists": true}));
+    assert_eq!((by_path("~/.claude/skills")["exists"].clone(), by_path("~/.claude/skills")["skippedReason"].clone()), (json!(false), json!("missing")));
+    assert_eq!((by_path("/srv/wt/feat/.trae/skills")["exists"].clone(), by_path("/srv/wt/feat/.trae/skills")["owner"].clone()), (json!(true), json!("trae")));
+    assert_eq!(by_path("~/.codex/plugins/cache")["sourceKind"], "plugin");
+    // And a filter by source kind or by name narrows the answer
     let home = rig.ok("skills.discover", json!({"worktreeId": "feat", "sourceKinds": ["home"]}));
     assert_eq!(home["skills"].as_array().unwrap().iter().map(|s| s["name"].clone()).collect::<Vec<_>>(), vec![json!("notes")]);
-    let named = rig.ok("skills.discover", json!({"cwd": "/srv/wt/feat", "names": ["lint"]}));
-    assert_eq!(named["skills"].as_array().unwrap().iter().map(|s| s["name"].clone()).collect::<Vec<_>>(), vec![json!("lint")]);
-    assert_eq!(rig.err("skills.discover", json!({})).1, "Skill discovery needs a workspace");
+    assert!(home["sources"].as_array().unwrap().iter().all(|s| s["sourceKind"] == "home"));
+    let named = rig.ok("skills.discover", json!({"cwd": "/srv/wt/feat", "names": ["FMT"]}));
+    assert!(named["skills"].as_array().unwrap().iter().all(|s| s["name"] == "fmt") && !named["skills"].as_array().unwrap().is_empty());
+    // And with no folder every workspace is a repo, a folder no workspace holds is listed unanswered, and an unknown runtime is refused
+    assert_eq!(rig.ok("skills.discover", json!({}))["sources"].as_array().unwrap().len(), 23 + 12 * 2);
+    let elsewhere = rig.ok("skills.discover", json!({"cwd": "/tmp/elsewhere"}));
+    let unanswered = elsewhere["sources"].as_array().unwrap().iter().find(|s| s["path"] == "/tmp/elsewhere/.claude/skills").unwrap().clone();
+    assert_eq!((unanswered["exists"].clone(), unanswered["skippedReason"].clone()), (json!(false), json!("unavailable")));
+    assert_eq!(rig.err("skills.discover", json!({"runtime": 7})).1, "Invalid option: expected one of \"host\"|\"wsl\"");
     assert_eq!(rig.err("skills.discover", json!({"worktreeId": "nope"})).0, "selector_not_found");
 }
 
