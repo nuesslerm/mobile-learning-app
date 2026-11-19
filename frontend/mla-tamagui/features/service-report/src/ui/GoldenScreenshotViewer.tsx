@@ -40,8 +40,7 @@ import {
 import * as React from 'react';
 import {
   Image,
-  type ImageErrorEventData,
-  type NativeSyntheticEvent,
+  type ImageErrorEvent,
   PanResponder,
   Pressable,
   ScrollView,
@@ -118,7 +117,7 @@ function ImageCompareArea({
 
   const imageFailed =
     (side: 'baseline' | 'actual') =>
-    (e: NativeSyntheticEvent<ImageErrorEventData>) => {
+    (e: ImageErrorEvent) => {
       Logger.warn('service_report.golden_image_failed', {
         side,
         mode,

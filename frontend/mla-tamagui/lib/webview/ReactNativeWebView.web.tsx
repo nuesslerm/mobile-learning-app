@@ -1,7 +1,7 @@
 import { Logger } from '@lib/logging';
 import { View } from '@lib/tamagui-design-system';
 import * as React from 'react';
-import { type StyleProp, type ViewStyle } from 'react-native';
+import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 const BRIDGE_FLAG = '__RN_WEBVIEW_BRIDGE__';
 const INJECT_FLAG = '__RN_WEBVIEW_INJECT__';
@@ -109,7 +109,7 @@ const WebView = React.forwardRef<WebViewHandle, WebViewProps>(
     const html = mounted && source?.html ? withBridge(source.html) : undefined;
 
     return (
-      <View testID={testID} style={[{ overflow: 'hidden' }, style]}>
+      <View testID={testID} style={[{ overflow: 'hidden' }, StyleSheet.flatten(style)]}>
         <iframe
           ref={frameRef}
           src={mounted ? source?.uri : undefined}

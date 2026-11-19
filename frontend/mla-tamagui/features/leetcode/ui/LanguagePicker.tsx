@@ -132,7 +132,7 @@ export function LanguageSheet({
           renderItem={({ item, itemTextStyle }) => (
             <Text
               testID={`${testID}-${item.label}`}
-              style={[styles.item, itemTextStyle]}
+              style={[styles.item, StyleSheet.flatten(itemTextStyle)]}
             >
               {item.label}
             </Text>

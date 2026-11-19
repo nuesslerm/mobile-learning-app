@@ -44,9 +44,9 @@ catalog:
   vite-plugin-babel: ^1.7.3
   '@types/react': ~19.2.0
   '@types/react-dom': ~19.2.0
-  react: 19.2.3
-  react-dom: 19.2.3
-  react-native: 0.86.3
+  react: 19.3.0
+  react-dom: 19.3.0
+  react-native: 0.88.1
   react-native-css-interop: 0.2.5
   tailwindcss: ^3.4.17
   playwright: ^1.62.1
@@ -82,13 +82,13 @@ overrides:
   # Expo SDK 57's React Native renderer runs only on React 19.2.3. Packages whose react peer was auto-installed
   # (vaul, react-remove-scroll, react-native-worklets, ...) resolved 19.2.7, and the hoisted react-native then
   # flipped to that copy between installs, which broke the app typecheck. One React for the whole workspace.
-  react: 19.2.3
+  react: 19.3.0
   # tvOS is not a target of this app: skia's install script skips a missing tvOS package (about 205 MB of prebuilt frameworks); re-check
   # node_modules/@shopify/react-native-skia/scripts/install-libs.js on each skia bump.
   react-native-skia-apple-tvos: '-'
-  # autoInstallPeers resolved @react-native/metro-config twice (0.86.3 and 0.87.1), which forked every package that peers on it (four
-  # patched copies of lucide-react-native, two react-native-svg); react-native itself is 0.86.3.
-  '@react-native/metro-config': 0.86.3
+  # autoInstallPeers resolved @react-native/metro-config twice (two versions), which forked every package that peers on it (four
+  # patched copies of lucide-react-native, two react-native-svg); react-native itself is 0.88.1.
+  '@react-native/metro-config': 0.88.1
   # @react-types 3.16/3.11/3.6/... add hard deps on @react-spectrum/* (which pull all of @adobe/react-spectrum) and a provider peer;
   # these are type-only packages for gluestack, and the previous patch releases have neither.
   '@react-types/button': 3.15.1
@@ -117,7 +117,7 @@ patchedDependencies:
   '@quidone/react-native-wheel-picker@1.7.1': patches/@quidone__react-native-wheel-picker@1.7.1.patch
   # react-native-svg's web shapes hand a pressable shape's responder props to a DOM element, which ignores them with a
   # warning, through a mixin react-native-web calls deprecated; on web a press is the onClick it already sets.
-  react-native-svg@15.15.4: patches/react-native-svg@15.15.4.patch
+  react-native-svg@15.16.0: patches/react-native-svg@15.16.0.patch
   '@gluestack-ui/core@5.0.15': patches/@gluestack-ui__core@5.0.15.patch
   '@gorhom/bottom-sheet@5.2.14': patches/@gorhom__bottom-sheet@5.2.14.patch
 

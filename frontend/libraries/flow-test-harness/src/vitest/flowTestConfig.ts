@@ -37,6 +37,15 @@ export interface FlowTestConfigOptions {
 export const flowTestAliases = (): { find: RegExp; replacement: string }[] => [
   { find: /^react-native$/, replacement: 'react-native-web' },
   {
+    // react-native 0.87+ no longer ships it; react-native-svg's web build still imports it, as metro's web resolver maps it.
+    find: /^@react-native\/assets-registry\/registry$/,
+    replacement: 'react-native-web/dist/modules/AssetRegistry/index.js',
+  },
+  {
+    find: /^(\.\.?\/)+(async-require\/setup|winter)$|^expo\/build\/(async-require\/setup|winter)$/,
+    replacement: stub('expo-fx-noop'),
+  },
+  {
     find: /^react-native-reanimated$/,
     replacement: stub('react-native-reanimated'),
   },

@@ -2,7 +2,7 @@
 
 # Expo HAS CHANGED
 
-Read the versioned docs at https://docs.expo.dev/versions/v57.0.0/ before writing Expo code.
+Read the versioned docs at https://docs.expo.dev/versions/v58.0.0/ before writing Expo code.
 
 This file holds only the always-on rules, each in a few lines with a pointer: the long text lives in `docs/solutions/` and is never pasted back here (the byte budget of `wf check --budget` enforces it). Area how-to is in nested `AGENTS.md` files that load under `frontend/mla-tamagui/`, `frontend/mla-tamagui/features/`, `infra/oracle-cloud/`, `.agents/`. Vocabulary: `CONCEPTS.md`. Open debt: `docs/known-gaps.md`.
 

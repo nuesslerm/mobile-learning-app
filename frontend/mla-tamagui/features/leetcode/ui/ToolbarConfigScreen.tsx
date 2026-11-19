@@ -16,7 +16,7 @@ import {
 } from '@lib/tamagui-design-system';
 import { Stack } from 'expo-router';
 import { CircleMinus, Plus } from '@lib/tamagui-design-system/icons';
-import { useCallback, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type ComponentRef, type ReactNode } from 'react';
 // gesture-handler's ScrollView, not react-native's: its ref resolves to a real
 // RNScrollView with a working imperative `scrollTo`, which the auto-scroll in
 // ReorderableList depends on.
@@ -214,7 +214,7 @@ export function ToolbarConfigScreen(): React.ReactElement {
   const setItems = useToolbarConfigStore((s) => s.setItems);
   const resetToDefault = useToolbarConfigStore((s) => s.resetToDefault);
 
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const scrollOffset = useSharedValue(0);
 
   const scrollToY = useCallback((y: number) => {

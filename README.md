@@ -41,5 +41,5 @@ wf ship eas --initial-route /your-route        # publish an EAS Update: open its
 
 ## More context
 
-- [Expo SDK 57 docs](https://docs.expo.dev/versions/v57.0.0/)
+- [Expo SDK 58 docs](https://docs.expo.dev/versions/v58.0.0/)
 - [Shared domain vocabulary](CONCEPTS.md)
