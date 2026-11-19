@@ -8,7 +8,7 @@ const CURVE_STEPS: usize = 12;
 const MIN_SPUR_PX: usize = 6;
 const MIN_COMPONENT_PX: usize = 30;
 const FRAME_PX: i64 = 3;
-const DAB_PX: f64 = 3.0;
+const DAB_PX: f64 = 4.0;
 
 fn bezier(controls: &[Pt]) -> Vec<Pt> {
     (1..=CURVE_STEPS)
@@ -412,7 +412,7 @@ fn dabs(mask: &[u8], width: usize, strokes: &[Vec<Pt>]) -> Vec<Vec<Pt>> {
             let n = pixels.len() as f64;
             let x = pixels.iter().map(|p| (p % width) as f64).sum::<f64>() / n;
             let y = pixels.iter().map(|p| (p / width) as f64).sum::<f64>() / n;
-            vec![(x - DAB_PX, y), (x + DAB_PX, y)]
+            (0..=8).map(|i| { let a = f64::from(i) * std::f64::consts::FRAC_PI_4; (x + DAB_PX * a.cos(), y + DAB_PX * a.sin()) }).collect()
         })
         .collect()
 }
