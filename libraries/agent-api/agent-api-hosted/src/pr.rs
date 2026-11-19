@@ -44,6 +44,7 @@ both! {
     (REVIEW_COMMENT, MR_REVIEW_COMMENT, "reviewComment", exec_hosted::PR_REVIEW_COMMENT),
     (LABEL_CANDIDATES, MR_LABEL_CANDIDATES, "labelCandidates", exec_hosted::REPO_LABELS),
     (REVIEWER_CANDIDATES, MR_REVIEWER_CANDIDATES, "reviewerCandidates", exec_hosted::REPO_REVIEWERS),
+    (REMOTES, MR_REMOTES, "remotes", exec_hosted::REPO_REMOTES),
     (RUN_LIST, MR_RUN_LIST, "runs", exec_hosted::RUN_LIST),
     (RUN_VIEW, MR_RUN_VIEW, "run", exec_hosted::RUN_VIEW),
 }

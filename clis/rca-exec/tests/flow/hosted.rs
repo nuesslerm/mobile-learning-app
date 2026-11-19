@@ -2,7 +2,7 @@
 //! real process with the argv, stdin, environment and directory the executor chooses, and prints what the real CLIs print (written from their
 //! documented JSON and text output). No account, token or network is involved.
 use exec_hosted::testing::{fixtures, Exchange, Fixture};
-use exec_hosted::{ACTIONS, AUTH_LOGIN_CANCEL, AUTH_LOGIN_START, AUTH_LOGIN_WAIT, OUTPUT_CAP, PR_COMMENT, PR_DIFF, PR_COMMENTS, PR_LABELS, PR_LIST, PR_REVIEWS, PR_THREADS, PR_VIEW, PR_FILE_VIEWED, REPO_CLONE, REPO_PUBLISH};
+use exec_hosted::{ACTIONS, AUTH_LOGIN_CANCEL, AUTH_LOGIN_START, AUTH_LOGIN_WAIT, OUTPUT_CAP, PR_COMMENT, PR_DIFF, PR_COMMENTS, PR_LABELS, PR_LIST, PR_REVIEWS, PR_THREADS, PR_VIEW, PR_FILE_VIEWED, REPO_CLONE, REPO_PUBLISH, REPO_REMOTES};
 use exec_proto::{Code, ExecResult, Stream};
 use exec_testkit::{HostedClis, Rule, TempRepo};
 use rca_exec::adapters::local_executor::LocalExecutor;
@@ -453,6 +453,20 @@ fn given_a_gitlab_publish_when_the_repository_is_created_then_the_branch_is_push
     assert_eq!(out["url"], "https://gitlab.com/grp/proj");
     assert_eq!(Path::new(&clis.starts("glab")[0].cwd), std::fs::canonicalize(repo.path()).unwrap());
     assert_eq!(git(remote.path(), &["rev-parse", "main"]), repo.head());
+}
+
+#[test]
+fn given_a_directory_that_is_no_repository_when_its_remotes_are_listed_then_git_refuses_and_no_cli_starts() {
+    // Given a root with no repository in it or above it
+    let b = bench();
+    b.clis.rules(&[], &[]);
+    for provider in ["github", "gitlab"] {
+        // When its remotes are listed
+        let refused = call(&b.ex, "r", REPO_REMOTES, json!({"provider": provider})).unwrap_err();
+        // Then git's own refusal comes back, and neither gh nor glab started
+        assert!(refused.message.contains("not a git repository"), "{provider}: {refused:?}");
+        no_start(&b);
+    }
 }
 
 fn graphql_rule(connection: &str, nodes: Value) -> Rule {

@@ -1,6 +1,6 @@
 {
-  "content_hash": "sha256:1b5c642ae70894e5fe6bfaa456147221e0997014fb44fb99661be37f42fa0f5e",
-  "interactions": 112,
+  "content_hash": "sha256:802ff1566580f261090a00b5c35dba41e4837c2a667229469cf8ac67d0d69c7d",
+  "interactions": 115,
   "provenance": {
     "imported_from": [
       {
@@ -118,6 +118,10 @@
       {
         "hash": "sha256:9a8dc8bc0e8d85a416619876c3b8498c12bcf22b64443d9c01534bd1e29bc7f8",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_publish.json"
+      },
+      {
+        "hash": "sha256:cfbf46c72a74e5bbb74c70b7ae66abd51ec57cd9e88a20fc989d6d9a6545796b",
+        "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_repo_remotes.json"
       },
       {
         "hash": "sha256:ef35aa7b7e82ed9025a9c1950c998e90bb63d2fc201eb253935c2fecf99b6770",

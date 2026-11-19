@@ -327,6 +327,7 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
             Ok(json!({"users": users}))
         }
         HostedCall::RepoClone { .. } => Ok(json!({"repo": op.repo})),
+        HostedCall::RepoRemotes => Ok(json!({"remotes": remotes_of(&last.stdout)})),
         HostedCall::RepoPublish { .. } => {
             let printed = outputs.iter().map(|o| format!("{}\n{}", o.stdout, o.stderr)).collect::<String>();
             Ok(json!({"repo": op.repo, "url": first_url(&printed), "remote": "origin"}))
@@ -582,6 +583,27 @@ pub fn parse_auth_status(text: &str) -> AuthStatus {
 }
 
 /// A sign-in prompt: the one-time code (GitHub) and the address to open. `None` until the address has been printed.
+/// The remotes `git remote -v` printed, in its order: each name once, with its first fetch URL (a partial clone adds a ` [filter]` suffix).
+pub fn remotes_of(printed: &str) -> Vec<Value> {
+    let mut seen: Vec<&str> = Vec::new();
+    let mut remotes = Vec::new();
+    for line in printed.lines() {
+        let line = line.trim();
+        let Some((name, rest)) = line.split_once(char::is_whitespace) else { continue };
+        let rest = rest.trim();
+        let rest = match rest.rfind('[') {
+            Some(at) if rest.ends_with(']') && !rest[at + 1..rest.len() - 1].contains(']') && rest[..at].trim_end().ends_with("(fetch)") => rest[..at].trim_end(),
+            _ => rest,
+        };
+        let Some(url) = rest.strip_suffix("(fetch)").filter(|u| u.ends_with(char::is_whitespace)).map(str::trim_end).filter(|u| !u.is_empty()) else { continue };
+        if !seen.contains(&name) {
+            seen.push(name);
+            remotes.push(json!({"name": name, "url": url}));
+        }
+    }
+    remotes
+}
+
 pub fn parse_login_prompt(text: &str) -> Option<(Option<String>, String)> {
     let url = first_url(text)?.to_string();
     let code = text.split("one-time code:").nth(1).and_then(|rest| rest.split_whitespace().next()).map(str::to_string);
@@ -613,6 +635,17 @@ mod tests {
         assert_eq!(parse_login_prompt("! First copy your one-time code: ABCD-1234\n"), None);
         assert_eq!(parse_login_prompt("! First copy your one-time code: ABCD-1234\nOpen this URL to continue in your web browser: https://github.com/login/device\n"), Some((Some("ABCD-1234".into()), "https://github.com/login/device".into())));
         assert_eq!(parse_login_prompt("Opening https://gitlab.com/oauth/authorize?x=1 in your browser."), Some((None, "https://gitlab.com/oauth/authorize?x=1".into())));
+    }
+
+    #[test]
+    fn given_what_git_remote_v_printed_when_read_then_each_remote_is_named_once_with_its_fetch_url_in_gits_order() {
+        // Given fetch and push lines, a partial clone's filter suffix and a line that is no remote
+        let printed = "origin\tgit@github.com:octo/hello.git (fetch)\norigin\tgit@github.com:octo/hello.git (push)\nup\thttps://x/a b.git (fetch) [blob:none]\nup\thttps://x/other (fetch)\nweird\n";
+        // When read
+        let remotes = remotes_of(printed);
+        // Then each name keeps its first fetch URL, and nothing else is a remote
+        assert_eq!(remotes, vec![json!({"name": "origin", "url": "git@github.com:octo/hello.git"}), json!({"name": "up", "url": "https://x/a b.git"})]);
+        assert_eq!(remotes_of(""), Vec::<Value>::new());
     }
 
     #[test]

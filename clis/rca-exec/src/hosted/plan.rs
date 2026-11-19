@@ -1,5 +1,5 @@
 //! The programs a validated hosted request starts: for each call the exact argv of `gh` or `glab` (or the `git push` a GitLab publish ends
-//! with), the text sent on stdin and the exit codes that still carry an answer. Pure: nothing is run here. Every value reaches the CLI as the
+//! with, or the local `git remote -v`), the text sent on stdin and the exit codes that still carry an answer. Pure: nothing is run here. Every value reaches the CLI as the
 //! value of a `--flag=value` or a `-f key=value` field, or as a path, an id or a number the contract already checked, so none can be an option.
 use super::shape::Output;
 use exec_hosted::{CommentKind, HostedCall, HostedOp, MergeMethod, PrState, Provider, ReactTarget, Verdict, Visibility};
@@ -318,6 +318,7 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             args.push(format!("--json={REPO_FIELDS}"));
             one(gh(args))
         }
+        HostedCall::RepoRemotes => one(step(Program::Git, strs(&["remote", "-v"]))),
         HostedCall::RepoLabels { limit } => {
             let mut args = strs(&["label", "list"]);
             repo_flag(&mut args);
@@ -546,6 +547,7 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
     let one = |s: Step| Ok(vec![s]);
     match &op.call {
         HostedCall::RepoView => one(api("GET", project())),
+        HostedCall::RepoRemotes => one(step(Program::Git, strs(&["remote", "-v"]))),
         HostedCall::RepoLabels { limit } => one(api("GET", format!("{}/labels?per_page={limit}", project()))),
         HostedCall::RepoReviewers { limit } => one(api("GET", format!("{}/members/all?per_page={limit}", project()))),
         HostedCall::RepoClone { .. } => {
