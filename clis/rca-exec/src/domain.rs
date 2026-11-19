@@ -288,12 +288,9 @@ mod tests {
     fn given_every_action_of_the_contract_when_a_request_names_it_then_the_executor_is_asked_for_that_action_and_no_other() {
         for action in actions() {
             // Given a request with the arguments the action requires
-            let mut args: serde_json::Map<String, Value> = action.required.iter().map(|k| (k.to_string(), placeholder(action, k))).collect();
-            // Two hosted actions need one of several optional arguments
-            match action.name {
-                exec_hosted::PR_EDIT => args.insert("title".into(), json!("t")),
-                exec_hosted::PR_LABELS | exec_hosted::PR_REQUEST_REVIEWERS => args.insert("add".into(), json!(["a"])),
-                _ => None,
+            let args: serde_json::Map<String, Value> = match exec_hosted::ACTIONS.iter().find(|a| a.name == action.name) {
+                Some(hosted) => exec_hosted::minimal_args(hosted).as_object().cloned().unwrap_or_default(),
+                None => action.required.iter().map(|k| (k.to_string(), placeholder(action, k))).collect(),
             };
             let ex = Recorder::default();
             // When it is executed

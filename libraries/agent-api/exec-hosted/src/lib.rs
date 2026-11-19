@@ -781,6 +781,37 @@ impl HostedOp {
     }
 }
 
+#[cfg(any(test, feature = "testing"))]
+/// The fewest arguments that make `action` a valid request: its required ones, and one of the optional ones an action needs one of.
+pub fn minimal_args(action: &Action) -> Value {
+    let mut args = serde_json::Map::new();
+    for name in action.required {
+        let property = action.properties.iter().find(|p| p.name == *name);
+        let value = match (*name, property.map(|p| p.kind)) {
+            ("provider", _) => serde_json::json!("github"),
+            ("repo", _) => serde_json::json!("octo/hello"),
+            ("verdict", _) => serde_json::json!("approve"),
+            ("content", _) => serde_json::json!("+1"),
+            ("dest", _) => serde_json::json!("clones/hello"),
+            (_, Some("integer")) => serde_json::json!(7),
+            (_, Some("array")) => serde_json::json!(["x"]),
+            (_, Some("boolean")) => serde_json::json!(true),
+            _ => serde_json::json!("a"),
+        };
+        args.insert((*name).to_string(), value);
+    }
+    // The actions that need one of several optional arguments
+    match action.name {
+        PR_EDIT => args.insert("title".into(), serde_json::json!("t")),
+        PR_LABELS | PR_REQUEST_REVIEWERS => args.insert("add".into(), serde_json::json!(["x"])),
+        // a reply names its thread or (GitHub) a comment of it, one of the two
+        PR_REPLY => args.insert("thread".into(), serde_json::json!("PRRT_1")),
+        PR_STATE => args.insert("state".into(), serde_json::json!("closed")),
+        _ => None,
+    };
+    Value::Object(args)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -788,32 +819,7 @@ mod tests {
 
     /// Arguments that satisfy an action, derived from its own table: every required property gets a value of its kind.
     fn minimal(action: &Action) -> Value {
-        let mut args = serde_json::Map::new();
-        for name in action.required {
-            let property = action.properties.iter().find(|p| p.name == *name);
-            let value = match (*name, property.map(|p| p.kind)) {
-                ("provider", _) => json!("github"),
-                ("repo", _) => json!("octo/hello"),
-                ("verdict", _) => json!("approve"),
-                ("content", _) => json!("+1"),
-                ("dest", _) => json!("clones/hello"),
-                (_, Some("integer")) => json!(7),
-                (_, Some("array")) => json!(["x"]),
-                (_, Some("boolean")) => json!(true),
-                _ => json!("a"),
-            };
-            args.insert((*name).to_string(), value);
-        }
-        // The actions that need one of several optional arguments
-        match action.name {
-            PR_EDIT => args.insert("title".into(), json!("t")),
-            PR_LABELS | PR_REQUEST_REVIEWERS => args.insert("add".into(), json!(["x"])),
-            // a reply names its thread or (GitHub) a comment of it, one of the two
-            PR_REPLY => args.insert("thread".into(), json!("PRRT_1")),
-            PR_STATE => args.insert("state".into(), json!("closed")),
-            _ => None,
-        };
-        Value::Object(args)
+        crate::minimal_args(action)
     }
 
     #[test]
