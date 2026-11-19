@@ -292,7 +292,8 @@ for _, p in ipairs(SOL) do
   done()
   if android then r.keyboard_after_done = device:get_device_state('keyboard').visible end
   device:take_screenshot(("%s/%s-keyboard-down.png"):format(out, p.id))
-  if r.final then
+  -- a part whose lines did not read back is not run: its Run would time out and hide the line that went missing (reported below)
+  if r.final and r.lines_match then
     run_flow("run local", function()
       device:tap_on({id='ProblemEditorRunLocalButton'})
       device:assert_visible({id='ProblemEditorRunOutcomeTotals'})
