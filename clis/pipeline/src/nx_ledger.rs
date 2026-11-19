@@ -144,6 +144,20 @@ fn record(tasks: &[TaskRun]) {
     let job = var("GITHUB_JOB").unwrap_or_default();
     let ts = wf_kit::time::now_ms() as i64;
     let rows: Vec<crate::ci_ledger::Observed> = tasks.iter().map(|t| crate::ci_ledger::Observed { run: run.clone(), sha: sha.clone(), ts, job: job.clone(), task: t.task.clone(), hash: t.hash.clone(), outcome: t.outcome.to_string(), ms: t.ms, passed: t.passed }).collect();
+    // A CI job writes to its own local database and the report job merges it into the sealed one: a job's token cannot push the state ref (the push was refused
+    // five times per stage, 403, and cost seconds each time), and the sealed database never held these rows.
+    let local: Vec<wf_bucket::ci_db::LedgerTask> = rows
+        .iter()
+        .map(|o| wf_bucket::ci_db::LedgerTask { run: o.run.clone(), sha: o.sha.clone(), ts: o.ts, job: o.job.clone(), task: o.task.clone(), hash: o.hash.clone(), outcome: o.outcome.to_string(), ms: o.ms, passed: o.passed })
+        .collect();
+    match wf_bucket::ci_db::record_tasks_local(&local) {
+        Ok(true) => return,
+        Ok(false) => {}
+        Err(reason) => {
+            wf_kit::wf_err!("wf: nx ledger not recorded: {reason}");
+            return;
+        }
+    }
     if let Err(reason) = crate::ci_ledger::open().and_then(|ledger| ledger.record_tasks(&rows)) {
         wf_kit::wf_err!("wf: nx ledger not recorded: {reason}");
     }

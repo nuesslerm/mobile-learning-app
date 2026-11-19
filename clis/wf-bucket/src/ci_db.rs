@@ -82,6 +82,37 @@ pub fn record(table: &str, row: &Map<String, Value>) -> Result<bool, String> {
     insert_at(&path, table, row).map(|()| true)
 }
 
+/// One task of a CI run's Nx ledger (`CI_TASKS`).
+pub struct LedgerTask {
+    pub run: String,
+    pub sha: String,
+    pub ts: i64,
+    pub job: String,
+    pub task: String,
+    pub hash: String,
+    pub outcome: String,
+    pub ms: i64,
+    pub passed: bool,
+}
+
+/// Writes tasks to the typed `CI_TASKS` table of the job's local database, which the report job merges into the sealed one with the other rows. A task already
+/// there (same run, task and hash) is kept once. Nothing is written, and `false` comes back, when this is not a CI job with a local database.
+pub fn record_tasks_local(tasks: &[LedgerTask]) -> Result<bool, String> {
+    let Some(path) = local_path() else { return Ok(false) };
+    let mut conn = open_at(&path)?;
+    ensure_ledger(&conn)?;
+    let tx = conn.transaction().map_err(sql)?;
+    for t in tasks {
+        tx.execute(
+            "INSERT OR IGNORE INTO CI_TASKS (RUN_ID, SHA, TS, JOB, TASK, HASH, OUTCOME, MS, PASSED) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+            rusqlite::params![t.run, t.sha, t.ts, t.job, t.task, t.hash, t.outcome, t.ms, t.passed as i64],
+        )
+        .map_err(sql)?;
+    }
+    tx.commit().map_err(sql)?;
+    Ok(true)
+}
+
 /// Copies every table of `from` into `into`, skipping rows `into` already holds (by primary key). A table `into` lacks is made with
 /// `from`'s definition.
 pub fn merge(into: &Connection, from: &Path) -> Result<usize, String> {
@@ -185,4 +216,29 @@ pub fn query(conn: &Connection, statement: &str) -> Result<Vec<Value>, String> {
         })
         .map_err(sql)?;
     rows.collect::<Result<_, _>>().map_err(sql)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn task(hash: &str) -> LedgerTask {
+        LedgerTask { run: "1".into(), sha: "abc".into(), ts: 10, job: "flow-tests (1/6)".into(), task: "app:test".into(), hash: hash.into(), outcome: "ran".into(), ms: 4200, passed: true }
+    }
+
+    #[test]
+    fn given_a_ci_job_database_when_the_same_task_is_recorded_twice_then_it_is_kept_once() {
+        let dir = tempfile::tempdir().unwrap();
+        let db = dir.path().join("rows.sqlite");
+        std::env::set_var("WF_CI_DB", &db);
+
+        let first = record_tasks_local(&[task("h1"), task("h2")]).unwrap();
+        let again = record_tasks_local(&[task("h1")]).unwrap();
+
+        std::env::remove_var("WF_CI_DB");
+        let conn = Connection::open(&db).unwrap();
+        let n: i64 = conn.query_row("SELECT COUNT(*) FROM CI_TASKS", [], |r| r.get(0)).unwrap();
+        assert!(first && again);
+        assert_eq!(n, 2);
+    }
 }
