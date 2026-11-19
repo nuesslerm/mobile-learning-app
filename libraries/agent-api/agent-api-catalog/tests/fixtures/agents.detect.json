@@ -33,6 +33,22 @@
               "version": "codex-cli 0.9.1"
             }
           ],
+          "tools": [
+            {
+              "program": "git",
+              "installed": true,
+              "path": "/usr/bin/git",
+              "version": "git version 2.43.0"
+            },
+            {
+              "program": "gh",
+              "installed": false
+            },
+            {
+              "program": "glab",
+              "installed": false
+            }
+          ],
           "checked_at_ms": 1700000000000
         }
       },
@@ -42,7 +58,11 @@
       "volatile": [
         "/result/checked_at_ms",
         "/result/agents/1/path",
-        "/result/agents/2/path"
+        "/result/agents/2/path",
+        "/result/tools/0/path",
+        "/result/tools/0/version",
+        "/result/tools/1",
+        "/result/tools/2"
       ]
     },
     {
@@ -80,6 +100,22 @@
               "version": "codex-cli 0.9.1"
             }
           ],
+          "tools": [
+            {
+              "program": "git",
+              "installed": true,
+              "path": "/usr/bin/git",
+              "version": "git version 2.43.0"
+            },
+            {
+              "program": "gh",
+              "installed": false
+            },
+            {
+              "program": "glab",
+              "installed": false
+            }
+          ],
           "checked_at_ms": 1700000000000
         }
       },
@@ -89,7 +125,11 @@
       "volatile": [
         "/result/checked_at_ms",
         "/result/agents/1/path",
-        "/result/agents/2/path"
+        "/result/agents/2/path",
+        "/result/tools/0/path",
+        "/result/tools/0/version",
+        "/result/tools/1",
+        "/result/tools/2"
       ]
     },
     {

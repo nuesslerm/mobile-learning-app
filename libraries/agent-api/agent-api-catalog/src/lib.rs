@@ -28,6 +28,9 @@ pub const ACTIONS: &[(Method, &[&str])] = &[(MODELS_LIST, &[]), (AGENTS_DETECT, 
 /// service holds equal.
 pub const DRIVERS: [&str; 3] = ["opencode", "claudeAgent", "codex"];
 
+/// The tools `agents.detect` reports besides the drivers' CLIs, in this order: git, and the GitHub and GitLab CLIs.
+pub const TOOLS: [&str; 3] = ["git", "gh", "glab"];
+
 /// The skills directories (`exec_fs::SKILL_DIRS`) each driver reads, in the order its skills are listed.
 pub fn skill_dirs(driver: &str) -> &'static [&'static str] {
     match driver {
@@ -118,7 +121,7 @@ pub struct ModelsResult {
     pub default_interaction_mode: String,
 }
 
-/// `agents.detect`: which agent CLIs `executor` (the only one attached when absent) has. The service keeps an answer a short while;
+/// `agents.detect`: which agent CLIs and tools `executor` (the only one attached when absent) has. The service keeps an answer a short while;
 /// `refresh` asks the executor again.
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -158,12 +161,28 @@ pub struct DetectedAgent {
     pub error: Option<String>,
 }
 
+/// What the executor found for one of `TOOLS`, read as a driver's CLI is.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct DetectedTool {
+    pub program: String,
+    pub installed: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DetectResult {
     /// The executor that was asked, by the name it attached under.
     pub executor: String,
     /// One entry per driver, in the order of `DRIVERS`.
     pub agents: Vec<DetectedAgent>,
+    /// One entry per program of `TOOLS`, in that order.
+    #[serde(default)]
+    pub tools: Vec<DetectedTool>,
     /// When the executor answered (an answer the service kept says when it was got, not when it was asked for).
     pub checked_at_ms: u64,
 }
@@ -350,6 +369,8 @@ mod tests {
             assert!(actions.iter().all(|a| known.contains(a)), "{}: {actions:?}", method.name());
         }
         assert_eq!(ACTIONS.iter().flat_map(|(_, a)| a.iter().copied()).collect::<std::collections::BTreeSet<_>>(), [exec_fs::SKILL_SCAN, exec_proc::CLI_DETECT].into());
+        // And the tools reported are the ones the executor's `cli_detect` looks for besides the agent CLIs
+        assert_eq!(TOOLS, exec_proc::TOOL_CLIS);
         // And every recorded exchange asks no action outside its row, a success of a method that has some asks them all, and a method with none asks none
         for fixture in &fixtures() {
             let row = ACTIONS.iter().find(|(m, _)| m.name() == fixture.method).map(|(_, a)| *a).unwrap();

@@ -15,6 +15,10 @@ pub const CLI_DETECT: &str = "cli_detect";
 
 /// The programs `cli_detect` looks for: the executor runs only these, by name, never a path or a word the caller makes up.
 pub const AGENT_CLIS: [&str; 3] = ["claude", "codex", "opencode"];
+/// The tools a host's checks name besides the agent CLIs: git, and the GitHub and GitLab CLIs.
+pub const TOOL_CLIS: [&str; 3] = ["git", "gh", "glab"];
+/// Every program `cli_detect` looks for.
+pub const DETECTABLE: [&str; 6] = ["claude", "codex", "opencode", "git", "gh", "glab"];
 /// The most a `--version` may take before the program counts as not answering.
 pub const VERSION_TIMEOUT_MS: u64 = 5_000;
 /// The longest version text kept.
@@ -38,8 +42,8 @@ pub const ACTIONS: &[Action] = &[
     Action { name: CANCEL, about: "Cancel a running action by its id.", properties: &[Property { name: "id", kind: "string", about: "Id of the running action" }], required: &["id"] },
     Action {
         name: CLI_DETECT,
-        about: "Say which of the named agent CLIs (claude, codex, opencode) the executor has on its path and what each prints for `--version` (run without a shell, at most 5 s each).",
-        properties: &[Property { name: "programs", kind: "array", about: "Program names, each one of claude, codex, opencode (1 to 3, no repeats)" }],
+        about: "Say which of the named CLIs (the agent CLIs claude, codex, opencode, and git, gh, glab) the executor has on its path and what each prints for `--version` (run without a shell, at most 5 s each).",
+        properties: &[Property { name: "programs", kind: "array", about: "Program names, each one of claude, codex, opencode, git, gh, glab (1 to 6, no repeats)" }],
         required: &["programs"],
     },
 ];
@@ -98,14 +102,14 @@ pub struct CliDetect {
 impl CliDetect {
     pub fn parse(args: &Value) -> ExecResult<CliDetect> {
         let list = args["programs"].as_array().ok_or_else(|| ExecError::invalid_args("`programs` must be an array of program names"))?;
-        if list.is_empty() || list.len() > AGENT_CLIS.len() {
-            return Err(ExecError::invalid_args(format!("`programs` names 1 to {} programs", AGENT_CLIS.len())));
+        if list.is_empty() || list.len() > DETECTABLE.len() {
+            return Err(ExecError::invalid_args(format!("`programs` names 1 to {} programs", DETECTABLE.len())));
         }
         let mut programs: Vec<String> = Vec::new();
         for item in list {
             let name = item.as_str().ok_or_else(|| ExecError::invalid_args("`programs` must be an array of program names"))?;
-            if !AGENT_CLIS.contains(&name) {
-                return Err(ExecError::invalid_args(format!("`programs` names only {}, not {name:?}", AGENT_CLIS.join(", "))));
+            if !DETECTABLE.contains(&name) {
+                return Err(ExecError::invalid_args(format!("`programs` names only {}, not {name:?}", DETECTABLE.join(", "))));
             }
             if programs.iter().any(|p| p == name) {
                 return Err(ExecError::invalid_args(format!("`programs` names {name} twice")));
@@ -195,7 +199,8 @@ mod tests {
     fn given_a_cli_detect_request_when_parsed_then_only_the_named_agent_clis_are_read_once_each_in_order() {
         // Given a request for two CLIs, one for a word that is no agent CLI, a path, an option, a repeat, an empty list and no list
         let ok = CliDetect::parse(&json!({"programs": ["opencode", "claude"]})).unwrap();
-        let refused: Vec<_> = [json!({"programs": ["rm"]}), json!({"programs": ["/usr/bin/claude"]}), json!({"programs": ["--help"]}), json!({"programs": ["claude", "claude"]}), json!({"programs": []}), json!({"programs": [1]}), json!({}), json!({"programs": ["claude", "codex", "opencode", "claude"]})].iter().map(|a| CliDetect::parse(a).unwrap_err().code).collect();
+        assert_eq!(CliDetect::parse(&json!({"programs": ["git", "gh", "glab"]})).unwrap().programs, ["git", "gh", "glab"]);
+        let refused: Vec<_> = [json!({"programs": ["rm"]}), json!({"programs": ["/usr/bin/claude"]}), json!({"programs": ["--help"]}), json!({"programs": ["claude", "claude"]}), json!({"programs": []}), json!({"programs": [1]}), json!({}), json!({"programs": ["claude", "codex", "opencode", "git", "gh", "glab", "claude"]})].iter().map(|a| CliDetect::parse(a).unwrap_err().code).collect();
         // Then the first keeps its order, and every other is INVALID_ARGS
         assert_eq!(ok.programs, ["opencode", "claude"]);
         assert!(refused.iter().all(|c| *c == Code::InvalidArgs), "{refused:?}");

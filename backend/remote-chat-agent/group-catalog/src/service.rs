@@ -1,7 +1,7 @@
 //! The use cases of the group over the executors and the table of the drivers.
 use crate::ports::{Clock, Refusal};
 use crate::table;
-use agent_api_catalog::{code, message, skill_dirs, Command, CommandKind, CommandsParams, CommandsResult, DetectParams, DetectResult, DetectedAgent, ModelsParams, ModelsResult, Scope, SkillsParams, SkillsResult, DRIVERS};
+use agent_api_catalog::{code, message, skill_dirs, Command, CommandKind, CommandsParams, CommandsResult, DetectParams, DetectResult, DetectedAgent, DetectedTool, ModelsParams, ModelsResult, Scope, SkillsParams, SkillsResult, DRIVERS, TOOLS};
 use agent_api_proto::code as proto_code;
 use exec_proto::Code;
 use rca_exec_channel::remote::RemoteError;
@@ -48,7 +48,7 @@ impl Catalog {
                 return Ok(kept.clone());
             }
         }
-        let programs: Vec<&str> = DRIVERS.iter().map(|d| table::program(d)).collect();
+        let programs: Vec<&str> = DRIVERS.iter().map(|d| table::program(d)).chain(TOOLS).collect();
         let found: exec_proc::CliDetectResult = read(route.channel.call(exec_proc::CLI_DETECT, json!({"programs": programs})).await.map_err(relay)?.result)?;
         let agents = DRIVERS
             .iter()
@@ -58,7 +58,8 @@ impl Catalog {
                 DetectedAgent { driver: driver.to_string(), program: program.into(), installed: cli.is_some_and(|c| c.installed), path: cli.and_then(|c| c.path.clone()), version: cli.and_then(|c| c.version.clone()), error: cli.and_then(|c| c.error.clone()) }
             })
             .collect();
-        let result = DetectResult { executor: route.executor.clone(), agents, checked_at_ms: now };
+        let tools = TOOLS.iter().map(|p| found.clis.iter().find(|c| c.program == *p).map_or_else(|| DetectedTool { program: p.to_string(), installed: false, path: None, version: None, error: None }, |c| DetectedTool { program: c.program.clone(), installed: c.installed, path: c.path.clone(), version: c.version.clone(), error: c.error.clone() })).collect();
+        let result = DetectResult { executor: route.executor.clone(), agents, tools, checked_at_ms: now };
         self.detected.lock().unwrap().insert(route.executor, result.clone());
         Ok(result)
     }

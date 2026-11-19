@@ -74,7 +74,7 @@ fn given_every_driver_of_the_contract_when_its_models_are_listed_then_one_is_the
 async fn given_an_executor_with_two_of_the_clis_when_agents_are_detected_then_each_driver_is_reported_in_table_order_and_the_answer_is_kept_until_it_is_old_or_refreshed() {
     // Given an executor that has claude and codex
     let rig = rig(|tool, _| match tool {
-        "cli_detect" => ok(clis(&[("opencode", None), ("claude", Some("2.1.7 (Claude Code)")), ("codex", Some("codex-cli 0.9.1"))])),
+        "cli_detect" => ok(clis(&[("opencode", None), ("claude", Some("2.1.7 (Claude Code)")), ("codex", Some("codex-cli 0.9.1")), ("gh", Some("gh version 2.83.0")), ("git", Some("git version 2.43.0"))])),
         other => panic!("{other}"),
     });
     // When detected, then asked again a moment later
@@ -87,8 +87,14 @@ async fn given_an_executor_with_two_of_the_clis_when_agents_are_detected_then_ea
     assert_eq!((agents[0]["installed"].clone(), agents[1]["version"].clone()), (json!(false), json!("2.1.7 (Claude Code)")));
     assert_eq!((second.clone(), rig.channel.calls().len()), (first.clone(), 1));
     assert_eq!(first["result"]["checked_at_ms"], json!(1_000));
-    // And the programs asked are the table's, in the table's order
-    assert_eq!(rig.channel.calls()[0].1, json!({"programs": ["opencode", "claude", "codex"]}));
+    // And the programs asked are the table's, in the table's order, then the tools
+    assert_eq!(rig.channel.calls()[0].1, json!({"programs": ["opencode", "claude", "codex", "git", "gh", "glab"]}));
+    // And the tools come in their own order whatever order the executor answered in, one it did not answer for not installed
+    assert_eq!(first["result"]["tools"], json!([
+        {"program": "git", "installed": true, "path": "/bin/git", "version": "git version 2.43.0"},
+        {"program": "gh", "installed": true, "path": "/bin/gh", "version": "gh version 2.83.0"},
+        {"program": "glab", "installed": false},
+    ]));
     // When a refresh is asked, or the kept answer is older than its life
     rig.ask(api::AGENTS_DETECT, json!({"refresh": true})).await;
     rig.clock.advance(service::DETECTION_TTL_MS);
