@@ -373,7 +373,7 @@ fn given_a_review_comment_when_the_phone_replies_to_it_by_its_numeric_id_then_th
     let asked = rig.agent.requests().into_iter().find(|(m, _)| m == "pr.reply").unwrap().1;
     assert_eq!((asked["number"].clone(), asked["comment_id"].clone(), asked.get("thread").cloned()), (json!(12), json!(9003), None));
     // And a comment GitHub does not know is the host's classified failure, not an error
-    assert_eq!(rig.ok("github.addPRReviewCommentReply", json!({"prNumber": 12, "commentId": 1, "body": "x"})), json!({"ok": false, "error": "Not found", "errorCode": "issueNotFound"}));
+    assert_eq!(rig.ok("github.addPRReviewCommentReply", json!({"prNumber": 12, "commentId": 1, "body": "x"})), json!({"ok": false, "error": "Issue not found — it may have been deleted.", "errorCode": "issueNotFound"}));
     // And a missing selector, comment id or body is refused
     assert_eq!(rig.err("github.addPRReviewCommentReply", json!({"repo": "", "prNumber": 12, "commentId": 1, "body": "x"})).1, "Missing repo selector");
     assert_eq!(rig.err("github.addPRReviewCommentReply", json!({"prNumber": 12, "body": "x"})).0, "invalid_argument");

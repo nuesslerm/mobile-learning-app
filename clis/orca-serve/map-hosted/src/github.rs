@@ -60,27 +60,6 @@ pub fn list_labels(t: &Target, params: &Value) -> Result<Value, Failure> {
     }
 }
 
-/// The host's `{ok: false, error, errorCode}` for a gh failure, by the words gh printed (its `classifyGhError`).
-fn gh_failure(message: &str) -> Value {
-    let m = message.to_lowercase();
-    let (code, error) = if m.contains("none of the git remotes") || m.contains("no git remotes") || m.contains("not a git repository") {
-        ("github.repoUnresolved", "Could not resolve GitHub owner/repo for this repository".to_string())
-    } else if m.contains("rate limit") {
-        ("github.rateLimited", "GitHub rate limit reached".to_string())
-    } else if m.contains("http 403") || m.contains("resource not accessible") {
-        ("github.issuePermissionDenied", "Permission denied".to_string())
-    } else if m.contains("http 404") || m.contains("could not resolve to a repository") {
-        ("issueNotFound", "Not found".to_string())
-    } else if m.contains("http 422") || m.contains("validation failed") {
-        ("invalidUpdate", message.trim().to_string())
-    } else if ["timeout", "no such host", "network", "could not resolve host"].iter().any(|w| m.contains(w)) {
-        ("networkError", "Network error".to_string())
-    } else {
-        ("issueUpdateFailed", message.trim().to_string())
-    };
-    json!({"ok": false, "error": error, "errorCode": code})
-}
-
 fn positive(params: &Value, key: &str) -> Result<u64, Failure> {
     params[key].as_u64().filter(|n| *n >= 1).ok_or_else(|| Failure::invalid(format!("Invalid input: {key} must be a positive integer")))
 }
@@ -93,10 +72,10 @@ pub fn reply_to_comment(t: &Target, params: &Value) -> Result<Value, Failure> {
     let args = with_repo(json!({"number": number, "comment_id": comment, "body": body}), params, "prRepo")?;
     let c = match t.try_ask(pr::REPLY, args) {
         Ok(c) => c,
-        Err(AgentError::Refused { code, message }) if code != "UNKNOWN_WORKSPACE" && code != "INVALID_PARAMS" => return Ok(gh_failure(&message)),
+        Err(AgentError::Refused { code, message }) if code != "UNKNOWN_WORKSPACE" && code != "INVALID_PARAMS" => return Ok(crate::failure::gh(&message)),
         Err(other) => return Err(crate::refusal(other)),
     };
-    let Some(id) = c["database_id"].as_u64() else { return Ok(json!({"ok": false, "error": "Unexpected response from GitHub", "errorCode": "github.unexpectedResponse"})) };
+    let Some(id) = c["database_id"].as_u64() else { return Ok(crate::failure::code_host("github.unexpectedResponse", None)) };
     let mut comment = json!({
         "id": id,
         "author": c["author"].as_str().unwrap_or("You"),

@@ -10,6 +10,7 @@ use orca_core::wire::{Failure, METHOD_NOT_FOUND, RUNTIME_ERROR};
 use orca_core::{AgentApi, AgentError, Area, Ctx, Kind, Method};
 use serde_json::{json, Map, Value};
 
+mod failure;
 mod base;
 mod checks;
 mod github;
