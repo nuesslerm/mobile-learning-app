@@ -246,7 +246,8 @@ jobs:
       - name: Which crates each integration shard runs
         id: shardkeys
         run: |
-          echo "integration=$(wf ci plan shard-keys --stage integration-tests --count "${{ steps.shards.outputs.count }}" --plan "$RUNNER_TEMP/plan.json")" >> "$GITHUB_OUTPUT"
+          # a leading empty key: an expression has no arithmetic, so the 1-based matrix.shard indexes the array directly
+          echo "integration=$(wf ci plan shard-keys --stage integration-tests --count "${{ steps.shards.outputs.count }}" --plan "$RUNNER_TEMP/plan.json" | jq -c '[""] + .')" >> "$GITHUB_OUTPUT"
       # What is deployed is what runs: a service's own container image tag (sha-<short>) names the commit it was built
       # from, so there is no record to keep in sync. This also fails in seconds if the runner cannot reach the vault or vm-ops-api.
       - name: Which services changed since the commit they run?
@@ -688,7 +689,7 @@ jobs:
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 40
     concurrency:
-      group: ${{ format('hosted-integration-{0}', fromJSON(needs.plan.outputs.integration_shard_keys)[matrix.shard - 1]) }}
+      group: ${{ format('hosted-integration-{0}', fromJSON(needs.plan.outputs.integration_shard_keys)[matrix.shard]) }}
       cancel-in-progress: false
     strategy:
       fail-fast: false
