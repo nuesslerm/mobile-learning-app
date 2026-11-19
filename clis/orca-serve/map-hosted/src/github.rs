@@ -60,6 +60,67 @@ pub fn list_labels(t: &Target, params: &Value) -> Result<Value, Failure> {
     }
 }
 
+/// The host's `{ok: false, error, errorCode}` for a gh failure, by the words gh printed (its `classifyGhError`).
+fn gh_failure(message: &str) -> Value {
+    let m = message.to_lowercase();
+    let (code, error) = if m.contains("none of the git remotes") || m.contains("no git remotes") || m.contains("not a git repository") {
+        ("github.repoUnresolved", "Could not resolve GitHub owner/repo for this repository".to_string())
+    } else if m.contains("rate limit") {
+        ("github.rateLimited", "GitHub rate limit reached".to_string())
+    } else if m.contains("http 403") || m.contains("resource not accessible") {
+        ("github.issuePermissionDenied", "Permission denied".to_string())
+    } else if m.contains("http 404") || m.contains("could not resolve to a repository") {
+        ("issueNotFound", "Not found".to_string())
+    } else if m.contains("http 422") || m.contains("validation failed") {
+        ("invalidUpdate", message.trim().to_string())
+    } else if ["timeout", "no such host", "network", "could not resolve host"].iter().any(|w| m.contains(w)) {
+        ("networkError", "Network error".to_string())
+    } else {
+        ("issueUpdateFailed", message.trim().to_string())
+    };
+    json!({"ok": false, "error": error, "errorCode": code})
+}
+
+fn positive(params: &Value, key: &str) -> Result<u64, Failure> {
+    params[key].as_u64().filter(|n| *n >= 1).ok_or_else(|| Failure::invalid(format!("Invalid input: {key} must be a positive integer")))
+}
+
+/// The host replies over GitHub's REST replies route by the numeric id of a comment in the thread and answers the new comment as the phone
+/// renders it, or the host's failure.
+pub fn reply_to_comment(t: &Target, params: &Value) -> Result<Value, Failure> {
+    let (number, comment) = (pr_number(params)?, positive(params, "commentId")?);
+    let body = crate::text(params, "body").ok_or_else(|| Failure::invalid("Invalid input: expected string, received undefined"))?;
+    let args = with_repo(json!({"number": number, "comment_id": comment, "body": body}), params, "prRepo")?;
+    let c = match t.try_ask(pr::REPLY, args) {
+        Ok(c) => c,
+        Err(AgentError::Refused { code, message }) if code != "UNKNOWN_WORKSPACE" && code != "INVALID_PARAMS" => return Ok(gh_failure(&message)),
+        Err(other) => return Err(crate::refusal(other)),
+    };
+    let Some(id) = c["database_id"].as_u64() else { return Ok(json!({"ok": false, "error": "Unexpected response from GitHub", "errorCode": "github.unexpectedResponse"})) };
+    let mut comment = json!({
+        "id": id,
+        "author": c["author"].as_str().unwrap_or("You"),
+        "authorAvatarUrl": c["avatar_url"].as_str().unwrap_or(""),
+        "body": c["body"].as_str().unwrap_or(body),
+        "createdAt": c["created_at"],
+        "url": c["url"].as_str().unwrap_or(""),
+        "isBot": c["is_bot"] == true,
+    });
+    if let Some(node) = c["id"].as_str().filter(|n| !n.trim().is_empty()) {
+        comment["reactionSubjectId"] = json!(node.trim());
+    }
+    for (key, from, fallback) in [("path", &c["path"], &params["path"]), ("line", &c["line"], &params["line"])] {
+        let v = if from.is_null() { fallback } else { from };
+        if !v.is_null() {
+            comment[key] = v.clone();
+        }
+    }
+    if let Some(thread) = params.get("threadId").filter(|v| !v.is_null()) {
+        comment["threadId"] = thread.clone();
+    }
+    Ok(json!({"ok": true, "comment": comment}))
+}
+
 /// The host resolves (or reopens) a thread by its node id and answers whether GitHub did; any failure is `false`, never an error.
 pub fn resolve_thread(t: &Target, params: &Value) -> Result<Value, Failure> {
     let thread = crate::text(params, "threadId").filter(|s| !s.is_empty()).ok_or_else(|| Failure::invalid("Invalid input: expected string, received undefined"))?;

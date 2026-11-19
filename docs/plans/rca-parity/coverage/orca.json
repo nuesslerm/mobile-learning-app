@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 161,
+    "served": 162,
     "pending": 4,
-    "notOffered": 142,
+    "notOffered": 141,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -1920,10 +1920,17 @@
       "kind": "rpc",
       "name": "github.addPRReviewCommentReply",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M11",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it replies in a review thread by the numeric comment id the phone holds, and rca's pr.reply needs the thread's node id and the pull request number, which would have to be recovered by re-reading every thread and guessing the new comment back from its URL. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: the pinned host replies over GitHub's REST replies route by the numeric comment id, which hosted_pr_reply can take as comment_id; served in phase 1.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-github.addPRReviewCommentReply-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:github.countWorkItems",

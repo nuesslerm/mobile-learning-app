@@ -457,6 +457,11 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
             }
         }
         HostedCall::PrComment { .. } => Ok(json!({"done": true, "url": first_url(&last.stdout)})),
+        HostedCall::PrReply { comment_id: Some(_), .. } => {
+            let v = body(&last)?;
+            let user = &v["user"];
+            Ok(json!({"id": text(&v, "node_id"), "database_id": v["id"], "url": text(&v, "html_url"), "author": text(user, "login"), "avatar_url": text(user, "avatar_url"), "is_bot": user["type"] == "Bot", "body": v["body"], "created_at": text(&v, "created_at"), "path": text(&v, "path"), "line": v["line"]}))
+        }
         HostedCall::PrReply { .. } => {
             let v = body(&last)?;
             if github {

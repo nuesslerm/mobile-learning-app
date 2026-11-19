@@ -42,7 +42,6 @@
         "orca-git.remoteCommitUrl",
         "orca-github.addIssueComment",
         "orca-github.addPRReviewComment",
-        "orca-github.addPRReviewCommentReply",
         "orca-github.countWorkItems",
         "orca-github.createIssue",
         "orca-github.listWorkItems",

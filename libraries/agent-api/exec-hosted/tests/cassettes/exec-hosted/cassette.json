@@ -1,6 +1,6 @@
 {
-  "content_hash": "sha256:a313e193c7b50caaa38bf0567c6756baa96509ee964486bfb92e2ea41dce16c9",
-  "interactions": 99,
+  "content_hash": "sha256:09011d55488e7c15e016420fdff6b6af3d896386ae6576cc86723f2883c39d3d",
+  "interactions": 100,
   "provenance": {
     "imported_from": [
       {
@@ -60,7 +60,7 @@
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_ready.json"
       },
       {
-        "hash": "sha256:127b6c3941de25eccfa298e3be0628fb774d0fe4e5ddafe237e5176893f407f2",
+        "hash": "sha256:b1df1c20bb1b2111460137ba183d6962b1ec275f8b1f2001010cbbd0dd18d91d",
         "path": "libraries/agent-api/exec-hosted/tests/fixtures/hosted_pr_reply.json"
       },
       {

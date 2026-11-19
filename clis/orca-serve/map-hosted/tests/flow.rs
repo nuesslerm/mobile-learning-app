@@ -363,6 +363,24 @@ fn given_a_repository_with_assignable_accounts_when_they_are_listed_then_each_is
 }
 
 #[test]
+fn given_a_review_comment_when_the_phone_replies_to_it_by_its_numeric_id_then_the_answer_is_the_new_comment_as_the_host_renders_it() {
+    let mut rig = Rig::new();
+    // When the phone replies to review comment 9003 of pull request 12, naming the thread and the line it is on
+    let r = rig.ok("github.addPRReviewCommentReply", json!({"prNumber": 12, "commentId": 9003, "body": "Fixed", "threadId": "PRRT_1", "path": "src/lib.rs", "line": 7}));
+    // Then the new comment is the host's row: its numeric id, its node id for reactions, and the phone's path, line and thread where GitHub gave none
+    assert_eq!(r, json!({"ok": true, "comment": {"id": 9004, "author": "octocat", "authorAvatarUrl": "https://avatars.example/1", "body": "Fixed", "createdAt": "2026-11-19T02:00:00Z", "url": "https://github.com/acme/app/pull/12#discussion_r9004", "isBot": false, "reactionSubjectId": "PRRC_kwDOAB", "path": "src/lib.rs", "line": 7, "threadId": "PRRT_1"}}));
+    // And rca was asked by the comment's id, not a thread
+    let asked = rig.agent.requests().into_iter().find(|(m, _)| m == "pr.reply").unwrap().1;
+    assert_eq!((asked["number"].clone(), asked["comment_id"].clone(), asked.get("thread").cloned()), (json!(12), json!(9003), None));
+    // And a comment GitHub does not know is the host's classified failure, not an error
+    assert_eq!(rig.ok("github.addPRReviewCommentReply", json!({"prNumber": 12, "commentId": 1, "body": "x"})), json!({"ok": false, "error": "Not found", "errorCode": "issueNotFound"}));
+    // And a missing selector, comment id or body is refused
+    assert_eq!(rig.err("github.addPRReviewCommentReply", json!({"repo": "", "prNumber": 12, "commentId": 1, "body": "x"})).1, "Missing repo selector");
+    assert_eq!(rig.err("github.addPRReviewCommentReply", json!({"prNumber": 12, "body": "x"})).0, "invalid_argument");
+    assert_eq!(rig.err("github.addPRReviewCommentReply", json!({"prNumber": 12, "commentId": 1})).0, "invalid_argument");
+}
+
+#[test]
 fn given_review_threads_when_one_is_resolved_or_reopened_then_the_answer_is_whether_github_did_and_a_failure_is_false() {
     let mut rig = Rig::new();
     // When the phone resolves a thread by its node id, and reopens it for a named repository

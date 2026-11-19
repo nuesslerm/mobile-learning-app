@@ -397,7 +397,9 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             s.stdin = Some(body.clone());
             one(s)
         }
+        HostedCall::PrReply { number, comment_id: Some(id), body, .. } => one(json_body(gh(vec!["api".into(), "--method=POST".into(), format!("{}/pulls/{number}/comments/{id}/replies", rest_repo())]), &json!({"body": body}))),
         HostedCall::PrReply { thread, body, .. } => {
+            let thread = thread.as_deref().unwrap_or_default();
             let args = vec!["api".into(), "graphql".into(), format!("-f=thread={thread}"), format!("-f=body={body}"), format!("-f=query={REPLY_MUTATION}")];
             one(gh(args))
         }
@@ -586,7 +588,10 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
         }
         HostedCall::PrReady { number, undo } => one(glab(mr_cmd(&["update"], *number, strs(&[if *undo { "--draft" } else { "--ready" }])))),
         HostedCall::PrComment { number, body } => one(glab(mr_cmd(&["note"], *number, vec![format!("--message={body}")]))),
-        HostedCall::PrReply { number, thread, body } => one(with_json(api("POST", mr(*number, &format!("/discussions/{thread}/notes"))), serde_json::json!({"body": body}))),
+        HostedCall::PrReply { number, thread, body, .. } => {
+            let thread = thread.as_deref().ok_or("GitLab replies in a discussion named by `thread`")?;
+            one(with_json(api("POST", mr(*number, &format!("/discussions/{thread}/notes"))), serde_json::json!({"body": body})))
+        }
         HostedCall::PrReview { number, verdict, body } => match verdict {
             Verdict::Approve => {
                 let mut steps = vec![glab(mr_cmd(&["approve"], *number, vec![]))];

@@ -146,7 +146,7 @@ pub const ACTIONS: &[Action] = &[
     ),
     action!(PR_READY, "Mark a draft ready for review, or with `undo` make it a draft again.", [NUMBER, Property { name: "undo", kind: "boolean", about: "Make it a draft" }], ["number"]),
     action!(PR_COMMENT, "Add a conversation comment.", [NUMBER, BODY], ["number", "body"]),
-    action!(PR_REPLY, "Reply in a review thread.", [NUMBER, THREAD, BODY], ["number", "thread", "body"]),
+    action!(PR_REPLY, "Reply in a review thread, named by `thread` or (GitHub) by the numeric id of a comment in it, `comment_id`, which answers the new comment's id, database_id, url, author, avatar_url, is_bot, body, created_at, path and line.", [NUMBER, THREAD, BODY, Property { name: "comment_id", kind: "integer", about: "GitHub: the numeric id of a review comment of the thread, instead of `thread`" }], ["number", "body"]),
     action!(
         PR_REVIEW,
         "Submit a review: approve, request changes (GitHub only) or comment.",
@@ -442,7 +442,7 @@ pub enum HostedCall {
     PrEdit { number: u64, title: Option<String>, body: Option<String>, base: Option<String> },
     PrReady { number: u64, undo: bool },
     PrComment { number: u64, body: String },
-    PrReply { number: u64, thread: String, body: String },
+    PrReply { number: u64, thread: Option<String>, comment_id: Option<u64>, body: String },
     PrReview { number: u64, verdict: Verdict, body: Option<String> },
     PrRequestReviewers { number: u64, add: Vec<String>, remove: Vec<String> },
     PrLabels { number: u64, add: Vec<String>, remove: Vec<String> },
@@ -607,7 +607,16 @@ impl HostedOp {
             }
             PR_READY => HostedCall::PrReady { number: number(a)?, undo: flag(a, "undo") },
             PR_COMMENT => HostedCall::PrComment { number: number(a)?, body: required_body()? },
-            PR_REPLY => HostedCall::PrReply { number: number(a)?, thread: thread_of()?, body: required_body()? },
+            PR_REPLY => {
+                let comment_id = opt_uint(a, "comment_id")?.map(|c| if (1..=i64::MAX as u64).contains(&c) { Ok(c) } else { Err(bad("`comment_id` must be a positive integer")) }).transpose()?;
+                let thread = if a.get("thread").is_some_and(|t| !t.is_null()) { Some(thread_of()?) } else { None };
+                match (provider, &thread, comment_id) {
+                    (_, Some(_), Some(_)) | (_, None, None) => return Err(bad("give one of `thread` and `comment_id`")),
+                    (Provider::Gitlab, None, Some(_)) => return Err(bad("`comment_id` names a GitHub review comment; GitLab replies by `thread`")),
+                    _ => {}
+                }
+                HostedCall::PrReply { number: number(a)?, thread, comment_id, body: required_body()? }
+            }
             PR_REVIEW => {
                 let verdict = choice(a, "verdict", None, &[("approve", Some(Verdict::Approve)), ("request_changes", Some(Verdict::RequestChanges)), ("comment", Some(Verdict::Comment))])?.ok_or_else(|| bad("`verdict` is required: approve, request_changes or comment"))?;
                 let text = body_of("body")?.filter(|b| !b.trim().is_empty());

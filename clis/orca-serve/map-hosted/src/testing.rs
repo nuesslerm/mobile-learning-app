@@ -287,6 +287,10 @@ impl Hosting {
             let labels = s.labels.as_ref().ok_or_else(|| refused("HOSTED_AUTH", "gh is not signed in"))?;
             Ok(json!({"labels": labels.iter().take(p["limit"].as_u64().unwrap_or(200) as usize).map(|(n, c)| json!({"name": n, "color": c, "description": ""})).collect::<Vec<_>>()}))
         });
+        agent.reply("pr.reply", |p| match p["comment_id"].as_u64() {
+            Some(9003) => Ok(json!({"id": "PRRC_kwDOAB", "database_id": 9004, "url": "https://github.com/acme/app/pull/12#discussion_r9004", "author": "octocat", "avatar_url": "https://avatars.example/1", "is_bot": false, "body": p["body"], "created_at": "2026-11-19T02:00:00Z", "path": null, "line": null})),
+            _ => Err(refused("HOSTED_FAILED", "gh: Not Found (HTTP 404)")),
+        });
         agent.reply("pr.resolveThread", |p| match p["thread"].as_str() {
             Some(t) if t.starts_with("PRRT_") => Ok(json!({"thread": t, "resolved": p["resolved"]})),
             _ => Err(refused("HOSTED_FAILED", "Could not resolve to a node with the global id")),
