@@ -2,6 +2,7 @@
 //! (`wf rca ladder`), the rca service's device bearers (`wf rca bearers`), the pool-cooldown mirror on vm-ops-api, and the git-state worker (`wf rca plan`, `wf rca worker`). A change here
 //! reruns the crates above it, which is `wf` only.
 mod bearers;
+mod login;
 mod rca_client;
 mod run_format;
 mod dispatch;
@@ -49,6 +50,7 @@ pub fn rca(rest: &[String]) -> Option<i32> {
         (verb, tail) if verb == "ladder" => ladder(tail),
         (verb, tail) if verb == "sessions" => sessions(tail),
         (verb, tail) if verb == "bearers" => bearers::run(tail),
+        (verb, tail) if verb == "login" => login::run(tail),
         _ => None,
     }
 }

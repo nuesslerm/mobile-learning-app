@@ -32,6 +32,7 @@ serde_json = { version = "1", features = ["preserve_order"] }
 regex = { version = "1", default-features = false, features = ["std", "perf", "unicode-perl", "unicode-case"] }
 nix = { version = "0.31", default-features = false, features = ["signal"] }
 signal-hook = "0.4"
+tungstenite = { version = "0.30", default-features = false, features = ["handshake"] }
 
 [dev-dependencies]
 wf-testkit = { path = "../wf-testkit" }

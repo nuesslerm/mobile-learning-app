@@ -16,3 +16,5 @@ Commands:
                            sync-pricing
   sessions                 The sessions the rca service keeps: rm
   bearers                  The rca service's device bearers: mint, list, revoke
+  login                    The agent CLIs' logins at the workspace host: start,
+                           respond, complete, cancel, status, logout
