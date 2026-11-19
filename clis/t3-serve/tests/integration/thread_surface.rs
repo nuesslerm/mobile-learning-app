@@ -597,9 +597,10 @@ fn the_requests_rca_cannot_serve_yet_are_refused_with_t3s_words_and_a_refusal_ne
         assert!(asked(case).is_empty());
         assert_eq!(failure(&retry)["message"], format!("Run {run} has no failed workspace preparation to retry."));
         let script = phone.call(case, &chain, &["rpc:orchestration.getWorkflowScript"], "orchestration.getWorkflowScript", json!({"threadId": "t1", "scriptPath": "/home/u/.claude/projects/x/wf.js"}));
-        assert_eq!((failure(&script)["reason"].as_str(), asked(case).is_empty()), (Some("root-unavailable"), true));
+        // The script is read at the executor, which here has no Claude projects directory: rca was asked and its refusal is T3's reason
+        assert_eq!((failure(&script)["reason"].as_str(), asked(case).is_empty()), (Some("root-unavailable"), false));
         let secret = phone.call(case, &chain, &["rpc:secrets.answerRequest"], "secrets.answerRequest", json!({"threadId": "t1", "turnItemId": "i1", "answer": {"type": "decline"}}));
-        // Then each is T3's own refusal, rca was never asked, and no call of them is a served one
+        // Then each is T3's own refusal, rca was asked only for the script, and no call of them is a served one
         assert_eq!((failure(&secret)["reason"].as_str(), asked(case).is_empty()), (Some("not_found"), true));
         let refused: Vec<&Value> = case.calls().iter().filter(|c| c["rows"].as_array().unwrap().iter().any(|r| ["command:prepared-run.retry", "rpc:orchestration.getWorkflowScript", "rpc:secrets.answerRequest"].contains(&r.as_str().unwrap()))).collect();
         assert!(refused.len() == 3 && refused.iter().all(|c| c["ok"] == false), "{refused:?}");
