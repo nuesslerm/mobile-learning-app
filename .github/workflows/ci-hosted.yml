@@ -7,9 +7,10 @@ on:
   push:
     branches: [dev]
 
-# One run at a time: a newer push waits and replaces a run still waiting (never one that is going), so every run that starts is measured to its end.
+# One run per commit: a push never waits for an older run (a red shard of the older one is fixed and re-run at once), and no run is cancelled, so every run is
+# measured to its end. What must not overlap is serialised per job (deploy per app) and what ships first checks that its commit is still the head of dev.
 concurrency:
-  group: ci-hosted-${{ github.ref }}
+  group: ci-hosted-${{ github.sha }}
   cancel-in-progress: false
 
 permissions:

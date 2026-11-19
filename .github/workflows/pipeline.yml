@@ -546,11 +546,30 @@ jobs:
           job: build-${{ matrix.app }}
 
   # The redeploy is the step that cannot be undone: it waits for every check and test, and for the images.
+  # Overlapping runs: a deploy or a production publish from a commit that is no longer the head of dev would put older code over newer, so it checks first.
+  head:
+    name: Is this commit the head of dev
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+    outputs:
+      is_head: ${{ steps.head.outputs.is_head }}
+    steps:
+      - name: Compare the commit with the head of dev
+        id: head
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          tip=$(curl -fsS -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$GITHUB_API_URL/repos/$GITHUB_REPOSITORY/commits/dev" | jq -r .sha || true)
+          if [ "$GITHUB_REF" != refs/heads/dev ] || [ "$tip" = "$GITHUB_SHA" ] || [ -z "$tip" ]; then v=true; else v=false; fi
+          echo "commit $GITHUB_SHA, head of dev $tip: is_head=$v"
+          echo "is_head=$v" >> "$GITHUB_OUTPUT"
   deploy:
     name: deploy (${{ matrix.app }})
-    needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deploy-build, clis, wf-build]
+    needs: [head, plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deploy-build, clis, wf-build]
     # a red test deploys nothing; a stage the plan left empty is skipped, not failed
-    if: ${{ !cancelled() && inputs.deploy && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && needs.deploy-build.result == 'success' && (needs.clis.result == 'success' || needs.wf-build.result == 'success') && needs.plan.outputs.legs != '[]' }}
+    if: ${{ !cancelled() && inputs.deploy && needs.head.outputs.is_head == 'true' && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && needs.deploy-build.result == 'success' && (needs.clis.result == 'success' || needs.wf-build.result == 'success') && needs.plan.outputs.legs != '[]' }}
     runs-on: ${{ fromJSON(inputs.deploy_runner) }}
     timeout-minutes: 100
     concurrency:
@@ -864,7 +883,7 @@ jobs:
   # from this commit, so a failed publish is repaired by the next push. Without `ship` the bundle is exported and nothing is uploaded.
   eas-update:
     name: eas-update
-    needs: [plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, clis]
+    needs: [head, plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, clis]
     # a red test stage does not skip the job (the e2e jobs read its result); only the production publish below is gated on the tests
     if: ${{ !cancelled() && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.clis.result != 'failure' && needs.plan.outputs.eas_update == 'true' }}
     runs-on: ${{ fromJSON(inputs.runner) }}
@@ -894,7 +913,7 @@ jobs:
           scope: export
       # the production update is what phones open: a red test never ships it
       - name: Publish the EAS Update
-        if: ${{ inputs.ship && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && (needs.clis.result == 'success' || !inputs.deploy) }}
+        if: ${{ inputs.ship && needs.head.outputs.is_head == 'true' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && (needs.clis.result == 'success' || !inputs.deploy) }}
         timeout-minutes: 20
         env:
           EXPO_PUBLIC_DEVICE_LAB: "1"
