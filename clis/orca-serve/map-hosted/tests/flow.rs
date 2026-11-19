@@ -382,6 +382,7 @@ fn given_a_review_comment_when_the_phone_replies_to_it_by_its_numeric_id_then_th
 
 #[test]
 fn given_a_line_of_a_pull_request_file_when_the_phone_comments_on_it_then_the_answer_is_the_new_review_comment_as_the_host_renders_it() {
+    // Given pull request 12 of a GitHub folder whose head commit is abc1234
     let mut rig = Rig::new();
     let comment = |extra: Value| {
         let mut p = json!({"prNumber": 12, "commitId": "abc1234", "path": "src/lib.rs", "line": 9, "body": "Why?"});
@@ -403,8 +404,8 @@ fn given_a_line_of_a_pull_request_file_when_the_phone_comments_on_it_then_the_an
     // When the range starts on its own line
     let one = rig.ok("github.addPRReviewComment", comment(json!({"startLine": 9})));
     // Then rca is asked for a one-line comment, and the answer still carries the start the phone gave
-    assert_eq!(asked(&rig).get("start_line"), None);
-    assert_eq!((one["comment"]["line"].clone(), one["comment"]["startLine"].clone()), (json!(9), json!(9)));
+    assert_eq!(asked(&rig), json!({"number": 12, "commit_id": "abc1234", "path": "src/lib.rs", "line": 9, "body": "Why?"}));
+    assert_eq!(one, json!({"ok": true, "comment": {"id": 9100, "author": "octocat", "authorAvatarUrl": "https://avatars.example/1", "body": "Why?", "createdAt": "2026-11-19T03:00:00Z", "url": "https://github.com/acme/app/pull/12#discussion_r9100", "isBot": false, "reactionSubjectId": "PRRC_kwDOAC", "path": "src/lib.rs", "line": 9, "startLine": 9}}));
 
     // When GitHub refuses the line, or the folder has no GitHub remote, or GitHub answers no usable id
     // Then each is the host's failure answer, not an error
@@ -418,16 +419,21 @@ fn given_a_line_of_a_pull_request_file_when_the_phone_comments_on_it_then_the_an
     assert_eq!(refused(&mut rig, comment(json!({"repo": "nope"}))), ("repo_not_found".into(), "repo_not_found".into()));
     let mut no_commit = comment(json!({"repo": "nope"}));
     no_commit.as_object_mut().unwrap().remove("commitId");
-    assert_eq!(refused(&mut rig, no_commit).1, "Missing PR head SHA");
-    assert_eq!(refused(&mut rig, comment(json!({"path": ""}))).1, "File path required");
-    assert_eq!(refused(&mut rig, comment(json!({"line": 0}))).1, "Too small: expected number to be >0");
-    assert_eq!(refused(&mut rig, comment(json!({"line": 1.5}))).1, "Invalid input: expected int, received number");
-    assert_eq!(refused(&mut rig, comment(json!({"startLine": null}))).1, "Invalid input: expected number, received null");
-    assert_eq!(refused(&mut rig, comment(json!({"body": 7}))).1, "Comment body required");
-    assert_eq!(refused(&mut rig, comment(json!({"prNumber": "1", "body": ""}))).1, "Invalid input: expected number, received string");
-    assert_eq!(refused(&mut rig, comment(json!({"prRepo": {"owner": "acme"}}))).1, "Missing repo");
+    let invalid = |m: &str| ("invalid_argument".to_string(), m.to_string());
+    assert_eq!(refused(&mut rig, no_commit), invalid("Missing PR head SHA"));
+    assert_eq!(refused(&mut rig, comment(json!({"path": ""}))), invalid("File path required"));
+    assert_eq!(refused(&mut rig, comment(json!({"line": 0}))), invalid("Too small: expected number to be >0"));
+    assert_eq!(refused(&mut rig, comment(json!({"line": 1.5}))), invalid("Invalid input: expected int, received number"));
+    assert_eq!(refused(&mut rig, comment(json!({"startLine": null}))), invalid("Invalid input: expected number, received null"));
+    assert_eq!(refused(&mut rig, comment(json!({"body": 7}))), invalid("Comment body required"));
+    assert_eq!(refused(&mut rig, comment(json!({"prNumber": "1", "body": ""}))), invalid("Invalid input: expected number, received string"));
+    assert_eq!(refused(&mut rig, comment(json!({"prRepo": {"owner": "acme"}}))), invalid("Missing repo"));
+    // And a number beyond JavaScript's safe integers is refused by the bound zod's int() carries, before its sign is checked
+    assert_eq!(refused(&mut rig, comment(json!({"prNumber": 9007199254740992u64}))), invalid("Too big: expected int to be <=9007199254740991"));
+    assert_eq!(refused(&mut rig, comment(json!({"line": -1e20}))), invalid("Too small: expected int to be >=-9007199254740991"));
+    assert_eq!(refused(&mut rig, comment(json!({"startLine": 1e20}))), invalid("Too big: expected int to be <=9007199254740991"));
     // And a key outside the schema is stripped, never refused
-    assert_eq!(rig.ok("github.addPRReviewComment", comment(json!({"ownerRepo": 7})))["ok"], true);
+    assert_eq!(rig.ok("github.addPRReviewComment", comment(json!({"ownerRepo": 7}))), json!({"ok": true, "comment": {"id": 9100, "author": "octocat", "authorAvatarUrl": "https://avatars.example/1", "body": "Why?", "createdAt": "2026-11-19T03:00:00Z", "url": "https://github.com/acme/app/pull/12#discussion_r9100", "isBot": false, "reactionSubjectId": "PRRC_kwDOAC", "path": "src/lib.rs", "line": 9}}));
 }
 
 #[test]

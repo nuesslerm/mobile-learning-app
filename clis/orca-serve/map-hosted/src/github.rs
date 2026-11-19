@@ -109,7 +109,7 @@ fn comment_row(c: &Value, params: &Value, body: &str) -> Option<Value> {
 
 const MAX_SAFE_INTEGER: u64 = (1 << 53) - 1;
 
-/// zod's `z.number().int().positive()`: the first issue it reports for `v`, or the number.
+/// zod's `z.number().int().positive()` (whose `int()` is bounded to the safe integers): the first issue it reports for `v`, or the number.
 fn int_positive(v: Option<&Value>) -> Result<u64, Failure> {
     let n = match v {
         None => return Err(Failure::invalid("Invalid input: expected number, received undefined")),
@@ -119,6 +119,12 @@ fn int_positive(v: Option<&Value>) -> Result<u64, Failure> {
     let f = n.as_f64().unwrap_or(0.0);
     if f.fract() != 0.0 {
         return Err(Failure::invalid("Invalid input: expected int, received number"));
+    }
+    if f > MAX_SAFE_INTEGER as f64 {
+        return Err(Failure::invalid(format!("Too big: expected int to be <={MAX_SAFE_INTEGER}")));
+    }
+    if f < -(MAX_SAFE_INTEGER as f64) {
+        return Err(Failure::invalid(format!("Too small: expected int to be >=-{MAX_SAFE_INTEGER}")));
     }
     if f <= 0.0 {
         return Err(Failure::invalid("Too small: expected number to be >0"));
