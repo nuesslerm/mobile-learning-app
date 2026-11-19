@@ -212,6 +212,35 @@ pub fn record_tasks_local(tasks: &[LedgerTask]) -> Result<bool, String> {
     Ok(true)
 }
 
+/// One job of a CI run (`CI_JOBS`): how long it ran and how long it waited for a runner.
+pub struct JobRow {
+    pub run: String,
+    pub sha: String,
+    pub ts: i64,
+    pub kind: String,
+    pub job: String,
+    pub secs: i64,
+    pub queued: i64,
+}
+
+/// Writes jobs to the typed `CI_JOBS` table of the job's local database (the report job merges it); a job already there for the run is kept once.
+/// `false` comes back, and nothing is written, when there is no local database.
+pub fn record_jobs_local(jobs: &[JobRow]) -> Result<bool, String> {
+    let Some(path) = local_path() else { return Ok(false) };
+    let mut conn = open_at(&path)?;
+    ensure_ledger(&conn)?;
+    let tx = conn.transaction().map_err(sql)?;
+    for j in jobs {
+        tx.execute(
+            "INSERT OR IGNORE INTO CI_JOBS (RUN_ID, SHA, TS, KIND, JOB, SECS, QUEUED) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            rusqlite::params![j.run, j.sha, j.ts, j.kind, j.job, j.secs, j.queued],
+        )
+        .map_err(sql)?;
+    }
+    tx.commit().map_err(sql)?;
+    Ok(true)
+}
+
 /// Copies every table of `from` into `into`, skipping rows `into` already holds (by primary key). A table `into` lacks is made with
 /// `from`'s definition.
 pub fn merge(into: &Connection, from: &Path) -> Result<usize, String> {

@@ -104,3 +104,32 @@ fn given_no_run_and_no_token_when_timings_are_asked_then_it_says_what_to_set_and
     assert_eq!((r.exit_code, out["ok"].clone()), (1, json!(false)), "{}{}", r.stdout, r.stderr);
     assert!(out["next"].as_str().is_some_and(|n| n.contains("GITHUB_TOKEN")), "{out}");
 }
+
+#[test]
+fn given_a_finished_run_when_its_timings_are_read_in_a_job_with_a_local_database_then_each_job_is_a_row_the_merge_carries_into_ci_jobs() {
+    // Given a run of two jobs, one that waited 30 s for a runner, and a job-local database
+    let run = json!({"id": 78, "status": "completed", "conclusion": "success", "created_at": "2026-11-19T10:00:00Z", "run_started_at": "2026-11-19T10:00:00Z", "head_sha": "feedbeef"});
+    let jobs = json!({"total_count": 2, "jobs": [
+        job("run / flow-tests (1/6)", "10:00:00", "10:00:30", "10:10:30", vec![]),
+        job("run / wf-build", "10:00:00", "10:00:01", "10:02:01", vec![]),
+    ]});
+    let server = served(&[("/repos/o/r/actions/runs/78", run), ("/repos/o/r/actions/runs/78/jobs?per_page=100&page=1", jobs)]);
+    let dir = tempfile::tempdir().unwrap();
+    let (local, sealed) = (dir.path().join("rows.sqlite"), dir.path().join("ci.sealed"));
+    let key = "0707070707070707070707070707070707070707070707070707070707070707";
+
+    // When the timings are read and the report job merges the local database
+    let r = wf(&server, &["timings", "--run", "78"], &[("WF_CI_DB", &local.display().to_string())]);
+    let merged = wf(&server, &["db", "merge", "--sealed-file", &sealed.display().to_string(), &local.display().to_string()], &[("CI_DB_KEY", key)]);
+
+    // Then the sealed database holds one CI_JOBS row per job with its seconds and its wait
+    assert_eq!((r.exit_code, merged.exit_code), (0, 0), "{}{}{}{}", r.stdout, r.stderr, merged.stdout, merged.stderr);
+    let q = wf(&server, &["db", "query", "--sealed-file", &sealed.display().to_string(), "SELECT KIND, JOB, SECS, QUEUED, SHA FROM CI_JOBS ORDER BY JOB"], &[("CI_DB_KEY", key)]);
+    assert_eq!(
+        line(&q)["rows"],
+        json!([{"KIND": "flow-tests", "JOB": "flow-tests (1/6)", "SECS": 600, "QUEUED": 30, "SHA": "feedbeef"}, {"KIND": "wf-build", "JOB": "wf-build", "SECS": 120, "QUEUED": 1, "SHA": "feedbeef"}]),
+        "{}{}",
+        q.stdout,
+        q.stderr
+    );
+}

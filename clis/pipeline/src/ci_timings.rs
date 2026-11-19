@@ -142,6 +142,32 @@ fn fail(message: &str, next: &str) -> i32 {
     1
 }
 
+/// Each job's time into the CI database's `CI_JOBS` (the job-local file the report job merges); best effort like the gauges.
+fn keep_jobs(run: &Value, run_id: &str, table: &Value) {
+    let sha = run["head_sha"].as_str().unwrap_or_default().to_string();
+    let ts = now();
+    let jobs: Vec<wf_bucket::ci_db::JobRow> = table["jobs"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default()
+        .iter()
+        .filter_map(|j| {
+            Some(wf_bucket::ci_db::JobRow {
+                run: run_id.to_string(),
+                sha: sha.clone(),
+                ts,
+                kind: j["stage"].as_str()?.to_string(),
+                job: j["job"].as_str()?.to_string(),
+                secs: j["duration_s"].as_i64()?,
+                queued: j["queue_s"].as_i64().unwrap_or(0),
+            })
+        })
+        .collect();
+    if let Err(why) = wf_bucket::ci_db::record_jobs_local(&jobs) {
+        wf_kit::wf_err!("wf: ci jobs not recorded: {why}");
+    }
+}
+
 fn timings(rest: &[String]) -> Option<i32> {
     let parsed = parse_spec(rest, &SPEC)?;
     let env = match api_env(parsed.val("run").map(str::to_string)) {
@@ -154,6 +180,7 @@ fn timings(rest: &[String]) -> Option<i32> {
         Err(why) => return Some(fail(&why, "check the run id and the token's actions:read scope")),
     };
     let table = rows(&run, &jobs);
+    keep_jobs(&run, &env.run, &table);
     let mut sent = false;
     if parsed.flag("send") {
         gauges(&table, &env.run).send();

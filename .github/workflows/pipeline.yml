@@ -1111,15 +1111,7 @@ jobs:
         with:
           pattern: ci-db-*
           path: ${{ runner.temp }}/ci-db
-      # what CI used to send to HEALTH_RPT (test runs, usage of the commands): the jobs' rows into the sealed CI database on refs/wf/state
-      - name: CI database
-        continue-on-error: true
-        timeout-minutes: 5
-        run: |
-          mapfile -t files < <(find "$RUNNER_TEMP/ci-db" "$RUNNER_TEMP/wf-ci-db" -name rows.sqlite 2>/dev/null)
-          [ "${#files[@]}" -gt 0 ] || { echo "no job kept CI database rows"; exit 0; }
-          wf ci db merge "${files[@]}"
-      # what every job and step of the run took, as gauges (Better Stack) and one JSON line in this log; best effort, never a failure
+      # what every job and step of the run took, as gauges (Better Stack) and one JSON line in this log; and each job a row of CI_JOBS for the merge below; best effort, never a failure
       - name: Timings
         continue-on-error: true
         timeout-minutes: 3
@@ -1128,6 +1120,14 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
         run: wf ci timings --send
+      # what CI used to send to HEALTH_RPT (test runs, usage of the commands): the jobs' rows into the sealed CI database on refs/wf/state
+      - name: CI database
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          mapfile -t files < <(find "$RUNNER_TEMP/ci-db" "$RUNNER_TEMP/wf-ci-db" -name rows.sqlite 2>/dev/null)
+          [ "${#files[@]}" -gt 0 ] || { echo "no job kept CI database rows"; exit 0; }
+          wf ci db merge "${files[@]}"
       - name: Cache health
         timeout-minutes: 5
         env:
