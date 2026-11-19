@@ -181,7 +181,7 @@ pub fn agent_api_with(env: &Env, config: &Config, launcher: Arc<dyn CliLauncher>
     let bearers = Arc::new(rca_service::infrastructure::device_bearers::BearerFile::at(env.home.join(".local/state/rca/device-bearers.json")));
     let schedules = rca_service::ScheduleParts { store: Arc::new(rca_service::infrastructure::schedules::ScheduleFile::at(env.home.join(".local/state/rca/schedules.json"))), clock, ids: Arc::new(CountingIds::default()) };
     let attachments = rca_service::AttachmentParts::real(env.home.join(".local/state/rca/attachments"));
-    rca_service::agent_api(config, launcher, state, bearers, accounts, schedules, attachments)
+    rca_service::agent_api(config, launcher, state, bearers, accounts, schedules, attachments, Arc::new(rca_group_catalog::testing::ScriptedSpeech::saying("hello world")))
 }
 
 /// The groups the service registers, for the flows that read the table and answer nothing.

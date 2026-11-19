@@ -60,6 +60,11 @@
       "setup": {"home": {".claude/projects/p/a.js": "x"}},
       "request": {"id": "c11", "tool": "read_chunk", "args": {"path": "/etc/hostname", "scope": "claudeProjects"}},
       "response": {"id": "c11", "ok": false, "error": {"code": "PATH_OUTSIDE_ROOT", "message": "/etc/hostname is outside the root"}}
+    },
+    {
+      "name": "says the Claude projects root is unavailable for the path the service relays",
+      "request": {"id": "c12", "tool": "read_chunk", "args": {"path": "/home/a/.claude/projects/p/flow.js", "scope": "claudeProjects"}},
+      "response": {"id": "c12", "ok": false, "error": {"code": "NOT_FOUND", "message": "the Claude projects root is unavailable"}}
     }
   ]
 }

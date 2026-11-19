@@ -1827,6 +1827,7 @@ dependencies = [
  "agent-api-catalog",
  "agent-api-proto",
  "async-trait",
+ "base64 0.22.1",
  "exec-fs",
  "exec-proc",
  "exec-proto",

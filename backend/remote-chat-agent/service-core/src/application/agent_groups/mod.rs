@@ -19,7 +19,7 @@ pub use engine_threads::EngineThreads;
 pub use activity::{ActivityClock, ActivityGroup};
 pub use attachment_staging::StagesAttachments;
 pub use rca_group_attachments::{Attachments, AttachmentsGroup, BlobStore, Clock as AttachmentClock, Ids as AttachmentIds, Put as BlobPut};
-pub use rca_group_catalog::{CatalogGroup, Catalog, Clock as CatalogClock};
+pub use rca_group_catalog::{CatalogGroup, Catalog, Clock as CatalogClock, Speech as CatalogSpeech};
 pub use rca_group_git::GitGroup;
 pub use rca_group_hosted::{ExecutorCredentials, HostCredentials, HostedAuthGroup, HostedCloneGroup, HostedPrGroup};
 pub use rca_group_preview::{Clock as PreviewClock, Ids as PreviewIds, PreviewGroup, PreviewSessionGroup, PreviewWatchGroup, Previews};
@@ -95,7 +95,7 @@ mod tests {
             Arc::new(rca_group_agent::AgentQueueGroup::new(runner.clone())),
             Arc::new(rca_group_agent::AgentLifecycleGroup::new(runner)),
             Arc::new(AttachmentsGroup::new(Attachments::new(Arc::new(rca_group_attachments::testing::MemoryBlobs::default()), Arc::new(rca_group_attachments::testing::FixedClock(1)), Arc::new(rca_group_attachments::testing::CountingIds::default()), executors.clone()))),
-            Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), Arc::new(rca_group_catalog::testing::SetClock::at(1))))),
+            Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), Arc::new(rca_group_catalog::testing::SetClock::at(1)), Arc::new(rca_group_catalog::testing::ScriptedSpeech::saying("hello world"))))),
             Arc::new(PreviewGroup::new(executors.clone())),
             Arc::new(PreviewSessionGroup::new(previews.clone())),
             Arc::new(PreviewWatchGroup::new(previews)),

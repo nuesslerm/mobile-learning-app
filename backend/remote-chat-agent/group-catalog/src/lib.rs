@@ -11,5 +11,5 @@ pub mod testing;
 mod tests;
 
 pub use group::{CatalogGroup, SERVED};
-pub use ports::{Clock, Refusal};
+pub use ports::{Clock, Refusal, Speech};
 pub use service::Catalog;

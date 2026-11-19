@@ -53,11 +53,16 @@ async fn main() -> ExitCode {
     let client = compose::opencode_client(Arc::new(Http::from_settings(&settings)), env.clone());
     let (orch, gateway) = compose::orchestration(&config, &client, env.as_ref());
     let ports = Ports { spawner: spawner.clone(), client, orch, gateway, commands: commands.clone(), outbound: outbound.clone(), documents: Arc::new(Documents::new(commands.clone(), &settings)), speech: Arc::new(remote_chat_agent_speech::Speech::new(outbound.clone(), commands.clone(), env.clone())), ledgers: Arc::new(ords::OrdsLedgers::from_settings(&settings)), files: Arc::new(HostFiles), hosts: Arc::new(Hosts), env };
+    let speech_engine = match remote_chat_agent_speech::resolve_engine(&settings.stt) {
+        remote_chat_agent_speech::Engine::Sidecar(_) => "sidecar",
+        remote_chat_agent_speech::Engine::Groq { .. } => "groq",
+        remote_chat_agent_speech::Engine::WhisperCpp => "whisper-cpp",
+    };
     let state = Arc::new(rca_service::infrastructure::agent_state::StateFile::at(ProcessEnv.home_dir().join(".local/state/rca/agent-state.json")));
     let bearers = Arc::new(BearerFile::at(ProcessEnv.home_dir().join(".local/state/rca/device-bearers.json")));
     let schedule_parts = ScheduleParts::real(ProcessEnv.home_dir().join(".local/state/rca/schedules.json"));
     let attachment_parts = AttachmentParts::real(ProcessEnv.home_dir().join(".local/state/rca/attachments"));
-    let agent_api = agent_api(&config, Arc::new(rca_group_agent::host::AtWorkspace), state, bearers, Accounts::real(&settings, outbound), schedule_parts, attachment_parts);
+    let agent_api = agent_api(&config, Arc::new(rca_group_agent::host::AtWorkspace), state, bearers, Accounts::real(&settings, outbound), schedule_parts, attachment_parts, Arc::new(rca_service::infrastructure::catalog::SpeechOver::new(ports.speech.clone(), speech_engine)));
     let app = Arc::new(App::new(config, ports, agent_api));
     app.start();
     heartbeat::spawn("remote-chat-agent.heartbeat");

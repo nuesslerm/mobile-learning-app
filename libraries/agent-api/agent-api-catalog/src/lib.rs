@@ -16,13 +16,17 @@ pub const MODELS_LIST: Method = Method::new(GROUP, "models.list");
 pub const AGENTS_DETECT: Method = Method::new(GROUP, "agents.detect");
 pub const SKILLS_LIST: Method = Method::new(GROUP, "skills.list");
 pub const COMMANDS_LIST: Method = Method::new(GROUP, "commands.list");
+/// Whether the service can turn a recording into text, and with which engine.
+pub const SPEECH_STATUS: Method = Method::new(GROUP, "speech.status");
+/// The words in one recording (the service's own speech engine: no executor is asked).
+pub const SPEECH_TRANSCRIBE: Method = Method::new(GROUP, "speech.transcribe");
 
 /// Every method of the group.
-pub const METHODS: &[Method] = &[MODELS_LIST, AGENTS_DETECT, SKILLS_LIST, COMMANDS_LIST];
+pub const METHODS: &[Method] = &[MODELS_LIST, AGENTS_DETECT, SKILLS_LIST, COMMANDS_LIST, SPEECH_STATUS, SPEECH_TRANSCRIBE];
 
 /// The executor actions each method may ask, in the order it asks them. `models.list` answers from the table alone, and `commands.list` asks
 /// only when it is given a workspace (the skills the driver reads are commands too).
-pub const ACTIONS: &[(Method, &[&str])] = &[(MODELS_LIST, &[]), (AGENTS_DETECT, &["cli_detect"]), (SKILLS_LIST, &["skill_scan"]), (COMMANDS_LIST, &["skill_scan"])];
+pub const ACTIONS: &[(Method, &[&str])] = &[(MODELS_LIST, &[]), (AGENTS_DETECT, &["cli_detect"]), (SKILLS_LIST, &["skill_scan"]), (COMMANDS_LIST, &["skill_scan"]), (SPEECH_STATUS, &[]), (SPEECH_TRANSCRIBE, &[])];
 
 /// The drivers a request may name (`agent.threads` calls them `instance_id`): the ids of the service's driver table, which a test of the
 /// service holds equal.
@@ -44,7 +48,10 @@ pub mod code {
     /// `agents.detect` names an executor that is not attached.
     pub const UNKNOWN_EXECUTOR: &str = "UNKNOWN_EXECUTOR";
 
-    pub const ALL: [&str; 1] = [UNKNOWN_EXECUTOR];
+    /// The service has no speech engine, or it failed on the recording.
+    pub const SPEECH_UNAVAILABLE: &str = "SPEECH_UNAVAILABLE";
+
+    pub const ALL: [&str; 2] = [UNKNOWN_EXECUTOR, SPEECH_UNAVAILABLE];
 }
 
 pub mod message {
@@ -297,6 +304,64 @@ pub struct CommandsResult {
     pub commands: Vec<Command>,
 }
 
+/// The recording formats `speech.transcribe` takes (the engines read them through ffmpeg or the sidecar).
+pub const SPEECH_FORMATS: [&str; 6] = ["wav", "webm", "m4a", "mp3", "ogg", "flac"];
+
+/// The most base64 text one `speech.transcribe` carries (a few minutes of speech); a longer recording is cut into more calls by the caller.
+pub const SPEECH_AUDIO_MAX: usize = 24 << 20;
+
+/// `speech.status`: no params.
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SpeechStatusParams {}
+
+impl SpeechStatusParams {
+    pub fn parse(params: &Value) -> Result<SpeechStatusParams, ParamError> {
+        read(params)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpeechStatusResult {
+    pub available: bool,
+    /// `sidecar`, `groq` or `whisper-cpp`: the engine the service's environment names.
+    pub engine: String,
+}
+
+/// `speech.transcribe`: `audio` is the recording, base64 (standard alphabet), in `format` (`wav` by default).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SpeechTranscribeParams {
+    pub audio: String,
+    #[serde(default)]
+    pub format: Option<String>,
+}
+
+impl SpeechTranscribeParams {
+    pub fn parse(params: &Value) -> Result<SpeechTranscribeParams, ParamError> {
+        let p: SpeechTranscribeParams = read(params)?;
+        check_name("audio", &p.audio)?;
+        if p.audio.len() > SPEECH_AUDIO_MAX {
+            return Err(ParamError(format!("`audio` is longer than {SPEECH_AUDIO_MAX} bytes of base64")));
+        }
+        if p.format.as_deref().is_some_and(|f| !SPEECH_FORMATS.contains(&f)) {
+            return Err(ParamError(format!("format is one of {}", SPEECH_FORMATS.join(", "))));
+        }
+        Ok(p)
+    }
+
+    pub fn format(&self) -> &str {
+        self.format.as_deref().unwrap_or("wav")
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpeechTranscribeResult {
+    pub text: String,
+    /// How long the engine took, in milliseconds.
+    pub took_ms: u64,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -309,6 +374,8 @@ mod tests {
             "agents.detect" => DetectParams::parse(params).map(drop),
             "skills.list" => SkillsParams::parse(params).map(drop),
             "commands.list" => CommandsParams::parse(params).map(drop),
+            "speech.status" => SpeechStatusParams::parse(params).map(drop),
+            "speech.transcribe" => SpeechTranscribeParams::parse(params).map(drop),
             other => panic!("{other} is no method of the group"),
         }
     }
@@ -320,6 +387,8 @@ mod tests {
             "agents.detect" => read(serde_json::from_value::<DetectResult>(result.clone()).map(drop)),
             "skills.list" => read(serde_json::from_value::<SkillsResult>(result.clone()).map(drop)),
             "commands.list" => read(serde_json::from_value::<CommandsResult>(result.clone()).map(drop)),
+            "speech.status" => read(serde_json::from_value::<SpeechStatusResult>(result.clone()).map(drop)),
+            "speech.transcribe" => read(serde_json::from_value::<SpeechTranscribeResult>(result.clone()).map(drop)),
             other => panic!("{other} is no method of the group"),
         }
     }
@@ -451,5 +520,10 @@ mod tests {
         // And a detection that names nothing is for the only executor, not refreshed; a null params is the same
         assert_eq!(DetectParams::parse(&json!({})), Ok(DetectParams { executor: None, refresh: None }));
         assert!(!DetectParams::parse(&Value::Null).unwrap().refresh() && DetectParams::parse(&json!({"refresh": true})).unwrap().refresh());
+        // And a recording needs audio in a format the engines read, wav when it names none
+        assert_eq!(SpeechTranscribeParams::parse(&json!({"audio": ""})).unwrap_err().0, "audio is required");
+        assert_eq!(SpeechTranscribeParams::parse(&json!({"audio": "AAAA", "format": "aiff"})).unwrap_err().0, "format is one of wav, webm, m4a, mp3, ogg, flac");
+        assert_eq!(SpeechTranscribeParams::parse(&json!({"audio": "AAAA"})).unwrap().format(), "wav");
+        assert!(SpeechStatusParams::parse(&json!({"x": 1})).is_err() && SpeechStatusParams::parse(&Value::Null).is_ok());
     }
 }

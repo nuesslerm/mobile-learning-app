@@ -1,7 +1,7 @@
 //! The use cases of the group over the executors and the table of the drivers.
-use crate::ports::{Clock, Refusal};
+use crate::ports::{Clock, Refusal, Speech};
 use crate::table;
-use agent_api_catalog::{code, message, skill_dirs, Command, CommandKind, CommandsParams, CommandsResult, DetectParams, DetectResult, DetectedAgent, DetectedTool, ModelsParams, ModelsResult, Scope, SkillsParams, SkillsResult, DRIVERS, TOOLS};
+use agent_api_catalog::{code, message, skill_dirs, Command, CommandKind, CommandsParams, CommandsResult, DetectParams, DetectResult, DetectedAgent, DetectedTool, ModelsParams, ModelsResult, Scope, SkillsParams, SkillsResult, SpeechStatusResult, SpeechTranscribeParams, SpeechTranscribeResult, DRIVERS, TOOLS};
 use agent_api_proto::code as proto_code;
 use exec_proto::Code;
 use rca_exec_channel::remote::RemoteError;
@@ -16,6 +16,7 @@ pub const DETECTION_TTL_MS: u64 = 30_000;
 pub struct Catalog {
     executors: Arc<dyn Executors>,
     clock: Arc<dyn Clock>,
+    speech: Arc<dyn Speech>,
     detected: Mutex<HashMap<String, DetectResult>>,
 }
 
@@ -28,8 +29,26 @@ fn read<T: serde::de::DeserializeOwned>(result: Value) -> Result<T, Refusal> {
 }
 
 impl Catalog {
-    pub fn new(executors: Arc<dyn Executors>, clock: Arc<dyn Clock>) -> Arc<Catalog> {
-        Arc::new(Catalog { executors, clock, detected: Mutex::default() })
+    pub fn new(executors: Arc<dyn Executors>, clock: Arc<dyn Clock>, speech: Arc<dyn Speech>) -> Arc<Catalog> {
+        Arc::new(Catalog { executors, clock, speech, detected: Mutex::default() })
+    }
+
+    pub fn speech_status(&self) -> SpeechStatusResult {
+        match self.speech.engine() {
+            Some(engine) => SpeechStatusResult { available: true, engine },
+            None => SpeechStatusResult { available: false, engine: "none".into() },
+        }
+    }
+
+    pub async fn transcribe(&self, p: SpeechTranscribeParams) -> Result<SpeechTranscribeResult, Refusal> {
+        use base64::Engine;
+        let bytes = base64::engine::general_purpose::STANDARD.decode(p.audio.trim()).map_err(|_| Refusal::new(proto_code::INVALID_PARAMS, "`audio` is not base64"))?;
+        if self.speech.engine().is_none() {
+            return Err(Refusal::new(code::SPEECH_UNAVAILABLE, "the service has no speech engine"));
+        }
+        let started = self.clock.now_ms();
+        let text = self.speech.transcribe(bytes, p.format()).await.map_err(|e| Refusal::new(code::SPEECH_UNAVAILABLE, e))?;
+        Ok(SpeechTranscribeResult { text, took_ms: self.clock.now_ms().saturating_sub(started) })
     }
 
     pub fn models(&self, p: ModelsParams) -> Result<ModelsResult, Refusal> {

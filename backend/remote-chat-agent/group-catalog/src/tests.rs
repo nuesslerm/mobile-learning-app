@@ -1,7 +1,7 @@
 //! The group over an executor registry and a double of the executor's channel: what each method asks of the executor, what the service
 //! keeps and for how long, and how the executor's answers and refusals come back.
 use super::*;
-use crate::testing::SetClock;
+use crate::testing::{ScriptedSpeech, SetClock};
 use agent_api_catalog as api;
 use agent_api_proto::Method;
 use rca_agent_core::{AgentApi, Build, Group};
@@ -29,7 +29,7 @@ fn rig(answers: impl Fn(&str, &Value) -> Result<ActionOutput, RemoteError> + Sen
     let executors: Arc<Registry> = Arc::default();
     executors.open_executor("e1", "w1", channel.clone() as Arc<dyn ExecutorChannel>).unwrap();
     let clock = Arc::new(SetClock::at(1_000));
-    let groups: Vec<Arc<dyn Group>> = vec![Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), clock.clone())))];
+    let groups: Vec<Arc<dyn Group>> = vec![Arc::new(CatalogGroup::new(Catalog::new(executors.clone(), clock.clone(), Arc::new(ScriptedSpeech::saying("hello world")))))];
     Rig { api: AgentApi::new(groups).unwrap(), clock, channel, executors }
 }
 
@@ -178,4 +178,26 @@ async fn given_named_skill_directories_when_skills_are_listed_then_the_executor_
     let before = rig.channel.calls().len();
     let bad = rig.ask(api::SKILLS_LIST, json!({"workspace": "w1", "dirs": ["../x"]})).await;
     assert_eq!((bad["error"]["code"].clone(), rig.channel.calls().len()), (json!("INVALID_PARAMS"), before));
+}
+
+#[tokio::test]
+async fn given_a_speech_engine_when_a_recording_is_transcribed_then_its_words_come_back_and_a_missing_engine_or_a_failure_is_refused_as_unavailable() {
+    // Given a service whose engine hears a recording and says "hello world"
+    let rig = rig(|_, _| ok(json!({})));
+    // When the status is asked and a base64 recording is transcribed, with and without a format
+    let status = rig.ask(api::SPEECH_STATUS, json!({})).await;
+    let said = rig.ask(api::SPEECH_TRANSCRIBE, json!({"audio": "UklGRg==", "format": "webm"})).await;
+    let not_base64 = rig.ask(api::SPEECH_TRANSCRIBE, json!({"audio": "***"})).await;
+    // Then the engine is named, the words come back with how long they took, and text that is no base64 is a refusal of the params
+    assert_eq!(status["result"], json!({"available": true, "engine": "whisper-cpp"}));
+    assert_eq!(said["result"], json!({"text": "hello world", "took_ms": 0}));
+    assert_eq!((not_base64["error"]["code"].as_str(), not_base64["error"]["message"].as_str()), (Some("INVALID_PARAMS"), Some("`audio` is not base64")));
+    // And a service with no engine says so, and an engine that fails refuses with its own words
+    let none = Catalog::new(rig.executors.clone(), rig.clock.clone(), Arc::new(ScriptedSpeech { engine: None, said: Ok(String::new()), heard: Default::default() }));
+    assert_eq!(none.speech_status(), api::SpeechStatusResult { available: false, engine: "none".into() });
+    let failing = Catalog::new(rig.executors.clone(), rig.clock.clone(), Arc::new(ScriptedSpeech { engine: Some("sidecar".into()), said: Err("the sidecar is down".into()), heard: Default::default() }));
+    let refused = failing.transcribe(api::SpeechTranscribeParams { audio: "UklGRg==".into(), format: None }).await.unwrap_err();
+    assert_eq!((refused.code.as_str(), refused.message.as_str()), ("SPEECH_UNAVAILABLE", "the sidecar is down"));
+    let no_engine = none.transcribe(api::SpeechTranscribeParams { audio: "UklGRg==".into(), format: None }).await.unwrap_err();
+    assert_eq!(no_engine.code, "SPEECH_UNAVAILABLE");
 }

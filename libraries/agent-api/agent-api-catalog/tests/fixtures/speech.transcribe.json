@@ -1,0 +1,61 @@
+{
+  "method": "speech.transcribe",
+  "exchanges": [
+    {
+      "name": "answers the words in a recording",
+      "request": {
+        "id": 1,
+        "method": "speech.transcribe",
+        "params": {
+          "audio": "UklGRg==",
+          "format": "wav"
+        }
+      },
+      "response": {
+        "id": 1,
+        "result": {
+          "text": "hello world",
+          "took_ms": 0
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "needs audio",
+      "request": {
+        "id": 2,
+        "method": "speech.transcribe",
+        "params": {
+          "audio": ""
+        }
+      },
+      "response": {
+        "id": 2,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "audio is required"
+        }
+      },
+      "actions": []
+    },
+    {
+      "name": "refuses a format the engines do not read",
+      "request": {
+        "id": 3,
+        "method": "speech.transcribe",
+        "params": {
+          "audio": "UklGRg==",
+          "format": "aiff"
+        }
+      },
+      "response": {
+        "id": 3,
+        "error": {
+          "code": "INVALID_PARAMS",
+          "message": "format is one of wav, webm, m4a, mp3, ogg, flac"
+        }
+      },
+      "actions": []
+    }
+  ]
+}
