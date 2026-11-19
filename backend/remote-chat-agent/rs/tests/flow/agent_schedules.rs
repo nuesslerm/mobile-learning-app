@@ -190,4 +190,33 @@ async fn given_a_webhook_schedule_when_the_service_restarts_then_the_schedule_an
     assert_eq!(second.send(post("/hooks/v1/schedules/hook/other")).await.status, StatusCode::UNAUTHORIZED);
 }
 
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn given_a_schedule_whose_runs_were_refused_when_the_service_restarts_then_schedule_runs_still_answers_them_newest_first() {
+    // Given a schedule run twice by hand on a service with no executor attached, so each run is refused and kept as failed
+    let env = Env::new(&[]);
+    let first = service(&env, Options::default());
+    let port = first.listen().await;
+    let mut agent = Agent::open(port, &first.mint("flow mapper").await).await;
+    agent.ask("schedule.upsert", schedule("nightly", every_minute(), "say hello on schedule")).await;
+    for _ in 0..2 {
+        first.clock.advance(1000);
+        let refused = agent.ask("schedule.runNow", json!({"id": "nightly"})).await;
+        assert_eq!(refused["error"]["code"], json!("NO_EXECUTOR"), "{refused}");
+    }
+    // When a second service starts on the same home and its runs are asked for
+    let second = service(&env, Options::default());
+    let port = second.listen().await;
+    let mut again = Agent::open(port, &second.mint("flow mapper").await).await;
+    let runs = again.ask("schedule.runs", json!({"id": "nightly"})).await;
+    // Then both runs are answered, newest first, each failed with the refusal and at the time it was asked
+    let kept: Vec<(Value, Value, Value, Value)> = runs["result"]["runs"].as_array().unwrap_or_else(|| panic!("{runs}")).iter().map(|r| (r["run"].clone(), r["source"].clone(), r["at_ms"].clone(), r["state"].clone())).collect();
+    let id = |r: &Value| r["run"].as_str().unwrap().to_string();
+    let ids: Vec<String> = runs["result"]["runs"].as_array().unwrap().iter().map(id).collect();
+    assert_eq!(kept, [(json!(ids[0]), json!("manual"), json!(SCHEDULE_EPOCH_MS + 2000), json!("failed")), (json!(ids[1]), json!("manual"), json!(SCHEDULE_EPOCH_MS + 1000), json!("failed"))]);
+    assert_ne!(ids[0], ids[1]);
+    // And every schedule's runs are the same two, and a schedule that is gone has none to answer
+    assert_eq!(again.ask("schedule.runs", json!({})).await["result"]["runs"].as_array().map(Vec::len), Some(2));
+    assert_eq!(again.ask("schedule.runs", json!({"id": "gone"})).await["error"]["code"], json!("SCHEDULE_NOT_FOUND"));
+}
+
 use std::os::unix::fs::PermissionsExt;

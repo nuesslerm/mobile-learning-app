@@ -3,7 +3,7 @@
 use crate::service::{Failure, Schedules};
 use agent_api_proto::{GroupName, Response};
 use agent_api_schedules::watch::{self, SubscribeParams};
-use agent_api_schedules::{self as api, DeleteResult, IdParams, ListParams, ListResult, SetEnabledParams, UpsertParams};
+use agent_api_schedules::{self as api, DeleteResult, IdParams, ListParams, ListResult, RunsParams, RunsResult, SetEnabledParams, UpsertParams};
 use async_trait::async_trait;
 use rca_agent_core::{Call, Group, Served};
 use serde::Serialize;
@@ -12,7 +12,7 @@ use std::sync::Arc;
 
 // `schedule.runNow` starts a turn of a CLI, which the model of that turn then calls the MCP tools of;
 // the checkpoint it takes first is `git_checkpoint`, named here so this crate keeps no dependency on exec-git.
-const SERVED: [Served; 6] = [Served::service(api::LIST, &[]), Served::service(api::UPSERT, &[]), Served::service(api::SET_ENABLED, &[]), Served::service(api::DELETE, &[]), Served::cli(api::RUN_NOW, &["git_checkpoint"]), Served::service(api::ROTATE_WEBHOOK_TOKEN, &[])];
+const SERVED: [Served; 7] = [Served::service(api::LIST, &[]), Served::service(api::UPSERT, &[]), Served::service(api::SET_ENABLED, &[]), Served::service(api::DELETE, &[]), Served::cli(api::RUN_NOW, &["git_checkpoint"]), Served::service(api::ROTATE_WEBHOOK_TOKEN, &[]), Served::service(api::RUNS, &[])];
 const WATCH_SERVED: [Served; 1] = [Served::service(watch::SUBSCRIBE, &[])];
 
 pub struct ScheduleGroup {
@@ -77,6 +77,10 @@ impl Group for ScheduleGroup {
             api::ROTATE_WEBHOOK_TOKEN => {
                 let p = parsed!(IdParams::parse(params));
                 answer(id, self.schedules.rotate_webhook_token(&p.id))
+            }
+            api::RUNS => {
+                let p = parsed!(RunsParams::parse(params));
+                answer(id, self.schedules.runs(p.id.as_deref()).map(|runs| RunsResult { runs }))
             }
             other => unreachable!("the schedules group does not serve {}", other.name()),
         }
