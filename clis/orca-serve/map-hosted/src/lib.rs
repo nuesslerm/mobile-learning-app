@@ -1,9 +1,10 @@
 //! Orca's hosted source control rows over rca's `hosted.pr` group, which asks the executor machine's own `gh` and `glab`: the pull request rows of
 //! `github.*`, the merge request rows of `gitlab.*` and the `worktree.resolvePrBase` and `worktree.resolveMrBase` start points (the request's head fetched
-//! by `git.fetch` into a ref of its own), and `hostedReview.getCreationEligibility`, read from the remotes, the default base and the sign-in. A row's `repo` selector names an rca workspace, and a request names no repository, so the executor uses the one
+//! by `git.fetch` into a ref of its own), `hostedReview.getCreationEligibility`, read from the remotes, the default base and the sign-in, and `hostedReview.create`, which rechecks those
+//! with the branch's own state before `pr.create` or `mr.create`. A row's `repo` selector names an rca workspace, and a request names no repository, so the executor uses the one
 //! the workspace's remote names (a `prRepo` or `projectRef` of the phone names another). A row the CLIs cannot do, or whose answer needs what rca does
 //! not hold (issues and work items, projects, auto-merge, rate limits, accounts), is not mapped and stays pending.
-use agent_api_git::{BLOB, FETCH, REFS, UPSTREAM_STATUS};
+use agent_api_git::{BLOB, FETCH, REFS, STATUS, UPSTREAM_STATUS};
 use agent_api_hosted::{auth, pr};
 use agent_api_proto::Method as AgentMethod;
 use orca_core::wire::{Failure, METHOD_NOT_FOUND, RUNTIME_ERROR};
@@ -13,6 +14,7 @@ use serde_json::{json, Map, Value};
 mod failure;
 mod base;
 mod checks;
+mod create;
 mod eligibility;
 mod github;
 mod gitlab;
@@ -24,8 +26,8 @@ mod time;
 pub mod testing;
 
 /// The agent methods this crate sends: the `pr.*` and `mr.*` ones it reaches, the fetch of a request's head, the git reads and the sign-in status of
-/// review eligibility.
-pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, pr::REMOTES, pr::MR_LIST, auth::DISCOVER, FETCH, BLOB, REFS, UPSTREAM_STATUS];
+/// review eligibility and creation, and the review template creation reads.
+pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr::READY, pr::REQUEST_REVIEWERS, pr::MERGE, pr::MR_VIEW, pr::MR_EDIT, pr::MR_READY, pr::MR_SET_LABELS, pr::MR_MERGE, pr::LABEL_CANDIDATES, pr::REVIEWER_CANDIDATES, pr::RESOLVE_THREAD, pr::FILE_VIEWED, pr::REPLY, pr::REVIEW_COMMENT, pr::SET_STATE, pr::MR_SET_STATE, pr::MR_COMMENT, pr::COMMENTS, pr::REVIEWS, pr::THREADS, pr::REMOTES, pr::MR_LIST, pr::CREATE, pr::MR_CREATE, auth::DISCOVER, FETCH, BLOB, REFS, UPSTREAM_STATUS, STATUS, orca_map_workspace::FILE_READ];
 
 const METHODS: &[Method] = &[
     Method { name: "github.prForBranch", kind: Kind::Unary },
@@ -51,6 +53,7 @@ const METHODS: &[Method] = &[
     Method { name: "github.prFileContents", kind: Kind::Unary },
     Method { name: "hostedReview.forBranch", kind: Kind::Unary },
     Method { name: "hostedReview.getCreationEligibility", kind: Kind::Unary },
+    Method { name: "hostedReview.create", kind: Kind::Unary },
     Method { name: "gitlab.mergeMR", kind: Kind::Unary },
     Method { name: "gitlab.updateMR", kind: Kind::Unary },
     Method { name: "worktree.resolvePrBase", kind: Kind::Unary },
@@ -69,7 +72,7 @@ impl Area for HostedArea {
     }
 
     fn call(&self, ctx: &mut Ctx, method: &str, params: &Value) -> Result<Value, Failure> {
-        let repo_list = matches!(method, "github.listLabels" | "github.listAssignableUsers" | "github.resolveReviewThread" | "github.setPRFileViewed" | "github.addPRReviewComment" | "github.addPRReviewCommentReply" | "github.updatePRState" | "gitlab.updateMRState" | "gitlab.addMRComment" | "github.repoSlug" | "hostedReview.getCreationEligibility");
+        let repo_list = matches!(method, "github.listLabels" | "github.listAssignableUsers" | "github.resolveReviewThread" | "github.setPRFileViewed" | "github.addPRReviewComment" | "github.addPRReviewCommentReply" | "github.updatePRState" | "gitlab.updateMRState" | "gitlab.addMRComment" | "github.repoSlug" | "hostedReview.getCreationEligibility" | "hostedReview.create");
         if method == "github.addPRReviewComment" {
             github::check_review_comment_params(params)?;
         } else if method == "gitlab.addMRComment" {
@@ -78,6 +81,11 @@ impl Area for HostedArea {
             github::check_file_viewed_params(params)?;
         } else if method == "hostedReview.getCreationEligibility" {
             eligibility::check_params(params)?;
+        } else if method == "hostedReview.create" {
+            create::check_params(params)?;
+            if let Some(unsupported) = create::gate(params) {
+                return Ok(unsupported);
+            }
         } else if repo_list && method != "github.repoSlug" {
             github::check_label_params(params)?;
         }
@@ -110,6 +118,7 @@ impl Area for HostedArea {
             "github.prFileContents" => review::file_contents(&target, params),
             "hostedReview.forBranch" => review::for_branch(&target, params),
             "hostedReview.getCreationEligibility" => eligibility::eligibility(&target, params),
+            "hostedReview.create" => create::create(&target, params),
             "gitlab.mergeMR" => gitlab::merge(&target, params),
             "gitlab.updateMR" => gitlab::update(&target, params),
             "worktree.resolvePrBase" => base::resolve(&target, params, false),

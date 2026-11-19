@@ -47,6 +47,13 @@ struct State {
     origin_head: Option<String>,
     signed_out: bool,
     list_error: Option<String>,
+    branch: Option<String>,
+    dirty: bool,
+    upstream: Option<(bool, u64, u64)>,
+    upstream_error: Option<String>,
+    templates: Vec<(String, String)>,
+    /// A refusal of every create as (code, message), and whether the request is opened all the same.
+    create_error: Option<(String, String, bool)>,
 }
 
 /// What rca's richer answers add to a comment, a review or a thread comment; every part is optional and a default adds none.
@@ -289,11 +296,73 @@ impl Hosting {
         self.0.lock().unwrap().list_error = Some(message.into());
     }
 
+    /// The branch checked out in the workspace (`feat/x` until set); `HEAD` detaches it.
+    pub fn on_branch(&self, name: &str) -> &Self {
+        self.0.lock().unwrap().branch = Some(name.into());
+        self
+    }
+
+    /// Gives the workspace a change not committed.
+    pub fn dirty(&self) -> &Self {
+        self.0.lock().unwrap().dirty = true;
+        self
+    }
+
+    /// Whether the branch tracks an upstream, and how far ahead of and behind it it is (tracked and even until set).
+    pub fn upstream(&self, has: bool, ahead: u64, behind: u64) -> &Self {
+        self.0.lock().unwrap().upstream = Some((has, ahead, behind));
+        self
+    }
+
+    /// Makes reading the upstream fail with `message`.
+    pub fn upstream_fails(&self, message: &str) {
+        self.0.lock().unwrap().upstream_error = Some(message.into());
+    }
+
+    /// A file of the workspace a review template may be read from.
+    pub fn template(&self, path: &str, text: &str) -> &Self {
+        self.0.lock().unwrap().templates.push((path.into(), text.into()));
+        self
+    }
+
+    /// Makes every create refused with `code` and `message`; with `opened`, the request is opened all the same, as when the CLI's answer is lost.
+    pub fn create_fails(&self, code: &str, message: &str, opened: bool) {
+        self.0.lock().unwrap().create_error = Some((code.into(), message.into(), opened));
+    }
+
+    fn branch(s: &State) -> String {
+        s.branch.clone().unwrap_or_else(|| "feat/x".into())
+    }
+
     pub fn install(&self, agent: &ScriptedAgent) {
+        let me = self.clone();
+        agent.reply("git.status", move |_| {
+            let s = me.0.lock().unwrap();
+            let branch = Hosting::branch(&s);
+            let detached = branch == "HEAD";
+            let files = if s.dirty { json!([{"path": "notes.txt", "index": "?", "worktree": "?", "conflicted": false}]) } else { json!([]) };
+            Ok(json!({"branch": if detached { Value::Null } else { json!(branch) }, "head": format!("{:040x}", 7), "detached": detached, "ahead": 0, "behind": 0, "files": files, "truncated": false, "clean": !s.dirty}))
+        });
+        let me = self.clone();
+        agent.reply("file.read", move |p| {
+            let s = me.0.lock().unwrap();
+            let path = p["path"].as_str().ok_or_else(|| refused("INVALID_PARAMS", "path is required"))?;
+            let (_, text) = s.templates.iter().find(|(f, _)| f == path).ok_or_else(|| refused("NOT_FOUND", format!("{path} does not exist")))?;
+            Ok(json!({"content": text, "total_lines": text.lines().count(), "truncated": false}))
+        });
+        for (name, provider) in [("pr.create", "github"), ("mr.create", "gitlab")] {
+            let me = self.clone();
+            agent.reply(name, move |p| me.create(provider, p));
+        }
         let me = self.clone();
         agent.reply("git.upstreamStatus", move |_| {
             let s = me.0.lock().unwrap();
-            let mut up = json!({"branch": "feat/x", "has_upstream": true, "upstream": "origin/feat/x", "remote": "origin", "ahead": 0, "behind": 0, "remotes": s.remotes.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>()});
+            if let Some(message) = &s.upstream_error {
+                return Err(refused("GIT_FAILED", message.clone()));
+            }
+            let (has, ahead, behind) = s.upstream.unwrap_or((true, 0, 0));
+            let branch = Hosting::branch(&s);
+            let mut up = json!({"branch": branch, "has_upstream": has, "upstream": if has { json!(format!("origin/{branch}")) } else { Value::Null }, "remote": if has { json!("origin") } else { Value::Null }, "ahead": ahead, "behind": behind, "remotes": s.remotes.iter().map(|(n, _)| n.clone()).collect::<Vec<_>>()});
             if let Some(head) = &s.origin_head {
                 up["origin_head"] = json!(head);
             }
@@ -398,10 +467,10 @@ impl Hosting {
             if let Some(message) = &s.list_error {
                 return Err(refused("HOSTED_FAILED", message.clone()));
             }
-            let head = p["head"].as_str();
+            let (head, base) = (p["head"].as_str(), p["base"].as_str());
             let state = p["state"].as_str().ok_or_else(|| refused("INVALID_ARGS", "`state` is required here"))?;
             let limit = p["limit"].as_u64().ok_or_else(|| refused("INVALID_ARGS", "`limit` is required here"))? as usize;
-            let mut found: Vec<&Request> = s.requests.iter().filter(|r| r.provider == provider && head.is_none_or(|h| r.head_ref == h) && (state == "all" || r.state == state)).collect();
+            let mut found: Vec<&Request> = s.requests.iter().filter(|r| r.provider == provider && head.is_none_or(|h| r.head_ref == h) && base.is_none_or(|b| r.base_ref == b) && (state == "all" || r.state == state)).collect();
             found.sort_by_key(|r| std::cmp::Reverse(r.updated_ms));
             return Ok(json!({"prs": found.iter().take(limit).map(|r| neutral(r)).collect::<Vec<_>>(), "truncated": found.len() > limit}));
         }
@@ -466,6 +535,24 @@ impl Hosting {
                 Ok(json!({"done": true}))
             }
             other => Err(refused("METHOD_NOT_FOUND", format!("the double has no {other}"))),
+        }
+    }
+
+    fn create(&self, provider: &'static str, p: &Value) -> Result<Value, AgentError> {
+        let title = p["title"].as_str().filter(|t| !t.is_empty()).ok_or_else(|| refused("INVALID_ARGS", "`title` must be one line of 1-256 characters"))?;
+        let head = p["head"].as_str().filter(|h| !h.is_empty()).ok_or_else(|| refused("INVALID_ARGS", "`head` is required here"))?;
+        let number = self.0.lock().unwrap().requests.iter().filter(|r| r.provider == provider).map(|r| r.number).max().unwrap_or(0) + 1;
+        let error = self.0.lock().unwrap().create_error.clone();
+        if error.as_ref().is_none_or(|(_, _, opened)| *opened) {
+            self.add(provider, number, title, head, p["base"].as_str().unwrap_or("main"));
+            self.change(provider, number, |r| {
+                r.body = p["body"].as_str().unwrap_or("").into();
+                r.draft = p["draft"] == true;
+            });
+        }
+        match error {
+            Some((code, message, _)) => Err(refused(&code, message)),
+            None => Ok(json!({"number": number, "url": format!("https://example.test/{provider}/{number}")})),
         }
     }
 

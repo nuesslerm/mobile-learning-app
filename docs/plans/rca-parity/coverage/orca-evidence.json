@@ -318,6 +318,20 @@
         "complete": true,
         "tests": 62,
         "passed": 13
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "05c96edd03e2cd45d4da933341eba5ed73c96c1d",
+        "complete": true,
+        "tests": 446,
+        "passed": 119
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 62,
+        "passed": 14
       }
     ]
   },
@@ -1219,6 +1233,15 @@
     "rpc:host.platform": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-host.platform-empty-empty-object",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:hostedReview.create": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-hostedReview.create-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

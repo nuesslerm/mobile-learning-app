@@ -50,7 +50,7 @@ impl Rig {
 
     /// What rca was asked of the hosted and git groups since the rig was made.
     fn asked_hosted(&self) -> Vec<String> {
-        self.agent.requests().into_iter().map(|(m, _)| m).filter(|m| m.starts_with("pr.") || m.starts_with("mr.") || m.starts_with("git.") || m.starts_with("sourceControl.")).collect()
+        self.agent.requests().into_iter().map(|(m, _)| m).filter(|m| m.starts_with("pr.") || m.starts_with("mr.") || m.starts_with("git.") || m.starts_with("sourceControl.") || m.starts_with("file.")).collect()
     }
 }
 
@@ -1087,4 +1087,225 @@ fn given_params_the_hosts_schema_refuses_when_eligibility_is_read_then_it_is_zod
     assert_eq!(rig.ok(ELIGIBLE, with(ready(), json!({"linkedGitHubPR": null, "fallbackGitHubPR": null, "wakeWslDistro": "x", "extra": 1}))), github_answer(json!({})));
     // And rca was asked nothing hosted for the refused ones
     assert_eq!(rig.asked_hosted(), vec!["pr.remotes", "git.upstreamStatus", "pr.list", "sourceControl.discover"]);
+}
+
+const CREATE: &str = "hostedReview.create";
+
+/// A pull request of `feat/x` into main, as the phone submits one.
+fn submit(extra: Value) -> Value {
+    with(json!({"provider": "github", "base": "main", "head": "feat/x", "title": "Add retry", "body": "Body"}), extra)
+}
+
+fn refused(code: &str, error: &str, reason: &str) -> Value {
+    json!({"ok": false, "code": code, "error": error, "reason": reason})
+}
+
+#[test]
+fn given_a_pushed_feature_branch_when_the_phone_creates_a_pull_request_then_rca_opens_it_and_answers_its_number_and_url() {
+    // Given a clean, pushed branch feat/x of a github.com origin with no pull request
+    let mut rig = github_rig();
+    // When the phone creates a draft pull request into main
+    let answer = rig.ok(CREATE, submit(json!({"title": "  Add retry ", "draft": true})));
+    // Then it is the new pull request's number and address, and nothing else
+    assert_eq!(answer, json!({"ok": true, "number": 1, "url": "https://example.test/github/1"}));
+    // And rca opened it in origin's repository with the trimmed title, the body and the draft flag
+    assert_eq!(asked(&rig, "pr.create"), vec![json!({"title": "Add retry", "head": "feat/x", "base": "main", "body": "Body", "draft": true, "repo": "acme/app", "workspace": "main"})]);
+    assert_eq!((rig.hosting.view("github", 1)["draft"].clone(), rig.hosting.view("github", 1)["body"].clone()), (json!(true), json!("Body")));
+    // And the host's checks were read first, in its order: the provider, the branch, its upstream, the base, the review and the sign-in
+    assert_eq!(rig.asked_hosted(), vec!["pr.remotes", "git.status", "git.upstreamStatus", "git.refs", "pr.list", "sourceControl.discover", "pr.create"]);
+    assert_eq!(asked(&rig, "git.refs"), vec![json!({"kind": "remote", "query": "main", "workspace": "main"})]);
+}
+
+#[test]
+fn given_a_pushed_feature_branch_of_a_gitlab_origin_when_the_phone_creates_a_merge_request_then_rca_opens_it_from_the_current_branch() {
+    // Given a clean, pushed branch feat/x of a gitlab.com origin with origin/main and no merge request
+    let mut rig = Rig::new();
+    rig.hosting.remote("origin", "git@gitlab.com:grp/app.git");
+    rig.ws.refs("main", &[("origin/main", "remote")]);
+    // When the phone creates a merge request into origin/main without naming its head or a body
+    let answer = rig.ok(CREATE, json!({"provider": "gitlab", "base": "origin/main", "title": "Add retry"}));
+    // Then it is the new merge request's number and address
+    assert_eq!(answer, json!({"ok": true, "number": 1, "url": "https://example.test/gitlab/1"}));
+    // And rca opened it from the checked-out branch into main, with an empty description and no repository named
+    assert_eq!(asked(&rig, "mr.create"), vec![json!({"title": "Add retry", "head": "feat/x", "base": "main", "body": "", "workspace": "main"})]);
+    assert_eq!(rig.asked_hosted(), vec!["pr.remotes", "git.status", "git.upstreamStatus", "git.refs", "mr.list", "sourceControl.discover", "mr.create"]);
+    assert_eq!(asked(&rig, "sourceControl.discover"), vec![json!({"provider": "gitlab", "host": "gitlab.com", "workspace": "main"})]);
+}
+
+#[test]
+fn given_an_unknown_provider_or_a_payload_the_schema_refuses_when_a_review_is_created_then_it_is_the_hosts_answer_before_any_repository_is_read() {
+    let mut rig = github_rig();
+    let invalid = |m: &str| ("invalid_argument".to_string(), m.to_string());
+    // Given the host's recorded payloads, when they are submitted, then each is its recorded answer
+    let unsupported = json!({"code": "unsupported_provider", "error": "Creating reviews for this provider is not supported yet.", "ok": false, "reason": "provider_not_supported"});
+    assert_eq!(rig.ok(CREATE, json!({"base": "a", "provider": "a", "repo": "a", "title": "a"})), unsupported);
+    assert_eq!(rig.ok(CREATE, json!({"base": "a", "body": "a", "draft": true, "head": "a", "provider": "a", "repo": "a", "title": "a", "useTemplate": true, "worktree": "a"})), unsupported);
+    assert_eq!(rig.err(CREATE, json!({"repo": 7, "provider": "a"})), invalid("Missing repo selector"));
+    let frame = json!({"id": "x", "method": CREATE, "params": null}).to_string();
+    let r: Value = serde_json::from_str(&rig.conn.on_message(&frame)[0]).unwrap();
+    assert_eq!(r["error"], json!({"code": "invalid_argument", "message": "Missing repo selector"}));
+    // Given each other key the schema refuses, then the refusal is zod's first issue in key order
+    let cases = [
+        (json!({"worktree": "", "provider": 1}), "Missing worktree selector"),
+        (json!({"worktree": null}), "Invalid input: expected string, received null"),
+        (json!({"provider": null, "base": ""}), "Invalid input: expected string, received null"),
+        (json!({"title": "t"}), "Invalid input: expected string, received undefined"),
+        (json!({"provider": "github", "base": ""}), "Missing base branch"),
+        (json!({"provider": "github", "base": "main", "head": 7}), "Invalid input: expected string, received number"),
+        (json!({"provider": "github", "base": "main"}), "Missing title"),
+        (json!({"provider": "github", "base": "main", "title": "t", "body": false}), "Invalid input: expected string, received boolean"),
+        (json!({"provider": "github", "base": "main", "title": "t", "draft": "x"}), "Invalid input: expected boolean, received string"),
+        (json!({"provider": "github", "base": "main", "title": "t", "useTemplate": 1}), "Invalid input: expected boolean, received number"),
+    ];
+    for (params, message) in cases {
+        assert_eq!(rig.err(CREATE, params.clone()), invalid(message), "{params}");
+    }
+    // And rca was asked nothing for any of them
+    assert_eq!(rig.asked_hosted(), Vec::<String>::new());
+    // Given a repo no workspace owns and a provider it supports, then the repo is not found
+    assert_eq!(rig.err(CREATE, submit(json!({"repo": "nope"}))), ("repo_not_found".to_string(), "repo_not_found".to_string()));
+    // Given a worktree of another repository, then access is denied
+    rig.ws.workspace("other", "root", Some("/srv/other"));
+    assert_eq!(rig.err(CREATE, submit(json!({"worktree": "other"}))), ("runtime_error".to_string(), "Access denied: worktree does not belong to repository".to_string()));
+    // Given a provider rca has no CLI for, then the repository's remotes are not that provider's
+    assert_eq!(rig.ok(CREATE, submit(json!({"provider": "bitbucket"}))), refused("unsupported_provider", "Creating pull requests requires a Bitbucket remote.", "unsupported_provider"));
+    // Given GitLab named for a github.com origin, then it needs a GitLab remote, and nothing past the remotes was read
+    assert_eq!(rig.ok(CREATE, submit(json!({"provider": "gitlab"}))), refused("unsupported_provider", "Creating merge requests requires a GitLab remote.", "unsupported_provider"));
+    assert_eq!(rig.asked_hosted(), vec!["pr.remotes", "pr.remotes"]);
+}
+
+#[test]
+fn given_each_blocked_branch_when_a_pull_request_is_created_then_it_is_the_hosts_whole_answer_and_nothing_is_opened() {
+    let failed = |what: &str, reason: &str| refused("validation", &format!("Create PR failed: {what} before creating a pull request."), reason);
+    type Given = fn(&Hosting);
+    let cases: Vec<(&str, Given, Value, Value)> = vec![
+        ("dirty", |h| {
+                h.dirty();
+            }, json!({}), failed("commit or discard local changes", "dirty")),
+        ("no upstream", |h| {
+                h.upstream(false, 0, 0);
+            }, json!({}), failed("publish this branch", "no_upstream")),
+        ("behind", |h| {
+                h.upstream(true, 0, 2);
+            }, json!({}), failed("sync this branch", "needs_sync")),
+        ("ahead", |h| {
+                h.upstream(true, 1, 0);
+            }, json!({}), failed("push this branch", "needs_push")),
+        ("detached", |h| {
+                h.on_branch("HEAD");
+            }, json!({"head": null}), failed("switch to a branch", "detached_head")),
+        ("on the default branch", |h| {
+                h.on_branch("main");
+            }, json!({"head": null}), failed("choose a feature branch", "default_branch")),
+        ("another branch checked out", |h| {
+                h.on_branch("feat/y");
+            }, json!({}), failed("switch back to the selected branch", "branch_changed")),
+        (
+            "signed out",
+            |h| {
+                h.signed_out();
+            },
+            json!({}),
+            refused("auth_required", "Create PR failed: GitHub is not authenticated. Next step: Run gh auth login in this environment.", "auth_required"),
+        ),
+        (
+            "a base only this machine has",
+            |_| {},
+            json!({"base": "refs/heads/local-only"}),
+            with(refused("validation", "Create PR failed: the base branch \"local-only\" hasn't been pushed to the remote. Choose a pushed base or push it first.", "base_not_on_remote"), json!({"base": "local-only"})),
+        ),
+        ("an upstream that cannot be read", |h| h.upstream_fails("fatal: bad config"), json!({}), refused("validation", "Create PR failed: could not verify branch status. Refresh source control and try again.", "branch_status_unverified")),
+        (
+            "a review lookup that fails",
+            |h| h.list_fails("gh: HTTP 502"),
+            json!({}),
+            refused("validation", "Create PR failed: Orca could not confirm whether this branch already has a pull request. Retry once the GitHub lookup succeeds.", "review_lookup_unavailable"),
+        ),
+        (
+            "an open pull request",
+            |h| {
+                h.pull_request(12, "Add retry", "feat/x", "main");
+            },
+            json!({}),
+            with(refused("already_exists", "A pull request already exists for this branch.", "existing_review"), json!({"existingReview": {"number": 12, "url": "https://example.test/github/12"}})),
+        ),
+        ("a blank title", |_| {}, json!({"title": "   "}), json!({"ok": false, "code": "validation", "error": "Create PR failed: base branch and title are required."})),
+    ];
+    for (what, given, extra, expected) in cases {
+        // Given the branch in that state
+        let mut rig = github_rig();
+        given(&rig.hosting);
+        let mut params = submit(extra);
+        params.as_object_mut().unwrap().retain(|_, v| !v.is_null());
+        // When the phone creates a pull request
+        let answer = rig.ok(CREATE, params);
+        // Then it is the host's whole answer for that state, and rca opened nothing
+        assert_eq!(answer, expected, "{what}");
+        assert!(asked(&rig, "pr.create").is_empty(), "{what}");
+    }
+}
+
+#[test]
+fn given_gh_refusing_the_create_when_a_pull_request_is_created_then_it_is_the_hosts_reading_of_the_refusal() {
+    let auth = refused("auth_required", "Create PR failed: GitHub is not authenticated. Next step: run gh auth login in this environment.", "auth_required");
+    let existing = with(refused("already_exists", "A pull request already exists for this branch.", "existing_review"), json!({"existingReview": {"number": 1, "url": "https://example.test/github/1"}}));
+    let cases = [
+        ("IO_ERROR", "gh exited 1: pull request create failed: GraphQL: Validation Failed (createPullRequest) HTTP 422", false, refused("validation", "Create PR failed: GitHub rejected the pull request. Check the base branch and branch state, then try again.", "rejected")),
+        ("INVALID_ARGS", "`title` must be one line of 1-256 characters", false, refused("validation", "Create PR failed: GitHub rejected the pull request. Check the base branch and branch state, then try again.", "rejected")),
+        ("IO_ERROR", "not signed in to github.com: gh says HTTP 401: Bad credentials", false, auth),
+        ("IO_ERROR", "gh did not finish within 60000 ms and was stopped", false, refused("unknown_completion", "PR creation may have completed. Refreshing branch review state...", "creation_unconfirmed")),
+        ("IO_ERROR", "gh did not finish within 60000 ms and was stopped", true, existing.clone()),
+        ("IO_ERROR", "gh exited 1: a pull request for branch \"feat/x\" into branch \"main\" already exists:", true, existing),
+        ("IO_ERROR", "gh exited 1: a pull request for branch \"feat/x\" into branch \"main\" already exists:", false, refused("already_exists", "A pull request already exists for this branch.", "existing_review")),
+        ("IO_ERROR", "gh printed no address for the new request: done", true, json!({"ok": true, "number": 1, "url": "https://example.test/github/1"})),
+        ("IO_ERROR", "gh printed no address for the new request: done", false, refused("unknown_completion", "PR creation may have completed. Refreshing branch review state...", "creation_unconfirmed")),
+        ("IO_ERROR", "gh exited 1: something broke", false, refused("unknown", "Create PR failed: GitHub could not create the pull request. Try again in a moment.", "create_failed")),
+    ];
+    for (code, message, opened, expected) in cases {
+        // Given gh refusing the create that way, having opened the request or not
+        let mut rig = github_rig();
+        rig.hosting.create_fails(code, message, opened);
+        // When the phone creates a pull request
+        let answer = rig.ok(CREATE, submit(json!({})));
+        // Then it is the host's answer for what gh said, an opened request found by its head and base
+        assert_eq!(answer, expected, "{message} (opened: {opened})");
+    }
+    // And the lookup after a lost answer asks for the one open pull request of the head into the base
+    let mut rig = github_rig();
+    rig.hosting.create_fails("IO_ERROR", "gh printed no address for the new request: done", true);
+    rig.ok(CREATE, submit(json!({})));
+    assert_eq!(asked(&rig, "pr.list").last().unwrap(), &json!({"head": "feat/x", "base": "main", "state": "open", "limit": 2, "repo": "acme/app", "workspace": "main"}));
+    // Given no head named, when the answer is lost, then no lookup is made and the creation is unconfirmed
+    let mut rig = github_rig();
+    rig.hosting.create_fails("IO_ERROR", "gh printed no address for the new request: done", true);
+    assert_eq!(rig.ok(CREATE, json!({"provider": "github", "base": "main", "title": "t"})), refused("unknown_completion", "PR creation may have completed. Refreshing branch review state...", "creation_unconfirmed"));
+    assert_eq!(asked(&rig, "pr.list").len(), 1);
+    // Given glab refusing as signed out, then it is GitLab's copy
+    let mut rig = Rig::new();
+    rig.hosting.remote("origin", "https://gitlab.com/grp/app.git");
+    rig.ws.refs("main", &[("origin/main", "remote")]);
+    rig.hosting.create_fails("IO_ERROR", "not signed in to gitlab.com: glab says 401 Unauthorized", false);
+    assert_eq!(rig.ok(CREATE, submit(json!({"provider": "gitlab"}))), refused("auth_required", "Create MR failed: GitLab is not authenticated. Next step: run glab auth login in this environment.", "auth_required"));
+}
+
+#[test]
+fn given_use_template_with_a_blank_body_when_a_review_is_created_then_the_first_template_the_workspace_has_is_its_body() {
+    // Given the upper-case GitHub template, the second the host looks for
+    let mut rig = github_rig();
+    rig.hosting.template(".github/PULL_REQUEST_TEMPLATE.md", "## Why\n\n## How\n");
+    // When the phone creates a pull request with the template and a blank body
+    let answer = rig.ok(CREATE, submit(json!({"useTemplate": true, "body": "  "})));
+    // Then the pull request is opened with the template as its body, read after the first path was missing
+    assert_eq!(answer, json!({"ok": true, "number": 1, "url": "https://example.test/github/1"}));
+    assert_eq!(asked(&rig, "pr.create")[0]["body"], json!("## Why\n\n## How\n"));
+    assert_eq!(asked(&rig, "file.read"), vec![json!({"path": ".github/pull_request_template.md", "workspace": "main"}), json!({"path": ".github/PULL_REQUEST_TEMPLATE.md", "workspace": "main"})]);
+    // Given a body, when the template is asked for, then the body is kept and no template is read
+    let mut rig = github_rig();
+    rig.hosting.template(".github/pull_request_template.md", "T");
+    rig.ok(CREATE, submit(json!({"useTemplate": true})));
+    assert_eq!((asked(&rig, "pr.create")[0]["body"].clone(), asked(&rig, "file.read").len()), (json!("Body"), 0));
+    // Given no template at all, then the body is empty
+    let mut rig = github_rig();
+    rig.ok(CREATE, submit(json!({"useTemplate": true, "body": ""})));
+    assert_eq!((asked(&rig, "pr.create")[0]["body"].clone(), asked(&rig, "file.read").len()), (json!(""), 6));
 }

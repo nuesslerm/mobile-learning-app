@@ -803,9 +803,7 @@
       "decidedBy": "M12"
     },
     "rpc:hostedReview.create": {
-      "state": "not-offered",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: it opens a pull or merge request after a preflight of the branch, its upstream, its base and the working tree rebuilt from several reads, and a creation that skips one of those checks could push a review the host would have refused; rca's pr.create takes the head and title only. Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is stale: rca's pr.create already takes body, base, draft, labels and reviewers; served in phase 1.",
-      "decidedBy": "M12"
+      "oracle": "mimic"
     },
     "rpc:gitlab.addMRComment": {
       "oracle": "mimic"

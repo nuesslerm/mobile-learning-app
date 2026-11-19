@@ -125,7 +125,6 @@
         "orca-github.project.updatePullRequestBySlug",
         "orca-github.project.viewTable",
         "orca-github.project.workItemDetailsBySlug",
-        "orca-hostedReview.create",
         "orca-linear.connect",
         "orca-orchestration.partyLocation",
         "orca-orchestration.partyOpen",

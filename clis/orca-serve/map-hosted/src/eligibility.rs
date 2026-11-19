@@ -54,14 +54,14 @@ pub(crate) fn check_params(params: &Value) -> Result<(), Failure> {
 }
 
 /// `normalizeHostedReviewHeadRef`: the ref without `refs/heads/` or `refs/remotes/<remote>/`.
-fn head_ref(r: &str) -> &str {
+pub(crate) fn head_ref(r: &str) -> &str {
     let r = r.trim();
     let r = r.strip_prefix("refs/heads/").unwrap_or(r);
     r.strip_prefix("refs/remotes/").and_then(|rest| rest.split_once('/')).map_or(r, |(_, branch)| branch)
 }
 
 /// `normalizeHostedReviewBaseRef`: the head ref without a leading `origin/` or `upstream/`.
-fn base_ref(r: &str) -> &str {
+pub(crate) fn base_ref(r: &str) -> &str {
     let r = head_ref(r);
     r.strip_prefix("origin/").or_else(|| r.strip_prefix("upstream/")).unwrap_or(r)
 }
@@ -79,7 +79,7 @@ fn safe_ref(base: &str) -> bool {
 }
 
 /// The other refusals of a read the host swallows, with an unknown workspace (and an unreachable rca) still the selector's error.
-fn swallowed<T>(result: Result<T, AgentError>) -> Result<Option<T>, Failure> {
+pub(crate) fn swallowed<T>(result: Result<T, AgentError>) -> Result<Option<T>, Failure> {
     match result {
         Ok(v) => Ok(Some(v)),
         Err(AgentError::Refused { code, .. }) if code != "UNKNOWN_WORKSPACE" => Ok(None),
@@ -126,7 +126,7 @@ fn default_base(t: &Target, origin_head: Option<String>) -> Result<Option<String
 
 /// The provider whose host the repository's remotes name, as the host's precedence detects it: a gitlab.com origin, then a github.com origin or
 /// the remote standing in for it.
-fn provider_of(remotes: &[Value]) -> &'static str {
+pub(crate) fn provider_of(remotes: &[Value]) -> &'static str {
     let url = |name: &str| remotes.iter().find(|r| r["name"] == name).and_then(|r| r["url"].as_str());
     if url("origin").is_some_and(slug::is_gitlab_com_project) {
         return "gitlab";
@@ -183,7 +183,7 @@ fn signed_in(t: &Target, provider: &str) -> Result<bool, Failure> {
 
 /// The worktree the request names, which must be a checkout of the repo: the repo's own workspace, or a worktree workspace lying where one of the
 /// checkouts git lists for the repo (`worktree.list`) lies.
-fn worktree_of<'a>(repo: &Target<'a>, selector: &str) -> Result<Target<'a>, Failure> {
+pub(crate) fn worktree_of<'a>(repo: &Target<'a>, selector: &str) -> Result<Target<'a>, Failure> {
     let found = orca_map_workspace::resolve(repo.agent, selector)?;
     if !orca_map_workspace::checkout_of(repo.agent, &repo.workspace, &found)? {
         return Err(Failure::new(RUNTIME_ERROR, "Access denied: worktree does not belong to repository"));
@@ -202,18 +202,30 @@ pub fn eligibility(repo: &Target, params: &Value) -> Result<Value, Failure> {
         }
         None => repo,
     };
-    let branch = head_ref(params["branch"].as_str().unwrap_or("")).trim();
     let listed = swallowed(t.try_ask(pr::REMOTES, json!({})))?;
+    evaluate(t, params, listed, None, false)
+}
+
+/// The host's eligibility of `params` (its `branch`, `base` and branch state) in `t`, from the `pr.remotes` answer `listed` and origin's HEAD when
+/// the caller already read it. `enforce_base` is creation's recheck: a submitted base no remote tracks blocks it.
+pub(crate) fn evaluate(t: &Target, params: &Value, listed: Option<Value>, origin_head: Option<Option<String>>, enforce_base: bool) -> Result<Value, Failure> {
+    let branch = head_ref(params["branch"].as_str().unwrap_or("")).trim();
     let remotes = listed.as_ref().and_then(|l| l["remotes"].as_array().cloned()).unwrap_or_default();
     let names: Vec<String> = remotes.iter().filter_map(|r| r["name"].as_str().map(str::to_string)).collect();
     let provider = provider_of(&remotes);
     let candidate = params["base"].as_str().map(str::trim).filter(|b| !b.is_empty());
-    let default_base_ref = match candidate {
-        Some(c) if on_remote(t, c, &names)? => Some(c.to_string()),
-        _ => {
-            let origin_head = swallowed(t.try_ask(UPSTREAM_STATUS, json!({})))?.and_then(|u| u["origin_head"].as_str().map(str::to_string));
-            default_base(t, origin_head)?.or(candidate.map(str::to_string))
-        }
+    let candidate_on_remote = match candidate {
+        Some(c) => on_remote(t, c, &names)?,
+        None => false,
+    };
+    let default_base_ref = if candidate_on_remote {
+        candidate.map(str::to_string)
+    } else {
+        let origin_head = match origin_head {
+            Some(known) => known,
+            None => swallowed(t.try_ask(UPSTREAM_STATUS, json!({})))?.and_then(|u| u["origin_head"].as_str().map(str::to_string)),
+        };
+        default_base(t, origin_head)?.or(candidate.map(str::to_string))
     };
     let base_branch = default_base_ref.as_deref().map(base_ref);
     let looked_up = if branch.is_empty() && !LINKS.iter().any(|k| linked(params, k).is_some()) {
@@ -262,6 +274,8 @@ pub fn eligibility(repo: &Target, params: &Value) -> Result<Value, Failure> {
         block(&mut answer, Some("auth_required"), Some("authenticate"));
     } else if count("ahead") > 0 {
         block(&mut answer, Some("needs_push"), Some("push"));
+    } else if enforce_base && candidate.is_some() && !candidate_on_remote {
+        block(&mut answer, Some("base_not_on_remote"), None);
     } else {
         answer["canCreate"] = json!(!lookup_failed && base_branch.is_some_and(|b| !b.is_empty()));
         answer["blockedReason"] = Value::Null;
