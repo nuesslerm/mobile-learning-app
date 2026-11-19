@@ -187,14 +187,49 @@ fn gitlab_project(op: &HostedOp) -> String {
     op.repo.as_ref().map_or("projects/:fullpath".to_string(), |r| format!("projects/{}", encode(r)))
 }
 
-/// GitLab's new merge request into `target`, its description on stdin; a draft is a title starting `Draft: `, as GitLab marks one.
-fn new_merge_request(op: &HostedOp, target: &str) -> Result<Step, String> {
+/// GitLab's new merge request into `target` with its reviewers' ids, its description on stdin; a draft is a title starting `Draft: `, as GitLab marks one.
+fn new_merge_request(op: &HostedOp, target: &str, reviewer_ids: &[u64]) -> Result<Step, String> {
     let HostedCall::PrCreate { title, body, head, draft, labels, .. } = &op.call else { return Err("not a new merge request".into()) };
     let mut fields = json!({"source_branch": head, "target_branch": target, "title": if *draft { format!("Draft: {title}") } else { title.clone() }, "description": body.clone().unwrap_or_default()});
     if !labels.is_empty() {
         fields["labels"] = json!(labels.join(","));
     }
+    if !reviewer_ids.is_empty() {
+        fields["reviewer_ids"] = json!(reviewer_ids);
+    }
     Ok(json_body(step(Program::Glab, vec!["api".into(), "--method=POST".into(), format!("{}/merge_requests", gitlab_project(op))]), &fields))
+}
+
+/// A merge request is created by one request, so a reviewer GitLab does not know fails before anything exists: the project's default branch
+/// when no base is given, then each reviewer's user id, then the POST.
+fn next_merge_request_step(op: &HostedOp, outputs: &[Output]) -> Result<Option<Step>, String> {
+    let HostedCall::PrCreate { base, reviewers, .. } = &op.call else { return Ok(None) };
+    let parse = |out: &Output| serde_json::from_str::<Value>(&out.stdout).map_err(|e| format!("glab printed no JSON ({e})"));
+    let looked_up = usize::from(base.is_none());
+    let n = outputs.len();
+    if n < looked_up {
+        return Ok(Some(step(Program::Glab, vec!["api".into(), gitlab_project(op)])));
+    }
+    if let Some(user) = reviewers.get(n - looked_up) {
+        return Ok(Some(step(Program::Glab, vec!["api".into(), format!("users?username={}", encode(user))])));
+    }
+    if n > looked_up + reviewers.len() {
+        return Ok(None);
+    }
+    let target = match base {
+        Some(b) => b.clone(),
+        None => parse(&outputs[0])?.get("default_branch").and_then(Value::as_str).map(str::to_string).ok_or("glab named no default branch to merge into")?,
+    };
+    let ids = reviewers
+        .iter()
+        .zip(&outputs[looked_up..])
+        .map(|(user, out)| {
+            let found = parse(out)?;
+            let id = found.as_array().and_then(|list| list.iter().find(|u| u["username"].as_str().is_some_and(|name| name.eq_ignore_ascii_case(user)))).and_then(|u| u["id"].as_u64());
+            id.ok_or_else(|| format!("GitLab has no user {user} to ask for a review; no merge request was created"))
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    new_merge_request(op, &target, &ids).map(Some)
 }
 
 /// The step that follows the steps run so far, when what it asks depends on what they printed: the stack's own read after the list that found
@@ -229,21 +264,7 @@ pub fn follow(op: &HostedOp, outputs: &[Output]) -> Result<Option<Step>, String>
             }).and_then(|r| r["id"].as_u64());
             Ok(mine.map(|id| step(program, vec!["api".into(), "--method=DELETE".into(), format!("{collection}/{id}")])))
         }
-        (HostedCall::PrCreate { base, reviewers, .. }, Provider::Gitlab, n) => {
-            let created_at = usize::from(base.is_none());
-            if n == created_at {
-                let target = parse(&outputs[0])?.get("default_branch").and_then(Value::as_str).map(str::to_string).ok_or("glab named no default branch to merge into")?;
-                return new_merge_request(op, &target).map(Some);
-            }
-            if n != created_at + 1 || reviewers.is_empty() {
-                return Ok(None);
-            }
-            let iid = parse(&outputs[created_at])?.get("iid").and_then(Value::as_u64).ok_or("glab answered no iid for the new merge request")?;
-            let mut args = vec!["mr".into(), "update".into(), iid.to_string()];
-            args.extend(op.repo.iter().map(|r| format!("--repo={r}")));
-            args.push(format!("--reviewer={}", reviewers.join(",")));
-            Ok(Some(step(Program::Glab, args)))
-        }
+        (HostedCall::PrCreate { .. }, Provider::Gitlab, _) => next_merge_request_step(op, outputs),
         _ => Ok(None),
     }
 }
@@ -610,8 +631,7 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
         HostedCall::PrReviews { number } => one(api("GET", mr(*number, "/approvals"))),
         HostedCall::PrThreads { number } => one(api("GET", mr(*number, "/discussions?per_page=100"))),
         HostedCall::PrFiles { number } => one(api("GET", mr(*number, "/changes"))),
-        HostedCall::PrCreate { base: Some(base), .. } => one(new_merge_request(op, base)?),
-        HostedCall::PrCreate { base: None, .. } => one(api("GET", project())),
+        HostedCall::PrCreate { .. } => Ok(next_merge_request_step(op, &[])?.into_iter().collect()),
         HostedCall::PrEdit { number, title, body, base } => {
             let mut extra: Vec<String> = Vec::new();
             extra.extend(title.iter().map(|t| format!("--title={t}")));
