@@ -178,9 +178,7 @@
       "decidedBy": "M7"
     },
     "rpc:preflight.check": {
-      "state": "not-offered",
-      "reason": "owner-confirmed (decision 7): it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is partly stale: gh and glab sign-in already come from sourceControl.discover and cli_detect can report git; served in phase 1.",
-      "decidedBy": "M7"
+      "oracle": "mimic"
     },
     "rpc:agentSession.reveal": {
       "state": "not-offered",

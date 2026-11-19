@@ -843,6 +843,8 @@ fn given_every_row_of_the_area_when_called_then_the_agent_methods_sent_are_exact
     rig.ok("preflight.detectAgents", json!({}));
     rig.ok("preflight.refreshAgents", json!({}));
     rig.ok("preflight.detectRemoteAgents", json!({"connectionId": rig.catalog.executor()}));
+    rig.catalog.has_tools(&["git", "gh"]);
+    rig.ok("preflight.check", json!({}));
     rig.ok("skills.discover", json!({"worktreeId": "feat"}));
     let (mut q, ids) = queued_rig();
     let fp = body_fingerprint("claude_q", "one");
@@ -1403,4 +1405,56 @@ fn given_calls_with_no_session_or_envelope_when_sent_then_each_is_refused_with_t
     assert_eq!(rig.err("agentSession.queuedMessageEditHold", json!({})).1, "Invalid discriminator value. Expected 'acquire' | 'renew' | 'release'");
     assert_eq!(rig.err("agent.launchReplay", json!({})).1, "Unknown TUI agent");
     assert_eq!(rig.err("agentSession.history", json!({"sessionId": 7})).1, "Invalid input: expected string, received number");
+}
+
+fn preflight(git: bool, gh: (bool, bool), glab: (bool, bool)) -> Value {
+    let none = json!({"configured": false, "authenticated": false, "account": null, "baseUrl": null, "tokenConfigured": false});
+    json!({"git": {"installed": git}, "gh": {"installed": gh.0, "authenticated": gh.1}, "glab": {"installed": glab.0, "authenticated": glab.1},
+        "bitbucket": {"configured": false, "authenticated": false, "account": null}, "azureDevOps": none, "gitea": none})
+}
+
+#[test]
+fn given_an_executor_with_git_gh_signed_in_and_glab_signed_out_when_preflight_is_checked_then_the_phone_gets_the_hosts_status_from_one_detection_and_one_sign_in_per_cli() {
+    // Given an executor that has git, a signed-in gh and a signed-out glab
+    let mut rig = Rig::new();
+    rig.catalog.has_tools(&["git", "gh", "glab"]).signed_in(&["github"]);
+    // When the phone checks its preflight
+    let status = rig.ok("preflight.check", json!({}));
+    // Then it is the host's status: the three tools installed, gh signed in, glab not, the other providers not configured
+    assert_eq!(status, preflight(true, (true, true), (true, false)));
+    // And rca was asked one detection from its kept answer, then each installed CLI's sign-in at the root workspace's host
+    assert_eq!(rig.catalog.detections(), [json!({})]);
+    assert_eq!(rig.catalog.discovers(), [json!({"workspace": "main", "provider": "github"}), json!({"workspace": "main", "provider": "gitlab"})]);
+    // When it is forced, Then the executor is asked again
+    rig.ok("preflight.check", json!({"force": true}));
+    assert_eq!(rig.catalog.detections().last(), Some(&json!({"refresh": true})));
+}
+
+#[test]
+fn given_no_forge_cli_or_a_sign_in_that_fails_when_preflight_is_checked_then_nothing_is_signed_in_and_only_installed_clis_are_asked() {
+    // Given an executor with none of the tools
+    let mut rig = Rig::new();
+    // When the phone checks its preflight with no payload
+    let none = rig.ok("preflight.check", Value::Null);
+    // Then nothing is installed or signed in, and no sign-in was asked
+    assert_eq!((none, rig.catalog.discovers()), (preflight(false, (false, false), (false, false)), vec![]));
+    // Given gh is installed but its sign-in check fails
+    rig.catalog.has_tools(&["git", "gh"]).discover_refused();
+    // When checked, Then gh is installed and not signed in, and the answer is still the status
+    assert_eq!(rig.ok("preflight.check", json!({})), preflight(true, (true, false), (false, false)));
+}
+
+#[test]
+fn given_a_force_of_the_wrong_type_or_a_payload_that_is_no_object_when_preflight_is_checked_then_it_is_the_schemas_refusal_and_rca_is_asked_nothing() {
+    let mut rig = Rig::new();
+    for (params, message) in [
+        (json!({"force": "wrong"}), "Invalid input: expected boolean, received string"),
+        (json!({"force": null}), "Invalid input: expected boolean, received null"),
+        (json!({"force": 1}), "Invalid input: expected boolean, received number"),
+        (json!([1]), "Invalid input: expected object, received array"),
+    ] {
+        // Given a payload the pinned schema refuses, When sent, Then the refusal is its first complaint
+        assert_eq!(rig.err("preflight.check", params.clone()), ("invalid_argument".to_string(), message.to_string()), "{params}");
+    }
+    assert_eq!(rig.catalog.detections(), Vec::<Value>::new());
 }

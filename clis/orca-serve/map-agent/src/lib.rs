@@ -68,6 +68,7 @@ pub const AGENT_SESSION_MODEL_CATALOG: &str = "agentSession.modelCatalog";
 pub const AGENT_SESSION_OPTIONS: &str = "agentSession.options";
 pub const AGENT_SESSION_AGENTS: &str = "agentSession.agents";
 pub const AGENT_SESSION_SET_OPTION: &str = "agentSession.setOption";
+pub const PREFLIGHT_CHECK: &str = "preflight.check";
 pub const PREFLIGHT_DETECT_AGENTS: &str = "preflight.detectAgents";
 pub const PREFLIGHT_DETECT_REMOTE_AGENTS: &str = "preflight.detectRemoteAgents";
 pub const PREFLIGHT_REFRESH_AGENTS: &str = "preflight.refreshAgents";
@@ -79,7 +80,7 @@ pub const NATIVE_CHAT_UNSUBSCRIBE: &str = "nativeChat.unsubscribe";
 pub const NATIVE_CHAT_SUBSCRIBE: &str = "nativeChat.subscribe";
 
 /// The agent methods this crate sends: its calls read this list, and a flow test holds it to the methods really sent.
-pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, THREAD_ROLLBACK, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST];
+pub const USES: &[AgentMethod] = &[THREAD_LIST, THREAD_CREATE, THREAD_GET, THREAD_HISTORY, TURN_START, THREAD_FORCE_STOP, THREAD_ROLLBACK, queue::QUEUE_ADD, queue::QUEUE_LIST, queue::QUEUE_EDIT, queue::QUEUE_MOVE, queue::QUEUE_DELETE, queue::QUEUE_RESUME, queue::TURN_STEER, agent_api_attachments::UPLOAD_PUT, agent_api_attachments::GET, requests::APPROVAL_ANSWER, requests::INPUT_ANSWER, requests::INPUT_DISMISS, agent_api_state::SET, agent_api_catalog::MODELS_LIST, agent_api_catalog::AGENTS_DETECT, agent_api_catalog::SKILLS_LIST, agent_api_catalog::COMMANDS_LIST, orca_map_hosted::AUTH_DISCOVER];
 
 const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_CREATE, kind: Kind::Unary },
@@ -118,6 +119,7 @@ const METHODS: &[Method] = &[
     Method { name: AGENT_SESSION_OPTIONS, kind: Kind::Unary },
     Method { name: AGENT_SESSION_AGENTS, kind: Kind::Unary },
     Method { name: AGENT_SESSION_SET_OPTION, kind: Kind::Unary },
+    Method { name: PREFLIGHT_CHECK, kind: Kind::Unary },
     Method { name: PREFLIGHT_DETECT_AGENTS, kind: Kind::Unary },
     Method { name: PREFLIGHT_DETECT_REMOTE_AGENTS, kind: Kind::Unary },
     Method { name: PREFLIGHT_REFRESH_AGENTS, kind: Kind::Unary },
@@ -136,7 +138,6 @@ pub const NOT_OFFERED: &[NotOffered] = &[
     NotOffered { name: "orchestration.partyOpen", reason: "owner-confirmed (decision 7): it opens a party of the desktop's orchestration database in a desktop tab or terminal, and this host has neither a desktop nor that database", decided_by: "M7" },
     NotOffered { name: "orchestration.workerAutoClose", reason: "owner-confirmed (decision 7): it flips the desktop setting that closes a terminal worker's tab when its work ends; this host has no desktop terminal workers", decided_by: "M7" },
     NotOffered { name: "orchestration.workerKeepOpen", reason: "owner-confirmed (decision 7): it keeps a desktop terminal worker's tab open after its work ends; this host has no desktop terminal workers", decided_by: "M7" },
-    NotOffered { name: "preflight.check", reason: "owner-confirmed (decision 7): it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is partly stale: gh and glab sign-in already come from sourceControl.discover and cli_detect can report git; served in phase 1.", decided_by: "M7" },
     NotOffered { name: "agentSession.reveal", reason: "owner-confirmed (decision 7): it shows the chat's tab in the desktop's own window and this host has no desktop", decided_by: "M7" },
     NotOffered { name: "agentSession.readVisual", reason: "owner-confirmed (decision 7): it reads a screenshot folder under the desktop's user data that the desktop's own chat view fills; rca keeps no such folder per chat, so any answer would pass by refusing or by an empty read", decided_by: "M7" },
 ];
@@ -205,6 +206,7 @@ impl Area for AgentArea {
             AGENT_SESSION_OPTIONS => catalog::options(agent, params),
             AGENT_SESSION_AGENTS => catalog::agents(params),
             AGENT_SESSION_SET_OPTION => catalog::set_option(agent, params),
+            PREFLIGHT_CHECK => catalog::preflight_check(agent, params),
             PREFLIGHT_DETECT_AGENTS => catalog::detect_agents(agent, params),
             PREFLIGHT_DETECT_REMOTE_AGENTS => catalog::detect_remote_agents(agent, params),
             PREFLIGHT_REFRESH_AGENTS => catalog::refresh_agents(agent, params),

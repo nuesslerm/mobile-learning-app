@@ -36,7 +36,7 @@ answers `origin: "probe"` at once and `waitForListing` and `savedOnly` change no
 effort or permission mode of the phone's); detection asks the only attached executor (workspaces carry no executor name), a project detection
 (`project`) is refused, and `refreshAgents` hydrates no shell PATH (`shellHydrationOk: false`); `skills.discover` reads the three skills
 directories of the executor, with `updatedAt` null and a source's `exists` meaning it holds skills. `detectRemoteAgents` answers for an executor id where the pinned host refuses every ssh connection (`SshHostNotServedError`); that is an intended extension, as an executor is the machine here, and an unknown id gets the host's "Remote connection dropped" text. The rows are served with chain evidence in `clis/orca-serve/tests/integration/agent_catalog.rs`.
-`preflight.check` is not offered (decisions file), a deferred choice and not an impossibility. Alternative: extend `cli_detect` to git, gh and glab (the same
-no-shell version probe) and answer the git, gh and glab fields from it; Bitbucket and Azure DevOps and every signed-in state would still need new probes,
-so the phone's source-control onboarding keeps showing them as unavailable without it. Until the owner confirms, the proposed default stands. The orcad oracle (VM and CI
-emulator, not run) would compare these reply field sets with a real Orca host's.
+`preflight.check` is served (issue #83, O1): git, gh and glab come from the executor's `cli_detect` (through `agents.detect`'s `tools`), and gh's and
+glab's sign-in from `sourceControl.discover` at the root workspace's host, asked only for an installed CLI. Bitbucket, Azure DevOps and Gitea are the
+host's own answer for a machine where none is configured, since rca keeps no credentials for them. Known differences: the host also counts gh as signed
+in when `auth status` exits 1 but prints `Active account: true`, and it tries more than one copy of a program on the path.

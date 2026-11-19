@@ -374,6 +374,20 @@
         "complete": true,
         "tests": 7,
         "passed": 7
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "4080dd01350d8a30e0bcf53622f20a99d2e5cee7",
+        "complete": true,
+        "tests": 667,
+        "passed": 155
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 56,
+        "passed": 35
       }
     ]
   },
@@ -1437,6 +1451,15 @@
     "rpc:pairing.exchangeTicket": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-pairing.exchangeTicket-empty-min",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:preflight.check": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-preflight.check-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

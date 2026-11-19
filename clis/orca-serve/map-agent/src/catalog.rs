@@ -178,6 +178,49 @@ fn detect(agent: &dyn AgentApi, executor: Option<&str>, refresh: bool) -> Result
     agent.request(AGENTS_DETECT.name(), p)
 }
 
+/// `preflight.check`: git, gh and glab as the executor finds them, and gh's and glab's sign-in at the workspace host (only for one that is
+/// installed, as the host asks). Bitbucket, Azure DevOps and Gitea are the host's answer for a machine where none is configured: rca keeps no
+/// credentials for them. `force` asks the executor again, past the service's kept answer.
+pub(crate) fn preflight_check(agent: &dyn AgentApi, params: &Value) -> Result<Value, Failure> {
+    if !params.is_null() && !params.is_object() {
+        return Err(Failure::invalid(format!("Invalid input: expected object, received {}", orca_core::wire::received(params))));
+    }
+    let force = match params.get("force") {
+        None => false,
+        Some(Value::Bool(b)) => *b,
+        Some(other) => return Err(Failure::invalid(format!("Invalid input: expected boolean, received {}", orca_core::wire::received(other)))),
+    };
+    let found = detect(agent, None, force).map_err(refusal)?;
+    let installed = |program: &str| found["tools"].as_array().into_iter().flatten().any(|t| t["program"] == program && t["installed"] == true && t.get("error").is_none_or(Value::is_null));
+    let (git, gh, glab) = (installed("git"), installed("gh"), installed("glab"));
+    let workspace = if gh || glab {
+        let all = orca_map_workspace::targets(agent)?;
+        let root = all.iter().find(|t| t.kind == "root").or(all.first()).ok_or_else(|| Failure::new(RUNTIME_ERROR, "no executor is attached"))?;
+        Some(root.workspace.clone())
+    } else {
+        None
+    };
+    // the host counts any failure of `auth status` as signed out
+    let signed_in = |there: bool, provider: &str| -> Result<bool, Failure> {
+        let Some(workspace) = workspace.as_deref().filter(|_| there) else { return Ok(false) };
+        match agent.request(orca_map_hosted::AUTH_DISCOVER.name(), json!({"workspace": workspace, "provider": provider})) {
+            Ok(v) => Ok(v["providers"][0]["signed_in"] == true),
+            Err(AgentError::Refused { .. }) => Ok(false),
+            Err(failed) => Err(refusal(failed)),
+        }
+    };
+    let (gh_auth, glab_auth) = (signed_in(gh, "github")?, signed_in(glab, "gitlab")?);
+    let none = json!({"configured": false, "authenticated": false, "account": null, "baseUrl": null, "tokenConfigured": false});
+    Ok(json!({
+        "git": {"installed": git},
+        "gh": {"installed": gh, "authenticated": gh_auth},
+        "glab": {"installed": glab, "authenticated": glab_auth},
+        "bitbucket": {"configured": false, "authenticated": false, "account": null},
+        "azureDevOps": none,
+        "gitea": none,
+    }))
+}
+
 /// The optional string keys of a detection call and the host id, which only this machine (`local`) answers to.
 fn detection_target(params: &Value, keys: &[&str]) -> Result<(), Failure> {
     for key in keys {

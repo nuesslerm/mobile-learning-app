@@ -296,6 +296,10 @@ pub struct Catalog(Arc<Mutex<CatalogState>>);
 #[derive(Default)]
 struct CatalogState {
     programs: Vec<String>,
+    tools: Vec<String>,
+    signed_in: Vec<String>,
+    discover_refused: bool,
+    discovers: Vec<Value>,
     skills: Vec<Value>,
     detections: Vec<Value>,
 }
@@ -307,6 +311,29 @@ impl Catalog {
     pub fn has(&self, programs: &[&str]) -> &Catalog {
         self.0.lock().unwrap().programs = programs.iter().map(|p| p.to_string()).collect();
         self
+    }
+
+    /// The tools the executor has (`git`, `gh`, `glab`); the others are missing.
+    pub fn has_tools(&self, tools: &[&str]) -> &Catalog {
+        self.0.lock().unwrap().tools = tools.iter().map(|p| p.to_string()).collect();
+        self
+    }
+
+    /// The providers (`github`, `gitlab`) whose CLI is signed in at the workspace host.
+    pub fn signed_in(&self, providers: &[&str]) -> &Catalog {
+        self.0.lock().unwrap().signed_in = providers.iter().map(|p| p.to_string()).collect();
+        self
+    }
+
+    /// Makes `sourceControl.discover` refused, as the host answers when `auth status` fails.
+    pub fn discover_refused(&self) -> &Catalog {
+        self.0.lock().unwrap().discover_refused = true;
+        self
+    }
+
+    /// The `sourceControl.discover` requests: their params, in order.
+    pub fn discovers(&self) -> Vec<Value> {
+        self.0.lock().unwrap().discovers.clone()
     }
 
     /// A skill the executor found: `scope` is `workspace` or `home`, `dir` its skills directory.
@@ -330,7 +357,7 @@ impl Catalog {
     }
 
     pub fn install(&self, agent: &ScriptedAgent) {
-        for method in ["models.list", "agents.detect", "skills.list", "commands.list"] {
+        for method in ["models.list", "agents.detect", "skills.list", "commands.list", "sourceControl.discover"] {
             let me = self.clone();
             agent.reply(method, move |p| me.answer(method, p));
         }
@@ -371,7 +398,24 @@ impl Catalog {
                         }
                     })
                     .collect();
-                Ok(json!({"executor": EXECUTOR, "agents": agents, "checked_at_ms": 1}))
+                let tools: Vec<Value> = ["git", "gh", "glab"]
+                    .iter()
+                    .map(|program| match state.tools.iter().any(|x| x == program) {
+                        true => json!({"program": program, "installed": true, "path": format!("/usr/bin/{program}"), "version": "1.0.0"}),
+                        false => json!({"program": program, "installed": false}),
+                    })
+                    .collect();
+                Ok(json!({"executor": EXECUTOR, "agents": agents, "tools": tools, "checked_at_ms": 1}))
+            }
+            "sourceControl.discover" => {
+                state.discovers.push(p.clone());
+                let provider = p["provider"].as_str().filter(|p| matches!(*p, "github" | "gitlab")).ok_or_else(|| refused("INVALID_PARAMS", "provider is github or gitlab".into()))?;
+                if state.discover_refused {
+                    return Err(refused("IO_ERROR", "gh auth status failed".into()));
+                }
+                let signed = state.signed_in.iter().any(|s| s == provider);
+                let host = if provider == "github" { "github.com" } else { "gitlab.com" };
+                Ok(json!({"providers": [{"provider": provider, "installed": true, "signed_in": signed, "host": host, "account": signed.then_some("octo"), "scopes": []}]}))
             }
             "skills.list" => {
                 if p["workspace"].as_str().is_none_or(|w| w.is_empty()) {

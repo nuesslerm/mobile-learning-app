@@ -14,6 +14,7 @@ testing = ["orca-core/testing"]
 [dependencies]
 orca-core = { path = "../core" }
 orca-map-workspace = { path = "../map-workspace" }
+orca-map-hosted = { path = "../map-hosted" }
 agent-api-proto = { path = "../../../libraries/agent-api/agent-api-proto" }
 agent-api-agent = { path = "../../../libraries/agent-api/agent-api-agent" }
 agent-api-state = { path = "../../../libraries/agent-api/agent-api-state" }

@@ -125,7 +125,6 @@
         "orca-linear.connect",
         "orca-orchestration.partyLocation",
         "orca-orchestration.partyOpen",
-        "orca-preflight.check",
         "orca-settings.getAgentLaunch",
         "orca-speech.dictation.cancel",
         "orca-speech.dictation.setup",

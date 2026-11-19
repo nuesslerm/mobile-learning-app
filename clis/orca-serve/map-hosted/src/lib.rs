@@ -31,6 +31,8 @@ pub const USES: &[AgentMethod] = &[pr::LIST, pr::VIEW, pr::CHECKS, pr::EDIT, pr:
 
 /// `pr.remotes`, for a mapping crate that reads a workspace's remotes and their fetch URLs.
 pub const PR_REMOTES: AgentMethod = pr::REMOTES;
+/// `sourceControl.discover`, for a mapping crate that asks whether gh or glab is signed in at a workspace's host.
+pub const AUTH_DISCOVER: AgentMethod = auth::DISCOVER;
 pub use slug::hosted_commit_url;
 
 const METHODS: &[Method] = &[

@@ -2695,9 +2695,6 @@
         "orca-orchestration.workerList-valid-min",
         "orca-orchestration.workerTerminalUserInput-boundary-full",
         "orca-pairing.delegatedMobileDevice.sync-valid-min",
-        "orca-preflight.check-boundary-full",
-        "orca-preflight.check-invalid-no-payload",
-        "orca-preflight.check-valid-min",
         "orca-projectGroup.delete-valid-min",
         "orca-projectGroup.update-boundary-full",
         "orca-projectGroup.update-valid-min",
@@ -3099,8 +3096,7 @@
         "orca-pairing.provisionRelay-empty-min",
         "orca-pairing.provisionRelay-invalid-drop-reqId",
         "orca-pairing.provisionRelay-invalid-no-payload",
-        "orca-pairing.provisionRelay-invalid-wrong-type-reqId",
-        "orca-preflight.check-invalid-wrong-type-force"
+        "orca-pairing.provisionRelay-invalid-wrong-type-reqId"
       ]
     },
     {

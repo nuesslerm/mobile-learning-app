@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 173,
+    "served": 174,
     "pending": 4,
-    "notOffered": 130,
+    "notOffered": 129,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -3214,10 +3214,17 @@
       "kind": "rpc",
       "name": "preflight.check",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M7",
-      "reason": "owner-confirmed (decision 7): it reports whether git, gh, glab, Bitbucket and Azure DevOps are installed and signed in on the host's own machine; the executor's detection (cli_detect) covers the agent CLIs only, so any answer would invent the rest and pass by saying so; a deferred choice, not an impossibility: extending cli_detect to git, gh and glab would let the chain prove it (docs/gaps/orca-agent-mapper-limits.md). Revisited 19 Nov (issue #83, plan docs/plans/rca-offer-more/plan.md): the premise is partly stale: gh and glab sign-in already come from sourceControl.discover and cli_detect can report git; served in phase 1.",
-      "decidedBy": "M7"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-preflight.check-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:preflight.detectAgents",
