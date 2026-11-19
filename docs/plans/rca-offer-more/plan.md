@@ -132,7 +132,9 @@ When a row moves to served, its decision entry is removed in the same commit.
 
 ## 3. Needs from the owner
 
-1. **GitHub project scope**: re-consent gh once with `project,read:org` through the sourceControl.signInStart link. Unlocks 16 project rows.
+Status 19 Nov: the owner consented to item 1 (the GitHub project scope). Items 2 to 10 are blocked on the owner's input; the rows behind them stay not offered until it arrives (issue #83, Blocked).
+
+1. **GitHub project scope** (consented 19 Nov): re-consent gh once with `project,read:org` through the sourceControl.signInStart link. Unlocks 16 project rows.
 2. **Linear API key** and **Atlassian site, email and API token**. Also decide where they live (executor host or service secret store). jira.connect is not on the phone allowlist, so the token is set by a `wf` verb or by the desktop.
 3. **Codex/ChatGPT and Claude accounts with banked reset credits**, only to record a real redemption. Builds and tests run against scripted app-servers without them.
 4. **A real phone** for registerPush and testPush, and approval to send notification payloads through Orca's push.onorca.dev gateway.
