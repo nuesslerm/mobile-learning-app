@@ -134,7 +134,7 @@ fn given_every_argument_of_every_action_when_it_carries_text_a_cli_or_shell_coul
                 let hostile: Vec<Value> = match property.kind {
                     "integer" => vec![json!(-1), json!("7; rm -rf /"), json!(1.5), json!(true)],
                     "boolean" => continue,
-                    _ if property.name == "dest" || property.name == "dir" => vec![json!("-x"), json!("a\u{0}b")],
+                    _ if matches!(property.name, "dest" | "dir" | "path" | "old_path") => vec![json!("-x"), json!("a\u{0}b")],
                     _ if FREE_TEXT.contains(&property.name) && property.name == "body" => vec![json!("a\u{0}b")],
                     _ if FREE_TEXT.contains(&property.name) => vec![json!("a\nb"), json!("a\u{0}b"), json!("")],
                     _ if LABEL_KEYS.contains(&property.name) || (property.name == "remove" && action.name == PR_LABELS) => vec![json!("-x"), json!("--web"), json!("a\nb"), json!("a,b")],

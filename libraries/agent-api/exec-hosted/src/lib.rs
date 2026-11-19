@@ -38,6 +38,7 @@ pub const PR_UPDATE_BRANCH: &str = "hosted_pr_update_branch";
 pub const PR_MERGE: &str = "hosted_pr_merge";
 pub const PR_STACK: &str = "hosted_pr_stack";
 pub const PR_COMMENT_EDIT: &str = "hosted_pr_comment_edit";
+pub const PR_REVIEW_COMMENT: &str = "hosted_pr_review_comment";
 pub const RUN_LIST: &str = "hosted_run_list";
 pub const RUN_VIEW: &str = "hosted_run_view";
 pub const AUTH_STATUS: &str = "hosted_auth_status";
@@ -190,6 +191,22 @@ pub const ACTIONS: &[Action] = &[
         [NUMBER, Property { name: "comment", kind: "string", about: "The comment's id" }, Property { name: "kind", kind: "string", about: "`issue` (default) or `review`" }, BODY],
         ["number", "comment", "body"]
     ),
+    action!(
+        PR_REVIEW_COMMENT,
+        "Comment on a line (or, GitHub, a range ending at `line`) of a file of the request's head, on the new side; answers the new comment's id, database_id, thread (GitLab), url, author, avatar_url, is_bot, body, created_at, path, line and start_line.",
+        [
+            NUMBER,
+            BODY,
+            Property { name: "commit_id", kind: "string", about: "The head commit the line belongs to (GitHub `commit_id`, GitLab `head_sha`)" },
+            Property { name: "path", kind: "string", about: "The file's path in the repository" },
+            Property { name: "line", kind: "integer", about: "The line of the new file" },
+            Property { name: "start_line", kind: "integer", about: "GitHub: the first line of a range ending at `line`" },
+            Property { name: "base_sha", kind: "string", about: "GitLab: the merge request's base_sha (diff_refs)" },
+            Property { name: "start_sha", kind: "string", about: "GitLab: the merge request's start_sha (diff_refs)" },
+            Property { name: "old_path", kind: "string", about: "GitLab: the file's old path (default `path`)" },
+        ],
+        ["number", "body", "commit_id", "path", "line"]
+    ),
     action!(RUN_LIST, "Recent workflow runs (GitHub) or pipelines (GitLab).", [Property { name: "branch", kind: "string", about: "Only runs of this branch" }, LIMIT], []),
     action!(RUN_VIEW, "One run with its jobs.", [Property { name: "run", kind: "integer", about: "The run's id" }], ["run"]),
     action!(AUTH_STATUS, "Whether the CLI is installed and signed in on the executor machine, as which account and with which scopes (never the token).", [], []),
@@ -338,6 +355,29 @@ fn path(key: &str, value: &str) -> ExecResult<()> {
     Ok(())
 }
 
+/// A commit as GitHub and GitLab name it: 1-64 hex characters (the host passes on any it was given, so no minimum length).
+fn sha(key: &str, value: &str) -> ExecResult<()> {
+    if value.is_empty() || value.len() > 64 || !value.bytes().all(|b| b.is_ascii_hexdigit()) {
+        return Err(bad(format!("`{key}` must be 1-64 hex characters")));
+    }
+    Ok(())
+}
+
+/// A file of the repository as a review comment names it; it travels in a JSON body, so spaces and shell characters are harmless.
+fn file_path(key: &str, value: &str) -> ExecResult<()> {
+    if value.is_empty() || value.len() > 4096 || value.starts_with(['-', '/']) || value.chars().any(control) {
+        return Err(bad(format!("`{key}` must be a file path of the repository")));
+    }
+    Ok(())
+}
+
+fn positive(args: &Value, key: &str) -> ExecResult<Option<u64>> {
+    match opt_uint(args, key)? {
+        Some(n) if !(1..=i32::MAX as u64).contains(&n) => Err(bad(format!("`{key}` must be a positive integer"))),
+        n => Ok(n),
+    }
+}
+
 fn number(args: &Value) -> ExecResult<u64> {
     match opt_uint(args, "number")? {
         Some(n) if (1..=i32::MAX as u64).contains(&n) => Ok(n),
@@ -455,6 +495,7 @@ pub enum HostedCall {
     PrMerge { number: u64, method: MergeMethod, auto: bool, delete_branch: bool, match_head_commit: Option<String> },
     PrStack { number: u64 },
     PrCommentEdit { number: u64, comment: String, kind: CommentKind, body: String },
+    PrReviewComment { number: u64, body: String, commit_id: String, path: String, line: u64, start_line: Option<u64>, base_sha: Option<String>, start_sha: Option<String>, old_path: Option<String> },
     RunList { branch: Option<String>, limit: u64 },
     RunView { run: u64 },
     AuthStatus,
@@ -495,6 +536,7 @@ impl HostedCall {
             HostedCall::PrMerge { .. } => PR_MERGE,
             HostedCall::PrStack { .. } => PR_STACK,
             HostedCall::PrCommentEdit { .. } => PR_COMMENT_EDIT,
+            HostedCall::PrReviewComment { .. } => PR_REVIEW_COMMENT,
             HostedCall::RunList { .. } => RUN_LIST,
             HostedCall::RunView { .. } => RUN_VIEW,
             HostedCall::AuthStatus => AUTH_STATUS,
@@ -677,6 +719,25 @@ impl HostedOp {
                 let kind = choice(a, "kind", CommentKind::Issue, &[("issue", CommentKind::Issue), ("review", CommentKind::Review)])?;
                 HostedCall::PrCommentEdit { number: number(a)?, comment, kind, body: required_body()? }
             }
+            PR_REVIEW_COMMENT => {
+                let commit_id = string(a, "commit_id")?;
+                sha("commit_id", &commit_id)?;
+                let path = string(a, "path")?;
+                file_path("path", &path)?;
+                let line = positive(a, "line")?.ok_or_else(|| bad("`line` must be a positive integer"))?;
+                let start_line = positive(a, "start_line")?;
+                let (base_sha, start_sha) = (text_arg(a, "base_sha", |s| sha("base_sha", s))?, text_arg(a, "start_sha", |s| sha("start_sha", s))?);
+                let old_path = text_arg(a, "old_path", |p| file_path("old_path", p))?;
+                if provider == Provider::Gitlab {
+                    if start_line.is_some() {
+                        return Err(bad("`start_line` is GitHub's; GitLab comments on one line"));
+                    }
+                    if base_sha.is_none() || start_sha.is_none() {
+                        return Err(bad("`base_sha` and `start_sha` are required on GitLab"));
+                    }
+                }
+                HostedCall::PrReviewComment { number: number(a)?, body: required_body()?, commit_id, path, line, start_line, base_sha, start_sha, old_path }
+            }
             RUN_LIST => HostedCall::RunList { branch: branch_of("branch")?, limit: limit(a)? },
             RUN_VIEW => match opt_uint(a, "run")? {
                 Some(run) if run > 0 => HostedCall::RunView { run },
@@ -773,6 +834,8 @@ mod tests {
                 (PR_MERGE, "match_head_commit", json!(text)),
                 (REPO_CLONE, "dest", json!(text)),
                 (PR_COMMENT_EDIT, "comment", json!(text)),
+                (PR_REVIEW_COMMENT, "commit_id", json!(text)),
+                (PR_REVIEW_COMMENT, "path", json!(text)),
             ];
             for (tool, key, value) in cases {
                 let action = ACTIONS.iter().find(|a| a.name == tool).unwrap();
@@ -788,6 +851,7 @@ mod tests {
                     (PR_CREATE, "title") => !text.is_empty() && !text.chars().any(char::is_control),
                 (PR_LABELS, "add" | "remove") => !text.is_empty() && !text.starts_with('-') && !text.chars().any(char::is_control) && !text.contains(','),
                     (REPO_CLONE, "dest") => !text.is_empty() && !text.starts_with('-') && !text.contains('\0'),
+                    (PR_REVIEW_COMMENT, "path") => !text.is_empty() && !text.starts_with(['-', '/']) && !text.chars().any(char::is_control),
                     _ => false,
                 };
                 assert_eq!(outcome.is_ok(), harmless, "{tool} {key} {text:?}: {outcome:?}");
@@ -833,5 +897,10 @@ mod tests {
         assert!(github(PR_COMMENT_EDIT, json!({"number": 1, "comment": "IC_1", "kind": "inline", "body": "x"})).contains("`kind`"));
         assert!(github(PR_COMMENT_EDIT, json!({"number": 1, "comment": "IC_1", "body": " "})).contains("`body`"));
         assert!(github(PR_VIEW, json!({"number": 1, "repo": "no-slash"})).contains("`repo`"));
+        assert!(github(PR_REVIEW_COMMENT, json!({"number": 1, "body": "x", "commit_id": "abc", "path": "a", "line": 0})).contains("`line`"));
+        assert!(github(PR_REVIEW_COMMENT, json!({"number": 1, "body": "x", "commit_id": "xyz!", "path": "a", "line": 3})).contains("`commit_id`"));
+        assert!(github(PR_REVIEW_COMMENT, json!({"number": 1, "body": "x", "commit_id": "abc", "path": "a", "line": 3, "start_line": -2})).contains("`start_line`"));
+        let gitlab = HostedOp::parse(PR_REVIEW_COMMENT, &json!({"provider": "gitlab", "number": 1, "body": "x", "commit_id": "abc", "path": "a", "line": 3, "base_sha": "ba5e", "start_sha": "5ca1", "start_line": 2})).unwrap().unwrap_err();
+        assert!(gitlab.message.contains("`start_line`"));
     }
 }

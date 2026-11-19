@@ -1,0 +1,31 @@
+{
+  "method": "pr.reviewComment",
+  "exchanges": [
+    {
+      "name": "the executor refuses what it cannot run, and no program starts",
+      "request": {
+        "id": 1,
+        "method": "pr.reviewComment",
+        "params": {
+          "body": "x",
+          "commit_id": "abc1234",
+          "line": 3,
+          "number": 0,
+          "path": "src/lib.rs",
+          "provider": "github",
+          "workspace": "w1"
+        }
+      },
+      "response": {
+        "id": 1,
+        "error": {
+          "code": "INVALID_ARGS",
+          "message": "`number` must be a positive integer"
+        }
+      },
+      "actions": [
+        "hosted_pr_review_comment"
+      ]
+    }
+  ]
+}

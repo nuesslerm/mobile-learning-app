@@ -40,6 +40,7 @@ both! {
     (MERGE, MR_MERGE, "merge", exec_hosted::PR_MERGE),
     (STACK, MR_STACK, "stack", exec_hosted::PR_STACK),
     (EDIT_COMMENT, MR_EDIT_COMMENT, "editComment", exec_hosted::PR_COMMENT_EDIT),
+    (REVIEW_COMMENT, MR_REVIEW_COMMENT, "reviewComment", exec_hosted::PR_REVIEW_COMMENT),
     (LABEL_CANDIDATES, MR_LABEL_CANDIDATES, "labelCandidates", exec_hosted::REPO_LABELS),
     (REVIEWER_CANDIDATES, MR_REVIEWER_CANDIDATES, "reviewerCandidates", exec_hosted::REPO_REVIEWERS),
     (RUN_LIST, MR_RUN_LIST, "runs", exec_hosted::RUN_LIST),

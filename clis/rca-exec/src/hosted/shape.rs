@@ -462,6 +462,17 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
             let user = &v["user"];
             Ok(json!({"id": text(&v, "node_id"), "database_id": v["id"], "url": text(&v, "html_url"), "author": text(user, "login"), "avatar_url": text(user, "avatar_url"), "is_bot": user["type"] == "Bot", "body": v["body"], "created_at": text(&v, "created_at"), "path": text(&v, "path"), "line": v["line"]}))
         }
+        HostedCall::PrReviewComment { .. } if github => {
+            let v = body(&last)?;
+            let user = &v["user"];
+            Ok(json!({"id": text(&v, "node_id"), "database_id": v["id"], "thread": null, "url": text(&v, "html_url"), "author": text(user, "login"), "avatar_url": text(user, "avatar_url"), "is_bot": user["type"] == "Bot", "body": v["body"], "created_at": text(&v, "created_at"), "path": text(&v, "path"), "line": v["line"], "start_line": v["start_line"]}))
+        }
+        HostedCall::PrReviewComment { .. } => {
+            let v = body(&last)?;
+            let n = items(&v, "notes").first().cloned().unwrap_or(Value::Null);
+            let a = &n["author"];
+            Ok(json!({"id": id_string(&n, "id"), "database_id": n["id"], "thread": text(&v, "id"), "url": null, "author": text(a, "username"), "avatar_url": text(a, "avatar_url"), "is_bot": a["state"] == "bot" || a["bot"] == true, "body": n["body"], "created_at": text(&n, "created_at"), "path": n["position"]["new_path"], "line": n["position"]["new_line"], "start_line": null}))
+        }
         HostedCall::PrReply { .. } => {
             let v = body(&last)?;
             if github {

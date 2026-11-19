@@ -399,6 +399,14 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             one(s)
         }
         HostedCall::PrReply { number, comment_id: Some(id), body, .. } => one(json_body(gh(vec!["api".into(), "--method=POST".into(), format!("{}/pulls/{number}/comments/{id}/replies", rest_repo())]), &json!({"body": body}))),
+        HostedCall::PrReviewComment { number, body, commit_id, path, line, start_line, .. } => {
+            let mut v = json!({"body": body, "commit_id": commit_id, "path": path, "line": line, "side": "RIGHT"});
+            if let Some(start) = start_line {
+                v["start_line"] = json!(start);
+                v["start_side"] = json!("RIGHT");
+            }
+            one(json_body(gh(vec!["api".into(), "--method=POST".into(), format!("{}/pulls/{number}/comments", rest_repo())]), &v))
+        }
         HostedCall::PrReply { thread, body, .. } => {
             let thread = thread.as_deref().unwrap_or_default();
             let args = vec!["api".into(), "graphql".into(), format!("-f=thread={thread}"), format!("-f=body={body}"), format!("-f=query={REPLY_MUTATION}")];
@@ -593,6 +601,10 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
         HostedCall::PrReply { number, thread, body, .. } => {
             let thread = thread.as_deref().ok_or("GitLab replies in a discussion named by `thread`")?;
             one(with_json(api("POST", mr(*number, &format!("/discussions/{thread}/notes"))), serde_json::json!({"body": body})))
+        }
+        HostedCall::PrReviewComment { number, body, commit_id, path, line, base_sha, start_sha, old_path, .. } => {
+            let position = serde_json::json!({"position_type": "text", "base_sha": base_sha, "start_sha": start_sha, "head_sha": commit_id, "old_path": old_path.as_ref().unwrap_or(path), "new_path": path, "new_line": line});
+            one(with_json(api("POST", mr(*number, "/discussions")), serde_json::json!({"body": body, "position": position})))
         }
         HostedCall::PrReview { number, verdict, body } => match verdict {
             Verdict::Approve => {
