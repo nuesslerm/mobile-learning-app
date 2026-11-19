@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "about": "Seconds each flow and integration unit costs on a shard (its build, its tests, its replays), dealt out longest first onto the least loaded shard (`shard_of`). A unit missing here costs the stage's default. Seeded 19 Nov from the shard times of run 44529824328 (flow 4 to 13 minutes, integration 5 to 11); replace with measured task times once the ledger holds them. Keys are the unit names of `wf ci plan tests --json`: a package, `crate-<crate>`, or `crate-<crate>/<group>` for the groups of an integration suite.",
+  "stages": {
+    "flow-tests": {
+      "default": 40,
+      "units": {
+        "crate-orca-serve": 300,
+        "crate-wf-harness": 240,
+        "crate-harness-flow": 120,
+        "crate-t3-serve": 240,
+        "crate-pipeline": 150,
+        "crate-wf-mimic": 120,
+        "crate-orca-map-mobile": 100,
+        "mla-tamagui": 200,
+        "@feature/coding-agent": 60,
+        "crate-mimic-script-core": 30
+      }
+    },
+    "integration-tests": {
+      "default": 30,
+      "units": {
+        "crate-t3-serve": 60,
+        "crate-orca-serve": 60,
+        "crate-t3-serve/replay-t3-core-attachments": 285,
+        "crate-t3-serve/replay-t3-core-vcs": 285,
+        "crate-t3-serve/replay-t3-core-preview": 170,
+        "crate-t3-serve/replay-t3-core-core": 110,
+        "crate-t3-serve/replay-t3-core-pull_requests": 100,
+        "crate-t3-serve/replay-t3-core-schedules": 80,
+        "crate-t3-serve/replay-t3-core-terminal": 80,
+        "crate-t3-serve/replay-t3-core-workspace": 70
+      }
+    }
+  }
+}

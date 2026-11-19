@@ -662,7 +662,7 @@ pub fn run_stage(stage: &str, plan: &Value, rest: &[String]) -> i32 {
     };
     let tests = match rest.iter().position(|a| a == "--shard") {
         Some(i) => match rest.get(i + 1).and_then(|v| parse_shard(v)) {
-            Some((index, count)) => shard_of(&tests, index, count),
+            Some((index, count)) => shard_of(stage, &tests, index, count),
             None => {
                 println!("{}", json!({ "ok": false, "stage": stage, "error": "--shard wants <index>/<count> with 1 <= index <= count", "next": "--shard 2/4" }));
                 return 2;
@@ -680,21 +680,61 @@ fn parse_shard(text: &str) -> Option<(usize, usize)> {
     (1 <= index && index <= count).then_some((index, count))
 }
 
-/// One shard's tests: a package (or crate) with all its kinds goes to one shard, so its tasks share the cache and the build, except the groups of a
-/// crate's integration or e2e suite, which are slow tasks of their own and each deal out as a unit; the units, sorted by
-/// name, are dealt out round-robin, so every machine of a stage computes the same split from the same plan.
-pub fn shard_of(tests: &[Value], index: usize, count: usize) -> Vec<Value> {
-    let key = |t: &Value| {
-        let unit = t["package"].as_str().map(str::to_string).or_else(|| t["crate"].as_str().map(|c| format!("crate-{c}"))).unwrap_or_default();
-        match (t["kind"].as_str(), t["group"].as_str()) {
-            (Some("integration" | "e2e"), Some(group)) => format!("{unit}/{group}"),
-            _ => unit,
-        }
-    };
-    let mut keys: Vec<String> = tests.iter().map(key).collect();
+/// The unit a test deals out as: a package (or crate) with all its kinds goes to one shard, so its tasks share the cache and the build, except the
+/// groups of a crate's integration or e2e suite, which are slow tasks of their own and each deal out as a unit.
+fn unit_key(t: &Value) -> String {
+    let unit = t["package"].as_str().map(str::to_string).or_else(|| t["crate"].as_str().map(|c| format!("crate-{c}"))).unwrap_or_default();
+    match (t["kind"].as_str(), t["group"].as_str()) {
+        (Some("integration" | "e2e"), Some(group)) => format!("{unit}/{group}"),
+        _ => unit,
+    }
+}
+
+/// What each unit of a stage costs on a shard, in seconds (`data/shard-weights.json`), and what one costs that is not listed.
+pub struct Weights {
+    pub units: std::collections::BTreeMap<String, u64>,
+    pub default: u64,
+}
+
+impl Weights {
+    pub fn of_stage(stage: &str) -> Weights {
+        let all: Value = serde_json::from_str(include_str!("../data/shard-weights.json")).expect("shard-weights.json parses");
+        let at = &all["stages"][stage];
+        let units = at["units"].as_object().map(|m| m.iter().filter_map(|(k, v)| Some((k.clone(), v.as_u64()?))).collect()).unwrap_or_default();
+        Weights { units, default: at["default"].as_u64().unwrap_or(1).max(1) }
+    }
+
+    fn cost(&self, key: &str) -> u64 {
+        self.units.get(key).copied().unwrap_or(self.default)
+    }
+}
+
+/// The shard (0-based) of each unit, in the order of `keys`: the units longest first, each onto the shard with the least so far, a tie to the lowest
+/// shard and a tie of costs to the name, so every machine of a stage computes the same split from the same plan and the same weights.
+pub fn assign(keys: &[String], count: usize, weights: &Weights) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..keys.len()).collect();
+    order.sort_by(|a, b| weights.cost(&keys[*b]).cmp(&weights.cost(&keys[*a])).then_with(|| keys[*a].cmp(&keys[*b])));
+    let mut load = vec![0u64; count];
+    let mut at = vec![0usize; keys.len()];
+    for i in order {
+        let shard = (0..count).min_by_key(|s| (load[*s], *s)).unwrap_or(0);
+        load[shard] += weights.cost(&keys[i]);
+        at[i] = shard;
+    }
+    at
+}
+
+/// One shard's tests of `stage`: its units by `assign` over the weights of the stage.
+pub fn shard_of(stage: &str, tests: &[Value], index: usize, count: usize) -> Vec<Value> {
+    shard_with(tests, index, count, &Weights::of_stage(stage))
+}
+
+pub fn shard_with(tests: &[Value], index: usize, count: usize, weights: &Weights) -> Vec<Value> {
+    let mut keys: Vec<String> = tests.iter().map(unit_key).collect();
     keys.sort();
     keys.dedup();
-    tests.iter().filter(|t| keys.iter().position(|k| *k == key(t)).is_some_and(|p| p % count == index - 1)).cloned().collect()
+    let at = assign(&keys, count, weights);
+    tests.iter().filter(|t| keys.iter().position(|k| *k == unit_key(t)).is_some_and(|p| at[p] == index - 1)).cloned().collect()
 }
 
 /// `fresh` runs every task again whatever Nx has cached: the weekly audit of the cache compares it with a cached run. The deployment verification
@@ -902,5 +942,78 @@ mod tests {
         assert!(!compare_selected(&changed(&["clis/wf-vmops/src/host_summary.rs"]), "changed", "clis/rca"), "another crate's file is not the crate's own change");
         assert!(!compare_selected(&own, "depends on wf-vmops (cargo)", "clis/rca"));
         assert!(!compare_selected(&own, "the Nx graph or its inputs changed (the cache's contract suite)", "clis/rca"));
+    }
+}
+
+#[cfg(test)]
+mod shard_tests {
+    use super::*;
+
+    const INTEGRATION_UNITS: [&str; 30] = [
+        "@app/leetcode-auth-cookie-capture", "@app/leetcode-backend", "@app/remote-chat-agent", "@backend/reporting-service", "@backend/vm-ops-api", "@lib/logging",
+        "crate-agent-api-attachments", "crate-agent-api-proto", "crate-knowledge", "crate-orca-serve", "crate-orca-serve/replay-orca-core", "crate-orca-serve/replay-orca-map-accounts",
+        "crate-orca-serve/replay-orca-map-agent", "crate-orca-serve/replay-orca-map-git", "crate-orca-serve/replay-orca-map-hosted", "crate-orca-serve/replay-orca-map-mobile",
+        "crate-orca-serve/replay-orca-map-schedules", "crate-orca-serve/replay-orca-map-settings", "crate-orca-serve/replay-orca-map-state", "crate-orca-serve/replay-orca-map-terminal",
+        "crate-orca-serve/replay-orca-map-workspace", "crate-t3-serve", "crate-t3-serve/replay-t3-core-attachments", "crate-t3-serve/replay-t3-core-core",
+        "crate-t3-serve/replay-t3-core-preview", "crate-t3-serve/replay-t3-core-pull_requests", "crate-t3-serve/replay-t3-core-schedules", "crate-t3-serve/replay-t3-core-terminal",
+        "crate-t3-serve/replay-t3-core-vcs", "crate-t3-serve/replay-t3-core-workspace",
+    ];
+
+    fn keys() -> Vec<String> {
+        let mut keys: Vec<String> = INTEGRATION_UNITS.iter().map(|k| k.to_string()).collect();
+        keys.sort();
+        keys
+    }
+
+    fn loads(keys: &[String], at: &[usize], count: usize, weights: &Weights) -> Vec<u64> {
+        let mut load = vec![0u64; count];
+        keys.iter().zip(at).for_each(|(k, s)| load[*s] += weights.cost(k));
+        load
+    }
+
+    #[test]
+    fn given_the_integration_units_and_their_weights_when_dealt_to_six_shards_then_the_busiest_shard_costs_far_less_than_the_name_order_deal_and_the_split_is_the_same_every_time() {
+        // Given the integration stage's units and the committed weights
+        let (keys, weights) = (keys(), Weights::of_stage("integration-tests"));
+        // When they are dealt longest first, and in the order of their names as the old deal did, to six shards
+        let weighted = assign(&keys, 6, &weights);
+        let by_name: Vec<usize> = (0..keys.len()).map(|i| i % 6).collect();
+        let (busiest, old_busiest) = (*loads(&keys, &weighted, 6, &weights).iter().max().unwrap(), *loads(&keys, &by_name, 6, &weights).iter().max().unwrap());
+        // Then the busiest shard costs at most 60 % of what it did, and a second deal is the same one
+        assert!(busiest * 100 <= old_busiest * 60, "{busiest} against {old_busiest}");
+        assert_eq!(assign(&keys, 6, &weights), weighted);
+    }
+
+    #[test]
+    fn given_units_that_cost_the_same_when_dealt_then_it_is_the_name_order_deal_and_a_unit_with_no_weight_costs_the_stage_default() {
+        // Given units with no weight of their own and a default of 10, and one that costs 25
+        let weights = Weights { units: [("b".to_string(), 25)].into(), default: 10 };
+        let keys: Vec<String> = ["a", "b", "c", "d", "e"].iter().map(|k| k.to_string()).collect();
+        // When they are dealt to two shards
+        let at = assign(&keys, 2, &weights);
+        // Then the dear one is alone on a shard with the units after it that fit, and the rest follow in name order onto the lighter shard
+        assert_eq!(at, [1, 0, 1, 1, 0], "{at:?}");
+        // And a stage with no entry has a default of 1, so every unit costs the same and the deal is the name order
+        let none = Weights::of_stage("no-such-stage");
+        assert_eq!((none.default, assign(&keys, 2, &none)), (1, vec![0, 1, 0, 1, 0]));
+    }
+
+    #[test]
+    fn given_a_plan_when_each_shard_takes_its_part_then_every_test_is_in_exactly_one_part_and_a_package_keeps_all_its_kinds_together() {
+        // Given tests of two packages (flow and lint of one) and a crate's two integration groups
+        let tests: Vec<Value> = vec![
+            json!({"kind": "flow", "package": "@a/x"}),
+            json!({"kind": "lint", "package": "@a/x"}),
+            json!({"kind": "flow", "package": "@a/y"}),
+            json!({"kind": "integration", "crate": "c", "group": "g1"}),
+            json!({"kind": "integration", "crate": "c", "group": "g2"}),
+        ];
+        // When three shards each take their part
+        let parts: Vec<Vec<Value>> = (1..=3).map(|i| shard_of("integration-tests", &tests, i, 3)).collect();
+        // Then the parts hold every test once, and the two kinds of @a/x are in one part
+        assert_eq!(parts.iter().map(Vec::len).sum::<usize>(), tests.len());
+        let x: Vec<usize> = parts.iter().enumerate().filter(|(_, p)| p.iter().any(|t| t["package"] == "@a/x")).map(|(i, _)| i).collect();
+        assert_eq!(x.len(), 1);
+        assert_eq!(parts[x[0]].iter().filter(|t| t["package"] == "@a/x").count(), 2);
     }
 }
