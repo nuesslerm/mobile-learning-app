@@ -495,6 +495,7 @@ pub fn shape(op: &HostedOp, outputs: &[Output]) -> ExecResult<Value> {
             };
             Ok(json!({"thread": thread, "resolved": state}))
         }
+        HostedCall::PrState { number, closed } => Ok(json!({"number": number, "state": if *closed { "closed" } else { "open" }})),
         HostedCall::PrEdit { .. } | HostedCall::PrReady { .. } | HostedCall::PrReview { .. } | HostedCall::PrRequestReviewers { .. } | HostedCall::PrLabels { .. } | HostedCall::PrUpdateBranch { .. } | HostedCall::PrMerge { .. } => done(),
         HostedCall::RunList { .. } => {
             let v = body(&last)?;

@@ -35,6 +35,7 @@ both! {
     (SET_LABELS, MR_SET_LABELS, "setLabels", exec_hosted::PR_LABELS),
     (REACT, MR_REACT, "react", exec_hosted::PR_REACT),
     (RESOLVE_THREAD, MR_RESOLVE_THREAD, "resolveThread", exec_hosted::PR_RESOLVE_THREAD),
+    (SET_STATE, MR_SET_STATE, "setState", exec_hosted::PR_STATE),
     (UPDATE_BRANCH, MR_UPDATE_BRANCH, "updateBranch", exec_hosted::PR_UPDATE_BRANCH),
     (MERGE, MR_MERGE, "merge", exec_hosted::PR_MERGE),
     (STACK, MR_STACK, "stack", exec_hosted::PR_STACK),

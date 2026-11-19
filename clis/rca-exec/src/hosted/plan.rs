@@ -392,6 +392,7 @@ fn github(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             one(s)
         }
         HostedCall::PrReady { number, undo } => one(gh(pr(&["ready"], *number, if *undo { strs(&["--undo"]) } else { vec![] }))),
+        HostedCall::PrState { number, closed } => one(gh(pr(&[if *closed { "close" } else { "reopen" }], *number, vec![]))),
         HostedCall::PrComment { number, body } => {
             let mut s = gh(pr(&["comment"], *number, strs(&["--body-file=-"])));
             s.stdin = Some(body.clone());
@@ -587,6 +588,7 @@ fn gitlab(op: &HostedOp, paths: &Paths) -> Result<Vec<Step>, String> {
             one(glab(mr_cmd(&["update"], *number, extra)))
         }
         HostedCall::PrReady { number, undo } => one(glab(mr_cmd(&["update"], *number, strs(&[if *undo { "--draft" } else { "--ready" }])))),
+        HostedCall::PrState { number, closed } => one(with_json(api("PUT", mr(*number, "")), serde_json::json!({"state_event": if *closed { "close" } else { "reopen" }}))),
         HostedCall::PrComment { number, body } => one(glab(mr_cmd(&["note"], *number, vec![format!("--message={body}")]))),
         HostedCall::PrReply { number, thread, body, .. } => {
             let thread = thread.as_deref().ok_or("GitLab replies in a discussion named by `thread`")?;

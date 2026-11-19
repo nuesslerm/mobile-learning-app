@@ -33,6 +33,7 @@ pub const PR_REQUEST_REVIEWERS: &str = "hosted_pr_request_reviewers";
 pub const PR_LABELS: &str = "hosted_pr_labels";
 pub const PR_REACT: &str = "hosted_pr_react";
 pub const PR_RESOLVE_THREAD: &str = "hosted_pr_resolve_thread";
+pub const PR_STATE: &str = "hosted_pr_state";
 pub const PR_UPDATE_BRANCH: &str = "hosted_pr_update_branch";
 pub const PR_MERGE: &str = "hosted_pr_merge";
 pub const PR_STACK: &str = "hosted_pr_stack";
@@ -167,6 +168,7 @@ pub const ACTIONS: &[Action] = &[
         ],
         ["number", "content"]
     ),
+    action!(PR_STATE, "Close a pull or merge request, or reopen a closed one; answers its number and new state.", [NUMBER, Property { name: "state", kind: "string", about: "`closed` or `open`" }], ["number", "state"]),
     action!(PR_RESOLVE_THREAD, "Resolve a review thread, or with `resolved: false` reopen it. GitHub names a thread by its node id alone, so `number` is needed on GitLab only.", [NUMBER, THREAD, Property { name: "resolved", kind: "boolean", about: "Default true" }], ["thread"]),
     action!(PR_UPDATE_BRANCH, "Bring the pull or merge request's branch up to date with its base.", [NUMBER, Property { name: "rebase", kind: "boolean", about: "Rebase instead of merging the base in" }], ["number"]),
     action!(
@@ -448,6 +450,7 @@ pub enum HostedCall {
     PrLabels { number: u64, add: Vec<String>, remove: Vec<String> },
     PrReact { number: u64, target: ReactTarget, comment_id: Option<u64>, content: String, undo: bool },
     PrResolveThread { number: Option<u64>, thread: String, resolved: bool },
+    PrState { number: u64, closed: bool },
     PrUpdateBranch { number: u64, rebase: bool },
     PrMerge { number: u64, method: MergeMethod, auto: bool, delete_branch: bool, match_head_commit: Option<String> },
     PrStack { number: u64 },
@@ -487,6 +490,7 @@ impl HostedCall {
             HostedCall::PrLabels { .. } => PR_LABELS,
             HostedCall::PrReact { .. } => PR_REACT,
             HostedCall::PrResolveThread { .. } => PR_RESOLVE_THREAD,
+            HostedCall::PrState { .. } => PR_STATE,
             HostedCall::PrUpdateBranch { .. } => PR_UPDATE_BRANCH,
             HostedCall::PrMerge { .. } => PR_MERGE,
             HostedCall::PrStack { .. } => PR_STACK,
@@ -650,6 +654,10 @@ impl HostedOp {
                 }
                 HostedCall::PrReact { number: number(a)?, target, comment_id, content, undo: flag(a, "undo") }
             }
+            PR_STATE => {
+                let closed = choice(a, "state", None, &[("closed", Some(true)), ("open", Some(false))])?.ok_or_else(|| bad("`state` is required: closed or open"))?;
+                HostedCall::PrState { number: number(a)?, closed }
+            }
             PR_RESOLVE_THREAD => {
                 let number = match (provider, a.get("number").filter(|n| !n.is_null())) {
                     (Provider::Github, None) => None,
@@ -718,6 +726,9 @@ mod tests {
         match action.name {
             PR_EDIT => args.insert("title".into(), json!("t")),
             PR_LABELS | PR_REQUEST_REVIEWERS => args.insert("add".into(), json!(["x"])),
+            // a reply names its thread or (GitHub) a comment of it, one of the two
+            PR_REPLY => args.insert("thread".into(), json!("PRRT_1")),
+            PR_STATE => args.insert("state".into(), json!("closed")),
             _ => None,
         };
         Value::Object(args)
