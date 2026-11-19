@@ -724,21 +724,62 @@ pub fn assign(keys: &[String], count: usize, weights: &Weights) -> Vec<usize> {
     at
 }
 
-/// A short stable name for the crates a shard runs (FNV-1a over its sorted unit keys): the same set of crates on the same shard count is the same key
-/// in every commit, so a workflow can queue runs on it; an empty shard is `none`.
-pub fn shard_key(stage: &str, tests: &[Value], index: usize, count: usize) -> String {
-    let mut keys: Vec<String> = shard_of(stage, tests, index, count).iter().map(unit_key).collect();
+fn fnv(text: &str) -> u64 {
+    let mut hash: u64 = 0xcbf29ce484222325;
+    for byte in text.bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(0x100000001b3);
+    }
+    hash
+}
+
+/// The git object id of `path` (a directory or a file) at `sha`; empty when git does not know it.
+fn object_id(repo: &Path, sha: &str, path: &str) -> String {
+    let out = std::process::Command::new("git").args(["rev-parse", "--verify", "-q", &format!("{sha}:{path}")]).current_dir(repo).output();
+    out.ok().filter(|o| o.status.success()).map(|o| String::from_utf8_lossy(&o.stdout).trim().to_string()).unwrap_or_default()
+}
+
+/// A short stable name for what a shard runs: the crates it holds (FNV-1a over its sorted unit keys) and what those crates read (the git object ids at
+/// `sha` of their directories and of the directories of the crates they depend on, and of the lock file). The same crates with the same inputs are the same
+/// key in every commit, so a workflow can queue them and the later one replays the earlier one's cached result; changed inputs are another key and run at
+/// once. An empty shard is `none`.
+pub fn shard_key(stage: &str, tests: &[Value], index: usize, count: usize, repo: &Path, sha: &str) -> String {
+    let mine = shard_of(stage, tests, index, count);
+    let mut keys: Vec<String> = mine.iter().map(unit_key).collect();
     keys.sort();
     keys.dedup();
     if keys.is_empty() {
         return "none".to_string();
     }
-    let mut hash: u64 = 0xcbf29ce484222325;
-    for byte in keys.join(",").bytes() {
-        hash ^= u64::from(byte);
-        hash = hash.wrapping_mul(0x100000001b3);
+    let crates = rust_crates(repo).unwrap_or_default();
+    let dir_of = |name: &str| crates.iter().find(|c| c.name == name).map(|c| c.dir.clone());
+    let mut inputs: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    for t in &mine {
+        if let Some(dir) = t["dir"].as_str() {
+            inputs.insert(dir.to_string());
+        }
+        let mut queue: Vec<String> = t["crate"].as_str().map(str::to_string).into_iter().collect();
+        let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        while let Some(name) = queue.pop() {
+            if !seen.insert(name.clone()) {
+                continue;
+            }
+            if let Some(c) = crates.iter().find(|c| c.name == name) {
+                inputs.insert(c.dir.clone());
+                queue.extend(c.deps.iter().filter(|d| dir_of(d).is_some()).cloned());
+            }
+        }
+        if let Some(manifest) = t["manifest"].as_str() {
+            if let Some((workspace, _)) = manifest.rsplit_once('/') {
+                inputs.insert(format!("{workspace}/Cargo.lock"));
+            }
+        }
+        if t["package"].is_string() {
+            inputs.insert("pnpm-lock.yaml".to_string());
+        }
     }
-    format!("{hash:016x}")
+    let lines: Vec<String> = inputs.iter().map(|p| format!("{p}={}", object_id(repo, sha, p))).collect();
+    format!("{:016x}-{:016x}", fnv(&keys.join(",")), fnv(&lines.join("\n")))
 }
 
 /// One shard's tests of `stage`: its units by `assign` over the weights of the stage.

@@ -54,7 +54,7 @@ pub fn run(rest: &[String]) -> Option<i32> {
 /// `wf ci plan shard-keys --stage <stage> --count <n> --plan <file>`: one key per shard, a JSON array, from the crates each shard runs. A workflow
 /// makes it the concurrency group, so a later commit's shard of the same crates queues behind the earlier one (the newest pending job wins).
 fn shard_keys(args: &[String]) -> Option<i32> {
-    let spec = Spec { values: &["stage", "count", "plan"], positional: Positional::None, ..Spec::NONE };
+    let spec = Spec { values: &["stage", "count", "plan", "repo"], positional: Positional::None, ..Spec::NONE };
     let p = parse_spec(args, &spec)?;
     let (Some(stage), Some(plan_path)) = (p.val("stage"), p.val("plan")) else { return refused("shard-keys wants --stage and --plan", "wf ci plan shard-keys --stage integration-tests --count 4 --plan plan.json") };
     let count = p.val("count").and_then(|c| c.parse::<usize>().ok()).filter(|c| *c >= 1).unwrap_or(1);
@@ -63,7 +63,9 @@ fn shard_keys(args: &[String]) -> Option<i32> {
         Err(e) => return refused(&format!("cannot read the plan {plan_path}: {e}"), "wf ci plan tests --json > plan.json"),
     };
     let tests = plan["stages"][stage].as_array().cloned().unwrap_or_default();
-    let keys: Vec<String> = (1..=count).map(|i| crate::test_plan::shard_key(stage, &tests, i, count)).collect();
+    let repo = p.val("repo").map(PathBuf::from).unwrap_or_else(wf_kit::root::repo_root);
+    let sha = plan["sha"].as_str().filter(|s| !s.is_empty()).unwrap_or("HEAD").to_string();
+    let keys: Vec<String> = (1..=count).map(|i| crate::test_plan::shard_key(stage, &tests, i, count, &repo, &sha)).collect();
     println!("{}", json!(keys));
     Some(0)
 }

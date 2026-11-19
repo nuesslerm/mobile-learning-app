@@ -286,3 +286,45 @@ fn given_a_plan_when_the_shard_keys_are_asked_then_each_shard_has_a_key_from_its
     assert_ne!(a[0], a[1]);
     assert!(keys(&first, "6").contains(&"none".to_string()));
 }
+
+#[test]
+fn given_two_commits_when_one_changes_a_crates_files_then_its_shard_key_changes_and_an_unrelated_change_leaves_it() {
+    // Given a repo with two crates and a plan for each commit
+    let repo = tempfile::tempdir().unwrap();
+    let git = |args: &[&str]| {
+        let out = std::process::Command::new("git").args(args).current_dir(repo.path()).env("GIT_AUTHOR_NAME", "t").env("GIT_AUTHOR_EMAIL", "t@t").env("GIT_COMMITTER_NAME", "t").env("GIT_COMMITTER_EMAIL", "t@t").output().unwrap();
+        assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+        String::from_utf8_lossy(&out.stdout).trim().to_string()
+    };
+    git(&["init", "-q", "-b", "main"]);
+    for dir in ["clis/alpha", "clis/beta"] {
+        std::fs::create_dir_all(repo.path().join(dir)).unwrap();
+        std::fs::write(repo.path().join(dir).join("lib.rs"), "v1").unwrap();
+    }
+    let commit = |msg: &str| {
+        git(&["add", "-A"]);
+        git(&["commit", "-q", "-m", msg]);
+        git(&["rev-parse", "HEAD"])
+    };
+    let first = commit("one");
+    std::fs::write(repo.path().join("clis/alpha/lib.rs"), "v2").unwrap();
+    let fixed = commit("fix alpha");
+    std::fs::write(repo.path().join("clis/beta/lib.rs"), "v2").unwrap();
+    let unrelated = commit("change beta");
+    let unit = |c: &str| json!({"kind": "integration", "crate": c, "dir": format!("clis/{c}"), "manifest": "clis/Cargo.toml", "group": "svc"});
+    let dir = tempfile::tempdir().unwrap();
+    let keys = |sha: &str, only: &str| -> Vec<String> {
+        let path = dir.path().join(format!("{sha}.json"));
+        std::fs::write(&path, json!({"sha": sha, "stages": {"integration-tests": [unit(only)]}}).to_string()).unwrap();
+        let r = run_wf(&["ci", "plan", "shard-keys", "--stage", "integration-tests", "--count", "1", "--plan", &path.display().to_string(), "--repo", &repo.path().display().to_string()], &RunOpts::default());
+        assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+        serde_json::from_str(r.stdout.trim()).unwrap()
+    };
+
+    // When alpha's shard is keyed at each commit
+    let (a1, a2, a3) = (keys(&first, "alpha"), keys(&fixed, "alpha"), keys(&unrelated, "alpha"));
+
+    // Then the fix to alpha is another key (it starts at once) and a change to beta alone is the same key as before (it queues and replays)
+    assert_ne!(a1, a2);
+    assert_eq!(a2, a3);
+}
