@@ -47,3 +47,11 @@ One entry per night, appended by the nightly audit session (the "Nightly audit c
 - Tracker: t3 still behind: pinned 0.1.9, latest 0.1.10 (drifted). The verb is now `wf mimic track` (`wf parity` no longer exists). The last four track-contracts runs failed in the step "Check the pins" (44068213532 on 2026-11-17 10:48 UTC, 43843558576, 43699839667, 43651197829), so no record or drift report exists for 0.1.10. Orca not checked (no `GITHUB_TOKEN`). Nothing landed.
 - Not recorded in inbox issue `#79` (`gh issue` is blocked in this session). Owner items: the failing "Check the pins" step (four runs) and the cache misses.
 - Update for the runbooks: `docs/runbooks/contract-tracker.md` still names `wf parity track`.
+
+## 2026-11-19
+
+- Verdict: run 44285179992 (scheduled 2026-11-18 10:24 UTC, about 18 h old), `ok: false`, 337 findings, 75 hard (all `should-have-hit`), 262 `replayed-nothing`. Up from 35 hard on 2026-11-18 (258 findings), in line with the 62 to 75 band of the earlier nights. Largest waste: `crate-pipeline:cargo-contract` (521 s), `crate-deploy:cargo-flow` (375 s, 253 s).
+- Fixes landed: none. The cause of the `should-have-hit` misses on the cargo stages is still not traced (six nights); `wf ci audit` cannot run here (no `bws`, no ledger credentials).
+- Earlier fixes checked: none listed in the last 7 days.
+- Tracker: t3 still behind: pinned 0.1.9, latest 0.1.10. Cause of the failing "Check the pins" step found from the log of run 44283880083: `error: no matching package named rca-core found` (exit 101). `rca-core` is a dependency from the registry `mla` (`backend/remote-chat-agent/host/Cargo.toml`, `service-core/Cargo.toml`), and the hosted runner of `track-contracts.yml` has no way to resolve it. Same failure in the runs of 2026-11-16, 2026-11-17 and 2026-11-18. Not fixed here: it needs the registry configuration and its credential in the workflow (a secret, owner item), or building `wf` with the path dependency. Nothing landed.
+- Not recorded in inbox issue `#79` (`gh issue` is blocked in this session). Owner items: the `mla` registry access of the track-contracts runner; the cache misses.
