@@ -9,9 +9,9 @@
   },
   "summary": {
     "rows": 317,
-    "served": 170,
+    "served": 171,
     "pending": 4,
-    "notOffered": 133,
+    "notOffered": 132,
     "excluded": 7,
     "flagged": 3,
     "answeredByMapper": 0,
@@ -1622,10 +1622,17 @@
       "kind": "rpc",
       "name": "git.diff",
       "desktop": true,
-      "state": "not-offered",
+      "state": "served",
       "milestone": "M9",
-      "reason": "Agent decision of 15 Nov under the issue's rule (a row rca cannot serve is not offered, with a reason), open to the owner's overrule: the staged side and the default unstaged left side of a file's diff are its index copy, and rca's git.blob reads a revision only (the executor refuses an empty revision), so no honest diff of a staged or partly staged file can be built; serving only compareAgainstHead would show staged hunks as unstaged. It becomes servable when git_blob gains an index read.",
-      "decidedBy": "M12"
+      "evidence": {
+        "suite": "wf-mimic-orca-crawl",
+        "test": "orca-v1.4.259-crawl::orca-git.diff-boundary-full",
+        "agent": [],
+        "executor": [],
+        "oracle": "mimic",
+        "diff": "clean",
+        "cassette": "recorded"
+      }
     },
     {
       "id": "rpc:git.discard",

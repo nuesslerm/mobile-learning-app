@@ -17,8 +17,10 @@ pub use target::{resolve, targets, Target};
 pub use worktrees::checkout_of;
 /// `file.read` of the agent API, for a mapping crate that reads a whole small file of a workspace.
 pub use agent_api_workspace::FILE_READ;
+/// `file.stat` and `file.readChunk` of the agent API, for a mapping crate that reads a working file of any size in pieces.
+pub use agent_api_workspace::edit::{FILE_READ_CHUNK, FILE_STAT};
 
-use agent_api_workspace::edit::{FILE_CREATE, FILE_READ_CHUNK, FILE_SEARCH, FILE_STAT};
+use agent_api_workspace::edit::{FILE_CREATE, FILE_SEARCH};
 use agent_api_proto::Method as AgentMethod;
 use agent_api_git::{FETCH, REFS};
 use agent_api_state::SET;

@@ -36,7 +36,6 @@
         "orca-files.readTerminalArtifactPreview",
         "orca-files.resolveTerminalPath",
         "orca-files.writeTerminalArtifact",
-        "orca-git.diff",
         "orca-git.discoverCommitMessageModels",
         "orca-git.generatePullRequestFields",
         "orca-git.remoteCommitUrl",

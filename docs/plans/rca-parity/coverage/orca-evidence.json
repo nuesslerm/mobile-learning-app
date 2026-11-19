@@ -332,6 +332,20 @@
         "complete": true,
         "tests": 62,
         "passed": 14
+      },
+      {
+        "suite": "wf-mimic-orca-crawl",
+        "sha": "e90af56ef952b6821856d459c911a952d0b9aea5",
+        "complete": true,
+        "tests": 209,
+        "passed": 121
+      },
+      {
+        "suite": "wf-mimic-orca-recorded",
+        "sha": null,
+        "complete": true,
+        "tests": 31,
+        "passed": 28
       }
     ]
   },
@@ -900,6 +914,15 @@
     "rpc:git.completeMerge": {
       "suite": "wf-mimic-orca-crawl",
       "test": "orca-v1.4.259-crawl::orca-git.completeMerge-invalid-drop-worktree",
+      "agent": [],
+      "executor": [],
+      "oracle": "mimic",
+      "diff": "clean",
+      "cassette": "recorded"
+    },
+    "rpc:git.diff": {
+      "suite": "wf-mimic-orca-crawl",
+      "test": "orca-v1.4.259-crawl::orca-git.diff-boundary-full",
       "agent": [],
       "executor": [],
       "oracle": "mimic",

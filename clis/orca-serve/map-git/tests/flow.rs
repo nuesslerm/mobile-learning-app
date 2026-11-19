@@ -11,6 +11,7 @@ use std::sync::Arc;
 struct Rig {
     agent: Arc<ScriptedAgent>,
     repo: Repos,
+    ws: Workspaces,
     conn: Connection,
     n: u32,
 }
@@ -18,16 +19,24 @@ struct Rig {
 impl Rig {
     fn new() -> Rig {
         let agent = Arc::new(ScriptedAgent::serving(ServiceStatus { protocol: 1, version: "v".into(), commit: "c".into(), groups: vec![] }));
-        Workspaces::default().workspace("main", "root", Some("/srv/main")).install(&agent);
+        let ws = Workspaces::default();
+        ws.workspace("main", "root", Some("/srv/main")).install(&agent);
         let repo = Repos::default();
         repo.install(&agent);
         let host = Host::new("rt".into(), vec![Box::new(GitArea)], agent.clone(), Arc::new(RevocablePrincipals::default()), HostInfo { platform: "linux".into(), machine_name: "m".into(), app_version: "0".into() }).unwrap();
-        Rig { agent, repo, conn: host.connection("dev", "tok", vec![]), n: 0 }
+        Rig { agent, repo, ws, conn: host.connection("dev", "tok", vec![]), n: 0 }
     }
 
     fn call(&mut self, method: &str, mut params: Value) -> Value {
         self.n += 1;
         params["worktree"] = json!("main");
+        let frame = json!({"id": format!("r{}", self.n), "method": method, "params": params}).to_string();
+        serde_json::from_str(&self.conn.on_message(&frame)[0]).unwrap()
+    }
+
+    /// A request sent as the phone built it, with no selector added.
+    fn raw(&mut self, method: &str, params: Value) -> Value {
+        self.n += 1;
         let frame = json!({"id": format!("r{}", self.n), "method": method, "params": params}).to_string();
         serde_json::from_str(&self.conn.on_message(&frame)[0]).unwrap()
     }
@@ -48,6 +57,11 @@ impl Rig {
     fn entries(&mut self) -> Vec<String> {
         let status = self.ok("git.status", json!({}));
         status["entries"].as_array().unwrap().iter().map(|e| format!("{}:{}:{}", e["area"].as_str().unwrap(), e["status"].as_str().unwrap(), e["path"].as_str().unwrap())).collect()
+    }
+
+    /// What rca was asked about the repository and its files.
+    fn sent_all(&self) -> Vec<(String, Value)> {
+        self.agent.requests().into_iter().filter(|(m, _)| m.starts_with("git.") || m.starts_with("file.")).collect()
     }
 
     fn sent(&self) -> Vec<(String, Value)> {
@@ -466,4 +480,133 @@ fn given_diff_paths_the_host_would_not_accept_when_asked_then_they_are_the_plain
     // And a backslash path and a trailing slash read the same file, and an empty oldPath is no oldPath
     let read = rig.ok("git.commitDiff", json!({"filePath": "src\\a.txt", "commitOid": commit, "oldPath": ""}));
     assert_eq!(read["modifiedContent"], json!("hello"));
+}
+
+fn text_diff(original: &str, modified: &str) -> Value {
+    json!({"kind": "text", "originalContent": original, "modifiedContent": modified, "originalIsBinary": false, "modifiedIsBinary": false})
+}
+
+const MAX: u64 = 8 << 20;
+
+#[test]
+fn given_a_staged_edit_when_the_staged_diff_is_read_then_it_is_head_against_the_index_and_rca_is_asked_for_the_two_blobs_only() {
+    // Given a file committed as one line, staged as another and edited again in the working tree
+    let mut rig = Rig::new();
+    rig.repo.blob("HEAD", "a.txt", b"one\n").staged("a.txt", b"two\n");
+    rig.ws.put("main", "a.txt", b"three\n");
+    // When the phone reads its staged diff
+    let diff = rig.ok("git.diff", json!({"filePath": "a.txt", "staged": true}));
+    // Then it is HEAD against the index, and rca was asked for the two blobs and nothing of the working tree
+    assert_eq!(diff, text_diff("one\n", "two\n"));
+    assert_eq!(rig.sent_all(), [("git.blob".to_string(), json!({"rev": "HEAD", "path": "a.txt", "max_bytes": MAX, "workspace": "main"})), ("git.blob".to_string(), json!({"path": "a.txt", "max_bytes": MAX, "workspace": "main"}))]);
+}
+
+#[test]
+fn given_unstaged_edits_when_read_then_the_index_is_the_original_an_untracked_file_falls_back_to_head_and_compare_against_head_skips_the_index() {
+    // Given a file committed, staged with a change and edited again, and a file only in the working tree
+    let mut rig = Rig::new();
+    rig.repo.blob("HEAD", "a.txt", b"one\n").staged("a.txt", b"two\n").blob("HEAD", "gone-from-index.txt", b"head\n");
+    rig.ws.put("main", "a.txt", b"three\n").put("main", "new.txt", b"x\n").put("main", "gone-from-index.txt", b"tree\n");
+    // When the phone reads the unstaged diffs
+    let edited = rig.ok("git.diff", json!({"filePath": "a.txt", "staged": false}));
+    let untracked = rig.ok("git.diff", json!({"filePath": "new.txt", "staged": false}));
+    let fallback = rig.ok("git.diff", json!({"filePath": "gone-from-index.txt", "staged": false}));
+    let against_head = rig.ok("git.diff", json!({"filePath": "a.txt", "staged": false, "compareAgainstHead": true}));
+    // Then the index is the original side, a file nowhere in git has an empty one, a file the index lacks is read at HEAD, and HEAD is read when asked
+    assert_eq!((edited, untracked, fallback, against_head), (text_diff("two\n", "three\n"), text_diff("", "x\n"), text_diff("head\n", "tree\n"), text_diff("one\n", "three\n")));
+}
+
+#[test]
+fn given_a_conflicted_file_when_its_unstaged_diff_is_read_then_the_original_is_empty_not_head() {
+    // Given a file conflicted by a merge: the index holds only its unmerged stages
+    let mut rig = Rig::new();
+    rig.repo.blob("HEAD", "c.txt", b"base\n").unmerged("c.txt");
+    rig.ws.put("main", "c.txt", b"<<<<<<< ours\n");
+    // When the phone reads its unstaged diff
+    let diff = rig.ok("git.diff", json!({"filePath": "c.txt", "staged": false}));
+    // Then the original side is empty, as the pinned host reads an index entry it cannot read, and is not HEAD's
+    assert_eq!(diff, text_diff("", "<<<<<<< ours\n"));
+}
+
+#[test]
+fn given_a_deleted_png_when_read_staged_and_unstaged_then_the_binary_result_says_modified_deleted_with_the_old_bytes_in_base64() {
+    // Given a committed image that is deleted and staged, and a second one deleted in the working tree only
+    let png = b"\x89PNG\0\x01";
+    let mut rig = Rig::new();
+    rig.repo.blob("HEAD", "a.png", png).blob("HEAD", "b.png", png).staged("b.png", png);
+    // When the phone reads the staged diff of the first and the unstaged diff of the second
+    let staged = rig.ok("git.diff", json!({"filePath": "a.png", "staged": true}));
+    let unstaged = rig.ok("git.diff", json!({"filePath": "b.png", "staged": false}));
+    // Then each is a binary image result with the old bytes for preview, an empty new side, and the deletion said last
+    use base64::Engine;
+    let expected = json!({"kind": "binary", "originalContent": base64::engine::general_purpose::STANDARD.encode(png), "modifiedContent": "", "originalIsBinary": true, "modifiedIsBinary": false, "isImage": true, "mimeType": "image/png", "modifiedDeleted": true});
+    assert_eq!((&staged, &unstaged), (&expected, &expected));
+    assert_eq!(staged.as_object().unwrap().keys().next_back().unwrap(), "modifiedDeleted");
+}
+
+#[test]
+fn given_a_staged_rename_when_read_then_the_original_is_read_at_the_old_path_and_the_unstaged_diff_ignores_it() {
+    // Given a file renamed and changed in the index, unchanged in the working tree since
+    let mut rig = Rig::new();
+    rig.repo.blob("HEAD", "old.txt", b"one\n").staged("new.txt", b"one\nmore\n");
+    rig.ws.put("main", "new.txt", b"one\nmore\n");
+    // When the phone reads the staged diff naming the old path, and the unstaged one
+    let staged = rig.ok("git.diff", json!({"filePath": "new.txt", "oldPath": "old.txt", "staged": true}));
+    let unstaged = rig.ok("git.diff", json!({"filePath": "new.txt", "oldPath": "old.txt", "staged": false}));
+    // Then the staged original is the old path at HEAD, and the unstaged one is the index at the new path
+    assert_eq!((staged, unstaged), (text_diff("one\n", "one\nmore\n"), text_diff("one\nmore\n", "one\nmore\n")));
+}
+
+#[test]
+fn given_a_working_file_over_ten_mib_when_read_then_it_is_binary_too_large_and_no_chunk_is_read() {
+    // Given an untracked working file one byte over the host's 10 MiB
+    let mut rig = Rig::new();
+    rig.ws.put("main", "big.log", &vec![b'a'; (10 << 20) + 1]);
+    // When the phone reads its unstaged diff
+    let diff = rig.ok("git.diff", json!({"filePath": "big.log", "staged": false}));
+    // Then the new side is withheld as too large, and only its size was asked
+    assert_eq!(diff, json!({"kind": "binary", "originalContent": "", "modifiedContent": "", "originalIsBinary": false, "modifiedIsBinary": true, "tooLarge": true}));
+    assert!(rig.sent_all().iter().all(|(m, _)| m != "file.readChunk"), "{:?}", rig.sent_all());
+}
+
+#[test]
+fn given_a_diff_larger_than_the_reply_budget_when_read_then_it_is_diff_too_large_with_the_budget() {
+    // Given a staged file and a working file of 2.5 million characters each, under the render limit but not the remote reply's
+    let n = 2_500_000;
+    let mut rig = Rig::new();
+    rig.repo.staged("w.txt", &vec![b'x'; n]);
+    rig.ws.put("main", "w.txt", &vec![b'y'; n]);
+    // When the phone reads its unstaged diff as request r1
+    let reply = rig.call("git.diff", json!({"filePath": "w.txt", "staged": false}));
+    // Then it is refused with the host's code, words and the budget left after the request id
+    assert_eq!(reply["error"], json!({"code": "diff_too_large", "message": "This diff is too large to open over a remote connection.", "data": {"maxBytes": 4 * 1024 * 1024 - 4096 - "\"r1\"".len()}}));
+}
+
+#[test]
+fn given_malformed_git_diff_requests_when_made_then_each_is_refused_in_the_order_and_words_of_the_pinned_schema_before_the_selector_is_resolved() {
+    let mut rig = Rig::new();
+    let cases = [
+        (Value::Null, "Missing worktree selector"),
+        (json!({"filePath": "a", "staged": true}), "Missing worktree selector"),
+        (json!({"worktree": 7, "filePath": "a", "staged": true}), "Missing worktree selector"),
+        (json!({"worktree": "", "filePath": "a", "staged": true}), "Missing worktree selector"),
+        (json!({"worktree": "nope", "staged": true}), "Missing file path"),
+        (json!({"worktree": "nope", "filePath": 5, "staged": true}), "Missing file path"),
+        (json!({"worktree": "nope", "filePath": "a"}), "Invalid input: expected boolean, received undefined"),
+        (json!({"worktree": "nope", "filePath": "a", "staged": "yes"}), "Invalid input: expected boolean, received string"),
+        (json!({"worktree": "nope", "filePath": "a", "staged": true, "compareAgainstHead": null}), "Invalid input: expected boolean, received null"),
+        (json!({"worktree": "nope", "filePath": "a", "staged": true, "oldPath": 5}), "Invalid input: expected string, received number"),
+    ];
+    for (params, message) in cases {
+        // Given a request that breaks the schema (with an unknown selector where it names one)
+        // When it is sent
+        let reply = rig.raw("git.diff", params.clone());
+        // Then it is the schema's first complaint, before any selector or repository is looked at
+        assert_eq!((reply["error"]["code"].clone(), reply["error"]["message"].clone()), (json!("invalid_argument"), json!(message)), "{params}");
+    }
+    assert_eq!(rig.sent_all(), []);
+    // And a valid request with an unknown selector is the selector's refusal, and a path that leaves the tree is the host's plain error
+    assert_eq!(rig.raw("git.diff", json!({"worktree": "nope", "filePath": "a", "staged": true}))["error"]["code"], "selector_not_found");
+    assert_eq!(rig.err("git.diff", json!({"filePath": "../a", "staged": true})), ("runtime_error".to_string(), "invalid_relative_path".to_string()));
+    assert_eq!(rig.err("git.diff", json!({"filePath": "a", "oldPath": "/abs", "staged": false})), ("runtime_error".to_string(), "invalid_relative_path".to_string()));
 }

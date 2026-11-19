@@ -32,6 +32,7 @@ struct State {
     model_down: bool,
     asked_model: Vec<Vec<String>>,
     blobs: Vec<(String, String, Vec<u8>)>,
+    unmerged: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -57,6 +58,7 @@ impl Default for Repos {
             model_down: false,
             asked_model: Vec::new(),
             blobs: Vec::new(),
+            unmerged: Vec::new(),
         })))
     }
 }
@@ -73,6 +75,17 @@ impl Repos {
     /// The file `path` as commit `rev` holds it.
     pub fn blob(&self, rev: &str, path: &str, bytes: &[u8]) -> &Self {
         self.0.lock().unwrap().blobs.push((rev.into(), path.into(), bytes.to_vec()));
+        self
+    }
+
+    /// The file `path` as staged in the index (stage 0).
+    pub fn staged(&self, path: &str, bytes: &[u8]) -> &Self {
+        self.blob("", path, bytes)
+    }
+
+    /// A conflicted path, which the index holds only in its unmerged stages.
+    pub fn unmerged(&self, path: &str) -> &Self {
+        self.0.lock().unwrap().unmerged.push(path.into());
         self
     }
 
@@ -190,11 +203,22 @@ impl Repos {
         on("git.compare", compare);
         on("git.blob", |s, p| {
             use base64::Engine;
-            let (rev, path) = (required(p, "rev")?, required(p, "path")?);
+            let path = required(p, "path")?;
+            let rev = p["rev"].as_str();
             let max = p["max_bytes"].as_u64().unwrap_or(1 << 20) as usize;
-            let (_, _, bytes) = s.blobs.iter().find(|(r, f, _)| *r == rev && *f == path).ok_or_else(|| refused("GIT_FAILED", "path does not exist in that revision"))?;
+            if rev.is_none() && s.unmerged.iter().any(|u| u == path) {
+                return Err(refused("NOT_A_FILE", format!("{path} is not merged in the index")));
+            }
+            let place = rev.map_or("in the index".to_string(), |r| format!("at {r}"));
+            let (_, _, bytes) = s.blobs.iter().find(|(r, f, _)| r == rev.unwrap_or("") && f == path).ok_or_else(|| refused("NOT_FOUND", format!("{path} does not exist {place}")))?;
             let taken = &bytes[..bytes.len().min(max)];
-            Ok(json!({"rev": rev, "path": path, "size": bytes.len(), "data": base64::engine::general_purpose::STANDARD.encode(taken), "truncated": taken.len() < bytes.len(), "binary": bytes.iter().take(8192).any(|b| *b == 0)}))
+            let mut out = json!({"path": path, "size": bytes.len(), "data": base64::engine::general_purpose::STANDARD.encode(taken), "truncated": taken.len() < bytes.len(), "binary": bytes.iter().take(8000).any(|b| *b == 0)});
+            if let Some(rev) = rev {
+                let mut with_rev = serde_json::Map::from_iter([("rev".to_string(), json!(rev))]);
+                with_rev.extend(out.as_object().cloned().unwrap_or_default());
+                out = Value::Object(with_rev);
+            }
+            Ok(out)
         });
         on("git.stage", |s, p| edit(s, p, stage));
         on("git.unstage", |s, p| edit(s, p, unstage));

@@ -1,8 +1,11 @@
-//! `git.branchDiff` and `git.commitDiff`: one file's two sides, each read as a blob of a commit through the executor's `git.blob`, in the
-//! result the pinned host builds from them (`buildDiffResult`): text, or binary with the image or PDF preview, or text withheld over the render limit.
-//! The sides come from rca's blob, which reads up to 8 MiB where the pinned host reads 10: a side between the two is `tooLarge` here.
+//! `git.diff`, `git.branchDiff` and `git.commitDiff`: one file's two sides in the result the pinned host builds from them (`buildDiffResult`): text, or
+//! binary with the image or PDF preview, or text withheld over the render limit. A commit's or the index's side is the executor's `git.blob`, which
+//! reads up to 8 MiB where the pinned host reads 10 (a side between the two is `tooLarge` here); the working tree's side is `file.stat` and
+//! `file.readChunk`, capped at the host's 10 MiB. Not reproduced: submodule routing, textconv drivers, and a symlink that leaves the workspace
+//! (rca refuses it, so the side is empty where the host reads through it).
 use crate::{text, Repo};
 use agent_api_git::BLOB;
+use orca_map_workspace::{FILE_READ_CHUNK, FILE_STAT};
 use base64::Engine;
 use orca_core::wire::Failure;
 use orca_core::AgentError;
@@ -13,6 +16,9 @@ const HOST_MAX: u64 = 10 << 20;
 const PROBE: usize = 8192;
 const MAX_LINES: usize = 120_000;
 const MAX_CHARS: usize = 6_000_000;
+const CHUNK: u64 = 1 << 20;
+/// `MAX_REMOTE_RPC_RESPONSE_BYTES` less its envelope headroom: a remote reply larger than this is refused rather than sent.
+const REPLY_MAX: usize = 4 * 1024 * 1024 - 4 * 1024;
 
 struct Side {
     content: String,
@@ -44,25 +50,94 @@ fn absent() -> Side {
     Side { content: String::new(), binary: false, too_large: false }
 }
 
-/// The file at `rev`: a path the commit lacks (or any read the executor refuses) is an empty side, as the pinned host reads a missing blob.
-fn read_side(repo: &Repo, rev: &str, path: &str, as_path: &str) -> Result<Side, Failure> {
-    let blob = match repo.try_ask(BLOB, json!({"rev": rev, "path": path, "max_bytes": MAX_BLOB})) {
+/// One side as read: its bytes, or proven absent, or unreadable (both of the last are an empty side; only a proven absence counts as deleted).
+enum Read {
+    Found(Side),
+    Missing,
+    Failed,
+}
+
+impl Read {
+    fn side(self) -> Side {
+        match self {
+            Read::Found(side) => side,
+            Read::Missing | Read::Failed => absent(),
+        }
+    }
+}
+
+fn too_large() -> Side {
+    Side { content: String::new(), binary: true, too_large: true }
+}
+
+/// `bufferToBlob`: a NUL in the first 8192 bytes is binary, kept in base64 only for a path the phone can preview.
+fn side_of(bytes: &[u8], as_path: &str) -> Side {
+    let binary = bytes.iter().take(PROBE).any(|b| *b == 0);
+    let content = if binary {
+        if preview_mime(as_path).is_some() { base64::engine::general_purpose::STANDARD.encode(bytes) } else { String::new() }
+    } else {
+        String::from_utf8_lossy(bytes).into_owned()
+    };
+    Side { content, binary, too_large: false }
+}
+
+/// The file at `rev`, or as staged when no revision is named: a path the executor does not find is absent, any other refusal unreadable.
+fn read_git(repo: &Repo, rev: Option<&str>, path: &str, as_path: &str) -> Result<Read, Failure> {
+    let mut args = json!({"path": path, "max_bytes": MAX_BLOB});
+    if let Some(rev) = rev {
+        args["rev"] = json!(rev);
+    }
+    let blob = match repo.try_ask(BLOB, args) {
         Ok(blob) => blob,
         Err(AgentError::Refused { code, .. }) if code == "UNKNOWN_WORKSPACE" => return Err(Failure::new("selector_not_found", "selector_not_found")),
-        Err(AgentError::Refused { .. }) => return Ok(absent()),
+        Err(AgentError::Refused { code, .. }) if code == "NOT_FOUND" => return Ok(Read::Missing),
+        Err(AgentError::Refused { .. }) => return Ok(Read::Failed),
         Err(AgentError::Failed(_)) => return Err(Failure::new("runtime_unavailable", "runtime_unavailable")),
     };
     if blob["size"].as_u64().unwrap_or(0) > HOST_MAX || blob["truncated"] == true {
-        return Ok(Side { content: String::new(), binary: true, too_large: true });
+        return Ok(Read::Found(too_large()));
     }
     let bytes = base64::engine::general_purpose::STANDARD.decode(blob["data"].as_str().unwrap_or("")).unwrap_or_default();
-    let binary = bytes.iter().take(PROBE).any(|b| *b == 0);
-    let content = if binary {
-        if preview_mime(as_path).is_some() { base64::engine::general_purpose::STANDARD.encode(&bytes) } else { String::new() }
-    } else {
-        String::from_utf8_lossy(&bytes).into_owned()
+    Ok(Read::Found(side_of(&bytes, as_path)))
+}
+
+/// The file at `rev`: a path the commit lacks (or any read the executor refuses) is an empty side, as the pinned host reads a missing blob.
+fn read_side(repo: &Repo, rev: &str, path: &str, as_path: &str) -> Result<Side, Failure> {
+    read_git(repo, Some(rev), path, as_path).map(Read::side)
+}
+
+/// `readWorkingTreeFile`: a path that is not there, or is a directory, is absent; one over 10 MiB is too large and not read.
+fn read_worktree(repo: &Repo, path: &str) -> Result<Read, Failure> {
+    let stat = match repo.try_ask(FILE_STAT, json!({"path": path})) {
+        Ok(stat) => stat,
+        Err(AgentError::Refused { code, .. }) if code == "UNKNOWN_WORKSPACE" => return Err(Failure::new("selector_not_found", "selector_not_found")),
+        Err(AgentError::Refused { code, .. }) if code == "NOT_FOUND" => return Ok(Read::Missing),
+        Err(AgentError::Refused { .. }) => return Ok(Read::Failed),
+        Err(AgentError::Failed(_)) => return Err(Failure::new("runtime_unavailable", "runtime_unavailable")),
     };
-    Ok(Side { content, binary, too_large: false })
+    if stat["kind"] == "dir" {
+        return Ok(Read::Missing);
+    }
+    if stat["size"].as_u64().unwrap_or(0) > HOST_MAX {
+        return Ok(Read::Found(too_large()));
+    }
+    let mut bytes = Vec::new();
+    loop {
+        let length = CHUNK.min(HOST_MAX + 1 - bytes.len() as u64);
+        let piece = match repo.try_ask(FILE_READ_CHUNK, json!({"path": path, "offset": bytes.len(), "length": length})) {
+            Ok(r) => r,
+            Err(AgentError::Failed(_)) => return Err(Failure::new("runtime_unavailable", "runtime_unavailable")),
+            Err(_) => return Ok(Read::Failed),
+        };
+        let Ok(data) = base64::engine::general_purpose::STANDARD.decode(piece["data"].as_str().unwrap_or("")) else { return Ok(Read::Failed) };
+        bytes.extend_from_slice(&data);
+        if bytes.len() as u64 > HOST_MAX {
+            return Ok(Read::Found(too_large()));
+        }
+        if piece["eof"] == true || data.is_empty() {
+            return Ok(Read::Found(side_of(&bytes, path)));
+        }
+    }
 }
 
 /// `countLinesEmptyAsZeroUpToLimit`: 0 for nothing, else one more than the newlines, stopping once past the limit.
@@ -112,7 +187,7 @@ fn build(left: Side, right: Side, path: &str) -> Value {
 fn relative(path: &str) -> Result<String, Failure> {
     let slashed = path.replace('\\', "/");
     let trimmed = slashed.trim_end_matches('/');
-    let drive = trimmed.len() >= 2 && trimmed.as_bytes()[0].is_ascii_alphabetic() && trimmed.as_bytes()[1] == b':' && (trimmed.len() == 2 || trimmed.as_bytes()[2] == b'/');
+    let drive = trimmed.len() >= 2 && trimmed.as_bytes()[0].is_ascii_alphabetic() && trimmed.as_bytes()[1] == b':' && trimmed.len() > 2 && trimmed.as_bytes()[2] == b'/';
     if trimmed.is_empty() || trimmed.starts_with('/') || drive || trimmed.split('/').any(|s| matches!(s, "" | "." | "..")) {
         return Err(Failure::new(orca_core::wire::RUNTIME_ERROR, "invalid_relative_path"));
     }
@@ -178,4 +253,62 @@ pub(crate) fn commit(repo: &Repo, params: &Value) -> Result<Value, Failure> {
         None => absent(),
     };
     Ok(build(left, read_side(repo, &commit, &path, &path)?, &path))
+}
+
+/// The params of `git.diff`, checked in the pinned schema's order before the selector is resolved (only the first problem is answered).
+pub(crate) struct WorkingParams {
+    file_path: String,
+    staged: bool,
+    against_head: bool,
+    old_path: Option<String>,
+}
+
+fn kind_of(v: Option<&Value>) -> &'static str {
+    v.map_or("undefined", orca_core::wire::received)
+}
+
+pub(crate) fn working_params(params: &Value) -> Result<WorkingParams, Failure> {
+    text(params, "worktree").ok_or_else(|| Failure::invalid("Missing worktree selector"))?;
+    let file_path = text(params, "filePath").ok_or_else(|| Failure::invalid("Missing file path"))?.to_string();
+    let staged = match params.get("staged") {
+        Some(Value::Bool(b)) => *b,
+        other => return Err(Failure::invalid(format!("Invalid input: expected boolean, received {}", kind_of(other)))),
+    };
+    let against_head = match params.get("compareAgainstHead") {
+        None => false,
+        Some(Value::Bool(b)) => *b,
+        other => return Err(Failure::invalid(format!("Invalid input: expected boolean, received {}", kind_of(other)))),
+    };
+    Ok(WorkingParams { file_path, staged, against_head, old_path: old_path(params)? })
+}
+
+/// `git.diff`: staged, the file at HEAD (at its old path for a rename) against the index; unstaged, the index (or HEAD for a file the index lacks, or
+/// HEAD when asked) against the working tree. A binary result whose new side is proven gone says so, and a reply over the remote budget is refused.
+pub(crate) fn working(repo: &Repo, p: &WorkingParams, request_id: &str) -> Result<Value, Failure> {
+    let path = relative(&p.file_path)?;
+    let old = p.old_path.as_deref().map(relative).transpose()?;
+    let (left, right) = if p.staged {
+        let left_path = old.as_deref().unwrap_or(&path);
+        (read_git(repo, Some("HEAD"), left_path, left_path)?, read_git(repo, None, &path, &path)?)
+    } else {
+        let left = if p.against_head {
+            read_git(repo, Some("HEAD"), &path, &path)?
+        } else {
+            match read_git(repo, None, &path, &path)? {
+                Read::Missing => read_git(repo, Some("HEAD"), &path, &path)?,
+                read => read,
+            }
+        };
+        (left, read_worktree(repo, &path)?)
+    };
+    let deleted = matches!(right, Read::Missing);
+    let mut result = build(left.side(), right.side(), &path);
+    if deleted && result["kind"] == "binary" {
+        result["modifiedDeleted"] = true.into();
+    }
+    let budget = REPLY_MAX - serde_json::to_string(request_id).map_or(0, |s| s.len());
+    if serde_json::to_string(&result).map_or(0, |s| s.len()) > budget {
+        return Err(Failure { code: "diff_too_large".into(), message: "This diff is too large to open over a remote connection.".into(), data: Some(json!({"maxBytes": budget})) });
+    }
+    Ok(result)
 }
