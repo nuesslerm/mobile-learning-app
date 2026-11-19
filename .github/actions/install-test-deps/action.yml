@@ -110,7 +110,8 @@ runs:
       shell: bash
       run: pnpm --filter @tooling/browser-harness run build
     # A pinned static build (41 MB, seconds): the apt package pulls about 200 packages from the runner's mirror and took 12 to 20 minutes
-    # per flow shard (run 44339835045). apt stays the fallback when the download or its checksum fails.
+    # per flow shard (run 44339835045). apt stays the fallback when the download or its checksum fails. The download fails fast: with curl's own
+    # defaults an unreachable host cost 4 tries of 135 s (9 minutes) in every shard of run 44567666031 before apt, which then took 10 s.
     - name: ffmpeg
       if: ${{ inputs.ffmpeg == 'true' }}
       shell: bash
@@ -121,7 +122,7 @@ runs:
         command -v ffmpeg >/dev/null && exit 0
         sudo=$([ "$(id -u)" = 0 ] || echo sudo)
         dir="$RUNNER_TEMP/ffmpeg-static"
-        if [ "$(uname -m)" = x86_64 ] && curl -fsSL --retry 3 --max-time 180 -o "$RUNNER_TEMP/ffmpeg.tar.xz" "$FFMPEG_URL" \
+        if [ "$(uname -m)" = x86_64 ] && curl -fsSL --connect-timeout 8 --retry 1 --max-time 90 -o "$RUNNER_TEMP/ffmpeg.tar.xz" "$FFMPEG_URL" \
           && echo "$FFMPEG_SHA256  $RUNNER_TEMP/ffmpeg.tar.xz" | sha256sum -c --quiet; then
           mkdir -p "$dir" && tar -xJf "$RUNNER_TEMP/ffmpeg.tar.xz" -C "$dir" --strip-components=1
           $sudo install -m 0755 "$dir/ffmpeg" "$dir/ffprobe" /usr/local/bin/
