@@ -24,6 +24,8 @@ Pre-2026-10 history: [archive](archive/README.md).
 - leetcode · The "Reset to starter code?" dialog is missing from Android's accessibility tree · 39d · [android-reset-dialog-not-in-a11y-tree](gaps/android-reset-dialog-not-in-a11y-tree.md)
 - leetcode · A second tap on the mic while a recording starts or runs rejects, unhandled · 30d · [voice-start-not-idempotent](gaps/voice-start-not-idempotent.md)
 - leetcode · The bundled Pyodide adds 12.9 MiB to every EAS Update and every web deploy · 0d · [pyodide-assets-in-every-update](gaps/pyodide-assets-in-every-update.md)
+- leetcode · A bare `except:` in a learner's hot loop defeats the on-device time limit · 0d · [pyodide-bare-except-defeats-the-deadline](gaps/pyodide-bare-except-defeats-the-deadline.md)
+- leetcode · Run Local shows a green "Accepted" for the eight problems that have no bundled test cases · 0d · [run-local-accepts-a-problem-with-no-cases](gaps/run-local-accepts-a-problem-with-no-cases.md)
 - logging · The BetterStack query recipes in docs/solutions use a form that returns nothing · 92d · [betterstack-recipe-drift](gaps/betterstack-recipe-drift.md)
 - mla-tamagui · A cold load of /tamil/review?lessonId= from the web export hydrates with React #418 · 39d · [web-export-cold-deep-link-hydration-418](gaps/web-export-cold-deep-link-hydration-418.md)
 - mla-tamagui · The charts-spike probe crashes on load in the static web export · 30d · [charts-spike-export-unknown-module](gaps/charts-spike-export-unknown-module.md)

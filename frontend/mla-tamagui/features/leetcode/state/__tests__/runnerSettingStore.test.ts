@@ -33,4 +33,24 @@ describe('useRunnerSettingStore', () => {
     await useRunnerSettingStore.persist.rehydrate();
     expect(useRunnerSettingStore.getState().runner).toBe(DEFAULT_RUNNER);
   });
+
+  it('Given the storage cannot be read, When Run Local waits for the setting, Then it stops waiting and the default stays', async () => {
+    // a store that has never hydrated: persist marks it hydrated only after a successful read
+    vi.resetModules();
+    vi.doMock('@react-native-async-storage/async-storage', () => ({
+      default: {
+        getItem: async () => {
+          throw new Error('the storage is unreadable');
+        },
+        setItem: async () => undefined,
+        removeItem: async () => undefined,
+      },
+    }));
+    const fresh = await import('../runnerSettingStore');
+
+    await fresh.whenRunnerSettingHydrated();
+
+    expect(fresh.useRunnerSettingStore.getState().runner).toBe(fresh.DEFAULT_RUNNER);
+    vi.doUnmock('@react-native-async-storage/async-storage');
+  }, 10_000);
 });

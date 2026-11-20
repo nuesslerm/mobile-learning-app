@@ -38,14 +38,16 @@ export function RunnerSettingRow() {
           On this device runs Python with no network. Other languages run on the server.
         </Text>
       </YStack>
-      <XStack gap="$2" testID="LeetcodeListRunner">
+      <XStack gap="$2" role="radiogroup" aria-label="Where Run Local runs" testID="LeetcodeListRunner">
         {CHOICES.map(({ value, label }) => (
           <Button
             key={value}
             flex={1}
             size="$3"
             variant={runner === value ? 'default' : 'outline'}
-            aria-pressed={runner === value}
+            // a radio with its checked state: React Native maps these to the screen reader's role and state (it has no aria-pressed)
+            role="radio"
+            aria-checked={runner === value}
             pressLog="off"
             testID={value === 'backend' ? 'LeetcodeListRunnerBackend' : 'LeetcodeListRunnerDevice'}
             onPress={() => {

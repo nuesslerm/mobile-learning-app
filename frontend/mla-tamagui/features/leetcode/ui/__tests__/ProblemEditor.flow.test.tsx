@@ -285,7 +285,7 @@ describe('ProblemEditorScreen flow (router)', () => {
     await editor.select(0, editor.text().length);
     await editor.type(typed);
 
-    const probe = logAt('features/leetcode/ui/ProblemEditorScreen.tsx', 540, ['problem.id']);
+    const probe = logAt('features/leetcode/ui/ProblemEditorScreen.tsx', 551, ['problem.id']);
     try {
       await userEvent.click(screen.getByTestId('ProblemEditorResetButton'));
     } finally {
@@ -297,7 +297,7 @@ describe('ProblemEditorScreen flow (router)', () => {
     });
     expect(probe.stops).toHaveLength(1);
     expect(probe.stops[0].values).toEqual({ 'problem.id': 'two-sum' });
-    expect(probe.stops[0].stack[0]).toMatchObject({ file: 'features/leetcode/ui/ProblemEditorScreen.tsx', line: 540 });
+    expect(probe.stops[0].stack[0]).toMatchObject({ file: 'features/leetcode/ui/ProblemEditorScreen.tsx', line: 551 });
   });
 });
 
@@ -427,5 +427,28 @@ describe('ProblemEditorScreen flow (code runner port)', () => {
     // Then the card shows Accepted with every case passed
     await waitFor(() => expect(screen.getByTestId('ProblemEditorRunOutcomeStatus').textContent).toBe('Accepted'));
     expect(screen.getByTestId('ProblemEditorRunOutcomeTotals').textContent).toBe('4 / 4 test cases passed');
+  });
+
+  it('given a run that is still going, when the user edits the code and the run then finishes, then no verdict is shown over the new code', async () => {
+    // Given the editor with a runner whose answer is held back, and Run Local pressed on the starter code
+    const { gateway } = fakeGateway();
+    let finish: (run: RunResponse) => void = () => undefined;
+    const runner = createFakeCodeRunner(() => new Promise<RunResponse>((resolve) => (finish = resolve)));
+    const session = await renderEditor(gateway, undefined, runner);
+    const editor = await session.editor();
+    await forgetLoggedLines();
+    await userEvent.click(screen.getByTestId('ProblemEditorRunLocalButton'));
+    await waitFor(() => expect(runner.calls).toHaveLength(1));
+
+    // When the person goes on typing and the run then finishes
+    const edited = `${editor.text()}\n        return [0, 1]`;
+    await editor.select(0, editor.text().length);
+    await editor.type(edited);
+    await waitFor(() => expect(editor.text()).toBe(edited));
+    await act(async () => finish(passingRun(3)));
+
+    // Then no card appears for code that is no longer there, and the screen says why it dropped the answer
+    await waitFor(async () => expect(await loggedLines('editor_v2.run_local.discarded')).not.toHaveLength(0));
+    expect(screen.queryByTestId('ProblemEditorRunOutcomeStatus')).toBeNull();
   });
 });

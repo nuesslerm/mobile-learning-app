@@ -156,6 +156,11 @@ export function ProblemEditorScreen({
   // (format, language switch, voice apply) back through onChangeText, and an
   // echo carries identical text.
   const outcomeSourceRef = React.useRef<string | null>(null);
+  // the buffer and the language as they are now, for a run that finishes after the person has gone on typing
+  const latestBufferRef = React.useRef({ text: editorText, lang });
+  React.useEffect(() => {
+    latestBufferRef.current = { text: editorText, lang };
+  }, [editorText, lang]);
   // The gateway is the fetch client for leetcode-backend. It backs three
   // buttons: `Run Local` and `Format` execute on the backend with no
   // leetcode.com/session, while `Run` needs an auth'd session.
@@ -287,6 +292,12 @@ export function ProblemEditorScreen({
           ? runParamsFor(problem, lang, editorText)
           : { lang, code: editorText, methodName: '', testCases: [] }
       );
+      const latest = latestBufferRef.current;
+      if (latest.text !== editorText || latest.lang !== lang) {
+        // the code that ran is no longer in the editor: its verdict would sit over code it never judged
+        Logger.info('editor_v2.run_local.discarded', { problemId: problem?.id, lang, ms: Date.now() - startedAt });
+        return;
+      }
       setRunOutcome(result);
       outcomeSourceRef.current = editorText;
       Logger.info('editor_v2.run_local.result', {

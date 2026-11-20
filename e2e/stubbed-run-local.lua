@@ -28,51 +28,51 @@ local function choose(id)
   device:tap_on({id=id})
 end
 run_flow("choose the server", function() choose('LeetcodeListRunnerBackend') end)
--- a reused app may still show this screen: a link to it remounts it a moment later, so the first wait would pass on the
--- old one (18 Oct); the app leaves for Settings first (a link to "/" does not navigate a running Expo Go)
-if android and device:get_element({id='ProblemEditorRunLocalButton'}) then
-  device:open_link(base .. "/settings")
-  device:assert_not_visible({id='ProblemEditorRunLocalButton'})
-end
-run_flow("open route", function()
-  device:open_link(base .. "/leetcode/two-sum")
-  device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
-end)
--- the web export's first load hydrates a cold deep link with React #419 (docs/gaps/web-export-cold-deep-link-hydration-418.md); the stubbed interaction itself must stay clean
-device:clear_logs()
-device:assert_screenshot("two-sum-before-run")
--- the editor may open focused with the keyboard over the action row; Done at the end of the toolbar lowers it (on Android
--- the editor often opens unfocused, with no keyboard and no toolbar to lower)
-if not (android and not device:get_device_state('keyboard').visible) then
-  device:scroll_until_visible{element={id='EditorAction-Done'}, direction='RIGHT', from={id='EditorActionToolbar'}}
-  device:tap_on({id='EditorAction-Done'})
-  device:assert_not_visible({id='EditorHelperRails'})
-end
--- a run leaves the code as it was: the screen scrolls down to the result card, which puts the first lines of the editor behind the header
-local code_before = (device:get_element({id='CodeEditorInput'}) or {}).text
-assert_true(code_before and code_before:find("def twoSum", 1, true), "the editor does not hold the starter before the run: " .. tostring(code_before))
--- a reused app may still show an earlier run's outcome on this screen, so the stubbed one is waited for, not the first
-local shown
-run_flow("run local", function()
-  -- declaring the stub again asserts the device's redirect rules again: the device can lose them between the start of the run and this tap
-  stub_run()
-  device:tap_on({id='ProblemEditorRunLocalButton'})
-  shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=12000, optional=true}
-  if android and not shown then
-    -- on the hosted runner the first request of a reused app sometimes sits unacknowledged on a connection the DNAT rule never saw (the device's socket
-    -- table shows bytes queued to port 8789 and no answer): what the stub saw and the NAT rules are logged, and one more tap opens a fresh connection
-    log("first run: stub hits", #device:get_network_stub_hits())
-    log("nat rules", (device:run_shell("iptables -t nat -L OUTPUT -v -n -x; iptables -L OUTPUT -v -n -x")))
-    -- a fresh app process opens fresh sockets, all of them behind the rules
-    device:run_shell("am force-stop host.exp.exponent")
-    stub_run()
+local ok, failure = pcall(function()
+  -- a reused app may still show this screen: a link to it remounts it a moment later, so the first wait would pass on the
+  -- old one (18 Oct); the app leaves for Settings first (a link to "/" does not navigate a running Expo Go)
+  if android and device:get_element({id='ProblemEditorRunLocalButton'}) then
+    device:open_link(base .. "/settings")
+    device:assert_not_visible({id='ProblemEditorRunLocalButton'})
+  end
+  run_flow("open route", function()
     device:open_link(base .. "/leetcode/two-sum")
     device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
-    device:tap_on({id='ProblemEditorRunLocalButton'})
-    shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=30000, optional=true}
+  end)
+  -- the web export's first load hydrates a cold deep link with React #419 (docs/gaps/web-export-cold-deep-link-hydration-418.md); the stubbed interaction itself must stay clean
+  device:clear_logs()
+  device:assert_screenshot("two-sum-before-run")
+  -- the editor may open focused with the keyboard over the action row; Done at the end of the toolbar lowers it (on Android
+  -- the editor often opens unfocused, with no keyboard and no toolbar to lower)
+  if not (android and not device:get_device_state('keyboard').visible) then
+    device:scroll_until_visible{element={id='EditorAction-Done'}, direction='RIGHT', from={id='EditorActionToolbar'}}
+    device:tap_on({id='EditorAction-Done'})
+    device:assert_not_visible({id='EditorHelperRails'})
   end
-end)
-local ok, failure = pcall(function()
+  -- a run leaves the code as it was: the screen scrolls down to the result card, which puts the first lines of the editor behind the header
+  local code_before = (device:get_element({id='CodeEditorInput'}) or {}).text
+  assert_true(code_before and code_before:find("def twoSum", 1, true), "the editor does not hold the starter before the run: " .. tostring(code_before))
+  -- a reused app may still show an earlier run's outcome on this screen, so the stubbed one is waited for, not the first
+  local shown
+  run_flow("run local", function()
+    -- declaring the stub again asserts the device's redirect rules again: the device can lose them between the start of the run and this tap
+    stub_run()
+    device:tap_on({id='ProblemEditorRunLocalButton'})
+    shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=12000, optional=true}
+    if android and not shown then
+      -- on the hosted runner the first request of a reused app sometimes sits unacknowledged on a connection the DNAT rule never saw (the device's socket
+      -- table shows bytes queued to port 8789 and no answer): what the stub saw and the NAT rules are logged, and one more tap opens a fresh connection
+      log("first run: stub hits", #device:get_network_stub_hits())
+      log("nat rules", (device:run_shell("iptables -t nat -L OUTPUT -v -n -x; iptables -L OUTPUT -v -n -x")))
+      -- a fresh app process opens fresh sockets, all of them behind the rules
+      device:run_shell("am force-stop host.exp.exponent")
+      stub_run()
+      device:open_link(base .. "/leetcode/two-sum")
+      device:assert_visible({id='ProblemEditorRunLocalButton'}, {timeout=60000})
+      device:tap_on({id='ProblemEditorRunLocalButton'})
+      shown = device:extended_wait_until{visible={id='ProblemEditorRunOutcomeTotals', text='.*3 / 3.*'}, timeout=30000, optional=true}
+    end
+  end)
   local now = device:get_element({id='ProblemEditorRunOutcomeTotals'})
   local totals = (shown and shown.text) or (now and now.text) or ""
   log("totals", totals)
@@ -96,5 +96,6 @@ local ok, failure = pcall(function()
   local info = table.concat(device:get_logs{level='info'}, "\n")
   assert_true(info:find("editor_v2.run_local.result", 1, true), "no run_local.result line in the app log")
 end)
+-- the default goes back whatever failed above: later tests on this device expect it
 pcall(function() choose('LeetcodeListRunnerDevice') end)
 if not ok then error(failure, 0) end

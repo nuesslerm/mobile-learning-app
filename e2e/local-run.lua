@@ -8,7 +8,7 @@ features: leetcode
 -- Run Local on the device (issue 86, B2): with "This device" chosen on the problem list, Python runs in the hidden Pyodide page and the
 -- backend is never asked (a stub counts the requests that would reach it). A good solution is Accepted over all 12 cases, a solution that
 -- raises on one input shows 11 / 12 and the error, one that never ends is stopped by the per-case limit, a syntax error shows the compile
--- error. The setting is put back to the default (this device) at the end: later tests on this device expect it.
+-- error. The default (this device) is chosen first and never changed after, so later tests on this device find what they expect.
 -- wf browser test e2e/local-run.lua --env base=http://127.0.0.1:8800/mla-tamagui
 -- wf android test e2e/local-run.lua --env base=exp://u.expo.dev/<projectId>/group/<group>/--
 local android = device.platform == "android"
@@ -77,7 +77,16 @@ end
 -- opens the problem with `code` in the editor and runs it; returns when the outcome card names a verdict
 local function run_seed(problem, code, expect_text, secs)
   leave_editor()
+  device:clear_logs()
   open("/leetcode/" .. problem .. "?seed64=" .. base64url(code), 'ProblemEditorRunLocalButton')
+  -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: the first route.change is awaited
+  if not android then
+    device:extended_wait_until{condition=function()
+      for _, l in ipairs(device:get_logs{level='info'}) do
+        if l:find('route.change', 1, true) then return true end
+      end
+    end, timeout=60000, interval=250, label='the page hydrated'}
+  end
   lower_keyboard()
   device:tap_on({id='ProblemEditorRunLocalButton'})
   device:extended_wait_until{visible={id=expect_text.id, text=expect_text.text}, timeout=(secs or 120) * 1000, label=problem .. ': ' .. expect_text.label}
@@ -136,7 +145,5 @@ local ok, failure = pcall(function()
 
   assert_true(#device:get_network_stub_hits() == 0, "a run reached the backend")
 end)
--- later tests on this device expect the default: the setting goes back even when a step failed
-pcall(function() choose('device') end)
 if not ok then error(failure, 0) end
 log("local run: pass")

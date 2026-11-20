@@ -43,4 +43,19 @@ describe('clip', () => {
   it('Given several lines, When clipped, Then only the first shows and it is clipped', () => {
     expect(clip('one\ntwo')).toEqual({ text: 'one…', clipped: true });
   });
+
+  it.each([
+    ['a printed line with its newline', 'x\n', { text: 'x', clipped: false }],
+    ['a printed line with a Windows newline', 'x\r\n', { text: 'x', clipped: false }],
+    ['text that starts with a blank line', '\nfoo', { text: 'foo…', clipped: true }],
+    ['nothing but newlines', '\n\n', { text: '', clipped: false }],
+  ])('Given %s, When clipped, Then the trailing newline is not a second line', (_name, value, expected) => {
+    expect(clip(value)).toEqual(expected);
+  });
+
+  it('Given an emoji that straddles the limit, When clipped, Then it is kept whole or left out, never cut in half', () => {
+    const { text } = clip(`${'a'.repeat(71)}😀 and more`);
+    expect(text).toBe(`${'a'.repeat(71)}😀…`);
+    expect(clip(`${'a'.repeat(72)}😀`).text).toBe(`${'a'.repeat(72)}…`);
+  });
 });

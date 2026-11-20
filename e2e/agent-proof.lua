@@ -14,4 +14,6 @@ device:tap_on({id='ProblemEditorRunLocalButton'})
 -- the run executes on the device: the first one loads the interpreter
 local totals = device:assert_visible({id='ProblemEditorRunOutcomeTotals'}, {timeout=90000}).text or ""
 log(totals)
-assert_true(totals:find("passed", 1, true), "the outcome totals do not say passed: " .. totals)
+-- every case, not just a totals line: "0 / 12 test cases passed" contains the word too
+local got, of = totals:match("(%d+) / (%d+)")
+assert_true(got and got == of, "the outcome totals do not show every case passed: " .. totals)

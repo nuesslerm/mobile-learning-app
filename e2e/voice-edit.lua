@@ -258,5 +258,7 @@ end)
 local totals = text_of("ProblemEditorRunOutcomeTotals")
 device:take_screenshot(("%s/%s-final.png"):format(out, problem))
 local f = assert(io.open(out .. "/result.json", "w")); f:write(json.encode({ problem = problem, turns = turns, run_local = totals, agent = use_agent })); f:close()
-assert_true(totals and totals:match("passed"), "Run Local did not pass: " .. tostring(totals))
+-- every case, not just a totals line: "0 / 12 test cases passed" contains the word too
+local got, of = (totals or ""):match("(%d+) / (%d+)")
+assert_true(got and got == of, "Run Local did not pass every case: " .. tostring(totals))
 log("voice edit " .. problem .. ": pass", totals)
