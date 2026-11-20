@@ -1,7 +1,7 @@
-name: CI (GitHub-hosted cli)
+name: CI service deploy
 
-# The CI's cli stage: pipeline.yml with `stages: cli`, a run of its own on every push: the cli e2e tests and, once they pass, the wf build released as `wf-latest` and installed through
-# vm-ops-api. It waits for neither the flow tests, the deploy nor the e2e suites and they do not wait for it. It has its own pull request comment.
+# CI service deploy: pipeline.yml with `stages: deploy`, a run of its own on every push: the image builds, the integration tests (which run what the images hold) and the deploy legs
+# and their verification. Integration shards queue per crate set and input fingerprint (docs/solutions/ci/shard-weights-and-overlapping-runs.md). Its pull request comment is its own.
 on:
   push:
     branches: [dev]
@@ -9,7 +9,7 @@ on:
 # One run per commit: a push never waits for an older run (a red shard of the older one is fixed and re-run at once), and no run is cancelled, so every run is
 # measured to its end. What must not overlap is serialised per job (deploy per app) and what ships first checks that its commit is still the head of dev.
 concurrency:
-  group: ci-hosted-cli-${{ github.sha }}
+  group: ci-hosted-service-deploy-${{ github.sha }}
   cancel-in-progress: false
 
 permissions:
@@ -53,8 +53,8 @@ jobs:
       # no VM since 13 Nov (the Oracle account was terminated): the deploy legs need it, so they run only when the repository variable says on; the e2e suites need nothing deployed
       deploy: ${{ vars.HOSTED_DEPLOY == 'on' }}
       e2e: false
-      stages: cli
-      label: GitHub-hosted cli
+      stages: deploy
+      label: GitHub-hosted service deploy
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
       TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}

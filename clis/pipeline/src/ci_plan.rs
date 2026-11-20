@@ -40,7 +40,7 @@ pub fn run(rest: &[String]) -> Option<i32> {
     match word.as_str() {
         "tags" => tags(args),
         "tests" => {
-            let spec = Spec { values: &["sha", "base", "platform", "force"], flags: &["json", "changed", "all", "github-output"], positional: Positional::Any, ..Spec::NONE };
+            let spec = Spec { values: &["sha", "base", "platform", "force", "area"], flags: &["json", "changed", "all", "github-output"], positional: Positional::Any, ..Spec::NONE };
             let words: Vec<String> = std::iter::once("plan".to_string()).chain(args.iter().cloned()).collect();
             Some(crate::e2e_tests::plan(&parse_spec(&words, &spec)?))
         }

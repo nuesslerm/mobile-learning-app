@@ -1867,6 +1867,7 @@ subcommand prints one JSON object (exit 0) or {schema: "ci-plan/1", ok: false, e
 next} (exit 2 for a refusal); with --github-output it also appends the step outputs
 its jobs read to $GITHUB_OUTPUT.
 
+                         --area mobile|cli|backend keeps one area's tests (the app and the workspace root, clis/, the rest) for a core workflow of its own.
   shard-weights [--write] [--sealed-file <path>] [--out <path>]
                          the flow and integration units' costs as the CI database measured them (`NX_TASKS`, the median over runs, in seconds),
                          merged into data/shard-weights.json; without --write it only prints them.

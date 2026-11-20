@@ -1,8 +1,7 @@
-name: CI (GitHub-hosted)
+name: CI core backend services
 
-# The CI's core stage: pipeline.yml on GitHub-hosted runners, the flow, lint, typecheck and unit tests. The cli stage, the image builds with the integration tests and the deploy, and the
-# browser and Android suites are runs of their own (ci-hosted-cli.yml, ci-hosted-deploy.yml, ci-hosted-e2e.yml), so none of them waits for another. Every push spends minutes; the repo variable HOSTED_CI=off switches it
-# off at once, the deploy legs run only with HOSTED_DEPLOY=on (no VM since the Oracle account was terminated), the e2e suites always run (they start their backends on the runner), HOSTED_SHARDS sets the machines per test stage (docs/solutions/ci/hosted-minutes.md).
+# CI core backend services: pipeline.yml with `stages: core` and `area: backend`, a run of its own on every push: the flow, lint, typecheck and unit tests of the backend services and
+# their libraries. (The file keeps its name, which wf vm ops cancel-run, wf ci audit and the last-green base look for.) Its pull request comment is its own.
 on:
   push:
     branches: [dev]
@@ -54,7 +53,8 @@ jobs:
       deploy: false
       e2e: false
       stages: core
-      label: GitHub-hosted
+      label: GitHub-hosted core backend services
+      area: backend
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
       TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}

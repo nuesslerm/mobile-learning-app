@@ -59,7 +59,13 @@ fn the_hosted_caller_adds_only_a_trigger_gate_and_calls_the_same_pipeline() {
 
 #[test]
 fn the_cli_deploy_and_e2e_callers_are_runs_of_their_own_of_the_same_pipeline_each_for_one_stage_with_a_label_and_a_group_of_its_own() {
-    for (caller, stage, group) in [("ci-hosted-cli.yml", "cli", "ci-hosted-cli-"), ("ci-hosted-deploy.yml", "deploy", "ci-hosted-deploy-"), ("ci-hosted-e2e.yml", "e2e", "ci-hosted-e2e-")] {
+    for (caller, stage, group) in [
+        ("ci-hosted-cli-publish.yml", "cli", "ci-hosted-cli-publish-"),
+        ("ci-hosted-service-deploy.yml", "deploy", "ci-hosted-service-deploy-"),
+        ("ci-hosted-mobile-e2e.yml", "e2e", "ci-hosted-mobile-e2e-"),
+        ("ci-hosted-core-mobile.yml", "core", "ci-hosted-core-mobile-"),
+        ("ci-hosted-core-cli.yml", "core", "ci-hosted-core-cli-"),
+    ] {
         // Given a stage caller
         let text = workflow(caller);
 
@@ -73,7 +79,8 @@ fn the_cli_deploy_and_e2e_callers_are_runs_of_their_own_of_the_same_pipeline_eac
         assert!(run.contains("      label: GitHub-hosted "), "{caller} has a label of its own, so its pull request comment is its own");
         assert!(text.contains(&format!("  group: {group}${{{{ github.sha }}}}\n")), "{caller} has a concurrency group of its own");
     }
-    assert!(job_block(&workflow("ci-hosted.yml"), "run").contains("      stages: core\n"), "ci-hosted.yml runs the core stage");
+    let backend = job_block(&workflow("ci-hosted.yml"), "run").to_string();
+    assert!(backend.contains("      stages: core\n") && backend.contains("      area: backend\n"), "ci-hosted.yml runs the core stage of the backend services");
 }
 
 #[test]
@@ -82,7 +89,7 @@ fn every_input_and_secret_a_caller_passes_is_declared_by_the_pipeline() {
     let declared_inputs = keys_under(&workflow("pipeline.yml"), "    inputs:");
     let declared_secrets = keys_under(&workflow("pipeline.yml"), "    secrets:");
 
-    for caller in ["ci-hosted.yml", "ci-hosted-cli.yml", "ci-hosted-deploy.yml", "ci-hosted-e2e.yml", "cold-ci.yml"] {
+    for caller in ["ci-hosted.yml", "ci-hosted-cli-publish.yml", "ci-hosted-service-deploy.yml", "ci-hosted-mobile-e2e.yml", "ci-hosted-core-mobile.yml", "ci-hosted-core-cli.yml", "cold-ci.yml"] {
         // When what each passes is compared with what the pipeline declares
         let run = job_block(&workflow(caller), "run").to_string();
         let inputs = keys_under(&run, "    with:");

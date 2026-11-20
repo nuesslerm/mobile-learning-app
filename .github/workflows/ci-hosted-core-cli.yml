@@ -1,7 +1,6 @@
-name: CI (GitHub-hosted e2e)
+name: CI core cli
 
-# The CI's e2e stage: pipeline.yml with `stages: e2e`, a run of its own on every push: the production EAS Update, the browser suite against a web export built on its runner and the Android suite on
-# the SDK emulator against its own backends and its own EAS Update (branch e2e). Neither waits for the flow tests, the integration tests or the deploy. It has its own pull request comment.
+# CI core cli: pipeline.yml with `stages: core` and `area: cli`, a run of its own on every push: the flow, lint, typecheck and unit tests of the cli area. Its pull request comment is its own.
 on:
   push:
     branches: [dev]
@@ -9,7 +8,7 @@ on:
 # One run per commit: a push never waits for an older run (a red shard of the older one is fixed and re-run at once), and no run is cancelled, so every run is
 # measured to its end. What must not overlap is serialised per job (deploy per app) and what ships first checks that its commit is still the head of dev.
 concurrency:
-  group: ci-hosted-e2e-${{ github.sha }}
+  group: ci-hosted-core-cli-${{ github.sha }}
   cancel-in-progress: false
 
 permissions:
@@ -50,11 +49,11 @@ jobs:
       deploy_runner: '"ubuntu-24.04-arm"'
       shards: ${{ fromJSON(vars.HOSTED_SHARDS || '6') }}
       ship: true
-      # no VM since 13 Nov (the Oracle account was terminated): the deploy legs need it, so they run only when the repository variable says on; the e2e suites need nothing deployed
       deploy: false
-      e2e: true
-      stages: e2e
-      label: GitHub-hosted e2e
+      e2e: false
+      stages: core
+      label: GitHub-hosted core cli
+      area: cli
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
       TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}

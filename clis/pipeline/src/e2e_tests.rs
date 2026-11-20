@@ -151,10 +151,17 @@ pub(crate) fn resolve_base(raw: Option<&str>, sha: &str) -> String {
     }
 }
 
+/// The workflow file this run belongs to (the caller's, `GITHUB_WORKFLOW_REF` names it): each workflow of a push has its own last green, or a mobile run would skip the tests a
+/// mobile run left red because the backend run of the same commit passed. `ci-hosted.yml` outside Actions.
+fn workflow_file(reference: Option<&str>) -> String {
+    reference.and_then(|r| r.split_once(".github/workflows/")).and_then(|(_, rest)| rest.split('@').next()).filter(|f| f.starts_with("ci-hosted") && f.ends_with(".yml")).map_or_else(|| "ci-hosted.yml".to_string(), str::to_string)
+}
+
 fn last_green(sha: &str) -> Option<String> {
     let repo_name = std::env::var("GITHUB_REPOSITORY").ok()?;
+    let workflow = workflow_file(std::env::var("GITHUB_WORKFLOW_REF").ok().as_deref());
     let out = Command::new("gh")
-        .args(["run", "list", "-R", &repo_name, "--workflow", "ci-hosted.yml", "--branch", "dev", "--status", "success", "--limit", "30", "--json", "headSha", "--jq", ".[].headSha"])
+        .args(["run", "list", "-R", &repo_name, "--workflow", &workflow, "--branch", "dev", "--status", "success", "--limit", "30", "--json", "headSha", "--jq", ".[].headSha"])
         .stdin(Stdio::null())
         .stderr(Stdio::null())
         .output()
@@ -212,6 +219,13 @@ pub(crate) fn plan(p: &Parsed) -> i32 {
                 return 1;
             }
         }
+    }
+    if let Some(area) = p.val("area").filter(|a| *a != "all") {
+        if !crate::test_plan::AREAS.contains(&area) {
+            println!("{}", json!({ "error": format!("--area {area}: one of all, {}", crate::test_plan::AREAS.join(", ")) }));
+            return 2;
+        }
+        crate::test_plan::retain_area(&mut planned, area);
     }
     planned["tests"] = json!(rows);
     if p.flag("github-output") {
@@ -285,4 +299,17 @@ pub(crate) fn run_stage(args: &[String]) -> i32 {
         }
     };
     crate::test_plan::run_stage(&stage, &plan, &rest)
+}
+
+#[cfg(test)]
+mod workflow_file_tests {
+    use super::workflow_file;
+
+    #[test]
+    fn given_the_workflow_ref_of_a_caller_when_the_file_is_read_then_each_ci_workflow_is_its_own_and_anything_else_is_the_default() {
+        assert_eq!(workflow_file(Some("o/r/.github/workflows/ci-hosted-core-mobile.yml@refs/heads/dev")), "ci-hosted-core-mobile.yml");
+        assert_eq!(workflow_file(Some("o/r/.github/workflows/ci-hosted.yml@refs/heads/dev")), "ci-hosted.yml");
+        assert_eq!(workflow_file(Some("o/r/.github/workflows/cold-ci.yml@refs/heads/dev")), "ci-hosted.yml");
+        assert_eq!(workflow_file(None), "ci-hosted.yml");
+    }
 }

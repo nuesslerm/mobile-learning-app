@@ -618,6 +618,29 @@ pub fn force(planned: &mut Value, everything: &Value, names: &[String]) {
     }
 }
 
+/// The area of the repository a test's directory belongs to, so CI can run the core tests as one workflow per area: the app and its libraries (`frontend/`, the workspace
+/// root), the command line tools (`clis/`) and everything else (the backend services and their libraries).
+pub fn area_of(dir: &str) -> &'static str {
+    if dir == "." || dir.starts_with("frontend/") {
+        "mobile"
+    } else if dir.starts_with("clis/") {
+        "cli"
+    } else {
+        "backend"
+    }
+}
+
+pub const AREAS: [&str; 3] = ["mobile", "cli", "backend"];
+
+/// Keeps the tests of `area` in every stage; a test with no directory (an e2e test) stays.
+pub fn retain_area(plan: &mut Value, area: &str) {
+    for stage in STAGES {
+        if let Some(tests) = plan["stages"][stage].as_array_mut() {
+            tests.retain(|t| t["dir"].as_str().is_none_or(|d| area_of(d) == area));
+        }
+    }
+}
+
 /// `--github-output`: the plan as one line, and each stage's test count, for the CI jobs' `if:`.
 pub fn github_output(plan: &Value) -> String {
     let mut out = format!("plan={plan}\n");
@@ -932,6 +955,30 @@ fn run_e2e_stage(nx: &Path, root: &Path, stage: &str, names: &[String], rest: &[
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn given_a_plan_of_all_areas_when_one_area_is_kept_then_only_its_tests_stay_and_an_e2e_test_with_no_directory_stays() {
+        use super::retain_area;
+        // Given tests of the app, the root workspace, a cli crate, a backend crate and a library, and an e2e test
+        let mut plan = json!({"stages": {"flow-tests": [
+            {"package": "mla-tamagui", "dir": "frontend/mla-tamagui"}, {"package": "root", "dir": "."},
+            {"crate": "pipeline", "dir": "clis/pipeline"}, {"crate": "rca", "dir": "backend/remote-chat-agent/rs"}, {"crate": "agent-api-hosted", "dir": "libraries/agent-api/agent-api-hosted"},
+            {"name": "e2e-thing"}]}});
+
+        // When each area is kept in a copy of the plan
+        let names = |area: &str| {
+            let mut copy = plan.clone();
+            retain_area(&mut copy, area);
+            copy["stages"]["flow-tests"].as_array().unwrap().iter().map(|t| t["package"].as_str().or(t["crate"].as_str()).or(t["name"].as_str()).unwrap().to_string()).collect::<Vec<_>>()
+        };
+
+        // Then the app and the root are mobile, the clis are cli, the rest is backend, and every area keeps the test with no directory
+        assert_eq!(names("mobile"), ["mla-tamagui", "root", "e2e-thing"]);
+        assert_eq!(names("cli"), ["pipeline", "e2e-thing"]);
+        assert_eq!(names("backend"), ["rca", "agent-api-hosted", "e2e-thing"]);
+        retain_area(&mut plan, "cli");
+        assert_eq!(plan["stages"]["flow-tests"].as_array().unwrap().len(), 2);
+    }
+
     use super::{contract_selected, deployed_verification_entry, compare_selected, shapes_the_nx_graph, verified_projects, Crate, Scope};
     use serde_json::json;
 
