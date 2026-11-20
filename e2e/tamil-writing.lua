@@ -70,14 +70,6 @@ local function open_route(path, wait_for, timeout) run_flow("open route", functi
     end
   end
   device:assert_visible(wait_for, {timeout=30000})
-  -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: wait for the first route.change
-  if not android then
-    device:extended_wait_until{condition=function()
-      for _, l in ipairs(device:get_logs{level='info'}) do
-        if l:find('route.change', 1, true) then return true end
-      end
-    end, timeout=60000, interval=250, label='the page hydrated'}
-  end
   close_dev_menu()
 end) end
 
