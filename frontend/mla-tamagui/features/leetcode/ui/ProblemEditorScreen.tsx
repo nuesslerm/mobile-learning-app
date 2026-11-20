@@ -56,6 +56,7 @@ import { applyVoiceEdit } from '../code-editor/core/applyVoiceEdit';
 import { type Selection } from '../code-editor/core/types';
 import { EditorHelperRails } from '../code-editor/helperbars/EditorHelperRails';
 import { ProblemCatalog } from '../domain/problemCatalog';
+import { runParamsFor } from '../domain/runParams';
 import { compactVoiceError } from '../domain/voiceEditIdentity';
 import { useVoiceEdit } from '../state/useVoiceEdit';
 import { useLeetCodeAuthStore } from '../state/authStore';
@@ -280,12 +281,11 @@ export function ProblemEditorScreen({
     setRunOutcome(null);
     const startedAt = Date.now();
     try {
-      const result = await runner.run({
-        lang,
-        code: editorText,
-        methodName: problem?.methodName ?? 'twoSum',
-        testCases: problem?.testCases ?? [],
-      });
+      const result = await runner.run(
+        problem
+          ? runParamsFor(problem, lang, editorText)
+          : { lang, code: editorText, methodName: '', testCases: [] }
+      );
       setRunOutcome(result);
       outcomeSourceRef.current = editorText;
       Logger.info('editor_v2.run_local.result', {

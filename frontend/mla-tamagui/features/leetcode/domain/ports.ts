@@ -4,6 +4,7 @@
 // dependency-free.
 
 import type { RunResponse, TestCase } from './execution';
+import type { NodeType } from './models';
 import type {
   ClientEditStat,
   EditSource,
@@ -32,6 +33,11 @@ export type RunCodeParams = {
   code: string;
   methodName: string;
   testCases: TestCase[];
+  /** How a runner that holds real objects builds a linked-list or tree argument from its JSON form; the backend ignores these three. */
+  paramTypes?: Record<string, NodeType>;
+  returnType?: NodeType | null;
+  /** The parameter the solution mutates instead of returning: that value is what is compared. */
+  inPlace?: string | null;
 };
 type FormatParams = { lang: string; code: string };
 

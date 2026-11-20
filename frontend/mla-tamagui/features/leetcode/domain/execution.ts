@@ -20,8 +20,12 @@ export const testCaseSchema = z.object({
 
 export type TestCase = z.infer<typeof testCaseSchema>;
 
+export const errorLocationSchema = z.object({
+  line: z.number().int(),
+  column: z.number().int().optional(),
+});
 /** Where in the learner's code an error was raised, 1-based: the editor jumps to it. */
-export type ErrorLocation = { line: number; column?: number };
+export type ErrorLocation = z.infer<typeof errorLocationSchema>;
 
 export type TestResult = {
   pass: boolean;
@@ -34,6 +38,18 @@ export type TestResult = {
   error_at?: ErrorLocation;
   elapsed_ms: number;
 };
+
+export const testResultSchema = z.object({
+  pass: z.boolean(),
+  input: z.record(z.string(), z.unknown()).optional(),
+  actual: z.unknown(),
+  expected: z.unknown(),
+  stdout: z.string(),
+  stderr: z.string(),
+  error: z.string().nullable(),
+  error_at: errorLocationSchema.optional(),
+  elapsed_ms: z.number(),
+}) satisfies z.ZodType<TestResult>;
 
 export type RunResponse = {
   source: 'offline' | 'backend-run' | 'leetcode-submit' | 'leetcode-test';

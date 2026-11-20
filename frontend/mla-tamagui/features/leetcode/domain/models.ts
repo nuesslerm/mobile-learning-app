@@ -37,6 +37,8 @@ export const problemSchema = z.object({
   constraints: z.string(),
   starterCode: z.record(z.string(), z.string()),
   methodName: z.string().nullable(),
+  /** The parameter the solution mutates instead of returning (`-> None` problems): the harness compares it. */
+  inPlaceParam: z.string().optional(),
   paramTypes: z.record(z.string(), nodeTypeSchema),
   returnType: nodeTypeSchema.nullable(),
   testCases: z.array(testCaseSchema).nullable(),

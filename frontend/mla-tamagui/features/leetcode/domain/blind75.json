@@ -2259,6 +2259,7 @@
             "golang": "/**\n * Definition for singly-linked list.\n * type ListNode struct {\n *     Val int\n *     Next *ListNode\n * }\n */\nfunc reorderList(head *ListNode)  {\n    \n}"
           },
           "methodName": "reorderList",
+          "inPlaceParam": "head",
           "paramTypes": {
             "head": "ListNode"
           },
@@ -6683,6 +6684,7 @@
             "golang": "func rotate(matrix [][]int)  {\n    \n}"
           },
           "methodName": "rotate",
+          "inPlaceParam": "matrix",
           "paramTypes": {},
           "returnType": null,
           "testCases": [
@@ -6939,6 +6941,7 @@
             "golang": "func setZeroes(matrix [][]int)  {\n    \n}"
           },
           "methodName": "setZeroes",
+          "inPlaceParam": "matrix",
           "paramTypes": {},
           "returnType": null,
           "testCases": [

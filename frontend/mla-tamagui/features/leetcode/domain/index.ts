@@ -5,3 +5,5 @@ export * from './codeAssistModels';
 export * from './codeAssistValidation';
 export * from './toolbar';
 export * from './ports';
+export * from './verdict';
+export * from './runParams';

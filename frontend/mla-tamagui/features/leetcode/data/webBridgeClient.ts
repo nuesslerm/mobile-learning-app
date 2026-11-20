@@ -7,6 +7,7 @@ import type {
   TestCase,
   TestResult,
 } from '../domain';
+import { runResponseOf } from '../domain/verdict';
 import { Logger } from '@lib/logging';
 import {
   allowedTraceparentOrigins,
@@ -28,50 +29,6 @@ export type { LoginCaptureStatus, UserStatusResult };
 const allowedOrigins = allowedTraceparentOrigins([
   appConfig.leetcodeBackendBaseUrl,
 ]);
-
-/**
- * Map the backend's `/run` payload (`{ok, results, error}`) onto the app's
- * `RunResponse`. Pure — the server did the execution, this just derives the
- * summary fields the results UI reads (status_msg, totals).
- */
-function toRunResponse(raw: {
-  ok?: boolean;
-  results?: TestResult[];
-  error?: string;
-}): RunResponse {
-  const results = raw.results ?? [];
-  const totalCorrect = results.filter((r) => r.pass).length;
-  const totalTestcases = results.length;
-  if (!raw.ok || raw.error) {
-    const errorMsg = raw.error ?? 'Unknown error';
-    const isTimeout = errorMsg.includes('Timeout');
-    return {
-      source: 'backend-run',
-      kind: 'test',
-      state: 'FAILURE',
-      requestId: '',
-      run_success: false,
-      status_msg: 'Error',
-      total_correct: totalCorrect,
-      total_testcases: totalTestcases,
-      compile_error: isTimeout ? undefined : errorMsg,
-      runtime_error: isTimeout ? errorMsg : undefined,
-      results,
-    };
-  }
-  const accepted = totalCorrect === totalTestcases;
-  return {
-    source: 'backend-run',
-    kind: 'test',
-    state: accepted ? 'SUCCESS' : 'FAILURE',
-    requestId: '',
-    run_success: true,
-    status_msg: accepted ? 'Accepted' : 'Wrong Answer',
-    total_correct: totalCorrect,
-    total_testcases: totalTestcases,
-    results,
-  };
-}
 
 /**
  * Thin, pure fetch wrapper both platforms use to call backend/leetcode-backend.
@@ -246,8 +203,13 @@ export async function fetchRunLocal(
     ok?: boolean;
     results?: TestResult[];
     error?: string;
-  }>('run', `${backendBaseUrl}/api/leetcode/run`, params);
-  return toRunResponse(raw);
+  }>('run', `${backendBaseUrl}/api/leetcode/run`, {
+    lang: params.lang,
+    code: params.code,
+    methodName: params.methodName,
+    testCases: params.testCases,
+  });
+  return runResponseOf(raw, 'backend-run');
 }
 
 export async function fetchFormat(
