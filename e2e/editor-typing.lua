@@ -239,13 +239,17 @@ for _, p in ipairs(SOL) do
   -- the web editor autofocuses on open and its keyboard covers Reset, so an unseeded run lowers it; the Android one waits for a tap
   local focused = not android and device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true}
   if focused and not seeded then
-    -- a tap on the page outside the editor lowers its keyboard, as the Done key does: the row under the editor has nothing at its middle
-    -- the keyboard's raise is still moving the page when the first tap lands, and a press that ends over something else is lost: tap again until the rails go
-    for _ = 1, 3 do
-      device:tap_on({id='ProblemEditorDiffRow'})
-      if device:extended_wait_until{not_visible={id='EditorHelperRails'}, timeout=3000, optional=true} then break end
-    end
+    -- a tap on the page outside the editor lowers its keyboard, as the Done key does: aimed at the part of the row the rail does not cover,
+    -- where a person's finger would land (the row's own tap point is a random one in its box, and the rail's top edge overlaps its lower part)
+    local row, rail = device:get_element({id='ProblemEditorDiffRow'}).bounds, device:get_element({id='EditorHelperRails'}).bounds
+    device:tap_on({point=('%d,%d'):format((row.left + row.right) // 2, (row.top + math.min(row.bottom, rail.top - 4)) // 2)})
     device:assert_not_visible({id='EditorHelperRails'})
+    -- the console log follows the page by a moment: wait for the screen's own record that the press reached it
+    device:extended_wait_until{condition=function()
+      for _, l in ipairs(device:get_logs{level='debug'}) do
+        if l:find('editor_v2.keyboard_dismiss', 1, true) then return true end
+      end
+    end, timeout=5000, interval=250, label=p.id .. ': the tap outside the editor reached the screen'}
     focused = false
   end
   if not seeded then

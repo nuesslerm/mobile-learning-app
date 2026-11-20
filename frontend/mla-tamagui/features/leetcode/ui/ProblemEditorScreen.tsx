@@ -78,7 +78,6 @@ import { VoiceReviewSheet } from './VoiceReviewSheet';
 // editor expand, and the minimums keep both usable once the keyboard shrinks
 // the visible area below the editor's flex share.
 const EDITOR_MIN_HEIGHT = 280;
-const ignoreEditorTap = () => undefined;
 const TEST_INPUT_MIN_HEIGHT = 200;
 
 function defaultTestInput(problem: ReturnType<typeof ProblemCatalog.getById>) {
@@ -713,38 +712,34 @@ export function ProblemEditorScreen({
           testID="ProblemEditorScroll"
           keyboardShouldPersistTaps="handled"
         >
-          {/* A tap anywhere outside the editor lowers its keyboard: the WebView takes its own touches, so only the
-              rest of the page reaches this. */}
-          <Pressable
-            accessible={false}
-            onPress={dismissEditorKeyboard}
-            style={{ flexGrow: 1 }}
-            testID="ProblemEditorTapAway"
-          >
+          {/* A tap on the page outside the editor lowers its keyboard. The editor sits beside that Pressable and not
+              inside it: a view that claims the touch responder above the WebView makes Android cancel the WebView's
+              own touches (a long press, a caret drag) once the finger moves. */}
+          <YStack style={{ flexGrow: 1 }}>
             {/* Editor (CodeMirror WebView) — fixed min-h so the ScrollView has
                 something concrete to scroll past when the keyboard shrinks the
                 visible area. */}
-            {/* On a phone the WebView takes its touches natively and React Native still reports them to the Pressable
-                above, so a tap into the editor would raise the keyboard and then lower it. This one claims the
-                editor's own taps and does nothing with them. */}
-            <Pressable
-              accessible={false}
-              focusable={false}
-              onPress={ignoreEditorTap}
-              style={{ flexGrow: 1 }}
+            <YStack
+              flex={1}
+              minH={EDITOR_MIN_HEIGHT}
+              px="$3"
+              py="$2"
               testID="ProblemEditorEditorZone"
             >
-              <YStack flex={1} minH={EDITOR_MIN_HEIGHT} px="$3" py="$2">
-                <EditorInput
-                  ref={editorRef}
-                  testID="ProblemEditorInput"
-                  value={editorText}
-                  onChangeText={handleEditorChange}
-                  onSelectionChange={setEditorSelection}
-                />
-              </YStack>
-            </Pressable>
+              <EditorInput
+                ref={editorRef}
+                testID="ProblemEditorInput"
+                value={editorText}
+                onChangeText={handleEditorChange}
+                onSelectionChange={setEditorSelection}
+              />
+            </YStack>
 
+            <Pressable
+              accessible={false}
+              onPress={dismissEditorKeyboard}
+              testID="ProblemEditorTapAway"
+            >
             <XStack
               items="center"
               justify="space-between"
@@ -935,7 +930,8 @@ export function ProblemEditorScreen({
                 }}
               />
             </YStack>
-          </Pressable>
+            </Pressable>
+          </YStack>
         </KeyboardToolbarAwareScrollView>
       </KeyboardToolbarTarget>
       <LanguageSheet
