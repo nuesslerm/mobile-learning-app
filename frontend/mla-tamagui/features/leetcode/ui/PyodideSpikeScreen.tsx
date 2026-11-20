@@ -1,7 +1,7 @@
 import { Logger } from '@lib/logging';
 import { createRpcClient, createWebViewHostTransport, type RpcClient } from '@lib/webview-rpc';
 import { Asset } from 'expo-asset';
-import { File, FileMode } from 'expo-file-system';
+import { File, FileMode, Paths } from 'expo-file-system';
 import { useEffect, useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -41,13 +41,21 @@ async function roundTrip(client: RpcClient, calls: number): Promise<number> {
   return Math.round(((Date.now() - started) / calls) * 10) / 10;
 }
 
+// the longest directory both URIs sit in: the WebView is granted read access to it, so the page can read assets that live elsewhere
+function commonDirectory(a: string, b: string): string {
+  let end = 0;
+  for (let i = 0; i < Math.min(a.length, b.length) && a[i] === b[i]; i += 1) if (a[i] === '/') end = i + 1;
+  return a.slice(0, end);
+}
+
+// the app may write only under its own cache and document directories, and the downloaded assets can sit elsewhere (Expo Go keeps an
+// update's assets in its updates directory), so the page goes to the cache
 function pageSourceOf(wasmUri: string, pageHtml: string): PageSource {
   if (!wasmUri.startsWith('file:')) return { html: pageHtml };
-  const directory = wasmUri.slice(0, wasmUri.lastIndexOf('/') + 1);
-  const file = new File(`${directory}pyodide-page.html`);
+  const file = new File(Paths.cache, 'pyodide-page.html');
   if (!file.exists) file.create();
   file.writeSync(pageHtml);
-  return { uri: file.uri, directory };
+  return { uri: file.uri, directory: commonDirectory(wasmUri, file.uri) };
 }
 
 /**
