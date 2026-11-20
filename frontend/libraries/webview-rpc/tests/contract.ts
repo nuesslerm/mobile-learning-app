@@ -36,6 +36,21 @@ export function rpcContract(name: string, makePair: () => Pair): void {
       expect(failure).toMatchObject({ code: 'remote', message: 'it broke' });
     });
 
+    it('given a handler whose result JSON cannot encode, when the host calls it, then the call fails at once as a remote error and does not wait for its timeout', async () => {
+      // Given a page whose handler returns a value with no JSON form, and a host that would wait a minute
+      const { host, page } = makePair();
+      createRpcServer(page, { big: () => 10n });
+      const client = createRpcClient(host, { timeoutMs: 60_000 });
+
+      // When the host calls it
+      const failure = await client.call('big').catch((e: unknown) => e);
+
+      // Then the error is a remote RpcError that says the answer could not be encoded
+      expect(failure).toBeInstanceOf(RpcError);
+      expect(failure).toMatchObject({ code: 'remote' });
+      expect((failure as RpcError).message).toContain('could not be encoded');
+    });
+
     it('given a method nobody handles, when the host calls it, then the call fails as an unknown method', async () => {
       // Given a page with no handler for the method
       const { host, page } = makePair();

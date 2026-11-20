@@ -14,6 +14,8 @@ export type RpcServer = {
   close(): void;
 };
 
+const failureOf = (id: number, message: string): RpcResponse => ({ v: PROTOCOL_VERSION, kind: 'res', id, ok: false, error: { code: 'remote', message } });
+
 export function createRpcServer(transport: RpcTransport, handlers: RpcHandlers, options: RpcServerOptions = {}): RpcServer {
   const answer = async (request: RpcRequest): Promise<RpcResponse> => {
     const run = Object.hasOwn(handlers, request.method) ? handlers[request.method] : undefined;
@@ -35,7 +37,13 @@ export function createRpcServer(transport: RpcTransport, handlers: RpcHandlers, 
     const decoded = decode(raw);
     if (decoded.type !== 'message' || decoded.message.kind !== 'req') return;
     void answer(decoded.message)
-      .then((response) => transport.send(encode(response)))
+      .then((response) =>
+        // a result JSON cannot encode would otherwise leave the caller waiting for its timeout
+        Promise.resolve()
+          .then(() => encode(response))
+          .catch((error: unknown) => encode(failureOf(response.id, `the answer could not be encoded: ${error instanceof Error ? error.message : String(error)}`)))
+      )
+      .then((raw) => transport.send(raw))
       .catch((error: unknown) => options.onError?.(error));
   });
 

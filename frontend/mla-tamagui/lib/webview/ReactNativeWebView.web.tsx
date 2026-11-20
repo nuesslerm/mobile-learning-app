@@ -46,7 +46,7 @@ type WebViewProps = {
 
 const BRIDGE_SCRIPT = `<script>(function(){window.ReactNativeWebView={postMessage:function(data){window.parent.postMessage({${JSON.stringify(
   BRIDGE_FLAG
-)}:true,data:String(data)},'*');}};window.addEventListener('message',function(event){var payload=event.data||{};if(payload[${JSON.stringify(
+)}:true,data:String(data)},'*');}};window.addEventListener('message',function(event){var payload=event.data||{};if((event.source===window.parent||event.source===null)&&payload[${JSON.stringify(
   INJECT_FLAG
 )}]===true){(0,eval)(String(payload.script||''));}});})();</script>`;
 const FILL_FRAME = { width: '100%', height: '100%', borderWidth: 0 } as const;
