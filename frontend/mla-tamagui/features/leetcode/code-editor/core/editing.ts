@@ -130,23 +130,6 @@ export function smartNewline(text: string, sel: Selection): EditResult {
   return insertText(text, sel, `\n${nextIndent}`);
 }
 
-/** Wrap the selected range in `open`/`close`, keeping the inner text selected. */
-export function wrapSelection(
-  text: string,
-  sel: Selection,
-  open: string,
-  close: string
-): EditResult {
-  const from = Math.min(sel.start, sel.end);
-  const to = Math.max(sel.start, sel.end);
-  const inner = text.slice(from, to);
-  const newText = `${text.slice(0, from)}${open}${inner}${close}${text.slice(to)}`;
-  return {
-    text: newText,
-    selection: { start: from + open.length, end: to + open.length },
-  };
-}
-
 /** Collapse/move the caret one character left. */
 export function moveLeft(text: string, sel: Selection): Selection {
   const pos =

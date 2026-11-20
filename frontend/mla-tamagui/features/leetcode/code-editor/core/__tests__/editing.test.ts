@@ -9,7 +9,6 @@ import {
   moveRight,
   smartNewline,
   toggleComment,
-  wrapSelection,
 } from '../editing';
 
 const caret = (at: number) => ({ start: at, end: at });
@@ -100,16 +99,6 @@ describe('smartNewline', () => {
   // pinned, known quirk: the colon test looks at the whole line, so a break in the middle of a block opener indents the rest
   it('given a caret in the middle of a line that ends in a colon, when it runs, then the rest goes one level deeper (pinned, known quirk)', () => {
     expect(smartNewline('if x:', caret(2)).text).toBe('if\n     x:');
-  });
-});
-
-describe('wrapSelection', () => {
-  it('given a selection, when it is wrapped, then the pair surrounds it and the inner text stays selected', () => {
-    expect(wrapSelection('abc', { start: 0, end: 3 }, '(', ')')).toEqual({ text: '(abc)', selection: { start: 1, end: 4 } });
-  });
-
-  it('given a backward selection, when it is wrapped, then the result is the same range, forward', () => {
-    expect(wrapSelection('xabcx', { start: 4, end: 1 }, '"', '"')).toEqual({ text: 'x"abc"x', selection: { start: 2, end: 5 } });
   });
 });
 

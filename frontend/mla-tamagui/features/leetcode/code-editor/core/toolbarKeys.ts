@@ -39,7 +39,6 @@ import {
   moveRight,
   smartNewline,
   toggleComment,
-  wrapSelection,
   type EditResult,
 } from './editing';
 import type { Selection } from './types';
@@ -60,14 +59,11 @@ export type BuiltinKeyDef = {
 function applyEdit(ctx: KeyActionContext, result: EditResult): void {
   ctx.editorRef.current?.setTextAndSelection(result.text, result.selection);
 }
-function pairRun(open: string, close: string) {
+function pairRun(open: string) {
   return (ctx: KeyActionContext): void => {
-    if (ctx.selection.start !== ctx.selection.end) {
-      applyEdit(ctx, wrapSelection(ctx.text, ctx.selection, open, close));
-    } else {
-      // Typed, not inserted: a plain insert of the pair left typing the closer to add a second one.
-      ctx.editorRef.current?.typeText(open);
-    }
+    // Typed, not inserted: the editor's bracket handling adds the pair (a plain insert left typing the closer to add a second one)
+    // or wraps a selection and keeps the inner text selected.
+    ctx.editorRef.current?.typeText(open);
   };
 }
 function symbolRun(char: string) {
@@ -104,27 +100,27 @@ export const BUILTIN_KEYS: Record<BuiltinKeyId, BuiltinKeyDef> = {
   Paren: {
     name: 'Parentheses',
     icon: Parentheses,
-    run: pairRun('(', ')'),
+    run: pairRun('('),
   },
   Bracket: {
     name: 'Brackets',
     icon: Brackets,
-    run: pairRun('[', ']'),
+    run: pairRun('['),
   },
   Brace: {
     name: 'Braces',
     icon: Braces,
-    run: pairRun('{', '}'),
+    run: pairRun('{'),
   },
   Quote: {
     name: 'Double quote',
     label: '"',
-    run: pairRun('"', '"'),
+    run: pairRun('"'),
   },
   Apostrophe: {
     name: 'Single quote',
     label: "'",
-    run: pairRun("'", "'"),
+    run: pairRun("'"),
   },
   Colon: {
     name: 'Colon',

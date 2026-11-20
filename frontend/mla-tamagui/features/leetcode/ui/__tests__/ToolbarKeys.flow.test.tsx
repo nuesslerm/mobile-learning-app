@@ -18,8 +18,8 @@ import type { LeetCodeGatewayPort, LeetCodePortOverrides, RunResponse, VoiceEdit
 // leaves behind is asserted, then the toolbar's Undo. A case marked "pinned" records today's behavior, known quirk or not, so a
 // later change to it is a decision with a commit message and not a side effect. A case marked "known gap" states what a key should do
 // and fails today (it.fails), so the commit that fixes the gap has to flip it: the transform keys (Tab on a selection, Dedent, Comment,
-// Newline, the wrap of a selection) send the whole document back through setText, and the page's reply to it sends the old text again
-// before the new one settles, which loses the key's caret and its undo step.
+// Newline) send the whole document back through setText, and the page's reply to it sends the old text again before the new one
+// settles, which loses the key's caret and its undo step. (The wrap of a selection was one of them until it became a typed key.)
 
 const ACCEPTED: RunResponse = {
   source: 'backend-run',
@@ -200,25 +200,18 @@ describe('the syntax toolbar on the real editor (typed keys)', () => {
     await undoRestores(session, editor, 'x = ');
   });
 
-  it('given "abc" selected, when Parentheses is tapped, then it is wrapped', async () => {
+  it.each([
+    ['Paren', '(', ')'],
+    ['Bracket', '[', ']'],
+    ['Brace', '{', '}'],
+    ['Quote', '"', '"'],
+    ['Apostrophe', "'", "'"],
+  ])('given "abc" selected, when %s is tapped, then it is wrapped, the inner text stays selected, and Undo restores the text', async (id, open, close) => {
     const { session, editor } = await prepare('abc', 0, 3);
-    await session.tap('EditorSyntax-Paren');
-    await eventually(() => expect(editor.text()).toBe('(abc)'));
-  });
-
-  // known gap: the wrap goes through setText, so the inner text does not stay selected and there is no undo step
-  it.fails('given "abc" selected and wrapped by Parentheses, when the key has run, then the inner text stays selected', async () => {
-    const { session, editor } = await prepare('abc', 0, 3);
-    await session.tap('EditorSyntax-Paren');
-    await eventually(() => expect(editor.text()).toBe('(abc)'));
-    await eventually(() => expect(editor.selection()).toEqual({ start: 1, end: 4 }), 2_000);
-  });
-
-  it.fails('given "abc" selected and wrapped by Parentheses, when Undo is tapped, then the text before the key returns', async () => {
-    const { session, editor } = await prepare('abc', 0, 3);
-    await session.tap('EditorSyntax-Paren');
-    await eventually(() => expect(editor.text()).toBe('(abc)'));
-    await undoRestores(session, editor, 'abc', 2_000);
+    await session.tap(`EditorSyntax-${id}`);
+    await eventually(() => expect(editor.text()).toBe(`${open}abc${close}`));
+    await eventually(() => expect(editor.selection()).toEqual({ start: 1, end: 4 }));
+    await undoRestores(session, editor, 'abc');
   });
 
   it.each([
