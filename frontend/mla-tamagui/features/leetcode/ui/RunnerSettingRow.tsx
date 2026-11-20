@@ -1,19 +1,25 @@
 import { Logger } from '@lib/logging';
-import { Text, ToggleGroup, ToggleGroupItem } from '@lib/tamagui-design-system';
+import { Button, Text } from '@lib/tamagui-design-system';
 import { XStack, YStack } from '@lib/tamagui-design-system/primitives';
 
 import type { RunnerChoice } from '../domain/ports';
 import { useRunnerSettingStore } from '../state/runnerSettingStore';
 
-/** Where Run Local executes. Only Python runs on the device; every other language goes to the backend whatever this says. */
+const CHOICES: { value: RunnerChoice; label: string }[] = [
+  { value: 'backend', label: 'Server' },
+  { value: 'device', label: 'This device' },
+];
+
+/**
+ * Where Run Local executes. Only Python runs on the device; every other language goes to the backend whatever this says.
+ * Two buttons, not a toggle group: the group drew an empty box on the Android emulator (the hosted `local-run` could not find its items).
+ */
 export function RunnerSettingRow() {
   const runner = useRunnerSettingStore((s) => s.runner);
   const setRunner = useRunnerSettingStore((s) => s.setRunner);
   return (
-    <XStack
-      items="center"
-      justify="space-between"
-      gap="$3"
+    <YStack
+      gap="$2.5"
       mt="$3"
       mx="$4"
       px="$3.5"
@@ -24,7 +30,7 @@ export function RunnerSettingRow() {
       bg="$background"
       testID="LeetcodeListRunnerRow"
     >
-      <YStack flex={1}>
+      <YStack>
         <Text variant="strong" testID="LeetcodeListRunnerLabel">
           Run code
         </Text>
@@ -32,29 +38,26 @@ export function RunnerSettingRow() {
           On this device runs Python with no network. Other languages run on the server.
         </Text>
       </YStack>
-      <ToggleGroup
-        type="single"
-        size="sm"
-        value={runner}
-        onValueChange={(value) => {
-          // a single toggle group reports an empty value when the chosen item is tapped again: the choice stays
-          if (value !== 'backend' && value !== 'device') return;
-          Logger.info('leetcode.list.runner_tap', { runner: value });
-          setRunner(value satisfies RunnerChoice);
-        }}
-        testID="LeetcodeListRunner"
-      >
-        <ToggleGroupItem value="backend" testID="LeetcodeListRunnerBackend">
-          <Text variant="small" testID="LeetcodeListRunnerBackendLabel">
-            Server
-          </Text>
-        </ToggleGroupItem>
-        <ToggleGroupItem value="device" testID="LeetcodeListRunnerDevice">
-          <Text variant="small" testID="LeetcodeListRunnerDeviceLabel">
-            This device
-          </Text>
-        </ToggleGroupItem>
-      </ToggleGroup>
-    </XStack>
+      <XStack gap="$2" testID="LeetcodeListRunner">
+        {CHOICES.map(({ value, label }) => (
+          <Button
+            key={value}
+            flex={1}
+            size="$3"
+            variant={runner === value ? 'default' : 'outline'}
+            aria-pressed={runner === value}
+            pressLog="off"
+            testID={value === 'backend' ? 'LeetcodeListRunnerBackend' : 'LeetcodeListRunnerDevice'}
+            onPress={() => {
+              // the chosen one tapped again keeps the choice; the tap is logged either way, so a test sees that it reached the screen
+              Logger.info('leetcode.list.runner_tap', { runner: value });
+              if (runner !== value) setRunner(value);
+            }}
+          >
+            {label}
+          </Button>
+        ))}
+      </XStack>
+    </YStack>
   );
 }

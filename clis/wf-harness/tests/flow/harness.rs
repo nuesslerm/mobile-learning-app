@@ -456,9 +456,16 @@ fn a_browser_script_drives_the_daemon_waits_by_observer_and_reports() {
     let broken_observers = of("waitObserve");
     absent(&d, vec!["{\"seen\":false,\"ms\":1000}", "{\"seen\":false,\"ms\":1000}", "{\"seen\":true,\"ms\":40}"]);
     let late = browser("device:open_link('http://x/'); device:assert_visible({id='Go'})", &[], &[("WF_WAIT_BUDGET_MS", "2000")]);
+    // and when the page is busy for a slice (a long synchronous script holds its main thread) and then shows it
+    d.clear_rules();
+    d.rule("waitObserve", "", vec![json!({ "error": "wait-observe: the page script never reported" }), json!({ "result": "{\"seen\":true,\"ms\":40}" })]);
+    defaults(&d, &s);
+    let busy = browser("device:open_link('http://x/'); device:assert_visible({id='Go'})", &[], &[("WF_WAIT_BUDGET_MS", "2000")]);
     d.clear_rules();
     defaults(&d, &s);
-    // Then both fail: the first as broken with the budget, its line and a final screenshot, the second as slow
+    // Then a busy page is asked again, not failed: the wait passes
+    assert_eq!(busy.exit_code, 0, "{}", out(&busy));
+    // And both fail: the first as broken with the budget, its line and a final screenshot, the second as slow
     assert_eq!(broken.exit_code, 1);
     assert!(broken.stderr.contains("t.lua:1: assert_visible{id='Go'} timed out after 2000 ms -- broken"), "{}", broken.stderr);
     assert!(!broken_shots.is_empty(), "no final screenshot");

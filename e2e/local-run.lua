@@ -85,7 +85,24 @@ end
 
 local function choose(runner)
   open("/", 'LeetcodeListRunnerRow')
-  device:tap_on({id=runner == 'device' and 'LeetcodeListRunnerDevice' or 'LeetcodeListRunnerBackend'})
+  local id = runner == 'device' and 'LeetcodeListRunnerDevice' or 'LeetcodeListRunnerBackend'
+  if android then
+    device:tap_on({id=id})
+    return
+  end
+  -- the static page paints its buttons before its scripts have hydrated them, and a tap before that is lost: it is repeated until the
+  -- screen logs that it got it
+  device:clear_logs()
+  local function got_it()
+    for _, l in ipairs(device:get_logs{level='info'}) do
+      if l:find('leetcode.list.runner_tap', 1, true) then return true end
+    end
+  end
+  for _ = 1, 10 do
+    device:tap_on({id=id})
+    if device:extended_wait_until{condition=got_it, timeout=2000, interval=250, optional=true} then return end
+  end
+  error("the runner choice never reached the screen")
 end
 
 stub_run()

@@ -30,19 +30,29 @@ run_flow("open the editor", function()
   device:assert_visible({id='ProblemEditorTextEditStartButton'}, {timeout=5000})
 end)
 
--- the editor may open focused with its keyboard over the action row: Done at the end of the toolbar lowers it, as it does for a person
-if device:get_element({id='EditorHelperRails'}) and (not android or device:get_device_state('keyboard').visible) then
-  device:scroll_until_visible{element={id='EditorAction-Done'}, direction='RIGHT', from={id='EditorActionToolbar'}}
-  device:tap_on({id='EditorAction-Done'})
+-- the editor may open focused with its keyboard over the action row, and a slow page focuses it late (the hosted browser run tapped the
+-- sheet's button under a keyboard that rose a moment after the check): the web editor always autofocuses, so it is waited for, then
+-- lowered as a person would, with a tap on the page outside it, aimed at the part of the language row the rail does not cover
+if android then
+  if device:get_device_state('keyboard').visible then
+    device:scroll_until_visible{element={id='EditorAction-Done'}, direction='RIGHT', from={id='EditorActionToolbar'}}
+    device:tap_on({id='EditorAction-Done'})
+    device:assert_not_visible({id='EditorHelperRails'})
+  end
+elseif device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=20000, optional=true} then
+  local row, rail = device:get_element({id='ProblemEditorDiffRow'}).bounds, device:get_element({id='EditorHelperRails'}).bounds
+  device:tap_on({point=('%d,%d'):format((row.left + row.right) // 2, (row.top + math.min(row.bottom, rail.top - 4)) // 2)})
   device:assert_not_visible({id='EditorHelperRails'})
 end
+device:clear_logs()
 
 run_flow("type an edit", function()
   device:tap_on({id='ProblemEditorTextEditStartButton'})
   device:extended_wait_until{condition=function() return device:get_element({id='ProblemEditorVoiceReviewSheet-TranscriptInput'}) ~= nil end, timeout=15000, label='the sheet opened'}
   -- the sheet takes the keyboard down when it opens; a person taps the field to type
   device:tap_on({id='ProblemEditorVoiceReviewSheet-TranscriptInput'})
-  device:extended_wait_until{condition=function() return device:get_device_state('keyboard').visible end, timeout=8000, label='the keyboard rose over the sheet'}
+  -- the state flips before the keyboard is drawn, so its rectangle is waited for too
+  device:extended_wait_until{condition=function() local k = device:get_device_state('keyboard') return k.visible and k.bounds ~= nil end, timeout=8000, label='the keyboard rose over the sheet'}
 end)
 
 -- everything the person needs to finish the edit is above the keyboard
@@ -54,9 +64,20 @@ local function above(id)
   assert_true(e ~= nil, id .. " is not on screen")
   return e.bounds.bottom <= kb.bounds.top + 2, e.bounds.bottom
 end
+-- the sheet itself has risen above the keyboard. The browser twin of gorhom's lift follows gorhom's rule (only a Sheet.TextInput lifts it), so
+-- a plain TextInput in the sheet leaves its bottom edge behind the keyboard here, whatever room the content leaves above it
+if not android then
+  local function sheet_bottom() local s = device:get_element({id='ProblemEditorVoiceReviewSheet'}) return s and s.bounds.bottom end
+  device:extended_wait_until{condition=function() local b = sheet_bottom() return b ~= nil and b <= kb.bounds.top + 2 end, timeout=5000, optional=true, label='the sheet rose above the keyboard'}
+  local b = sheet_bottom()
+  assert_true(b ~= nil and b <= kb.bounds.top + 2, ("the sheet did not rise above the keyboard (bottom %s, keyboard top %d)"):format(tostring(b), kb.bounds.top))
+end
 local ok_input, input_bottom = above('ProblemEditorVoiceReviewSheet-TranscriptInput')
 local ok_send, send_bottom = above('ProblemEditorVoiceReviewSheet-Send')
 log(("keyboard top %d, transcript input bottom %d, Send bottom %d"):format(kb.bounds.top, input_bottom, send_bottom))
 assert_true(ok_input, "the transcript field is behind the keyboard")
 assert_true(ok_send, ("the Send button is behind the keyboard (bottom %d, keyboard top %d)"):format(send_bottom, kb.bounds.top))
+-- a warning in the page's console fails every browser run (gorhom's own input logged one on every focus in react-native-web)
+local warnings = device:get_logs()
+assert_true(#warnings == 0, "JS warnings with the sheet open: " .. tostring(warnings[1]))
 log("review sheet keyboard: pass")

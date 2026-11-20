@@ -523,6 +523,16 @@ impl Device for BrowserDevice {
             let report = match self.client.call("waitObserve", json!({ "expression": Self::observer(sel, want, slice), "timeout": slice, "outer": true })) {
                 Ok(r) => r,
                 Err(e) if e.contains("Shell not loaded") => return self.poll_visibility(sel, want, end),
+                // a page whose main thread runs a long synchronous script (a program stuck in a loop until its own limit stops it) cannot answer
+                // a slice: that is "not yet", asked again until the deadline, not a failed wait
+                Err(e) if e.contains("never reported") => {
+                    harness_core::run_stop::check()?;
+                    if Instant::now() >= end {
+                        return Ok(false);
+                    }
+                    slice = (end.saturating_duration_since(Instant::now()).as_micros().div_ceil(1000) as u64).min(WAIT_SLICE_MS);
+                    continue;
+                }
                 Err(e) => return Err(e),
             };
             let v: Value = report["result"].as_str().and_then(|t| serde_json::from_str(t).ok()).unwrap_or(Value::Null);

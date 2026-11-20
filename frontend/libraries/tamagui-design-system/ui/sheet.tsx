@@ -2,7 +2,6 @@ import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetFlatList,
   BottomSheetScrollView,
-  BottomSheetTextInput,
   type BottomSheetBackdropProps,
 } from '@gorhom/bottom-sheet';
 import { Logger } from '@lib/logging';
@@ -19,9 +18,11 @@ import {
 
 import { X } from '../icons';
 import { useOpenSheetStore } from '../lib/openSheetStore';
+import { useSheetKeyboardLift } from '../lib/sheetKeyboardLift';
 import { useTheme } from '../primitives';
 
 import { Icon } from './icon';
+import { SheetTextInput } from './sheet-text-input';
 
 export type SheetProps = {
   open: boolean;
@@ -191,6 +192,9 @@ export function Sheet({
   // control the sheet exists to offer.
   useDismissKeyboardWhileOpen(open);
 
+  // 0 on a phone, where gorhom does this itself; on web the keyboard's height while one of the sheet's own fields has focus
+  const keyboardLift = useSheetKeyboardLift();
+
   const mounted = useMountedAfterFirstFrame();
 
   if (!mounted || !open) return null;
@@ -210,6 +214,7 @@ export function Sheet({
       keyboardBehavior="interactive"
       // gorhom default is 'none', which leaves the keyboard up over the sheet.
       keyboardBlurBehavior="restore"
+      bottomInset={keyboardLift}
       android_keyboardInputMode="adjustResize"
       // color2, NOT `background`: a sheet painted in the page's own background
       // is invisible on the dark theme -- on a device the only things that read
@@ -239,9 +244,7 @@ export function Sheet({
 // so the list scroll and the sheet pan both claim the touch and neither works.
 Sheet.ScrollView = BottomSheetScrollView;
 Sheet.FlatList = BottomSheetFlatList;
-// A text field in a sheet must be this one: gorhom only lifts the sheet above the keyboard for the inputs it knows. A plain RN TextInput
-// takes focus, the keyboard rises over the sheet's lower half and covers the control the sheet exists for (a Send button, say).
-Sheet.TextInput = BottomSheetTextInput;
+Sheet.TextInput = SheetTextInput;
 
 export type SheetHeaderProps = {
   children: ReactNode;
