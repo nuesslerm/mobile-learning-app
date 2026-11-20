@@ -240,7 +240,11 @@ for _, p in ipairs(SOL) do
   local focused = not android and device:extended_wait_until{visible={id='EditorHelperRails'}, timeout=3000, optional=true}
   if focused and not seeded then
     -- a tap on the page outside the editor lowers its keyboard, as the Done key does: the row under the editor has nothing at its middle
-    device:tap_on({id='ProblemEditorDiffRow'})
+    -- the keyboard's raise is still moving the page when the first tap lands, and a press that ends over something else is lost: tap again until the rails go
+    for _ = 1, 3 do
+      device:tap_on({id='ProblemEditorDiffRow'})
+      if device:extended_wait_until{not_visible={id='EditorHelperRails'}, timeout=3000, optional=true} then break end
+    end
     device:assert_not_visible({id='EditorHelperRails'})
     focused = false
   end

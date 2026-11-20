@@ -359,6 +359,22 @@ describe('ProblemEditorScreen flow (keyboard)', () => {
     expect(await loggedLines('editor_v2.keyboard_dismiss')).not.toHaveLength(0);
   });
 
+  it('given the editor holds the caret, when a tap lands on the editor zone itself, then the keyboard stays up', async () => {
+    // Given the hydrated editor with the caret in it
+    const { gateway } = fakeGateway();
+    const session = await renderEditor(gateway);
+    const editor = await session.editor();
+    await editor.focus();
+    await forgetLoggedLines();
+
+    // When a tap lands on the editor's own area (a phone reports it to the page as well as to the WebView)
+    await session.tap('ProblemEditorEditorZone');
+
+    // Then the page does not take it for a tap away: nothing is dismissed and the editor still holds the caret
+    expect(await loggedLines('editor_v2.keyboard_dismiss')).toHaveLength(0);
+    expect(editor.focused()).toBe(true);
+  });
+
   it('given the editor holds the caret, when the user presses Run Local, then the screen dismisses the keyboard before it runs', async () => {
     // Given the hydrated editor with the caret in it
     const { gateway } = fakeGateway();
