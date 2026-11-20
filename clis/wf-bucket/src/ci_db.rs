@@ -285,6 +285,8 @@ pub fn record_jobs_local(jobs: &[JobRow]) -> Result<bool, String> {
 /// Copies every table of `from` into `into`, skipping rows `into` already holds (by primary key). A table `into` lacks is made with
 /// `from`'s definition.
 pub fn merge(into: &Connection, from: &Path) -> Result<usize, String> {
+    // a sealed database made before a column existed gets it now, or the rows that carry it would lose it in the copy below
+    ensure_ledger(into)?;
     into.execute("ATTACH DATABASE ?1 AS other", [from.to_string_lossy()]).map_err(sql)?;
     let result = (|| {
         let tables: Vec<(String, String)> = {
@@ -476,6 +478,23 @@ mod tests {
         let conn = Connection::open(&db).unwrap();
         let (n, run, value): (i64, String, f64) = conn.query_row("SELECT COUNT(*), MAX(RUN_ID), MAX(VALUE) FROM CI_METRICS", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap();
         assert_eq!((n, run.as_str(), value), (2, "4242", 1900.0));
+    }
+
+    #[test]
+    fn given_a_sealed_database_from_before_the_job_columns_when_a_job_database_is_merged_then_the_new_columns_are_added_and_filled() {
+        let dir = tempfile::tempdir().unwrap();
+        let (old, job) = (dir.path().join("old.sqlite"), dir.path().join("job.sqlite"));
+        let conn = Connection::open(&old).unwrap();
+        conn.execute_batch("CREATE TABLE CI_JOBS (RUN_ID TEXT NOT NULL, SHA TEXT NOT NULL, TS INTEGER NOT NULL, KIND TEXT NOT NULL, JOB TEXT NOT NULL, SECS INTEGER NOT NULL, QUEUED INTEGER NOT NULL, PRIMARY KEY (RUN_ID, JOB)); INSERT INTO CI_JOBS VALUES ('1','a',1,'k','j',5,0);").unwrap();
+        let j = open_at(&job).unwrap();
+        ensure_ledger(&j).unwrap();
+        j.execute("INSERT INTO CI_JOBS (RUN_ID, SHA, TS, KIND, JOB, SECS, QUEUED, CONCLUSION, STARTED, GROUP_KEY, STEP, EXCERPT) VALUES ('2','b',2,'k','j',7,1,'failure',9,'g','Flow tests','boom')", []).unwrap();
+        drop(j);
+
+        merge(&conn, &job).unwrap();
+
+        let (n, conclusion, excerpt): (i64, String, String) = conn.query_row("SELECT COUNT(*), MAX(CONCLUSION), MAX(EXCERPT) FROM CI_JOBS", [], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?))).unwrap();
+        assert_eq!((n, conclusion.as_str(), excerpt.as_str()), (2, "failure", "boom"));
     }
 
     #[test]
