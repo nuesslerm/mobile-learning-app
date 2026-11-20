@@ -3,7 +3,8 @@ name: Pipeline
 # The one CI pipeline, called by ci-hosted.yml on GitHub-hosted runners. The job graph is static: wf-build, preflight, plan, flow-tests and
 # typecheck-lint-unit-tests, clis, deploy, integration-tests, cli-e2e-tests, deployment-verification-tests, eas-update, eas-update-e2e, the e2e suites, report.
 # `ship` publishes (latest images, the EAS Update), `deploy` runs the deploy legs, `e2e` runs the device suites, `stages` picks one stage of them: ci-hosted.yml runs
-# `core`, ci-hosted-integration.yml `integration` and ci-hosted-e2e.yml `e2e`, three runs of one graph that do not wait for each other.
+# `core` (flow, unit, cli-e2e), ci-hosted-deploy.yml `deploy` (the image builds, the integration tests, the deploy, its verification and the production EAS Update) and
+# ci-hosted-e2e.yml `e2e`: three runs of one graph that do not wait for each other.
 # Rules: docs/solutions/ci/ci-pipeline-on-the-vm.md
 on:
   workflow_call:
@@ -33,7 +34,7 @@ on:
         type: boolean
         default: false
       stages:
-        description: Which stages this run does, so a workflow of its own can run one of them (all, core, integration or e2e); the shared jobs (wf-build, preflight, plan, report) always run
+        description: Which stages this run does, so a workflow of its own can run one of them (all, core, deploy or e2e); the shared jobs (wf-build, preflight, plan, report) always run
         type: string
         default: all
       label:
@@ -486,7 +487,7 @@ jobs:
   deploy-build:
     name: build (${{ matrix.app }})
     needs: [plan, wf-build]
-    if: ${{ (!cancelled() && inputs.deploy && needs.plan.result == 'success' && needs.plan.outputs.legs != '[]' && needs.wf-build.result == 'success') && (inputs.stages == 'all' || inputs.stages == 'core') }}
+    if: ${{ (!cancelled() && inputs.deploy && needs.plan.result == 'success' && needs.plan.outputs.legs != '[]' && needs.wf-build.result == 'success') && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
     runs-on: ${{ fromJSON(inputs.deploy_runner) }}
     timeout-minutes: 100
     concurrency:
@@ -582,7 +583,7 @@ jobs:
     name: deploy (${{ matrix.app }})
     needs: [head, plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, deploy-build, clis, wf-build]
     # a red test deploys nothing; a stage the plan left empty is skipped, not failed
-    if: ${{ (!cancelled() && inputs.deploy && needs.head.outputs.is_head == 'true' && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && needs.deploy-build.result == 'success' && (needs.clis.result == 'success' || needs.wf-build.result == 'success') && needs.plan.outputs.legs != '[]') && (inputs.stages == 'all' || inputs.stages == 'core') }}
+    if: ${{ (!cancelled() && inputs.deploy && needs.head.outputs.is_head == 'true' && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.flow-tests.result != 'failure' && needs.typecheck-lint-unit-tests.result != 'failure' && needs.integration-tests.result != 'failure' && needs.cli-e2e-tests.result != 'failure' && needs.deploy-build.result == 'success' && (needs.clis.result == 'success' || needs.wf-build.result == 'success') && needs.plan.outputs.legs != '[]') && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
     runs-on: ${{ fromJSON(inputs.deploy_runner) }}
     timeout-minutes: 100
     concurrency:
@@ -690,7 +691,7 @@ jobs:
   integration-tests:
     name: integration-tests${{ needs.plan.outputs.shard_count > 1 && format(' ({0}/{1})', matrix.shard, needs.plan.outputs.shard_count) || '' }}
     needs: [plan]
-    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.plan.outputs.integration_tests != '0' && needs.plan.outputs.run_service == 'true') && (inputs.stages == 'all' || inputs.stages == 'integration') }}
+    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.plan.outputs.integration_tests != '0' && needs.plan.outputs.run_service == 'true') && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 40
     concurrency:
@@ -854,7 +855,7 @@ jobs:
     name: deployment-verification-tests
     needs: [plan, flow-tests, typecheck-lint-unit-tests, clis, deploy, cli-e2e-tests, eas-update]
     # the one e2e job that dials a deployed service: with legs it needs a successful deploy (which already means the tests passed), a leg that was planned but did not run leaves a service at an older commit
-    if: ${{ (!cancelled() && needs.plan.result == 'success' && (needs.deploy.result == 'success' || needs.plan.outputs.legs == '[]') && (needs.clis.result == 'success' || !inputs.ship) && (needs.plan.outputs.deployment_verification_tests != '0' || needs.plan.outputs.legs != '[]') && needs.plan.outputs.run_service == 'true' && (inputs.deploy || needs.plan.outputs.legs == '[]')) && (inputs.stages == 'all' || inputs.stages == 'core') }}
+    if: ${{ (!cancelled() && needs.plan.result == 'success' && (needs.deploy.result == 'success' || needs.plan.outputs.legs == '[]') && (needs.clis.result == 'success' || !inputs.ship) && (needs.plan.outputs.deployment_verification_tests != '0' || needs.plan.outputs.legs != '[]') && needs.plan.outputs.run_service == 'true' && (inputs.deploy || needs.plan.outputs.legs == '[]')) && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 20
     concurrency:
@@ -898,7 +899,7 @@ jobs:
     name: eas-update
     needs: [head, plan, preflight, flow-tests, typecheck-lint-unit-tests, integration-tests, cli-e2e-tests, clis]
     # a red test stage does not skip the job or the publish below (the e2e jobs read its result)
-    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.clis.result != 'failure' && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'core') }}
+    if: ${{ (!cancelled() && needs.plan.result == 'success' && needs.preflight.result != 'failure' && needs.clis.result != 'failure' && needs.plan.outputs.eas_update == 'true') && (inputs.stages == 'all' || inputs.stages == 'deploy') }}
     runs-on: ${{ fromJSON(inputs.runner) }}
     timeout-minutes: 25
     # contents: write for the push of refs/wf/state (wf bucket state write); a job's permissions replace the workflow's, so the others stay listed

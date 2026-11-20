@@ -1,7 +1,8 @@
-name: CI (GitHub-hosted integration)
+name: CI (GitHub-hosted deploy)
 
-# The CI's integration stage: pipeline.yml with `stages: integration`, a run of its own on every push, so a slow integration shard never holds the flow tests, the deploy or the
-# e2e suites, and none of them holds it. Each shard queues per crate set and input fingerprint (docs/solutions/ci/shard-weights-and-overlapping-runs.md). It has its own pull request comment.
+# The CI's deploy stage: pipeline.yml with `stages: deploy`, a run of its own on every push: the image builds, the integration tests (which run what the images hold), the deploy legs
+# and their verification, and the production EAS Update. It waits for neither the flow tests nor the e2e suites and they do not wait for it. Integration shards queue per crate set
+# and input fingerprint (docs/solutions/ci/shard-weights-and-overlapping-runs.md). It has its own pull request comment.
 on:
   push:
     branches: [dev]
@@ -9,7 +10,7 @@ on:
 # One run per commit: a push never waits for an older run (a red shard of the older one is fixed and re-run at once), and no run is cancelled, so every run is
 # measured to its end. What must not overlap is serialised per job (deploy per app) and what ships first checks that its commit is still the head of dev.
 concurrency:
-  group: ci-hosted-integration-${{ github.sha }}
+  group: ci-hosted-deploy-${{ github.sha }}
   cancel-in-progress: false
 
 permissions:
@@ -49,12 +50,12 @@ jobs:
       runner: '"ubuntu-24.04"'
       deploy_runner: '"ubuntu-24.04-arm"'
       shards: ${{ fromJSON(vars.HOSTED_SHARDS || '6') }}
-      ship: false
+      ship: true
       # no VM since 13 Nov (the Oracle account was terminated): the deploy legs need it, so they run only when the repository variable says on; the e2e suites need nothing deployed
-      deploy: false
+      deploy: ${{ vars.HOSTED_DEPLOY == 'on' }}
       e2e: false
-      stages: integration
-      label: GitHub-hosted integration
+      stages: deploy
+      label: GitHub-hosted deploy
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
       TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}
