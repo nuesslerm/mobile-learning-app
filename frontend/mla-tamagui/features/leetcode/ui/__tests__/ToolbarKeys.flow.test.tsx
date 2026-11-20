@@ -260,12 +260,12 @@ describe('the syntax toolbar on the real editor (custom keys)', () => {
     await eventually(() => expect(editor.selection()).toEqual(caret(2)));
   });
 
-  // pinned, known quirk: the insert goes at the selection's head and leaves the selected text in place; Paste shares this path
-  it('given text selected, when a custom key is tapped, then the insert goes in at the end of the selection and the selected text stays (pinned, known quirk)', async () => {
+  // changed with the typed insert (C2): the old script inserted at the selection's head and left the selected text in place, Paste included
+  it('given text selected, when a custom key is tapped, then the insert replaces the selection and the caret ends after it', async () => {
     useToolbarConfigStore.getState().addCustom({ label: '!', insert: '!' });
     const { session, editor } = await prepare('abc', 0, 3);
     await session.tap('EditorSyntax-Custom');
-    await eventually(() => expect(editor.text()).toBe('abc!'));
-    await eventually(() => expect(editor.selection()).toEqual(caret(4)));
+    await eventually(() => expect(editor.text()).toBe('!'));
+    await eventually(() => expect(editor.selection()).toEqual(caret(1)));
   });
 });

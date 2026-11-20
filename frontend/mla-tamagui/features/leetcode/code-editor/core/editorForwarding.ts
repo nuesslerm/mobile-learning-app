@@ -5,15 +5,15 @@ import type { ToEditorMessage } from '../../domain/ports';
 import { toConfigPatch, type LegacyConfigPatch } from '../engine/configPatch';
 
 /** The messages that reach the page through the typed editor API. */
-export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus', 'setSelection'] as const;
+export const FORWARDED_TYPES = ['undo', 'redo', 'updateConfig', 'focus', 'setSelection', 'insertAt'] as const;
 /**
  * The messages that still travel as fire-and-forget scripts, and why: `init` creates the editor; `blur` waits for an iOS check of
- * the blur trick; `insertAt`/`typeText`/`setText` need the typing step and the diff sync; the highlight and diff marks move with the runner jump and voice edit. The list only shrinks.
+ * the blur trick; `typeText`/`setText` need the typing step and the diff sync; the highlight and diff marks move with the
+ * runner jump and voice edit. The list only shrinks.
  */
 export const LEGACY_TYPES = [
   'init',
   'blur',
-  'insertAt',
   'typeText',
   'setText',
   'highlightRange',
@@ -33,6 +33,10 @@ export const everyMessageIsListed: [Unlisted] extends [never] ? true : never =
 // the replies that say the typed path could not run at all: an idempotent message is sent again on the old script
 const typedPathUnavailable = (reply: Reply<unknown>) =>
   !reply.ok && ['not-ready', 'unsupported', 'transport'].includes(reply.error.code);
+
+// the replies that prove an edit was not applied (a transport failure does not: the edit may have landed)
+const editNotApplied = (reply: Reply<unknown>) =>
+  !reply.ok && ['not-ready', 'unsupported'].includes(reply.error.code);
 
 const reportFailure = (type: string) => (reply: Reply<unknown>) => {
   if (!reply.ok)
@@ -81,6 +85,28 @@ export function createForwardingPost(
           if (typedPathUnavailable(reply)) legacyPost(msg);
         });
         return;
+      case 'insertAt': {
+        const text = msg.text.replace(/\r\n?/g, '\n');
+        const offset = msg.offset ?? 0;
+        // a caret past the end of the insert is not a point inside it: the old script places it
+        if (offset > 0 || -offset > text.length) {
+          legacyPost(msg);
+          return;
+        }
+        // at the selection, replacing it, and the caret where the old script put it: after the text, `offset` back from its end
+        // (a point's offset is not negative, so it is counted from the start)
+        void client
+          .transact([
+            { op: 'replace', range: 'selection', text },
+            { op: 'select', anchor: { step: 0, edge: 'start', offset: text.length + offset } },
+          ])
+          .then((reply) => {
+            if (reply.ok) return;
+            reportFailure('insertAt')(reply);
+            if (editNotApplied(reply)) legacyPost(msg);
+          });
+        return;
+      }
       default:
         legacyPost(msg);
     }

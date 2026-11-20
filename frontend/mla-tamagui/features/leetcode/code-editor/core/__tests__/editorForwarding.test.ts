@@ -104,6 +104,81 @@ describe('the editor port forwarding', () => {
     expect(legacy).toEqual([]);
   });
 
+  it('given a caret, when insertAt is posted, then the text goes in there, the caret ends after it, and one undo takes it back', async () => {
+    const { fake, client, legacy, post } = setup();
+    await client.select(1);
+
+    post({ type: 'insertAt', text: 'XY' });
+    await settled();
+
+    expect(fake.text()).toBe('aXYbc');
+    expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 3, head: 3 });
+    await client.undo();
+    expect(fake.text()).toBe('abc');
+    expect(legacy).toEqual([]);
+  });
+
+  it('given a negative offset, when insertAt is posted, then the caret sits that many characters before the end of the insert', async () => {
+    const { fake, client, post } = setup();
+    await client.select(3);
+
+    post({ type: 'insertAt', text: '()', offset: -1 });
+    await settled();
+
+    expect(fake.text()).toBe('abc()');
+    expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 4, head: 4 });
+  });
+
+  it('given a selection, when insertAt is posted, then the insert replaces it', async () => {
+    const { fake, client, post } = setup();
+    await client.select(0, 2);
+
+    post({ type: 'insertAt', text: 'Z' });
+    await settled();
+
+    expect(fake.text()).toBe('Zc');
+    expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 1, head: 1 });
+  });
+
+  it('given text with CRLF, when insertAt is posted, then it goes in as LF and the offset counts LF', async () => {
+    const { fake, client, post } = setup();
+    await client.select(3);
+
+    post({ type: 'insertAt', text: 'a\r\nb', offset: -1 });
+    await settled();
+
+    expect(fake.text()).toBe('abca\nb');
+    expect(fake.peek().selection.ranges[0]).toEqual({ anchor: 5, head: 5 });
+  });
+
+  it('given a positive offset or one past the insert, when insertAt is posted, then the old script places the caret', async () => {
+    const { fake, legacy, post } = setup();
+
+    post({ type: 'insertAt', text: 'x', offset: 2 });
+    post({ type: 'insertAt', text: 'x', offset: -2 });
+    await settled();
+
+    expect(legacy).toEqual([
+      { type: 'insertAt', text: 'x', offset: 2 },
+      { type: 'insertAt', text: 'x', offset: -2 },
+    ]);
+    expect(fake.text()).toBe('abc');
+  });
+
+  it('given no editor behind the engine yet, when insertAt is posted, then the old script gets it; a transport failure does not repeat an edit that may have landed', async () => {
+    const legacy: ToEditorMessage[] = [];
+    const post = createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => legacy.push(msg));
+    post({ type: 'insertAt', text: 'x' });
+    await settled();
+    expect(legacy).toEqual([{ type: 'insertAt', text: 'x' }]);
+
+    const lost: ToEditorMessage[] = [];
+    const closed = { request: () => Promise.reject(Object.assign(new Error('gone'), { code: 'closed' })), listen: () => () => undefined };
+    createForwardingPost(createEditorClient(closed), (msg) => lost.push(msg))({ type: 'insertAt', text: 'x' });
+    await settled();
+    expect(lost).toEqual([]);
+  });
+
   it('given no editor behind the engine yet, when setSelection is posted, then the old script gets it', async () => {
     const legacy: ToEditorMessage[] = [];
     const post = createForwardingPost(createEditorClient(createDeferredEngine(() => undefined)), (msg) => legacy.push(msg));
