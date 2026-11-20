@@ -13,6 +13,8 @@ mod shard_weights;
 mod ci_db_verb;
 mod ci_ledger;
 mod ci_live;
+mod ci_prune;
+mod ci_telemetry;
 mod ci_plan;
 mod ci_preflight;
 mod ci_tidy;

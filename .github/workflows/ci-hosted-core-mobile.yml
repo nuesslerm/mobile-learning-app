@@ -1,6 +1,6 @@
-name: CI core mobile
+name: mobile_core+lint+pre-release-testing
 
-# CI core mobile: pipeline.yml with `stages: core` and `area: mobile`, a run of its own on every push: the flow, lint, typecheck and unit tests of the mobile area. Its pull request comment is its own.
+# mobile_core+lint+pre-release-testing: pipeline.yml with `stages: core` and `area: mobile`, a run of its own on every push: the flow, lint, typecheck and unit tests of the mobile area. Its pull request comment is its own.
 on:
   push:
     branches: [dev]
@@ -52,7 +52,7 @@ jobs:
       deploy: false
       e2e: false
       stages: core
-      label: GitHub-hosted core mobile
+      label: mobile_core+lint+pre-release-testing
       area: mobile
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}

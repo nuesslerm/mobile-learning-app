@@ -1,6 +1,6 @@
-name: CI cli publish
+name: cli_build+publish+release-testing
 
-# CI cli publish: pipeline.yml with `stages: cli`, a run of its own on every push: the cli e2e tests and, once they pass, the wf build released as `wf-latest` and installed through
+# cli_build+publish+release-testing: pipeline.yml with `stages: cli`, a run of its own on every push: the cli e2e tests and, once they pass, the wf build released as `wf-latest` and installed through
 # vm-ops-api. Its pull request comment is its own.
 on:
   push:
@@ -54,7 +54,7 @@ jobs:
       deploy: ${{ vars.HOSTED_DEPLOY == 'on' }}
       e2e: false
       stages: cli
-      label: GitHub-hosted cli publish
+      label: cli_build+publish+release-testing
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
       TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}

@@ -5,6 +5,7 @@ pub const HELP: &[(&str, bool, &str)] = &[
     ("ci plan", false, include_str!("help/wf__ci__plan.txt")),
     ("ci tidy", false, include_str!("help/wf__ci__tidy.txt")),
     ("ci live", false, include_str!("help/wf__ci__live.txt")),
+    ("ci prune", false, include_str!("help/wf__ci__prune.txt")),
     ("ci preflight", false, include_str!("help/wf__ci__preflight.txt")),
     ("ci audit", false, include_str!("help/wf__ci__audit.txt")),
     ("ci comment", false, include_str!("help/wf__ci__comment.txt")),

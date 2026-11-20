@@ -1,6 +1,6 @@
-name: CI core backend services
+name: backend_core+lint+pre-release-testing
 
-# CI core backend services: pipeline.yml with `stages: core` and `area: backend`, a run of its own on every push: the flow, lint, typecheck and unit tests of the backend services and
+# backend_core+lint+pre-release-testing: pipeline.yml with `stages: core` and `area: backend`, a run of its own on every push: the flow, lint, typecheck and unit tests of the backend services and
 # their libraries. (The file keeps its name, which wf vm ops cancel-run, wf ci audit and the last-green base look for.) Its pull request comment is its own.
 on:
   push:
@@ -53,7 +53,7 @@ jobs:
       deploy: false
       e2e: false
       stages: core
-      label: GitHub-hosted core backend services
+      label: backend_core+lint+pre-release-testing
       area: backend
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}

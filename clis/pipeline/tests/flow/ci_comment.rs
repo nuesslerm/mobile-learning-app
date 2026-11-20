@@ -12,11 +12,14 @@ fn log_cache() -> String {
 
 /// The options of a run with the labelling variables of the machine the tests run on (a hosted pipeline sets `WF_CI_LABEL`) cleared: a test that wants one sets it.
 fn ci_opts() -> RunOpts {
-    RunOpts::default().env("WF_CI_LABEL", "").env("WF_CI_RUNNER_STATS_DIR", "")
+    let empty = std::env::temp_dir().join("ci-comment-no-workflows");
+    std::fs::create_dir_all(&empty).ok();
+    RunOpts::default().env("WF_CI_LABEL", "").env("WF_CI_RUNNER_STATS_DIR", "").env("WF_CI_LEDGERS", "").env("GITHUB_WORKSPACE", &empty.display().to_string())
 }
 
 const SHA: &str = "0123456789abcdef0123456789abcdef01234567";
 const TOKEN: &str = "flowtesttoken-0123456789";
+const OLD: &str = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const COMMENTS: &str = "/repos/o/r/commits/0123456789abcdef0123456789abcdef01234567/comments";
 const PR_COMMENTS: &str = "/repos/o/r/issues/7/comments";
 const PASS_LOG: &str = "2026-10-23T10:00:05.0000000Z > nx run crate-wf-report:cargo-flow  [local cache]
@@ -54,6 +57,9 @@ const FLOW_LOG: &str = "2026-10-23T10:00:01.1234567Z ##[group]Run wf test run --
 
 struct Github {
     server: MockServer,
+    /// What the pulls listing answers: one open pull request at the run's head, unless a test removes it.
+    prs: std::cell::RefCell<Value>,
+    extra: std::cell::RefCell<Vec<(String, MockReply)>>,
 }
 
 impl Github {
@@ -87,7 +93,20 @@ impl Github {
     }
 
     fn start() -> Github {
-        Github { server: MockServer::start(None) }
+        Github { server: MockServer::start(None), prs: std::cell::RefCell::new(json!([{ "number": 7, "head": { "sha": SHA } }])), extra: std::cell::RefCell::new(Vec::new()) }
+    }
+
+    /// The heads the runs behind older comments were for, as the run lookup answers them.
+    fn extra_run_heads(&self, runs: &[(u64, &str)]) {
+        let mut extra = self.extra.borrow_mut();
+        for (run, sha) in runs {
+            extra.push((format!("GET /repos/o/r/actions/runs/{run}"), MockReply::json(200, json!({ "head_sha": sha }))));
+        }
+    }
+
+    /// The branch has no open pull request.
+    fn without_pr(&self) {
+        *self.prs.borrow_mut() = json!([]);
     }
 
     fn url(&self) -> String {
@@ -106,8 +125,9 @@ impl Github {
 
     /// As `serve_with`, with the text of the failed job's log.
     fn serve_log(&self, jobs: &Value, comments: Value, pr_comments: Value, post: MockReply, patch: MockReply, flow_log: &str) {
+        let delete_ids: Vec<u64> = pr_comments.as_array().map(|a| a.iter().filter_map(|c| c["id"].as_u64()).collect()).unwrap_or_default();
         let mut table = vec![
-            ("GET /repos/o/r/pulls?head=o:dev&state=open&per_page=1".to_string(), MockReply::json(200, json!([{ "number": 7 }]))),
+            ("GET /repos/o/r/pulls?head=o:dev&state=open&per_page=1".to_string(), MockReply::json(200, self.prs.borrow().clone())),
             (format!("GET {PR_COMMENTS}?per_page=100&page=1"), MockReply::json(200, pr_comments)),
             (format!("POST {PR_COMMENTS}"), MockReply::json(201, json!({ "id": 9100 }))),
             ("PATCH /repos/o/r/issues/comments/9100".to_string(), MockReply::json(200, json!({ "id": 9100 }))),
@@ -117,6 +137,10 @@ impl Github {
             (format!("POST {COMMENTS}"), post),
             ("PATCH /repos/o/r/comments/9001".to_string(), patch),
         ];
+        for id in delete_ids {
+            table.push((format!("DELETE /repos/o/r/issues/comments/{id}"), MockReply::json(204, json!({}))));
+        }
+        table.extend(self.extra.borrow().iter().cloned());
         let mut redirect = MockReply::json(302, json!({}));
         redirect.headers.insert("Location".into(), format!("{}/blob/501", self.url()));
         let mut log = MockReply::text(200, flow_log);
@@ -169,6 +193,11 @@ fn red_run() -> Value {
     ])
 }
 
+/// A comment of the Actions bot, the only author whose CI comments are ever pruned.
+fn bot(id: u64, body: &str) -> Value {
+    json!({ "id": id, "body": body, "user": { "login": "github-actions[bot]", "type": "Bot" } })
+}
+
 fn created() -> MockReply {
     MockReply::json(201, json!({ "id": 9001 }))
 }
@@ -183,8 +212,9 @@ fn posted_body(request: &MockRequest) -> String {
 
 #[test]
 fn a_red_run_gets_one_commit_comment_with_a_table_of_what_failed_and_no_secret_in_it() {
-    // Given a run whose flow-tests job failed, with its log behind a redirect, and a commit with no comment yet
+    // Given a run whose flow-tests job failed, with its log behind a redirect, a commit with no comment yet and no open pull request
     let github = Github::start();
+    github.without_pr();
     github.serve(&red_run(), json!([]), created(), updated());
 
     // When the comment is previewed with --dry-run
@@ -218,10 +248,6 @@ fn a_red_run_gets_one_commit_comment_with_a_table_of_what_failed_and_no_secret_i
     }
     let line_of = |needle: &str| body.lines().find(|l| l.contains(needle)).unwrap_or_else(|| panic!("{needle} missing: {body}")).to_string();
     assert!(line_of("crate-wf-report").contains("replayed") && line_of("crate-wf-plan").contains(" ran"), "{body}");
-    // and the same body goes to the open pull request
-    let on_pr: Vec<MockRequest> = github.sent("POST").into_iter().filter(|p| p.url == PR_COMMENTS).collect();
-    assert_eq!(on_pr.len(), 1, "{on_pr:?}");
-    assert_eq!(after_marker(&posted_body(&on_pr[0])), after_marker(&body), "the pull request gets the report with its own marker, the commit with the run's");
     assert!(body.contains("flow-tests") && body.contains("Flow tests") && body.contains("3m 05s"), "the failed job, its step and how long it took: {body}");
     let failure = body.split("### Jobs").next().unwrap();
     assert!(failure.contains("test ci::posts_one_comment ... FAILED") && !failure.contains("sccache {"), "the cache figures printed at the end of the log are not the cause: {failure}");
@@ -287,13 +313,14 @@ fn a_failed_job_of_runner_2_338_2_shows_its_cause_not_the_runner_header() {
 
 #[test]
 fn a_re_run_of_the_same_run_updates_its_comment_instead_of_posting_a_second() {
-    // Given a red run that has posted its comment once
+    // Given a red run, on a branch with no pull request, that has posted its comment once
     let github = Github::start();
+    github.without_pr();
     github.serve(&red_run(), json!([]), created(), updated());
     assert_eq!(github.comment_wf(&[]).exit_code, 0);
     let first = posted_body(&github.sent("POST")[0]);
     // and the commit now lists that comment beside another one
-    github.serve(&red_run(), json!([{ "id": 5, "body": "looks good" }, { "id": 9001, "body": first }]), created(), updated());
+    github.serve(&red_run(), json!([{ "id": 5, "body": "looks good" }, { "id": 9001, "body": first, "user": { "login": "github-actions[bot]", "type": "Bot" } }]), created(), updated());
     github.server.clear();
 
     // When the same run fails again and wf comments
@@ -330,7 +357,8 @@ fn a_green_run_reports_on_the_pull_request_and_in_the_summary_and_a_refused_comm
     assert!(report.lines().nth(1).is_some_and(|title| title.contains("passed") && title.contains("0123456")) && report.contains("plan") && report.contains("20s"), "{report}");
     assert_eq!(posted_body(&github.sent("POST")[0]).trim_end(), report.trim_end());
 
-    // Given a red run whose comment GitHub refuses
+    // Given a red run, with no pull request, whose comment GitHub refuses
+    github.without_pr();
     github.serve(&red_run(), json!([]), MockReply::json(403, json!({ "message": "Resource not accessible by integration" })), updated());
     // When wf comments
     let refused = github.comment_wf(&[]);
@@ -375,16 +403,17 @@ fn a_green_run_whose_cache_writes_were_refused_for_a_full_tenancy_says_so_in_the
 
 #[test]
 fn the_pull_request_keeps_only_the_comment_of_the_run_that_reported_last() {
-    // Given a pull request that carries the CI comments of two earlier reports and an unrelated comment
+    // Given a pull request that carries the CI comments the bot left for two earlier heads and an unrelated comment
     let github = Github::start();
     let older = "<!-- ci-comment run:76 runner:github-actions-1 -->\nolder run";
     let live = "<!-- ci-live run:75 -->\nan earlier live comment";
-    github.serve_with(&red_run(), json!([]), json!([{ "id": 3, "body": older }, { "id": 4, "body": live }, { "id": 5, "body": "a human's remark" }]), created(), updated());
+    github.extra_run_heads(&[(76, OLD), (75, OLD)]);
+    github.serve_with(&red_run(), json!([]), json!([bot(3, older), bot(4, live), { "id": 5, "body": "a human's remark" }]), created(), updated());
 
     // When this run reports
     let r = github.comment_wf(&[]);
 
-    // Then its own comment is created at the bottom, the two CI comments of the earlier runs are deleted, and the remark is left alone
+    // Then its own comment is created at the bottom, the two CI comments of the older heads are deleted, and the remark is left alone
     let out = last_json(&r);
     assert_eq!((r.exit_code, out["prComment"]["action"].clone()), (0, json!("created")), "{}{}", r.stdout, r.stderr);
     let mut deleted: Vec<String> = github.sent("DELETE").into_iter().map(|d| d.url).collect();
@@ -973,7 +1002,8 @@ fn live_github(comments: Value) -> Github {
 fn live_github_of(comments: Value, jobs: Value) -> Github {
     let github = Github::start();
     github.server.routes(&[
-        ("GET /repos/o/r/pulls?head=o:dev&state=open&per_page=1", MockReply::json(200, json!([{ "number": 7 }]))),
+        ("GET /repos/o/r/pulls?head=o:dev&state=open&per_page=1", MockReply::json(200, json!([{ "number": 7, "head": { "sha": SHA } }]))),
+        ("GET /repos/o/r/actions/runs/70", MockReply::json(200, json!({ "head_sha": OLD }))),
         (&format!("GET {PR_COMMENTS}?per_page=100&page=1"), MockReply::json(200, comments)),
         ("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": jobs.as_array().map_or(0, Vec::len), "jobs": jobs }))),
         ("GET /repos/o/r/actions/jobs/500/logs", MockReply::text(200, "ok\n")),
@@ -988,7 +1018,7 @@ fn live_github_of(comments: Value, jobs: Value) -> Github {
 #[test]
 fn the_live_comment_of_a_new_run_replaces_the_old_one_at_the_bottom_and_shows_what_is_running() {
     // Given an earlier run's live comment on the pull request and a run with one job done, one running and one waiting
-    let github = live_github(json!([{ "id": 8000, "body": "<!-- ci-live run:70 -->\n## 🟡 CI running" }, { "id": 8001, "body": "an unrelated comment" }]));
+    let github = live_github(json!([bot(8000, "<!-- ci-live run:70 -->\n## 🟡 CI running"), { "id": 8001, "body": "an unrelated comment" }]));
 
     // When the run's first job starts the live comment
     let r = github.ci_wf(&["live", "start"]);
@@ -1006,7 +1036,7 @@ fn the_live_comment_of_a_new_run_replaces_the_old_one_at_the_bottom_and_shows_wh
 #[test]
 fn the_live_comment_of_a_run_is_edited_in_place_not_recreated() {
     // Given this run's live comment already on the pull request
-    let github = live_github(json!([{ "id": 9001, "body": "<!-- ci-live run:77 -->\nold" }]));
+    let github = live_github(json!([bot(9001, "<!-- ci-live run:77 -->\nold")]));
     // When a later job updates it
     let r = github.ci_wf(&["live"]);
     // Then the comment is edited and no second one is made
@@ -1288,7 +1318,7 @@ fn the_live_comment_has_a_cache_health_section_naming_the_problems_and_a_healthy
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     let report = std::fs::read_to_string(&summary).unwrap();
     assert!(report.contains("### 🗄️ Cache health") && report.contains("problem(s)"), "{report}");
-    assert!(report.contains("seeded 3 of 4") && report.contains("| rejected-write | flow-tests |") && report.contains("disabled in flow-tests"), "{report}");
+    assert!(report.contains("seeded 3 of 4") && report.contains("| rejected-write | flow-tests |") && report.contains("The shared build cache is off (WF_BLOB_CACHE=off) in 1 job"), "{report}");
 
     // And a healthy run says so
     let clean = std::env::temp_dir().join(format!("ci-summary-health-ok-{}", std::process::id()));
@@ -1303,32 +1333,33 @@ fn the_live_comment_has_a_cache_health_section_naming_the_problems_and_a_healthy
 fn a_labelled_pipeline_keeps_its_own_titled_comment_and_never_deletes_the_cis() {
     // Given the CI's live comment and an earlier run's comment of the labelled pipeline on the pull request
     let github = live_github(json!([
-        { "id": 8000, "body": "<!-- ci-live run:70 -->\n## 🟡 CI running" },
-        { "id": 8001, "body": "<!-- ci-live:github-hosted run:70 -->\n## 🟡 CI (GitHub-hosted) running" },
+        bot(8000, "<!-- ci-live run:70 -->\n## 🟡 CI running"),
+        bot(8001, "<!-- ci-live:github-hosted run:70 -->\n## 🟡 CI (GitHub-hosted) running"),
     ]));
 
     // When the labelled pipeline's run starts its live comment
     let r = github.ci_wf_with(&["live", "start"], &[("WF_CI_LABEL", "GitHub-hosted")]);
 
-    // Then only its own earlier comment is deleted, and the new one carries the label in its marker and its title
+    // Then both older-head comments go (the PR keeps only the latest head's), and the new one carries the label in its marker and its title
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
-    let deleted: Vec<String> = github.sent("DELETE").iter().map(|d| d.url.clone()).collect();
-    assert_eq!(deleted, ["/repos/o/r/issues/comments/8001"], "the CI's comment stays: {:?}", github.server.requests());
+    let mut deleted: Vec<String> = github.sent("DELETE").iter().map(|d| d.url.clone()).collect();
+    deleted.sort();
+    assert_eq!(deleted, ["/repos/o/r/issues/comments/8000", "/repos/o/r/issues/comments/8001"], "{:?}", github.server.requests());
     let created = github.sent("POST");
     assert_eq!(created.len(), 1);
     let body = posted_body(&created[0]);
     assert!(body.starts_with("<!-- ci-live:github-hosted run:77 -->"), "{body}");
     assert!(body.contains("## 🟡 CI (GitHub-hosted) running") || body.contains("CI (GitHub-hosted)"), "{body}");
 
-    // and the CI's own run removes the CI's comment only
+    // and the CI's own run removes the older heads' comments of both flavors
     let github = live_github(json!([
-        { "id": 8000, "body": "<!-- ci-live run:70 -->\n## 🟡 CI running" },
-        { "id": 8001, "body": "<!-- ci-live:github-hosted run:70 -->\n## 🟡 CI (GitHub-hosted) running" },
+        bot(8000, "<!-- ci-live run:70 -->\n## 🟡 CI running"),
+        bot(8001, "<!-- ci-live:github-hosted run:70 -->\n## 🟡 CI (GitHub-hosted) running"),
     ]));
     let r = github.ci_wf(&["live", "start"]);
     assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
     let deleted: Vec<String> = github.sent("DELETE").iter().map(|d| d.url.clone()).collect();
-    assert_eq!(deleted, ["/repos/o/r/issues/comments/8000"], "{:?}", github.server.requests());
+    assert_eq!(deleted.len(), 2, "{:?}", github.server.requests());
 }
 
 #[test]
@@ -1422,4 +1453,444 @@ fn the_audit_of_a_called_workflow_judges_a_job_by_its_own_name_and_never_judges_
     let waits: Vec<&Value> = out["findings"].as_array().unwrap().iter().filter(|b| b["kind"] == "runner-wait").collect();
     assert_eq!(waits.len(), 1, "{out}");
     assert_eq!(waits[0]["subject"], "flow-tests (2/4)", "{out}");
+}
+
+// ---- one comment per workflow: converging duplicates and pruning old heads ----
+
+const WORKFLOW_LABELS: [(&str, &str); 2] = [("ci-hosted.yml", "GitHub-hosted core backend services"), ("ci-hosted-core-cli.yml", "GitHub-hosted core cli")];
+
+/// A workspace whose `.github/workflows` hold the labels of the current workflows.
+fn workspace_with_labels() -> String {
+    static N: AtomicU64 = AtomicU64::new(0);
+    let dir = std::env::temp_dir().join(format!("ci-workspace-{}-{}", std::process::id(), N.fetch_add(1, Ordering::Relaxed)));
+    let workflows = dir.join(".github/workflows");
+    std::fs::create_dir_all(&workflows).unwrap();
+    for (file, label) in WORKFLOW_LABELS {
+        std::fs::write(workflows.join(file), format!("jobs:\n  ci:\n    with:\n      label: {label}\n")).unwrap();
+    }
+    dir.display().to_string()
+}
+
+/// A pull request at the run's head with `comments`, and the heads the runs behind them were for.
+fn pruning(comments: Value, runs: &[(u64, &str)]) -> Github {
+    let github = live_github(comments.clone());
+    let mut table: Vec<(String, MockReply)> = vec![
+        ("GET /repos/o/r/pulls?head=o:dev&state=open&per_page=1".into(), MockReply::json(200, json!([{ "number": 7, "head": { "sha": SHA } }]))),
+        (format!("GET {PR_COMMENTS}?per_page=100&page=1"), MockReply::json(200, comments.clone())),
+        ("GET /repos/o/r/pulls/7".into(), MockReply::json(200, json!({ "head": { "sha": SHA } }))),
+        ("GET /repos/o/r/pulls/7/commits?per_page=100&page=1".into(), MockReply::json(200, json!([]))),
+        ("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1".into(), MockReply::json(200, json!({ "total_count": 1, "jobs": [timed_job(500, "preflight", "success", 12)] }))),
+        ("GET /repos/o/r/actions/jobs/500/logs".into(), MockReply::text(200, "ok\n")),
+        (format!("POST {PR_COMMENTS}"), MockReply::json(201, json!({ "id": 9100 }))),
+        ("PATCH /repos/o/r/issues/comments/9100".into(), MockReply::json(200, json!({ "id": 9100 }))),
+    ];
+    for c in comments.as_array().unwrap() {
+        let id = c["id"].as_u64().unwrap();
+        table.push((format!("DELETE /repos/o/r/issues/comments/{id}"), MockReply::json(204, json!({}))));
+        table.push((format!("PATCH /repos/o/r/issues/comments/{id}"), MockReply::json(200, json!({ "id": id }))));
+    }
+    for (run, sha) in runs {
+        table.push((format!("GET /repos/o/r/actions/runs/{run}"), MockReply::json(200, json!({ "head_sha": sha }))));
+    }
+    github.server.routes(&table.iter().map(|(k, v)| (k.as_str(), v.clone())).collect::<Vec<_>>());
+    github
+}
+
+fn deleted(github: &Github) -> Vec<String> {
+    let mut urls: Vec<String> = github.sent("DELETE").into_iter().map(|d| d.url.rsplit('/').next().unwrap().to_string()).collect();
+    urls.sort();
+    urls
+}
+
+#[test]
+fn two_comments_of_the_same_run_become_one_and_the_lowest_id_is_edited() {
+    // Given the pull request carries two bot comments with this run's marker (two jobs created one each at the same time)
+    let github = pruning(json!([bot(31, "<!-- ci-live run:77 -->\nb"), bot(30, "<!-- ci-live run:77 -->\na")]), &[]);
+
+    // When wf ci live runs
+    let r = github.ci_wf(&["live"]);
+
+    // Then exactly one PATCH goes to the lowest id, one DELETE to the other, and nothing is created
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!(github.sent("PATCH").iter().map(|p| p.url.clone()).collect::<Vec<_>>(), ["/repos/o/r/issues/comments/30"]);
+    assert_eq!(deleted(&github), ["31"]);
+    assert!(github.sent("POST").is_empty(), "{:?}", github.server.requests());
+}
+
+#[test]
+fn a_create_that_raced_another_writer_deletes_its_own_extra_comment() {
+    // Given the first listing is empty and the listing after the create shows ids 10 and 11 with this run's marker
+    let github = pruning(json!([]), &[]);
+    let marker = "<!-- ci-live run:77 -->\nx";
+    let jobs = MockReply::json(200, json!({ "total_count": 3, "jobs": live_jobs() }));
+    github.server.queue(
+        vec![
+            MockReply::json(200, json!([{ "number": 7, "head": { "sha": SHA } }])),
+            jobs,
+            MockReply::text(200, "ok\n"),
+            MockReply::json(200, json!([])),
+            MockReply::json(201, json!({ "id": 11 })),
+            MockReply::json(200, json!([bot(10, marker), bot(11, marker)])),
+            MockReply::json(204, json!({})),
+        ],
+        false,
+    );
+
+    // When the live comment is created
+    let r = github.ci_wf(&["live", "start"]);
+
+    // Then id 11 is deleted and id 10 stays
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let out = last_json(&r);
+    assert_eq!((out["action"].clone(), out["commentId"].clone()), (json!("created"), json!(10)), "{} {:?}", r.stdout, github.server.requests().iter().map(|q| format!("{} {}", q.method, q.url)).collect::<Vec<_>>());
+    assert_eq!(deleted(&github), ["11"], "{:?}", github.server.requests());
+}
+
+#[test]
+fn an_old_head_comment_of_the_same_workflow_is_deleted_and_the_current_one_stays() {
+    // Given this run's comment and an older head's comment of the same workflow, both the bot's
+    let github = pruning(json!([bot(3, "<!-- ci-live run:70 -->\nold"), bot(4, "<!-- ci-live run:77 -->\nmine")]), &[(70, OLD)]);
+    // When wf ci live runs
+    let r = github.ci_wf(&["live"]);
+    // Then the old one is deleted and this run's is edited
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!(deleted(&github), ["3"]);
+    assert_eq!(github.sent("PATCH").len(), 1);
+}
+
+#[test]
+fn a_comment_of_a_retired_label_for_an_old_head_is_deleted() {
+    // Given the six-label era workflows and a comment of the label the CI used before, for an older head
+    let github = pruning(json!([bot(3, "<!-- ci-live:github-hosted run:70 -->\nold"), bot(5, "<!-- ci-live run:71 -->\nolder still")]), &[(70, OLD), (71, OLD)]);
+    let workspace = workspace_with_labels();
+
+    // When the workflow labelled "core backend services" runs
+    let r = github.ci_wf_with(&["live"], &[("WF_CI_LABEL", "GitHub-hosted core backend services"), ("GITHUB_WORKSPACE", &workspace)]);
+
+    // Then both retired flavors' old comments go
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!(deleted(&github), ["3", "5"]);
+}
+
+#[test]
+fn an_older_head_comment_of_a_current_workflow_that_did_not_run_again_is_deleted() {
+    // Given an older head's comment of another current workflow (path-filtered out at the new head, so it never replaces it)
+    let github = pruning(json!([bot(3, "<!-- ci-live:github-hosted-core-cli run:70 -->\nold")]), &[(70, OLD)]);
+    let workspace = workspace_with_labels();
+
+    // When the backend workflow runs
+    let r = github.ci_wf_with(&["live"], &[("WF_CI_LABEL", "GitHub-hosted core backend services"), ("GITHUB_WORKSPACE", &workspace)]);
+
+    // Then the PR carries only the latest head's comments, so that one goes
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!(deleted(&github), ["3"], "{:?}", github.server.requests());
+}
+
+#[test]
+fn a_run_that_a_newer_run_of_its_workflow_has_passed_writes_nothing() {
+    // Given the pull request already carries the comment of run 78 of this workflow
+    let github = pruning(json!([bot(3, "<!-- ci-live run:78 -->\nnewer")]), &[]);
+
+    // When the older run 77 updates its live comment
+    let r = github.ci_wf(&["live"]);
+
+    // Then it neither creates, edits nor deletes anything
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(github.sent("POST").is_empty() && github.sent("PATCH").is_empty() && github.sent("DELETE").is_empty(), "{:?}", github.server.requests());
+}
+
+#[test]
+fn a_rerun_on_another_runner_updates_the_commit_comment_instead_of_adding_a_second() {
+    // Given a red run with no pull request whose commit already carries this run's comment, written by another runner
+    let github = Github::start();
+    github.without_pr();
+    github.serve(&red_run(), json!([bot(9001, "<!-- ci-comment run:77 runner:other-runner -->\nold")]), created(), updated());
+    github.server.clear();
+
+    // When wf comments from this runner
+    let r = github.comment_wf(&[]);
+
+    // Then the existing comment is edited and none is created
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!((github.sent("PATCH").len(), github.sent("POST").iter().filter(|p| p.url == COMMENTS).count()), (1, 0), "{:?}", github.server.requests());
+}
+
+#[test]
+fn a_human_or_non_github_actions_comment_that_quotes_a_marker_is_never_deleted() {
+    // Given comments that look like old CI comments but are not the Actions bot's, or whose first line is not exactly a marker
+    let marker = "<!-- ci-live run:70 -->";
+    let github = pruning(
+        json!([
+            { "id": 3, "body": format!("{marker}\nhuman"), "user": { "login": "octocat", "type": "User" } },
+            { "id": 4, "body": format!("{marker}\nother bot"), "user": { "login": "dependabot[bot]", "type": "Bot" } },
+            bot(5, &format!("quoting\n{marker}")),
+            bot(6, &format!("{marker} extra text\nbody")),
+        ]),
+        &[(70, OLD)],
+    );
+    // When wf ci live runs
+    let r = github.ci_wf(&["live"]);
+    // Then nothing is deleted
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(deleted(&github).is_empty(), "{:?}", github.server.requests());
+}
+
+#[test]
+fn a_comment_whose_run_cannot_be_resolved_is_kept() {
+    // Given an old-looking comment whose run lookup answers 404
+    let github = pruning(json!([bot(3, "<!-- ci-live run:70 -->\nold")]), &[]);
+    let r = github.ci_wf(&["live"]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(deleted(&github).is_empty(), "{:?}", github.server.requests());
+}
+
+#[test]
+fn dry_run_lists_what_it_would_delete_and_sends_no_delete() {
+    let github = pruning(json!([bot(3, "<!-- ci-live run:70 -->\nold"), bot(4, "<!-- ci-live run:77 -->\nmine")]), &[(70, OLD)]);
+    // When wf ci prune runs with --dry-run
+    let r = github.ci_wf(&["prune", "--dry-run"]);
+    // Then it lists the deletion and sends none
+    let out = last_json(&r);
+    assert_eq!((r.exit_code, out["dryRun"].clone(), out["deleted"][0]["id"].clone()), (0, json!(true), json!(3)), "{}{}", r.stdout, r.stderr);
+    assert!(deleted(&github).is_empty() && github.sent("POST").is_empty() && github.sent("PATCH").is_empty(), "{:?}", github.server.requests());
+    // and without the flag it deletes it
+    let r = github.ci_wf(&["prune"]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!(deleted(&github), ["3"]);
+}
+
+#[test]
+fn a_superseded_run_posts_nothing() {
+    // Given the pull request's head moved past this run's sha
+    let github = pruning(json!([]), &[]);
+    github.server.routes(&[("GET /repos/o/r/pulls?head=o:dev&state=open&per_page=1", MockReply::json(200, json!([{ "number": 7, "head": { "sha": OLD } }])))]);
+    // When wf ci live runs
+    let r = github.ci_wf(&["live", "start"]);
+    // Then nothing is posted, edited or deleted, and it says why
+    let out = last_json(&r);
+    assert_eq!((r.exit_code, out["posted"].clone()), (0, json!(false)), "{}{}", r.stdout, r.stderr);
+    assert!(out["reason"].as_str().unwrap().starts_with("superseded: head moved to aaaaaaa"), "{out}");
+    assert!(github.sent("POST").is_empty() && github.sent("PATCH").is_empty() && github.sent("DELETE").is_empty());
+}
+
+#[test]
+fn a_red_run_with_an_open_pr_posts_no_commit_comment_and_one_without_a_pr_posts_it() {
+    // Given a red run on a branch with an open pull request
+    let github = Github::start();
+    github.serve(&red_run(), json!([]), created(), updated());
+    // When wf comments
+    let r = github.comment_wf(&[]);
+    // Then the pull request carries the report and the commit gets none
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(github.sent("POST").iter().all(|p| p.url == PR_COMMENTS), "{:?}", github.server.requests());
+    assert_eq!(github.sent("POST").len(), 1);
+    // and with no pull request the commit gets it
+    github.without_pr();
+    github.serve(&red_run(), json!([]), created(), updated());
+    github.server.clear();
+    let r = github.comment_wf(&[]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert_eq!(github.sent("POST").iter().filter(|p| p.url == COMMENTS).count(), 1);
+}
+
+#[test]
+fn the_cap_stops_at_25_deletions() {
+    // Given 30 comments of older heads
+    let comments: Vec<Value> = (0..30).map(|i| bot(100 + i, &format!("<!-- ci-live run:{} -->\nold", 200 + i))).collect();
+    let runs: Vec<(u64, &str)> = (0..30).map(|i| (200 + i, OLD)).collect();
+    let github = pruning(json!(comments), &runs);
+    // When wf ci prune runs
+    let r = github.ci_wf(&["prune"]);
+    // Then 25 are deleted and the rest is reported as capped
+    let out = last_json(&r);
+    assert_eq!((r.exit_code, out["deleted"].as_array().unwrap().len(), github.sent("DELETE").len()), (0, 25, 25), "{}{}", r.stdout, r.stderr);
+    assert!(out["errors"].to_string().contains("cap reached"), "{out}");
+}
+
+// ---- the job table, the runners, the cache health and the e2e units ----
+
+fn skipped_job(id: u64, name: &str) -> Value {
+    json!({ "id": id, "name": name, "status": "completed", "conclusion": "skipped", "started_at": null, "completed_at": null, "created_at": iso(BASE), "html_url": "", "steps": [] })
+}
+
+fn dry_body(github: &Github, extra: &[(&str, &str)]) -> String {
+    let r = github.comment_wf_with(&["--dry-run"], extra);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    last_json(&r)["body"].as_str().unwrap_or_else(|| panic!("{}{}", r.stdout, r.stderr)).to_string()
+}
+
+#[test]
+fn the_job_table_lists_only_jobs_that_ran_and_names_shards_as_2_of_4() {
+    // Given a run whose shared graph has three skipped jobs, one with a raw template name, and a shard that ran
+    let template = "integration-tests${{ (needs.plan.outputs.shard_count > 1 && format(' ({0}/{1})', matrix.shard, 4)) || '' }}";
+    let jobs = json!([
+        timed_job(500, "plan", "success", 20),
+        timed_job(501, "integration-tests (2/4)", "success", 300),
+        skipped_job(502, template),
+        skipped_job(503, "deploy (vm-ops-api)"),
+        skipped_job(504, "android-e2e-tests"),
+    ]);
+    let github = audit_github_of(jobs.as_array().unwrap(), "ok\n", &[]);
+    github.server.routes(&[
+        ("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 5, "jobs": jobs }))),
+        ("GET /repos/o/r/actions/jobs/500/logs", MockReply::text(200, "ok\n")),
+        ("GET /repos/o/r/actions/jobs/501/logs", MockReply::text(200, "ok\n")),
+    ]);
+
+    // When the report is built
+    let body = dry_body(&github, &[]);
+
+    // Then the shard is named by its own name, no template and no skipped job's name appears, and one line counts them
+    assert!(body.contains("integration-tests (2/4)"), "{body}");
+    assert!(!body.contains("${{") && !body.contains("deploy (vm-ops-api)") && !body.contains("android-e2e-tests"), "{body}");
+    assert!(body.contains("⏭️ 3 jobs of the shared pipeline did not apply to this workflow"), "{body}");
+}
+
+#[test]
+fn a_pending_job_is_not_a_row_but_is_counted_while_the_run_is_live() {
+    // Given a live run with one waiting job
+    let github = live_github(json!([]));
+    // When the live comment is built
+    let r = github.ci_wf(&["live", "start"]);
+    let body = posted_body(&github.sent("POST")[0]);
+    // Then the waiting job is named under the table and counted in the headline, with no row of its own
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(body.contains("⏸️ waiting: clis") && body.contains("1 waiting"), "{body}");
+    assert!(!body.lines().any(|l| l.starts_with('|') && l.contains("clis")), "{body}");
+}
+
+#[test]
+fn the_runner_table_states_the_sampled_cores_and_memory_not_two_cores() {
+    let dir = std::env::temp_dir().join(format!("wf-runner-cores-{}", std::process::id()));
+    std::fs::create_dir_all(&dir).unwrap();
+    std::fs::write(dir.join("stats-flow-tests.jsonl"), "{\"t\":1,\"cpu\":40,\"memUsedMb\":2000,\"memTotalMb\":15900,\"cores\":4,\"load1\":1.0,\"iowaitPct\":3,\"psiCpu\":5,\"psiMem\":0,\"psiIo\":1,\"swapUsedMb\":0}\n{\"t\":6,\"cpu\":95,\"memUsedMb\":3000,\"memTotalMb\":15900,\"load1\":2.5,\"iowaitPct\":9,\"psiCpu\":25,\"psiMem\":1,\"psiIo\":4,\"swapUsedMb\":512}\n").unwrap();
+    let github = live_github(json!([]));
+    let extra = [("WF_CI_LABEL", "GitHub-hosted"), ("WF_CI_RUNNER_STATS_DIR", dir.to_str().unwrap())];
+
+    // When the live comment is built
+    let r = github.ci_wf_with(&["live", "start"], &extra);
+    let body = posted_body(&github.sent("POST")[0]);
+
+    // Then the machine is the sampled one, with the p95, iowait, swap, pressure, idle and saturated columns
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    assert!(body.contains("4 vCPU / 16 GB") && !body.contains("2-core"), "{body}");
+    assert!(body.contains("| 🔴 flow-tests | 68% | **95%** | 2.5 GB | **3.0 GB** (19%) | 2.5 | 2 | 95% | 6% | 0.5 GB | 25/1/4% | 0 | 5 |"), "{body}");
+
+    // and a sample with no cores says so instead of naming a constant
+    std::fs::write(dir.join("stats-flow-tests.jsonl"), "{\"t\":1,\"cpu\":40,\"memUsedMb\":2000,\"memTotalMb\":7000,\"load1\":1.0}\n").unwrap();
+    let github = live_github(json!([]));
+    github.ci_wf_with(&["live", "start"], &extra);
+    let body = posted_body(&github.sent("POST")[0]);
+    assert!(body.contains("cores not sampled") && !body.contains("2-core") && body.contains("| 🟢 flow-tests |"), "{body}");
+    std::fs::remove_dir_all(&dir).ok();
+}
+
+fn cache_log(stage: &str) -> String {
+    format!(
+        "2026-10-23T10:00:07.0000000Z ts=1 level=info source=ci-cache msg=\"nx.stage.summary\" stage={stage} ran=3 replayed=0\n2026-10-23T10:00:08.0000000Z ts=2 level=warn source=ci-cache msg=\"cache.shim.disabled\" reason=\"WF_BLOB_CACHE=off\"\n"
+    )
+}
+
+#[test]
+fn eleven_jobs_that_replayed_nothing_are_one_row_with_the_job_count_and_the_disabled_shim_is_one_note() {
+    // Given eleven jobs whose logs say the stage replayed nothing and the shim was off
+    let jobs: Vec<Value> = (0..11).map(|i| timed_job(500 + i, &format!("flow-tests ({}/11)", i + 1), "success", 100)).collect();
+    let github = Github::start();
+    let mut routes = vec![("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1".to_string(), MockReply::json(200, json!({ "total_count": 11, "jobs": jobs })))];
+    for i in 0..11 {
+        routes.push((format!("GET /repos/o/r/actions/jobs/{}/logs", 500 + i), MockReply::text(200, &cache_log("flow-tests"))));
+    }
+    github.server.routes(&routes.iter().map(|(k, v)| (k.as_str(), v.clone())).collect::<Vec<_>>());
+
+    // When the push gate is off for the hosted stages
+    let off = dry_body(&github, &[("GITHUB_EVENT_NAME", "push"), ("GITHUB_REF_NAME", "dev"), ("WF_CI_PUSH_GATE", "off")]);
+    // Then there is no replayed-nothing row and the shim is one note with the count
+    assert!(!off.contains("replayed-nothing"), "{off}");
+    assert_eq!(off.matches("The shared build cache is off").count(), 1, "{off}");
+    assert!(off.contains("in 11 jobs"), "{off}");
+
+    // and with the gate on, one row with the job count
+    let on = dry_body(&github, &[("GITHUB_EVENT_NAME", "push"), ("GITHUB_REF_NAME", "dev"), ("WF_CI_PUSH_GATE", "on")]);
+    assert_eq!(on.matches("| replayed-nothing |").count(), 1, "{on}");
+    assert!(on.contains("| replayed-nothing | 11 jobs |"), "{on}");
+}
+
+fn results_file(units: &[(&str, &str)]) -> String {
+    static N: AtomicU64 = AtomicU64::new(0);
+    let path = std::env::temp_dir().join(format!("e2e-results-{}-{}.json", std::process::id(), N.fetch_add(1, Ordering::Relaxed)));
+    let runs: Vec<Value> = units.iter().map(|(unit, verdict)| json!({ "sha": SHA, "platform": "web", "test": "login", "unit": unit, "verdict": verdict, "durationS": 2.5, "publishedAt": "2026-10-23T10:00:00Z" })).collect();
+    std::fs::write(&path, json!({ "runs": runs }).to_string()).unwrap();
+    path.display().to_string()
+}
+
+#[test]
+fn the_e2e_units_are_one_collapsed_block_with_counts_and_failures_first_and_an_all_green_block_is_closed() {
+    let github = Github::start();
+    let jobs = [timed_job(500, "plan", "success", 20)];
+    github.server.routes(&[
+        ("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 1, "jobs": jobs }))),
+        ("GET /repos/o/r/actions/jobs/500/logs", MockReply::text(200, "ok\n")),
+    ]);
+    // Given 298 passing units and 2 failing ones
+    let mut units: Vec<(String, &str)> = (0..298).map(|i| (format!("unit-{i:03}"), "pass")).collect();
+    units.extend([("broken-a".to_string(), "fail"), ("broken-b".to_string(), "fail")]);
+    let refs: Vec<(&str, &str)> = units.iter().map(|(u, v)| (u.as_str(), *v)).collect();
+    let file = results_file(&refs);
+
+    // When the report is built
+    let body = dry_body(&github, &[("WF_CI_RESULTS", &file)]);
+
+    // Then one open block carries the counts, the failing rows come first and the comment is small
+    assert_eq!(body.matches("<summary>🧪 E2E units").count(), 1, "{body}");
+    assert!(body.contains("298 passed, 2 failed") && body.contains("<details open><summary>🧪"), "{body}");
+    assert!(body.find("broken-a").unwrap() < body.find("unit-000").unwrap(), "{body}");
+    assert!(body.len() < 60_000, "{}", body.len());
+
+    // and an all-green block is closed
+    let file = results_file(&[("a", "pass"), ("b", "pass")]);
+    let body = dry_body(&github, &[("WF_CI_RESULTS", &file)]);
+    assert!(body.contains("<details><summary>🧪 E2E units: 2 passed, 0 failed</summary>"), "{body}");
+}
+
+// ---- the telemetry in the report ----
+
+#[test]
+fn the_report_has_a_headline_with_wall_runner_seconds_peak_jobs_efficiency_the_critical_path_and_the_fixed_cost() {
+    // Given three jobs whose intervals give a 600 s wall, 1500 s of runner time and at most three at once
+    let at = |name: &str, id: u64, from: i64, to: i64| {
+        let mut j = job(id, name, "success", &iso(BASE + to), json!([{ "name": "Run ./.github/actions/setup-job", "conclusion": "success", "started_at": iso(BASE + from), "completed_at": iso(BASE + from + 40) }]));
+        (j["created_at"], j["started_at"]) = (json!(iso(BASE + from - 45)), json!(iso(BASE + from)));
+        j
+    };
+    let jobs = json!([at("plan", 500, 0, 100), at("core-tests (1/2)", 501, 100, 600), at("core-tests (2/2)", 502, 100, 500), at("clis", 503, 100, 500)]);
+    let github = Github::start();
+    github.server.routes(&[
+        ("GET /repos/o/r/actions/runs/77/jobs?per_page=100&page=1", MockReply::json(200, json!({ "total_count": 4, "jobs": jobs }))),
+        ("GET /repos/o/r/actions/runs/77", MockReply::json(200, json!({ "name": "CI", "run_started_at": iso(BASE) }))),
+        ("GET /repos/o/r/actions/jobs/500/logs", MockReply::text(200, "ok\n")),
+        ("GET /repos/o/r/actions/jobs/501/logs", MockReply::text(200, "ok\n")),
+        ("GET /repos/o/r/actions/jobs/502/logs", MockReply::text(200, "ok\n")),
+        ("GET /repos/o/r/actions/jobs/503/logs", MockReply::text(200, "ok\n")),
+    ]);
+
+    // When the report is built
+    let body = dry_body(&github, &[("WF_CI_CORE_SHARD_KEYS", "[\"k1\",\"k2\"]")]);
+
+    // Then the headline carries the profile's numbers, and the verdict names the critical path, the wait and the fixed cost
+    assert!(body.contains("wall 10m 00s · runner time 23m 20s"), "{body}");
+    assert!(body.contains("peak 3 / avg 2.3 jobs at once · parallel efficiency 78%") && body.contains("4 jobs ran"), "{body}");
+    assert!(body.contains("The critical path is plan &gt; core-tests (1/2) (10m 00s, 100% of the wall time)"), "{body}");
+    assert!(body.contains("Jobs waited 3m 00s for a runner in total, 45s at worst"), "{body}");
+    assert!(body.contains("| setup-job | 2m 40s | 4 | 40s |"), "{body}");
+    assert!(body.contains("core-tests (1/2) queued 45s; its concurrency group key is `k1`") && body.contains("plan waited 45s for a runner"), "{body}");
+}
+
+#[test]
+fn the_comment_stays_under_the_cap_with_every_section_present() {
+    // Given a live run with the sampler's files
+    let github = live_github(json!([]));
+    let r = github.ci_wf(&["live", "start"]);
+    assert_eq!(r.exit_code, 0, "{}{}", r.stdout, r.stderr);
+    let body = posted_body(&github.sent("POST")[0]);
+    assert!(body.len() < 60_000 && body.contains("### Jobs"), "{}", body.len());
 }

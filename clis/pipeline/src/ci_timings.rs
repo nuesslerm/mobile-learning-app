@@ -29,12 +29,12 @@ fn split(name: &str) -> (String, String) {
 }
 
 /// The stage's name as a job names it: the part before ` / ` of a reusable workflow's `run / flow-tests (3/6)`, or its last part for a nested job.
-fn stage_name(name: &str) -> String {
+pub(crate) fn stage_name(name: &str) -> String {
     let last = name.rsplit(" / ").next().unwrap_or(name);
     split(last).0
 }
 
-fn shard_of(name: &str) -> String {
+pub(crate) fn shard_of(name: &str) -> String {
     split(name.rsplit(" / ").next().unwrap_or(name)).1
 }
 
@@ -142,12 +142,15 @@ fn fail(message: &str, next: &str) -> i32 {
     1
 }
 
-/// The concurrency group of a job when it is a shard with a key: `WF_CI_SHARD_KEYS` is the plan's JSON array of keys of the integration shards.
-fn group_of(stage: &str, shard: &str) -> Option<String> {
-    if stage != "integration-tests" {
-        return None;
-    }
-    let keys: Vec<String> = serde_json::from_str(&var("WF_CI_SHARD_KEYS")?).ok()?;
+/// The concurrency group key of a job when it is a shard with a key: `WF_CI_SHARD_KEYS` is the plan's JSON array of keys of the integration shards,
+/// `WF_CI_CORE_SHARD_KEYS` the same for the core-tests shards.
+pub(crate) fn group_of(stage: &str, shard: &str) -> Option<String> {
+    let var_name = match stage {
+        "integration-tests" => "WF_CI_SHARD_KEYS",
+        "core-tests" => "WF_CI_CORE_SHARD_KEYS",
+        _ => return None,
+    };
+    let keys: Vec<String> = serde_json::from_str(&var(var_name)?).ok()?;
     let index = shard.split('/').next()?.parse::<usize>().ok()?.checked_sub(1)?;
     keys.get(index).cloned()
 }

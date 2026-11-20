@@ -1995,6 +1995,55 @@ Options:
 
 </details>
 
+### `wf ci prune`
+
+Delete the CI comments of older heads from the pull request.
+
+Usage: `wf ci prune [options]`
+
+Examples:
+
+```sh
+wf ci prune --pr 82 --dry-run
+wf ci prune --pr 82
+```
+
+<details><summary>Full help</summary>
+
+```text
+Usage: wf ci prune [options]
+
+Removes the CI comments of heads the pull request has moved past, so the pull
+request carries only the latest head's comment of each workflow. A comment is
+deleted only when it is the Actions bot's (github-actions[bot]), its first line
+is exactly a CI marker, its run's head sha is known (GET actions/runs/<id>) and
+differs from the pull request's head, and its workflow is the caller's or a
+retired one (a flavor no ci-hosted*.yml label produces). A comment of another
+current workflow is left for that workflow's own run; a comment whose run cannot
+be resolved is kept. Human comments are never touched. `wf ci live` and
+`wf ci comment` run the same pass after they write their own comment.
+
+At most 25 comments are deleted per call (the output says "cap reached");
+WF_CI_PRUNE=off disables the pass. A failure is reported in the output and never
+fails the step: exit 0 always.
+
+Environment: GITHUB_TOKEN (pull-requests: write), GITHUB_REPOSITORY;
+optional GITHUB_REF_NAME (the branch whose pull request it is), GITHUB_RUN_ID
+(the calling run, whose own comment is never deleted), GITHUB_WORKSPACE (where
+.github/workflows is read for the current labels), GITHUB_API_URL.
+
+Output: one JSON line {ok, dryRun, head, deleted: [{id, scope, flavor, run, sha,
+why}], kept: [{id, why}], errors}.
+
+Options:
+  --pr <n>    the pull request (default: the open one of the branch)
+  --dry-run   list what would be deleted and send no DELETE
+  --commits   also prune the commit comments of the pull request's commits
+  -h, --help  display help for command
+```
+
+</details>
+
 ### `wf ci live`
 
 Update the run's one comment on the pull request.

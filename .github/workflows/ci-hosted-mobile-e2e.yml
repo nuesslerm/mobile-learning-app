@@ -1,6 +1,6 @@
-name: CI mobile e2e
+name: mobile_build+publish+release-testing
 
-# CI mobile e2e: pipeline.yml with `stages: e2e`, a run of its own on every push: the production EAS Update, the Android e2e update, the browser suite against a web export built on its
+# mobile_build+publish+release-testing: pipeline.yml with `stages: e2e`, a run of its own on every push: the production EAS Update, the Android e2e update, the browser suite against a web export built on its
 # runner and the Android suite on the SDK emulator against its own backends. None of them waits for the tests, the deploy or the other CI workflows. Its pull request comment is its own.
 on:
   push:
@@ -54,7 +54,7 @@ jobs:
       deploy: false
       e2e: true
       stages: e2e
-      label: GitHub-hosted mobile e2e
+      label: mobile_build+publish+release-testing
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
       TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}

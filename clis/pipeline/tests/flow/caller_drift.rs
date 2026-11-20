@@ -76,7 +76,8 @@ fn the_cli_deploy_and_e2e_callers_are_runs_of_their_own_of_the_same_pipeline_eac
         assert_eq!(jobs(&text), set(&["trigger", "run"]), "{caller} jobs");
         assert!(run.contains("    uses: ./.github/workflows/pipeline.yml\n") && !run.contains("runs-on:") && !run.contains("steps:"), "{caller} holds job logic");
         assert!(run.contains(&format!("      stages: {stage}\n")), "{caller} runs the {stage} stage");
-        assert!(run.contains("      label: GitHub-hosted "), "{caller} has a label of its own, so its pull request comment is its own");
+        assert!(run.lines().any(|l| l.starts_with("      label: ") && l.len() > "      label: ".len()), "{caller} has a label of its own, so its pull request comment is its own");
+        assert!(text.starts_with(&format!("name: {}\n", run.lines().find_map(|l| l.strip_prefix("      label: ")).unwrap_or_default())), "{caller} is named by its label");
         assert!(text.contains(&format!("  group: {group}${{{{ github.sha }}}}\n")), "{caller} has a concurrency group of its own");
     }
     let backend = job_block(&workflow("ci-hosted.yml"), "run").to_string();

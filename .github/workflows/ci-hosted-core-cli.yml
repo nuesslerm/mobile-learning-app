@@ -1,6 +1,6 @@
-name: CI core cli
+name: cli_core+lint+pre-release-testing
 
-# CI core cli: pipeline.yml with `stages: core` and `area: cli`, a run of its own on every push: the flow, lint, typecheck and unit tests of the cli area. Its pull request comment is its own.
+# cli_core+lint+pre-release-testing: pipeline.yml with `stages: core` and `area: cli`, a run of its own on every push: the flow, lint, typecheck and unit tests of the cli area. Its pull request comment is its own.
 on:
   push:
     branches: [dev]
@@ -52,7 +52,7 @@ jobs:
       deploy: false
       e2e: false
       stages: core
-      label: GitHub-hosted core cli
+      label: cli_core+lint+pre-release-testing
       area: cli
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}

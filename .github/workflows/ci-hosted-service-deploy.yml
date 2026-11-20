@@ -1,6 +1,6 @@
-name: CI service deploy
+name: backend_build+deploy+release-testing
 
-# CI service deploy: pipeline.yml with `stages: deploy`, a run of its own on every push: the image builds, the integration tests (which run what the images hold) and the deploy legs
+# backend_build+deploy+release-testing: pipeline.yml with `stages: deploy`, a run of its own on every push: the image builds, the integration tests (which run what the images hold) and the deploy legs
 # and their verification. Integration shards queue per crate set and input fingerprint (docs/solutions/ci/shard-weights-and-overlapping-runs.md). Its pull request comment is its own.
 on:
   push:
@@ -54,7 +54,7 @@ jobs:
       deploy: ${{ vars.HOSTED_DEPLOY == 'on' }}
       e2e: false
       stages: deploy
-      label: GitHub-hosted service deploy
+      label: backend_build+deploy+release-testing
     secrets:
       BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
       TS_HOSTED_OAUTH_CLIENT_ID: ${{ secrets.TS_HOSTED_OAUTH_CLIENT_ID }}

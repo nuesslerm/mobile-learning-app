@@ -107,7 +107,7 @@ pub(crate) fn task_resources(run: &str, job: &str, tasks: &[LedgerTask], samples
         .collect()
 }
 
-fn samples_of(path: &Path) -> Vec<Value> {
+pub(crate) fn samples_of(path: &Path) -> Vec<Value> {
     std::fs::read_to_string(path).unwrap_or_default().lines().filter_map(|l| serde_json::from_str(l).ok()).collect()
 }
 

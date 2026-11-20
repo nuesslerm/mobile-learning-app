@@ -69,6 +69,8 @@ permissions:
 
 env:
   WF_CI_LABEL: ${{ inputs.label }}
+  # the pre-push hook runs no stage (lefthook.yml), so a push to dev seeds nothing for CI to replay: the comment and the cache-health verb both judge without the gate
+  WF_CI_PUSH_GATE: "off"
   npm_config_manage_package_manager_versions: "false"
   WF_VM_CI_PORT: "8081"
   BWS_CI_DEPLOY_ACCESS_TOKEN: ${{ secrets.BWS_CI_DEPLOY_ACCESS_TOKEN }}
@@ -1155,22 +1157,26 @@ jobs:
         continue-on-error: true
         timeout-minutes: 3
         run: wf test results --query "since=1d" --json > "$RUNNER_TEMP/e2e-results.json"
+      # the jobs' databases come before the report: the comment reads their task intervals and the plan's runner-pool reading
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        continue-on-error: true
+        with:
+          pattern: ci-db-*
+          path: ${{ runner.temp }}/ci-db
       - name: Report the run
         continue-on-error: true
         timeout-minutes: 5
         env:
           WF_CI_RESULTS: ${{ runner.temp }}/e2e-results.json
           WF_CI_RUNNER_STATS_DIR: ${{ runner.temp }}/runner-stats
+          WF_CI_LEDGERS: ${{ runner.temp }}/ci-db
+          WF_CI_CORE_SHARD_KEYS: ${{ needs.plan.outputs.core_shard_keys }}
+          WF_CI_SHARD_KEYS: ${{ needs.plan.outputs.integration_shard_keys }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_SHA: ${{ github.sha }}
         run: wf ci comment
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        continue-on-error: true
-        with:
-          pattern: ci-db-*
-          path: ${{ runner.temp }}/ci-db
       # what every job and step of the run took, as gauges (Better Stack) and one JSON line in this log; and each job a row of CI_JOBS for the merge below; best effort, never a failure
       - name: Timings
         continue-on-error: true
@@ -1215,5 +1221,4 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
-          WF_CI_PUSH_GATE: "off"
         run: wf ci cache-health

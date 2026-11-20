@@ -504,6 +504,16 @@ pub struct ConcurrencyRow {
     pub headroom: i64,
 }
 
+/// The readings of `CI_CONCURRENCY` in a database file (the plan job's rows, shipped as an artifact), oldest first.
+pub fn concurrency_of(path: &Path) -> Result<Vec<ConcurrencyRow>, String> {
+    let conn = open_at(path)?;
+    let mut stmt = conn.prepare("SELECT TS, RUN_ID, PHASE, WORKFLOW, BUSY, QUEUED, RUNS_ACTIVE, CAP, HEADROOM FROM CI_CONCURRENCY ORDER BY TS").map_err(sql)?;
+    let rows = stmt
+        .query_map([], |r| Ok(ConcurrencyRow { ts: r.get(0)?, run: r.get(1)?, phase: r.get(2)?, workflow: r.get(3)?, busy: r.get(4)?, queued: r.get(5)?, runs_active: r.get(6)?, cap: r.get(7)?, headroom: r.get(8)? }))
+        .map_err(sql)?;
+    rows.collect::<Result<_, _>>().map_err(sql)
+}
+
 pub fn record_concurrency_local(rows: &[ConcurrencyRow]) -> Result<bool, String> {
     let cells = rows.iter().map(|r| vec![int(r.ts), text(&r.run), text(&r.phase), text(&r.workflow), int(r.busy), int(r.queued), int(r.runs_active), int(r.cap), int(r.headroom)]).collect();
     insert_local("INSERT OR IGNORE INTO CI_CONCURRENCY (TS, RUN_ID, PHASE, WORKFLOW, BUSY, QUEUED, RUNS_ACTIVE, CAP, HEADROOM) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)", cells)

@@ -54,6 +54,21 @@ All timestamps are epoch seconds unless the column says `_MS`. The keys make a r
 
 **`CI_CONCURRENCY`**, one row per workflow and one for `all` per reading (`RUN_ID, PHASE, TS, WORKFLOW`): `BUSY` (jobs in progress), `QUEUED`, `RUNS_ACTIVE`, `CAP` (20; `WF_CI_RUNNER_CAP` overrides), `HEADROOM` (the account's: `CAP` less all busy jobs, repeated on each row). The reading is the repository's in-progress and queued runs from the Actions API; another repository on the same account is not seen.
 
+## In the PR comment
+
+Each of the six hosted workflows keeps one comment on the pull request (`CI (<label>)`), edited in place by `wf ci live` and finished by `wf ci comment`. The comment is built in the report job **before** `wf ci db merge`, so it does not query the sealed database: it recomputes the same numbers in process (`clis/pipeline/src/ci_telemetry.rs`) from the raw inputs the `wf ci timings|resources|concurrency` verbs read. The report job therefore downloads `ci-db-*` first and gives "Report the run" `WF_CI_LEDGERS`, `WF_CI_CORE_SHARD_KEYS` and `WF_CI_SHARD_KEYS`.
+
+| Line in the comment | Source |
+|---|---|
+| Headline: wall, runner time, peak and average jobs at once, parallel efficiency, jobs that ran; critical path in the verdict | `ci_timings::profile` over the jobs that ran (the `CI_RUN_PROFILE` numbers) |
+| Fixed cost table: `setup-job`, `install-test-deps` steps, the `wf-build` and `plan` jobs | `ci_timings::step_rows` (`CI_STEPS`) |
+| Queue wait, and a long wait with its concurrency group key (`WF_CI_CORE_SHARD_KEYS`, `WF_CI_SHARD_KEYS`) | job `created_at` to `started_at` (`CI_JOBS.QUEUED_S`) |
+| Runner pool: repo busy / queued / headroom at plan and at report | the plan job's `CI_CONCURRENCY` start row; the end reading is taken in process |
+| Runner table: vCPU and memory as sampled, CPU avg/p95/peak, iowait, memory, swap, pressure, seconds idle and saturated | the sampler's `stats-<job>.jsonl` (`CI_JOB_RESOURCES`); cores come from the sampler, never a constant |
+| In-runner parallelism: tasks at once per job and the cores they used | `ci-db-<job>/rows.sqlite` `NX_TASKS` with the samples (`CI_TASK_RESOURCES`) |
+
+Only jobs that ran are rows; the jobs of the shared `pipeline.yml` that the caller's `stages`/`area` left out are one count under the table. The e2e units are one collapsed block with the pass and fail counts in its summary (open only when a unit failed, failing rows first). Cache health is one row per kind with the job count; `WF_CI_PUSH_GATE=off` (set for the whole pipeline) means a hosted push seeds nothing, so no `replayed-nothing` problem is raised. Stale comments of older heads and of retired labels are removed by `wf ci prune` (run after every live write); see `docs/reference/wf-cli.md`.
+
 ## Better Stack gauges
 
 Same record as `CI_METRICS`; labels are `scope` and `name` (see [betterstack-query-recipes](../workflow/betterstack-query-recipes.md)).

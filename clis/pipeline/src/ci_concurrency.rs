@@ -12,8 +12,13 @@ use wf_kit::args::{parse_spec, Positional, Spec};
 const SPEC: Spec = Spec { values: &["phase", "run"], positional: Positional::None, ..Spec::NONE };
 /// The account's concurrent-job limit on GitHub-hosted runners; `WF_CI_RUNNER_CAP` overrides it when the plan changes.
 const CAP: i64 = 20;
+
+/// The cap in force: `WF_CI_RUNNER_CAP` when set, else the account default.
+pub(crate) fn cap() -> i64 {
+    var("WF_CI_RUNNER_CAP").and_then(|c| c.parse().ok()).unwrap_or(CAP)
+}
 /// The row that sums every workflow.
-const TOTAL: &str = "all";
+pub(crate) const TOTAL: &str = "all";
 /// A listing of this many runs is already more than the cap can be running; the rest would cost API calls for nothing.
 const MAX_RUNS: usize = 50;
 
@@ -45,7 +50,7 @@ fn listing(env: &Env, status: &str) -> Result<Vec<Value>, String> {
     Ok(body["workflow_runs"].as_array().cloned().unwrap_or_default())
 }
 
-fn read(env: &Env) -> Result<Vec<(Value, Vec<Value>)>, String> {
+pub(crate) fn read(env: &Env) -> Result<Vec<(Value, Vec<Value>)>, String> {
     let mut runs = listing(env, "in_progress")?;
     for run in listing(env, "queued")? {
         if !runs.iter().any(|r| r["id"] == run["id"]) {
@@ -71,7 +76,7 @@ fn concurrency(rest: &[String]) -> Option<i32> {
         Ok(e) => e,
         Err(why) => return say(false, &why, "set GITHUB_TOKEN and GITHUB_REPOSITORY"),
     };
-    let cap = var("WF_CI_RUNNER_CAP").and_then(|c| c.parse().ok()).unwrap_or(CAP);
+    let cap = cap();
     let active = match read(&env) {
         Ok(a) => a,
         Err(why) => return say(false, &why, "check the token's actions:read scope"),
